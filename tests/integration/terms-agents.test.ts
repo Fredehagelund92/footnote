@@ -311,6 +311,33 @@ it('names the terms of a query and of an item', async () => {
   expect(read.terms).toEqual([peakEntry('peak season')])
 })
 
+it('lists a term with what it means, its owner as a role, and no synonym as a term (FR-351)', async () => {
+  const terms = (await tool('list_definitions', { kind: 'term' })).reply as Reply & {
+    total: number
+    definitions: Record<string, unknown>[]
+  }
+  expect(terms.total).toBe(1)
+  expect(terms.definitions).toEqual([
+    {
+      key: expect.stringMatching(/^term:/) as string,
+      name: 'Peak season',
+      kind: 'term',
+      domain: 'Finance',
+      owner: { role: 'the owner of Finance', team: null },
+      family: false,
+      meaning,
+      url: '/definitions/Peak%20season',
+    },
+  ])
+  // A synonym of a metric is one of its other names, never a definition of its own.
+  const all = (await tool('list_definitions', { limit: 100 })).reply.definitions as unknown as {
+    name: string
+  }[]
+  expect(all.map((d) => d.name)).toEqual(['Orders', 'Market', 'Peak season'])
+  const purchases = (await tool('list_definitions', { query: 'purchases' })).reply
+  expect(purchases).toMatchObject({ status: 'matched', definitions: [{ key: 'metric:orders' }] })
+})
+
 it('serves a deleted term no more, from the next call on, and a restored one again', async () => {
   const deleted = await ok<TermChangeResult>(
     call('POST', '/terms/delete', 'owner', { ids: [peak.id, purchases.id] }),

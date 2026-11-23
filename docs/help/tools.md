@@ -1,15 +1,15 @@
 ---
 title: Agent tools
-line: The six tools an agent can call, what each takes and gives back, and how to read a reply.
+line: The eight tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 6
-reviewed: 2026-11-20
+minutes: 8
+reviewed: 2026-11-23
 ---
 
-The six tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them. All read, apart from the two that send something to an owner after the person says yes. A suggestion waits for the owner, unless the owner lets that agent [publish without review](publish-without-review.md).
+The eight tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them. All read, apart from the two that send something to an owner after the person says yes. A suggestion waits for the owner, unless the owner lets that agent [publish without review](publish-without-review.md).
 
-## The six tools
+## The eight tools
 
 <!-- include tools -->
 
@@ -54,6 +54,20 @@ Follow a link between context items, definitions and domains, one step at a time
 
 - Takes: A context item, a definition or a domain.
 - Returns: What it links to and is linked from, without changing what an answer includes.
+
+### list_definitions
+
+The metrics, dimensions and terms in Definitions, a page at a time.
+
+- Takes: A domain, a kind or a word, all optional.
+- Returns: Each name with its kind, domain, owner and a one-line meaning.
+
+### list_context
+
+The published context items, a page at a time.
+
+- Takes: A domain, a kind or a word, all optional.
+- Returns: Each context item's title, kind, domain and dates, never its text.
 
 <!-- /include -->
 
@@ -123,6 +137,24 @@ Dates in `window` include both ends: `window.from` and `window.to`. A question w
 - Gives back: titles and summaries under `context`, and definitions.
 
 `read_context` reads one context item in full. It takes `id`, the item's id, and gives back its text, every source, who checked it and its links.
+
+## List what there is: list_definitions and list_context
+
+For a request such as "show me ten of our metrics" or "what is written down about Sales". Not for a question about the data, which `get_context` answers, nor a search by words, which `find_context` does.
+
+`list_definitions` lists the metrics, dimensions and terms in Definitions. A family of metrics is one entry, with `family: true` and its number of metrics in `members`. Each entry has its name and key, its kind, its domain, its owner as a role and a team, never a person, a one-line meaning where it has one, and its page.
+
+`list_context` lists the published context items the agent may see. Each has its title, kind, domain, what it applies to, when, who checked it and when, and `may_be_out_of_date` when it is due for a check. It never gives an item's text: `read_context` does. Suggestions and drafts are never listed.
+
+| Option   | What it does                                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------- |
+| `kind`   | `metric`, `dimension` or `term` for definitions; `event`, `warning`, `rule` or `guide` for context items |
+| `domain` | One domain, by name                                                                                      |
+| `query`  | Only names, or titles, with these words                                                                  |
+| `limit`  | How many on a page: 25 by default, 100 at most                                                           |
+| `cursor` | The `next_cursor` of the page before                                                                     |
+
+Both give back `total`, how many there are with these filters, and `next_cursor` for the next page, or null on the last. The order is fixed: metrics, then dimensions, then terms, each A to Z, and context items A to Z by title. To pick a few at random, an agent reads a page of up to 100 and picks from it, or reads on with `next_cursor`.
 
 ## Send a report: report
 

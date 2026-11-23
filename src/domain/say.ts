@@ -661,6 +661,45 @@ export const relatedSaid = (c: { shown: number; total: number; depth: number } |
         next: 'That says nothing about what else is written down.',
       }
 
+/** One page of a list (FR-351, FR-352): how many there are, and which of them it shows. */
+type ListPage = { total: number; offset: number; shown: number }
+/** "There are 87 definitions; 1 to 25 are shown." A page that shows all says only how many. */
+const pageWords = (c: ListPage, one: string, many: string) =>
+  c.shown === c.total
+    ? `There ${c.total === 1 ? `is ${count(1, one, many)}` : `are ${count(c.total, one, many)}`}.`
+    : `There are ${count(c.total, one, many)}; ${(c.offset + 1).toLocaleString('en')} to ${(c.offset + c.shown).toLocaleString('en')} are shown.`
+const morePages = (c: ListPage) =>
+  c.offset + c.shown < c.total ? ' Pass next_cursor as cursor for the next page.' : ''
+/** A list's domain that names none: nothing was listed. The words are the agent's: never repeated. */
+export const unknownDomainSaid: Said = {
+  say: "There's no domain by that name, so nothing was listed.",
+  next: 'Call again with a domain from options, or without domain.',
+}
+
+/** list_definitions' sentences (FR-351): how many definitions there are, and the next page. */
+export const definitionsListSaid = (c: ListPage): Said =>
+  c.total
+    ? {
+        say: pageWords(c, peopleConcepts.definition.name, `${peopleConcepts.definition.name}s`),
+        next: `They come in a fixed order: metrics, then dimensions, then terms, each A to Z.${morePages(c)} For what one means and the context about it, call find_context with its name, or get_context for a question.`,
+      }
+    : {
+        say: `There's no ${peopleConcepts.definition.name} with these filters.`,
+        next: 'That says nothing about what context items say: for words, call find_context.',
+      }
+
+/** list_context's sentences (FR-352): how many published context items there are, and the next page. */
+export const contextListSaid = (c: ListPage, item: readonly [string, string]): Said =>
+  c.total
+    ? {
+        say: pageWords(c, `published ${item[0]} you can read`, `published ${item[1]} you can read`),
+        next: `They come in a fixed order, A to Z by title.${morePages(c)} Read one in full with read_context, by its id; for what applies to a question, call get_context.`,
+      }
+    : {
+        say: `There's no published ${item[0]} you can read with these filters.`,
+        next: 'That proves nothing about a question: call get_context with its metrics, markets and dates.',
+      }
+
 /**
  * report's sentence: what was sent, and to which owner when the report names a context item or a
  * scope; never who asked. `to` is the owner as a role ("the owner of Sales").

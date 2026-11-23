@@ -14,6 +14,7 @@ import {
   type Resolution,
 } from '../../domain/resolver.ts'
 import { findArea, readQuery } from '../../domain/context-search.ts'
+import { normalizeName } from '../../domain/vocabulary.ts'
 import { noteFindings, topicFor } from '../../domain/gap-reports.ts'
 import {
   assumedDate,
@@ -48,15 +49,29 @@ import {
   checkedWords,
   ownerRole,
 } from '../../domain/served-review.ts'
-import type { EditionSource, ServingBundle, ServingItem } from '../modules/editions/index.ts'
+import type {
+  EditionSource,
+  ServingBundle,
+  ServingItem,
+  ServingTerm,
+} from '../modules/editions/index.ts'
 import type { Principal } from './auth.ts'
-import { canRead, linkIndex, outgoing, related, termShown, type Link } from '../../domain/links.ts'
+import {
+  canRead,
+  linkIndex,
+  outgoing,
+  related,
+  termShown,
+  writtenTermId,
+  type Link,
+} from '../../domain/links.ts'
 import type { AnonymousRecord, AnonymousStore } from './records.ts'
 import {
   askedDomains,
   definitionLine,
   definitionOf,
   findContext,
+  quoted,
   reviewedOutput,
   type FindArgs,
 } from './outcomes.ts'
@@ -65,8 +80,10 @@ import {
   appliesWords,
   askedGroups,
   askedMetrics,
+  contextListSaid,
   contextSaid,
   contextVoice,
+  definitionsListSaid,
   failedSaid,
   findSaid,
   readSaid,
@@ -74,6 +91,7 @@ import {
   relatedSaid,
   reportSaid,
   scopeWords,
+  unknownDomainSaid,
   unreadSaid,
   whenWords,
   type Said,
@@ -82,6 +100,8 @@ import {
   findContextInput,
   checkContextInput,
   getContextInput,
+  listContextInput,
+  listDefinitionsInput,
   readInput,
   relatedInput,
   reportInput,
@@ -485,6 +505,82 @@ function namesDomain(bundle: ServingBundle, args: FindArgs) {
   )
 }
 
+/** Whether a name holds every word of a list's query, as names are matched (`normalizeName`). */
+function namedBy(query: string | undefined, names: readonly string[]) {
+  if (!query) return true
+  const words = normalizeName(query).split(' ').filter(Boolean)
+  const said = names.map(normalizeName)
+  return words.every((word) => said.some((name) => name.includes(word)))
+}
+const byName = (a: { name: string; key: string }, b: { name: string; key: string }) =>
+  a.name.localeCompare(b.name, 'en') || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
+/** The first sentence of some words, as a one-line meaning: never more than a definition shows. */
+const firstSentence = (words: string) =>
+  quoted(words.trim().split(/\n|(?<=[.!?])\s/)[0] ?? words).text
+/** A definition's owner as agents read one (FR-326): its domain's owner as a role, and its team. */
+function definitionOwner(bundle: ServingBundle, areaId: string | null | undefined) {
+  const area = areaId ? bundle.areas.find((a) => a.id === areaId) : undefined
+  return area
+    ? { domain: area.name, owner: { role: ownerRole(area.name), team: area.team } }
+    : { domain: null, owner: { role: 'an admin', team: null } }
+}
+
+/**
+ * Every definition an agent may see now, in list_definitions' order (FR-351): metrics and families
+ * of metrics, then dimensions, then the terms people wrote, each A to Z. A family is one entry for
+ * its metrics, which the Definitions page lists in it and nowhere else; a word's other names are
+ * none of its own. Only words: never a calculation, the source's text past its first sentence, or
+ * a person.
+ */
+function definitionsOf(bundle: ServingBundle, web: string | null) {
+  const families = new Set(
+    bundle.terms
+      .filter((t) => t.kind === 'metric_group' && t.definitionRefs.length)
+      .map((t) => t.key),
+  )
+  const shown = bundle.terms.filter((t) => termShown(bundle, t))
+  const entry = (term: ServingTerm, kind: 'metric' | 'dimension') => {
+    const family = families.has(term.key)
+    const line = family ? null : definitionLine(term)
+    return {
+      key: term.key,
+      name: term.name,
+      names: [term.name, ...term.aliases],
+      kind,
+      areaId: term.areaId ?? bundle.metricArea[term.key] ?? null,
+      family,
+      ...(family ? { members: bundle.terms.filter((t) => t.parentKey === term.key).length } : {}),
+      ...(line ? { meaning: line.definition } : {}),
+      url: definitionUrl(web, term.name),
+    }
+  }
+  const metrics = shown
+    .filter((t) =>
+      t.kind === 'metric' ? !(t.parentKey && families.has(t.parentKey)) : families.has(t.key),
+    )
+    .map((t) => entry(t, 'metric'))
+  const dimensions = shown.filter((t) => t.kind === 'dimension').map((t) => entry(t, 'dimension'))
+  // A term with its own meaning; a synonym is another name of what it means.
+  const terms = (bundle.written ?? [])
+    .filter(
+      (t) =>
+        t.sameAs === null &&
+        !bundle.stopped.all &&
+        !(t.areaId && bundle.stopped.areas.includes(t.areaId)),
+    )
+    .map((t) => ({
+      key: writtenTermId(t.id),
+      name: t.name,
+      names: [t.name],
+      kind: 'term' as const,
+      areaId: t.areaId,
+      family: false,
+      ...(t.meaning?.trim() ? { meaning: firstSentence(t.meaning) } : {}),
+      url: definitionUrl(web, t.name),
+    }))
+  return [...metrics.sort(byName), ...dimensions.sort(byName), ...terms.sort(byName)]
+}
+
 export function createToolService(
   source: EditionSource,
   store: AnonymousStore,
@@ -732,6 +828,135 @@ export function createToolService(
     })
   }
 
+  /**
+   * list_definitions and list_context (FR-351, FR-352) on the live edition: what there is, a page
+   * at a time in a fixed order, with how many there are. The context items are those get_context
+   * could give the caller (`canRead`): published, for its audience, not paused, and never a
+   * suggestion or a draft. Titles and dates only: read_context gives an item's text.
+   */
+  async function listed(
+    name: 'list_definitions' | 'list_context',
+    input: unknown,
+    principal: Principal,
+    maxBytes: number,
+    onEdition: (seq: string) => void,
+    today: string,
+  ): Promise<ToolResult> {
+    const args =
+      name === 'list_definitions'
+        ? listDefinitionsInput.parse(input)
+        : listContextInput.parse(input)
+    if (args.edition && !principal.canSelectEdition)
+      return failure('Selecting an edition requires edition scope.')
+    const bundle = await source.bundle(args.edition)
+    onEdition(bundle.seq)
+    const common = {
+      edition: bundle.edition,
+      overlay: bundle.overlay,
+      tool_schema_digest: toolSchemaDigest,
+    }
+    const area = args.domain === undefined ? null : findArea(args.domain, bundle.areas)
+    if (args.domain !== undefined && !area)
+      return resultFor({
+        ...saidFields(unknownDomainSaid),
+        ...common,
+        status: 'need_more_detail',
+        options: [
+          {
+            field: 'domain',
+            input: args.domain,
+            options: bundle.areas.map((a) => a.name).sort((a, b) => a.localeCompare(b, 'en')),
+          },
+        ],
+      })
+    const entries =
+      name === 'list_definitions'
+        ? definitionsOf(bundle, web)
+            .filter(
+              (d) =>
+                (!args.kind || d.kind === args.kind) &&
+                (!area || d.areaId === area.id) &&
+                namedBy(args.query, d.names),
+            )
+            .map(({ names: _names, areaId, ...d }) => {
+              const { domain, owner } = definitionOwner(bundle, areaId)
+              return {
+                key: d.key,
+                name: d.name,
+                kind: d.kind,
+                domain,
+                owner,
+                family: d.family,
+                ...('members' in d ? { members: d.members } : {}),
+                ...('meaning' in d ? { meaning: d.meaning } : {}),
+                url: d.url,
+              }
+            })
+        : bundle.items
+            .filter(
+              (item) =>
+                item.status === 'accepted' &&
+                (!args.kind || item.kind === kindFilters[args.kind as keyof typeof kindFilters]) &&
+                (!area || item.areaId === area.id) &&
+                namedBy(args.query, [item.title]) &&
+                canRead(bundle, item, today),
+            )
+            .sort(
+              (a, b) =>
+                a.title.localeCompare(b.title, 'en') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+            )
+            .map((item) => {
+              const unverified =
+                item.checkFlag !== null || (item.reviewDate !== null && item.reviewDate < today)
+              return {
+                id: item.id,
+                title: item.title,
+                kind: agentKinds[item.kind],
+                domain: domainName(bundle, item.areaId),
+                applies: appliesWords(bundle, item.scope),
+                when: whenWords(item.validity),
+                ...checkedOutput(item, bundle),
+                ...(unverified ? { may_be_out_of_date: true } : {}),
+                url: urlOf(item.id),
+              }
+            })
+    const key = pageKey(bundle, {
+        tool: name,
+        kind: args.kind ?? null,
+        domain: area?.id ?? null,
+        query: args.query ?? null,
+      }),
+      offset = cursorOffset(args.cursor, key)
+    const page: unknown[] = entries.slice(offset, offset + args.limit)
+    const field = name === 'list_definitions' ? 'definitions' : 'context'
+    const render = () => {
+      const counts = { total: entries.length, offset, shown: page.length }
+      return resultFor({
+        ...saidFields(
+          name === 'list_definitions'
+            ? definitionsListSaid(counts)
+            : contextListSaid(counts, contextVoice.item),
+        ),
+        ...common,
+        status: entries.length ? 'matched' : 'no_match',
+        total: entries.length,
+        [field]: page,
+        next_cursor:
+          offset + page.length < entries.length ? cursorFor(key, offset + page.length) : null,
+        ttlMs: 0,
+        cacheScope: 'private',
+      })
+    }
+    // A page that cannot fit the size limit ends sooner: next_cursor starts where it ends.
+    const limit = Math.min(maxBytes, args.max_bytes)
+    do {
+      const rendered = render()
+      if (byteSize(rendered) <= limit) return rendered
+      page.pop()
+    } while (page.length)
+    return failure('The list cannot fit this size limit. Increase max_bytes.')
+  }
+
   return async function execute(
     name: ServedToolName,
     input: unknown,
@@ -749,6 +974,8 @@ export function createToolService(
       if (name === 'report') return await reportFor(input, principal, onEdition, today, calendar)
       if (name === 'find_context')
         return await outcome(input, principal, maxBytes, onEdition, today, calendar)
+      if (name === 'list_definitions' || name === 'list_context')
+        return await listed(name, input, principal, maxBytes, onEdition, today)
       const args =
         name === 'get_context'
           ? (asker === 'check' ? checkContextInput : getContextInput).parse(input)

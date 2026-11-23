@@ -495,13 +495,15 @@ describe('the instructions an agent gets at connect', () => {
       await wire.close()
     }
   }
-  const six = [
+  const all = [
     'get_context',
     'find_context',
     'read_context',
     'report',
     'suggest_context',
     'get_related',
+    'list_definitions',
+    'list_context',
   ]
 
   it('names the domain, the owner and the limit of an open permission, and changes nothing else', async () => {
@@ -516,8 +518,8 @@ describe('the instructions an agent gets at connect', () => {
     expect(held.instructions.replace(`${line(4)}\n`, '')).toBe(none.instructions)
     expect(held.instructions.slice(0, 512)).toBe(none.instructions.slice(0, 512))
     expect(none.instructions).not.toContain('lets you publish new low-risk items without review')
-    expect(held.tools.sort()).toEqual([...six].sort())
-    expect(none.tools.sort()).toEqual([...six].sort())
+    expect(held.tools.sort()).toEqual([...all].sort())
+    expect(none.tools.sort()).toEqual([...all].sort())
   })
 
   it('names none that is ended or paused', async () => {
@@ -549,7 +551,7 @@ describe('the instructions an agent gets at connect', () => {
     try {
       const notOwner = await connected(moved.token)
       expect(notOwner.instructions).not.toContain(none)
-      expect(notOwner.tools.sort()).toEqual([...six].sort())
+      expect(notOwner.tools.sort()).toEqual([...all].sort())
     } finally {
       await admin.query(
         `update area_assignments set valid_at = tstzrange(lower(valid_at), now())
@@ -562,7 +564,7 @@ describe('the instructions an agent gets at connect', () => {
       )
     }
 
-    // Paused: suggest_context is off for the agent, which then lists five tools. Another person's
+    // Paused: suggest_context is off for the agent, which then lists seven tools. Another person's
     // app, since a new agent of the same person and app keeps an admin's switch.
     const off = await connect('stranger')
     expect((await setPolicy(owner, off.agentId)).status).toBe(200)
@@ -581,7 +583,7 @@ describe('the instructions an agent gets at connect', () => {
     expect(listed.policies.find((p) => p.agentId === off.agentId)?.pause).toBe('tool_off')
     const toolOff = await connected(off.token)
     expect(toolOff.instructions).not.toContain(none)
-    expect(toolOff.tools.sort()).toEqual(six.filter((t) => t !== 'suggest_context').sort())
+    expect(toolOff.tools.sort()).toEqual(all.filter((t) => t !== 'suggest_context').sort())
   })
 })
 

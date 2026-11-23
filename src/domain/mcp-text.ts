@@ -5,7 +5,7 @@ import type { ItemKind } from './item.ts'
 import { concepts } from './words.ts'
 
 /*
-  What the MCP server tells an agent in words, in one place: the six tools as people read them,
+  What the MCP server tells an agent in words, in one place: the eight tools as people read them,
   and the rules an agent follows. The service
   (src/server/mcp/tools.ts) serves them as the server instructions and the tool descriptions, and
   the web app's Agents and access, its setup prompt and its agent steps (src/web/lib/agents.ts)
@@ -22,7 +22,7 @@ import { concepts } from './words.ts'
   "this context".
 */
 
-/** The six tools of the MCP server, by the ids agents call them (docs/product.md, section 10). */
+/** The eight tools of the MCP server, by the ids agents call them (docs/product.md, section 10). */
 export const agentToolNames = [
   'get_context',
   'find_context',
@@ -30,6 +30,8 @@ export const agentToolNames = [
   'report',
   'suggest_context',
   'get_related',
+  'list_definitions',
+  'list_context',
 ] as const
 export type AgentToolName = (typeof agentToolNames)[number]
 
@@ -93,6 +95,20 @@ export const AGENT_TOOLS: readonly {
     what: `Follow a link between ${facts}, definitions and domains, one step at a time.`,
     takes: `A ${fact}, a definition or a domain.`,
     returns: 'What it links to and is linked from, without changing what an answer includes.',
+  },
+  {
+    name: 'list_definitions',
+    title: 'List definitions',
+    what: 'The metrics, dimensions and terms in Definitions, a page at a time.',
+    takes: 'A domain, a kind or a word, all optional.',
+    returns: 'Each name with its kind, domain, owner and a one-line meaning.',
+  },
+  {
+    name: 'list_context',
+    title: 'List context',
+    what: `The published ${facts}, a page at a time.`,
+    takes: 'A domain, a kind or a word, all optional.',
+    returns: `Each ${fact}'s title, kind, domain and dates, never its text.`,
   },
 ]
 
@@ -187,9 +203,9 @@ export const answerLineRule =
 export const plainWordsRule =
   "With people, say the metric, market and dates, not status, scope, edition or reply_id, which name a reply's fields."
 
-/** How to pass names, and what to do without them. */
+/** How to pass names, what to do without them, and where to see what there is (FR-351, FR-352). */
 export const namesRule =
-  'Pass the metrics, markets and dates you query; member names from the data tool (view.member, such as payments.orders) work too, and an unknown name comes back with the closest. Without names, call find_context.'
+  'Pass the metrics, markets and dates you query, or member names from the data tool (view.member: payments.orders); unknown names get the closest. Without names, call find_context; to browse, list_definitions or list_context.'
 
 /**
  * How dates are read, on the workspace's calendar (R8): the time zone today is counted in, and

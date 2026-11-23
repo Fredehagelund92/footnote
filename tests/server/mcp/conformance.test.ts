@@ -138,8 +138,16 @@ const call = {
   method: 'tools/call',
   params: { name: 'get_context', arguments: { question: 'Orders in Norway August 2026' } },
 }
-/** What a dev token is offered: the six tools but suggest_context. */
-const offeredToDev = ['get_context', 'find_context', 'read_context', 'report', 'get_related']
+/** What a dev token is offered: the eight tools but suggest_context. */
+const offeredToDev = [
+  'get_context',
+  'find_context',
+  'read_context',
+  'report',
+  'get_related',
+  'list_definitions',
+  'list_context',
+]
 
 describe('the hosts the MCP server answers', () => {
   const initialize = {

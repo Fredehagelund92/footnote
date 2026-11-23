@@ -283,6 +283,8 @@ it('gives agents the item, and no word of a comment, from every tool', async () 
     { name: 'find_context', arguments: { query: canary } },
     { name: 'read_context', arguments: { id: item } },
     { name: 'get_related', arguments: { id: item, depth: 2 } },
+    { name: 'list_context', arguments: {} },
+    { name: 'list_definitions', arguments: {} },
   ]
   // Every read tool an agent is offered is called here; report and the suggestion tools write.
   const writes = ['report', 'suggest_context']
