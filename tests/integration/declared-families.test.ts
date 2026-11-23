@@ -705,15 +705,14 @@ describe('splitting a family (D2-D4)', () => {
   let accrued: CatalogueTerm
   let note = ''
 
-  beforeAll(async () => {
-    accrued = (await family('Accrued share 1'))!
-    // A note about the family, published in its domain.
+  /** A published note about the family itself, in its domain, by id. */
+  const aboutFamily = async (title: string) => {
     const about = await transaction(client, async () => {
       const made = await version(client, {
         scope: false,
         area: 'partners',
-        title: 'Accrued share 1 restated',
-        summary: 'Accrued share 1 was restated for October.',
+        title,
+        summary: `${title}: Accrued share 1 was restated for October.`,
         owner: people.owner,
         validity: { from: '2026-10-01', until: null },
       })
@@ -727,7 +726,12 @@ describe('splitting a family (D2-D4)', () => {
     })
     await accept(client, about.id)
     await publish(client, about.id)
-    note = about.item
+    return about.item
+  }
+
+  beforeAll(async () => {
+    accrued = (await family('Accrued share 1'))!
+    note = await aboutFamily('Accrued share 1 restated')
   })
 
   it('is refused to a member, and for a family its tool declares, which says where', async () => {
@@ -1004,6 +1008,7 @@ describe('splitting a family (D2-D4)', () => {
   it('is decided in each metric’s own domain: an owner of the family’s is refused one in none', async () => {
     await ok(join(accrued.key, 'admin'))
     const [eur] = accrued.family!.variants
+    await aboutFamily('Accrued share 1 restated in the open')
     await reissue(eur!.key, null)
     const refused = await split(accrued.key, 'owner')
     expect(refused.statusCode, refused.body).toBe(403)
@@ -1040,6 +1045,7 @@ describe('splitting a family (D2-D4)', () => {
   it('is not split when the family is closed after it was joined, whatever the reason', async () => {
     const [eur] = accrued.family!.variants
     await ok(join(accrued.key, 'admin'))
+    const fresh = await aboutFamily('Accrued share 1 restated before it closed')
     expect((await catalogue()).splits).toEqual([])
     expect(await flagged()).toEqual([])
     const seq = await openEdition(client)
@@ -1051,7 +1057,12 @@ describe('splitting a family (D2-D4)', () => {
     await client.query('select edition_publish($1)', [seq])
     expect((await catalogue()).splits).toEqual([])
     expect(await flagged()).toEqual([])
-    const page = await ok<{ chips: string[] }>(call('GET', `/items/${note}/page`, 'owner'))
+    const { rows: flagsOfFresh } = await client.query(
+      `select 1 from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [fresh],
+    )
+    expect(flagsOfFresh).toEqual([])
+    const page = await ok<{ chips: string[] }>(call('GET', `/items/${fresh}/page`, 'owner'))
     expect(page.chips).not.toContain(eur!.name)
   })
 })
