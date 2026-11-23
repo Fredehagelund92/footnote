@@ -162,7 +162,10 @@ function FlaggedRow({
 }) {
   const [chosen, setChosen] = React.useState(name.name)
   const id = React.useId()
-  const onlyVariants = name.family !== null && name.flags.every((flag) => flag.code === 'variants')
+  const onlyVariants =
+    name.family !== null &&
+    name.flags.length > 0 &&
+    name.flags.every((flag) => flag.code === 'variants')
   // The name the tool has for it, small after the plain name, so two rows of one name can be
   // told apart; a family says what it holds.
   const member = name.family
@@ -379,6 +382,17 @@ const Count = ({ n: count }: { n: number }) => (
 /** How many ready families open at once, each kind's list shown; past it they start folded. */
 const OPEN_READY = 8
 
+function toolsOf(names: readonly SourceNameRead[]) {
+  return [...new Set(names.map((name) => name.tool))].sort().join(', ')
+}
+
+/** The part asked for, unless it has nothing open and the other has. */
+function partWithOpen(part: NamesShow, families: number, singles: number): NamesShow {
+  if (part === 'families' && !families && singles) return 'names'
+  if (part === 'names' && !singles && families) return 'families'
+  return part
+}
+
 /**
  * The review. `frame` draws its body and its foot in the Inbox's pane or the setup checklist's
  * dialog; `onFinished` runs once nothing is left to publish. Families and names are two parts
@@ -420,7 +434,11 @@ export default function NamesReview({
     ? families.length
       ? 'families'
       : 'names'
-    : (asked ?? picked ?? (familiesOpen.length || !singlesOpen.length ? 'families' : 'names'))
+    : partWithOpen(
+        asked ?? picked ?? (familiesOpen.length || !singlesOpen.length ? 'families' : 'names'),
+        familiesOpen.length,
+        singlesOpen.length,
+      )
   const choose = (next: NamesShow) => {
     setPicked(next)
     setAll(false)
@@ -502,6 +520,7 @@ export default function NamesReview({
     tools,
   }
   const tool = tools.length ? tools.join(', ') : 'your definitions tool'
+  const alikeTool = toolsOf(alike)
   const body = (
     <>
       <PaneHead
@@ -525,10 +544,10 @@ export default function NamesReview({
         {show === 'families' && familiesOpen.length > 0 && (
           <div className="flex flex-col gap-3">
             <p className="text-muted-foreground">
-              Each family is published as one metric, with its variants. Open one to see what it
-              would mean.
+              Each family is published as one metric, with its variants.
+              {onOpenFamily && ' Open one to see what it would mean.'}
             </p>
-            <FamiliesFound found={found} tool={tool} as="line" />
+            <FamiliesFound found={found} tool={toolsOf(familiesOpen)} as="line" />
           </div>
         )}
         {alike.length > 0 && (
@@ -540,7 +559,7 @@ export default function NamesReview({
               {alike.length === 1
                 ? 'These metrics have one name in other currencies'
                 : `${n(alike.length)} sets of metrics have one name in other currencies`}
-              , and nothing in {alike[0]!.tool} says they are one metric. Each waits for you.
+              , and nothing in {alikeTool} says they are one metric. Each waits for you.
             </p>
             <ul>
               {alike.map((name) => (
