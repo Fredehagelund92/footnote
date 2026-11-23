@@ -35,7 +35,6 @@ import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { conflictPath } from '@/model/conflicts'
 import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/editor-readiness'
-import { type Validity } from '@/model/validity'
 import {
   missingDates,
   validOfWhen,
