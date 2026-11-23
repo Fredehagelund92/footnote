@@ -553,6 +553,18 @@ async function failedCheck(checked: number) {
 }
 
 /**
+ * On the service, a copy of a draft as another of the demo's people wrote it, never sent; its
+ * proposal id. The demo week's drafts are all an owner's.
+ */
+export async function draftFor(proposalId: string, name: string) {
+  const harness = './http/harness.ts'
+  const { draftFor: copy } = (await import(harness)) as {
+    draftFor: (proposalId: string, name: string) => Promise<string>
+  }
+  return copy(proposalId, name)
+}
+
+/**
  * The first try of each decision, and of adding or removing a synonym, fails with the service's own
  * failure; the next goes through.
  */

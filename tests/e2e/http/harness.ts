@@ -159,3 +159,27 @@ export async function failedCheck(checked: number) {
     await client.end()
   }
 }
+
+/**
+ * A copy of a draft, as another of the demo's people wrote it, never sent: the demo week's drafts
+ * are all an owner's. Its proposal id, as the item page and the editor name it.
+ */
+export async function draftFor(proposalId: string, name: string) {
+  const { admin: adminUrl, template } = harness()
+  const url = new URL(adminUrl)
+  url.pathname = `/${workName(template)}`
+  const client = new pg.Client({ connectionString: url.href })
+  await client.connect()
+  try {
+    const { rows } = await client.query<{ id: string }>(
+      `insert into proposals (action, area_id, proposer_id, channel, draft, draft_saved_at)
+       select action, area_id, (select id from people where display_name = $2), channel, draft, now()
+         from proposals where id = $1
+       returning id::text`,
+      [proposalId, name],
+    )
+    return rows[0]!.id
+  } finally {
+    await client.end()
+  }
+}

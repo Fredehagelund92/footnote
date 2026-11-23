@@ -60,7 +60,7 @@ const ok = async <T>(response: Promise<{ statusCode: number; body: string; json:
 }
 
 /** A market of its own for each item, so no item clashes with another. */
-const markets = Array.from({ length: 70 }, (_, i) => `m${String(i).padStart(2, '0')}`)
+const markets = Array.from({ length: 80 }, (_, i) => `m${String(i).padStart(2, '0')}`)
 let nextMarket = 0
 
 beforeAll(async () => {
@@ -356,20 +356,12 @@ describe('publishing in one step (FR-137)', () => {
     expect(await served(item)).toMatchObject({ n: 1, area: 'finance' })
   })
 
-  it("finishes the person's own draft and sends it as itself; someone else's stays theirs", async () => {
+  it("finishes the person's own draft and sends it as itself", async () => {
     const mine = await aDraft({}, 'owner')
     const r = await ok<PublishItemResult>(
       call('POST', '/items/publish', 'owner', { draft: draft(), draftId: mine }),
     )
     expect(r).toMatchObject({ published: true, proposalId: mine })
-    const theirs = await aDraft({}, 'author')
-    const refused = await call('POST', '/items/publish', 'owner', {
-      draft: draft(),
-      draftId: theirs,
-    })
-    expect(refused.statusCode).toBe(403)
-    const kept = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
-    expect(kept.state).toBe('draft')
     expect(
       (
         await call('POST', '/items/publish', 'owner', {
@@ -378,6 +370,49 @@ describe('publishing in one step (FR-137)', () => {
         })
       ).statusCode,
     ).toBe(404)
+  })
+
+  it("publishes someone else's draft as itself for an owner: one item, the draft gone, its writer kept", async () => {
+    const theirs = await aDraft({}, 'author')
+    const words = draft()
+    const r = await ok<PublishItemResult>(
+      call('POST', '/items/publish', 'owner', { draft: words, draftId: theirs }),
+    )
+    expect(r).toMatchObject({ published: true, proposalId: theirs })
+    if (!r.published) return
+    const p = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
+    expect(p).toMatchObject({ state: 'accepted', itemId: r.itemId, proposerId: people.author })
+    // One item from it: no copy beside the draft, and the version names the person who wrote it.
+    const made = await client.query<{ n: number; proposer: string; title: string }>(
+      `select count(*)::int as n, min(proposer_id::text) as proposer, min(title) as title
+         from item_versions where title = $1`,
+      [words.title],
+    )
+    expect(made.rows[0]).toEqual({ n: 1, proposer: people.author, title: words.title })
+    expect(await served(r.itemId)).toMatchObject({ n: 1, area: 'finance' })
+    const left = await client.query(
+      "select 1 from proposals where proposer_id = $1 and state = 'draft' and id = $2",
+      [people.author, theirs],
+    )
+    expect(left.rowCount).toBe(0)
+  })
+
+  it("never sends someone else's draft on their behalf: a domain the owner doesn't own refuses it", async () => {
+    const theirs = await aDraft({}, 'author')
+    const before = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
+    const refused = await call('POST', '/items/publish', 'owner', {
+      draft: draft({ areaId: 'marketing' }),
+      draftId: theirs,
+    })
+    expect(refused.statusCode).toBe(403)
+    // A member who may not read it does not find it.
+    const hidden = await call('POST', '/items/publish', 'stranger', {
+      draft: draft(),
+      draftId: theirs,
+    })
+    expect(hidden.statusCode).toBe(404)
+    const kept = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
+    expect(kept).toMatchObject({ state: 'draft', revision: before.revision, draft: before.draft })
   })
 
   it('answers a clash the editor left alone as unrelated, keeps the answers it gave, and leaves out answers for others', async () => {

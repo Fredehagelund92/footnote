@@ -185,6 +185,18 @@ function proposalsService(
         message: notAllowed('change a suggestion someone else wrote', 'the person who wrote it'),
       })
   }
+  /**
+   * Its writer changes it, or else, with `byDomainOwners`, an owner of its domain or an admin
+   * finishes a draft someone else wrote, to publish it as itself: the draft stays its writer's.
+   */
+  async function writerOr(p: ProposalRecord, byDomainOwners: boolean) {
+    if (p.proposerId === personId || !byDomainOwners || p.state !== 'draft') return proposerOnly(p)
+    const [may] = await tx.query<{ ok: boolean }>(
+      'select cl_is_admin_now() or cl_is_owner_now($1) as ok',
+      [p.areaId],
+    )
+    if (!may?.ok) proposerOnly(p)
+  }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
     await tx.query(
       'insert into proposal_events(proposal_id,actor_id,kind,data) values($1,cl_person(),$2,$3)',
@@ -504,9 +516,15 @@ function proposalsService(
       return p!
     },
     /** `reason` left out keeps the stored one; null or empty clears it. */
-    async save(id: string, revision: number, input: Draft, reasonInput?: string | null) {
+    async save(
+      id: string,
+      revision: number,
+      input: Draft,
+      reasonInput?: string | null,
+      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
+    ) {
       const p = await current(id, revision)
-      proposerOnly(p)
+      await writerOr(p, byDomainOwners)
       if (!['draft', 'changes_requested'].includes(p.state))
         throw new ORPCError('CONFLICT', {
           message: 'You can only edit a draft, or a suggestion sent back for changes.',
@@ -514,7 +532,7 @@ function proposalsService(
       const draft = await defaults(input, p.areaId, p.draft.scope)
       rejectSensitive(draft)
       const reason = reasonInput === undefined ? p.reason : changeReason(reasonInput, p.action)
-      const checks = await checkDraft(tx, draft, personId, p.channel, p.itemId)
+      const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId)
       // A field the person changed is theirs from now on: it loses the agent's mark (FR-121).
       const provenance = p.provenance ? keepMarks(p.provenance, p.draft, draft) : null
       await tx.query(
@@ -532,9 +550,13 @@ function proposalsService(
       await event(saved, 'saved')
       return saved
     },
-    async submit(id: string, revision: number) {
+    async submit(
+      id: string,
+      revision: number,
+      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
+    ) {
       const p = await current(id, revision)
-      proposerOnly(p)
+      await writerOr(p, byDomainOwners)
       if (!['draft', 'changes_requested'].includes(p.state))
         throw new ORPCError('CONFLICT', {
           message: 'Only a draft, or a suggestion sent back for changes, can be sent for review.',
@@ -543,7 +565,7 @@ function proposalsService(
       await tx.query(
         "select pg_advisory_xact_lock_shared(hashtextextended('context_layer.edition',0))",
       )
-      const checks = await checkDraft(tx, p.draft, personId, p.channel, p.itemId)
+      const checks = await checkDraft(tx, p.draft, p.proposerId, p.channel, p.itemId)
       if (!checks.version || checks.findings.some((f) => f.severity === 'error'))
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
           message: 'Fix the problems shown before you send it for review.',

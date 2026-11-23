@@ -651,7 +651,10 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   owner answered in the editor: a clash left unanswered reads as `unrelated`, and an answer
   for an item it does not clash with is left out. `draftId` names the person's own draft it
   finishes, or their suggestion an owner returned: it takes the words and is sent as itself,
-  changing the item it was started from, if any; only its writer sends it (403 otherwise). A publish the checks refuse keeps
+  changing the item it was started from, if any. An owner of a draft's domain or an admin may
+  also finish a draft someone else wrote: it is published as itself and keeps its writer, and where
+  they could not publish it (a domain they don't own) it is refused with 403, never sent on the
+  writer's behalf. A returned suggestion is its writer's alone (403 otherwise). A publish the checks refuse keeps
   nothing. A change to an item (`itemId`) may name the `version` it was written from (else the
   version agents get now): the change stays written from it, and once someone has published other words since, it is refused when it is sent with 409 and
   `data.stale.version`, the version agents get now, so an older view never takes away a newer
