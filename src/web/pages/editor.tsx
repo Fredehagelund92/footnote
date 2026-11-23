@@ -34,7 +34,7 @@ import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { conflictPath } from '@/model/conflicts'
-import { holdLine, readinessOf, SUMMARY_LIMIT } from '@/model/editor-readiness'
+import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/editor-readiness'
 import { type Validity } from '@/model/validity'
 import {
   missingDates,
@@ -511,6 +511,14 @@ function Editor({
   // A new item, or a draft nobody has published: it has no status until it is published.
   const unpublished = mode === 'new' || original?.status === 'Draft'
   const ownerName = form.owners[0] ?? domains[form.domain]?.owners[0] ?? ''
+  const standing = standingLine({
+    mode,
+    draft: original?.status === 'Draft',
+    suggests: isSuggest,
+    writer: original?.by && original.by !== me.name ? original.by : undefined,
+    owner: ownerName,
+    domain: domains[form.domain]?.name ?? '',
+  })
   const ids = React.useId()
   const KindIcon = kindIcons[form.kind]
   const fieldId = (name: string) => `${ids}-${name}`
@@ -618,6 +626,9 @@ function Editor({
         ?.focus()
   }
 
+  // Sending, then done; or failed with Retry, the text untouched. Offline, nothing is sent.
+  // A draft is published by its button, whoever wrote it: it is not Live yet, so nothing is saved.
+  const verb = isSuggest ? 'Send' : unpublished ? 'Publish' : 'Save'
   const commit = async () => {
     if (isSuggest) {
       // It waits visibly: a line on the item, and a row under All in your Inbox.
@@ -672,13 +683,11 @@ function Editor({
       navigate(conflictPath(`${original.id}.${beside.id}`), { settle: 'not_conflict' })
       return
     }
-    toast(original ? 'Saved' : 'Published', {
+    toast(verb === 'Save' ? 'Saved' : 'Published', {
       description: 'Agents get it from the next question.',
     })
     navigate(`/context/${id}`)
   }
-  // Sending, then done; or failed with Retry, the text untouched. Offline, nothing is sent.
-  const verb = isSuggest ? 'Send' : original ? 'Save' : 'Publish'
   // A refusal that names live items to relate to lists them, unanswered, under the title.
   const publish = () =>
     commit().catch(async (e: unknown) => {
@@ -1092,10 +1101,13 @@ function Editor({
             </p>
           </aside>
         )}
-        {mode === 'suggest' && original && (
-          <p className="mb-5 rounded-frame bg-muted px-3 py-2 text-sm text-muted-foreground">
-            You're suggesting a change. {ownerName}, owner of {domains[original.domain]?.name},
-            decides; agents keep getting the context item as it is until then.
+        {standing && (
+          <p
+            role="note"
+            aria-label="Where this stands"
+            className="mb-5 rounded-frame bg-muted px-3 py-2 text-sm text-muted-foreground"
+          >
+            {standing}
           </p>
         )}
         <textarea

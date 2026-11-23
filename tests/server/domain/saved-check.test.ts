@@ -121,8 +121,8 @@ describe('the words of a result', () => {
 
   it('before and now read as the sentences agents get, or what a person hears', () => {
     expect(answerText(answer('grounded', [item('a', 'One.'), item('b', 'Two.')]))).toBe('One. Two.')
-    expect(answerText(answer('missing', [], 'Not found. Nothing is written about this yet.'))).toBe(
-      'Not found. Nothing is written about this yet.',
+    expect(answerText(answer('missing', [], 'Not found. Nothing published about this yet.'))).toBe(
+      'Not found. Nothing published about this yet.',
     )
   })
 

@@ -51,7 +51,7 @@ describe('a saved question from the service', () => {
       record({
         result: 'look',
         reason: 'worse',
-        now: { state: 'missing', say: 'Not found. Nothing is written about this yet.', items: [] },
+        now: { state: 'missing', say: 'Not found. Nothing published about this yet.', items: [] },
       }),
       now,
     )
@@ -61,7 +61,7 @@ describe('a saved question from the service', () => {
       factId: 'itm_a',
       diff: {
         saved: 'Online sales stopped.',
-        now: 'Not found. Nothing is written about this yet.',
+        now: 'Not found. Nothing published about this yet.',
       },
     })
   })

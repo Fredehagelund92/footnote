@@ -1747,6 +1747,7 @@ function cardOf(
     // What applies to it, as its read lists them: what more matched does not apply.
     context: { count: about ? items.length : num(raw.items), items },
     inWords: !!d.words && gives(text, d.words),
+    ...(typeof raw.mentions === 'string' ? { mentions: raw.mentions } : {}),
   }
 }
 

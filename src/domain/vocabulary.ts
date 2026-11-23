@@ -211,21 +211,35 @@ export function namesOf(term: Term): string[] {
   ].filter(Boolean)
 }
 
+const wordChar = /[\p{L}\p{N}_]/u
+const hyphens = new Set(['-', '‐', '‑'])
+/**
+ * Whether the place between `text[at - 1]` and `text[at]` ends a word: a hyphen between two
+ * letters joins them into one word, so "orders-cpa" holds no "orders" and no "cpa".
+ */
+const endsWord = (text: string, at: number, side: 'before' | 'after') => {
+  const char = side === 'before' ? text[at - 1] : text[at]
+  if (char === undefined) return true
+  if (hyphens.has(char)) return !wordChar.test(text[side === 'before' ? at - 2 : at + 1] ?? '')
+  return !wordChar.test(char)
+}
+
 /**
  * The whole phrases of `names` in a normalised text, longest first, each place used once: the one
- * way Footnote finds names in words. A place in `occupied` is already taken and is never read again.
+ * way Footnote finds names in words. A name joined to another word by a hyphen ("Orders-CPA") is
+ * not found: the whole compound is a word of its own, found only as a name of its own. A place in
+ * `occupied` is already taken and is never read again.
  */
 export function phrasesIn(text: string, names: Iterable<string>, occupied = new Set<number>()) {
   const found: { name: string; start: number; end: number }[] = []
-  const boundary = (char: string | undefined) => char === undefined || !/[\p{L}\p{N}_]/u.test(char)
   for (const name of [...new Set(names)].sort((a, b) => b.length - a.length || (a < b ? -1 : 1))) {
     if (!name) continue
     let start = text.indexOf(name)
     while (start >= 0) {
       const end = start + name.length
       if (
-        boundary(text[start - 1]) &&
-        boundary(text[end]) &&
+        endsWord(text, start, 'before') &&
+        endsWord(text, end, 'after') &&
         !Array.from({ length: name.length }, (_, i) => start + i).some((i) => occupied.has(i))
       ) {
         for (let i = start; i < end; i++) occupied.add(i)

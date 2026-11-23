@@ -77,7 +77,14 @@ export function stem(word: string): string {
     w = w.slice(0, -1)
   return w
 }
-const wordsOf = (text: string) => normalizeName(text).match(/[\p{L}\p{N}_']+/gu) ?? []
+/** A text's words: a compound joined by a hyphen ("orders-cpa") is one word, as phrasesIn reads it. */
+const wordsOf = (text: string) =>
+  normalizeName(text).match(/[\p{L}\p{N}_']+(?:[-\u2010\u2011][\p{L}\p{N}_']+)*/gu) ?? []
+/** A word and, for a compound, its parts: an item that writes "Orders-CPA" is found by "CPA" too. */
+const partsOf = (word: string) => {
+  const parts = word.split(/[-\u2010\u2011]/)
+  return parts.length > 1 ? [word, ...parts] : [word]
+}
 /** A title or a query as its stemmed words, so "exclude test account" reads as the title. */
 const stemmedTitle = (text: string) => wordsOf(text).map(stem).join(' ')
 
@@ -181,7 +188,7 @@ function indexed(item: SearchItem): Indexed {
   let entry = indexes.get(item)
   if (!entry) {
     const text = normalizeName([item.title, item.summary, item.body ?? ''].join(' \n '))
-    entry = { text, stems: new Set(wordsOf(text).map(stem)) }
+    entry = { text, stems: new Set(wordsOf(text).flatMap(partsOf).map(stem)) }
     indexes.set(item, entry)
   }
   return entry

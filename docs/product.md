@@ -177,7 +177,7 @@ Every answer to a question that was looked up, for an agent and for a person, st
 | ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | **Checked**       | (none)                               | Context applies, and its owner published it with a source and a check date.                 | Nothing.                                        |
 | **Partial**       | Only part of this is written down.   | Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
-| **Not found**     | Nothing is written about this yet.   | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
+| **Not found**     | Nothing published about this yet.    | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
 | **Conflict**      | Two items say different things.      | Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
 | **Outdated**      | Some of this may be old.             | An item's check date has passed, or a definition it relies on changed.                      | The owner checks it: Still true, or Edit.       |
 | **Not looked up** | Ask could not look this up just now. | Ask could not look this up just now. That does not mean nothing is written.                 | Ask again in a minute.                          |
