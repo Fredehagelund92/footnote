@@ -413,6 +413,10 @@ describe('the audience rule on every read path', () => {
       ['read_context', { id: linking.id }],
       ['get_related', { id: linking.id }],
       ['get_related', { id: `item:${hidden.id}` }],
+      // Listing what there is never names an item outside its audience (FR-352).
+      ['list_context', {}],
+      ['list_context', { query: 'Vaultsunrise harbour' }],
+      ['list_definitions', {}],
     ]
     // Every tool that reads is swept.
     const reads = toolNames.filter((name) => mcpTools[name].scope === 'read')

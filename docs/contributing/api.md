@@ -16,11 +16,12 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
   --header "Authorization: Bearer $(npm run --silent token:dev)"
 ```
 
-### The six tools (the agent contract)
+### The eight tools (the agent contract)
 
-The server offers six tools ([the product page](../product.md#10-what-agents-get)), described in
+The server offers eight tools ([the product page](../product.md#10-what-agents-get)), described in
 one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
-`read_context`, `report`, `suggest_context` and `get_related`. A call by any other id is refused
+`read_context`, `report`, `suggest_context`, `get_related`, `list_definitions` and
+`list_context`. A call by any other id is refused
 as an unknown tool. The review's delivery check and the evals read `get_context`'s full reply,
 made by the same code with nothing recorded.
 

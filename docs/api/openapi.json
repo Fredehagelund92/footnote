@@ -29251,7 +29251,9 @@
                                 "read_context",
                                 "report",
                                 "suggest_context",
-                                "get_related"
+                                "get_related",
+                                "list_definitions",
+                                "list_context"
                               ],
                               "type": "string"
                             },
@@ -30034,7 +30036,9 @@
                       "read_context",
                       "report",
                       "suggest_context",
-                      "get_related"
+                      "get_related",
+                      "list_definitions",
+                      "list_context"
                     ],
                     "type": "string"
                   },

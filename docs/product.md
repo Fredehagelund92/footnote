@@ -20,12 +20,12 @@ One sentence for the product: **agents read checked context before they answer.*
 
 ## 2. Who it is for
 
-| Who                  | What they do in Footnote                                                                                                                                         |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                             |
-| An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch. |
-| An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                           |
-| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the six tools (section 10). It reads. It may also suggest. |
+| Who                  | What they do in Footnote                                                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                               |
+| An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch.   |
+| An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                             |
+| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the eight tools (section 10). It reads. It may also suggest. |
 
 The data team that runs Footnote is the first reader of this page. The people it serves are in finance, marketing, operations and management. Many of them read English as a second language. They know their business. They should never need to know data or AI words. [Copy rules](design/copy.md) says how Footnote speaks to them.
 
@@ -232,16 +232,18 @@ One rule everywhere: **from agents, Footnote keeps only what a question was abou
 
 ## 10. What agents get
 
-Six tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
+Eight tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
 
-| Tool              | What it does                                                                                                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_context`     | The context that applies to a question, with the answer line and one sentence to relay.                                                            |
-| `find_context`    | A word search over names, titles and summaries.                                                                                                    |
-| `read_context`    | One context item in full: text, source, check date and the don't conclude line.                                                                    |
-| `report`          | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                  |
-| `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
-| `get_related`     | Follow a link between items, definitions and domains, one step at a time. It has its own switch.                                                   |
+| Tool               | What it does                                                                                                                                       |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_context`      | The context that applies to a question, with the answer line and one sentence to relay.                                                            |
+| `find_context`     | A word search over names, titles and summaries.                                                                                                    |
+| `read_context`     | One context item in full: text, source, check date and the don't conclude line.                                                                    |
+| `report`           | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                  |
+| `suggest_context`  | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
+| `get_related`      | Follow a link between items, definitions and domains, one step at a time. It has its own switch.                                                   |
+| `list_definitions` | The metrics, dimensions and terms in Definitions, a page at a time, with each one's owner as a role.                                               |
+| `list_context`     | The published context items an agent may see, a page at a time: titles and dates, never the text.                                                  |
 
 The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a separate, read-only tool, `get_related`, at most 50 nodes, in a fixed order. It never changes what an answer includes.
 

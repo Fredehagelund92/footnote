@@ -266,6 +266,24 @@ describe('the catalogue', () => {
   })
 })
 
+describe('listed to an agent', () => {
+  it('is one entry per family, with how many metrics it has, and no variant (FR-351)', async () => {
+    const reply = await agent.callTool({
+      name: 'list_definitions',
+      arguments: { kind: 'metric', limit: 100 },
+    })
+    expect(reply.isError).not.toBe(true)
+    const page = reply.structuredContent as {
+      total: number
+      definitions: { key: string; name: string; family: boolean; members?: number }[]
+    }
+    expect(page.total).toBe(20)
+    expect(page.definitions.every((d) => d.family && d.members === 250)).toBe(true)
+    expect(page.definitions.map((d) => d.key)).toContain('group:revenue')
+    expect(JSON.stringify(page)).not.toMatch(/Revenue \([A-Z]{3}\)/)
+  })
+})
+
 describe('an item on a family', () => {
   let itemId = ''
 

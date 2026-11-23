@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "61b55c26aff9cf102bba3fd5e486ed6dbeeb359b60bd05886bfa56cb379b2261",
+  "digest": "1e138844a1a6d1778d02aa77c7bed5b5e74fddca6bfdbf428af7b9c0e90288b1",
   "tools": [
     {
       "annotations": {
@@ -1523,6 +1523,345 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "type": "object",
       },
       "title": "Follow links",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "The metrics, dimensions and terms in Definitions, a page at a time. Use it to see what is defined or to pick some, never to answer a question (call get_context) or to search by words (call find_context).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "description": "The next_cursor of the page before, for the next page.",
+            "maxLength": 2000,
+            "type": "string",
+          },
+          "domain": {
+            "description": "A domain by its name, such as Sales (its id, such as area_sales, works too).",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string",
+          },
+          "edition": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$",
+            "type": "string",
+          },
+          "kind": {
+            "description": "Only this kind: metric (families too), dimension, or term (a word a person defined).",
+            "enum": [
+              "metric",
+              "dimension",
+              "term",
+            ],
+            "type": "string",
+          },
+          "limit": {
+            "default": 25,
+            "description": "How many to a page: 25 by default, at most 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+          },
+          "max_bytes": {
+            "default": 100000,
+            "maximum": 100000,
+            "minimum": 1000,
+            "type": "integer",
+          },
+          "query": {
+            "description": "Only those whose name has these words, such as "revenue". Leave it out for all.",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "name": "list_definitions",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": {},
+        "properties": {
+          "definitions": {
+            "items": {
+              "additionalProperties": {},
+              "properties": {
+                "domain": {
+                  "type": [
+                    "string",
+                    "null",
+                  ],
+                },
+                "family": {
+                  "description": "A family of metrics, one for each value such as a currency, read as one.",
+                  "type": "boolean",
+                },
+                "key": {
+                  "description": "Its key, for get_related, such as metric:orders.",
+                  "type": "string",
+                },
+                "kind": {
+                  "enum": [
+                    "metric",
+                    "dimension",
+                    "term",
+                  ],
+                  "type": "string",
+                },
+                "meaning": {
+                  "description": "The first sentence of what it means: its source's words, or for a term, what a person wrote.",
+                  "type": "string",
+                },
+                "members": {
+                  "description": "A family's number of metrics.",
+                  "maximum": 9007199254740991,
+                  "minimum": -9007199254740991,
+                  "type": "integer",
+                },
+                "name": {
+                  "type": "string",
+                },
+                "owner": {
+                  "additionalProperties": false,
+                  "description": "Who looks after it, as a role and a team (never a person).",
+                  "properties": {
+                    "role": {
+                      "type": "string",
+                    },
+                    "team": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                  },
+                  "required": [
+                    "role",
+                    "team",
+                  ],
+                  "type": "object",
+                },
+                "url": {
+                  "description": "Its page in Definitions, for the person.",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "key",
+                "name",
+                "kind",
+                "domain",
+                "owner",
+                "family",
+                "url",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "next": {
+            "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
+            "minLength": 1,
+            "type": "string",
+          },
+          "next_cursor": {
+            "description": "Pass it as cursor for the next page; null on the last page.",
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "say": {
+            "description": "What you may tell the person about this result, in these words: plain sentences on what was read and what was found.",
+            "minLength": 1,
+            "type": "string",
+          },
+          "status": {
+            "type": "string",
+          },
+          "total": {
+            "description": "How many there are with these filters, on every page.",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer",
+          },
+        },
+        "required": [
+          "say",
+          "status",
+        ],
+        "type": "object",
+      },
+      "title": "List definitions",
+    },
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false,
+        "readOnlyHint": true,
+      },
+      "description": "The published context items, a page at a time. Use it to see what is written down or to pick some, never to answer a question (call get_context) or to search by words (call find_context).",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "description": "The next_cursor of the page before, for the next page.",
+            "maxLength": 2000,
+            "type": "string",
+          },
+          "domain": {
+            "description": "A domain by its name, such as Sales (its id, such as area_sales, works too).",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string",
+          },
+          "edition": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$",
+            "type": "string",
+          },
+          "kind": {
+            "description": "Only items of this kind: event, warning, rule or guide.",
+            "enum": [
+              "event",
+              "warning",
+              "rule",
+              "guide",
+            ],
+            "type": "string",
+          },
+          "limit": {
+            "default": 25,
+            "description": "How many to a page: 25 by default, at most 100.",
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer",
+          },
+          "max_bytes": {
+            "default": 100000,
+            "maximum": 100000,
+            "minimum": 1000,
+            "type": "integer",
+          },
+          "query": {
+            "description": "Only those whose title has these words, such as "holiday". Leave it out for all.",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "type": "object",
+      },
+      "name": "list_context",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": {},
+        "properties": {
+          "context": {
+            "items": {
+              "additionalProperties": {},
+              "properties": {
+                "applies": {
+                  "description": "What it applies to, in words.",
+                  "type": "string",
+                },
+                "checked": {
+                  "additionalProperties": false,
+                  "description": "Who checked it before agents got it, as a role (never a person), and on which day.",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                    },
+                    "role": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "role",
+                    "date",
+                  ],
+                  "type": "object",
+                },
+                "domain": {
+                  "type": "string",
+                },
+                "id": {
+                  "type": "string",
+                },
+                "kind": {
+                  "description": "event, warning, rule or guide.",
+                  "type": "string",
+                },
+                "may_be_out_of_date": {
+                  "const": true,
+                  "description": "It is due for a check: say so if you use it.",
+                  "type": "boolean",
+                },
+                "title": {
+                  "type": "string",
+                },
+                "url": {
+                  "description": "The item's page, for the person: link it where you cite the item.",
+                  "type": "string",
+                },
+                "when": {
+                  "description": "When it applies, in words.",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "id",
+                "title",
+                "kind",
+                "url",
+                "domain",
+                "applies",
+                "when",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "next": {
+            "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
+            "minLength": 1,
+            "type": "string",
+          },
+          "next_cursor": {
+            "description": "Pass it as cursor for the next page; null on the last page.",
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "say": {
+            "description": "What you may tell the person about this result, in these words: plain sentences on what was read and what was found.",
+            "minLength": 1,
+            "type": "string",
+          },
+          "status": {
+            "type": "string",
+          },
+          "total": {
+            "description": "How many there are with these filters, on every page.",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer",
+          },
+        },
+        "required": [
+          "say",
+          "status",
+        ],
+        "type": "object",
+      },
+      "title": "List context",
     },
   ],
 }

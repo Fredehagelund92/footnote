@@ -64,7 +64,7 @@ Published on the public site too.
 | Page                                                        | What it says                                              |
 | ----------------------------------------------------------- | --------------------------------------------------------- |
 | [Connect an agent by hand](reference/connect-by-hand.md)    | The MCP address, signing in, keys for bots and the limits |
-| [Agent tools](help/tools.md)                                | The six tools, what each takes and gives back             |
+| [Agent tools](help/tools.md)                                | The eight tools, what each takes and gives back           |
 | [HTTP API overview](reference/http-api.md)                  | How to call the API, and what it covers                   |
 | [OpenAPI description](api/openapi.json)                     | Every operation, generated from the contract              |
 | [Connectors](connectors.md)                                 | What a connector is, and what a read may change           |

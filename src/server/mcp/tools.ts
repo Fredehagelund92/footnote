@@ -20,6 +20,10 @@ import {
   findContextInput,
   findContextOutput,
   getContextInput,
+  listContextInput,
+  listContextOutput,
+  listDefinitionsInput,
+  listDefinitionsOutput,
   readContextOutput,
   readInput,
   readOutput,
@@ -63,7 +67,7 @@ const describe = (tool: AgentToolName, text: string, first = prefix) =>
   `${toolWords[tool].line} ${first}${text}`
 
 /**
- * The six tools of the agent contract (docs/product.md, section 10), in the order agents read
+ * The eight tools of the agent contract (docs/product.md, section 10), in the order agents read
  * them. Each id, title and first line comes from src/domain/mcp-text.ts.
  */
 export const tools = {
@@ -140,6 +144,32 @@ export const tools = {
     outputSchema: readOutput,
     annotations: read,
   },
+  // The two list tools say what they are for and what they are not, in two short sentences, so a
+  // model asked a question still calls get_context (FR-351, FR-352).
+  list_definitions: {
+    scope: 'read',
+    title: toolWords.list_definitions.title,
+    description: describe(
+      'list_definitions',
+      'Use it to see what is defined or to pick some, never to answer a question (call get_context) or to search by words (call find_context).',
+      '',
+    ),
+    inputSchema: listDefinitionsInput,
+    outputSchema: listDefinitionsOutput,
+    annotations: read,
+  },
+  list_context: {
+    scope: 'read',
+    title: toolWords.list_context.title,
+    description: describe(
+      'list_context',
+      'Use it to see what is written down or to pick some, never to answer a question (call get_context) or to search by words (call find_context).',
+      '',
+    ),
+    inputSchema: listContextInput,
+    outputSchema: listContextOutput,
+    annotations: read,
+  },
 } as const satisfies Record<AgentToolName, unknown>
 export type ToolName = AgentToolName
 export const toolNames: ToolName[] = [...agentToolNames]
@@ -173,7 +203,7 @@ export function isToolName(value: unknown): value is ToolName {
   return typeof value === 'string' && Object.hasOwn(tools, value)
 }
 
-/** What the tool service runs, by name: the six tools but suggest_context, which the draft tool writes. */
+/** What the tool service runs, by name: the eight tools but suggest_context, which the draft tool writes. */
 export type ServedToolName = Exclude<ToolName, 'suggest_context'>
 
 /** A tool's output schema for the MCP server, when it declares one. */

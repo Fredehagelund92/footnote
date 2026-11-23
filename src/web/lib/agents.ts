@@ -241,6 +241,20 @@ export const AGENT_TOOLS: {
     takes: 'A context item, a definition or a domain.',
     returns: 'What it links to and is linked from, without changing what an answer includes.',
   },
+  {
+    name: 'list_definitions',
+    title: 'List definitions',
+    what: 'The metrics, dimensions and terms in Definitions, a page at a time.',
+    takes: 'A domain, a kind or a word, all optional.',
+    returns: 'Each name with its kind, domain, owner and a one-line meaning.',
+  },
+  {
+    name: 'list_context',
+    title: 'List context items',
+    what: 'The published context items, a page at a time.',
+    takes: 'A domain, a kind or a word, all optional.',
+    returns: "Each context item's title, kind, domain and dates, never its text.",
+  },
 ]
 
 /** The tools a connected agent can call on connecting, as the live line names them. */

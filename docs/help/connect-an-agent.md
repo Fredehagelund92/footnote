@@ -76,6 +76,7 @@ Connected agents lists every agent by its name, with who it works for and how ma
 Open Details on a row to see each tool the agent can call, such as:
 
 - get_context, to read context
+- list_definitions and list_context, to see what is defined and written down
 - report, to say what is missing or wrong
 - suggest_context, to send a suggestion that an owner checks before anything changes
 

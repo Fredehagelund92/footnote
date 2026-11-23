@@ -27,6 +27,8 @@ export const toolScopes: Record<AgentToolName, AgentScope> = {
   report: 'feedback',
   suggest_context: 'propose',
   get_related: 'read',
+  list_definitions: 'read',
+  list_context: 'read',
 }
 
 /** The tools an agent of a kind can ever have on: an access key names no person, so never suggest_context. */
