@@ -740,6 +740,34 @@ describe('the connect flow, on the manifests', () => {
     expect(read).not.toHaveProperty('variants')
   })
 
+  it('keeps the look of variants when the families found cover under half of them', () => {
+    const check: SourceCheck = {
+      ok: true,
+      steps: [],
+      version: 'abc',
+      complete: true,
+      views: 1,
+      metrics: 310,
+      dimensions: 4,
+      warnings: [],
+      variants: {
+        variants: 300,
+        metrics: 310,
+        bases: 10,
+        splits: [{ words: 3, examples: ['web'] }],
+      },
+      families: {
+        families: 1,
+        metrics: 2,
+        found: { declared: 0, calculation: 0, rate: 0, names: 1 },
+        example: 'Revenue',
+      },
+    }
+    const read = connectTestOf(check, 'dbt-metricflow').read
+    expect(read?.families?.families).toBe(1)
+    expect(read?.variants?.title).toBe('Many metrics look like variants of a few')
+  })
+
   it("sends the settings written, and keeps a source's settings the form doesn't draw", () => {
     expect(configOf({ repository: ' https://git.example/handbook.git ', folder: '' })).toEqual({
       repository: 'https://git.example/handbook.git',

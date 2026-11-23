@@ -20,7 +20,7 @@ Some models keep a metric for each currency or sales channel, such as Revenue (E
 
 When a read would find families, Test connection in [Integrations](integrations.md) leads with them, before anything is published. It says how many of the metrics are variants, how many families they make, and how each family was found. After the first read, an owner of its domain, or an admin, confirms each one in the Inbox, under Families. Nothing is published before.
 
-When many metrics only look like variants of a few, and no family is found in them, it says so instead. It says how many, how many metrics they look like, and the words they are split by, such as eur, usd and gbp. It reads only the names, so now and then it is wrong. It only warns: you can still go on.
+When many metrics only look like variants of a few, and the families found do not cover most of them, it says so too. It says how many, how many metrics they look like, and the words they are split by, such as eur, usd and gbp. It reads only the names, so now and then it is wrong. It only warns: you can still go on.
 
 Either way, a currency or a channel kept as a dimension needs no family at all.
 

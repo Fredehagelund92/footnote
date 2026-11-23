@@ -531,7 +531,7 @@ export default function NamesReview({
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
         {parts && (
           <TextSwitch
-            label="Show"
+            label="Families or names"
             value={show}
             onChange={choose}
             className="-mt-1 border-b pb-2"
@@ -736,7 +736,7 @@ export default function NamesReview({
 }
 
 /** The names a read made, over the setup checklist: the same review as the Inbox's card. */
-export function NamesDialog({ onClose }: { onClose: () => void }) {
+export function NamesDialog({ onClose, show }: { onClose: () => void; show?: NamesShow }) {
   const popup = React.useRef<HTMLDivElement>(null)
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -752,6 +752,7 @@ export function NamesDialog({ onClose }: { onClose: () => void }) {
         <DialogTitle className="sr-only">The names from your definitions</DialogTitle>
         <NamesReview
           onFinished={onClose}
+          show={show}
           frame={(body, foot) => (
             <>
               <div className="@container min-h-0 flex-1 overflow-y-auto">{body}</div>

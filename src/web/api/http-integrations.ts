@@ -632,6 +632,13 @@ const splitWords = ({ words, examples }: { words: number; examples: string[] }) 
  * What a read that looks like a metric per currency or channel says, before its names are
  * published, when it finds no family of them: Test connection then leads with the families (D5).
  */
+function coversMost(
+  families: SourceCheck['families'],
+  variants: NonNullable<SourceCheck['variants']>,
+) {
+  return !!families && families.metrics * 2 >= variants.variants
+}
+
 export function variantsWords(shape: NonNullable<SourceCheck['variants']>) {
   const n = (count: number) => count.toLocaleString('en-GB')
   const splits = shape.splits.map(splitWords).join(', and by ')
@@ -683,11 +690,10 @@ export function connectTestOf(check: SourceCheck, type?: string): ConnectTest {
             metrics: check.metrics,
             dimensions: check.dimensions,
             warnings: readWarnings(check.warnings, connector.warnings),
-            ...(check.families
-              ? { families: check.families }
-              : check.variants
-                ? { variants: variantsWords(check.variants) }
-                : {}),
+            ...(check.families ? { families: check.families } : {}),
+            ...(check.variants && !coversMost(check.families, check.variants)
+              ? { variants: variantsWords(check.variants) }
+              : {}),
           },
         }
       : {}),
