@@ -191,6 +191,9 @@ it('serving and the service read the split families, and analytics is refused', 
   await expect(
     asRole(localRoles.readonly, null, () => client.query('select * from serving_family_splits(1)')),
   ).rejects.toMatchObject({ code: '42501' })
+  await expect(
+    asRole(localRoles.serve, null, () => client.query('select split_by from family_splits')),
+  ).rejects.toMatchObject({ code: '42501' })
 })
 it('analytics cannot read personal columns or change data', async () => {
   for (const table of [

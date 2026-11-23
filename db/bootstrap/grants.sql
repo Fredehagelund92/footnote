@@ -36,8 +36,6 @@ grant execute on function edition_open(edition_reason, uuid, text, bigint), edit
 grant select on v_item_list, v_overlay_on, definitions, client_policies, tool_config, editions, live_edition, serving_overlay to :serve;
 -- Per-tool request limits (limits.mcp_rate_per_minute) apply to the next request after a change.
 grant select on settings_current to :serve;
--- Context about a family split back into its variants reaches agents through them (FR-142).
-grant select on family_splits to :serve;
 -- A definition names the tool its source reads (find_context, FR-338): the source's name and type, never its settings.
 grant select (id, kind, type, name) on connectors to :serve;
 grant execute on function serving_items(bigint), serving_reviews(bigint), serving_vocabulary(bigint) to :serve;
