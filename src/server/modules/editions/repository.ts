@@ -234,22 +234,25 @@ export async function loadServingBundle(
   const links = await tx.query<ServingBundle['links'][number]>('select * from serving_links($1)', [
     head.seq,
   ])
-  // A family split back into its metrics in this edition or before, and not joined again by it:
-  // context about it still reaches agents through each of them (FR-142).
-  const splits = await tx.query<{ key: string; variants: string[] }>(
-    `select x.family_key as key, x.variants from family_splits x
-      where x.split_in <= $1 and (x.joined_in is null or x.joined_in > $1)
-        and not exists (select 1 from vocab_term_service s where s.term_key = x.family_key
-                          and s.editions @> $1::bigint)`,
-    [head.seq],
-  )
   // With it, in the same statement, the terms and synonyms people write in Definitions, as they
   // are now (FR-138).
-  const [served] = await tx.query<{ doc: Metadata; written: WrittenRow[] }>(
+  // With them, the families split back into their metrics in this edition or before, and not
+  // joined again by it: context about one still reaches agents through each of them (FR-142).
+  const [served] = await tx.query<{
+    doc: Metadata
+    written: WrittenRow[]
+    splits: { key: string; variants: string[] }[]
+  }>(
     `select serving_metadata($1) as doc,
-            coalesce((select json_agg(t) from serving_terms() t), '[]') as written`,
+            coalesce((select json_agg(t) from serving_terms() t), '[]') as written,
+            coalesce((select json_agg(json_build_object('key', x.family_key, 'variants', x.variants))
+                        from family_splits x
+                       where x.split_in <= $1 and (x.joined_in is null or x.joined_in > $1)
+                         and x.family_key not in (select t.key from serving_vocabulary($1::bigint) t
+                                                   where t.kind = 'metric_group')), '[]') as splits`,
     [head.seq],
   )
+  const splits = served!.splits
   const metadata = served!.doc
   const overlay = await tx.query<Overlay>(
     'select kind,scope,area_id,item_id,flag from v_overlay_on',

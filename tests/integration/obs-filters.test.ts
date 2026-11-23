@@ -168,7 +168,7 @@ beforeAll(async () => {
     `insert into vocab_terms (key, kind)
      select key, kind::term_kind from unnest($1::text[], $2::text[]) t(key, kind)
      on conflict do nothing`,
-    [terms.map((t) => t[0]), terms.map((t) => t[1]), terms.map((t) => t[2])],
+    [terms.map((t) => t[0]), terms.map((t) => t[1])],
   )
   const versions = await client.query<{ id: string }>(
     `insert into vocab_term_versions (term_key, version_no, name, aliases, area_id, content_digest)
