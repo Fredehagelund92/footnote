@@ -925,6 +925,7 @@ export function createToolService(
         kind: args.kind ?? null,
         domain: area?.id ?? null,
         query: args.query ?? null,
+        day: name === 'list_context' ? today : null,
       }),
       offset = cursorOffset(args.cursor, key)
     const page: unknown[] = entries.slice(offset, offset + args.limit)

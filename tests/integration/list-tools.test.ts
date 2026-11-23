@@ -269,6 +269,22 @@ describe('give me 10 random metrics', () => {
     expect(other.page.status).toBe('check_failed')
   })
 
+  it('says so when a cursor starts past the end of a list that shrank', async () => {
+    const first = await call<Definition>('list_definitions', { limit: 10 })
+    const minted = JSON.parse(
+      Buffer.from(first.page.next_cursor!, 'base64url').toString('utf8'),
+    ) as { key: string }
+    const cursor = Buffer.from(
+      JSON.stringify({ key: minted.key, offset: first.page.total + 50 }),
+    ).toString('base64url')
+    const past = await call<Definition>('list_definitions', { limit: 10, cursor })
+    expect(past.reply.isError).not.toBe(true)
+    expect(past.page).toMatchObject({ status: 'matched', next_cursor: null, definitions: [] })
+    expect(past.page.say).toContain('starts past the end of the list')
+    expect(past.page.say).not.toMatch(/to \d+ are shown/)
+    expect(past.page.next).toContain('without cursor')
+  })
+
   it('takes 25 to a page by default and never more than 100', async () => {
     const plain = await call<Definition>('list_definitions', {})
     expect(plain.page.definitions).toHaveLength(25)
