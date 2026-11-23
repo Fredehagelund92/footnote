@@ -154,7 +154,7 @@ For a request such as "show me ten of our metrics" or "what is written down abou
 | `limit`  | How many on a page: 25 by default, 100 at most                                                           |
 | `cursor` | The `next_cursor` of the page before                                                                     |
 
-Both give back `total`, how many there are with these filters, and `next_cursor` for the next page, or null on the last. The order is fixed: metrics, then dimensions, then terms, each A to Z, and context items A to Z by title. To pick a few at random, an agent reads a page of up to 100 and picks from it, or reads on with `next_cursor`.
+Both give back `total`, how many there are with these filters, and `next_cursor` for the next page, or null on the last. The order is fixed: metrics, then dimensions, then terms, each A to Z, and context items A to Z by title. To pick a few at random, an agent reads a page of up to 100 and picks from it, or reads on with `next_cursor`. A cursor ends when what agents read changes, and for `list_context` on the next day: start again without `cursor`.
 
 ## Send a report: report
 
