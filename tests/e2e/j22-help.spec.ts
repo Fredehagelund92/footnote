@@ -79,7 +79,7 @@ test('the answer line explains itself', async ({ page }) => {
   // what to do, and leads to every answer line.
   await page.getByRole('log').getByRole('button', { name: 'Not found', exact: true }).click()
   const card = page.getByRole('dialog', { name: 'What Not found means' })
-  await expect(card.getByText('Not found: nothing is written about this yet.')).toBeVisible()
+  await expect(card.getByText('Not found: nothing published about this yet.')).toBeVisible()
   await expect(card.getByText(/^What you do\./)).toBeVisible()
   await expect(card.getByRole('link', { name: /All answer lines/ })).toHaveAttribute(
     'href',
