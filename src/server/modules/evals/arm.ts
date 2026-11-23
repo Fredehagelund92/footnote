@@ -11,7 +11,8 @@ import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { createDevVerifier, mintDevToken } from '../../mcp/auth.ts'
 import { registerMcpRoutes } from '../../mcp/gateway.ts'
-import { loadServingPolicy, type ServingBundle } from '../editions/index.ts'
+import { dataToolsOf, serverInstructions } from '../../mcp/tools.ts'
+import { loadServingPolicy, type ServingBundle, type ServingPolicy } from '../editions/index.ts'
 
 /**
  * One side of a paired run (FR-508, FR-509): the real MCP server code on a loopback port,
@@ -21,13 +22,22 @@ import { loadServingPolicy, type ServingBundle } from '../editions/index.ts'
  * reaches it through an MCP client, exactly as an AI client would. Nothing it serves counts as
  * demand: the eval runner records its own cells, never deliveries (FR-603).
  *
+ * The model gets the server instructions the client was given when it connected, as an AI client
+ * such as Claude Code puts them in its model's system prompt: an answer is tested with every rule
+ * and About our business a real agent reads.
+ *
  * Two clocks: answers are as of noon of the run's day, so a run is dated like the questions it
  * asks, while the request limits count real minutes. On the as-of clock a minute never ended, and
  * every call after the eval client's limit was refused for the rest of the run (round 5).
  */
 
 export const evalClient = 'eval'
-export type Arm = { tools: ToolSet; close(): Promise<void> }
+export type Arm = {
+  tools: ToolSet
+  /** What the server told the client when it connected (FR-343). */
+  instructions: string
+  close(): Promise<void>
+}
 
 /**
  * A tool call the tool server did not answer: refused at the door (a request limit, say) or never
@@ -44,6 +54,16 @@ export class ToolCallRefused extends Error {
     )
   }
 }
+
+/**
+ * The server instructions the eval client is given for an edition, as the gateway writes them:
+ * the data tools its definitions name, and About our business and the calendar of its policy.
+ * The eval client publishes nothing, so no permission line is in them.
+ */
+export const armInstructions = (
+  bundle: Pick<ServingBundle, 'terms'>,
+  policy: Pick<ServingPolicy, 'about' | 'calendar'>,
+) => serverInstructions(dataToolsOf(bundle), policy.about, policy.calendar)
 
 const discard = () => Promise.resolve()
 const noDemand = { write: discard, reportGap: () => Promise.resolve(''), feedback: discard }
@@ -110,6 +130,7 @@ export async function openArm(
       })
     return {
       tools,
+      instructions: client.getInstructions() ?? '',
       async close() {
         await client.close().catch(() => undefined)
         await app.close()

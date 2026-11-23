@@ -32,6 +32,7 @@ import {
   reportOutput,
 } from './schemas.ts'
 import { productName } from '../brand.ts'
+import type { ServingBundle } from '../modules/editions/index.ts'
 
 const read = {
   readOnlyHint: true,
@@ -62,6 +63,12 @@ export const serverInstructions = (
   calendar: Calendar = UTC_CALENDAR,
   permissions: readonly PublishPermission[] = [],
 ): string => instructionsFor(productName, dataTools, about, calendar, permissions)
+/** The data tools the definition sources name, by their own label (CON-101). */
+export function dataToolsOf(bundle: Pick<ServingBundle, 'terms'>): string[] {
+  return [...new Set(bundle.terms.flatMap((term) => (term.described ? [term.described.tool] : [])))]
+    .filter(Boolean)
+    .sort()
+}
 /** A tool's description for the model: the line people read first, then what the model needs. */
 const describe = (tool: AgentToolName, text: string, first = prefix) =>
   `${toolWords[tool].line} ${first}${text}`

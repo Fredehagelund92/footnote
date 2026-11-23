@@ -356,6 +356,7 @@ describe('prompt injection (NFR-024)', () => {
       },
     })
     const tools = {
+      instructions: '',
       close: () => Promise.resolve(),
       tools: {
         get_context: dynamicTool({
@@ -399,6 +400,7 @@ describe('the answer agent and the scripted mock', () => {
     const inputs: unknown[] = []
     return {
       inputs,
+      instructions: '',
       close: () => Promise.resolve(),
       tools: {
         get_context: dynamicTool({

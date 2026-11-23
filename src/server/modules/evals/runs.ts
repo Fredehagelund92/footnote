@@ -8,7 +8,12 @@ import type {
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { toolSchemaDigest } from '../../mcp/tools.ts'
-import { enabledTools, loadServingBundle, type ServingBundle } from '../editions/index.ts'
+import {
+  enabledTools,
+  loadServingBundle,
+  loadServingPolicy,
+  type ServingBundle,
+} from '../editions/index.ts'
 import {
   differentFamily,
   testRunRefusal,
@@ -333,6 +338,7 @@ export async function planArea(
     deps.clock,
     models,
     tools,
+    await loadServingPolicy(tx, evalClient),
   )
   const cost = await estimate(tx, planned, settings.tries, models)
   return { head, settings, models, planned, setAside, cost, tools }

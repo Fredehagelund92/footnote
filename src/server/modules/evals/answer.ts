@@ -24,7 +24,8 @@ import { gradingTag, type GradingInput, type ModelChoice } from '../models/index
 import { ToolCallRefused, type Arm } from './arm.ts'
 
 /**
- * Level 4 answer tests (FR-508): an agent loop through the MCP client, then a judge with native
+ * Level 4 answer tests (FR-508): an agent loop through the MCP client, with the server
+ * instructions the client was given after the test's own prompt, then a judge with native
  * structured output. A refusal (HTTP 200, finish reason `content-filter`) is "no answer": it is
  * never scored as a pass or a fail (plan section 3.2). Prompts are byte-stable so prompt caching
  * can hit, and their digests are part of the cell cache key. What the calls cost, and their
@@ -189,9 +190,13 @@ export async function answerQuestion(
     // The tools and the instructions are the same bytes for every step, try and question of a
     // run: one cache breakpoint after them lets the provider read them from its prompt cache, as
     // the assistant's do (plan 3.2). Round 5 read nothing from it in 1,044 answer calls.
-    instructions: [
-      { role: 'system', content: answerSystemPrompt, providerOptions: choice.cacheBreakpoint },
-    ],
+    instructions: [answerSystemPrompt, ...(arm.instructions ? [arm.instructions] : [])].map(
+      (content, i, all) => ({
+        role: 'system' as const,
+        content,
+        ...(i === all.length - 1 ? { providerOptions: choice.cacheBreakpoint } : {}),
+      }),
+    ),
     prompt: wording,
     tools: arm.tools,
     stopWhen: [stepCountIs(8), ({ steps }) => refusedCall(steps) !== undefined],
