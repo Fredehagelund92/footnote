@@ -8,6 +8,7 @@ import { SEARCH_GROUP_MAX } from '../../../contract/index.ts'
 import type { ContextItem } from '../../../domain/item.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { livePairs } from '../conflicts/index.ts'
 import { forReader } from './audience.ts'
 
@@ -86,8 +87,8 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
            from listed l, jsonb_array_elements_text(l.entry->'scope'->'metrics') m(id)
            cross join lateral (
              select unnest(coalesce(
-                      (select x.variants from family_splits x
-                        where x.family_key = m.id and x.joined_in is null),
+                      (select x.variants from ${standingSplits(liveSeq)} x
+                        where x.family_key = m.id),
                       array[case when m.id like 'group:%' then m.id else 'metric:' || m.id end])) as key) k
          union all
          select 2, l.version_id, 'dim:' || d.id, d.id

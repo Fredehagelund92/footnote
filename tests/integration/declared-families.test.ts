@@ -875,4 +875,64 @@ describe('splitting a family (D2-D4)', () => {
     )
     expect(standing[0]!.n).toBe(1)
   })
+
+  const flagged = async () =>
+    (
+      await client.query<{ flag: string }>(
+        `select flag::text from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+        [note],
+      )
+    ).rows
+  const splitEdition = async () =>
+    (
+      await client.query<{ label: string }>(
+        `select e.label from family_splits x join editions e on e.seq = x.split_in
+          where x.family_key = $1 order by x.split_in desc limit 1`,
+        [accrued.key],
+      )
+    ).rows[0]!.label
+  const rollback = (label: string) =>
+    ok(call('POST', `/editions/${label}/rollback`, 'admin', { note: 'Back' }))
+
+  it('is served again by going back into it after it was joined, and can be joined once more', async () => {
+    const [eur, usd] = accrued.family!.variants
+    const edition = await splitEdition()
+    await ok(join(accrued.key, 'admin'))
+    expect(await family('Accrued share 1')).toBeDefined()
+    await rollback(edition)
+    // The edition has the content of the split one, so it reads as it does, joined or not.
+    expect(await family('Accrued share 1')).toBeUndefined()
+    expect((await catalogue()).splits).toMatchObject([{ key: accrued.key }])
+    expect(await reaching(eur!.key)).toContain(note)
+    expect(await reaching(usd!.key)).toContain(note)
+    expect(await flagged()).toEqual([{ flag: 'needs_check' }])
+    expect(await ok<FamilyJoined>(join(accrued.key, 'admin'))).toMatchObject({
+      name: 'Accrued share 1',
+    })
+    expect(await family('Accrued share 1')).toBeDefined()
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+  })
+
+  it('reads the family as live after going back to before a split that stands', async () => {
+    await ok(split(accrued.key, 'admin'))
+    const before = (
+      await client.query<{ label: string }>(
+        `select e.label from editions e where e.seq = (select max(split_in) from family_splits
+          where family_key = $1) - 1`,
+        [accrued.key],
+      )
+    ).rows[0]!.label
+    await rollback(before)
+    expect(await family('Accrued share 1')).toBeDefined()
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+    const page = await ok<{ chips: string[] }>(call('GET', `/items/${note}/page`, 'owner'))
+    expect(page.chips).toEqual(['Accrued share 1'])
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
+    expect(feed.cards.find((c) => c.group === 'check' && c.itemId === note)).toBeUndefined()
+    // It can be split once more, and joined again.
+    await ok(split(accrued.key, 'admin'))
+    await ok(join(accrued.key, 'admin'))
+  })
 })

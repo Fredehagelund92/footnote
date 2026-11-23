@@ -32,6 +32,7 @@ import type { ClashRelation } from '../../../domain/readiness.ts'
 import { kinds, type Kind } from '../../../domain/words.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { undoOffer } from '../../db/undo.ts'
 import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { conflictsOfItem } from '../conflicts/index.ts'
@@ -288,7 +289,7 @@ export function createContextService(
                                               where d.version_id = s.version_id), '[]')) as scope,
               coalesce((select jsonb_agg(jsonb_build_object('key', x.family_key, 'variants', x.variants))
                           from item_version_metrics m
-                          join family_splits x on x.family_key = m.metric_key and x.joined_in is null
+                          join ${standingSplits(liveSeq)} x on x.family_key = m.metric_key
                          where m.version_id = s.version_id), '[]') as splits
          from item_version_service s
         where s.item_id = $1 and s.editions @> (select seq from live_edition)`,

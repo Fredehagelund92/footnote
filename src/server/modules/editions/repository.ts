@@ -1,4 +1,5 @@
 import type { Queryable } from '../../db/database.ts'
+import { standingSplits } from '../../db/family-splits.ts'
 import type pg from 'pg'
 import { settingSchemas } from '../../../contract/admin.ts'
 import { termDomain } from '../../../domain/catalogue.ts'
@@ -236,8 +237,8 @@ export async function loadServingBundle(
   ])
   // With it, in the same statement, the terms and synonyms people write in Definitions, as they
   // are now (FR-138).
-  // With them, the families split back into their metrics in this edition or before, and not
-  // joined again by it: context about one still reaches agents through each of them (FR-142).
+  // With them, the families split back into their metrics in this edition: context about one
+  // still reaches agents through each of them (FR-142).
   const [served] = await tx.query<{
     doc: Metadata
     written: WrittenRow[]
@@ -246,10 +247,7 @@ export async function loadServingBundle(
     `select serving_metadata($1) as doc,
             coalesce((select json_agg(t) from serving_terms() t), '[]') as written,
             coalesce((select json_agg(json_build_object('key', x.family_key, 'variants', x.variants))
-                        from family_splits x
-                       where x.split_in <= $1 and (x.joined_in is null or x.joined_in > $1)
-                         and x.family_key not in (select t.key from serving_vocabulary($1::bigint) t
-                                                   where t.kind = 'metric_group')), '[]') as splits`,
+                        from ${standingSplits('$1')} x), '[]') as splits`,
     [head.seq],
   )
   const splits = served!.splits

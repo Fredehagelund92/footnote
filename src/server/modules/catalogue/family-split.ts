@@ -1,6 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import type { FamilyJoined, FamilySplit } from '../../../contract/index.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { recordAudit } from '../admin/index.ts'
 import { connectorType, reconcileSourceFlags } from '../connectors/index.ts'
 import { lockReleases } from '../editions/index.ts'
@@ -109,11 +110,19 @@ export function createFamilySplitService(tx: Queryable) {
       },
     )
     // A split the family was served again past, by going back to an edition before it, ends here.
-    await tx.query(
+    const [stale] = await tx.query<{ open: number }>(
+      'select count(*)::int as open from family_splits where family_key=$1 and joined_in is null',
+      [key],
+    )
+    const closed = await tx.query(
       `update family_splits set joined_by=cl_person(),joined_in=(select seq from editions where label=$2)
-        where family_key=$1 and joined_in is null`,
+        where family_key=$1 and joined_in is null returning id`,
       [key, edition.label],
     )
+    if (closed.length < stale!.open)
+      throw new ORPCError('CONFLICT', {
+        message: `${family.name} was split before, in another domain than it is in now. An owner of that domain or an admin has to make it one family again first.`,
+      })
     await tx.query(
       `insert into family_splits(family_key,name,area_id,variants,items,split_by,split_in)
        values($1,$2,$3,$4,$5,cl_person(),(select seq from editions where label=$6))`,
@@ -155,12 +164,17 @@ export function createFamilySplitService(tx: Queryable) {
       name: string
       areaId: string | null
       variants: string[]
+      joined: boolean
       version: string
+      closedIn: string
     }>(
-      `select x.id::text, x.name, x.area_id as "areaId", x.variants,
-              (select s.version_id::text from vocab_term_service s
-                where s.term_key=x.family_key and upper(s.editions)=x.split_in) as version
-         from family_splits x where x.family_key=$1 and x.joined_in is null`,
+      `select x.id::text, x.name, x.area_id as "areaId", x.variants, x.joined_in is not null as joined,
+              c.version_id::text as version, upper(c.editions)::text as "closedIn"
+         from ${standingSplits(liveSeq)} x
+         cross join lateral (select s.version_id, s.editions from vocab_term_service s
+                              where s.term_key=x.family_key and not upper_inf(s.editions)
+                              order by upper(s.editions) desc limit 1) c
+        where x.family_key=$1`,
       [key],
     )
     if (!standing)
@@ -169,18 +183,22 @@ export function createFamilySplitService(tx: Queryable) {
     const variants = await tx.query<LiveTerm>(`${live} where t.key=any($1::text[])`, [
       standing.variants,
     ])
-    const [served] = await tx.query<{ live: boolean }>(
-      `select exists (select 1 from vocab_term_service s where s.term_key=$1
-                        and s.editions @> (select seq from live_edition)) as live`,
-      [key],
-    )
     const gone = standing.variants.find(
       (variant) => !variants.some((term) => term.key === variant && term.parentKey === null),
     )
-    if (served!.live || gone)
+    if (gone)
       throw new ORPCError('CONFLICT', {
         message: `The metrics of ${standing.name} changed since it was split, so they can't be one family again here.`,
       })
+    // A split brought back by going back to an edition from after it, once joined, stands again.
+    const [reopened] = standing.joined
+      ? await tx.query<{ id: string }>(
+          `insert into family_splits(family_key,name,area_id,variants,items,split_by,split_in)
+           select family_key,name,area_id,variants,items,cl_person(),$2 from family_splits where id=$1
+           returning id::text`,
+          [standing.id, standing.closedIn],
+        )
+      : []
     const edition = await acceptTermVersions(
       tx,
       variants.map((variant) => ({
@@ -206,7 +224,7 @@ export function createFamilySplitService(tx: Queryable) {
     await tx.query(
       `update family_splits set joined_by=cl_person(),joined_in=(select seq from editions where label=$2)
         where id=$1`,
-      [standing.id, edition.label],
+      [reopened?.id ?? standing.id, edition.label],
     )
     await reconcileSourceFlags(tx, {})
     await recordAudit(tx, {

@@ -1,5 +1,6 @@
 import type { CheckFlag } from '../../../domain/item.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 
 type Reference = { ref: string; renamedTo: string | null }
 type FlagChange = {
@@ -73,9 +74,7 @@ export async function reconcileSourceFlags(
        select l.item_id, l.area_id, 'needs_check', null, x.name
          from live l
          join item_version_metrics m on m.version_id = l.version_id
-         join family_splits x on x.family_key = m.metric_key and x.joined_in is null
-        where not exists (select 1 from vocab_term_service s where s.term_key = x.family_key
-                            and s.editions @> (select seq from live_edition))),
+         join ${standingSplits(liveSeq)} x on x.family_key = m.metric_key),
      wanted as (
        select item_id, area_id, flag,
               coalesce(jsonb_agg(ref order by ref->>'ref') filter (where ref is not null), '[]') as refs,

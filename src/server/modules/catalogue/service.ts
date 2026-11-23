@@ -37,6 +37,7 @@ import { memberName } from '../../../domain/term-candidates.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { connectorType, connectorTypes, modelFolderOf } from '../connectors/index.ts'
 import { libraryIndexItems } from '../library/index.ts'
 
@@ -267,9 +268,7 @@ export function createCatalogueService(
                                join item_version_metrics m on m.version_id = s.version_id
                               where upper_inf(s.editions) and m.metric_key = x.family_key),
                    'personId', x.split_by::text, 'at', ${iso('x.split_at')}) order by x.split_at desc), '[]')
-            from family_splits x
-           where x.joined_in is null
-             and not exists (select 1 from vocabulary v where v.key = x.family_key)) as splits,
+            from ${standingSplits(liveSeq)} x) as splits,
          (select coalesce(json_agg(s), '[]') from (
             select distinct on (key) key, value from settings_versions
              where key = any($2::text[]) order by key, version desc) s) as settings,

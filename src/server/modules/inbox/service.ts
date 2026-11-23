@@ -27,6 +27,7 @@ import {
 } from '../../../domain/inbox.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { lastingUndo, undoOffer } from '../../db/undo.ts'
 import { askedCounts, type BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
@@ -417,7 +418,7 @@ export function createInboxFeedService(
                      where t.key = any(x.variants) order by t.name collate "en-x-icu") as metrics
          from item_version_service s
          join item_version_metrics m on m.version_id = s.version_id
-         join family_splits x on x.family_key = m.metric_key and x.joined_in is null
+         join ${standingSplits(liveSeq)} x on x.family_key = m.metric_key
         where s.item_id = any($1::text[]) and upper_inf(s.editions)
         order by s.item_id, x.name collate "en-x-icu"`,
       [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
