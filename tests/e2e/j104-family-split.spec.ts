@@ -98,6 +98,7 @@ for (const { name, width, height } of widths) {
         await expect(page.getByText('Family of metrics')).toHaveCount(0)
         // The item about the family is about it too, and due for a check.
         await expect(page.getByText(`${ACCRUED} was restated for October`)).toBeVisible()
+        await expect(page.getByText('Due for a check').first()).toBeVisible()
 
         // The item about it reads as about both, due, and its owner keeps it for both.
         await moveTo(page, '/inbox')
@@ -123,7 +124,11 @@ for (const { name, width, height } of widths) {
         await expect(page.getByRole('button', { name: ACCRUED, exact: true })).toBeVisible()
       })
 
-      test('a family its tool declares is changed there, never split here', async ({ page }) => {
+      test('a family its tool declares is changed there, never split here', async ({
+        page,
+        context,
+      }) => {
+        await context.grantPermissions(['clipboard-read', 'clipboard-write'])
         await asOwner(page)
         await moveTo(page, `/definitions/${encodeURIComponent('Active buyers')}`)
         await expect(page.getByRole('region', { name: 'How it is built' })).toContainText(
@@ -138,7 +143,8 @@ for (const { name, width, height } of widths) {
         await expect(
           declared.getByRole('link', { name: /Open models\/orders\.yml in your repository/ }),
         ).toHaveAttribute('href', 'https://git.example/shop/dbt/blob/main/models/orders.yml')
-        await expect(declared.getByRole('button', { name: 'Copy the key' })).toBeVisible()
+        await declared.getByRole('button', { name: 'Copy the key' }).click()
+        await expect(toasts(page)).toContainText('Copied the key')
         expect(await sideways(page)).toBe(0)
         expect(await axe(page)).toEqual([])
       })

@@ -90,6 +90,7 @@ for (const { name, width, height } of widths) {
         expect(await sideways(page)).toBe(0)
         expect(await axe(page)).toEqual([])
         await moveTo(page, '/inbox')
+        await expect(page.getByRole('heading', { name: 'Inbox', level: 1 })).toBeVisible()
         await expect(page.getByText(/Its family Accrued share front loaded was split/)).toHaveCount(
           0,
         )

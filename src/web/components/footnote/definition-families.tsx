@@ -159,8 +159,8 @@ function FamilyRow({ d, meaning, due }: { d: Definition; meaning: string | null;
 /** The families split back into their metrics, while they stand, with the way back. */
 function Splits({ splits }: { splits: readonly SplitFamily[] }) {
   return (
-    <section aria-labelledby="split-families" className="flex flex-col px-4 pt-5 pb-8 md:px-6">
-      <h2 id="split-families" className="flex items-baseline gap-2 text-sm font-semibold">
+    <section aria-label="Split into metrics" className="flex flex-col px-4 pt-5 pb-8 md:px-6">
+      <h2 className="flex items-baseline gap-2 text-sm font-semibold">
         Split into metrics
         <span className="font-normal text-muted-foreground tabular-nums">{n(splits.length)}</span>
       </h2>

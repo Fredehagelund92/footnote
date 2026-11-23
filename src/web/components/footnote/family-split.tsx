@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -76,6 +75,7 @@ function SplitDialog({ d, onClose }: { d: Definition; onClose: () => void }) {
   const items = useItemsAbout(d.name)
   const tool = d.tool ?? 'its tool'
   const cancel = React.useRef<HTMLButtonElement>(null)
+  const listId = React.useId()
   const write = useWrite()
   const splitting = useReported<{ metrics: string[]; items: number }>({
     wasnt: `${d.name} wasn't split.`,
@@ -105,16 +105,13 @@ function SplitDialog({ d, onClose }: { d: Definition; onClose: () => void }) {
   const word = d.name.toLowerCase()
   return (
     <Dialog open onOpenChange={(next) => !next && !sending && onClose()}>
-      <DialogContent initialFocus={cancel} className="sm:max-w-lg">
+      <DialogContent initialFocus={cancel} aria-describedby={listId} className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             Split {d.name} into {n(count)} metrics?
           </DialogTitle>
-          <DialogDescription className="sr-only">
-            What splitting it does, before it happens.
-          </DialogDescription>
         </DialogHeader>
-        <ul className="flex list-disc flex-col gap-2 pl-5 text-sm leading-6">
+        <ul id={listId} className="flex list-disc flex-col gap-2 pl-5 text-sm leading-6">
           <li>
             {count <= 3 ? (
               <>
@@ -242,10 +239,12 @@ export function FamilyDeclared({ d }: { d: Definition }) {
         <button
           type="button"
           onClick={() =>
-            void navigator.clipboard.writeText(declared).then(
-              () => toast('Copied the key', { description: declared }),
-              () => toast.error("Couldn't copy the key", { description: declared }),
-            )
+            void Promise.resolve()
+              .then(() => navigator.clipboard.writeText(declared))
+              .then(
+                () => toast('Copied the key', { description: declared }),
+                () => toast.error("Couldn't copy the key", { description: declared }),
+              )
           }
           className="inline-flex items-center gap-1 font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >

@@ -11,7 +11,7 @@ import type { Card, Feed } from '@contract/inbox'
 import type { ReviewSheet } from '@contract/review-path'
 import type { Area } from '@domain/item'
 import type { ClashRelation } from '@domain/clash-relations'
-import { keepLabel, splitCardLine } from '@domain/family-split'
+import { andList, keepLabel, splitCardLine } from '@domain/family-split'
 import { alertCardWords, alertRule, lookTitle, type RaiseSubject } from '@domain/alerts'
 import { parseMentions } from '@domain/mentions'
 import { answerText, savedWhy } from '@domain/saved-check'
@@ -306,7 +306,13 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
     }
     case 'check': {
       // A family it is about was split: the metrics it still reaches agents through, by name.
-      const split = card.reason === 'family' ? card.families[0] : undefined
+      const split =
+        card.reason === 'family' && card.families.length
+          ? {
+              name: andList(card.families.map((f) => f.name)),
+              metrics: [...new Set(card.families.flatMap((f) => f.metrics))],
+            }
+          : undefined
       const by = card.lastChecked.by
       const on = card.lastChecked.on
       // Due since a day, as the mock says it: "Since 2 Oct".
