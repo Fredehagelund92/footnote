@@ -435,7 +435,8 @@ export default function NamesReview({
       ? 'families'
       : 'names'
     : partWithOpen(
-        picked ?? asked ?? (familiesOpen.length || !singlesOpen.length ? 'families' : 'names'),
+        (onShow ? asked : (picked ?? asked)) ??
+          (familiesOpen.length || !singlesOpen.length ? 'families' : 'names'),
         familiesOpen.length,
         singlesOpen.length,
       )
