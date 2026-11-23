@@ -6,6 +6,8 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DetailsBody } from '@/components/footnote/details-body'
 import { ContextText } from '@/components/footnote/context-text'
 import { SourcePassages, SourceText, sourceWords } from '@/components/footnote/source-text'
+import { MeaningWords } from '@/components/footnote/family-meaning'
+import type { FamilyMeaning } from '@/lib/definitions'
 import type { Fact } from '@/model/items'
 
 // Words a source wrote in Markdown, as the app draws them: an item's quote under Details, a tool's
@@ -140,5 +142,33 @@ describe('an item’s own text (FR-119)', () => {
     expect(el.querySelector('p code')?.textContent).toBe('orders_daily')
     expect(el.querySelector('li em')?.textContent).toBe('gross')
     expect(el.querySelector('blockquote a')?.getAttribute('href')).toBe('https://wiki.example/x')
+  })
+})
+
+describe('a family’s meaning', () => {
+  const meaning = {
+    source: 'common',
+    words: '**Fees** partners report in {Currency}. Not our revenue: see `commission_eur`.',
+    differing: [],
+    revision: 0,
+  } as unknown as FamilyMeaning
+
+  it('draws its marks, and each value it varies by as a chip', () => {
+    const el = render(React.createElement(MeaningWords, { meaning, by: ['Currency'] }))
+    expect(seen(el)).toBe('Fees partners report in Currency. Not our revenue: see commission_eur.')
+    expect(el.querySelector('strong')?.textContent).toBe('Fees')
+    expect(el.querySelector('code')?.textContent).toBe('commission_eur')
+    expect(el.querySelector('span.rounded-sm')?.textContent).toBe('Currency')
+  })
+
+  it('keeps a value inside the mark around it', () => {
+    const el = render(
+      React.createElement(MeaningWords, {
+        meaning: { ...meaning, words: 'Paid **in {Currency}** only.' },
+        by: ['Currency'],
+      }),
+    )
+    expect(el.querySelector('strong')?.textContent).toBe('in Currency')
+    expect(el.querySelector('strong span')?.textContent).toBe('Currency')
   })
 })

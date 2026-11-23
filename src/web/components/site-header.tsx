@@ -65,7 +65,16 @@ function NavToggle() {
  * this: everything else it would hold (the page's own menu, Ask, the nav, search, the theme and the
  * demo's person) behind one More button, so the title keeps its room.
  */
-function PhoneMore({ ask, children }: { ask?: () => void; children?: ReactNode }) {
+function PhoneMore({
+  ask,
+  nav = true,
+  children,
+}: {
+  ask?: () => void
+  /** Whether it opens the nav: a page that keeps its nav toggle has no need. */
+  nav?: boolean
+  children?: ReactNode
+}) {
   const { toggleSidebar } = useSidebar()
   const viewAs = useViewAs()
   return (
@@ -87,10 +96,12 @@ function PhoneMore({ ask, children }: { ask?: () => void; children?: ReactNode }
               Ask about this
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={toggleSidebar}>
-            <PanelLeftIcon />
-            Open the menu
-          </DropdownMenuItem>
+          {nav && (
+            <DropdownMenuItem onClick={toggleSidebar}>
+              <PanelLeftIcon />
+              Open the menu
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => open('palette')}>
             <SearchIcon />
             Search
@@ -130,6 +141,7 @@ export function SiteHeader({
   bare,
   ask,
   more,
+  fold,
 }: {
   /**
    * The page's name, or a breadcrumb that leads to it. A breadcrumb's current page is the page's
@@ -155,10 +167,16 @@ export function SiteHeader({
   more?: ReactNode
   /** Leaves out search and the theme: the page's own More menu has them, so the title keeps its room. */
   bare?: boolean
+  /**
+   * On a phone, search and the theme in one More menu: a page with more header buttons than one
+   * (Ask's History and New chat) keeps them a tap away and the install's label its words.
+   */
+  fold?: boolean
 }) {
   const { isMobile } = useSidebar()
   const { profileLabel } = useSession()
   const lean = !!deep && isMobile
+  const folded = !!fold && isMobile && !lean && !bare
   const way = back ?? (lean ? deep : undefined)
   // The tab says the page's heading: the header's, or the page's own under it (an item's title).
   const ref = React.useRef<HTMLElement>(null)
@@ -233,7 +251,7 @@ export function SiteHeader({
         </div>
         <div data-header-actions className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* On a phone the sidebar is a sheet, so search lives here, as a magnifier. */}
-          {isMobile && !bare && !lean && (
+          {isMobile && !bare && !lean && !folded && (
             <Button
               variant="outline"
               size="icon"
@@ -257,10 +275,11 @@ export function SiteHeader({
           </span>
         )}
         <div data-header-actions className="flex shrink-0 items-center gap-2 empty:hidden sm:gap-3">
-          {!bare && !lean && <ThemeMenu />}
+          {!bare && !lean && !folded && <ThemeMenu />}
           {/* The demo's switch between its people, in the corner: nothing anywhere else. */}
-          {!bare && !lean && <ViewAs />}
+          {!bare && !lean && !folded && <ViewAs />}
           {lean && <PhoneMore ask={ask}>{more}</PhoneMore>}
+          {folded && <PhoneMore nav={false} />}
         </div>
       </header>
       {/* Offline, one quiet line right under the header, so the header keeps its line with the sidebar. */}

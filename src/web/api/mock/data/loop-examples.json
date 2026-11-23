@@ -3490,7 +3490,7 @@
     "question": "How do I create my first context item?",
     "turn": {
       "kind": "answer",
-      "text": "Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know?",
+      "text": "Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
       "sources": [],
       "state": null,
       "footer": {
@@ -3532,12 +3532,12 @@
           "runs": [
             {
               "t": "text",
-              "text": "Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know?"
+              "text": "Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?"
             }
           ]
         }
       ],
-      "said": "Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know?",
+      "said": "Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
       "nouns": [],
       "items": [],
       "closest": null,
@@ -3946,6 +3946,127 @@
           ]
         }
       ],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-help-write-metric": {
+    "question": "How do I write a context item about churn rate?",
+    "turn": {
+      "kind": "answer",
+      "text": "To write a context item about Churn rate, open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Read the help for “add a context item”: 3 parts.",
+        "Read Definitions for churn rate: 1 found."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "write-context",
+          "id": "add-a-context-item",
+          "title": "Write context",
+          "heading": "Add a context item"
+        }
+      ],
+      "actions": [
+        {
+          "id": "write_context"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "add a context item"
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["churn rate"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "To write a context item about "
+            },
+            {
+              "t": "noun",
+              "id": "metric:churn_rate"
+            },
+            {
+              "t": "text",
+              "text": ", open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?"
+            }
+          ]
+        }
+      ],
+      "said": "To write a context item about [@metric:churn_rate], open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
+      "nouns": [
+        {
+          "id": "metric:churn_rate",
+          "name": "Churn rate",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:active_customers",
+          "name": "Active customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:customer_lifetime_value",
+          "name": "Customer lifetime value",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:new_customers",
+          "name": "New customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:repeat_purchase_rate",
+          "name": "Repeat purchase rate",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
       "overview": null,
       "checks": []
     }

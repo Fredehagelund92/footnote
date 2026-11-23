@@ -6,7 +6,7 @@ order: 1
 minutes: 4
 reviewed: 2026-11-22
 open:
-  label: New context
+  label: Write context
   href: /context/new
 does:
   add-a-context-item: write_context
@@ -17,7 +17,7 @@ How to add a context item, what to put in it, and the line that stops an agent f
 
 ## Add a context item
 
-To create one, open **Context** and choose **New context**. The editor opens on a new item, with its first question: What should agents know?
+To create one, open **Context** and choose **Write context**. The editor opens on a new item, with its first question: What should agents know?
 
 When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 

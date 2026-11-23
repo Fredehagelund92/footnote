@@ -7,8 +7,10 @@ import { expect, go, signInAs, test } from './go.ts'
 // term starts with the word in it; a member is offered Tell an admin instead. The definition card
 // of a metric nothing is written about (?example=loop-definition-unwritten, Churn rate in Customer
 // value) offers its owners and the admins Write context, which opens the editor on the metric, in
-// its domain; an owner of another domain and a member get no button. Each at 1440 and 390, in
-// light and dark: nothing runs wider than the page.
+// its domain; an owner of another domain and a member get no button. A how-to that names a metric
+// (?example=loop-help-write-metric) opens the editor on it too, in its domain, as a rule; a gap
+// about a day opens an event. Each at 1440 and 390, in light and dark: nothing runs wider than the
+// page.
 
 async function answer(page: Page, example: string, theme: string) {
   await go(page, `/ask?example=${example}&theme=${theme}`)
@@ -103,5 +105,32 @@ for (const { name, viewport } of [
         await expect(other.getByRole('button', { name: 'Open the definition' })).toBeVisible()
         await expect(other.getByRole('button', { name: /^Write context/ })).toHaveCount(0)
       }
+    })
+
+    test(`${name}, ${theme}: Write context opens on what the question named, in its domain and kind`, async ({
+      page,
+    }) => {
+      await signInAt(page, 'Jon Abara', viewport)
+      // A how-to that names a metric: its Write context opens on the metric, as the gap card's
+      // does, in the metric's domain (Customer value, not Jon's Sales) and as a rule.
+      const log = await answer(page, 'loop-help-write-metric', theme)
+      const write = log
+        .locator('[data-actions]')
+        .getByRole('button', { name: 'Write context', exact: true })
+      await expect(write).toHaveAttribute('href', '/context/new?about=Churn+rate&kind=note')
+      await fitsThePage(page, write)
+      await write.click()
+      await expect(page.getByRole('heading', { name: 'New context', level: 1 })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Domain Customer value' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Kind Rule' })).toBeVisible()
+      await expect(page.getByRole('button', { name: /Churn rate/ }).first()).toBeVisible()
+
+      // A question about a day: the gap card's Write context opens an event, in Sales.
+      const gap = (await answer(page, 'loop-missing', theme)).locator('[data-gap]')
+      const fill = gap.getByRole('button', { name: /^Write context for/ })
+      await expect(fill).toHaveAttribute('href', '/context/new?about=Orders%7CPoland&kind=event')
+      await fill.click()
+      await expect(page.getByRole('button', { name: 'Domain Sales' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Kind Event' })).toBeVisible()
     })
   }

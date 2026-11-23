@@ -1,9 +1,11 @@
 import * as React from 'react'
 import { toast } from '@/lib/toast'
 import { FAMILY_WORDS_MAX } from '@domain/family-meaning-line'
+import { inlineSegments } from '@domain/markdown-blocks'
 import { useWrite } from '@/api/queries'
 import { TriangleAlertIcon } from '@/components/icons'
 import { PeekAttention } from '@/components/footnote/peek'
+import { Marks, SourceText, codeLook, type CodeLook } from '@/components/footnote/source-text'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -32,27 +34,44 @@ export const MeaningDialog = React.lazy(() => import('@/components/footnote/fami
 
 const n = (x: number) => x.toLocaleString('en-GB')
 
-/** The meaning's words, each value it varies by as the axis it stands for, in a chip. */
-export function MeaningWords({ meaning, by }: { meaning: FamilyMeaning; by: string[] }) {
+/**
+ * The meaning's words, each value it varies by as the axis it stands for, in a chip, and the
+ * Markdown its tool wrote drawn as the rest of a definition's words are (source-text.tsx). `code`
+ * is how its code is drawn.
+ */
+export function MeaningWords({
+  meaning,
+  by,
+  code = 'text-xs',
+}: {
+  meaning: FamilyMeaning
+  by: string[]
+  code?: CodeLook
+}) {
   if (!meaning.words)
     return (
       <span className="text-muted-foreground">
         No meaning yet: no words speak for all its variants.
       </span>
     )
-  return meaning.words.split(/(\{[^{}]+\})/).map((part, i) => {
-    const axis = part.slice(1, -1)
-    return part.startsWith('{') && by.includes(axis) ? (
-      <span
-        key={i}
-        className="mx-0.5 inline-flex h-5.5 items-center rounded-sm border bg-muted px-1.5 text-sm font-medium text-muted-foreground"
-      >
-        {axis}
-      </span>
-    ) : (
-      <React.Fragment key={i}>{part}</React.Fragment>
-    )
-  })
+  // The marks are read over the whole words first, so a mark around a slot keeps the slot inside it.
+  return inlineSegments(meaning.words).map((segment, i) => (
+    <Marks key={i} marks={segment.marks} code={codeLook(code)}>
+      {segment.text.split(/(\{[^{}]+\})/).map((part, j) => {
+        const axis = part.slice(1, -1)
+        return part.startsWith('{') && by.includes(axis) ? (
+          <span
+            key={j}
+            className="mx-0.5 inline-flex h-5.5 items-center rounded-sm border bg-muted px-1.5 text-sm font-medium text-muted-foreground"
+          >
+            {axis}
+          </span>
+        ) : (
+          <React.Fragment key={j}>{part}</React.Fragment>
+        )
+      })}
+    </Marks>
+  ))
 }
 
 /** What the owner's dialog uses of the app, handed to it as its parts. */
@@ -73,6 +92,7 @@ export const meaningParts = {
   RadioGroup,
   RadioGroupItem,
   Textarea,
+  SourceText,
 }
 export type MeaningParts = typeof meaningParts
 

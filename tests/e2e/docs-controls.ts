@@ -189,7 +189,7 @@ export const docControls: DocControl[] = [
   },
   { phrase: 'Invite people', page: 'domains-and-owners', at: '/settings/people', drawn: 'button' },
   { phrase: 'Context', page: 'write-context', at: '/inbox', drawn: 'link' },
-  { phrase: 'New context', page: 'write-context', at: '/context', drawn: 'button' },
+  { phrase: 'Write context', page: 'write-context', at: '/context', drawn: 'button' },
   { phrase: 'Settings', page: 'write-context', at: '/inbox', drawn: 'link' },
   { phrase: 'General', page: 'write-context', at: '/settings/agents', drawn: 'link' },
   { phrase: 'Event', page: 'write-context', at: '/context/new', drawn: 'option', open: 'Kind' },

@@ -49,7 +49,7 @@ does: # optional: the quick actions a ## section explains, by the section's anch
 
 The title comes from the front matter, so the body has no `#` heading. The body opens with one paragraph, the lead, shown under the title. Sections are `##` headings, which the page's "On this page" list shows, and `###` below them.
 
-Every page about a screen has `open:`, and says early where to start: the screen to open and the control to choose there, such as "Open **Context** and choose **New context**". The few pages about no one screen, such as Words, have none, and the docs check lists them.
+Every page about a screen has `open:`, and says early where to start: the screen to open and the control to choose there, such as "Open **Context** and choose **Write context**". The few pages about no one screen, such as Words, have none, and the docs check lists them.
 
 `does:` names, for a `##` section that explains how to do something, the quick action it explains, one of `src/domain/actions.ts`, or a list of them, such as `families: [pick_usual_variant, family_meaning]`. Ask's help read gives them with each part it finds: when an answer says how to do it, Ask offers a button that opens that screen, or says who does it to someone who may not. The check fails when a key is no `##` heading of the page, or a value is no action.
 

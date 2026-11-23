@@ -508,6 +508,8 @@ export function DefinitionsPage() {
         ? tidyMeaning(family.meaning.words, family.by)
         : 'No meaning yet: no words speak for all its variants.'
       : plainText(subject?.definition ?? '')
+    // A tool's words hold its Markdown: a family's meaning is its variants' words.
+    const marked = !!family?.meaning?.words || !!subject?.synced
     // Found by its variants' words alone, a family says how many, never which (FR-142): its quick
     // view names the first.
     const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
@@ -637,9 +639,9 @@ export function DefinitionsPage() {
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
           <TruncatedText
-            text={(subject?.synced ? sourceWords(meaning) : meaning) || 'No meaning written yet'}
+            text={(marked ? sourceWords(meaning) : meaning) || 'No meaning written yet'}
           >
-            {meaning ? subject?.synced ? <SourceText text={meaning} /> : meaning : '–'}
+            {meaning ? marked ? <SourceText text={meaning} /> : meaning : '–'}
           </TruncatedText>
         </td>
         <td

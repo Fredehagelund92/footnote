@@ -42,6 +42,7 @@ export default function FamilyMeaningDialog({
     useReported,
     FAMILY_WORDS_MAX,
     MeaningWords,
+    SourceText,
     Button,
     Dialog,
     DialogClose,
@@ -190,7 +191,9 @@ export default function FamilyMeaningDialog({
                               {said}
                               {w.count > 1 && ` and ${n(w.count - 1)} more`}
                             </span>
-                            <span className="line-clamp-2 break-words">{w.words}</span>
+                            <span className="line-clamp-2 break-words">
+                              <SourceText text={w.words} />
+                            </span>
                           </span>
                           <Button
                             type="button"

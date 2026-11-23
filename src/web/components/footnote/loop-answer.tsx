@@ -883,11 +883,15 @@ function Disagree({ loop, maps }: { loop: LoopTurn; maps: ReturnType<typeof useM
   )
 }
 
-/** The people the words name: by their mention, or by their name in plain words. */
-function namedIn(body: LoopTurn['body'], nouns: Nouns): Set<string> {
-  const runs = body.flatMap((b) =>
+/** Every run of the words, in their paragraphs, lists and tables. */
+const runsOf = (body: LoopTurn['body']) =>
+  body.flatMap((b) =>
     b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : b.t === 'table' ? b.rows.flat(2) : [],
   )
+
+/** The people the words name: by their mention, or by their name in plain words. */
+function namedIn(body: LoopTurn['body'], nouns: Nouns): Set<string> {
+  const runs = runsOf(body)
   const words = runs.map((r) => (r.t === 'text' ? r.text : '')).join(' ')
   const named = new Set<string>()
   for (const r of runs) if (r.t === 'noun' && r.id.startsWith('person:')) named.add(r.id)
@@ -1175,13 +1179,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
                 variant="outline"
                 nativeButton={false}
                 aria-label={`Write context for ${said}`}
-                render={
-                  <a
-                    href={P.href('/context/new', {
-                      about: about.map((id) => nouns.get(id)!.name).join('|'),
-                    })}
-                  />
-                }
+                render={<a href={P.href('/context/new', writeSearch(loop, about, nouns))} />}
               >
                 <P.PencilIcon data-icon="inline-start" />
                 Write context
@@ -1219,6 +1217,23 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   )
 }
 
+/**
+ * The editor's search keys for an item about what the question was about: its names, and the kind
+ * it most likely is: a rule when the question was about any date (what a metric means), else an
+ * event. The editor starts it in the domain of what it is about.
+ */
+const writeSearch = (loop: LoopTurn, about: readonly string[], nouns: Nouns) => ({
+  about: about.map((id) => nouns.get(id)!.name).join('|'),
+  kind: !loop.subject || loop.subject.period === 'any date' ? 'note' : 'event',
+})
+
+/** The metrics the answer's words name, by their nouns' ids. */
+const metricsSaid = (loop: LoopTurn) => [
+  ...new Set(
+    runsOf(loop.body).flatMap((r) => (r.t === 'noun' && r.id.startsWith('metric:') ? [r.id] : [])),
+  ),
+]
+
 /** A subject in plain words, as `Subject` says it with chips: "Orders in Poland". */
 const subjectWords = (ids: readonly string[], nouns: Nouns) => {
   const name = (id: string) => nouns.get(id)?.name ?? key(id)
@@ -1252,13 +1267,7 @@ function Next({
         variant="outline"
         className="w-fit"
         nativeButton={false}
-        render={
-          <a
-            href={P.href('/context/new', {
-              about: about.map((id) => nouns.get(id)!.name).join('|'),
-            })}
-          />
-        }
+        render={<a href={P.href('/context/new', writeSearch(loop, about, nouns))} />}
       >
         <P.PencilIcon data-icon="inline-start" />
         Write context for <Subject ids={about} nouns={nouns} still />
@@ -1852,6 +1861,10 @@ function QuickActions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
     .map((p) => p.name)
   const offers = loop.actions ?? []
   if (!offers.length) return null
+  // Write context opens on what the question was about, as the gap card's button does, or on the
+  // metrics the words name when the question read nothing as its subject (a how-to).
+  const asked = (loop.subject?.about ?? []).filter((id) => nouns.has(id))
+  const about = asked.length ? asked : metricsSaid(loop).filter((id) => nouns.has(id))
   const icons = actionIcon(P)
   const may = offers.filter((o) => ACTIONS[o.id].may(me, o))
   const not = offers.filter((o) => !may.includes(o))
@@ -1861,7 +1874,11 @@ function QuickActions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
         <div className="flex flex-wrap items-center gap-2">
           {may.map((o) => {
             const action = ACTIONS[o.id]
-            const to = action.target(me, o)
+            const target = action.target(me, o)
+            const to =
+              o.id === 'write_context' && 'path' in target && about.length
+                ? { ...target, search: writeSearch(loop, about, nouns) }
+                : target
             const Icon = icons[o.id]
             const label = action.label(me)
             return 'dialog' in to ? (

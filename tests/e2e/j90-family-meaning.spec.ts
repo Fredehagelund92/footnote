@@ -9,8 +9,9 @@ import { expect, go, test } from './go.ts'
 // a pair whose USD words say they are the EUR ones at a rate, read the words of the EUR variant,
 // its currency as what it stands for. One whose variants are written apart has no meaning, and so
 // nothing says something else; writing its words starts from each variant's. A family whose
-// metric's name holds one of its values reads each channel, and nothing says something else. The
-// same at 1440 and 390 wide, where nothing scrolls sideways.
+// metric's name holds one of its values reads each channel, and nothing says something else. A
+// family's words written in Markdown draw their marks, in the quick view and in its row. The same
+// at 1440 and 390 wide, where nothing scrolls sideways.
 
 const widths = [
   { name: '1440', width: 1440, height: 900 },
@@ -93,13 +94,24 @@ for (const { name, width, height } of widths) {
     }) => {
       await go(page, '/definitions?demo=families&dock=def.Partner%20fees')
       const dock = page.getByRole('region', { name: 'Definition' })
+      // Its words' Markdown is drawn, never its marks: the name in backticks is code.
       await expect(dock).toContainText(
-        'Fees partners report on referred customers in Currency. Not our revenue: see `commission_eur`.',
+        'Fees partners report on referred customers in Currency. Not our revenue: see commission_eur.',
       )
+      await expect(dock.locator('p code')).toHaveText('commission_eur')
+      await expect(dock).not.toContainText('`')
       await expect(dock).toContainText(
         'Words of Partner fees (EUR), the variant the others are converted from',
       )
       await expect(dock).not.toContainText('something else')
+      // Its row in the list draws the same words, where the list shows what a row means.
+      if (width >= 1440) {
+        const row = page.locator('tr').filter({
+          has: page.locator('[data-row-open="Partner fees"]'),
+        })
+        await expect(row.locator('code')).toHaveText('commission_eur')
+        await expect(row).not.toContainText('`')
+      }
       // With no meaning there is nothing to say something else than: no warning.
       await go(page, '/definitions?demo=families&dock=def.Partner%20payouts')
       await expect(dock).toContainText('No meaning yet: no words speak for all its variants.')
