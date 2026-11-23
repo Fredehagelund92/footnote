@@ -1,5 +1,6 @@
 import { fieldVisible } from '@domain/connector-config'
 import type { ConnectorManifest, ManifestField } from '@domain/connector-manifest'
+import type { FamilyFound } from '@domain/family-found'
 import type { FiguresState } from '@domain/figures-state'
 import type { SourceHealth, SourceLast, SourceRead, SourceRetry } from '@domain/source-state'
 import cube from '@/assets/logos/cube.svg'
@@ -416,10 +417,20 @@ export type ConnectRead = {
   dimensions: number
   warnings: { title: string; detail?: string; level?: 'warning' | 'info'; count: number }[]
   /**
-   * When many metrics look like variants of a few, such as a metric per currency: what it says,
-   * with the page on modelling them as a dimension.
+   * When many metrics look like variants of a few, such as a metric per currency, and the read
+   * finds no family of them: what it says, with the page on modelling them as a dimension.
    */
   variants?: { title: string; detail: string }
+  /**
+   * The families of metrics the first read would find (FR-142, D5): how many, the metrics in
+   * them, each kind's count in the order of trust, and the family with the most variants.
+   */
+  families?: {
+    families: number
+    metrics: number
+    found: Record<FamilyFound, number>
+    example: string
+  }
 }
 
 /** A view or folder chosen to read, and the domain it maps to (none: a view left shared). */

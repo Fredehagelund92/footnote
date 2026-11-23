@@ -30,6 +30,7 @@ import {
   demoTools,
   integrationState,
 } from './data/integrations'
+import { familiesShopRead } from './names'
 import type { Address } from './scenario'
 
 /** How long a read the mock runs takes: Read again shows Reading for this long. */
@@ -262,9 +263,15 @@ export function connectFormFor(
 
 /**
  * Test connection on the mock: the demo world's checks, then what the tool may read; with `many`,
- * a definitions tool's model of hundreds of views.
+ * a definitions tool's model of hundreds of views, and with `families`, the dbt project of
+ * ?demo=families and the families its first read would find.
  */
-export function testFor(connector: string, values: ConnectValues, many = false): ConnectTest {
+export function testFor(
+  connector: string,
+  values: ConnectValues,
+  many = false,
+  families = false,
+): ConnectTest {
   const tool = connectorById(connector)
   const manifest = manifestOf(connector)
   if (!tool || !manifest) throw new ApiError('not-found', "This tool can't be connected here.")
@@ -288,7 +295,24 @@ export function testFor(connector: string, values: ConnectValues, many = false):
       scopes: [],
     }
   const demo = demoTools[connector]
-  if (!demo) return checkOf(manifest, values)
+  if (!demo) {
+    const checked = checkOf(manifest, values)
+    if (!families || connector !== 'dbt-metricflow' || !checked.read) return checked
+    const shop = familiesShopRead()
+    return {
+      ...checked,
+      steps: checked.steps.map((step) =>
+        step.detail
+          ? {
+              ...step,
+              // The shop holds many of each.
+              detail: `${shop.metrics} metrics and ${shop.dimensions} dimensions.`,
+            }
+          : step,
+      ),
+      read: { ...checked.read, ...shop },
+    }
+  }
   return {
     ok: true,
     steps: demo.steps.map((title) => ({ title, status: 'ok' as const })),
@@ -464,7 +488,7 @@ function keptPage(id: string, kept: Kept | undefined, connectedAt: string): Sour
             when: `Today, ${connectedAt}`,
             tone: 'ok',
             what: 'First read',
-            detail: `${plural(metrics + dimensions, 'definition')} added`,
+            detail: `${plural(metrics + dimensions, 'definition')} read`,
           }
         : {
             when: 'Today',

@@ -160,6 +160,7 @@ export function definitionsOf(
       ? {
           tool: term.definition.tool,
           connector: term.definition.connector,
+          source: term.definition.sourceId,
           ref: term.definition.ref,
           ...(term.definition.fileUrl ? { fileUrl: term.definition.fileUrl } : {}),
         }

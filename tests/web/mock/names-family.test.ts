@@ -69,7 +69,7 @@ describe('the mock refusing a family whose variant has a taken name', () => {
 })
 
 describe('the other ways the mock finds a family (D1)', () => {
-  it('marks a declared family and one found from the calculation, both ready', async () => {
+  it('marks a declared family and one found from a rate, both ready', async () => {
     const names = createMockNames(new Map())
     names.load(true)
     const { names: shown } = await names.read(admin)
@@ -80,7 +80,7 @@ describe('the other ways the mock finds a family (D1)', () => {
     })
     expect(said('Accrued share')).toMatchObject({
       state: 'ready',
-      family: { variants: 2, by: ['Currency'], found: 'calculation', names: [] },
+      family: { variants: 2, by: ['Currency'], found: 'rate', names: [] },
     })
   })
 

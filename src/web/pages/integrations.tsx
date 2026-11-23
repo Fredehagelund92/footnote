@@ -42,6 +42,9 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { Checkbox } from '@/components/ui/checkbox'
 import { GuideLink } from '@/components/footnote/guide-link'
+import { FamiliesFound, type FoundCounts } from '@/components/footnote/families-found'
+import { familyFoundKinds } from '@domain/family-found'
+import { FamilyGlyph } from '@/components/footnote/type-glyph'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -123,6 +126,7 @@ import {
   integrationLeftOutQuery,
   integrationPageQuery,
   integrationsPageQuery,
+  namesQuery,
   useIntegrations,
   useWrite,
 } from '@/api/queries'
@@ -132,6 +136,7 @@ import { useDefinitions } from '@/lib/definitions'
 import { SettingsCrumbs } from '@/pages/settings'
 import {
   Frame,
+  FrameBody,
   FrameNumbers,
   FramePage,
   FrameScroll,
@@ -224,6 +229,97 @@ function PanelSection(props: React.ComponentProps<typeof FrameSection>) {
 }
 
 const Numbers = FrameNumbers
+
+/**
+ * The families of metrics a definitions source holds (FR-142, D1): those its reads found that wait
+ * for an owner on the Names card, and those published, by how each was found, with the way to
+ * where they are decided. Nothing when it holds none.
+ */
+function SourceFamilies({ source, tool }: { source: string; tool: string }) {
+  const names = useQuery(namesQuery())
+  const definitions = useDefinitions()
+  const domains = useDomains()
+  const n = (x: number) => x.toLocaleString('en-GB')
+  const waiting = (names.data?.names ?? []).filter(
+    (name) =>
+      name.family && name.source === source && name.state !== 'left_out' && !name.linked.length,
+  )
+  const published = definitions.filter((d) => d.family && d.source === source)
+  const all = [
+    ...waiting.map((name) => ({ found: name.family!.found, variants: name.family!.variants })),
+    ...published.map((d) => ({ found: d.family!.found, variants: d.family!.variants.length })),
+  ]
+  if (!all.length) return null
+  const found = Object.fromEntries(
+    familyFoundKinds.map((kind) => [kind, all.filter((f) => f.found === kind).length]),
+  ) as FoundCounts
+  const metrics = all.reduce((sum, f) => sum + f.variants, 0)
+  const alike = waiting.filter(
+    (name) => name.state === 'flagged' && name.family!.found === 'names',
+  ).length
+  const ready = waiting.filter((name) => name.state === 'ready').length
+  const look = waiting.length - alike - ready
+  const owners = [...new Set(waiting.flatMap((name) => (name.areaId ? [name.areaId] : [])))]
+  const ownerOf = `an owner of ${listOf(owners.map((id) => domains[id]?.name ?? id))}`
+  const whose = !owners.length
+    ? 'an admin'
+    : waiting.every((name) => name.areaId)
+      ? ownerOf
+      : `${ownerOf} or an admin`
+  const familyCount = (x: number) => (x === 1 ? '1 family' : `${n(x)} families`)
+  const parts = [
+    alike && `${n(alike)} ${alike === 1 ? 'looks' : 'look'} alike`,
+    look && `${n(look)} ${look === 1 ? 'needs' : 'need'} a look first`,
+  ].filter(Boolean)
+  const rest = parts.length
+    ? ` ${parts.join(' and ')}; ${ready ? `${n(ready)} ${ready === 1 ? 'is' : 'are'} ready.` : 'none is ready yet.'}`
+    : ready === waiting.length
+      ? waiting.length === 1
+        ? ' It is ready to publish.'
+        : ' All are ready to publish.'
+      : ''
+  return (
+    <PanelSection
+      title={
+        <span className="flex items-center gap-2">
+          <FamilyGlyph className="size-4" />
+          Families
+        </span>
+      }
+      description={`${familyCount(all.length)} in ${n(metrics)} metrics. Each is one metric in Definitions and for agents, with its variants.`}
+    >
+      <FrameBody className="flex flex-col gap-4">
+        <FamiliesFound found={found} tool={tool} />
+        {waiting.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-frame bg-primary/8 px-4 py-3 text-sm">
+            <p className="min-w-0 flex-1 basis-64">
+              {waiting.length === all.length
+                ? `${waiting.length === 1 ? 'It waits' : `All ${n(waiting.length)} wait`}`
+                : `${familyCount(waiting.length)} ${waiting.length === 1 ? 'waits' : 'wait'}`}{' '}
+              in the Inbox for {whose}. Nothing is published before.{rest}
+            </p>
+            <Button onClick={() => navigate('/inbox', { card: 'names:waiting', show: 'families' })}>
+              Review families
+            </Button>
+          </div>
+        )}
+        {published.length > 0 && (
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span>
+              {familyCount(published.length)} {published.length === 1 ? 'is' : 'are'} published.
+            </span>
+            <a
+              href="/definitions"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              See them in Definitions
+            </a>
+          </p>
+        )}
+      </FrameBody>
+    </PanelSection>
+  )
+}
 
 function DataTable({
   head,
@@ -1660,6 +1756,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
 
         {isDefinitions && (
           <>
+            <SourceFamilies source={source.id} tool={c.name} />
             <PanelSection
               title="What it reads"
               action={
@@ -1948,8 +2045,48 @@ const stepLook: Record<ConnectStep['status'], React.ReactNode> = {
   skipped: <span aria-hidden className="size-4 shrink-0 rounded-full border" />,
 }
 
+/**
+ * The families a test's read would find (D5): how many of its metrics are variants, by how each
+ * family is found, and where an owner confirms them. The advice to keep a variant as a dimension
+ * is one line under it.
+ */
+function FamiliesRead({
+  families,
+  tool,
+}: {
+  families: NonNullable<ConnectRead['families']>
+  tool: string
+}) {
+  const n = (x: number) => x.toLocaleString('en-GB')
+  return (
+    <section
+      aria-labelledby="test-families"
+      className="flex flex-col gap-3 rounded-frame border px-4 py-3.5"
+    >
+      <h3 id="test-families" className="flex items-center gap-2 font-medium">
+        <FamilyGlyph />
+        {n(families.metrics)} of them are variants:{' '}
+        {families.families === 1 ? '1 family' : `${n(families.families)} families`}
+      </h3>
+      <p>
+        Each family is one metric here, such as {families.example}, so what people write about it
+        reaches agents through every variant.
+      </p>
+      <FamiliesFound found={families.found} tool={tool} untilSaid />
+      <p className="text-muted-foreground">
+        After the first read, an owner of its domain, or an admin, confirms each one in the Inbox,
+        under Families. Nothing is published before.
+      </p>
+      <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+        A currency or a channel kept as a dimension needs no family at all.
+        <GuideLink slug="metric-variants" className="text-xs" />
+      </p>
+    </section>
+  )
+}
+
 /** What a test's read found: what it would hold and what it warns of. Nothing of it is kept. */
-function ReadFound({ read }: { read: ConnectRead }) {
+function ReadFound({ read, tool }: { read: ConnectRead; tool: string }) {
   return (
     <li className="mt-1 flex flex-col gap-2 border-t pt-3">
       <p>
@@ -1959,6 +2096,7 @@ function ReadFound({ read }: { read: ConnectRead }) {
         </span>{' '}
         <span className="text-muted-foreground">Nothing is saved until you finish.</span>
       </p>
+      {read.families && <FamiliesRead families={read.families} tool={tool} />}
       {read.warnings.map((warning) => (
         <p key={warning.title} className="flex items-start gap-2">
           <span className="mt-0.5 flex">
@@ -1997,7 +2135,7 @@ function ReadFound({ read }: { read: ConnectRead }) {
 }
 
 /** What Test connection says: its checks while they run, then each step in the tool's words. */
-function Checks({ test }: { test: Testing }) {
+function Checks({ test, tool }: { test: Testing; tool: string }) {
   return (
     <ul className="flex flex-col gap-2 rounded-frame border p-4 text-sm" aria-live="polite">
       {test.running ? (
@@ -2028,7 +2166,7 @@ function Checks({ test }: { test: Testing }) {
               {test.result.failure}
             </li>
           )}
-          {test.result?.read && <ReadFound read={test.result.read} />}
+          {test.result?.read && <ReadFound read={test.result.read} tool={tool} />}
         </>
       )}
     </ul>
@@ -2430,7 +2568,7 @@ function ConnectSteps({
                   </span>
                 )}
               </div>
-              {test.run > 0 && <Checks test={test} />}
+              {test.run > 0 && <Checks test={test} tool={c.name} />}
             </div>
           </>
         )}
@@ -2581,14 +2719,14 @@ function ConnectSteps({
                     </span>
                   )}
                 </div>
-                {test.run > 0 && <Checks test={test} />}
+                {test.run > 0 && <Checks test={test} tool={c.name} />}
               </div>
             )}
           </>
         )}
         {at >= 3 && (
           <>
-            <Checks test={test} />
+            <Checks test={test} tool={c.name} />
             {!test.running && (
               <p className="text-sm text-muted-foreground">
                 Go back to Connect, check the settings and test again.

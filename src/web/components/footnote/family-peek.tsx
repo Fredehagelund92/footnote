@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { FamilyParts } from '@/components/footnote/family-parts'
 import type { Definition, Family } from '@/lib/definitions'
+import { foundSaid } from '@domain/family-found'
 
 // A family's quick view, meaning first (FR-142, the captain's panel A): what the family means, with
 // each value it varies by as a slot, and where the words come from; the values its variants hold,
@@ -577,16 +578,6 @@ function ContextBand({ d, family }: { d: Definition; family: Family }) {
     </P.PeekBand>
   )
 }
-
-/** How a family was found, in its tool's name (D1). */
-export const foundSaid = (found: Family['found'], tool: string) =>
-  found === 'declared'
-    ? `Declared as one family in ${tool}`
-    : found === 'calculation'
-      ? `Found from the calculation in ${tool}`
-      : found === 'names'
-        ? 'Its names look alike, and an owner published them as one family'
-        : null
 
 /** "dbt:orders.revenue_eur_web and 249 more": the variants' ids in their tool. */
 export function RefsSaid({ refs }: { refs: readonly string[] }) {

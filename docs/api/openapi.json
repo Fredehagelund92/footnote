@@ -44283,6 +44283,7 @@
                                     "enum": [
                                       "declared",
                                       "calculation",
+                                      "rate",
                                       "names"
                                     ],
                                     "type": "string"
@@ -59065,6 +59066,61 @@
                         "bases",
                         "splits"
                       ]
+                    },
+                    "families": {
+                      "type": "object",
+                      "properties": {
+                        "families": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "metrics": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "found": {
+                          "type": "object",
+                          "properties": {
+                            "declared": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "calculation": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "rate": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "names": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "declared",
+                            "calculation",
+                            "rate",
+                            "names"
+                          ]
+                        },
+                        "example": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "families",
+                        "metrics",
+                        "found",
+                        "example"
+                      ]
                     }
                   },
                   "required": [
@@ -65275,6 +65331,9 @@
                               "flagged": {
                                 "type": "number"
                               },
+                              "families": {
+                                "type": "number"
+                              },
                               "tools": {
                                 "type": "array",
                                 "items": {
@@ -65291,6 +65350,7 @@
                               "group",
                               "ready",
                               "flagged",
+                              "families",
                               "tools"
                             ]
                           },
@@ -66615,6 +66675,9 @@
                           "tool": {
                             "type": "string"
                           },
+                          "source": {
+                            "type": "string"
+                          },
                           "state": {
                             "enum": [
                               "ready",
@@ -66670,6 +66733,7 @@
                                     "enum": [
                                       "declared",
                                       "calculation",
+                                      "rate",
                                       "names"
                                     ],
                                     "type": "string"
@@ -66769,6 +66833,7 @@
                           "areaId",
                           "description",
                           "tool",
+                          "source",
                           "state",
                           "flags",
                           "leftByOwner",
@@ -67180,6 +67245,9 @@
                               "tool": {
                                 "type": "string"
                               },
+                              "source": {
+                                "type": "string"
+                              },
                               "state": {
                                 "enum": [
                                   "ready",
@@ -67235,6 +67303,7 @@
                                         "enum": [
                                           "declared",
                                           "calculation",
+                                          "rate",
                                           "names"
                                         ],
                                         "type": "string"
@@ -67334,6 +67403,7 @@
                               "areaId",
                               "description",
                               "tool",
+                              "source",
                               "state",
                               "flags",
                               "leftByOwner",

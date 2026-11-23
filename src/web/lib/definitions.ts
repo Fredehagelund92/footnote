@@ -76,7 +76,7 @@ export type Family = {
   variants: Variant[]
   /** What the source says of how a variant is worked out from another, as plain lines. */
   derivations?: string[]
-  /** How it was found (D1): declared in its tool, from the calculation, or from its names. */
+  /** How it was found (D1, D6): declared in its tool, from the calculation, from a rate, or from its names. */
   found?: FamilyFound
   /**
    * The variants worked out from another with one column more, as the tool's structure says (D2):
@@ -100,8 +100,10 @@ export type Definition = {
   synced: boolean
   /** The tool a synced definition comes from, as people say it: "Cube". */
   tool?: string
-  /** The connector a synced definition is read by: its id in Integrations. */
+  /** The manifest id of the connector that reads a synced definition, such as `dbt-metricflow`. */
   connector?: string
+  /** The source a synced definition is read from: its id in Integrations. */
+  source?: string
   /** A synced definition's id in its tool, as its source reads it: `dbt:orders.revenue`. */
   ref?: string
   /**

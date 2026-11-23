@@ -111,6 +111,10 @@ export default defineConfig({
     // and opens a loop answer by the mock's example address; the drawing is the same component on
     // the service, and tests/web/source-markdown.test.ts reads it.
     /\/j101-source-markdown\.spec\.ts$/,
+    // J102 connects the mock's ?demo=families dbt project; the service counts a test read's
+    // families in tests/integration/metric-variants.test.ts and its card's in
+    // declared-families.test.ts.
+    /\/j102-families-on-source\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

@@ -133,7 +133,7 @@ export const docControls: DocControl[] = [
   {
     phrase: 'Look at these first',
     page: 'set-up-your-workspace',
-    at: '/inbox?demo=names',
+    at: '/inbox?demo=names&card=names:waiting&show=names',
     drawn: 'text',
   },
   {

@@ -35,7 +35,7 @@ import { apiDatabase, servingPool, testDatabase, transaction } from './support.t
 /*
   A model with a metric per currency, on the real service and PostgreSQL 18, with every name
   invented: Test connection reads a 2,500-metric file whole and says the 5,000 one looks like
-  variants of 20 metrics, while the same shop with currency as a dimension says nothing; a file
+  variants of 20 metrics, the 20 families the first read would find, while the same shop with currency as a dimension says nothing; a file
   over the cap says its size. One context item applies to 25 variants and publishes in one step,
   and an agent gets it for any one of them; a question that names no metric is offered the metrics
   its words name, and never a market the install does not have.
@@ -190,6 +190,14 @@ describe('Test connection on a model with a metric per currency', () => {
         { words: 25, examples: ['AED', 'AUD', 'BRL'] },
       ],
     })
+    // And it leads with the families the first read would find (D5): each measure's 125 filter
+    // variants are one family found from the calculation.
+    expect(check.families).toEqual({
+      families: 20,
+      metrics: 2_500,
+      found: { declared: 0, calculation: 20, rate: 0, names: 0 },
+      example: 'Chargebacks',
+    })
   }, 120_000)
 
   it('names the shape of 5,000, and says nothing of the same shop with currency as a dimension', async () => {
@@ -200,6 +208,7 @@ describe('Test connection on a model with a metric per currency', () => {
     const dimensions = await testFile('/link/dimensions.json')
     expect(dimensions).toMatchObject({ ok: true, metrics: 20 })
     expect(dimensions).not.toHaveProperty('variants')
+    expect(dimensions).not.toHaveProperty('families')
   }, 120_000)
 
   it('says how large a file over the cap is, and the most it reads', async () => {

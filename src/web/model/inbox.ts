@@ -20,21 +20,33 @@ export const cardTypeLabel: Record<CardType, string> = {
   alert: 'Alert',
 }
 
-/** The card of the names a read made, in words: what to do, not how it was found. */
+/**
+ * The card of the names a read made, in words: what to do, not how it was found. Families of
+ * near-identical metrics are counted apart from the single names (D1): "37 families and 6 names
+ * from dbt".
+ */
 export function namesWords({
   ready,
   flagged,
+  families = 0,
   tools,
 }: {
   ready: number
   flagged: number
+  /** Of them, the families waiting. */
+  families?: number
   tools: readonly string[]
 }) {
   const total = ready + flagged
+  const others = total - families
+  const from = `from ${tools.join(', ')}`
+  const n = (x: number) => x.toLocaleString('en-GB')
   return {
-    title: total
-      ? `${total === 1 ? '1 new metric or dimension' : `${total} new metrics and dimensions`} from ${tools.join(', ')}`
-      : 'Names left out',
+    title: !total
+      ? 'Names left out'
+      : families
+        ? `${families === 1 ? '1 family' : `${n(families)} families`}${others ? ` and ${others === 1 ? '1 name' : `${n(others)} names`}` : ''} ${from}`
+        : `${total === 1 ? '1 new metric or dimension' : `${n(total)} new metrics and dimensions`} ${from}`,
     line: !total
       ? 'Every new name was left out.'
       : flagged
@@ -112,7 +124,7 @@ export type InboxCard = {
    */
   alert?: { rule: AlertCardRule; name: string; href: string; pair?: string }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */
-  names?: { ready: number; flagged: number; tools: string[] }
+  names?: { ready: number; flagged: number; families: number; tools: string[] }
   /**
    * Created by a sync from a document, never by a person: the tool as people say it, and its
    * connector's id, which its logo is drawn by.

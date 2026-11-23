@@ -185,6 +185,7 @@ describe('a read makes names', () => {
       done: null,
       ready: 17,
       flagged: 0,
+      families: 0,
       tools: ['dbt'],
     })
     const mine = await names('owner')

@@ -160,8 +160,8 @@ function measureFamilies(tool: string): Definition[] {
 
 /**
  * A metric in EUR and one in USD worked out from it with each row's rate: two calculations, one
- * family found from the calculation (one rate converts the second from the first, D2), whose
- * source also says so in its own words.
+ * family found from a rate (one rate converts the second from the first, D2, D6), whose source
+ * also says so in its own words.
  */
 function accruedShare(tool: string): Definition {
   return {
@@ -179,7 +179,7 @@ function accruedShare(tool: string): Definition {
       derivations: [
         "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
       ],
-      found: 'calculation',
+      found: 'rate',
       conversions: [
         {
           from: 'Accrued share front loaded (EUR)',
