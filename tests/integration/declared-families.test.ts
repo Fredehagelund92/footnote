@@ -34,7 +34,7 @@ import { createLogger } from '../../src/server/observability/logger.ts'
 import { gitHost, type GitHost } from '../server/connectors/git-server.ts'
 import { partnerManifest } from '../server/connectors/partner-relations-fixture.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
-import { accept, foundation, people, publish, version } from './fixtures.ts'
+import { accept, foundation, openEdition, people, publish, version } from './fixtures.ts'
 import { apiDatabase, askToolsAs, queueReads, testDatabase, transaction } from './support.ts'
 
 /*
@@ -934,5 +934,22 @@ describe('splitting a family (D2-D4)', () => {
     // It can be split once more, and joined again.
     await ok(split(accrued.key, 'admin'))
     await ok(join(accrued.key, 'admin'))
+  })
+
+  it('is not split when the family is closed after it was joined, whatever the reason', async () => {
+    const [eur] = accrued.family!.variants
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+    const seq = await openEdition(client)
+    await client.query(
+      'update vocab_term_service set editions = int8range(lower(editions), $1::bigint) where term_key = $2 and upper_inf(editions)',
+      [seq, accrued.key],
+    )
+    await client.query('select edition_seal($1)', [seq])
+    await client.query('select edition_publish($1)', [seq])
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+    const page = await ok<{ chips: string[] }>(call('GET', `/items/${note}/page`, 'owner'))
+    expect(page.chips).not.toContain(eur!.name)
   })
 })
