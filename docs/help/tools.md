@@ -111,7 +111,9 @@ The items come in one order, the one Ask reads too: first those whose title, sum
 
 `max_items` is 10 by default and 50 at most. When more apply, `next_cursor` passed back as `cursor` with the same question gives the next ones. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. Cursors end when what agents read changes.
 
-A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). When the question names no metric, `unread` gives each word that could have named one, with the names that hold it. Ask the person which they meant, or search the word with `find_context`, and never read it as one of them yourself.
+A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). `read_as` says which words were read so.
+
+When the question names no metric, `unread` gives each word that could have named one, with the names that hold it. Ask the person which they meant, or search the word with `find_context`, and never read it as one of them yourself.
 
 ## Search or list: find_context
 
