@@ -577,7 +577,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (
         operation.startsWith('terms.') ||
         operation === 'decisions.undo' ||
-        operation === 'inbox.decideNames'
+        operation === 'inbox.decideNames' ||
+        operation === 'definitions.splitFamily' ||
+        operation === 'definitions.joinFamily'
       )
         words = undefined
       return result
@@ -706,8 +708,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   /* ---------- Context ---------- */
 
   const readWords = () =>
-    (words ??= Promise.all([read(() => client.vocabulary.get()), read(() => client.terms.list())])
-      .then(([vocabulary, { terms }]) => wordsOf(vocabulary, terms))
+    (words ??= Promise.all([
+      read(() => client.vocabulary.get()),
+      read(() => client.terms.list()),
+      read(() => client.catalogue.list()),
+    ])
+      .then(([vocabulary, { terms }, { splits }]) => wordsOf(vocabulary, terms, splits))
       .catch((error: unknown) => {
         words = undefined
         throw error

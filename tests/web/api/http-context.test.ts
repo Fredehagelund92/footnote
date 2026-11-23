@@ -10,6 +10,7 @@ import {
   historyOf,
   itemPageOf,
   linksOfRelated,
+  scopeTermsOf,
   logOf,
   serviceDay,
   termHistoryOf,
@@ -62,6 +63,22 @@ describe('the words a scope and a mention name', () => {
     expect(words.nameOf('val:market/spain')).toBe('Spain')
     // A key the vocabulary no longer has reads as its id.
     expect(words.nameOf('metric:returns')).toBe('returns')
+  })
+})
+
+describe('what an item about a split family applies to', () => {
+  it('is each former metric of the family, named as the vocabulary names it', () => {
+    const split = wordsOf(
+      vocabulary,
+      [],
+      [{ key: 'group:sales', metrics: [{ key: 'metric:orders' }, { key: 'metric:gross_sales' }] }],
+    )
+    const scope = { metrics: ['group:sales'], dimensions: [], dimensionValues: [] }
+    expect(scopeTermsOf(scope, split)).toEqual([
+      { key: 'metric:orders', kind: 'metric', name: 'Orders' },
+      { key: 'metric:gross_sales', kind: 'metric', name: 'Gross sales' },
+    ])
+    expect(scopeTermsOf(scope, words).map((t) => t.key)).toEqual(['group:sales'])
   })
 })
 

@@ -620,8 +620,20 @@ export const invalidations: {
   setFamilyMeaning: () => definitions,
   setFamilyUsual: () => definitions,
   // The items about a split family are due for a check, each with a card for its owners.
-  splitFamily: () => [...definitions, ...live, ...inbox],
-  joinFamily: () => [...definitions, ...live, ...inbox],
+  splitFamily: () => [
+    ...definitions,
+    ...live,
+    ...inbox,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+  ],
+  joinFamily: () => [
+    ...definitions,
+    ...live,
+    ...inbox,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+  ],
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
@@ -838,6 +850,7 @@ export function useWrite() {
   return async <K extends WriteOperation>(
     operation: K,
     input: WriteInput<K>,
+    answered?: (result: WriteResult<K>) => void,
   ): Promise<WriteResult<K>> => {
     let result: WriteResult<K>
     try {
@@ -856,6 +869,7 @@ export function useWrite() {
         )
       throw error
     }
+    answered?.(result)
     await invalidateAfter(queryClient, operation, input, result)
     return result
   }

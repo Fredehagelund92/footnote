@@ -2,6 +2,7 @@ import { foundKindWords } from '@domain/family-found'
 import { andList } from '@domain/family-split'
 import { useWrite } from '@/api/queries'
 import { TypeTile } from '@/components/footnote/definition'
+import { TableBodySkeleton } from '@/components/footnote/list-skeleton'
 import { Th } from '@/components/footnote/list'
 import { SourceText } from '@/components/footnote/source-text'
 import { TriangleAlertIcon } from '@/components/icons'
@@ -30,12 +31,15 @@ function foundWords(d: Definition): string {
 
 export function DefinitionFamilies({
   rows,
+  loading,
   splits,
   meaningOf,
   dueOf,
 }: {
   /** The families the search and filters show, in the list's order. */
   rows: readonly Definition[]
+  /** The rows are not read or drawn yet: the table holds its place instead of saying none match. */
+  loading: boolean
   splits: readonly SplitFamily[]
   /** A family's meaning as its row says it, or null for none yet. */
   meaningOf: (d: Definition) => string | null
@@ -56,7 +60,8 @@ export function DefinitionFamilies({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 && (
+            {loading && <TableBodySkeleton colSpan={5} />}
+            {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-6 py-10 text-center text-sm">
                   <p className="font-medium">No families match</p>

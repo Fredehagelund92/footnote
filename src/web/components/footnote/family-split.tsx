@@ -80,8 +80,6 @@ function SplitDialog({ d, onClose }: { d: Definition; onClose: () => void }) {
   const splitting = useReported<{ metrics: string[]; items: number }>({
     wasnt: `${d.name} wasn't split.`,
     done: (split) => {
-      onClose()
-      navigate('/definitions', { show: 'families' })
       toast(`${d.name} is split into ${n(split.metrics.length)} metrics`, {
         description: split.items
           ? `Each is in Definitions now. ${n(split.items)} context ${split.items === 1 ? 'item waits' : 'items wait'} for a check by ${split.items === 1 ? 'its owner' : 'their owners'}.`
@@ -170,7 +168,14 @@ function SplitDialog({ d, onClose }: { d: Definition; onClose: () => void }) {
             Cancel
           </DialogClose>
           <Button
-            onClick={() => splitting.act(() => write('splitFamily', { name: d.name }))}
+            onClick={() =>
+              splitting.act(() =>
+                write('splitFamily', { name: d.name }, () => {
+                  onClose()
+                  navigate('/definitions', { show: 'families' })
+                }),
+              )
+            }
             aria-disabled={sending || undefined}
           >
             {splitLabel(count)}

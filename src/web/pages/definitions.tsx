@@ -1051,6 +1051,7 @@ export function DefinitionsPage() {
             {view === 'family' ? (
               <DefinitionFamilies
                 rows={rowsShown ? shown : NO_DEFINITIONS}
+                loading={!rowsShown}
                 splits={splits}
                 meaningOf={(d) =>
                   d.family?.meaning?.words ? tidyMeaning(d.family.meaning.words, d.family.by) : null
