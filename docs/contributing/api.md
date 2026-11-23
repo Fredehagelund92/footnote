@@ -813,7 +813,8 @@ topic, Asked this week, the reach of a draft and the free check of saved questio
 takes what is asked (a question's words with the names sent beside them, a typed scope, or a
 topic's scope) and one edition bundle: the live edition, the edition before it, or the live
 edition with a draft in it. It reads the scope as `get_context` does, resolves it with the agent's
-audience, gives at most 20 items (`max_items`'s default), and says the same sentences (FR-344). On
+audience, orders what applies by the question's own words (`src/domain/question-order.ts`), gives at
+most 20 items, and says the same sentences (FR-344). On
 every case of the golden set its status, items, cut and sentences equal `get_context`'s
 (`tests/integration/golden-set.test.ts`), and it answers in under 50 ms at the 95th percentile
 on the demo library.

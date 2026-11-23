@@ -507,6 +507,48 @@ function earlierReply(turn: ChatTurnInput, known: ReadonlySet<string>) {
   return kept.replace(marks, (_all, m: string) => `[${idOf(m)}]`)
 }
 
+/**
+ * A question as the model was sent it in its own turn: with the language note. A follow-up sends
+ * the earlier questions so again, byte for byte, so the provider's prompt cache holds.
+ */
+const questionMessage = (question: string): ModelMessage => ({
+  role: 'user',
+  content: [
+    { type: 'text', text: question },
+    { type: 'text', text: LANGUAGE_NOTE },
+  ],
+})
+
+/** The id a turn's read is sent by in the chat's later turns: `chat<turn>_<n>`, its place. */
+const chatCallId = (turn: number, n: number) => `chat${turn}_${n}`
+
+/**
+ * This turn's reads under the ids the next turn sends them by (`chatCallId`), so the next turn's
+ * messages start with the same bytes as this turn's last step and its prompt cache holds. A read
+ * that came back an error is not sent again, so it keeps the model's own id.
+ */
+function asSentLater(
+  messages: readonly ModelMessage[],
+  made: readonly MadeRead[],
+  turn: number,
+): ModelMessage[] {
+  const sent = made.filter((m) => !isError(m.result))
+  const idOf = (call: string) => {
+    const n = sent.findIndex((m) => m.call === call)
+    return n >= 0 ? chatCallId(turn, n) : call
+  }
+  return messages.map((m) =>
+    (m.role === 'assistant' || m.role === 'tool') && Array.isArray(m.content)
+      ? ({
+          ...m,
+          content: m.content.map((part) =>
+            'toolCallId' in part ? { ...part, toolCallId: idOf(part.toolCallId) } : part,
+          ),
+        } as ModelMessage)
+      : m,
+  )
+}
+
 /** The chat as model messages: each turn's question, its reads made again, and what Ask said. */
 function chatMessages(
   turns: readonly ChatTurnInput[],
@@ -515,9 +557,9 @@ function chatMessages(
   const known = new Set(earlier.flatMap((e) => idsOf(e.result)))
   return turns.flatMap((t, turn): ModelMessage[] => {
     const reads = earlier.filter((e) => e.turn === turn)
-    const call = (e: (typeof reads)[number]) => `chat${turn}_${e.n}`
+    const call = (e: (typeof reads)[number]) => chatCallId(turn, e.n)
     return [
-      { role: 'user', content: t.question },
+      questionMessage(t.question),
       ...(reads.length
         ? ([
             {
@@ -880,13 +922,7 @@ export async function* askLoop(
   const system = loopSystem(deps.today, deps.asker, deps.timeZone, deps.about)
   const messages: ModelMessage[] = [
     ...chatMessages(turns, earlier),
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: input.question },
-        { type: 'text', text: LANGUAGE_NOTE },
-      ],
-    },
+    questionMessage(input.question),
     // The reads code made at the period chosen, as the model's own first step: its input as the
     // model would write it, never the period (R12).
     ...(made.length
@@ -1023,7 +1059,7 @@ export async function* askLoop(
         if (stop) throw new SpendLimitStop(stop)
         // The last step reads nothing: it answers from what was read.
         return {
-          messages: cachedThrough(now, choice.cacheBreakpoint),
+          messages: cachedThrough(asSentLater(now, made, turns.length), choice.cacheBreakpoint),
           ...(stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}),
         }
       },

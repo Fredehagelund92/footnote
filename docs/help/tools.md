@@ -107,7 +107,11 @@ Set `response_format` to `full` for each item's body, every source, owner and li
 
 Dates in `window` include both ends: `window.from` and `window.to`. A question with no dates is read at today.
 
-`max_items` is 20 by default and 50 at most. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. Cursors end when what agents read changes.
+The items come in one order, the one Ask reads too: first those whose title, summary or `not_to_conclude` line hold the question's own words (the words that name no metric, value or domain), a rarer word weighing more; then whole matches, higher risk and newer start.
+
+`max_items` is 10 by default and 50 at most. When more apply, `next_cursor` passed back as `cursor` with the same question gives the next ones. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. Cursors end when what agents read changes.
+
+A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). When the question names no metric, `unread` gives each word that could have named one, with the names that hold it. Ask the person which they meant, or search the word with `find_context`, and never read it as one of them yourself.
 
 ## Search or list: find_context
 

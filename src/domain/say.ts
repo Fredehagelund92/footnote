@@ -557,6 +557,8 @@ export type ContextSay = {
    * that hold it as a word and the domain it names: said, never dropped.
    */
   unread?: readonly UnreadSaid[]
+  /** The words read as a name they are not exactly, and how (names-read.ts). */
+  readAs?: readonly { words: string; name: string; by: 'form' | 'initials' | 'part' }[]
   /** Why each held-back fact isn't given, in the resolver's reasons (FR-314). */
   withheld: readonly string[]
   /** The sentence of `assumed_date`, when the question gave no dates. */
@@ -641,6 +643,9 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     if (c.about)
       next.push(`Each ${one} names the metrics it is about (about): answer for each metric apart.`)
   }
+  // A word read as the one metric whose name holds it is said: it may mean something else.
+  for (const read of c.readAs?.filter((r) => r.by === 'part') ?? [])
+    say.push(`"${read.words}" was read as ${read.name}, the one metric whose name holds the word.`)
   // A word that could have named a metric is said, so no answer stands on the rest alone.
   if (c.unread?.length) {
     say.push(unreadWordsSay(c.unread))

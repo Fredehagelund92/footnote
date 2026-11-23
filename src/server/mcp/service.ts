@@ -1175,6 +1175,13 @@ export function createToolService(
         // A later page of the same question starts where the reply before it ended (next_cursor).
         const pages = pageKey(bundle, { scope: resolution.scope, words, asker }).slice(0, 16)
         const offset = cursorOffset(scoped.cursor, pages)
+        // The words read as a name they are not exactly, and how: said, never silent.
+        const readAs = (scope.loose ?? []).flatMap((hit) => {
+          const term = bundle.terms.find((t) => t.key === hit.key)
+          return term && termShown(bundle, term)
+            ? [{ words: hit.words, name: term.name, by: hit.by }]
+            : []
+        })
         // The words that could have named a metric and named none, said, never dropped.
         const unread = (scope.unread ?? []).map((w) => ({
           word: w.word,
@@ -1316,7 +1323,9 @@ export function createToolService(
         // by the limit that cut it.
         let bySize = false
         const cutNext = () =>
-          `Call again with cursor set to next_cursor for the rest, or with a higher ${bySize ? 'max_bytes' : 'max_items (at most 50)'}.`
+          items.length
+            ? `Call again with cursor set to next_cursor for the rest, or with a higher ${bySize ? 'max_bytes' : 'max_items (at most 50)'}.`
+            : 'Call again with a higher max_bytes.'
         // FR-344: what the reply read and did not, as it stands after any cut.
         const said = () => {
           const out = withTermsNext(
@@ -1339,6 +1348,7 @@ export function createToolService(
                 groups,
                 about: metrics.length > 1,
                 unread,
+                readAs,
               },
               contextVoice,
             ),
@@ -1378,8 +1388,10 @@ export function createToolService(
             asked: askedWords,
             ...(period ? { period_read: period } : {}),
             ...(meant.length ? { defined: meant } : {}),
+            ...(readAs.length ? { read_as: readAs } : {}),
             ...(unread.length ? { unread } : {}),
-            ...(offset + items.length < resolution.items.length
+            // A reply that fits no item has no next page: only more bytes give it.
+            ...(items.length && offset + items.length < resolution.items.length
               ? { next_cursor: nextCursor() }
               : {}),
           }

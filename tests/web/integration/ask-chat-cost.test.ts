@@ -1,3 +1,4 @@
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider'
 import { describe, expect, it } from 'vitest'
 import { chatTurnOf, type Answer } from '@/model/ask'
 import { fitChat } from '@domain/ask-chat'
@@ -93,5 +94,45 @@ describe('a long chat in Ask', () => {
     expect(costs[9]!, said).toBeLessThanOrEqual(2 * costs[1]!)
     // Nor any later turn: what a turn sends stops growing after its third (EARLIER_TURNS).
     for (const cost of costs.slice(2)) expect(cost, said).toBeLessThanOrEqual(2 * costs[1]!)
+  }, 120_000)
+})
+
+/*
+  A follow-up starts with what the turn before it last sent, message for message (23 November
+  2026): the earlier question with its language note, and its reads under the ids the follow-up
+  sends them by. So the provider reads them from its prompt cache instead of writing them again:
+  a follow-up that read nothing cost USD 0.022 with them written again, USD 0.0048 with them read.
+*/
+describe('a follow-up in Ask', () => {
+  const prompts: LanguageModelV4Prompt[] = []
+  const capture = scriptedLoopChoice('chat-prefix', ({ question, results, prompt }) => {
+    prompts.push(structuredClone(prompt))
+    return results.length || question === 'Who owns it?'
+      ? { text: 'What is written is listed under the answer, with who checked it and when.' }
+      : { calls: [{ toolName: 'get_context', input: { about: question } }] }
+  })
+  const captured: ModelChoice = { ...capture, prices: sonnet.prices }
+  const port: ModelPort = { ...live, choose: () => captured, otherLine: () => captured }
+  const chat = askWorld({ models: port })
+  // Where a cache mark sits moves from turn to turn; what is sent does not.
+  const sent = (prompt: LanguageModelV4Prompt) =>
+    JSON.parse(
+      JSON.stringify(prompt, (key, value: unknown) =>
+        key === 'providerOptions' ? undefined : value,
+      ),
+    ) as unknown[]
+
+  it('sends the earlier turn as it was sent, so its prompt cache holds', async () => {
+    const api = await chat.as(ML)
+    const first = await api.ask({ question: 'What is net revenue?' })
+    const last = sent(prompts.at(-1)!)
+    const from = prompts.length
+    const turns = fitChat([chatTurnOf(first)!])
+    const followUp = await api.ask({ question: 'Who owns it?', turns })
+    expect(followUp.stopped).toBeUndefined()
+    const next = sent(prompts[from]!)
+    // The read the first turn made, then its words: the follow-up adds to what was sent.
+    expect(last.length).toBeGreaterThan(2)
+    expect(next.slice(0, last.length)).toEqual(last)
   }, 120_000)
 })

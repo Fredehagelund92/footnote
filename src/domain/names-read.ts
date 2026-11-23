@@ -193,8 +193,9 @@ export function looseForms(
 }
 
 /**
- * The names a normalised text holds in a loose form, in the places `occupied` leaves free, each
- * once: another form or order of a name, its initials, or a word only one metric's name holds.
+ * The names of one word a normalised text holds in a loose form, in the places `occupied` leaves
+ * free, each once: another form of a one-word name, its initials, or a word only one metric's
+ * name holds.
  * `domains` are the domains' names: a word that names one is never read as a metric's word. A group
  * read beside one of its own metrics only says which metric it is ("customer churn" is Churn rate),
  * so it is not read.
@@ -217,26 +218,16 @@ export function looseNames(
     const end = free[to]!.end
     found.push({ start, end, words: text.slice(start, end), key, by })
   }
-  // Another form or order of a whole name, the longest first. Its words stand side by side.
-  for (let size = Math.min(v.longest, free.length); size >= 1; size--)
-    for (let i = 0; i + size <= free.length; i++) {
-      const window = free.slice(i, i + size)
-      if (window.some((_, k) => used.has(i + k)) || apart(text, window)) continue
-      if (size === 1 && isPlain(window[0]!.word)) continue
-      const keys = v.forms.get(
-        window
-          .map((w) => stem(w.word))
-          .sort()
-          .join(' '),
-      )
-      const [key] = keys?.size === 1 ? [...keys] : []
-      // One everyday word alone is no other form of a dimension's name: "stores" and "campaigns"
-      // stay words (value linking, 10 November 2026), while "order" is Orders.
-      if (!key) continue
-      if (size === 1 && v.kinds.get(key) === 'dimension' && isEverydayWord(window[0]!.word))
-        continue
-      take(i, i + size - 1, key, 'form')
-    }
+  // Another form of a one-word name ("order" for Orders): longer ones are read before whole names
+  // (`looseForms`). One everyday word alone is no other form of a dimension's name: "stores" and
+  // "campaigns" stay words (value linking, 10 November 2026).
+  for (const [i, w] of free.entries()) {
+    if (isPlain(w.word)) continue
+    const keys = v.forms.get(stem(w.word))
+    const [key] = keys?.size === 1 ? [...keys] : []
+    if (key && !(v.kinds.get(key) === 'dimension' && isEverydayWord(w.word)))
+      take(i, i, key, 'form')
+  }
   const domainStems = new Set(domains.flatMap(wordsOf).map(stem))
   for (const [i, w] of free.entries()) {
     if (used.has(i) || !namesAlone(w.word)) continue

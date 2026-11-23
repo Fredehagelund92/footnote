@@ -576,10 +576,21 @@ export const contextOutput = z
     terms,
     next_cursor: z
       .string()
-      .nullable()
       .optional()
       .describe(
-        'Where the rest of the context items that apply start: pass it as cursor with the same question for the next ones. Null when the reply gives the last of them.',
+        'Where the rest of the context items that apply start, when more apply than the reply gives: pass it as cursor with the same question for the next ones.',
+      ),
+    read_as: z
+      .array(
+        z.object({
+          words: z.string(),
+          name: z.string(),
+          by: z.enum(['form', 'initials', 'part']),
+        }),
+      )
+      .optional()
+      .describe(
+        "The question's words read as a name they are not exactly: another form or order of it (form), its initials (initials), or a word only its name holds (part). Say a part reading to the person, since the word may mean something else.",
       ),
     unread: z
       .array(
