@@ -181,6 +181,17 @@ it('serving role can read serving models but no raw versions, people or private 
     asRole(localRoles.serve, null, () => client.query("select edition_open('bootstrap',null)")),
   ).rejects.toMatchObject({ code: '42501' })
 })
+it('serving and the service read the split families, and analytics is refused', async () => {
+  for (const role of [localRoles.serve, localRoles.api])
+    expect(
+      await asRole(role, null, () =>
+        client.query('select family_key, variants from serving_family_splits(1)'),
+      ),
+    ).toMatchObject({ rows: [] })
+  await expect(
+    asRole(localRoles.readonly, null, () => client.query('select * from serving_family_splits(1)')),
+  ).rejects.toMatchObject({ code: '42501' })
+})
 it('analytics cannot read personal columns or change data', async () => {
   for (const table of [
     'people',

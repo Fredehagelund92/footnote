@@ -947,6 +947,7 @@ describe('splitting a family (D2-D4)', () => {
 
   it('is checked from the item page by pointing it at each former metric', async () => {
     await ok(split(accrued.key, 'admin'))
+    await ok(call('POST', `/items/${note}/read`, 'owner'))
     const done = await ok<ItemBulkResult>(
       call('POST', '/items/bulk', 'owner', { action: 'check', rows: [note] }),
     )

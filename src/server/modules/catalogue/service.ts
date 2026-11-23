@@ -267,8 +267,8 @@ export function createCatalogueService(
                    'items', (select count(distinct s.item_id)::int from item_version_service s
                                join item_version_metrics m on m.version_id = s.version_id
                               where upper_inf(s.editions) and m.metric_key = x.family_key),
-                   'personId', x.split_by::text, 'at', ${iso('x.split_at')}) order by x.split_at desc), '[]')
-            from ${standingSplits(liveSeq)} x) as splits,
+                   'personId', t.split_by::text, 'at', ${iso('x.split_at')}) order by x.split_at desc), '[]')
+            from ${standingSplits(liveSeq)} x join family_splits t on t.id = x.id) as splits,
          (select coalesce(json_agg(s), '[]') from (
             select distinct on (key) key, value from settings_versions
              where key = any($2::text[]) order by key, version desc) s) as settings,
