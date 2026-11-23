@@ -116,7 +116,10 @@ export const contextEditorSearch = lenient(
   }),
 )
 
-export const definitionsSearch = lenient(z.object({ domain: text, setup: text }))
+export const definitionsSearch = lenient(
+  // The Families tab (?show=families), where a family split from its page lands.
+  z.object({ domain: text, setup: text, show: oneOf(['families']) }),
+)
 
 /** A new term may start from its word (`name`, from Ask's gap card) or as another name for a definition. */
 export const definitionEditorSearch = lenient(z.object({ name: text, sameAs: text }))

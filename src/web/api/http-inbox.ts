@@ -11,6 +11,7 @@ import type { Card, Feed } from '@contract/inbox'
 import type { ReviewSheet } from '@contract/review-path'
 import type { Area } from '@domain/item'
 import type { ClashRelation } from '@domain/clash-relations'
+import { keepLabel, splitCardLine } from '@domain/family-split'
 import { alertCardWords, alertRule, lookTitle, type RaiseSubject } from '@domain/alerts'
 import { parseMentions } from '@domain/mentions'
 import { answerText, savedWhy } from '@domain/saved-check'
@@ -304,6 +305,8 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
       }
     }
     case 'check': {
+      // A family it is about was split: the metrics it still reaches agents through, by name.
+      const split = card.reason === 'family' ? card.families[0] : undefined
       const by = card.lastChecked.by
       const on = card.lastChecked.on
       // Due since a day, as the mock says it: "Since 2 Oct".
@@ -316,17 +319,19 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         type: 'check',
         due: card.reason,
         changed: card.changed.map((c) => c.name),
+        ...(split ? { splitInto: split.metrics } : {}),
         title: card.title,
         // The line names the definitions and the day each changed; not the tool, which the card lacks.
-        line:
-          card.reason === 'source'
+        line: split
+          ? splitCardLine(split.name, split.metrics)
+          : card.reason === 'source'
             ? changedLine(card.changed)
             : `Its check date passed on ${dayWords(card.at)}. Agents are told it may be out of date.`,
         detail:
           by && on
             ? `Last checked by ${by === me ? 'you' : by}, ${dayWords(on)}.`
             : 'Not checked yet.',
-        primary: 'Still true',
+        primary: split ? keepLabel(split.metrics.length) : 'Still true',
         secondary: ['Edit', 'Archive'],
         factId: card.itemId,
       }

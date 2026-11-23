@@ -2,6 +2,12 @@ import { BookAIcon, ExternalLinkIcon, NotebookPenIcon, PencilIcon } from '@/comp
 import { DefinitionDetails, TypeTile } from '@/components/footnote/definition'
 import { FamilyVariants } from '@/components/footnote/family-variants'
 import { DefinitionRelations, FamilyRelations } from '@/components/footnote/definition-relations'
+import {
+  FamilyDeclared,
+  SplitFamily,
+  useMaySplit,
+  useWhoDecides,
+} from '@/components/footnote/family-split'
 import { Canvas, Paper } from '@/components/footnote/doc'
 import { SiteHeader } from '@/components/site-header'
 import { useSidebar } from '@/components/ui/sidebar'
@@ -9,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
 import { definitionPageQuery } from '@/api/queries'
-import { kindName, useGlossary } from '@/lib/definitions'
+import { kindName, useGlossary, type Definition } from '@/lib/definitions'
 import { href, navigate } from '@/lib/router'
 import { Loadable, PageSkeleton } from '@/components/footnote/load-state'
 import { NotFound } from '@/components/footnote/not-found'
@@ -117,7 +123,7 @@ export function DefinitionPage({ name }: { name: string }) {
               variants={d.family && <FamilyVariants key={d.name} family={d.family} />}
               relations={
                 d.family ? (
-                  <FamilyRelations family={d.family} tool={d.tool ?? 'its tool'} />
+                  <FamilyBuilt d={d} />
                 ) : (
                   d.synced && d.type === 'metric' && <DefinitionRelations d={d} />
                 )
@@ -126,6 +132,26 @@ export function DefinitionPage({ name }: { name: string }) {
           </Loadable>
         </Paper>
       </Canvas>
+    </div>
+  )
+}
+
+/**
+ * How a family was found and how its variants are worked out, with Split for an owner of its
+ * domain or an admin (D3), who decides for anyone else, and where a declared one is changed (D4).
+ */
+function FamilyBuilt({ d }: { d: Definition }) {
+  const maySplit = useMaySplit(d)
+  const who = useWhoDecides(d)
+  return (
+    <div className="flex flex-col gap-4">
+      <FamilyRelations
+        family={d.family!}
+        tool={d.tool ?? 'its tool'}
+        action={maySplit && <SplitFamily d={d} />}
+        note={who}
+      />
+      {d.family!.declared && <FamilyDeclared d={d} />}
     </div>
   )
 }

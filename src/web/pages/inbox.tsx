@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { andList } from '@domain/family-split'
 import {
   ArrowLeftIcon,
   ArrowLeftRightIcon,
@@ -194,7 +195,11 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
   if (card.flag) return `Reported as ${card.flag.reason}: “${card.flag.note}”`
   if (card.look) return 'Raised by an alert: saved questions answer worse'
   if (card.alert) return `Raised by an alert: ${card.alert.name}`
-  return card.due === 'source' ? 'A definition changed' : 'Its check date passed'
+  return card.due === 'family'
+    ? 'Its family was split'
+    : card.due === 'source'
+      ? 'A definition changed'
+      : 'Its check date passed'
 }
 
 /**
@@ -583,8 +588,16 @@ function useActions(card: InboxCard) {
       case 'check':
         return run({
           outcome: 'Checked',
-          message: 'Checked: still true',
-          description: 'It comes back when it is due for a check.',
+          // About a family that was split, it is kept for each of its metrics.
+          ...(card.splitInto
+            ? {
+                message: card.primary.replace(/^Keep/, 'Kept'),
+                description: `It is about ${andList(card.splitInto)} now, and no longer due.`,
+              }
+            : {
+                message: 'Checked: still true',
+                description: 'It comes back when it is due for a check.',
+              }),
           patch: {
             status: 'Live',
             outOfDate: undefined,

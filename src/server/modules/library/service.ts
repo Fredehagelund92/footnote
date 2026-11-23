@@ -79,10 +79,16 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
           order by d.item_version_id, d.decided_at desc, d.id desc),
        names as materialized (
          select t.key, t.name from serving_vocabulary((select seq from live_edition)) t),
+       -- A family split back into its metrics reads as them, which it still applies to (FR-142).
        keys as (
-         select 1 as part, l.version_id,
-                case when m.id like 'group:%' then m.id else 'metric:' || m.id end as key, m.id
+         select 1 as part, l.version_id, k.key,
+                case when k.key like 'metric:%' then substr(k.key, 8) else k.key end as id
            from listed l, jsonb_array_elements_text(l.entry->'scope'->'metrics') m(id)
+           cross join lateral (
+             select unnest(coalesce(
+                      (select x.variants from family_splits x
+                        where x.family_key = m.id and x.joined_in is null),
+                      array[case when m.id like 'group:%' then m.id else 'metric:' || m.id end])) as key) k
          union all
          select 2, l.version_id, 'dim:' || d.id, d.id
            from listed l, jsonb_array_elements_text(l.entry->'scope'->'dimensions') d(id)

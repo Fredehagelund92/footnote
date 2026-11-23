@@ -85,8 +85,13 @@ export type InboxCard = {
   primary: string
   secondary: string[]
   factId?: string
-  /** Why a check is due: a definition it relies on changed in its tool, or its check date passed. */
-  due?: 'source' | 'date'
+  /**
+   * Why a check is due: a definition it relies on changed in its tool, its check date passed, or
+   * a family of metrics it is about was split.
+   */
+  due?: 'source' | 'date' | 'family'
+  /** The metrics a split family it is about reaches agents through now, by name. */
+  splitInto?: string[]
   /** The definitions that changed in their tool, by name, when that is why a check is due. */
   changed?: string[]
   suggestion?: Suggestion

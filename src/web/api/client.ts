@@ -22,6 +22,7 @@ import type {
   Definition,
   DefinitionRelation,
   DefinitionType,
+  SplitFamily,
   SynonymCheck,
 } from '@/lib/definitions'
 import type { Link } from '@/lib/links'
@@ -576,6 +577,16 @@ export interface FootnoteApi {
     member: string | null
     revision: number
   }) => Promise<void>
+  /**
+   * Splits a family back into its metrics, each a metric of its own under the name it has, by an
+   * owner of its domain or an admin; never one its tool declares. The context items about it keep
+   * reaching agents through each, and are due for a check by their owners.
+   */
+  splitFamily: (input: { name: string }) => Promise<{ metrics: string[]; items: number }>
+  /** Makes a split family one family again, of the metrics it had: Undo, and later too. */
+  joinFamily: (input: { name: string }) => Promise<void>
+  /** The families split back into their metrics, newest first. */
+  getFamilySplits: () => Promise<SplitFamily[]>
   /** Saves a term; a renamed one replaces the old entry. Synced definitions are never saved here. */
   saveTerm: (input: { previous?: string; term: Definition }) => Promise<void>
   /** Another name for a definition, refused when the word already means something. */
@@ -978,6 +989,9 @@ export const footnoteApiMethods = [
   'getDefinitionHistory',
   'setFamilyMeaning',
   'setFamilyUsual',
+  'splitFamily',
+  'joinFamily',
+  'getFamilySplits',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -1103,6 +1117,7 @@ export const readMethods = [
   'definitionPage',
   'getDefinitionRelations',
   'getDefinitionHistory',
+  'getFamilySplits',
   'getInbox',
   'inboxPage',
   'getReviews',

@@ -355,6 +355,7 @@ describe('the Inbox', () => {
       title: 'Returns changed definition on 28 April 2026',
       reason: 'date',
       changed: [],
+      families: [],
       lastChecked: { on: '2026-07-02', by: 'Jon Abara' },
       ...patch,
     })
@@ -392,6 +393,36 @@ describe('the Inbox', () => {
     expect(changed?.line).toBe(
       'The definition of Gross margin changed in its tool on 7 Oct 2026, after this context item was checked.',
     )
+  })
+
+  it('says a family the item is about was split, and keeps it for each metric at one press', () => {
+    const [split] = inboxOf(
+      feed([
+        {
+          ...base,
+          id: 'check:itm_c',
+          group: 'check',
+          itemId: 'itm_c',
+          title: 'Accrued share restated',
+          reason: 'family',
+          changed: [],
+          families: [
+            { name: 'Accrued share', metrics: ['Accrued share (EUR)', 'Accrued share (USD)'] },
+          ],
+          lastChecked: { on: null, by: null },
+        },
+      ]),
+      'Jon Abara',
+      domains,
+      now,
+    ).cards
+    expect(split).toMatchObject({
+      due: 'family',
+      splitInto: ['Accrued share (EUR)', 'Accrued share (USD)'],
+      line: 'Its family Accrued share was split into Accrued share (EUR) and Accrued share (USD). No word of it changed: it reaches agents for both until you say which it is about.',
+      primary: 'Keep for both',
+      secondary: ['Edit', 'Archive'],
+    })
   })
 
   it('reads the saved-question alert as one card for the domain, with its questions', () => {

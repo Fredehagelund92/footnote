@@ -18,6 +18,7 @@ import {
   goesWith,
   meaningOf,
   type Definition,
+  type SplitFamily,
   type SynonymCheck,
 } from '@/lib/definitions'
 
@@ -139,6 +140,8 @@ export function createDefinitions() {
   let all = seed
   /** Every choice of what a family means, by the family's name, newest last. */
   const meanings = new Map<string, Chosen[]>()
+  /** The families split back into their metrics, newest first, each with the entry it was. */
+  let splits: { family: Definition; split: SplitFamily }[] = []
 
   return {
     list: () => all,
@@ -237,6 +240,70 @@ export function createDefinitions() {
       }
       all = all.map((x) => (x === d ? { ...x, family: { ...d.family!, usual } } : x))
     },
+
+    /**
+     * Splits a family back into its metrics, as the service does: each variant a metric of its own
+     * under the name it has, and the family kept to join again. One its tool declares is split there.
+     */
+    splitFamily(name: string, by: string, items: number): string[] {
+      const d = all.find((x) => x.family && same(x.name, name))
+      if (!d?.family)
+        throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
+      const tool = d.tool ?? 'its tool'
+      if (d.family.declared)
+        throw new ApiError(
+          'conflict',
+          `${tool} declares “${d.name}” as one family, under the name ${d.family.declared}. Split it in ${tool}: the next read follows.`,
+        )
+      const metrics = d.family.variants.map<Definition>((v) => ({
+        name: v.name,
+        type: 'metric',
+        definition: v.description ?? '',
+        synced: true,
+        ...(d.tool ? { tool: d.tool } : {}),
+        ...(d.connector ? { connector: d.connector } : {}),
+        ...(d.source ? { source: d.source } : {}),
+        ...(v.ref ? { ref: v.ref } : {}),
+        sourceNames: [],
+        ...(d.domain ? { domain: d.domain } : {}),
+        ...(d.group ? { group: d.group } : {}),
+        updated: d.updated,
+      }))
+      all = [...all.filter((x) => x !== d), ...metrics]
+      splits = [
+        {
+          family: d,
+          split: {
+            name: d.name,
+            ...(d.domain ? { domain: d.domain } : {}),
+            metrics: metrics.map((m) => m.name),
+            items,
+            by,
+            on: dateLabel(today()),
+          },
+        },
+        ...splits,
+      ]
+      return metrics.map((m) => m.name)
+    },
+
+    /** Makes a split family one family again, of the metrics it had, while they stand as they were. */
+    joinFamily(name: string) {
+      const entry = splits.find((x) => same(x.split.name, name))
+      if (!entry) throw new ApiError('not-found', `“${name}” isn't split any more.`)
+      const metrics = entry.split.metrics
+      if (!metrics.every((m) => all.some((x) => same(x.name, m) && !x.family)))
+        throw new ApiError(
+          'conflict',
+          `The metrics of ${entry.split.name} changed since it was split, so they can't be one family again here.`,
+        )
+      all = [...all.filter((x) => !metrics.some((m) => same(x.name, m))), entry.family]
+      splits = splits.filter((x) => x !== entry)
+    },
+
+    /** The families split back into their metrics, newest first, with their items counted now. */
+    splits: (itemsAbout: (family: string) => number): SplitFamily[] =>
+      splits.map(({ split }) => ({ ...split, items: itemsAbout(split.name) })),
 
     /** Every choice of what a family means, newest first. */
     familyMeaningHistory: (name: string) =>
