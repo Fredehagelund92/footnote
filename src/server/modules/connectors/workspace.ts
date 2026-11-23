@@ -17,7 +17,9 @@ import { CHOSEN_SCOPES_MAX } from '../../../contract/sources.ts'
 import { builtInManifests } from '../../../connectors/manifests.ts'
 import { noSecretStoreWords, secretsInUse } from '../../../domain/connector-config.ts'
 import { durationSeconds } from '../../../domain/connector-manifest.ts'
+import { familiesOf, familyCounts } from '../../../domain/metric-families.ts'
 import { variantShape } from '../../../domain/metric-variants.ts'
+import { memberName } from '../../../domain/term-candidates.ts'
 import { reservedSourceIds, sourceIdFrom } from '../../../domain/source-id.ts'
 import { durationText } from '../../../domain/source-schedule.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -154,8 +156,26 @@ function summary(
 ): SourceCheck {
   const scopes = groupsOf(snapshot)
   const metrics = snapshot.definitions.filter((definition) => definition.kind === 'metric')
-  // A metric per currency or channel is said before its names are published (O3).
+  // A metric per currency or channel is said before its names are published (O3), and the
+  // families the first read would find, by how each is found (D5).
   const variants = variantShape(metrics.map((definition) => definition.name))
+  const families = familyCounts(
+    familiesOf(
+      metrics.map((definition) => ({
+        ref: definition.ref,
+        source: 'test',
+        name: definition.name,
+        said: memberName({
+          name: definition.name,
+          title: definition.title,
+          baseName: definition.baseName ?? null,
+        }),
+        variant: definition.variant ?? null,
+        declared: definition.family ?? null,
+        builtFrom: definition.builtFrom ?? null,
+      })),
+    ),
+  )
   return {
     ok: true,
     steps,
@@ -168,6 +188,7 @@ function summary(
     // Each group a model holds may be chosen, up to as many as a source may list.
     scopes: scopes.slice(0, CHOSEN_SCOPES_MAX),
     ...(variants ? { variants } : {}),
+    ...(families ? { families } : {}),
   }
 }
 

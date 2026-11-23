@@ -27,6 +27,7 @@ import {
   memberTokens,
   nameSimilarity,
   normalizeName,
+  phrasesIn,
   suggestTerms,
 } from '../../domain/vocabulary.ts'
 import type { ServingBundle, ServingItem, ServingTerm } from '../modules/editions/index.ts'
@@ -386,8 +387,11 @@ export function definitionOf(
   bundle: ServingBundle,
   term: ServingTerm,
   today: string,
-  /** The words name it only in part ("retention" for Retention rate). */
-  inPart = false,
+  /**
+   * How the words name it: by a name, only in part ("retention" for Retention rate), or not at
+   * all, its description saying them (`mentions`, the words it says).
+   */
+  named: { by: 'exactly' | 'in part' } | { by: 'in text'; mentions: string } = { by: 'exactly' },
 ) {
   const items = termItems(bundle, term, today)
   const about = items.given
@@ -463,12 +467,17 @@ export function definitionOf(
       : ''
   return {
     term: term.name,
-    named: inPart ? 'in part' : 'exactly',
-    ...(inPart
+    named: named.by,
+    ...(named.by === 'in part'
       ? {
           named_note: `The words name ${term.name} only in part. Check that it is what was meant before answering with this definition, and say so if it may not be.`,
         }
-      : {}),
+      : named.by === 'in text'
+        ? {
+            mentions: named.mentions,
+            named_note: `The words are no name of ${term.name}: its description says “${named.mentions}”. Check that it is what was meant before answering with this definition, and say so if it may not be.`,
+          }
+        : {}),
     key: term.key,
     kind,
     ...(term.aliases.length ? { other_names: term.aliases } : {}),
@@ -654,7 +663,8 @@ function nothingFound(
  * find_context (FR-338): the items whose words or names match, best first; when no words match,
  * the items that apply to the scope the words name (as get_context matches them), on the dates
  * given or today. It also says what the definition source gives for each metric or dimension the
- * words name, where that definition comes from, and what Footnote adds. When nothing is found it says
+ * words name, where that definition comes from, and what Footnote adds; words that name none give
+ * the definitions whose description says them (`named: 'in text'`). When nothing is found it says
  * why and what to try.
  */
 export function findContext(
@@ -716,14 +726,41 @@ export function findContext(
     }
   }
   const exact = new Set(read.used.terms)
-  const definitions = [...new Set([...read.used.terms, ...partlyNamed(bundle, read)])]
+  const shownDefined = (term: ServingTerm | undefined): term is ServingTerm =>
+    !!term && definedKinds.has(term.kind) && termShown(bundle, term)
+  const nameDefined = [...new Set([...read.used.terms, ...partlyNamed(bundle, read)])]
     .map((key) => bundle.terms.find((term) => term.key === key))
-    .filter(
-      (term): term is ServingTerm =>
-        !!term && definedKinds.has(term.kind) && termShown(bundle, term),
-    )
-    .slice(0, 5)
-    .map((term) => definitionOf(bundle, term, today, !exact.has(term.key)))
+    .filter(shownDefined)
+  // Words that name nothing an agent may see, a domain, a term or a word written in Definitions,
+  // find the definitions whose own words say them, as a whole phrase.
+  const mentions = read.used.words.join(' ')
+  const names =
+    read.used.domains.length ||
+    read.used.terms.some((key) => {
+      const term = bundle.terms.find((t) => t.key === key)
+      return !!term && termShown(bundle, term)
+    }) ||
+    bundle.written.some((w) => normalizeName(w.name) === normalizeName(mentions))
+  const inText =
+    nameDefined.length || names || !mentions
+      ? []
+      : bundle.terms.filter(
+          (term) =>
+            shownDefined(term) &&
+            term.kind !== 'metric_group' &&
+            !!term.described?.description &&
+            phrasesIn(normalizeName(term.described.description), [mentions]).found.length > 0,
+        )
+  const definitions = [
+    ...nameDefined
+      .slice(0, 5)
+      .map((term) =>
+        definitionOf(bundle, term, today, { by: exact.has(term.key) ? 'exactly' : 'in part' }),
+      ),
+    ...inText
+      .slice(0, 5)
+      .map((term) => definitionOf(bundle, term, today, { by: 'in text', mentions })),
+  ]
   // How Footnote read words for a domain that are not its stored name, once per domain.
   const readAs = [
     ...(domain.readAs && area ? [{ id: area.id, note: domain.readAs }] : []),

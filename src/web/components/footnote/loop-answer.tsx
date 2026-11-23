@@ -1136,11 +1136,11 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   const it = words.length > 1 ? 'these words' : 'this word'
   const line = about.length
     ? mayWrite
-      ? 'No context item covers it yet. It is yours to write: agents get it once it is published.'
-      : `No context item covers it yet. ${Whom} can write it.`
+      ? 'No published context item covers it yet. It is yours to write: agents get it once it is published.'
+      : `No published context item covers it yet. ${Whom} can write it.`
     : mayWrite
-      ? `No metric, other name or context item uses ${it} yet. ${words.length > 1 ? 'They are' : 'It is'} yours to add.`
-      : `No metric, other name or context item uses ${it} yet. ${Whom} can add ${words.length > 1 ? 'them' : 'it'}.`
+      ? `No published metric, other name or context item uses ${it} yet. ${words.length > 1 ? 'They are' : 'It is'} yours to add.`
+      : `No published metric, other name or context item uses ${it} yet. ${Whom} can add ${words.length > 1 ? 'them' : 'it'}.`
   return (
     <section
       data-gap
@@ -1168,7 +1168,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
             </span>
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground">{line}</p>
+          <p className="text-sm text-pretty text-muted-foreground">{line}</p>
         )}
       </div>
       {!told && (
@@ -1429,6 +1429,10 @@ function DefinitionCardOf({
         )
       )}
       <div className="mx-4 mt-3 flex flex-col gap-1 border-t pt-3 text-sm text-muted-foreground">
+        {card.mentions && (
+          // Found by its words, not its name: what was asked may be something else.
+          <p>Its description mentions “{card.mentions}”</p>
+        )}
         <p>
           From {card.tool}
           {card.member && (

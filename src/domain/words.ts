@@ -258,7 +258,7 @@ export const answerLines = {
   },
   missing: {
     label: 'Not found',
-    sentence: 'Nothing is written about this yet.',
+    sentence: 'Nothing published about this yet.',
     long: 'Nothing written down',
   },
   conflict: {

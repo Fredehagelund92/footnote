@@ -23,7 +23,7 @@ describe('the answer lines', () => {
     ).toEqual({
       grounded: ['Checked', 'This is written down and checked.'],
       partial: ['Partial', 'Only part of this is written down.'],
-      missing: ['Not found', 'Nothing is written about this yet.'],
+      missing: ['Not found', 'Nothing published about this yet.'],
       conflict: ['Conflict', 'Two items say different things.'],
       stale: ['Outdated', 'Some of this may be old.'],
       failed: ['Not looked up', 'Ask could not look this up just now.'],
@@ -46,7 +46,7 @@ describe('the answer lines', () => {
 
   it('are said first, the label and, but for Checked, its sentence', () => {
     expect(stateWords('grounded')).toBe('Checked.')
-    expect(stateWords('missing')).toBe('Not found. Nothing is written about this yet.')
+    expect(stateWords('missing')).toBe('Not found. Nothing published about this yet.')
   })
 
   it('are taught to agents by status and label, in the one text the skill file repeats', () => {

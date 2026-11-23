@@ -107,7 +107,7 @@ for (const { name, width, height } of widths) {
       await go(page, '/inbox?demo=families')
       const main = page.getByRole('main')
       await main
-        .getByText(/new metrics and dimensions from dbt/)
+        .getByText(/families and \d+ names from dbt/)
         .first()
         .click()
       await main.getByRole('button', { name: 'Look at the family Packaging costs' }).click()

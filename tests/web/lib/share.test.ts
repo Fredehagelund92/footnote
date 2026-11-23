@@ -42,7 +42,7 @@ describe('Copy for Slack', () => {
   it('says Not found with its sentence, and no sources line, when nothing is written down', () => {
     const { a, used } = of('missing')
     const text = slackText(a, used)
-    expect(text.split('\n')[1]).toBe('Not found. Nothing is written about this yet.')
+    expect(text.split('\n')[1]).toBe('Not found. Nothing published about this yet.')
     expect(text).not.toMatch(/^1 /m)
   })
   it('carries the short sentence for every state but Checked', () => {

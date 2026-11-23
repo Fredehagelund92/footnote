@@ -59,6 +59,7 @@ const seed: Definition[] = [
     synced: true,
     tool: demoTool(DEMO_DEFINITIONS),
     connector: DEMO_DEFINITIONS,
+    source: DEMO_DEFINITIONS,
     ...fromModel(m.group, m.name),
     sourceNames: m.otherNames ?? [],
     domain: m.domain,
@@ -73,6 +74,7 @@ const seed: Definition[] = [
     synced: true,
     tool: demoTool(DEMO_DEFINITIONS),
     connector: DEMO_DEFINITIONS,
+    source: DEMO_DEFINITIONS,
     ...fromModel('Segments', d.name),
     sourceNames: [],
     group: 'Segments',
@@ -162,7 +164,10 @@ export function createDefinitions() {
         all = [
           ...all,
           ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) =>
-            withMeaning({ ...d, connector: FAMILIES_DEFINITIONS }, meanings.get(d.name)?.at(-1)),
+            withMeaning(
+              { ...d, connector: FAMILIES_DEFINITIONS, source: FAMILIES_DEFINITIONS },
+              meanings.get(d.name)?.at(-1),
+            ),
           ),
         ]
     },

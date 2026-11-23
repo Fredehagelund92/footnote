@@ -283,7 +283,7 @@ describe("a source's activity", () => {
       when: 'Today, 06:00',
       tone: 'ok',
       what: 'First read',
-      detail: '27 definitions added',
+      detail: '27 definitions read',
     })
     expect(
       activityOf(read({ definitions: { seen: 27, added: 0, changed: 0, gone: 0 } }), tool, now),
@@ -710,10 +710,62 @@ describe('the connect flow, on the manifests', () => {
     expect(connectTestOf(check, 'dbt-metricflow').read?.variants).toEqual({
       title: 'Many metrics look like variants of a few',
       detail:
-        "4,980 of 5,000 metrics look like 20 metrics, each split by web, app, store and 2 more, and by eur, usd, gbp and 47 more. Agents find what is written about them only by each one's exact name. One metric each, with these as dimensions, works best.",
+        '4,980 of 5,000 metrics look like 20 metrics, each split by web, app, store and 2 more, and by eur, usd, gbp and 47 more. One metric each, with these as dimensions, works best.',
     })
     const { variants: _, ...dimensions } = check
     expect(connectTestOf(dimensions, 'dbt-metricflow').read).not.toHaveProperty('variants')
+  })
+
+  it('leads with the families a read would find, in place of the look of variants (D5)', () => {
+    const families = {
+      families: 37,
+      metrics: 94,
+      found: { declared: 8, calculation: 6, rate: 18, names: 5 },
+      example: 'Accrued share',
+    }
+    const check: SourceCheck = {
+      ok: true,
+      steps: [],
+      version: 'abc',
+      complete: true,
+      views: 1,
+      metrics: 97,
+      dimensions: 4,
+      warnings: [],
+      variants: { variants: 94, metrics: 97, bases: 37, splits: [{ words: 2, examples: ['eur'] }] },
+      families,
+    }
+    const read = connectTestOf(check, 'dbt-metricflow').read
+    expect(read?.families).toEqual(families)
+    expect(read).not.toHaveProperty('variants')
+  })
+
+  it('keeps the look of variants when the families found cover under half of them', () => {
+    const check: SourceCheck = {
+      ok: true,
+      steps: [],
+      version: 'abc',
+      complete: true,
+      views: 1,
+      metrics: 310,
+      dimensions: 4,
+      warnings: [],
+      variants: {
+        variants: 300,
+        metrics: 310,
+        bases: 10,
+        splits: [{ words: 3, examples: ['web'] }],
+      },
+      families: {
+        families: 1,
+        metrics: 2,
+        found: { declared: 0, calculation: 0, rate: 0, names: 1 },
+        example: 'Revenue',
+      },
+    }
+    const read = connectTestOf(check, 'dbt-metricflow').read
+    expect(read?.families?.families).toBe(1)
+    expect(read?.variants?.title).toBe('Many metrics look like variants of a few')
   })
 
   it("sends the settings written, and keeps a source's settings the form doesn't draw", () => {

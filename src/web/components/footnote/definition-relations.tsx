@@ -5,6 +5,7 @@ import { ShowMoreButton } from '@/components/footnote/show-more'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { useShowMore } from '@/hooks/use-show-more'
 import type { Definition, DefinitionRelation, Family } from '@/lib/definitions'
+import { foundSaid } from '@domain/family-found'
 
 /**
  * What a synced metric is built from and what is built from it (FR-143), as its tool's structure
@@ -88,14 +89,7 @@ function Conversions({ relations, tool }: { relations: DefinitionRelation[]; too
  * variant converted from another, by the column. On the family's own page, under its meaning.
  */
 export function FamilyRelations({ family, tool }: { family: Family; tool: string }) {
-  const found =
-    family.found === 'declared'
-      ? `Declared as one family in ${tool}`
-      : family.found === 'calculation'
-        ? `Found from the calculation in ${tool}`
-        : family.found === 'names'
-          ? 'Its names look alike, and an owner published them as one family'
-          : null
+  const found = foundSaid(family.found, tool)
   const conversions = family.conversions ?? []
   // A variant by what tells it apart, as its family lists it ("USD"), else by its name.
   const said = (name: string) =>

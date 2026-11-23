@@ -247,6 +247,19 @@ export const sourceCheckSchema = z.object({
       splits: z.array(z.object({ words: count, examples: z.array(z.string()) })),
     }),
   ),
+  /**
+   * The families of metrics the read would find (FR-142, D5), as a read of every view the test read would find them: how
+   * many, the metrics in them, how many of each kind in the order of trust, and the name of the
+   * family with the most variants, to say what one is. Absent when it finds none.
+   */
+  families: z.optional(
+    z.object({
+      families: count,
+      metrics: count,
+      found: z.object({ declared: count, calculation: count, rate: count, names: count }),
+      example: z.string(),
+    }),
+  ),
 })
 
 /**

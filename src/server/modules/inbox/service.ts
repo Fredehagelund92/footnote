@@ -753,6 +753,7 @@ export function createInboxFeedService(
         done: looking.length ? null : { outcome: 'Left out', at: when },
         ready: names.filter((name) => name.state === 'ready').length,
         flagged: names.filter((name) => name.state === 'flagged').length,
+        families: looking.filter((name) => name.family).length,
         tools: [...new Set(names.map((name) => name.tool))].sort(),
       },
     ]

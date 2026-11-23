@@ -85,7 +85,7 @@ Do and do not:
 | Do                                                                        | Do not                                                            |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | "Published. Agents now say ..."                                           | "The suggestion was successfully accepted into the live edition." |
-| "Nothing is written about this yet."                                      | "no_match: no governed item applies to that exact scope."         |
+| "Nothing published about this yet."                                       | "no_match: no governed item applies to that exact scope."         |
 | "Couldn't publish. <the server's reason> Nothing changed." with Try again | "An error occurred."                                              |
 | "Your suggestion is waiting for Jon Abara."                               | "Your proposal was submitted to the domain for review."           |
 | "2 skipped: owned by Sales"                                               | "2 items could not be processed due to insufficient permissions." |
@@ -104,7 +104,7 @@ The six states of an answer. One or two words, an icon and a tint, one short sen
 | --------- | ----------------- | ------------------------------------ | ------------------------- |
 | grounded  | **Checked**       | (none)                               | Based on checked context  |
 | partial   | **Partial**       | Only part of this is written down.   | Covers part of it         |
-| missing   | **Not found**     | Nothing is written about this yet.   | Nothing written down      |
+| missing   | **Not found**     | Nothing published about this yet.    | Nothing written down      |
 | conflict  | **Conflict**      | Two items say different things.      | Context disagrees         |
 | stale     | **Outdated**      | Some of this may be old.             | May be out of date        |
 | failed    | **Not looked up** | Ask could not look this up just now. | Could not look up         |

@@ -1331,7 +1331,7 @@ describe('get_context', () => {
     const none = (await s.call('get_context', { question: 'Orders Norway July 2026' }))
       .structuredContent as { status: string; say: string; next: string; context: unknown[] }
     expect(none).toMatchObject({ status: 'no_match', context: [] })
-    expect(none.say).toMatch(/^Not found\. Nothing is written about this yet\. Nothing is written/)
+    expect(none.say).toMatch(/^Not found\. Nothing published about this yet\. Nothing is written/)
     expect(none.next).toMatch(/call find_context/)
     expect(none.next).toMatch(/if the person agrees, call report with kind missing\.$/)
     const unread = (await s.call('get_context', { question: 'What happened?' }))

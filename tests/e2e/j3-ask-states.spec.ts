@@ -20,7 +20,7 @@ const states = [
   },
   {
     label: 'Not found',
-    sentence: 'Nothing is written about this yet.',
+    sentence: 'Nothing published about this yet.',
     question: 'How did orders in Spain change in October 2026?',
     sources: 0,
     used: 0,

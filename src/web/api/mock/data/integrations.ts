@@ -135,7 +135,7 @@ const cubeActivity: Activity[] = [
     when: '1 Oct, 06:00',
     tone: 'ok',
     what: 'First read',
-    detail: '27 definitions added, 2 views without a domain',
+    detail: '27 definitions read, 2 views without a domain',
   },
 ]
 

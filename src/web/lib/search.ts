@@ -77,7 +77,13 @@ export const connectApproveSearch = lenient(
 )
 
 export const inboxSearch = lenient(
-  z.object({ tab: oneOf(['all']), card: text, decide: oneOf(['fail']) }),
+  z.object({
+    tab: oneOf(['all']),
+    card: text,
+    // The Names card's part: its families to group, or its single names (?show=families).
+    show: oneOf(['families', 'names']),
+    decide: oneOf(['fail']),
+  }),
 )
 
 export const askSearch = lenient(

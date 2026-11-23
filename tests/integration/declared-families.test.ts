@@ -9,7 +9,7 @@ import type {
   FamilyMeaningVersion,
 } from '../../src/contract/catalogue.ts'
 import type { LoopTurn } from '../../src/contract/answer.ts'
-import type { NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
+import type { Feed, NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
@@ -218,8 +218,9 @@ describe('Test connection', () => {
 })
 
 describe('the Names card', () => {
+  let sourceId = ''
   beforeAll(async () => {
-    await ok<SourceSettings>(
+    const source = await ok<SourceSettings>(
       call('POST', '/sources', 'admin', {
         ...route(),
         name: 'dbt',
@@ -227,8 +228,20 @@ describe('the Names card', () => {
       }),
       201,
     )
+    sourceId = source.id
     await read()
   }, 300_000)
+
+  it('says the source each family comes from, and counts the families on the Inbox card', async () => {
+    const list = await names()
+    const families = list.names.filter((name) => name.family)
+    expect(families.length).toBeGreaterThan(0)
+    expect(families.every((name) => name.source === sourceId)).toBe(true)
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'admin'))
+    const card = feed.cards.find((c) => c.group === 'names')
+    expect(card?.families).toBe(families.filter((name) => name.state !== 'left_out').length)
+    expect(card?.families).toBeGreaterThan(0)
+  })
 
   it('keeps a family that holds, and leaves out the one that does not', async () => {
     const { rows } = await client.query<{ name: string; family: string | null }>(
@@ -253,7 +266,7 @@ describe('the Names card', () => {
       expect(named(list, stem)).toMatchObject({
         kind: 'metric_group',
         state: 'ready',
-        family: { variants: 2, by: ['Currency'], found: 'calculation' },
+        family: { variants: 2, by: ['Currency'], found: 'rate' },
       })
     // A variant is never a name of its own on the card.
     expect(list.names.map((n) => n.name)).not.toContain('Net revenue retail eur')
@@ -352,7 +365,7 @@ describe('a family’s page', () => {
         expect.objectContaining({ by: 'exchange_rate_usd' }),
       ]) as unknown,
     })
-    expect((await family('Accrued share 1'))?.family?.found).toBe('calculation')
+    expect((await family('Accrued share 1'))?.family?.found).toBe('rate')
   })
 
   it('says which variant is converted from which, by the column', async () => {

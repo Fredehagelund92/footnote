@@ -173,8 +173,9 @@ export const catalogueTermSchema = z.object({
     z.object({
       by: z.array(z.string()),
       /**
-       * How it was found (D1): declared in the tool (`meta.footnote`), found from the calculation,
-       * or published by an owner from names that look alike.
+       * How it was found (D1, D6): declared in the tool (`meta.footnote`), found from the
+       * calculation, found from a rate that converts one variant from another, or published by an
+       * owner from names that look alike.
        */
       found: z.enum(familyFoundKinds),
       /**

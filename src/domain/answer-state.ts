@@ -75,7 +75,7 @@ export const ANSWER_LINES: readonly AnswerLine[] = [
     status: 'no_match',
     label: 'Not found',
     long: 'Nothing written down',
-    sentence: 'Nothing is written about this yet.',
+    sentence: 'Nothing published about this yet.',
     means: 'Nobody has written anything down for this. It does not mean there is no explanation.',
     todo: 'Write context, or tell the owner.',
   },

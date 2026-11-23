@@ -1,8 +1,16 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-22
+reviewed: 2026-11-23
 ---
+
+## Families where you connect a source
+
+2026-11-23
+
+Test connection now leads with the families a read would find: how many of the metrics are variants, and how each family was found, declared in your tool, from the calculation, from a rate or by names that look alike. A family found from a rate is now its own kind.
+
+The Names card has a Families part apart from the Names, and a source's page counts its families with Review families. See [Variants](metric-variants.md#what-test-connection-says).
 
 ## Buttons that start with what you asked for
 

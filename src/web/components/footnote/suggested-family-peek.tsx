@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { SourceNameRead } from '@contract/inbox'
 import type { FamilyParts } from '@/components/footnote/family-parts'
+import { foundLine } from '@domain/family-found'
 import {
   BoldNames,
   FamilyHead,
@@ -27,7 +28,9 @@ function whyOne(name: Suggested, familyBy: FamilyParts['familyBy']): string {
     ? `${tool} declares these ${n(family.variants)} metrics as one family, ${by}.`
     : family.found === 'calculation'
       ? `${tool} has ${n(family.variants)} metrics worked out the same way apart from ${family.by.join(' and ')}.`
-      : `These ${n(family.variants)} metrics have one name apart from ${family.by.join(' and ')}, and nothing in ${tool} says they are one metric.`
+      : family.found === 'rate'
+        ? `In ${tool}, these ${n(family.variants)} metrics are one amount, converted from one currency to another by a rate.`
+        : `These ${n(family.variants)} metrics have one name apart from ${family.by.join(' and ')}, and nothing in ${tool} says they are one metric.`
 }
 
 /** Where the words it would mean come from, in one line; empty for none, which says why itself. */
@@ -209,11 +212,9 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
               </P.PeekFact>
             )}
             <P.PeekFact icon={P.CircleDotIcon}>
-              {family.found === 'declared'
-                ? `Declared as one family in ${name.tool}`
-                : family.found === 'calculation'
-                  ? `Found from the calculation in ${name.tool}`
-                  : 'Found by its names alone'}
+              {family.found === 'names'
+                ? 'Found by its names alone'
+                : foundLine(family.found, name.tool)}
             </P.PeekFact>
           </P.PeekFacts>
         </P.PeekBand>

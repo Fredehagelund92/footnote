@@ -64,6 +64,17 @@ describe("Ask's tool registry", () => {
     }
   })
 
+  it('says the searches read published context only, never that nothing is written', () => {
+    for (const name of ['find_context', 'get_context'] as const) {
+      const { description } = askToolDefinitions[name]
+      expect(description, name).toContain('published items only, never drafts')
+      expect(description, name).toContain('say that nothing published covers it')
+      expect(description.replace('never that nothing is written', ''), name).not.toMatch(
+        /nothing is written/,
+      )
+    }
+  })
+
   it('leaves every MCP tool as agents have it (FR-718.5)', () => {
     // A deliberate change to an MCP tool changes these; Ask's tools never do.
     expect(toolNames).toEqual([
@@ -97,6 +108,19 @@ describe("Ask's tool registry", () => {
     expect(
       await refusal('find_context', { words: 'orders', widen: { without: 'market' } }),
     ).toMatch(/widen\.without/)
+    // Other names come as a list of up to three, each one name: never one phrase of them all.
+    expect(
+      await refusal('find_context', {
+        words: 'accounting',
+        widen: { other_words: 'general ledger bookkeeping entries' },
+      }),
+    ).toMatch(/widen\.other_words/)
+    expect(
+      await refusal('find_context', {
+        words: 'accounting',
+        widen: { other_words: ['bookkeeping', 'ledger', 'books', 'accounts'] },
+      }),
+    ).toMatch(/widen\.other_words/)
   })
 })
 
