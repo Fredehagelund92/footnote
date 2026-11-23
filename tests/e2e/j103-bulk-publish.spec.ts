@@ -1,7 +1,7 @@
 import { expect, go, mode, signInAs, test } from './go.ts'
 import type { Page } from '@playwright/test'
 
-// J102: drafts are published from the Context list's bar, as one is from the editor. An owner of
+// J103: drafts are published from the Context list's bar, as one is from the editor. An owner of
 // the domain, or an admin, publishes at once; a writer sends their own draft for another domain to
 // its owners; a draft the editor's checks keep back stays ticked with why. More than a handful is
 // asked first, saying agents get them, and Undo takes the publish back. A draft opened as it is
