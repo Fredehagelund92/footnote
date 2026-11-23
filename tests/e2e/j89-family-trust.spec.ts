@@ -79,7 +79,9 @@ for (const { name, width, height } of widths) {
     }) => {
       await go(page, '/definitions/Accrued%20share%20front%20loaded?demo=families')
       const built = page.getByRole('main').getByRole('region', { name: 'How it is built' })
-      await expect(built).toContainText(/^FamilyFound from a rate in \w+Converted/)
+      await expect(built).toContainText(
+        /^FamilyFound from a rate in \w+\.Split into 2 metricsConverted/,
+      )
       await expect(built).toContainText('ConvertedUSDfromEURby the column exchange_rate_usd')
       expect(await sideways(page)).toBe(0)
     })

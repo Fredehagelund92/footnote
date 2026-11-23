@@ -109,9 +109,17 @@ export function createNamesService(tx: Queryable) {
     const holders = await wordHolders(tx, [
       ...new Set([...wordsOf(draft), ...members.map((member) => termWord(memberName(member)))]),
     ])
-    const names = sourceNames(mapped, live, holders, new Set(left.map((row) => row.ref))).filter(
-      (name) => who.admin || (name.areaId !== null && who.owned.has(name.areaId)),
+    // A split family keeps its key, to be joined again: a new family takes another.
+    const split = await tx.query<{ key: string }>(
+      'select distinct family_key as key from family_splits',
     )
+    const names = sourceNames(
+      mapped,
+      live,
+      holders,
+      new Set(left.map((row) => row.ref)),
+      new Set(split.map((row) => row.key)),
+    ).filter((name) => who.admin || (name.areaId !== null && who.owned.has(name.areaId)))
     return { names, tool, holders, who }
   }
 

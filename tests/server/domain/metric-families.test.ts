@@ -195,6 +195,19 @@ describe('families on the Names card', () => {
     expect(revenue!.definitionRefs).toHaveLength(6)
   })
 
+  it('never takes the key of a family split back into its metrics, which keeps it', () => {
+    const [revenue] = sourceNames(
+      shop([['revenue', 'Revenue', 'a']]),
+      [],
+      none,
+      new Set(),
+      new Set(['group:revenue']),
+    )
+    expect(revenue).toMatchObject({ kind: 'metric_group', name: 'Revenue' })
+    expect(revenue!.key).not.toBe('group:revenue')
+    expect(revenue!.family?.variants.every((v) => v.parentKey === revenue!.key)).toBe(true)
+  })
+
   it('never publishes a family as suggested because a plain metric has its name', () => {
     const plain: CandidateMember = {
       ...shop([['revenue', 'Revenue', 'a']])[0]!,

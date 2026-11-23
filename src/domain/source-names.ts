@@ -110,6 +110,11 @@ export function sourceNames(
   known: readonly KnownTerm[],
   holders: WordHolders,
   leftOut: ReadonlySet<string>,
+  /**
+   * Family keys no new family may take though none is live: a family split back into its metrics
+   * keeps its key, its history, meaning and usual variant, to be joined again.
+   */
+  kept: ReadonlySet<string> = new Set(),
 ): SourceName[] {
   const byRef = new Map(members.map((member) => [member.ref, member]))
   const live = new Map(known.map((term) => [term.key, term]))
@@ -226,7 +231,7 @@ export function sourceNames(
       leftByOwner: leftByOwner(candidate) && candidate.suggested,
     }
   })
-  return withFamilies(names, members, known, holders, leftOut)
+  return withFamilies(names, members, known, holders, leftOut, kept)
 }
 
 /**
@@ -241,6 +246,7 @@ function withFamilies(
   known: readonly KnownTerm[],
   holders: WordHolders,
   leftOut: ReadonlySet<string>,
+  kept: ReadonlySet<string>,
 ): SourceName[] {
   const families = familiesOf(
     members.flatMap((member) =>
@@ -267,7 +273,11 @@ function withFamilies(
   )
   const live = known.filter((term) => !term.open)
   const liveGroups = live.filter((term) => term.kind === 'metric_group')
-  const keys = new Set([...known.map((term) => term.key), ...names.map((name) => name.key)])
+  const keys = new Set([
+    ...known.map((term) => term.key),
+    ...names.map((name) => name.key),
+    ...kept,
+  ])
   const dimensionName = (ref: string) =>
     [...names, ...live].find(
       (term) => term.kind === 'dimension' && term.definitionRefs.includes(ref),

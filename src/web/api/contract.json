@@ -902,6 +902,30 @@
         }
       }
     },
+    "splitFamily": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/definitions/families/{key}/split"
+        }
+      }
+    },
+    "joinFamily": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/definitions/families/{key}/join"
+        }
+      }
+    },
     "familyMeaningHistory": {
       "~orpc": {
         "errorMap": {},

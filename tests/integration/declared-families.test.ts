@@ -781,6 +781,11 @@ describe('splitting a family (D2-D4)', () => {
       [note],
     )
     expect(flags).toEqual([{ flag: 'needs_check', reason: 'Family split: Accrued share 1' }])
+    // Its page reads it as about each metric, as the editor starts a change from it.
+    const page = await ok<{ chips: string[]; check: string | null }>(
+      call('GET', `/items/${note}/page`, 'owner'),
+    )
+    expect(page).toMatchObject({ chips: [eur!.name, usd!.name], check: 'source_changed' })
     // Its owner has a card to check it, which names the metrics it reaches agents through.
     const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
     expect(feed.cards.find((c) => c.group === 'check' && c.itemId === note)).toMatchObject({
@@ -844,5 +849,30 @@ describe('splitting a family (D2-D4)', () => {
     )
     expect(flags).toEqual([])
     expect((await catalogue()).splits).toMatchObject([{ key: accrued.key, items: 0 }])
+  })
+
+  it('is whole again in an edition from before it, and can be split once more', async () => {
+    const { rows } = await client.query<{ label: string }>(
+      `select e.label from family_splits x join editions e on e.seq = x.split_in - 1
+        where x.family_key = $1 and x.joined_in is null`,
+      [accrued.key],
+    )
+    const back = await call('POST', `/editions/${rows[0]!.label}/rollback`, 'admin', {
+      note: 'Back to before the split',
+    })
+    expect(back.statusCode, back.body).toBe(200)
+    // The family's versions say it is one, so the edition serves its variants in it.
+    const again = (await family('Accrued share 1'))!
+    expect(again.family!.variants.map((v) => v.key)).toEqual(
+      accrued.family!.variants.map((v) => v.key),
+    )
+    expect((await catalogue()).splits).toEqual([])
+    // The edition brought back the note as it was then, about the family, so it is flagged again.
+    expect(await ok<FamilySplit>(split(accrued.key, 'admin'))).toMatchObject({ items: 1 })
+    const { rows: standing } = await client.query<{ n: number }>(
+      'select count(*)::int as n from family_splits where family_key = $1 and joined_in is null',
+      [accrued.key],
+    )
+    expect(standing[0]!.n).toBe(1)
   })
 })

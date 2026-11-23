@@ -61,7 +61,7 @@ export function SplitFamily({ d }: { d: Definition }) {
   const count = family.variants.length
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)} className="shrink-0">
+      <Button variant="outline" onClick={() => setOpen(true)} className="-my-1 shrink-0">
         {splitLabel(count)}
       </Button>
       {open && <SplitDialog d={d} onClose={() => setOpen(false)} />}

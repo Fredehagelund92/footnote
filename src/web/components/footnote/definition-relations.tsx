@@ -113,7 +113,7 @@ export function FamilyRelations({
         {(found || action) && (
           <Row label="Family">
             <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-1">
-              <span className="min-w-40 flex-1">
+              <span className="min-w-40 flex-1 py-0.5">
                 {found && `${found}.`}
                 {note && ` ${note}`}
               </span>

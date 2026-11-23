@@ -111,8 +111,14 @@ import { useLeavingRows } from '@/lib/presence'
 
 type View = 'all' | DefinitionType | 'family'
 /** A view as its switch says it: "Metrics", "Families". */
-const viewLabel = (v: View) =>
-  v === 'all' ? 'All' : v === 'family' ? 'Families' : `${typeLabel[v]}s`
+const VIEW_LABELS: Record<View, string> = {
+  all: 'All',
+  metric: 'Metrics',
+  family: 'Families',
+  dimension: 'Dimensions',
+  term: 'Terms',
+}
+const viewLabel = (v: View) => VIEW_LABELS[v]
 type Cue = 'conflict' | 'changed' | 'none'
 type Group = 'domain' | 'type' | 'group' | 'none'
 /** The ways to group, in words: a view's group is its tool's, named when there is one tool. */
@@ -281,14 +287,10 @@ export function DefinitionsPage() {
     if (setup) navigate(definitionsConnectHref(), { setup: '1' })
   }, [setup])
   const figures = useFigures()
+  // A split from a family's page lands on the Families tab (?show=families).
   const [view, setView] = React.useState<View>(() =>
     query.get('show') === 'families' ? 'family' : 'all',
   )
-  // A split from a family's page lands on the Families tab, whatever the page showed before.
-  const shownFamilies = query.get('show') === 'families'
-  React.useEffect(() => {
-    if (shownFamilies) setView('family')
-  }, [shownFamilies])
   const splits = useQuery(familySplitsQuery()).data ?? NO_SPLITS
   const [text, setText] = React.useState('')
   // A domain page links here filtered to its domain.

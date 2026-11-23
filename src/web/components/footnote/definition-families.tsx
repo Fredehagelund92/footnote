@@ -48,7 +48,7 @@ export function DefinitionFamilies({
         <table className="w-full table-fixed border-collapse">
           <thead>
             <tr>
-              <Th className="pr-2 pl-4 md:pl-6 @min-[48rem]/main:w-1/3">Name</Th>
+              <Th className="pr-2 pl-4 md:pl-6">Name</Th>
               <Th className="hidden w-48 px-2 @xl/main:table-cell">How found</Th>
               <Th className="hidden w-52 px-2 @xl/main:table-cell">Variants</Th>
               <Th className="hidden px-2 @3xl/main:table-cell">Meaning</Th>
@@ -83,7 +83,6 @@ function FamilyRow({ d, meaning, due }: { d: Definition; meaning: string | null;
   const count = family.variants.length
   const variants = `${n(count)} ${familyBy(family)}`
   const dueWords = `${n(due)} ${due === 1 ? 'item' : 'items'} due for a check`
-  const look = [!meaning && 'No meaning yet', due > 0 && dueWords].filter((x): x is string => !!x)
   const open = () => openFromRow('def', d.name)
   return (
     <tr
@@ -129,16 +128,14 @@ function FamilyRow({ d, meaning, due }: { d: Definition; meaning: string | null;
             <SourceText text={meaning} />
           </span>
         ) : (
-          <span className="text-muted-foreground">
-            No meaning yet: no words speak for all its variants
-          </span>
+          <span className="text-caution">No meaning yet: no words speak for all its variants</span>
         )}
       </td>
       <td className="hidden pr-4 pl-2 align-middle md:pr-6 @5xl/main:table-cell">
-        {look.length ? (
+        {due > 0 ? (
           <span className="flex items-start gap-1.5 text-caution">
             <TriangleAlertIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-            {look.join(', ')}
+            {dueWords}
           </span>
         ) : (
           <span className="text-muted-foreground">–</span>
@@ -177,7 +174,7 @@ function SplitRow({ split }: { split: SplitFamily }) {
   const by = split.by === me.name ? 'you' : split.by
   return (
     <li className="flex flex-col gap-2 border-b py-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-3">
-      <div className="min-w-0 flex-1 text-sm">
+      <div className="max-w-reading min-w-0 flex-1 text-sm">
         <p className="font-medium">{split.name}</p>
         <p className="text-muted-foreground">
           {andList(split.metrics)}, split by {by} on {split.on}.{' '}

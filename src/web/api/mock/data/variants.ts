@@ -115,7 +115,7 @@ function activeBuyers(tool: string): Definition {
       variants: lines.map((line) => ({
         name: `Active buyers (${line})`,
         values: [line],
-        description: `Buyers with at least one paid order this month on the ${line} sales line.`,
+        description: `Buyers with at least one paid order this month, sold ${line}.`,
         ref: refOf(`Active buyers ${line}`),
       })),
     },

@@ -45,7 +45,7 @@ import { setToday } from '@/lib/today'
 import type { Definition } from '@/lib/definitions'
 import type { Version } from '@/model/history'
 import type { FigureReport } from '@/model/figures'
-import type { DomainId, Fact, Sent } from '@/model/items'
+import type { Fact, Sent } from '@/model/items'
 import { ALL_VALUES } from '@/model/observability'
 import { excerptOf, type Domains } from '@/model/people'
 import { dateLabel } from '@/model/validity'
@@ -1665,11 +1665,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const [glossary, people] = await Promise.all([readGlossary(), readPeople()])
       return glossary.splits.map((split) => ({
         name: split.name,
-        ...(split.areaId ? { domain: split.areaId as DomainId } : {}),
+        ...(split.areaId ? { domain: split.areaId } : {}),
         metrics: split.metrics.map((m) => m.name),
         items: split.items,
         by: people.name(split.personId),
-        on: serviceDay(split.at, calendar.shift),
+        on: dateLabel(serviceDay(split.at, calendar.shift)),
       }))
     },
     saveTerm: async ({ previous, term }) => {

@@ -4,7 +4,7 @@ import type { Queryable } from '../../db/database.ts'
 import { recordAudit } from '../admin/index.ts'
 import { connectorType, reconcileSourceFlags } from '../connectors/index.ts'
 import { lockReleases } from '../editions/index.ts'
-import { acceptTermVersions } from '../review/term-versions.ts'
+import { acceptTermVersions } from '../review/index.ts'
 
 /** A live term as `serving_vocabulary` reads it, with the version agents get now. */
 type LiveTerm = {
@@ -107,6 +107,12 @@ export function createFamilySplitService(tx: Queryable) {
         change: { note: `Split ${family.name}`, closeFamilies: [key] },
         areaId: area!.id,
       },
+    )
+    // A split the family was served again past, by going back to an edition before it, ends here.
+    await tx.query(
+      `update family_splits set joined_by=cl_person(),joined_in=(select seq from editions where label=$2)
+        where family_key=$1 and joined_in is null`,
+      [key, edition.label],
     )
     await tx.query(
       `insert into family_splits(family_key,name,area_id,variants,items,split_by,split_in)
