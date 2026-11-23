@@ -18,13 +18,12 @@ import {
 } from '../../../domain/source-names.ts'
 import { memberName } from '../../../domain/term-candidates.ts'
 import { termName, termWord } from '../../../domain/terms.ts'
-import { termDigestContent } from '../../../domain/vocabulary.ts'
 import type { Queryable } from '../../db/database.ts'
 import { recordAudit } from '../admin/index.ts'
 import { connectorType } from '../connectors/index.ts'
-import { lockReleases, publishEdition } from '../editions/index.ts'
+import { lockReleases } from '../editions/index.ts'
 import { wordHolders } from '../terms/index.ts'
-import { proposalEvents } from './records.ts'
+import { acceptTermVersions } from './term-versions.ts'
 import { sourceVocabulary } from './vocabulary.ts'
 
 /*
@@ -110,9 +109,17 @@ export function createNamesService(tx: Queryable) {
     const holders = await wordHolders(tx, [
       ...new Set([...wordsOf(draft), ...members.map((member) => termWord(memberName(member)))]),
     ])
-    const names = sourceNames(mapped, live, holders, new Set(left.map((row) => row.ref))).filter(
-      (name) => who.admin || (name.areaId !== null && who.owned.has(name.areaId)),
+    // A split family keeps its key, to be joined again: a new family takes another.
+    const split = await tx.query<{ key: string }>(
+      'select distinct family_key as key from family_splits',
     )
+    const names = sourceNames(
+      mapped,
+      live,
+      holders,
+      new Set(left.map((row) => row.ref)),
+      new Set(split.map((row) => row.key)),
+    ).filter((name) => who.admin || (name.areaId !== null && who.owned.has(name.areaId)))
     return { names, tool, holders, who }
   }
 
@@ -167,50 +174,24 @@ export function createNamesService(tx: Queryable) {
     owned: ReadonlySet<string>,
     tool: (id: string) => string,
   ) {
-    const rows = JSON.stringify(
-      await Promise.all(
-        picked.map(async (name) => {
-          const term = {
-            key: name.key,
-            kind: name.kind,
-            parentKey: name.parentKey ?? null,
-            name: name.chosen,
-            aliases: name.aliases.filter((alias) => termWord(alias) !== termWord(name.chosen)),
-            areaId: name.areaId,
-            definitionRefs: name.definitionRefs,
-          }
-          return {
-            ...term,
-            digest: await contentDigest(termDigestContent(term)),
-            action: name.linked.length ? 'change' : 'create',
-            capacity: name.areaId && owned.has(name.areaId) ? 'owner' : 'administrator',
-            draft: { ...term, base: null },
-          }
-        }),
-      ),
-    )
-    const each = 'from jsonb_array_elements($1::jsonb) with ordinality as e(row, n)'
+    const terms = picked.map((name) => ({
+      key: name.key,
+      kind: name.kind,
+      parentKey: name.parentKey ?? null,
+      name: name.chosen,
+      aliases: name.aliases.filter((alias) => termWord(alias) !== termWord(name.chosen)),
+      areaId: name.areaId,
+      definitionRefs: name.definitionRefs,
+      action: name.linked.length ? ('change' as const) : ('create' as const),
+      base: null,
+      capacity:
+        name.areaId && owned.has(name.areaId) ? ('owner' as const) : ('administrator' as const),
+    }))
     await tx.query(
-      `insert into vocab_terms(key,kind,parent_key)
-       select row->>'key',(row->>'kind')::term_kind,row->>'parentKey' ${each} order by n
+      `insert into vocab_terms(key,kind)
+       select e->>'key',(e->>'kind')::term_kind from jsonb_array_elements($1::jsonb) as e
        on conflict (key) do nothing`,
-      [rows],
-    )
-    const versions = await tx.query<{ id: string; key: string }>(
-      `insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,proposer_id,content_digest)
-       select row->>'key',
-              (select coalesce(max(version_no),0)+1 from vocab_term_versions where term_key=row->>'key'),
-              row->>'name',array(select jsonb_array_elements_text(row->'aliases')),row->>'areaId',null,
-              decode(row->>'digest','hex')
-         ${each} order by n
-       returning id::text,term_key as key`,
-      [rows],
-    )
-    const versionOf = JSON.stringify(Object.fromEntries(versions.map((v) => [v.key, v.id])))
-    await tx.query(
-      `insert into vocab_term_refs(version_id,definition_ref)
-       select (($2::jsonb)->>(row->>'key'))::uuid,jsonb_array_elements_text(row->'definitionRefs') ${each}`,
-      [rows, versionOf],
+      [JSON.stringify(terms)],
     )
     const tools = [...new Set(picked.map((name) => tool(name.source)))]
     const [batch] = await tx.query<{ id: string }>(
@@ -218,52 +199,13 @@ export function createNamesService(tx: Queryable) {
        values(cl_person(),'apply',$1,$2) returning id::text`,
       [tools.join(', '), JSON.stringify({ subject: 'vocabulary', terms: picked.length })],
     )
-    const proposals = await tx.query<{
-      id: string
-      revision: number
-      areaId: string | null
-    }>(
-      `insert into proposals(subject,action,state,area_id,proposer_id,channel,vocab_version_id,draft,reason,submitted_at,closed_at,import_batch_id)
-       select 'vocabulary',(row->>'action')::proposal_action,'accepted',row->>'areaId',cl_person(),'import',
-              (($2::jsonb)->>(row->>'key'))::uuid,row->'draft',$3,now(),now(),$4::uuid
-         ${each} order by n
-       returning id::text,revision,area_id as "areaId"`,
-      [rows, versionOf, REASON, batch!.id],
-    )
-    const decisions = await tx.query<{ id: string; proposalId: string; capacity: string }>(
-      `insert into decisions(proposal_id,vocab_version_id,area_id,decided_by,capacity,outcome,reason)
-       select p.id,p.vocab_version_id,p.area_id,cl_person(),c.capacity,'accept',$2
-         from proposals p
-         join (select (($3::jsonb)->>(e.row->>'key'))::uuid as version_id,
-                      (e.row->>'capacity')::decision_capacity as capacity
-                 from jsonb_array_elements($1::jsonb) as e(row)) c on c.version_id=p.vocab_version_id
-        where p.id=any($4::uuid[])
-       returning id::text,proposal_id::text as "proposalId",capacity::text`,
-      [rows, REASON, versionOf, proposals.map((p) => p.id)],
-    )
-    const decisionOf = new Map(decisions.map((d) => [d.proposalId, d]))
     const areas = new Set(picked.map((name) => name.areaId))
-    const edition = await publishEdition(
-      tx,
-      { reason: 'vocabulary_changed', vocabulary: versions.map((v) => v.id) },
-      areas.size === 1 ? [...areas][0] : null,
-    )
-    await proposalEvents(
-      tx,
-      proposals.map((p) => ({
-        p: { id: p.id, areaId: p.areaId, state: 'accepted', revision: p.revision },
-        kind: 'decided',
-        data: {
-          decisionId: decisionOf.get(p.id)?.id,
-          outcome: 'accept',
-          capacity: decisionOf.get(p.id)?.capacity,
-          reason: REASON,
-          edition: edition.label,
-        },
-        audit: 'decision.accept',
-      })),
-    )
-    return edition
+    return acceptTermVersions(tx, terms, {
+      channel: 'import',
+      reason: REASON,
+      batch: batch!.id,
+      areaId: areas.size === 1 ? [...areas][0]! : null,
+    })
   }
 
   async function decide(input: DecideNames): Promise<NamesDecision> {

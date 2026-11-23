@@ -148,8 +148,17 @@ export const invites: Invite[] = [
   },
 ]
 
-/** The four people the sign-in picker offers first, each showing a different Inbox. */
-export const signInPeople = ['Jon Abara', 'Tomas Eriksen', 'Ines Duarte', 'Ravi Kapoor']
+/**
+ * The people the sign-in picker offers first, each showing a different Inbox: Sofia Brandt owns
+ * Sales and is no admin, as an owner who splits a family is (FR-142).
+ */
+export const signInPeople = [
+  'Jon Abara',
+  'Tomas Eriksen',
+  'Ines Duarte',
+  'Ravi Kapoor',
+  'Sofia Brandt',
+]
 
 export const person = (name: string) => people.find((p) => p.name === name) ?? people[0]
 

@@ -18,6 +18,9 @@ grant delete on saved_views, notification_prefs, inbox_items to :api;     -- use
 grant insert, update on family_meanings to :api;
 -- The usual variant of a family (FR-142): an owner's pick; its history is written by a trigger.
 grant insert, update on family_usual to :api;
+-- A family split back into its variants (FR-142): who split it, and joining them again.
+grant insert, update on family_splits to :api;
+grant execute on function edition_close_family(bigint, text) to :api;
 grant execute on function cl_family_area(text) to :api;
 -- Which records questions Ask was asked, by id and week only (FR-718).
 grant insert, update on records_asked_weekly to :api;
@@ -48,6 +51,7 @@ grant select on v_topic_counts_public, v_gap_totals, mcp_requests to :readonly;
 
 grant insert on item_version_mentions to :api;
 grant execute on function serving_links(bigint) to :api, :serve;
+grant execute on function serving_family_splits(bigint) to :api, :serve;
 grant execute on function cl_short_id(text), cl_person(), cl_is_admin_now(), cl_is_owner_now(text) to :serve;
 grant execute on function cl_strip_mentions(text) to :api;
 grant execute on function serving_metadata(bigint), serving_report_gap(text,text,text[],text[],text[],date,text) to :serve;

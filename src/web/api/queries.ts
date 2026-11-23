@@ -57,6 +57,7 @@ export const queryKeys = {
   comments: ['getComments'] as const,
   definitions: ['getDefinitions'] as const,
   definitionsPage: ['definitionsPage'] as const,
+  familySplits: ['getFamilySplits'] as const,
   definitionPage: (name: string) => ['definitionPage', name.toLowerCase()] as const,
   definitionPages: ['definitionPage'] as const,
   definitionRelations: (name: string) => ['getDefinitionRelations', name.toLowerCase()] as const,
@@ -226,6 +227,9 @@ export const definitionsQuery = () =>
 
 export const definitionsPageQuery = () =>
   queryOptions({ queryKey: queryKeys.definitionsPage, queryFn: () => api.definitionsPage() })
+
+export const familySplitsQuery = () =>
+  queryOptions({ queryKey: queryKeys.familySplits, queryFn: () => api.getFamilySplits() })
 
 export const definitionPageQuery = (name: string) =>
   queryOptions({
@@ -532,12 +536,15 @@ const items: QueryKey[] = [
   // A change to an item may start or end a conflict, or bring a kept pair back.
   queryKeys.conflictLists,
   queryKeys.conflictPairs,
+  // A split family counts the items still about it.
+  queryKeys.familySplits,
 ]
 /** What a change to comments makes stale: the threads, and the Inbox's mentions. */
 const comments: QueryKey[] = [queryKeys.comments, queryKeys.inbox, queryKeys.inboxPage]
 const definitions: QueryKey[] = [
   queryKeys.definitions,
   queryKeys.definitionsPage,
+  queryKeys.familySplits,
   queryKeys.definitionPages,
   queryKeys.definitionRelationLists,
   queryKeys.definitionHistories,
@@ -612,6 +619,21 @@ export const invalidations: {
   // What a family means is what Ask reads for it too.
   setFamilyMeaning: () => definitions,
   setFamilyUsual: () => definitions,
+  // The items about a split family are due for a check, each with a card for its owners.
+  splitFamily: () => [
+    ...definitions,
+    ...live,
+    ...inbox,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+  ],
+  joinFamily: () => [
+    ...definitions,
+    ...live,
+    ...inbox,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+  ],
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
@@ -828,6 +850,7 @@ export function useWrite() {
   return async <K extends WriteOperation>(
     operation: K,
     input: WriteInput<K>,
+    answered?: (result: WriteResult<K>) => void,
   ): Promise<WriteResult<K>> => {
     let result: WriteResult<K>
     try {
@@ -846,6 +869,7 @@ export function useWrite() {
         )
       throw error
     }
+    answered?.(result)
     await invalidateAfter(queryClient, operation, input, result)
     return result
   }

@@ -5,12 +5,17 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type {
   Catalogue,
+  CatalogueTerm,
   DefinitionRelations,
+  FamilyJoined,
   FamilyMeaningVersion,
+  FamilySplit,
 } from '../../src/contract/catalogue.ts'
+import type { ItemBulkResult } from '../../src/contract/context.ts'
 import type { LoopTurn } from '../../src/contract/answer.ts'
 import type { Feed, NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
+import { resolve } from '../../src/domain/resolver.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import {
@@ -25,12 +30,13 @@ import {
   createWorkspaceSources,
   openLocalSecretStore,
 } from '../../src/server/modules/connectors/index.ts'
+import { loadLiveBundle } from '../../src/server/modules/editions/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { gitHost, type GitHost } from '../server/connectors/git-server.ts'
 import { partnerManifest } from '../server/connectors/partner-relations-fixture.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
-import { foundation, people } from './fixtures.ts'
-import { apiDatabase, askToolsAs, queueReads, testDatabase } from './support.ts'
+import { accept, foundation, openEdition, people, publish, version } from './fixtures.ts'
+import { apiDatabase, askToolsAs, queueReads, testDatabase, transaction } from './support.ts'
 
 /*
   Families in the order of trust (FR-142, D1, D2, D9) on the real service and PostgreSQL 18: an
@@ -667,5 +673,396 @@ describe('the usual variant of a family (F3)', () => {
     const usd = await ask('What is accrued share 1 in USD?')
     expect(usd.subject?.note).toBeNull()
     expect(usd.text).toMatch(/^Accrued share 1 means: /)
+  })
+})
+
+describe('splitting a family (D2-D4)', () => {
+  const catalogue = () => ok<Catalogue>(call('GET', '/catalogue', 'member'))
+  const family = async (name: string) => (await catalogue()).terms.find((t) => t.name === name)
+  const split = (key: string, who: Who) =>
+    call('POST', `/definitions/families/${encodeURIComponent(key)}/split`, who, { key })
+  const join = (key: string, who: Who) =>
+    call('POST', `/definitions/families/${encodeURIComponent(key)}/join`, who, { key })
+  /** What agents get for a question about one metric, by key: the items, by id. */
+  const reaching = async (metric: string) => {
+    const bundle = (await loadLiveBundle(database))!
+    return resolve(bundle, {
+      scope: {
+        status: 'resolved',
+        scope: {
+          metrics: [metric],
+          filters: {},
+          window: { start: '2026-11-01', end: '2026-11-30' },
+        },
+      },
+      today: '2026-11-21',
+      sizeLimit: 100_000,
+      dependenciesAvailable: true,
+      groups: [],
+      hiddenMetrics: [],
+    }).items.map((match) => match.id)
+  }
+  let accrued: CatalogueTerm
+  let note = ''
+
+  /** A published note about the family itself, in its domain, by id. */
+  const aboutFamily = async (title: string) => {
+    const about = await transaction(client, async () => {
+      const made = await version(client, {
+        scope: false,
+        area: 'partners',
+        title,
+        summary: `${title}: Accrued share 1 was restated for October.`,
+        owner: people.owner,
+        validity: { from: '2026-10-01', until: null },
+      })
+      await client.query('insert into item_version_metrics values ($1,$2)', [made.id, accrued.key])
+      await client.query(
+        `insert into item_version_evidence (version_id,position,url,quote,read_on)
+         values ($1,0,'https://example.test/restated','Restated for October','2026-11-02')`,
+        [made.id],
+      )
+      return made
+    })
+    await accept(client, about.id)
+    await publish(client, about.id)
+    return about.item
+  }
+
+  beforeAll(async () => {
+    accrued = (await family('Accrued share 1'))!
+    note = await aboutFamily('Accrued share 1 restated')
+  })
+
+  it('is refused to a member, and for a family its tool declares, which says where', async () => {
+    const forbidden = await split(accrued.key, 'member')
+    expect(forbidden.statusCode, forbidden.body).toBe(403)
+    expect(forbidden.json<{ message: string }>().message).toBe(
+      'Only an owner of Partners or an admin can split it.',
+    )
+    const line = (await family('Net revenue by line'))!
+    expect(line.family!.declared).toBe('net_revenue_by_line')
+    expect(accrued.family!.declared).toBeNull()
+    const declared = await split(line.key, 'admin')
+    expect(declared.statusCode, declared.body).toBe(409)
+    expect(declared.json<{ message: string }>().message).toBe(
+      'dbt declares “Net revenue by line” as one family, under the name net_revenue_by_line. Split it in dbt: the next read follows.',
+    )
+    const unknown = await split('group:no_such_family', 'admin')
+    expect(unknown.statusCode, unknown.body).toBe(404)
+  })
+
+  it('makes each variant a metric of its own, and the items about it still reach agents, flagged', async () => {
+    const variants = accrued.family!.variants
+    const [eur, usd] = variants
+    expect(await reaching(eur!.key)).toContain(note)
+    const done = await ok<FamilySplit>(split(accrued.key, 'owner'))
+    expect(done).toMatchObject({
+      metrics: variants.map((v) => ({ key: v.key, name: v.name })),
+      items: 1,
+    })
+    const after = await catalogue()
+    // The family leaves Definitions; its variants are metrics there, under the names they had.
+    expect(after.terms.find((t) => t.key === accrued.key)).toBeUndefined()
+    expect(after.terms.filter((t) => t.key === eur!.key || t.key === usd!.key)).toMatchObject([
+      { name: eur!.name, family: null },
+      { name: usd!.name, family: null },
+    ])
+    expect(after.splits).toMatchObject([
+      {
+        key: accrued.key,
+        name: 'Accrued share 1',
+        areaId: 'partners',
+        metrics: variants.map((v) => ({ key: v.key, name: v.name })),
+        items: 1,
+        personId: people.owner,
+      },
+    ])
+    // No word of the note changed: it reaches agents for each former variant, flagged.
+    expect(await reaching(eur!.key)).toContain(note)
+    expect(await reaching(usd!.key)).toContain(note)
+    const { rows: flags } = await client.query<{ flag: string; reason: string }>(
+      `select flag::text, reason from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [note],
+    )
+    expect(flags).toEqual([{ flag: 'needs_check', reason: 'Family split: Accrued share 1' }])
+    // Its page reads it as about each metric, as the editor starts a change from it.
+    const page = await ok<{ chips: string[]; check: string | null }>(
+      call('GET', `/items/${note}/page`, 'owner'),
+    )
+    expect(page).toMatchObject({ chips: [eur!.name, usd!.name], check: 'source_changed' })
+    // Its owner has a card to check it, which names the metrics it reaches agents through.
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
+    expect(feed.cards.find((c) => c.group === 'check' && c.itemId === note)).toMatchObject({
+      reason: 'family',
+      families: [{ name: 'Accrued share 1', metrics: [eur!.name, usd!.name] }],
+    })
+    // The family's history, meaning and usual variant are kept.
+    const { rows: kept } = await client.query<{ meanings: number; usuals: number; closed: number }>(
+      `select (select count(*) from family_meanings where family_key = $1)::int as meanings,
+              (select count(*) from family_usual where family_key = $1)::int as usuals,
+              (select count(*) from vocab_term_service where term_key = $1 and not upper_inf(editions))::int as closed`,
+      [accrued.key],
+    )
+    expect(kept[0]).toEqual({ meanings: 1, usuals: 1, closed: 1 })
+    const { rows: open } = await client.query(
+      'select 1 from vocab_term_service where term_key = $1 and upper_inf(editions)',
+      [accrued.key],
+    )
+    expect(open).toEqual([])
+  })
+
+  it('keeps them apart on the next read, and offers nothing new on the Names card', async () => {
+    await read()
+    const list = await names()
+    expect(list.names.find((n) => n.key === accrued.key)).toBeUndefined()
+    const refs = accrued.family!.variants.map((v) => v.ref)
+    expect(list.names.filter((n) => n.definitionRefs.some((ref) => refs.includes(ref)))).toEqual([])
+    expect(await family('Accrued share 1')).toBeUndefined()
+  })
+
+  it('is made one family again by Undo, which ends the flags', async () => {
+    const refused = await join(accrued.key, 'member')
+    expect(refused.statusCode, refused.body).toBe(403)
+    expect(await ok<FamilyJoined>(join(accrued.key, 'admin'))).toMatchObject({
+      name: 'Accrued share 1',
+    })
+    const again = (await family('Accrued share 1'))!
+    expect(again.key).toBe(accrued.key)
+    expect(again.family!.meaning).toEqual(accrued.family!.meaning)
+    expect(again.family!.usual).toEqual(accrued.family!.usual)
+    expect(again.family!.variants.map((v) => v.key)).toEqual(
+      accrued.family!.variants.map((v) => v.key),
+    )
+    expect((await catalogue()).splits).toEqual([])
+    const { rows } = await client.query(
+      `select 1 from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [note],
+    )
+    expect(rows).toEqual([])
+    const twice = await join(accrued.key, 'admin')
+    expect(twice.statusCode, twice.body).toBe(404)
+  })
+
+  it('points an item at each former metric when its owner checks it as still true', async () => {
+    await ok(split(accrued.key, 'admin'))
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
+    const card = feed.cards.find((c) => c.group === 'check' && c.itemId === note)!
+    await ok(call('POST', '/inbox/cards/decide', 'owner', { card: card.id, action: 'still_true' }))
+    const { rows } = await client.query<{ key: string }>(
+      `select m.metric_key as key from item_version_service s
+         join item_version_metrics m on m.version_id = s.version_id
+        where s.item_id = $1 and upper_inf(s.editions) order by m.metric_key`,
+      [note],
+    )
+    expect(rows.map((r) => r.key)).toEqual(accrued.family!.variants.map((v) => v.key).sort())
+    const { rows: flags } = await client.query(
+      `select 1 from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [note],
+    )
+    expect(flags).toEqual([])
+    expect((await catalogue()).splits).toMatchObject([{ key: accrued.key, items: 0 }])
+  })
+
+  it('is whole again in an edition from before it, and can be split once more', async () => {
+    const { rows } = await client.query<{ label: string }>(
+      `select e.label from family_splits x join editions e on e.seq = x.split_in - 1
+        where x.family_key = $1 and x.joined_in is null`,
+      [accrued.key],
+    )
+    const back = await call('POST', `/editions/${rows[0]!.label}/rollback`, 'admin', {
+      note: 'Back to before the split',
+    })
+    expect(back.statusCode, back.body).toBe(200)
+    // The family's versions say it is one, so the edition serves its variants in it.
+    const again = (await family('Accrued share 1'))!
+    expect(again.family!.variants.map((v) => v.key)).toEqual(
+      accrued.family!.variants.map((v) => v.key),
+    )
+    expect((await catalogue()).splits).toEqual([])
+    // The edition brought back the note as it was then, about the family, so it is flagged again.
+    expect(await ok<FamilySplit>(split(accrued.key, 'admin'))).toMatchObject({ items: 1 })
+    const { rows: standing } = await client.query<{ n: number }>(
+      'select count(*)::int as n from family_splits where family_key = $1 and joined_in is null',
+      [accrued.key],
+    )
+    expect(standing[0]!.n).toBe(1)
+  })
+
+  const flagged = async () =>
+    (
+      await client.query<{ flag: string }>(
+        `select flag::text from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+        [note],
+      )
+    ).rows
+  const splitEdition = async () =>
+    (
+      await client.query<{ label: string }>(
+        `select e.label from family_splits x join editions e on e.seq = x.split_in
+          where x.family_key = $1 order by x.split_in desc limit 1`,
+        [accrued.key],
+      )
+    ).rows[0]!.label
+  const rollback = (label: string) =>
+    ok(call('POST', `/editions/${label}/rollback`, 'admin', { note: 'Back' }))
+
+  it('is served again by going back into it after it was joined, and can be joined once more', async () => {
+    const [eur, usd] = accrued.family!.variants
+    const edition = await splitEdition()
+    await ok(join(accrued.key, 'admin'))
+    expect(await family('Accrued share 1')).toBeDefined()
+    await rollback(edition)
+    // The edition has the content of the split one, so it reads as it does, joined or not.
+    expect(await family('Accrued share 1')).toBeUndefined()
+    expect((await catalogue()).splits).toMatchObject([{ key: accrued.key }])
+    expect(await reaching(eur!.key)).toContain(note)
+    expect(await reaching(usd!.key)).toContain(note)
+    expect(await flagged()).toEqual([{ flag: 'needs_check' }])
+    expect(await ok<FamilyJoined>(join(accrued.key, 'admin'))).toMatchObject({
+      name: 'Accrued share 1',
+    })
+    expect(await family('Accrued share 1')).toBeDefined()
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+  })
+
+  it('reads the family as live after going back to before a split that stands', async () => {
+    await ok(split(accrued.key, 'admin'))
+    const before = (
+      await client.query<{ label: string }>(
+        `select e.label from editions e where e.seq = (select max(split_in) from family_splits
+          where family_key = $1) - 1`,
+        [accrued.key],
+      )
+    ).rows[0]!.label
+    await rollback(before)
+    expect(await family('Accrued share 1')).toBeDefined()
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+    const page = await ok<{ chips: string[] }>(call('GET', `/items/${note}/page`, 'owner'))
+    expect(page.chips).toEqual(['Accrued share 1'])
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
+    expect(feed.cards.find((c) => c.group === 'check' && c.itemId === note)).toBeUndefined()
+    // It can be split once more, and joined again.
+    await ok(split(accrued.key, 'admin'))
+    await ok(join(accrued.key, 'admin'))
+  })
+
+  it('is checked from the item page by pointing it at each former metric', async () => {
+    await ok(split(accrued.key, 'admin'))
+    await ok(call('POST', `/items/${note}/read`, 'owner'))
+    const done = await ok<ItemBulkResult>(
+      call('POST', '/items/bulk', 'owner', { action: 'check', rows: [note] }),
+    )
+    expect(done.done).toEqual([note])
+    expect(await flagged()).toEqual([])
+    const { rows } = await client.query<{ key: string }>(
+      `select m.metric_key as key from item_version_service s
+         join item_version_metrics m on m.version_id = s.version_id
+        where s.item_id = $1 and upper_inf(s.editions) order by m.metric_key`,
+      [note],
+    )
+    expect(rows.map((r) => r.key)).toEqual(accrued.family!.variants.map((v) => v.key).sort())
+  })
+
+  /** Serves the live version of a term again in another domain, as an edition from the bootstrap does. */
+  const reissue = async (key: string, areaId: string | null) => {
+    const { rows } = await client.query<{ old: string; id: string }>(
+      `with old as (
+         select v.* from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
+          where s.term_key = $1 and upper_inf(s.editions)),
+       made as (
+         insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,parent_key,proposer_id,content_digest)
+         select o.term_key, (select max(version_no) + 1 from vocab_term_versions where term_key = o.term_key),
+                o.name, o.aliases, $2, o.parent_key, null,
+                decode(md5(random()::text) || md5(random()::text), 'hex')
+           from old o returning id)
+       select (select id::text from old) as old, (select id::text from made) as id`,
+      [key, areaId],
+    )
+    const { old, id } = rows[0]!
+    await client.query(
+      `insert into vocab_term_refs(version_id,definition_ref)
+       select $2, definition_ref from vocab_term_refs where version_id = $1`,
+      [old, id],
+    )
+    const seq = (
+      await client.query<{ seq: string }>("select edition_open('bootstrap', null) as seq")
+    ).rows[0]!.seq
+    await client.query('select edition_serve_vocab_version($1, $2)', [seq, id])
+    await client.query('select edition_seal($1)', [seq])
+    await client.query('select edition_publish($1)', [seq])
+    return id
+  }
+  const liveVersion = async (key: string) =>
+    (
+      await client.query<{ id: string; area: string | null }>(
+        `select v.id::text, v.area_id as area from vocab_term_service s
+           join vocab_term_versions v on v.id = s.version_id
+          where s.term_key = $1 and upper_inf(s.editions)`,
+        [key],
+      )
+    ).rows[0]!
+
+  it('is decided in each metric’s own domain: an owner of the family’s is refused one in none', async () => {
+    await ok(join(accrued.key, 'admin'))
+    const [eur] = accrued.family!.variants
+    await aboutFamily('Accrued share 1 restated in the open')
+    await reissue(eur!.key, null)
+    const refused = await split(accrued.key, 'owner')
+    expect(refused.statusCode, refused.body).toBe(403)
+    expect(refused.json<{ message: string }>().message).toBe(
+      'Only an admin can split it in no domain.',
+    )
+    expect(await family('Accrued share 1')).toBeDefined()
+    expect(await ok<FamilySplit>(split(accrued.key, 'admin'))).toMatchObject({ items: 1 })
+    const again = await join(accrued.key, 'owner')
+    expect(again.statusCode, again.body).toBe(403)
+    expect(again.json<{ message: string }>().message).toBe(
+      'Only an admin can make them one family again in no domain.',
+    )
+    expect(await ok<FamilyJoined>(join(accrued.key, 'admin'))).toMatchObject({
+      name: 'Accrued share 1',
+    })
+    await ok(split(accrued.key, 'admin'))
+  })
+
+  it('is joined in no domain when the one it was split in was deleted meanwhile', async () => {
+    await ok(join(accrued.key, 'admin'))
+    await client.query("insert into areas (id,name) values ('attic','Attic')")
+    const stale = await reissue(accrued.key, 'attic')
+    await ok(split(accrued.key, 'admin'))
+    await client.query("update areas set archived_at = now() where id = 'attic'")
+    await ok(join(accrued.key, 'admin'))
+    const served = await liveVersion(accrued.key)
+    expect(served.id).not.toBe(stale)
+    expect(served.area).toBeNull()
+    expect(await family('Accrued share 1')).toBeDefined()
+    await ok(split(accrued.key, 'admin'))
+  })
+
+  it('is not split when the family is closed after it was joined, whatever the reason', async () => {
+    const [eur] = accrued.family!.variants
+    await ok(join(accrued.key, 'admin'))
+    const fresh = await aboutFamily('Accrued share 1 restated before it closed')
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+    const seq = await openEdition(client)
+    await client.query(
+      'update vocab_term_service set editions = int8range(lower(editions), $1::bigint) where term_key = $2 and upper_inf(editions)',
+      [seq, accrued.key],
+    )
+    await client.query('select edition_seal($1)', [seq])
+    await client.query('select edition_publish($1)', [seq])
+    expect((await catalogue()).splits).toEqual([])
+    expect(await flagged()).toEqual([])
+    const { rows: flagsOfFresh } = await client.query(
+      `select 1 from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [fresh],
+    )
+    expect(flagsOfFresh).toEqual([])
+    const page = await ok<{ chips: string[] }>(call('GET', `/items/${fresh}/page`, 'owner'))
+    expect(page.chips).not.toContain(eur!.name)
   })
 })

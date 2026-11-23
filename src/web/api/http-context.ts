@@ -42,6 +42,8 @@ export type Words = {
   ) => { kind: 'metric' | 'dim' | 'val'; key: string } | undefined
   /** The name people read for a key, or the key's own id when the vocabulary has no name. */
   nameOf: (key: string) => string
+  /** The metrics a family that was split back into them reaches agents through, by key. */
+  formerOf?: (key: string) => string[] | undefined
   /** A term written in Definitions by its id, as the app names it (by its word), if it is there. */
   termName: (id: string) => string | undefined
   /** A term's id by its word, any case. */
@@ -53,7 +55,11 @@ export type WrittenWord = { id: string; name: string }
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
-export function wordsOf(vocabulary: ServiceVocabulary, terms: readonly WrittenWord[] = []): Words {
+export function wordsOf(
+  vocabulary: ServiceVocabulary,
+  terms: readonly WrittenWord[] = [],
+  splits: readonly { key: string; metrics: readonly { key: string }[] }[] = [],
+): Words {
   const names = new Map<string, string>()
   for (const m of vocabulary.metrics) names.set(`metric:${m.id}`, m.name)
   for (const f of vocabulary.families) names.set(f.key, f.name)
@@ -81,6 +87,7 @@ export function wordsOf(vocabulary: ServiceVocabulary, terms: readonly WrittenWo
       }
       return undefined
     },
+    formerOf: (key) => splits.find((s) => s.key === key)?.metrics.map((m) => m.key),
     nameOf: (key) => names.get(key) ?? key.split(/[:/]/).at(-1)!,
     termName: (id) => terms.find((t) => t.id === id)?.name,
     termId: (name) => terms.find((t) => same(t.name, name))?.id,
@@ -171,7 +178,9 @@ const NO_SCOPE: Scope = { metrics: [], dimensions: [], dimensionValues: [] }
 /** A scope as "Applies to" holds it: each term by its key, with the name people read. */
 export function scopeTermsOf(scope: Scope, words: Words): ScopeTerm[] {
   return [
-    ...scope.metrics.map((key) => ({ key, kind: 'metric' as const, name: words.nameOf(key) })),
+    ...scope.metrics
+      .flatMap((key) => words.formerOf?.(key) ?? [key])
+      .map((key) => ({ key, kind: 'metric' as const, name: words.nameOf(key) })),
     ...scope.dimensions.map((key) => ({
       key,
       kind: 'dimension' as const,

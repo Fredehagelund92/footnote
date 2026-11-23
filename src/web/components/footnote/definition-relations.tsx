@@ -88,19 +88,37 @@ function Conversions({ relations, tool }: { relations: DefinitionRelation[]; too
  * declared in its tool, from the calculation, or from names an owner made one family; and each
  * variant converted from another, by the column. On the family's own page, under its meaning.
  */
-export function FamilyRelations({ family, tool }: { family: Family; tool: string }) {
+export function FamilyRelations({
+  family,
+  tool,
+  action,
+  note,
+}: {
+  family: Family
+  tool: string
+  /** What the person can do to the family, beside how it was found: Split. */
+  action?: React.ReactNode
+  /** What follows how it was found: who decides whether it is one family. */
+  note?: string | null
+}) {
   const found = foundSaid(family.found, tool)
   const conversions = family.conversions ?? []
   // A variant by what tells it apart, as its family lists it ("USD"), else by its name.
   const said = (name: string) =>
     family.variants.find((v) => v.name === name)?.values.join(' ') || name
-  if (!found && !conversions.length) return null
+  if (!found && !conversions.length && !action) return null
   return (
     <section aria-label="How it is built" className="max-w-reading text-sm">
       <dl className="flex flex-col">
-        {found && (
+        {(found || action) && (
           <Row label="Family">
-            <span className="py-1">{found}</span>
+            <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-1">
+              <span className="min-w-40 flex-1 py-0.5">
+                {found && `${found}.`}
+                {note && ` ${note}`}
+              </span>
+              {action}
+            </span>
           </Row>
         )}
         {conversions.length > 0 && (

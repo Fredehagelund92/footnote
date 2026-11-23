@@ -1,5 +1,7 @@
 import { footnoteApiMethods, readMethods } from '../client'
 import { clockTime } from '@/lib/dates'
+import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
+import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
 import { ApiError } from '../errors'
@@ -21,6 +23,7 @@ import { obsData } from './data/observability'
 import { obsPage } from './obs-page'
 import { BEFORE, changedSteps, replay } from './replay'
 import { reviews } from './data/review'
+import type { InboxCard } from '@/model/inbox'
 import type { Relation, Review } from '@/model/review'
 import { plainOf } from '@/components/templates/comment-box/utils'
 import {
@@ -181,6 +184,19 @@ export function createMockApi() {
       lasting,
     )
 
+  const same = (a: string, b: string) => termWord(a) === termWord(b)
+  const domainOf = (id: string) => workspace.domains().find((d) => d.id === id)
+  /** The cards a family split gave the owners of each item about it, one per owner (D2). */
+  let splitCards: InboxCard[] = []
+  /** The items a split left due, as they were and as the split changed them: kept past a sign-in. */
+  const splitItems = new Map<
+    string,
+    {
+      family: string
+      before: Pick<Fact, 'status' | 'outOfDate' | 'where'>
+      patch: Partial<Fact>
+    }
+  >()
   /** The Inbox as the person sees it: none of the demo's cards on a new install. */
   const inbox = (): Inbox => {
     const titleOf = (subject: Subject) => {
@@ -193,7 +209,7 @@ export function createMockApi() {
     }
     const nameCard = names.card(me(), obsReader())
     return {
-      cards: [...(nameCard ? [nameCard] : []), ...(state.fresh ? [] : cards)],
+      cards: [...(nameCard ? [nameCard] : []), ...splitCards, ...(state.fresh ? [] : cards)],
       waiting: state.fresh ? [] : waiting,
       sent: state.sent,
       done: state.done,
@@ -387,6 +403,9 @@ export function createMockApi() {
         return Promise.reject(new ApiError('not-found', `${name} can't sign in here.`))
       return now(() => {
         dispatch({ type: 'signIn', name })
+        // The families demo stays for whoever signs in: its context, as its families do.
+        if (familiesShop) for (const fact of familyFacts()) dispatch({ type: 'addFact', fact })
+        for (const [id, { patch }] of splitItems) dispatch({ type: 'editFact', id, patch })
         return {
           user: state.user,
           install: state.install,
@@ -839,6 +858,106 @@ export function createMockApi() {
           )
         definitions.setFamilyUsual(input, me())
       }),
+    splitFamily: ({ name }) =>
+      now(() => {
+        const d = definitions.list().find((x) => x.family && same(x.name, name))
+        const person = meAsPerson()
+        if (d && !person.admin && !(d.domain && person.owns.includes(d.domain)))
+          throw new ApiError(
+            'forbidden',
+            `Only an owner of ${domainOf(d.domain ?? '')?.name ?? 'its domain'} or an admin can split it.`,
+          )
+        // The items about it: no word changes, each applies to every former variant, due for a
+        // check, and each owner of its domain gets a card for it (D2).
+        const about = factsOf(state).filter(
+          (f) => servedToAgents(f) && f.where.some((w) => same(w, name)),
+        )
+        const metrics = definitions.splitFamily(name, me(), about.length)
+        for (const fact of about) {
+          const patch: Partial<Fact> = {
+            where: [...new Set(fact.where.flatMap((w) => (same(w, name) ? metrics : [w])))],
+            status: 'Due for a check',
+            outOfDate: splitDue(d!.name),
+          }
+          splitItems.set(fact.id, {
+            family: d!.name,
+            before: { status: fact.status, outOfDate: fact.outOfDate, where: fact.where },
+            patch,
+          })
+          dispatch({ type: 'editFact', id: fact.id, patch })
+          for (const owner of domainOf(fact.domain)?.owners ?? [])
+            splitCards = [
+              ...splitCards.filter((c) => c.id !== `check-split.${fact.id}.${owner}`),
+              {
+                id: `check-split.${fact.id}.${owner}`,
+                type: 'check',
+                domain: fact.domain,
+                for: owner,
+                when: 'Today',
+                title: fact.title,
+                due: 'family',
+                splitInto: metrics,
+                line: splitCardLine(d!.name, metrics),
+                detail: fact.checkedBy
+                  ? `Last checked by ${fact.checkedBy === owner ? 'you' : fact.checkedBy}, ${fact.checkedOn}.`
+                  : 'Not checked yet.',
+                primary: keepLabel(metrics.length),
+                secondary: ['Edit', 'Archive'],
+                factId: fact.id,
+              },
+            ]
+        }
+        return { metrics, items: about.length }
+      }),
+    joinFamily: ({ name }) =>
+      now(() => {
+        const split = definitions.splits(() => 0).find((x) => same(x.name, name))
+        const person = meAsPerson()
+        if (split && !person.admin && !(split.domain && person.owns.includes(split.domain)))
+          throw new ApiError(
+            'forbidden',
+            `Only an owner of ${domainOf(split.domain ?? '')?.name ?? 'its domain'} or an admin can make them one family again.`,
+          )
+        definitions.joinFamily(name)
+        const restored: string[] = []
+        // The items it left due are about the family again, and their cards go.
+        for (const fact of factsOf(state).filter(
+          (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(name),
+        )) {
+          restored.push(fact.id)
+          const was = splitItems.get(fact.id)?.before
+          dispatch({
+            type: 'editFact',
+            id: fact.id,
+            patch: {
+              where: [
+                ...new Set(
+                  fact.where.flatMap((w) =>
+                    split!.metrics.some((m) => same(m, w)) ? [split!.name] : [w],
+                  ),
+                ),
+              ],
+              status: was?.status ?? 'Live',
+              outOfDate: was?.outOfDate,
+            },
+          })
+        }
+        for (const [id, item] of splitItems) if (same(item.family, name)) splitItems.delete(id)
+        splitCards = splitCards.filter(
+          (c) =>
+            !restored.includes(c.factId!) &&
+            !factsOf(state).some((f) => f.id === c.factId && f.status === 'Live'),
+        )
+      }),
+    getFamilySplits: () =>
+      now(() =>
+        definitions.splits(
+          (family) =>
+            factsOf(state).filter(
+              (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(family),
+            ).length,
+        ),
+      ),
     saveTerm: ({ previous, term }) => now(() => definitions.saveTerm(previous, term)),
     addSynonym: ({ target, word }) => now(() => definitions.addSynonym(target, word, me())),
     removeTerm: ({ name }) => now(() => remember(definitions.removeTerm(name))),
@@ -867,7 +986,7 @@ export function createMockApi() {
     markReviewed: ({ id }) => now(() => dispatch({ type: 'reviewed', card: id })),
     decideCard: ({ card, outcome, patch }) =>
       now(() => {
-        const found = cards.find((c) => c.id === card)
+        const found = [...splitCards, ...cards].find((c) => c.id === card)
         const factId = found?.factId
         const before = state
         if (patch && factId) dispatch({ type: 'editFact', id: factId, patch })

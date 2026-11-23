@@ -115,6 +115,12 @@ export default defineConfig({
     // families in tests/integration/metric-variants.test.ts and its card's in
     // declared-families.test.ts.
     /\/j102-families-on-source\.spec\.ts$/,
+    // J104 to J106 split the mock's ?demo=families families as an owner, an admin and a member;
+    // the service splits, refuses, flags the items and joins them again in
+    // tests/integration/declared-families.test.ts.
+    /\/j104-family-split\.spec\.ts$/,
+    /\/j105-definitions-families\.spec\.ts$/,
+    /\/j106-family-member\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

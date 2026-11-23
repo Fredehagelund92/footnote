@@ -55,9 +55,7 @@ beforeAll(async () => {
     [people.second, people.third],
   )
   await transaction(client, async () => {
-    await client.query(
-      "insert into vocab_terms(key,kind,parent_key) values('metric:spend','metric',null)",
-    )
+    await client.query("insert into vocab_terms(key,kind) values('metric:spend','metric')")
     // The first edition is a bootstrap: its vocabulary needs no decision.
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")

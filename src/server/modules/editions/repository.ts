@@ -1,4 +1,5 @@
 import type { Queryable } from '../../db/database.ts'
+import { standingSplits } from '../../db/family-splits.ts'
 import type pg from 'pg'
 import { settingSchemas } from '../../../contract/admin.ts'
 import { termDomain } from '../../../domain/catalogue.ts'
@@ -236,11 +237,20 @@ export async function loadServingBundle(
   ])
   // With it, in the same statement, the terms and synonyms people write in Definitions, as they
   // are now (FR-138).
-  const [served] = await tx.query<{ doc: Metadata; written: WrittenRow[] }>(
+  // With them, the families split back into their metrics in this edition: context about one
+  // still reaches agents through each of them (FR-142).
+  const [served] = await tx.query<{
+    doc: Metadata
+    written: WrittenRow[]
+    splits: { key: string; variants: string[] }[]
+  }>(
     `select serving_metadata($1) as doc,
-            coalesce((select json_agg(t) from serving_terms() t), '[]') as written`,
+            coalesce((select json_agg(t) from serving_terms() t), '[]') as written,
+            coalesce((select json_agg(json_build_object('key', x.family_key, 'variants', x.variants))
+                        from ${standingSplits('$1')} x), '[]') as splits`,
     [head.seq],
   )
+  const splits = served!.splits
   const metadata = served!.doc
   const overlay = await tx.query<Overlay>(
     'select kind,scope,area_id,item_id,flag from v_overlay_on',
@@ -314,7 +324,13 @@ export async function loadServingBundle(
     groupsOfMetric: Object.fromEntries(
       terms
         .filter((v) => v.kind === 'metric')
-        .map((v) => [v.key, v.parentKey ? [v.parentKey] : []]),
+        .map((v) => [
+          v.key,
+          [
+            ...(v.parentKey ? [v.parentKey] : []),
+            ...splits.flatMap((split) => (split.variants.includes(v.key) ? [split.key] : [])),
+          ],
+        ]),
     ),
     stopped,
     items: rows.map((row) => {

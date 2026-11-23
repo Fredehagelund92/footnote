@@ -187,6 +187,7 @@ export function definitionsOf(
             })),
             meaning: meaningOf(term.family, person),
             usual: usualOf(term.family, person),
+            ...(term.family.declared ? { declared: term.family.declared } : {}),
           },
         }
       : {}),

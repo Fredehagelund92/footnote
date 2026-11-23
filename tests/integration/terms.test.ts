@@ -73,12 +73,12 @@ beforeAll(async () => {
       [people.stranger],
     )
     await client.query(
-      `insert into vocab_terms(key,kind,parent_key) values
-         ('metric:revenue','metric',null),('metric:spend','metric',null),('metric:hidden','metric',null),
-         ('metric:gone','metric',null)`,
+      `insert into vocab_terms(key,kind) values
+         ('metric:revenue', 'metric'),('metric:spend', 'metric'),('metric:hidden', 'metric'),
+         ('metric:gone', 'metric')`,
     )
     await client.query(
-      `insert into vocab_terms(key,kind,parent_key) select 'val:market/'||m,'dimension_value','dim:market'
+      `insert into vocab_terms(key,kind) select 'val:market/'||m,'dimension_value'
          from unnest($1::text[]) m`,
       [markets],
     )

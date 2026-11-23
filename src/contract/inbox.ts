@@ -141,10 +141,18 @@ export const cardSchema = z.union([
     group: z.literal('check'),
     itemId: z.string(),
     title: z.string(),
-    /** Its check date passed, or a definition it relies on changed at its source. */
-    reason: z.enum(['date', 'source']),
+    /**
+     * Its check date passed, a definition it relies on changed at its source, or a family of
+     * metrics it is about was split back into its metrics (FR-142).
+     */
+    reason: z.enum(['date', 'source', 'family']),
     /** The definitions that changed at their source since the item was checked, with the day each changed; empty for a date. */
     changed: z.array(z.object({ name: z.string(), on: z.string() })),
+    /**
+     * The families it is about that were split, each with the metrics it still reaches agents
+     * through, by name; empty for any other reason.
+     */
+    families: z.array(z.object({ name: z.string(), metrics: z.array(z.string()) })),
     lastChecked: z.object({ on: z.nullable(z.string()), by: z.nullable(z.string()) }),
   }),
 ])

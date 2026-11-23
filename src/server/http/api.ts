@@ -139,7 +139,11 @@ import {
   type SignIn,
 } from '../modules/auth/index.ts'
 import { createAlertsService } from '../modules/alerts/index.ts'
-import { createCatalogueService, createFamilyMeaningService } from '../modules/catalogue/index.ts'
+import {
+  createCatalogueService,
+  createFamilyMeaningService,
+  createFamilySplitService,
+} from '../modules/catalogue/index.ts'
 import {
   createWorkspaceSources,
   noSecretStore,
@@ -232,15 +236,16 @@ export function requestServices(
     comments,
   )
   const library = createLibraryService(tx, clock)
+  const context = createContextService(tx, clock, answerBundles, {
+    library,
+    proposals,
+    review,
+    path: reviewPath,
+    readPage,
+  })
   return {
     library,
-    context: createContextService(tx, clock, answerBundles, {
-      library,
-      proposals,
-      review,
-      path: reviewPath,
-      readPage,
-    }),
+    context,
     conflicts: createConflictsService(tx, clock, answerBundles, {
       library,
       proposals,
@@ -250,6 +255,7 @@ export function requestServices(
     }),
     catalogue: createCatalogueService(tx, clock),
     familyMeaning: createFamilyMeaningService(tx),
+    familySplit: createFamilySplitService(tx),
     terms: createTermsService(tx),
     areas: createAreasService(tx),
     people: createPeopleService(tx),
@@ -263,6 +269,7 @@ export function requestServices(
       gaps,
       comments,
       names,
+      context,
     }),
     names,
     comments,
@@ -972,6 +979,16 @@ export function createRouter({
       setFamilyUsual: authorized.definitions.setFamilyUsual.handler(({ input, context }) =>
         retryWrite(context.tx, idempotencyKey(context), 'definitions.setFamilyUsual', input, () =>
           context.familyMeaning.setUsual(input),
+        ),
+      ),
+      splitFamily: authorized.definitions.splitFamily.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'definitions.splitFamily', input, () =>
+          context.familySplit.split(input.key),
+        ),
+      ),
+      joinFamily: authorized.definitions.joinFamily.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'definitions.joinFamily', input, () =>
+          context.familySplit.join(input.key),
         ),
       ),
       familyMeaningHistory: authorized.definitions.familyMeaningHistory.handler(

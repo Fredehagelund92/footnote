@@ -151,12 +151,12 @@ beforeAll(async () => {
       ('cube:marketing.marketing_day', 'cube', 'dimension', 'marketing.marketing_day', 'time', 'a'),
       ('cube:revenue.net_revenue', 'cube', 'metric', 'revenue.net_revenue', 'sum', 'a'),
       ('demo:returns', 'demo', 'metric', 'Returns', null, 'a')`)
-    await client.query(`insert into vocab_terms (key, kind, parent_key) values
-      ('metric:returns', 'metric', null), ('metric:discount_cost', 'metric', null),
-      ('metric:marketing_spend', 'metric', null),
-      ('metric:net_revenue', 'metric', null), ('metric:support_contacts', 'metric', null),
-      ('val:market/spain', 'dimension_value', 'dim:market'), ('dim:product', 'dimension', null),
-      ('val:product/footwear', 'dimension_value', 'dim:product')`)
+    await client.query(`insert into vocab_terms (key, kind) values
+      ('metric:returns', 'metric'), ('metric:discount_cost', 'metric'),
+      ('metric:marketing_spend', 'metric'),
+      ('metric:net_revenue', 'metric'), ('metric:support_contacts', 'metric'),
+      ('val:market/spain', 'dimension_value'), ('dim:product', 'dimension'),
+      ('val:product/footwear', 'dimension_value')`)
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap', null) as seq")
     ).rows as [{ seq: string }]

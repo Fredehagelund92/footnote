@@ -87,6 +87,25 @@ export type Family = {
   meaning?: FamilyMeaning
   /** The variant Ask reads when a question names none of its values. */
   usual?: FamilyUsual
+  /**
+   * The family's name as its tool declares it (`meta.footnote.family: active_buyers`), for one
+   * found so: it is changed or split there, never here (D4).
+   */
+  declared?: string
+}
+
+/** A family split back into its metrics, while it stands (FR-142): Definitions lists it. */
+export type SplitFamily = {
+  /** Its name when it was split. */
+  name: string
+  /** The domain it was in: its owners and admins may make it one family again. */
+  domain?: DomainId
+  /** Its former variants, each a metric of its own now, by name. */
+  metrics: string[]
+  /** Live context items still about it, which reach agents through its metrics. */
+  items: number
+  by: string
+  on: string
 }
 
 export type Definition = {

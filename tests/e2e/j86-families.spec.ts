@@ -55,7 +55,7 @@ for (const { name, width, height } of widths) {
           .getByRole('img', { name: 'From Cube' }),
       ).toBeVisible()
       await search.fill('')
-      await expect(page.getByText(/\(5,006 variants\)/).first()).toBeVisible()
+      await expect(page.getByText(/\(5,009 variants\)/).first()).toBeVisible()
     })
 
     test('keeps a family’s row at a metric row’s height and its name whole, the panel open or not, and counts what the search shows', async ({
@@ -97,6 +97,7 @@ for (const { name, width, height } of widths) {
         await whole()
       }
       // The coverage line counts the rows the search shows, not every definition (F9).
+      await search.fill('partner payouts')
       await expect(main.getByText('1 of 1 have no context yet.')).toBeVisible()
     })
 

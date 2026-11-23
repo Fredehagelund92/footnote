@@ -3,7 +3,7 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 6
+minutes: 7
 reviewed: 2026-11-23
 ---
 
@@ -54,6 +54,19 @@ A read groups near-identical metrics into a family, such as Revenue, with 250 va
 - When any variant changes, the item is due for a check once, not once for each variant.
 
 A source that gives only the names of its metrics, not how they are worked out, makes families only from what it declares. The other metrics whose names look alike wait under Look alike.
+
+## Split a family into separate metrics
+
+A family a read found can be split back into its metrics from the family's own page. An owner of its domain, or an admin, chooses Split into 2 metrics. One dialog says what happens first:
+
+- Each variant becomes a metric in Definitions, under the name it has. The family goes, and its history, meaning and usual variant are kept.
+- No word of a context item about the family changes. Each keeps reaching agents for every former variant, due for a check, and its owner gets a card in the Inbox. Keep for both points it at each of them, and Edit points it at some of them.
+- A question that names only the family then names no metric, so agents ask which one is meant.
+- The next read keeps them apart. Undo, or Make them one family again under Families in Definitions, joins them again.
+
+Anyone else reads who decides: the owners of the family's domain, by name.
+
+A family your tool declares is never split here. Its page says where it is declared, under `meta.footnote.family`, links its model file when the source names one, and copies the key. Change it in your tool, and the next read follows.
 
 ## Declare a family in your tool
 

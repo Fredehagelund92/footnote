@@ -174,6 +174,9 @@ export const wiredMethods = [
   'getDefinitionHistory',
   'setFamilyMeaning',
   'setFamilyUsual',
+  'splitFamily',
+  'joinFamily',
+  'getFamilySplits',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -574,7 +577,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (
         operation.startsWith('terms.') ||
         operation === 'decisions.undo' ||
-        operation === 'inbox.decideNames'
+        operation === 'inbox.decideNames' ||
+        operation === 'definitions.splitFamily' ||
+        operation === 'definitions.joinFamily'
       )
         words = undefined
       return result
@@ -640,7 +645,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /** The metrics and dimensions the catalogue lists, the terms written here, and who wrote them. */
-  async function readGlossary() {
+  async function buildGlossary() {
     const [catalogue, { terms }, people] = await Promise.all([
       read(() => client.catalogue.list()),
       read(() => client.terms.list()),
@@ -652,6 +657,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         ...definitionsOf(catalogue.terms, people.name),
         ...termDefinitionsOf(terms, people.name),
       ],
+      /** The families split back into their metrics, as the catalogue has them. */
+      splits: catalogue.splits,
       /** The family Definitions lists by this name, as the catalogue has it. */
       familyOf: (name: string) =>
         catalogue.terms.find((t) => t.family && same(t.name, name)) ?? null,
@@ -691,6 +698,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     }
   }
 
+  /** One read at a time: the reads of a screen that overlap share it, a later one reads again. */
+  let glossaryRead: ReturnType<typeof buildGlossary> | undefined
+  const readGlossary = () =>
+    (glossaryRead ??= buildGlossary().finally(() => {
+      glossaryRead = undefined
+    }))
+
   /** A change to many terms: its Undo, or why none of them changed. */
   const undoOf = (done: { undo: UndoOffer | null; skipped: { message: string }[] }) => {
     if (!done.undo)
@@ -701,8 +715,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   /* ---------- Context ---------- */
 
   const readWords = () =>
-    (words ??= Promise.all([read(() => client.vocabulary.get()), read(() => client.terms.list())])
-      .then(([vocabulary, { terms }]) => wordsOf(vocabulary, terms))
+    (words ??= Promise.all([
+      read(() => client.vocabulary.get()),
+      read(() => client.terms.list()),
+      read(() => client.catalogue.list()),
+    ])
+      .then(([vocabulary, { terms }, { splits }]) => wordsOf(vocabulary, terms, splits))
       .catch((error: unknown) => {
         words = undefined
         throw error
@@ -1639,6 +1657,33 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       await write('definitions.setFamilyUsual', input, (o) =>
         client.definitions.setFamilyUsual(input, o),
       )
+    },
+    splitFamily: async ({ name }) => {
+      const family = (await readGlossary()).familyOf(name)
+      if (!family?.family)
+        throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
+      const input = { key: family.key }
+      const split = await write('definitions.splitFamily', input, (o) =>
+        client.definitions.splitFamily(input, o),
+      )
+      return { metrics: split.metrics.map((m) => m.name), items: split.items }
+    },
+    joinFamily: async ({ name }) => {
+      const split = (await readGlossary()).splits.find((x) => same(x.name, name))
+      if (!split) throw new ApiError('not-found', `“${name}” isn't split any more.`)
+      const input = { key: split.key }
+      await write('definitions.joinFamily', input, (o) => client.definitions.joinFamily(input, o))
+    },
+    getFamilySplits: async () => {
+      const [glossary, people] = await Promise.all([readGlossary(), readPeople()])
+      return glossary.splits.map((split) => ({
+        name: split.name,
+        ...(split.areaId ? { domain: split.areaId } : {}),
+        metrics: split.metrics.map((m) => m.name),
+        items: split.items,
+        by: people.name(split.personId),
+        on: dateLabel(serviceDay(split.at, calendar.shift)),
+      }))
     },
     saveTerm: async ({ previous, term }) => {
       if (term.synced) return

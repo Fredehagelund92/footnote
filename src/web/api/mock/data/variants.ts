@@ -88,7 +88,38 @@ const measures = [
  * its metrics are made.
  */
 export function familyDefinitions(tool: string): Definition[] {
-  return [...measureFamilies(tool), accruedShare(tool), ...partnerPairs(tool)]
+  return [...measureFamilies(tool), accruedShare(tool), activeBuyers(tool), ...partnerPairs(tool)]
+}
+
+/**
+ * Buyers by sales line, which the dbt project declares as one family in `meta.footnote` (D4): it
+ * is changed there, never split here, and its model file is in the shop's repository.
+ */
+function activeBuyers(tool: string): Definition {
+  const lines = ['online', 'retail', 'wholesale']
+  return {
+    name: 'Active buyers',
+    type: 'metric',
+    definition: '',
+    synced: true,
+    tool,
+    sourceNames: [],
+    domain: 'sales',
+    group: 'orders',
+    fileUrl: 'https://git.example/shop/dbt/blob/main/models/orders.yml',
+    updated: '22 Oct 2026',
+    family: {
+      by: ['Sales line'],
+      found: 'declared',
+      declared: 'active_buyers',
+      variants: lines.map((line) => ({
+        name: `Active buyers (${line})`,
+        values: [line],
+        description: `Buyers with at least one paid order this month, sold ${line}.`,
+        ref: refOf(`Active buyers ${line}`),
+      })),
+    },
+  }
 }
 
 /**
@@ -325,6 +356,12 @@ export function familyFacts(): Fact[] {
       'Revenue (GBP) store is before UK VAT',
       'Revenue (GBP) store is before UK VAT, as every other variant of Revenue is before tax.',
       ['Revenue (GBP) store'],
+    ),
+    note(
+      'itm_fam_accrued_restated',
+      'Accrued share front loaded was restated for October',
+      'Contracts signed in October were booked again on 4 November, so October reads higher than it did.',
+      ['Accrued share front loaded'],
     ),
   ]
 }

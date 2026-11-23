@@ -27,9 +27,11 @@ import {
 } from '../../../domain/inbox.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { lastingUndo, undoOffer } from '../../db/undo.ts'
 import { askedCounts, type BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
+import type { ContextService } from '../context/index.ts'
 import { syncedOf } from '../connectors/index.ts'
 import type { ServingBundle } from '../editions/index.ts'
 import type { GapsService } from '../gaps/index.ts'
@@ -119,6 +121,7 @@ export function createInboxFeedService(
     gaps: GapsService
     comments: Pick<CommentsService, 'mentionCards' | 'markMentionsRead'>
     names: Pick<NamesService, 'waiting'>
+    context: Pick<ContextService, 'pointAtSplitMetrics'>
   },
 ) {
   async function liveBundle(): Promise<ServingBundle | null> {
@@ -408,6 +411,18 @@ export function createInboxFeedService(
        ) q order by id, name collate "C"`,
       [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
     )
+    // A family it is about that was split, with the metrics it reaches agents through now.
+    const split = await tx.query<{ id: string; name: string; metrics: string[] }>(
+      `select s.item_id as id, x.name,
+              array(select t.name from serving_vocabulary((select seq from live_edition)) t
+                     where t.key = any(x.variants) order by t.name collate "en-x-icu") as metrics
+         from item_version_service s
+         join item_version_metrics m on m.version_id = s.version_id
+         join ${standingSplits(liveSeq)} x on x.family_key = m.metric_key
+        where s.item_id = any($1::text[]) and upper_inf(s.editions)
+        order by s.item_id, x.name collate "en-x-icu"`,
+      [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
+    )
     return due.map((item) => ({
       id: cardKey.check(item.id),
       group: 'check',
@@ -417,8 +432,16 @@ export function createInboxFeedService(
       done: null,
       itemId: item.id,
       title: item.title,
-      reason: item.checkFlag === null ? 'date' : 'source',
+      reason:
+        item.checkFlag === null
+          ? 'date'
+          : split.some((s) => s.id === item.id) && !moved.some((m) => m.id === item.id)
+            ? 'family'
+            : 'source',
       changed: moved.filter((m) => m.id === item.id).map(({ name, on }) => ({ name, on })),
+      families: split
+        .filter((s) => s.id === item.id)
+        .map(({ name, metrics }) => ({ name, metrics })),
       lastChecked: lastChecked.get(item.id) ?? { on: null, by: null },
     }))
   }
@@ -471,6 +494,7 @@ export function createInboxFeedService(
           title: p.title,
           reason: 'date',
           changed: [],
+          families: [],
           lastChecked: { on: row.at.slice(0, 10), by: null },
         })
         continue
@@ -872,6 +896,15 @@ export function createInboxFeedService(
         input.reason ??
         (input.action === 'still_true' ? 'Checked: still true.' : 'Archived from the Inbox.')
       if (input.action === 'still_true') {
+        // About a family that was split, it stays about each of its metrics (FR-142): its owner
+        // publishes that change, as a check could not.
+        const pointed = await deps.context.pointAtSplitMetrics(key.id)
+        if (pointed) {
+          const [live] = await tx.query<{ label: string }>(
+            'select e.label from editions e join live_edition l on l.seq = e.seq',
+          )
+          return { edition: live?.label ?? null, undo: await undoOffer(tx, `decision:${pointed}`) }
+        }
         // Footnote v1's check (FR-139): an owner of its domain or an admin, as Mark as checked.
         const result = await deps.review.recheck(key.id, reason)
         const [decision] = await tx.query<{ id: string }>(

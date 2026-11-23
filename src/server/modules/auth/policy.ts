@@ -103,6 +103,8 @@ export const policies = {
   // What a family means: the service checks who owns its domain.
   'definitions.setFamilyMeaning': 'propose',
   'definitions.setFamilyUsual': 'propose',
+  'definitions.splitFamily': 'propose',
+  'definitions.joinFamily': 'propose',
   'definitions.familyMeaningHistory': 'read',
   // Conflicts: anyone signed in reads a pair they may read; settling is checked against the item each
   // way changes (an owner of it, or an admin) in the service.
