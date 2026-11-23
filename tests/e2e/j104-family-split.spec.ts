@@ -98,7 +98,6 @@ for (const { name, width, height } of widths) {
         await expect(page.getByText('Family of metrics')).toHaveCount(0)
         // The item about the family is about it too, and due for a check.
         await expect(page.getByText(`${ACCRUED} was restated for October`)).toBeVisible()
-        await expect(page.getByText('Due for a check').first()).toBeVisible()
 
         // The item about it reads as about both, due, and its owner keeps it for both.
         await moveTo(page, '/inbox')
@@ -107,6 +106,7 @@ for (const { name, width, height } of widths) {
         })
         await card.first().click()
         await expect(page.getByText(`Its family ${ACCRUED} was split into`)).toBeVisible()
+        await expect(page.getByText('Due for a check', { exact: true }).first()).toBeVisible()
         expect(await axe(page)).toEqual([])
         await page.getByRole('button', { name: 'Keep for both' }).click()
         await expect(toasts(page)).toContainText('Kept for both')
