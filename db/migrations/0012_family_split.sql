@@ -240,7 +240,7 @@ end $$;
 -- rollback edition, which has the content of the edition it restores, so that one is read the same
 -- way. A family closed for any other reason is not split, and a split joined since reads as it is
 -- served. Serving and the service read splits only through here.
-CREATE FUNCTION public.serving_family_splits(p_seq bigint) RETURNS SETOF public.family_splits
+CREATE FUNCTION public.serving_family_splits(p_seq bigint) RETURNS TABLE(id uuid, family_key text, name text, area_id text, variants text[], items text[], split_in bigint, split_at timestamp with time zone, joined_in bigint)
     LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
@@ -254,6 +254,6 @@ CREATE FUNCTION public.serving_family_splits(p_seq bigint) RETURNS SETOF public.
     select e.key, (select max(upper(s.editions)) from vocab_term_service s
                     where s.term_key = e.key and upper(s.editions) <= ed.restores_seq)
       from ended e join editions ed on ed.seq = e.edition and ed.restores_seq is not null)
-  select distinct on (x.family_key) x.*
+  select distinct on (x.family_key) x.id, x.family_key, x.name, x.area_id, x.variants, x.items, x.split_in, x.split_at, x.joined_in
     from family_splits x join ended e on e.key = x.family_key and e.edition = x.split_in
    order by x.family_key, x.split_in desc, x.split_at desc $$;
