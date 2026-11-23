@@ -28,7 +28,6 @@ async function axe(page: Page) {
   )
 }
 
-
 /** The families of ?demo=families, read on a fresh load, then someone else, signed in where the sidebar shows. */
 async function as(page: Page, person: string) {
   const size = page.viewportSize()!
