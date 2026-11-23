@@ -138,8 +138,10 @@ they are built from the served edition only.
 **`find_context`** (FR-338) finds what is written down
 about a few words: names and other names (Net sales), domains, member names and words in an item's
 title, summary or text. It falls back to the items that apply to the scope the words name, gives
-each named metric's or dimension's definition with where it comes from and what Footnote adds, and says
-why when nothing is found. It takes a `domain` (a name or an id), a `kind` (`event`, `warning`,
+each named metric's or dimension's definition with where it comes from and what Footnote adds (when
+the words name none, the definitions whose description says them as a whole phrase, marked
+`named: "in text"` with `mentions`; a word joined to a name by a hyphen is read as a name only when
+the whole compound is one), and says why when nothing is found. It takes a `domain` (a name or an id), a `kind` (`event`, `warning`,
 `rule`, `guide`), a `window` and a `limit`, and lists titles and summaries under `context`, never a
 body. An unknown domain comes back with the closest match and every valid choice (FR-341); a
 domain named by another spelling is read as that domain (`src/domain/domain-match.ts`). The words

@@ -499,7 +499,7 @@ describe('get_context says, with the answer line first', () => {
       ask({ window: { from: '2026-07-01', to: '2026-07-31' } }),
     )
     expect(contextSaidOf(none)).toBe(
-      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
+      'Not found. Nothing published about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(nextOf(none)).not.toMatch(/find_facts|report_gap|get_facts/)
     expect(contextSaidOf(await call('get_context', { question: 'What happened?' }))).toMatch(

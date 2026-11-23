@@ -341,7 +341,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     s.data.stopped = { all: false, areas: ['finance'], items: [] }
     expect((await client.callTool(call.params)).structuredContent).toMatchObject({
       status: 'no_match',
-      say: expect.stringMatching(/^Not found\. Nothing is written about this yet\. /) as string,
+      say: expect.stringMatching(/^Not found\. Nothing published about this yet\. /) as string,
       context: [],
     })
     s.data.stopped = { all: false, areas: [], items: [] }
@@ -726,7 +726,7 @@ describe.each(['legacy', 'auto'] as const)('a result read alone (FR-344), %s', (
     // The person hears the answer line and what was checked; the model reads the absence rule
     // and the next step.
     expect(read.say).toBe(
-      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
+      'Not found. Nothing published about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(read.next).toMatch(
       /^That does not prove there is no caveat, and it covers only this question, never the whole topic\. Check the names and dates, or call find_context .+ and if the person agrees, call report with kind missing\.$/,

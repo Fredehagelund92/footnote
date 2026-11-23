@@ -460,7 +460,7 @@ describe('the audience rule on every read path', () => {
     const asTools = askToolsAs(database, clock)
     const calls: [AskToolName, object][] = [
       ['find_context', { words: 'Vaultsunrise harbour Zephyrledger' }],
-      ['find_context', { words: 'harbour holidays', widen: { other_words: 'Quokkamarble' } }],
+      ['find_context', { words: 'harbour holidays', widen: { other_words: ['Quokkamarble'] } }],
       ['get_context', { about: 'orders on holidays', widen: { without: 'period' } }],
       ['get_context', { about: 'orders' }],
       ['read_context', { id: hidden.id }],

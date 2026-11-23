@@ -91972,6 +91972,9 @@
                                               },
                                               "inWords": {
                                                 "type": "boolean"
+                                              },
+                                              "mentions": {
+                                                "type": "string"
                                               }
                                             },
                                             "required": [
@@ -93635,6 +93638,9 @@
                                                   },
                                                   "inWords": {
                                                     "type": "boolean"
+                                                  },
+                                                  "mentions": {
+                                                    "type": "string"
                                                   }
                                                 },
                                                 "required": [

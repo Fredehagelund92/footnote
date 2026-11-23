@@ -295,6 +295,8 @@ const definitionCardSchema = z.object({
   owners: z.array(z.string()),
   context: z.object({ count: z.number(), items: z.array(z.string()) }),
   inWords: z.boolean(),
+  /** The words its read looked it up by, when they are none of its names and its own words say them. */
+  mentions: z.optional(z.string()),
 })
 export type DefinitionCard = z.infer<typeof definitionCardSchema>
 

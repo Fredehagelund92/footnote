@@ -511,6 +511,20 @@ describe('scope extraction', () => {
       'need_more_detail',
     )
   })
+  it('never reads a name joined to another word by a hyphen, unless the compound is one', () => {
+    // "Orders-CPA" is a word of its own: reading Orders in it would answer for another metric.
+    expect(readQuestion('Orders-CPA and Revenue-CPA', terms, '2026-08-05').terms).toEqual([])
+    expect(
+      readQuestion('Orders-CPA in Norway', terms, '2026-08-05').terms.map((t) => t.key),
+    ).toEqual(['val:market/norway'])
+    const vocabulary = [
+      ...terms,
+      { ...terms[2]!, key: 'metric:on_time', name: 'On-time shipping rate', definitionRefs: [] },
+    ]
+    expect(
+      extractScope('On-time shipping rate August 2026', vocabulary, '2026-08-05'),
+    ).toMatchObject({ status: 'resolved', scope: { metrics: ['metric:on_time'] } })
+  })
   it('normalizes idempotently and re-extracts its own resolved scope unchanged', () => {
     fc.assert(
       fc.property(fc.string(), (value) => {

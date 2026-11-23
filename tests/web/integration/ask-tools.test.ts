@@ -44,7 +44,7 @@ async function ok<N extends AskToolName>(tools: AskTools, name: N, input: object
 const battery: { [N in AskToolName]: object[] } = {
   find_context: [
     { words: 'Norway' },
-    { words: 'orders Poland', widen: { other_words: 'Polish market' } },
+    { words: 'orders Poland', widen: { other_words: ['Polish', 'Polish market'] } },
     { words: 'payment provider', domain: 'Sales', kind: 'event' },
     { words: 'discount', widen: { without: 'domain' }, domain: 'Customer value' },
   ],
@@ -472,7 +472,7 @@ describe('no dead ends (FR-719.3)', () => {
 
       const words = await ok(tools, 'find_context', {
         words: 'Poland',
-        widen: { other_words: 'Polish' },
+        widen: { other_words: ['Polish'] },
       })
       expect([words.everyWord, words.widened, words.searched.map((s) => s.words)]).toEqual([
         0,
@@ -485,7 +485,7 @@ describe('no dead ends (FR-719.3)', () => {
       // A search that finds what matches every word needs no wider one.
       const norway = await ok(tools, 'find_context', {
         words: 'Norway',
-        widen: { other_words: 'Norge' },
+        widen: { other_words: ['Norge'] },
       })
       expect([norway.widened, norway.searched.length, norway.nothing]).toEqual([
         'not needed',

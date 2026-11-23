@@ -136,7 +136,7 @@ describe("Ask's loop answer, state by state", () => {
 
   it('Not found: one sentence, the closest written counted by value with four rows, the owners, and Write context', () => {
     const el = render(example('loop-missing'))
-    expect(text(el)).toContain('Nothing is written about this yet.')
+    expect(text(el)).toContain('Nothing published about this yet.')
     expect(text(el)).toContain('Written nearest about')
     const rows = el.querySelectorAll('li')
     expect(rows.length).toBe(4)
@@ -148,7 +148,7 @@ describe("Ask's loop answer, state by state", () => {
     const gap = el.querySelector('[data-gap]')!
     expect(gap.getAttribute('aria-label')).toBe('Not written yet: Orders in Poland')
     expect(text(gap)).toMatch(
-      /^Orders in PolandNo context item covers it yet\. It is yours to write/,
+      /^Orders in PolandNo published context item covers it yet\. It is yours to write/,
     )
     expect(buttons(gap, /^Write context for Orders in Poland$/)).toHaveLength(1)
     expect(text(el)).toMatch(/^.*0 of 21 published context items you can see apply/)
@@ -273,7 +273,7 @@ describe("Ask's loop answer, state by state", () => {
       const gap = el.querySelector('[data-gap]')!
       expect(gap.getAttribute('aria-label')).toBe('Not written yet: “EBITDA”')
       expect(text(gap)).toContain(
-        'No metric, other name or context item uses this word yet. Ravi Kapoor, an admin, can add it.',
+        'No published metric, other name or context item uses this word yet. Ravi Kapoor, an admin, can add it.',
       )
       expect(text(gap)).toContain('Only this word is sent, never your question.')
       const tell = buttons(gap, /^Tell an admin$/)
@@ -875,6 +875,28 @@ describe("Ask's loop answer, state by state", () => {
     expect(el.querySelector('[data-answer-words] [data-definition-card]')).toBeNull()
     expect(text(shown)).toContain('3 context items about it')
     expect(buttons(shown, /^See the/)).toHaveLength(0)
+  })
+
+  it('Definition card: found by the words of its description, not a name, it says which', () => {
+    const words =
+      '**Orders-CPA** is marketing spend divided by first-time buyers. Distinct from **Returns-CPA**.'
+    const el = render(
+      defining(
+        {
+          id: 'metric:cost_per_acquisition',
+          name: 'Cost per acquisition',
+          words,
+          mentions: 'Orders-CPA',
+          inWords: false,
+        },
+        'Orders-CPA divides marketing spend by first-time buyers, and Returns-CPA by those who kept their first order.',
+      ),
+      'What is the difference between Orders-CPA and Returns-CPA?',
+    )
+    const shown = el.querySelector('[data-definition-card]')!
+    expect(text(shown)).toContain('Its description mentions “Orders-CPA”')
+    // A card a name found says nothing of the kind.
+    expect(text(render(defining({}), 'What is orders?'))).not.toContain('Its description mentions')
   })
 
   it('Definition card: the source’s Markdown drawn, its marks never shown as characters', () => {
