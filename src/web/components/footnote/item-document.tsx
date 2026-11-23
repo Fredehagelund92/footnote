@@ -1,5 +1,6 @@
 import { and, cn } from '@/lib/utils'
-import { ContextText, MentionText } from '@/components/footnote/mention-chip'
+import { MentionText } from '@/components/footnote/mention-chip'
+import { ContextText } from '@/components/footnote/context-text'
 import {
   ArchiveIcon,
   CircleCheckIcon,

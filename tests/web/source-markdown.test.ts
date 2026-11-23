@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { DetailsBody } from '@/components/footnote/details-body'
-import { ContextText } from '@/components/footnote/mention-chip'
+import { ContextText } from '@/components/footnote/context-text'
 import { SourcePassages, SourceText, sourceWords } from '@/components/footnote/source-text'
 import type { Fact } from '@/model/items'
 

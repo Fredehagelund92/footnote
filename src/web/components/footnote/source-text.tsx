@@ -48,42 +48,37 @@ export function Marks({
 }
 
 /**
- * A run of the words: its marks, and its link when that is safe and the place may hold one.
- * `words` draws its plain words, where they hold more than characters (item text's mentions).
+ * The words' runs: each its marks, and its link when that is safe and the place may hold one.
+ * `words` draws a run's plain words, where they hold more than characters (item text's mentions).
  */
-function Run({
-  s,
-  code,
-  links,
-  words,
-}: {
-  s: Segment
-  code: string
-  links: boolean
-  words?: (text: string) => React.ReactNode
-}) {
-  const node = (
-    <Marks marks={s.marks} code={code}>
-      {words ? words(s.text) : s.text}
-    </Marks>
-  )
-  const href = links ? safeHref(s.href) : null
-  if (!href) return node
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="rounded-xs text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-    >
-      {node}
-      <span className="sr-only"> (opens in a new tab)</span>
-    </a>
-  )
+function runs(
+  segments: readonly Segment[],
+  code: string,
+  links: boolean,
+  words?: (text: string) => React.ReactNode,
+) {
+  return segments.map((s, i) => {
+    const node = (
+      <Marks key={i} marks={s.marks} code={code}>
+        {words ? words(s.text) : s.text}
+      </Marks>
+    )
+    const href = links ? safeHref(s.href) : null
+    if (!href) return node
+    return (
+      <a
+        key={i}
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-xs text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {node}
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+    )
+  })
 }
-
-const runs = (segments: readonly Segment[], code: string, links: boolean) =>
-  segments.map((s, i) => <Run key={i} s={s} code={code} links={links} />)
 
 /** A tool's description in plain words, its marks taken off: for a tooltip. */
 export const sourceWords = (text: string) =>
@@ -112,9 +107,7 @@ export function MarkedWords({
   words: (text: string) => React.ReactNode
   code?: CodeLook
 }) {
-  return inlineSegments(text).map((s, i) => (
-    <Run key={i} s={s} code={codeLook(code)} links words={words} />
-  ))
+  return runs(inlineSegments(text), codeLook(code), true, words)
 }
 
 /** Consecutive list items of one kind, so each list is one list. */
