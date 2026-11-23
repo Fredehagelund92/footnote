@@ -13,6 +13,7 @@ import type { Area } from '@domain/item'
 import type { ClashRelation } from '@domain/clash-relations'
 import { andList, keepLabel, splitCardLine } from '@domain/family-split'
 import { alertCardWords, alertRule, lookTitle, type RaiseSubject } from '@domain/alerts'
+import { cardKey } from '@domain/inbox'
 import { parseMentions } from '@domain/mentions'
 import { answerText, savedWhy } from '@domain/saved-check'
 import { staleWords } from '@domain/suggestion-standing'
@@ -357,13 +358,13 @@ function changedLine(changed: Extract<Card, { group: 'check' }>['changed']): str
     .join(', ')}.`
 }
 
-/** What the Inbox shows of the person's own suggestions that wait on an owner. */
+/** What the Inbox shows of the person's own suggestions that wait on an owner, or that one closed. */
 function waitingOf(w: Feed['waiting'][number], me: string, domains: Domains, now: Date): Waiting {
   const owners = w.waitingFor
   const domain = w.areaId ?? ''
   const of = domains[domain]?.name ?? domain
   return {
-    id: `waiting:${w.proposalId}`,
+    id: w.closed ? cardKey.closed(w.proposalId) : `waiting:${w.proposalId}`,
     for: me,
     title: w.title,
     waitingFor: owners.length
@@ -374,6 +375,15 @@ function waitingOf(w: Feed['waiting'][number], me: string, domains: Domains, now
     card: w.proposalId,
     ...(w.returned
       ? { returned: { by: w.returned.by ?? 'An owner', when: whenWords(w.returned.at, now) } }
+      : {}),
+    ...(w.closed
+      ? {
+          closed: {
+            by: w.closed.by ?? 'An owner',
+            when: whenWords(w.closed.at, now),
+            reason: w.closed.reason,
+          },
+        }
       : {}),
   }
 }
@@ -419,6 +429,8 @@ export function inboxOf(
       c.group === 'suggestion' && drafts.has(c.proposalId) ? [[c.proposalId, c] as const] : [],
     ),
   )
+  // A suggestion an owner closed is opened once its sender opened its row.
+  for (const w of feed.waiting) if (w.closed?.read) opened[cardKey.closed(w.proposalId)] = true
   for (const c of cards) {
     const id = idOf(c)
     const draft = c.group === 'gap' && c.draft ? draftCards.get(c.draft) : undefined

@@ -637,7 +637,7 @@ export const contract = {
         path: '/review/{id}/close',
         tags: ['review'],
         summary:
-          'Closes a suggestion to archive: nothing changes. One its sender took back in the comments closes as it is, any other with a reason from the owner; answers with a token that undoes it',
+          "Closes a suggestion, so nothing changes: a suggestion to archive its sender took back in the comments closes as it is, any other with a reason from the owner. A new item or a change closes as Don't publish, its sender told the reason in their Inbox; answers with a token that undoes it",
       })
       .input(closeInputSchema)
       .output(closeResultSchema),

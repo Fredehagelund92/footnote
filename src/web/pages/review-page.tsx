@@ -47,6 +47,7 @@ import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { DontPublishDialog } from '@/components/footnote/dont-publish-dialog'
 import {
   Dialog,
   DialogClose,
@@ -1161,7 +1162,9 @@ function ArchiveDialog({
 
 /**
  * A suggestion to archive its sender did not take back closes with the owner's reason: the
- * decision keeps it. Nothing changes for agents. One dialog for the whole page, as Archive's.
+ * decision keeps it. Nothing changes for agents. A new item or a change closes the same way, as
+ * Don't publish: its sender reads the reason in their Inbox. One dialog for the whole page, as
+ * Archive's.
  */
 function CloseDialog({
   r,
@@ -1171,33 +1174,43 @@ function CloseDialog({
   closeReason,
   onCloseReason,
 }: Pick<DecisionProps, 'r' | 'flow' | 'cancel' | 'press' | 'closeReason' | 'onCloseReason'>) {
-  return (
-    r.retire && (
-      <Dialog open={flow.kind === 'confirmingClose'} onOpenChange={(open) => !open && cancel()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Close the suggestion?</DialogTitle>
-            <DialogDescription>
-              Nothing changes for agents: “{r.title}” is not archived by it. Say why you close it;
-              the reason is kept with the decision.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            aria-label="Why you close it"
-            placeholder="Why you close it"
-            rows={3}
-            value={closeReason}
-            onChange={(e) => onCloseReason(e.target.value)}
-          />
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-            <Button disabled={!closeReason.trim()} onClick={() => press('close')}>
-              Close the suggestion
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  if (!r.retire)
+    return (
+      <DontPublishDialog
+        title={r.title}
+        sender={r.synced || r.drafted ? null : r.from}
+        open={flow.kind === 'confirmingClose'}
+        onCancel={cancel}
+        reason={closeReason}
+        onReason={onCloseReason}
+        onConfirm={() => press('close')}
+      />
     )
+  return (
+    <Dialog open={flow.kind === 'confirmingClose'} onOpenChange={(open) => !open && cancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Close the suggestion?</DialogTitle>
+          <DialogDescription>
+            Nothing changes for agents: “{r.title}” is not archived by it. Say why you close it; the
+            reason is kept with the decision.
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          aria-label="Why you close it"
+          placeholder="Why you close it"
+          rows={3}
+          value={closeReason}
+          onChange={(e) => onCloseReason(e.target.value)}
+        />
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <Button disabled={!closeReason.trim()} onClick={() => press('close')}>
+            Close the suggestion
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -1324,10 +1337,19 @@ function Decision({
       : base
   const ReadyIcon = ready.ok ? CircleCheckIcon : CircleDashedIcon
 
+  // Beside Don't publish the row holds three buttons, so it says Send back, as a phone does; its
+  // name stays Send back with a note.
+  const dontPublish = !r.retire && actions.can.includes('close')
   const returnButton = (
-    <Button size="lg" variant="outline" disabled={sending !== null} onClick={() => ask('return')}>
+    <Button
+      size="lg"
+      variant="outline"
+      disabled={sending !== null}
+      onClick={() => ask('return')}
+      {...(dontPublish ? { 'aria-label': 'Send back with a note' } : {})}
+    >
       <span>
-        Send back<span className="max-sm:hidden"> with a note</span>
+        Send back<span className={dontPublish ? 'hidden' : 'max-sm:hidden'}> with a note</span>
       </span>
     </Button>
   )
@@ -1362,14 +1384,27 @@ function Decision({
       >
         Publish anyway
       </Button>
+      {/* Three do not fit the side panel: there it takes a line of its own, under the two. */}
+      {dontPublish && (
+        <Button
+          size="lg"
+          variant="ghost"
+          className="sm:order-last"
+          disabled={blockedBySend}
+          onClick={() => ask('close')}
+        >
+          Don't publish
+        </Button>
+      )}
       <Button
         size="lg"
         className="ml-auto"
         disabled={sending !== null}
         onClick={() => ask('return')}
+        {...(dontPublish ? { 'aria-label': 'Send back with a note' } : {})}
       >
         <span>
-          Send back<span className="max-sm:hidden"> with a note</span>
+          Send back<span className={dontPublish ? 'hidden' : 'max-sm:hidden'}> with a note</span>
         </span>
       </Button>
     </>
@@ -1387,6 +1422,12 @@ function Decision({
       ) : actions.can.includes('return') ? (
         returnButton
       ) : null}
+      {/* A new item or a change the owner does not want: closed with a reason its sender reads. */}
+      {dontPublish && (
+        <Button size="lg" variant="ghost" disabled={blockedBySend} onClick={() => ask('close')}>
+          Don't publish
+        </Button>
+      )}
       {actions.primary === 'close' ? (
         <Button
           size="lg"
@@ -1915,15 +1956,20 @@ export function ReviewPage({ id }: { id: string }) {
         }
       },
       // A withdrawn retirement closes as it is, any other with the owner's reason: nothing changes.
+      // A new item or a change is not published, and its sender reads why (Don't publish).
       close: async (_, reason) => {
         const { undo } = await write('closeReview', { id: r.id, ...(reason ? { reason } : {}) })
         return {
           undo,
           outcome: 'Closed',
           message: 'Closed',
-          description: reason
-            ? 'Nothing changes for agents.'
-            : 'Nothing changes: the context item stays live.',
+          description: r.retire
+            ? reason
+              ? 'Nothing changes for agents.'
+              : 'Nothing changes: the context item stays live.'
+            : r.synced || r.drafted
+              ? "It won't be published, so agents never get it."
+              : `It won't be published. ${first} reads why in their Inbox.`,
         }
       },
       return: async (words) => {

@@ -19,9 +19,9 @@ import { kindLabel, type Fact } from '@/model/items'
 export const detailsSummary = (fact: Fact) =>
   [kindLabel[fact.kind], fact.where.join(', ') || 'Read from the text', fact.when].join(' - ')
 
-/** Agents use a Live item; a draft's use is still to come and an archived item's is over. */
+/** Agents use a Live item; an unpublished one's use is still to come and an archived item's is over. */
 const useWords = (fact: Fact) =>
-  fact.status === 'Draft'
+  fact.status === 'Draft' || fact.status === 'Waiting'
     ? 'Agents will use it for'
     : fact.status === 'Archived'
       ? 'Agents used it for'

@@ -306,7 +306,7 @@ async function draft(
     proposal = await client.proposals.submit({ id: proposal.id, revision: proposal.revision })
   print(
     [
-      `Suggestion ${proposal.number} (${proposal.id}) is ${proposal.state}, domain ${proposal.areaId}`,
+      `Suggestion ${proposal.number} (${proposal.id}) is ${proposal.state === 'submitted' ? 'waiting for review' : `a ${proposal.state}`}, domain ${proposal.areaId}`,
       ...describe(proposal.findings),
     ],
     proposal,
@@ -331,7 +331,7 @@ async function importFile(
   const outcome = report.error
     ? report.error
     : report.applied
-      ? `Imported as batch ${report.batchId}: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged${values.drafts ? ' (drafts)' : ', submitted for review'}`
+      ? `Imported as batch ${report.batchId}: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged${values.drafts ? ' (drafts)' : ', waiting for review'}`
       : counts.errors
         ? `Nothing imported: ${counts.errors} of ${report.entries.length} items have errors`
         : `Dry run: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged. Run again with --apply to make the suggestions.`

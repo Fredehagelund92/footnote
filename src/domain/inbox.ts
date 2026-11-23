@@ -52,14 +52,27 @@ export const cardKey = {
   alert: (raiseId: string) => `alert:${raiseId}`,
   /** The names a read made, one card however many sources made them (FR-141). */
   names: () => 'names:waiting',
+  /** The person's own suggestion an owner closed (Don't publish), as their Inbox tells them. */
+  closed: (proposalId: string) => `closed:${proposalId}`,
 }
 
 type CardKind =
-  'proposal' | 'gap' | 'feedback' | 'report' | 'check' | 'mention' | 'look' | 'alert' | 'names'
+  | 'proposal'
+  | 'gap'
+  | 'feedback'
+  | 'report'
+  | 'check'
+  | 'mention'
+  | 'look'
+  | 'alert'
+  | 'names'
+  | 'closed'
 
 /** What a card's name says it is, or null for a name that is none of them. */
 export function parseCardKey(key: string): { kind: CardKind; id: string } | null {
-  const match = /^(proposal|gap|feedback|report|check|mention|look|alert|names):(.+)$/.exec(key)
+  const match = /^(proposal|gap|feedback|report|check|mention|look|alert|names|closed):(.+)$/.exec(
+    key,
+  )
   return match ? { kind: match[1] as CardKind, id: match[2]! } : null
 }
 

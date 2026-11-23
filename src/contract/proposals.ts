@@ -68,6 +68,8 @@ export const proposalRecordSchema = z.object({
   findings: z.array(findingSchema),
   claimedBy: z.nullable(z.string()),
   dueAt: z.nullable(z.string()),
+  /** When it was last sent for review: how long it has waited. Null for a draft never sent. */
+  submittedAt: z.nullable(z.string()),
   createdAt: z.string(),
   updatedAt: z.string(),
 })

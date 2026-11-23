@@ -108,7 +108,9 @@ export function describeFootnoteApi(
         expect(new Set(items.map((f) => f.id)).size).toBe(items.length)
         for (const f of items) {
           expect(['event', 'issue', 'note', 'guide'], f.id).toContain(f.kind)
-          expect(['Draft', 'Live', 'Due for a check', 'Archived'], f.id).toContain(f.status)
+          expect(['Draft', 'Waiting', 'Live', 'Due for a check', 'Archived'], f.id).toContain(
+            f.status,
+          )
           expect(f.when, f.id).toBe(whenLabel(f.valid))
           expect(f.title, f.id).not.toBe('')
           for (const name of f.where) expect(name, f.id).not.toBe('')

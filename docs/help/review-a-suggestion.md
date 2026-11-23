@@ -3,8 +3,8 @@ title: Review a suggestion
 line: The quick view, the review, Try it, and publishing, returning or closing.
 group: Write and review
 order: 2
-minutes: 4
-reviewed: 2026-11-22
+minutes: 5
+reviewed: 2026-11-23
 open:
   label: Open the Inbox
   href: /inbox
@@ -44,9 +44,14 @@ The words beside it say what follows. The other buttons say what they do, such a
   Type @ to mention someone, or : for an emoji. Anyone who reads the suggestion can mark it done, or open it again, and the comment says who did and when. The side panel counts the open ones and goes to each. Open comments never hold Publish.
 
 - Publish, or Send back with a note: the note is the first comment, and the sender answers there. It waits in their Inbox under Returned to you, where Edit and send again opens it in the editor. A suggestion to archive is archived or closed, not returned.
+- Don't publish closes a new item or a change you don't want. Write why: its sender reads the reason in their Inbox, under Closed. Agents never get it, and Undo is there for a moment after.
 - A suggestion written against an earlier version of its item, because the item was checked or changed since, says so. Return it, so its sender writes it against what agents get now.
 - A suggestion to archive you don't want: choose Don't archive and say why. Nothing changes, and the reason is kept with the decision.
 - A suggestion to archive that its sender took back in the comments shows their words. Close the suggestion and nothing changes, or archive anyway, which asks first.
+
+## From Context
+
+A new item waiting for review is in Context too, chipped Waiting. Its page has Publish, Edit, Send back with a note and Don't publish. Edit opens it in the editor, and Publish there publishes it with your changes, its sender still its writer.
 
 ## Taking back a suggestion to archive
 

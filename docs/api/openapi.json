@@ -857,6 +857,16 @@
                         }
                       ]
                     },
+                    "submittedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string"
                     },
@@ -886,6 +896,7 @@
                     "findings",
                     "claimedBy",
                     "dueAt",
+                    "submittedAt",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -1675,6 +1686,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -1704,6 +1725,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -2511,6 +2533,16 @@
                               }
                             ]
                           },
+                          "submittedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
                           "createdAt": {
                             "type": "string"
                           },
@@ -2540,6 +2572,7 @@
                           "findings",
                           "claimedBy",
                           "dueAt",
+                          "submittedAt",
                           "createdAt",
                           "updatedAt"
                         ]
@@ -3353,6 +3386,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -3382,6 +3425,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -4127,6 +4171,16 @@
                         }
                       ]
                     },
+                    "submittedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string"
                     },
@@ -4156,6 +4210,7 @@
                     "findings",
                     "claimedBy",
                     "dueAt",
+                    "submittedAt",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -4945,6 +5000,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -4974,6 +5039,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -5740,6 +5806,16 @@
                         }
                       ]
                     },
+                    "submittedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string"
                     },
@@ -5769,6 +5845,7 @@
                     "findings",
                     "claimedBy",
                     "dueAt",
+                    "submittedAt",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -6558,6 +6635,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -6587,6 +6674,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -7359,6 +7447,16 @@
                         }
                       ]
                     },
+                    "submittedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "createdAt": {
                       "type": "string"
                     },
@@ -7388,6 +7486,7 @@
                     "findings",
                     "claimedBy",
                     "dueAt",
+                    "submittedAt",
                     "createdAt",
                     "updatedAt"
                   ]
@@ -8177,6 +8276,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -8206,6 +8315,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -17845,7 +17955,7 @@
     "/review/{id}/close": {
       "post": {
         "operationId": "review.close",
-        "summary": "Closes a suggestion to archive: nothing changes. One its sender took back in the comments closes as it is, any other with a reason from the owner; answers with a token that undoes it",
+        "summary": "Closes a suggestion, so nothing changes: a suggestion to archive its sender took back in the comments closes as it is, any other with a reason from the owner. A new item or a change closes as Don't publish, its sender told the reason in their Inbox; answers with a token that undoes it",
         "tags": [
           "review"
         ],
@@ -39113,6 +39223,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -39142,6 +39262,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -43137,6 +43258,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -43166,6 +43297,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]
@@ -67027,6 +67159,43 @@
                                 "type": "null"
                               }
                             ]
+                          },
+                          "closed": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "by": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "at": {
+                                    "type": "string"
+                                  },
+                                  "reason": {
+                                    "type": "string"
+                                  },
+                                  "read": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "by",
+                                  "at",
+                                  "reason",
+                                  "read"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
                           }
                         },
                         "required": [
@@ -67035,7 +67204,8 @@
                           "areaId",
                           "sentAt",
                           "waitingFor",
-                          "returned"
+                          "returned",
+                          "closed"
                         ]
                       }
                     }
@@ -87763,6 +87933,16 @@
                                     }
                                   ]
                                 },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "createdAt": {
                                   "type": "string"
                                 },
@@ -87792,6 +87972,7 @@
                                 "findings",
                                 "claimedBy",
                                 "dueAt",
+                                "submittedAt",
                                 "createdAt",
                                 "updatedAt"
                               ]

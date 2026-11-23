@@ -37,12 +37,17 @@ import { itemPageQuery, useInbox, useLibrary, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useCommentActions } from '@/lib/comments'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
-import type { LogEntry } from '@/model/items'
+import type { Fact, LogEntry } from '@/model/items'
 import { useWide } from '@/hooks/use-wide'
 import { VersionHistory } from '@/components/footnote/version-history'
 import { today } from '@/lib/today'
 import { DeleteDialog } from '@/components/footnote/delete-dialog'
+import { useWaitingDecision } from '@/components/footnote/waiting-decision'
+import { waitingLine } from '@/model/waiting'
 import { Loadable, NoSuchItem, PageSkeleton, SideSkeleton } from '@/components/footnote/load-state'
+
+/** What the decisions hook reads while the item is not loaded yet: it is never acted on. */
+const NO_FACT = { id: '', title: '', by: '' } as Fact
 
 // The comments load on their own: their composer is Tiptap, which stays out of the first load.
 const CommentBox = React.lazy(() =>
@@ -64,6 +69,7 @@ export function FactPage({ id }: { id: string }) {
   const undo = useUndo()
   const commentActions = useCommentActions()
   const [deleting, setDeleting] = React.useState(false)
+  const decision = useWaitingDecision(fact ?? NO_FACT)
   const [bodyRef, wide] = useWide<HTMLDivElement>()
   // The panel folds to a rail and stays the way the person left it this session.
   const [panelChoice, setPanelOpen] = useSideChoice('page-side')
@@ -187,52 +193,69 @@ export function FactPage({ id }: { id: string }) {
   // A draft nobody linked to has nothing beside it: no panel, once the read says so.
   const sideEmpty = !!page.data && !related.links.length && !history.length
 
+  // Waiting for review: an owner of its domain or an admin decides it here, its sender withdraws it.
+  const waiting = fact.status === 'Waiting'
+  const sentByMe = waiting && fact.by === me.name
+  const decides = waiting && owner && !sentByMe
+  // A draft's writer edits it, and sends or publishes it from the editor: it has no change to suggest.
+  const writesDraft = fact.status === 'Draft' && fact.by === me.name
+  const editHref = `/context/${fact.id}${owner ? '/edit' : '/suggest'}`
   const canCheck = owner && fact.status === 'Due for a check'
-  const canEdit = !(isMobile && (owner || !pending))
-  const canArchive = owner && fact.status !== 'Archived' && fact.status !== 'Draft'
-  const canDelete = owner && fact.status !== 'Archived'
-  const moreItems =
-    canCheck || canEdit || canArchive || canDelete ? (
-      <>
-        {(canCheck || canEdit || canArchive) && (
-          <DropdownMenuGroup>
-            {canCheck && (
-              <DropdownMenuItem
-                onClick={() =>
-                  void write('editItem', {
-                    id: fact.id,
-                    patch: {
-                      status: 'Live',
-                      outOfDate: undefined,
-                      checkedBy: me.name,
-                      checkedOn: '22 Oct 2026',
-                    },
-                  }).then(() => toast('Checked: still true'))
-                }
-              >
-                Still true
-              </DropdownMenuItem>
-            )}
-            {canEdit && (
-              <DropdownMenuItem
-                onClick={() => navigate('/context/' + fact.id + (owner ? '/edit' : '/suggest'))}
-              >
-                {owner ? 'Edit' : 'Suggest a change'}
-              </DropdownMenuItem>
-            )}
-            {canArchive && (
-              <DropdownMenuItem onClick={() => void archive()}>Archive</DropdownMenuItem>
-            )}
-          </DropdownMenuGroup>
-        )}
-        {canDelete && (
-          <>
-            {(canCheck || canEdit || canArchive) && <DropdownMenuSeparator />}
-            <DropdownMenuItem onClick={() => setDeleting(true)}>Delete</DropdownMenuItem>
-          </>
-        )}
-      </>
+  const canEdit = !waiting && !(isMobile && (owner || writesDraft || !pending))
+  const canArchive = owner && fact.status !== 'Archived' && fact.status !== 'Draft' && !waiting
+  const canDelete = owner && fact.status !== 'Archived' && !waiting
+  const waitingItems = decides ? (
+    <DropdownMenuGroup>
+      <DropdownMenuItem onClick={() => navigate(`/context/${fact.id}/edit`)}>Edit</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => decision.ask('return')}>
+        Send back with a note
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => decision.ask('close')}>Don't publish</DropdownMenuItem>
+    </DropdownMenuGroup>
+  ) : undefined
+  const moreItems = waiting ? (
+    isMobile ? (
+      waitingItems
     ) : undefined
+  ) : canCheck || canEdit || canArchive || canDelete ? (
+    <>
+      {(canCheck || canEdit || canArchive) && (
+        <DropdownMenuGroup>
+          {canCheck && (
+            <DropdownMenuItem
+              onClick={() =>
+                void write('editItem', {
+                  id: fact.id,
+                  patch: {
+                    status: 'Live',
+                    outOfDate: undefined,
+                    checkedBy: me.name,
+                    checkedOn: '22 Oct 2026',
+                  },
+                }).then(() => toast('Checked: still true'))
+              }
+            >
+              Still true
+            </DropdownMenuItem>
+          )}
+          {canEdit && (
+            <DropdownMenuItem onClick={() => navigate(editHref)}>
+              {owner || writesDraft ? 'Edit' : 'Suggest a change'}
+            </DropdownMenuItem>
+          )}
+          {canArchive && (
+            <DropdownMenuItem onClick={() => void archive()}>Archive</DropdownMenuItem>
+          )}
+        </DropdownMenuGroup>
+      )}
+      {canDelete && (
+        <>
+          {(canCheck || canEdit || canArchive) && <DropdownMenuSeparator />}
+          <DropdownMenuItem onClick={() => setDeleting(true)}>Delete</DropdownMenuItem>
+        </>
+      )}
+    </>
+  ) : undefined
 
   return (
     <Page
@@ -242,63 +265,104 @@ export function FactPage({ id }: { id: string }) {
       more={moreItems}
       className="flex overflow-hidden"
       title={
-        <Breadcrumb>
-          <BreadcrumbList>
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList className="flex-nowrap">
             <BreadcrumbItem className="hidden md:block">
               <BreadcrumbLink href="/context">Context</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem>
+            <BreadcrumbItem className="min-w-0">
               <BreadcrumbPage className="truncate">{fact.title}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       }
       actions={
-        <>
-          {!isMobile && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Ask about this context item"
-                onClick={() => openDock('ask')}
-              >
-                <MessageSquareIcon />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={<Button variant="outline" size="icon" aria-label="More" />}
+        waiting ? (
+          <>
+            {!isMobile && decides && (
+              <>
+                <Button variant="ghost" onClick={() => decision.ask('close')}>
+                  Don't publish
+                </Button>
+                <Button variant="outline" onClick={() => decision.ask('return')}>
+                  Send back with a note
+                </Button>
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<a href={href(`/context/${fact.id}/edit`)} />}
                 >
-                  <EllipsisIcon />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  {moreItems}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-          {/* Where the page has a decision of its own (Compare and decide), that is its one solid blue button. */}
-          {owner ? (
-            <Button
-              variant={other ? 'outline' : 'default'}
-              nativeButton={false}
-              render={<a href={href(`/context/${fact.id}/edit`)} />}
-            >
-              Edit
-            </Button>
-          ) : (
-            !pending && (
+                  Edit
+                </Button>
+              </>
+            )}
+            {decides && (
+              <Button
+                loading={decision.busy === 'publish'}
+                loadingLabel="Publishing…"
+                onClick={decision.publish}
+              >
+                Publish
+              </Button>
+            )}
+            {sentByMe && (
+              <Button
+                variant="outline"
+                loading={decision.busy === 'withdraw'}
+                loadingLabel="Withdrawing…"
+                onClick={decision.withdraw}
+              >
+                Withdraw
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            {!isMobile && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Ask about this context item"
+                  onClick={() => openDock('ask')}
+                >
+                  <MessageSquareIcon />
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={<Button variant="outline" size="icon" aria-label="More" />}
+                  >
+                    <EllipsisIcon />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    {moreItems}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+            {/* Where the page has a decision of its own (Compare and decide), that is its one solid blue button. */}
+            {owner || writesDraft ? (
               <Button
                 variant={other ? 'outline' : 'default'}
                 nativeButton={false}
-                render={<a href={href(`/context/${fact.id}/suggest`)} />}
+                render={<a href={href(editHref)} />}
               >
-                Suggest a change
+                Edit
               </Button>
-            )
-          )}
-        </>
+            ) : (
+              !pending && (
+                <Button
+                  variant={other ? 'outline' : 'default'}
+                  nativeButton={false}
+                  render={<a href={href(`/context/${fact.id}/suggest`)} />}
+                >
+                  Suggest a change
+                </Button>
+              )
+            )}
+          </>
+        )
       }
     >
       <Canvas className="min-h-0 min-w-0 flex-1 overflow-y-auto sm:pt-2 sm:pb-2">
@@ -310,6 +374,19 @@ export function FactPage({ id }: { id: string }) {
             refreshClassName="mb-5 rounded-frame border"
             query={page}
           >
+            {/* Who sent it, how long it has waited, and who decides. */}
+            {waiting && (
+              <div
+                role="note"
+                aria-label="Waiting for review"
+                className="mb-5 flex items-center gap-3 rounded-frame border border-dashed px-3 py-2 text-sm"
+              >
+                <ClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  {waitingLine(fact, domains[fact.domain]?.owners ?? [], me.name, today())}
+                </span>
+              </div>
+            )}
             {/* What happened to it, said on the item itself rather than in a toast that leaves. */}
             {pending && (
               <div
@@ -386,6 +463,7 @@ export function FactPage({ id }: { id: string }) {
           </Panel>
         </ResizableAside>
       )}
+      {decides && decision.dialogs}
       <DeleteDialog
         open={deleting}
         onOpenChange={setDeleting}

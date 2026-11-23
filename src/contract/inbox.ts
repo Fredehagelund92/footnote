@@ -158,7 +158,10 @@ export const cardSchema = z.union([
 ])
 export type Card = z.infer<typeof cardSchema>
 
-/** A suggestion the person sent that waits on an owner, or that an owner returned to them. */
+/**
+ * A suggestion the person sent that waits on an owner, that an owner returned to them, or that an
+ * owner closed in the last two weeks.
+ */
 export const waitingSchema = z.object({
   proposalId: z.string(),
   title: z.string(),
@@ -170,6 +173,13 @@ export const waitingSchema = z.object({
    * again. The note is the first comment of its discussion. Null while it waits on an owner.
    */
   returned: z.nullable(z.object({ by: z.nullable(z.string()), at: z.string() })),
+  /**
+   * Closed by an owner, who said why: it is not published. `read` once the person opened it in
+   * their Inbox (card `closed:<proposal id>`). Null for anything else.
+   */
+  closed: z.nullable(
+    z.object({ by: z.nullable(z.string()), at: z.string(), reason: z.string(), read: z.boolean() }),
+  ),
 })
 
 export const feedInputSchema = z.object({

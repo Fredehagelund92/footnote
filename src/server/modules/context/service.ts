@@ -947,8 +947,13 @@ export function createContextService(
           )
         )[0]!.revision
       : created.revision
-    // A draft that was started from an item changes that item.
-    const itemId = input.draftId ? (created.itemId ?? undefined) : input.itemId
+    // A draft that was started from an item changes that item. A new item waiting for review has
+    // one already, which agents don't get yet.
+    const itemId = input.draftId
+      ? created.action === 'change'
+        ? (created.itemId ?? undefined)
+        : undefined
+      : input.itemId
     const mine = await me()
     const theirs = created.proposerId !== mine.id
     const submitted = await proposals.submit(created.id, revision, { byDomainOwners: theirs })
@@ -991,18 +996,31 @@ export function createContextService(
   /**
    * A draft, or the person's suggestion an owner returned, with the words they finished it with:
    * its writer sends it, and an owner of its domain or an admin publishes a draft someone else
-   * wrote as itself, so it stays its writer's.
+   * wrote as itself, so it stays its writer's. A suggestion waiting for review is edited only by
+   * an owner or an admin, to publish it as itself (Edit then publish): its writer withdraws it.
    */
   async function finish(id: string, draft: Draft, reason: string | undefined) {
-    const [row] = await tx.query<{ revision: number; proposerId: string | null; areaId: string }>(
-      `select revision, proposer_id::text as "proposerId", area_id as "areaId" from proposals
-        where id = $1 and subject = 'item' and state in ('draft','changes_requested')`,
+    const [row] = await tx.query<{
+      revision: number
+      proposerId: string | null
+      areaId: string
+      waiting: boolean
+    }>(
+      `select revision, proposer_id::text as "proposerId", area_id as "areaId",
+              state in ('submitted','in_review') as waiting from proposals
+        where id = $1 and subject = 'item' and action in ('create','change')
+          and state in ('draft','changes_requested','submitted','in_review')`,
       [id],
     )
     if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
     const mine = await me()
     const to = draft.areaId ?? row.areaId
-    if (row.proposerId !== mine.id && !mine.admin && !mine.owns.includes(to)) notTheirsToPublish()
+    const mayPublish = mine.admin || mine.owns.includes(to)
+    if (row.waiting && row.proposerId === mine.id)
+      throw new ORPCError('CONFLICT', {
+        message: 'It is waiting for review. Withdraw it to change it, then send it again.',
+      })
+    if (row.proposerId !== mine.id && !mayPublish) notTheirsToPublish()
     return proposals.save(id, row.revision, draft, reason, { byDomainOwners: true })
   }
 

@@ -520,6 +520,7 @@ describe('the Inbox', () => {
             sentAt: at(20),
             waitingFor: ['Jon Abara', 'Sofia Brandt'],
             returned: null,
+            closed: null,
           },
         ],
       }),
@@ -551,6 +552,7 @@ describe('the Inbox', () => {
             sentAt: at(20),
             waitingFor: ['Jon Abara'],
             returned: { by: 'Jon Abara', at: at(21, 14, 5) },
+            closed: null,
           },
         ],
       }),
@@ -563,6 +565,35 @@ describe('the Inbox', () => {
       card: 'p6',
       returned: { by: 'Jon Abara', when: '21 Oct' },
     })
+  })
+
+  it('says who closed a suggestion the person sent and why, opened once they read it', () => {
+    const closed = (read: boolean) =>
+      inboxOf(
+        feed([], {
+          waiting: [
+            {
+              proposalId: 'p7',
+              title: 'Payout journal holds partner payouts',
+              areaId: 'area_sales',
+              sentAt: at(19),
+              waitingFor: [],
+              returned: null,
+              closed: { by: 'Jon Abara', at: at(21, 9, 30), reason: 'Not used for payouts.', read },
+            },
+          ],
+        }),
+        'Ines Duarte',
+        domains,
+        now,
+      )
+    expect(closed(false).waiting[0]).toMatchObject({
+      id: 'closed:p7',
+      card: 'p7',
+      closed: { by: 'Jon Abara', when: '21 Oct', reason: 'Not used for payouts.' },
+    })
+    expect(closed(false).opened['closed:p7']).toBeUndefined()
+    expect(closed(true).opened['closed:p7']).toBe(true)
   })
 
   it('passes the week’s counts on, hidden ones as they are', () => {

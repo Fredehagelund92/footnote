@@ -13,8 +13,12 @@ export type DomainId = string
 /** The four kinds the app writes. */
 export type Kind = ItemKind
 
-/** A draft was never published: agents never got it, so it can be deleted. A published item is archived instead. */
-export type Status = 'Draft' | 'Live' | 'Due for a check' | 'Archived'
+/**
+ * A draft was never published: agents never got it, so it can be deleted. Waiting (for review) was
+ * sent: an owner of its domain decides, and agents don't get it yet. A published item is archived
+ * instead.
+ */
+export type Status = 'Draft' | 'Waiting' | 'Live' | 'Due for a check' | 'Archived'
 
 /**
  * The four kinds of context, in plain words most people know, native English or not. The one
@@ -82,20 +86,26 @@ export type Fact = {
   origin?: { tool: string; connector: string; folder: string; doc: string; read: string }
   /** Who answers for it, when not its domain's owners: set in the editor or in bulk. */
   owners?: string[]
-  /** Who started a draft. */
+  /** Who started a draft, or sent a suggestion that waits for review. */
   by?: string
+  /** When a suggestion waiting for review was sent (ISO): how long it has waited. */
+  sentAt?: string
 }
 
-/** A status in the server's words: accepted or retired, with the flags that wait for a look. A draft is no item yet. */
+/** A status in the server's words: accepted or retired, with the flags that wait for a look. A draft, or a suggestion waiting for review, is no item yet. */
 export const toServerStatus = (
   status: Status,
 ): { status: ItemStatus; flags: CheckFlag[] } | null =>
-  status === 'Draft'
+  status === 'Draft' || status === 'Waiting'
     ? null
     : {
         status: status === 'Archived' ? 'retired' : 'accepted',
         flags: status === 'Due for a check' ? ['needs_check'] : [],
       }
+
+/** Not published yet: a draft, or a suggestion waiting for review. Agents never got it. */
+export const unpublished = (f: Pick<Fact, 'status'>) =>
+  f.status === 'Draft' || f.status === 'Waiting'
 
 /** What agents get: a published item that isn't archived. */
 export const servedToAgents = (f: Pick<Fact, 'status'>) =>

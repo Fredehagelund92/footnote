@@ -168,7 +168,9 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
   if (row.kind === 'waiting')
     return row.item.returned
       ? `Returned by ${row.item.returned.by}`
-      : `Waiting for ${row.item.waitingFor.split(',')[0]}`
+      : row.item.closed
+        ? `Closed by ${row.item.closed.by}`
+        : `Waiting for ${row.item.waitingFor.split(',')[0]}`
   const { card, done } = row
   if (done) return `${done.label}, ${midSentence(done.at)}`
   if (card.names) return card.line
@@ -314,9 +316,11 @@ function InboxList({
             ? cardIcon[row.card.type]
             : row.kind === 'waiting' && row.item.returned
               ? cardIcon.returned
-              : row.kind === 'mention' || row.note
-                ? AtSignIcon
-                : ClockIcon
+              : row.kind === 'waiting' && row.item.closed
+                ? cardIcon.closed
+                : row.kind === 'mention' || row.note
+                  ? AtSignIcon
+                  : ClockIcon
         // A suggestion that needs care says so on its row, before it is opened.
         const care = rowCare(row, reviews)
         const group = groupOf(row)
@@ -332,7 +336,11 @@ function InboxList({
           : 0
         const done = row.kind === 'card' && !!row.done && !row.note
         // The dot is "not opened yet": it goes once the card was opened here or in the review.
-        const unread = row.note ? true : row.kind === 'card' && !row.done && !opened[row.card.id]
+        const unread = row.note
+          ? true
+          : row.kind === 'card'
+            ? !row.done && !opened[row.card.id]
+            : row.kind === 'waiting' && !!row.item.closed && !opened[row.item.id]
         const isSelected = selected === id
         const ticked = sel.isSelected(id)
         return (
@@ -443,7 +451,10 @@ function InboxList({
                               ? ''
                               : row.card.when
                             : row.kind === 'waiting'
-                              ? (row.item.returned?.when.replace(/^Today, /, '') ?? row.item.sent)
+                              ? ((row.item.returned ?? row.item.closed)?.when.replace(
+                                  /^Today, /,
+                                  '',
+                                ) ?? row.item.sent)
                               : ''}
                       </span>
                       {unread ? (
@@ -966,6 +977,9 @@ function Thread({ subject, domain }: { subject: Subject; domain: DomainId }) {
   )
 }
 
+/** When, in the middle of a sentence: "on 3 Nov 2026", "today, 09:12". */
+const dayWhen = (when: string) => (/^\d/.test(when) ? `on ${when}` : midSentence(when))
+
 function WaitingDetail({
   item,
   note,
@@ -978,12 +992,27 @@ function WaitingDetail({
   next: () => void
 }) {
   const returned = item.returned
+  const closed = item.closed
+  const write = useWrite()
   return (
     <InboxPanel
       label={item.title}
       nav={nav}
       foot={
-        returned ? (
+        closed ? (
+          // Read once: Done takes it out of Needs me, and it stays under All for two weeks.
+          <PaneFoot follows="It stays under All for two weeks.">
+            <PrimaryAction
+              onClick={() => {
+                void write('markOpened', { ids: [item.id] })
+                if (note) void write('markMentionSeen', { subject: note.subject })
+                next()
+              }}
+            >
+              Done
+            </PrimaryAction>
+          </PaneFoot>
+        ) : returned ? (
           // Its words open in the editor; sending them again puts it back with the owners.
           <PaneFoot follows="It waits on the owners again once you send it.">
             <PrimaryAction keyHint={false} onClick={() => navigate(`/context/${item.card}/edit`)}>
@@ -1001,20 +1030,32 @@ function WaitingDetail({
     >
       <PaneHead
         state={
-          returned
-            ? { label: 'Returned', icon: 'returned', tone: 'warn' }
-            : { label: 'Waiting on others', icon: 'waiting', tone: 'neutral' }
+          closed
+            ? { label: 'Closed', icon: 'closed', tone: 'neutral' }
+            : returned
+              ? { label: 'Returned', icon: 'returned', tone: 'warn' }
+              : { label: 'Waiting on others', icon: 'waiting', tone: 'neutral' }
         }
         domain={item.domain}
         title={item.title}
         summary={
-          returned
-            ? `${returned.by} returned it with a note, in the comments below. Edit it and send it again.`
-            : `Waiting for ${item.waitingFor}. You'll see here when it is published or returned.`
+          closed
+            ? `${closed.by} closed it with the reason below. It won't be published, so agents never get it.`
+            : returned
+              ? `${returned.by} returned it with a note, in the comments below. Edit it and send it again.`
+              : `Waiting for ${item.waitingFor}. You'll see here when it is published or returned.`
         }
-        from={`Your suggestion, ${returned ? `returned ${/^\d/.test(returned.when) ? `on ${returned.when}` : midSentence(returned.when)}` : `sent ${item.sent.toLowerCase() === 'today' ? 'today' : `on ${item.sent}`}`}`}
+        from={`Your suggestion, ${closed ? `closed ${dayWhen(closed.when)}` : returned ? `returned ${dayWhen(returned.when)}` : `sent ${item.sent.toLowerCase() === 'today' ? 'today' : `on ${item.sent}`}`}`}
       />
       <div className="flex max-w-2xl flex-col gap-4 px-4 pb-6 text-sm @md:px-7">
+        {closed && (
+          <section aria-label="Why it was closed" className="flex flex-col gap-1">
+            <h3 className="font-medium">Closed by {closed.by}</h3>
+            <blockquote className="border-l-2 pl-3 text-muted-foreground">
+              {closed.reason}
+            </blockquote>
+          </section>
+        )}
         {note && <MentionBlock note={note} />}
         <Thread subject={`review:${item.card}`} domain={item.domain} />
       </div>
@@ -1457,7 +1498,7 @@ export function InboxPage() {
   }, [])
 
   const visible = rows.filter((r) => {
-    if (tab === 'needs' && !needs(r)) return false
+    if (tab === 'needs' && !needs(r, inbox.opened)) return false
     const text = r.kind === 'card' ? `${r.card.title} ${r.card.line}` : rowTitle(r)
     return text.toLowerCase().includes(search.toLowerCase())
   })
@@ -1508,6 +1549,7 @@ export function InboxPage() {
         void write('markOpened', { ids: [r.card.id] })
         void commentActions.seen(`review:${r.card.id}`)
       }
+      if (r.kind === 'waiting' && r.item.closed) void write('markOpened', { ids: [r.item.id] })
       if (r.note) void commentActions.seenMention(r.note.subject)
     }
     toast(`Marked ${picked.length} as read`)

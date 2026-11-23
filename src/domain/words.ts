@@ -102,7 +102,7 @@ export const concepts = {
   suggestion: {
     name: 'suggestion',
     definition:
-      'A change sent to an owner, from the editor or by an agent. Nothing changes until the owner publishes it.',
+      'A change sent to an owner, from the editor or by an agent. It waits for review until the owner publishes it, sends it back or closes it.',
     internal: ['proposal'],
   },
   publish: {
