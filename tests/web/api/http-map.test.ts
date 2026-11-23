@@ -179,6 +179,7 @@ describe('reading the catalogue', () => {
         synced: true,
         tool: 'Cube',
         connector: 'cube-cloud',
+        source: 'production-cube',
         ref: 'cube:revenue.net_revenue',
         fileUrl: 'https://git.example.com/analytics/blob/main/model/revenue.yml',
         sourceNames: ['Turnover'],

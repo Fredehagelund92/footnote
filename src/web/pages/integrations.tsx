@@ -241,9 +241,10 @@ function SourceFamilies({ source, tool }: { source: string; tool: string }) {
   const domains = useDomains()
   const n = (x: number) => x.toLocaleString('en-GB')
   const waiting = (names.data?.names ?? []).filter(
-    (name) => name.family && name.source === source && name.state !== 'left_out',
+    (name) =>
+      name.family && name.source === source && name.state !== 'left_out' && !name.linked.length,
   )
-  const published = definitions.filter((d) => d.family && d.connector === source)
+  const published = definitions.filter((d) => d.family && d.source === source)
   const all = [
     ...waiting.map((name) => ({ found: name.family!.found, variants: name.family!.variants })),
     ...published.map((d) => ({ found: d.family!.found, variants: d.family!.variants.length })),
@@ -254,15 +255,17 @@ function SourceFamilies({ source, tool }: { source: string; tool: string }) {
   ) as FoundCounts
   const metrics = all.reduce((sum, f) => sum + f.variants, 0)
   const alike = waiting.filter(
-    (name) => name.state === 'flagged' && name.family!.found === 'names' && !name.linked.length,
+    (name) => name.state === 'flagged' && name.family!.found === 'names',
   ).length
   const ready = waiting.filter((name) => name.state === 'ready').length
   const look = waiting.length - alike - ready
-  const owners = [...new Set(waiting.map((name) => name.areaId))]
-  const whose =
-    owners.length && owners.every(Boolean)
-      ? `an owner of ${listOf(owners.map((id) => domains[id as DomainId]?.name ?? id!))}`
-      : 'an owner or an admin'
+  const owners = [...new Set(waiting.flatMap((name) => (name.areaId ? [name.areaId] : [])))]
+  const ownerOf = `an owner of ${listOf(owners.map((id) => domains[id as DomainId]?.name ?? id))}`
+  const whose = !owners.length
+    ? 'an admin'
+    : waiting.every((name) => name.areaId)
+      ? ownerOf
+      : `${ownerOf} or an admin`
   const familyCount = (x: number) => (x === 1 ? '1 family' : `${n(x)} families`)
   const parts = [
     alike && `${n(alike)} ${alike === 1 ? 'looks' : 'look'} alike`,
@@ -271,7 +274,9 @@ function SourceFamilies({ source, tool }: { source: string; tool: string }) {
   const rest = parts.length
     ? ` ${parts.join(' and ')}; ${ready ? `${n(ready)} ${ready === 1 ? 'is' : 'are'} ready.` : 'none is ready yet.'}`
     : ready === waiting.length
-      ? ' All are ready to publish.'
+      ? waiting.length === 1
+        ? ' It is ready to publish.'
+        : ' All are ready to publish.'
       : ''
   return (
     <PanelSection
@@ -2069,8 +2074,8 @@ function FamiliesRead({
       </p>
       <FamiliesFound found={families.found} tool={tool} untilSaid />
       <p className="text-muted-foreground">
-        After the first read, an owner of each domain confirms them in the Inbox, under Families.
-        Nothing is published before.
+        After the first read, an owner of its domain, or an admin, confirms each one in the Inbox,
+        under Families. Nothing is published before.
       </p>
       <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
         A currency or a channel kept as a dimension needs no family at all.

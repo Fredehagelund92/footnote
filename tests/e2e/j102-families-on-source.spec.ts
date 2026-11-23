@@ -65,7 +65,7 @@ for (const { name, width, height } of widths) {
           /^1look alike, never a family until someone says so$/,
         ])
         await expect(families).toContainText(
-          'After the first read, an owner of each domain confirms them in the Inbox, under Families. Nothing is published before.',
+          'After the first read, an owner of its domain, or an admin, confirms each one in the Inbox, under Families. Nothing is published before.',
         )
         await expect(families).toContainText(
           'A currency or a channel kept as a dimension needs no family at all.',
