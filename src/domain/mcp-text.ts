@@ -69,10 +69,10 @@ export const AGENT_TOOLS: readonly {
   },
   {
     name: 'read_context',
-    title: `Read a ${fact}`,
-    what: `One ${fact} in full.`,
-    takes: `A ${fact}.`,
-    returns: `Its text, source, check date and ${notToConclude} line.`,
+    title: `Read a ${fact} or a definition`,
+    what: `One ${fact} or one definition in full.`,
+    takes: `A ${fact}, or a definition by its name.`,
+    returns: `A ${fact}'s text, source, check date and ${notToConclude} line; a definition's words, owner, family and the ${facts} about it.`,
   },
   {
     name: 'report',
@@ -203,9 +203,9 @@ export const answerLineRule =
 export const plainWordsRule =
   "With people, say the metric, market and dates, not status, scope, edition or reply_id, which name a reply's fields."
 
-/** How to pass names, what to do without them, and where to see what there is (FR-351, FR-352). */
+/** How to pass names, what to do without them, where to see what there is and read one (FR-351 to FR-353). */
 export const namesRule =
-  'Pass the metrics, markets and dates you query, or member names from the data tool (view.member: payments.orders); unknown names get the closest. Without names, call find_context; to browse, list_definitions or list_context.'
+  'Pass the metrics, markets and dates you query, or member names from the data tool (payments.orders); unknown ones get the closest. No names? Call find_context; to browse, list_definitions or list_context; read_context reads one.'
 
 /**
  * How dates are read, on the workspace's calendar (R8): the time zone today is counted in, and

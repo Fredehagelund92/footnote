@@ -112,12 +112,22 @@ export const checkContextInput = getContextInput.extend({
     )
     .optional(),
 })
+/** A context item's id: what read_context reads as an item, and anything else as a definition. */
+export const itemIdPattern = /^itm_[a-z0-9]{8,16}$/
+/** read_context (FR-353): one context item, by its id, or one definition, by a name or its key. */
 export const readInput = z.strictObject({
-  id: z.string().regex(/^itm_[a-z0-9]{8,16}$/),
+  id: z
+    .string()
+    .min(1)
+    .max(200)
+    .describe(
+      "A context item's id (itm_...), or a definition: its name, another of its names, or its key from find_context or list_definitions (such as metric:orders or term:...).",
+    ),
   edition,
   cursor: z.string().max(2000).optional(),
   max_bytes: z.number().int().min(1000).max(100000).default(100000),
 })
+export type ReadInput = z.infer<typeof readInput>
 const domainName = z
   .string()
   .min(1)
@@ -587,10 +597,6 @@ export const contextOutput = z
 export const findContextOutput = z
   .object({ ...said, context: z.array(contextEntry).optional(), terms })
   .loose()
-/** read_context: the one item in full, with its page in Footnote (FR-347). */
-export const readContextOutput = z
-  .object({ ...said, context: contextEntry.optional(), terms })
-  .loose()
 /** The page and where the next one is, in both list tools' replies. */
 const listPage = {
   total: z
@@ -608,6 +614,136 @@ const listPage = {
 const listOwner = z
   .object({ role: z.string(), team: z.string().nullable() })
   .describe('Who looks after it, as a role and a team (never a person).')
+/** A name a definition is known by, with its key: what read_context reads it by. */
+const namedDefinition = z.object({ key: z.string(), name: z.string() })
+/**
+ * One definition in full (FR-353), as read_context gives it: the source's words as Footnote keeps
+ * them, or a person's for a term, who looks after it as a role, its other names, its family, what
+ * it is built from, and the published context items about it. Never a calculation or a person.
+ */
+const definitionEntry = z
+  .object({
+    key: z.string().describe('Its key, for get_related, such as metric:orders.'),
+    name: z.string(),
+    kind: z
+      .enum(['metric', 'metric family', 'dimension', 'term'])
+      .describe(
+        'A metric family is one name for near-identical metrics, such as one per currency.',
+      ),
+    domain: z.string().nullable(),
+    owner: listOwner,
+    other_names: z
+      .array(z.string())
+      .describe('Its other names: those its source gives, and the synonyms people wrote.'),
+    words: z
+      .string()
+      .nullable()
+      .describe(
+        "What it means, whole: its source's own words, a family's meaning, or what a person wrote for a term. Null when nothing says.",
+      ),
+    words_from: z.string().describe('Where the words come from, in a sentence: say it with them.'),
+    shortened: z
+      .literal(true)
+      .optional()
+      .describe(
+        'The source wrote more than the 500 characters kept of it: the words end with ... and the rest is in the source.',
+      ),
+    source: z
+      .object({
+        tool: z.string().describe('The tool that defines it, such as Cube.'),
+        source: z.string().describe("The source's name in Sources."),
+        name: z.string().describe('Its own name in the tool, such as payments.orders.'),
+        title: z.string().optional(),
+        read_on: z.string().optional().describe('The day it was last read from the source.'),
+        state: z
+          .enum(['current', 'changed', 'missing'])
+          .describe(
+            'changed: the source changed it after some context items about it were checked; missing: the source no longer lists it.',
+          ),
+      })
+      .optional(),
+    written: z
+      .object({ role: z.string(), date: z.string() })
+      .optional()
+      .describe('For a term: who wrote it, as a role, and when.'),
+    family: z
+      .object({
+        by: z.array(z.string()).describe('What tells its metrics apart, such as Currency.'),
+        found: z.string().describe('How it was found, in a sentence.'),
+        meaning_from: z
+          .enum(['declared', 'written', 'common', 'none'])
+          .describe(
+            'Where its meaning comes from: declared in its source, written by an owner, the words most of its metrics share, or none.',
+          ),
+        usual: namedDefinition
+          .extend({ values: z.array(z.string()) })
+          .optional()
+          .describe(
+            'The metric its owners say a question means when it names none of the values, such as EUR.',
+          ),
+        members: z
+          .array(
+            namedDefinition
+              .extend({
+                values: z.array(z.string()),
+                words: z
+                  .string()
+                  .optional()
+                  .describe("Its source's own words, when it gives some."),
+              })
+              .loose(),
+          )
+          .describe('Its metrics, each with the values that tell it apart.'),
+        converted: z
+          .array(z.object({ from: z.string(), to: z.string(), by: z.string() }))
+          .optional()
+          .describe('Which metric is worked out from which, by names, and the column it reads.'),
+      })
+      .optional(),
+    member_of: namedDefinition.optional().describe('The family it is one metric of.'),
+    relations: z
+      .array(
+        z
+          .object({
+            kind: z.enum(['converted_from', 'converted_to', 'built_from', 'used_by']),
+            name: z.string(),
+            key: z.string().nullable().describe('Its key, or null for a column.'),
+            missing: z.literal(true).optional(),
+          })
+          .loose(),
+      )
+      .optional()
+      .describe(
+        "What it is built from and what is built from it, by name, as its source's structure says: never a calculation.",
+      ),
+    context: z
+      .object({
+        count: z.number().int().describe('How many published context items about it you may read.'),
+        items: z.array(z.object({ id: z.string(), title: z.string() })),
+      })
+      .describe('The published context items about it, titles only: read one with read_context.'),
+    url: z.string().describe('Its page in Definitions, for the person.'),
+  })
+  .loose()
+/** read_context: the one item in full, or the one definition (FR-353), with its page in Footnote (FR-347). */
+export const readContextOutput = z
+  .object({
+    ...said,
+    context: contextEntry.optional(),
+    definition: definitionEntry.optional(),
+    options: z
+      .array(
+        z.object({
+          field: z.string(),
+          input: z.string(),
+          options: z.array(z.string()),
+        }),
+      )
+      .optional()
+      .describe('The definitions the words may mean, by key: call again with one of them.'),
+    terms,
+  })
+  .loose()
 /** list_definitions: a page of Definitions (FR-351). */
 export const listDefinitionsOutput = z
   .object({

@@ -197,5 +197,10 @@ export function fakeReads(
       asked.push('waiting')
       return Promise.resolve(structuredClone(waiting))
     },
+    // The fixture edition's definitions have no catalogue beside them: none of it is shown.
+    definition: (key) => {
+      asked.push(['definition', key])
+      return Promise.resolve(null)
+    },
   }
 }

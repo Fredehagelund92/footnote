@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "1e138844a1a6d1778d02aa77c7bed5b5e74fddca6bfdbf428af7b9c0e90288b1",
+  "digest": "9c33c096b0a6c2b99bc1c08e7e356d7d827c1f4e5321df76603ae090cc8ec2cb",
   "tools": [
     {
       "annotations": {
@@ -585,7 +585,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "One context item in full. Call get_context before answering a question about company data. Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. An edition needs a service token with edition scope. A link proves neither that an item applies nor a cause.",
+      "description": "One context item or one definition in full. Call get_context before answering a question about company data. Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. A link proves neither that an item applies nor a cause. Read one definition, by its name, another of its names or its key from find_context or list_definitions, when the person asks what something means or how it is defined: its words whole, as its source or a person wrote them, where they come from, its owner as a role, its other names, its family with what the family means and its usual metric, what it is built from, and the titles of the published items about it, even when there are none; never to answer a question about the data, which get_context does. An edition needs a service token with edition scope.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -599,7 +599,9 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "string",
           },
           "id": {
-            "pattern": "^itm_[a-z0-9]{8,16}$",
+            "description": "A context item's id (itm_...), or a definition: its name, another of its names, or its key from find_context or list_definitions (such as metric:orders or term:...).",
+            "maxLength": 200,
+            "minLength": 1,
             "type": "string",
           },
           "max_bytes": {
@@ -662,10 +664,385 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             ],
             "type": "object",
           },
+          "definition": {
+            "additionalProperties": {},
+            "properties": {
+              "context": {
+                "additionalProperties": false,
+                "description": "The published context items about it, titles only: read one with read_context.",
+                "properties": {
+                  "count": {
+                    "description": "How many published context items about it you may read.",
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer",
+                  },
+                  "items": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                        },
+                        "title": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "count",
+                  "items",
+                ],
+                "type": "object",
+              },
+              "domain": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "family": {
+                "additionalProperties": false,
+                "properties": {
+                  "by": {
+                    "description": "What tells its metrics apart, such as Currency.",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "converted": {
+                    "description": "Which metric is worked out from which, by names, and the column it reads.",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "by": {
+                          "type": "string",
+                        },
+                        "from": {
+                          "type": "string",
+                        },
+                        "to": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "from",
+                        "to",
+                        "by",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "found": {
+                    "description": "How it was found, in a sentence.",
+                    "type": "string",
+                  },
+                  "meaning_from": {
+                    "description": "Where its meaning comes from: declared in its source, written by an owner, the words most of its metrics share, or none.",
+                    "enum": [
+                      "declared",
+                      "written",
+                      "common",
+                      "none",
+                    ],
+                    "type": "string",
+                  },
+                  "members": {
+                    "description": "Its metrics, each with the values that tell it apart.",
+                    "items": {
+                      "additionalProperties": {},
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                        },
+                        "name": {
+                          "type": "string",
+                        },
+                        "values": {
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "words": {
+                          "description": "Its source's own words, when it gives some.",
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                        "values",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "usual": {
+                    "additionalProperties": false,
+                    "description": "The metric its owners say a question means when it names none of the values, such as EUR.",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                      },
+                      "name": {
+                        "type": "string",
+                      },
+                      "values": {
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                    },
+                    "required": [
+                      "key",
+                      "name",
+                      "values",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "by",
+                  "found",
+                  "meaning_from",
+                  "members",
+                ],
+                "type": "object",
+              },
+              "key": {
+                "description": "Its key, for get_related, such as metric:orders.",
+                "type": "string",
+              },
+              "kind": {
+                "description": "A metric family is one name for near-identical metrics, such as one per currency.",
+                "enum": [
+                  "metric",
+                  "metric family",
+                  "dimension",
+                  "term",
+                ],
+                "type": "string",
+              },
+              "member_of": {
+                "additionalProperties": false,
+                "description": "The family it is one metric of.",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                  },
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "key",
+                  "name",
+                ],
+                "type": "object",
+              },
+              "name": {
+                "type": "string",
+              },
+              "other_names": {
+                "description": "Its other names: those its source gives, and the synonyms people wrote.",
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "owner": {
+                "additionalProperties": false,
+                "description": "Who looks after it, as a role and a team (never a person).",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                  },
+                  "team": {
+                    "type": [
+                      "string",
+                      "null",
+                    ],
+                  },
+                },
+                "required": [
+                  "role",
+                  "team",
+                ],
+                "type": "object",
+              },
+              "relations": {
+                "description": "What it is built from and what is built from it, by name, as its source's structure says: never a calculation.",
+                "items": {
+                  "additionalProperties": {},
+                  "properties": {
+                    "key": {
+                      "description": "Its key, or null for a column.",
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "kind": {
+                      "enum": [
+                        "converted_from",
+                        "converted_to",
+                        "built_from",
+                        "used_by",
+                      ],
+                      "type": "string",
+                    },
+                    "missing": {
+                      "const": true,
+                      "type": "boolean",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "key",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "shortened": {
+                "const": true,
+                "description": "The source wrote more than the 500 characters kept of it: the words end with ... and the rest is in the source.",
+                "type": "boolean",
+              },
+              "source": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "description": "Its own name in the tool, such as payments.orders.",
+                    "type": "string",
+                  },
+                  "read_on": {
+                    "description": "The day it was last read from the source.",
+                    "type": "string",
+                  },
+                  "source": {
+                    "description": "The source's name in Sources.",
+                    "type": "string",
+                  },
+                  "state": {
+                    "description": "changed: the source changed it after some context items about it were checked; missing: the source no longer lists it.",
+                    "enum": [
+                      "current",
+                      "changed",
+                      "missing",
+                    ],
+                    "type": "string",
+                  },
+                  "title": {
+                    "type": "string",
+                  },
+                  "tool": {
+                    "description": "The tool that defines it, such as Cube.",
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "tool",
+                  "source",
+                  "name",
+                  "state",
+                ],
+                "type": "object",
+              },
+              "url": {
+                "description": "Its page in Definitions, for the person.",
+                "type": "string",
+              },
+              "words": {
+                "description": "What it means, whole: its source's own words, a family's meaning, or what a person wrote for a term. Null when nothing says.",
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "words_from": {
+                "description": "Where the words come from, in a sentence: say it with them.",
+                "type": "string",
+              },
+              "written": {
+                "additionalProperties": false,
+                "description": "For a term: who wrote it, as a role, and when.",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                  },
+                  "role": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "role",
+                  "date",
+                ],
+                "type": "object",
+              },
+            },
+            "required": [
+              "key",
+              "name",
+              "kind",
+              "domain",
+              "owner",
+              "other_names",
+              "words",
+              "words_from",
+              "context",
+              "url",
+            ],
+            "type": "object",
+          },
           "next": {
             "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
             "minLength": 1,
             "type": "string",
+          },
+          "options": {
+            "description": "The definitions the words may mean, by key: call again with one of them.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "field": {
+                  "type": "string",
+                },
+                "input": {
+                  "type": "string",
+                },
+                "options": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "required": [
+                "field",
+                "input",
+                "options",
+              ],
+              "type": "object",
+            },
+            "type": "array",
           },
           "say": {
             "description": "What you may tell the person about this result, in these words: plain sentences on what was read and what was found.",
@@ -748,7 +1125,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         ],
         "type": "object",
       },
-      "title": "Read a context item",
+      "title": "Read a context item or a definition",
     },
     {
       "annotations": {

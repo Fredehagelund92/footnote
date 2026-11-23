@@ -76,6 +76,7 @@ import {
   type FindArgs,
 } from './outcomes.ts'
 import type { ServingReads } from './reads.ts'
+import { definitionEntry, definitionNamed, itemsAbout, optionOf } from './read-definition.ts'
 import {
   appliesWords,
   askedGroups,
@@ -83,6 +84,7 @@ import {
   contextListSaid,
   contextSaid,
   contextVoice,
+  definitionReadSaid,
   definitionsListSaid,
   failedSaid,
   findSaid,
@@ -91,6 +93,8 @@ import {
   relatedSaid,
   reportSaid,
   scopeWords,
+  severalDefinitionsSaid,
+  unknownDefinitionSaid,
   unknownDomainSaid,
   unreadSaid,
   whenWords,
@@ -102,10 +106,12 @@ import {
   getContextInput,
   listContextInput,
   listDefinitionsInput,
+  itemIdPattern,
   readInput,
   relatedInput,
   reportInput,
   type GetContextInput,
+  type ReadInput,
 } from './schemas.ts'
 import { toolSchemaDigest, type ServedToolName } from './tools.ts'
 import { concepts } from '../../domain/words.ts'
@@ -175,7 +181,10 @@ function openLines(output: Record<string, unknown>): string[] {
   })
   // Each word a person defined that the reply names, where it is written and who wrote it.
   const terms = Array.isArray(output.terms) ? (output.terms as TermEntry[]) : []
+  // The definition read_context read, where its page in Definitions is (FR-353).
+  const definition = output.definition as { name: string; url: string } | undefined
   return [
+    ...(definition ? [`Open in ${productName} - ${definition.name}: ${definition.url}`] : []),
     ...items,
     ...terms.map(
       (term) =>
@@ -958,6 +967,81 @@ export function createToolService(
     return failure('The list cannot fit this size limit. Increase max_bytes.')
   }
 
+  /**
+   * read_context for a definition (FR-353): the one definition the words name, in full, with a
+   * page of the published context items about it; for words that name several, the keys to pick
+   * from, and for words that name none, the closest names. A definition hidden from agents (a
+   * paused domain, a waiting source member, a draft) answers like one that does not exist.
+   */
+  async function definitionRead(
+    read: ReadInput,
+    bundle: ServingBundle,
+    common: Record<string, unknown>,
+    limit: number,
+    today: string,
+    live: boolean,
+  ): Promise<ToolResult> {
+    const named = definitionNamed(bundle, read.id)
+    if ('several' in named)
+      return resultFor({
+        ...saidFields(severalDefinitionsSaid(named.several.length)),
+        ...common,
+        status: 'need_more_detail',
+        message: `'${read.id}' names ${named.several.length} definitions. Call again with one key from options.`,
+        options: [{ field: 'id', input: read.id, options: named.several.map(optionOf) }],
+        check_report: report('need_more_detail'),
+      })
+    if ('closest' in named)
+      return resultFor({
+        ...saidFields(unknownDefinitionSaid(named.closest.map((d) => d.term.name))),
+        ...common,
+        status: 'no_match',
+        message: `Unknown definition '${read.id}'.${
+          named.closest.length
+            ? ` The closest: ${named.closest.map((d) => d.term.name).join(', ')}.`
+            : ''
+        } Find definitions with list_definitions or find_context.`,
+        ...(named.closest.length
+          ? { options: [{ field: 'id', input: read.id, options: named.closest.map(optionOf) }] }
+          : {}),
+        check_report: report('no_match'),
+      })
+    const found = named.found
+    // What Definitions shows of it now: its family, read date and relations (live only).
+    const shown =
+      live && reads && found.kind === 'vocabulary' ? await reads.definition(found.key) : null
+    const about = itemsAbout(bundle, found, today)
+    const key = pageKey(bundle, { tool: 'read_context', id: found.key, day: today }),
+      offset = cursorOffset(read.cursor, key)
+    const page = about.slice(offset, offset + 20)
+    const definition = definitionEntry(
+      bundle,
+      found,
+      shown,
+      {
+        owner: (areaId) => definitionOwner(bundle, areaId),
+        url: (name) => definitionUrl(web, name),
+      },
+      { count: about.length, page },
+    )
+    const rendered = resultFor({
+      ...saidFields(
+        definitionReadSaid({ name: definition.name, kind: definition.kind, items: about.length }),
+      ),
+      ...common,
+      status: 'matched',
+      definition,
+      next_cursor:
+        offset + page.length < about.length ? cursorFor(key, offset + page.length) : null,
+      ttlMs: 0,
+      cacheScope: 'private',
+      check_report: report('matched', 1),
+    })
+    return byteSize(rendered) <= limit
+      ? rendered
+      : failure('The definition cannot fit this size limit. Increase max_bytes.')
+  }
+
   return async function execute(
     name: ServedToolName,
     input: unknown,
@@ -1286,6 +1370,9 @@ export function createToolService(
       }
       if (name === 'read_context') {
         const read = readInput.parse(input)
+        // Anything but a context item's id names a definition (FR-353).
+        if (!itemIdPattern.test(read.id))
+          return await definitionRead(read, bundle, common, limit, today, edition === undefined)
         const item = bundle.items.find((i) => i.id === read.id)
         if (!item || !canRead(bundle, item, today))
           return resultFor({
