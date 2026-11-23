@@ -29,6 +29,7 @@ import {
   type Resolution,
 } from './resolver.ts'
 import { answerStateOf } from './answer-state.ts'
+import { questionWords } from './question-order.ts'
 import {
   askedGroups,
   askedMetrics,
@@ -81,6 +82,8 @@ export type AnswerSource = ResolverItem & {
 export type AnswerBundle = Omit<EditionBundle, 'items'> & {
   items: readonly AnswerSource[]
   terms: readonly Term[]
+  /** The domains, by name: a question's words that name one order nothing (question-order.ts). */
+  areas?: readonly { name: string }[]
 }
 
 /** A dimension and the values asked for, by name or key; no values names the dimension only. */
@@ -109,6 +112,11 @@ export type AnswerOptions = {
   calendar?: Calendar
   /** How many items the answer gives at most; the rest are left out as `cut`. */
   maxItems?: number
+  /**
+   * The words what applies is ordered by (question-order.ts): the question's own when not given.
+   * Ask gives the person's question with the subject the model read, which a scope ask has not.
+   */
+  order?: string
   /** A clock in milliseconds, to time the steps; without it every step takes 0 ms. */
   now?: () => number
   /** Whose words `say` is in: a person's (`peopleVoice`) without it. */
@@ -243,10 +251,16 @@ export function readAsk(
 }
 
 /** What the resolver gives an agent for a read scope, with no audience groups, as get_context. */
-function resolved(bundle: AnswerBundle, scope: ScopeResult, today: string): Resolution {
+function resolved(
+  bundle: AnswerBundle,
+  scope: ScopeResult,
+  today: string,
+  words: readonly string[] = [],
+): Resolution {
   return resolve(bundle, {
     scope,
     today,
+    words,
     groups: noGroups,
     hiddenMetrics: [],
     sizeLimit: Number.MAX_SAFE_INTEGER,
@@ -386,6 +400,7 @@ export function* lookUp(
     now = () => 0,
     voice = peopleVoice,
     person = false,
+    order,
   }: AnswerOptions,
 ): Generator<AnswerStep, Answer, void> {
   const steps: AnswerStep[] = []
@@ -410,7 +425,12 @@ export function* lookUp(
   yield step({ step: 'read_scope', ms: lap(), scope, dates, assumed, issues })
   mark = now()
 
-  const resolution = resolved(bundle, read, today)
+  const words = questionWords(
+    order ?? ('question' in ask ? ask.question : ''),
+    bundle.terms,
+    bundle.areas ?? [],
+  )
+  const resolution = resolved(bundle, read, today, words)
   const byId = new Map(bundle.items.map((item) => [item.id, item]))
   const matched = resolution.items.map((match) => ({ match, item: byId.get(match.id)! }))
   const given = matched.slice(0, Math.max(0, maxItems))

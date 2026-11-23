@@ -22,6 +22,7 @@ import { assumedDate, extractScope, unknownName } from '../../domain/scope.ts'
 import { UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
 import { acceptedByRole, ownerRole } from '../../domain/served-review.ts'
 import { shiftDate } from '../../domain/validity.ts'
+import { questionWords } from '../../domain/question-order.ts'
 import {
   memberNames,
   memberTokens,
@@ -685,9 +686,12 @@ export function findContext(
   const pool = bundle.items.filter(fits)
   const readable = pool.filter((item) => canRead(bundle, item, today))
   const read = readQuery(args.query, bundle.terms, bundle.areas)
-  let found: { item: ServingItem; match: string }[] = rankItems(read, readable, bundle.terms).map(
-    ({ item, all }) => ({ item, match: all ? 'all' : 'some' }),
-  )
+  let found: { item: ServingItem; match: string }[] = rankItems(
+    read,
+    readable,
+    bundle.terms,
+    today,
+  ).map(({ item, all }) => ({ item, match: all ? 'all' : 'some' }))
   let scoped: Record<string, unknown> | null = null
   let assumed: ReturnType<typeof assumedDate> | null = null
   if (!found.length) {
@@ -706,6 +710,7 @@ export function findContext(
         hiddenMetrics: [],
         sizeLimit: Number.MAX_SAFE_INTEGER,
         dependenciesAvailable: true,
+        words: questionWords(args.query, bundle.terms, bundle.areas),
       })
       const byId = new Map(pool.map((item) => [item.id, item]))
       found = resolution.items.flatMap((match) => {

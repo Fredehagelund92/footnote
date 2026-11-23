@@ -15,6 +15,7 @@ import {
 } from '../../domain/resolver.ts'
 import { findArea, readQuery } from '../../domain/context-search.ts'
 import { normalizeName } from '../../domain/vocabulary.ts'
+import { questionWords } from '../../domain/question-order.ts'
 import { noteFindings, topicFor } from '../../domain/gap-reports.ts'
 import {
   assumedDate,
@@ -1155,6 +1156,7 @@ export function createToolService(
           (period?.provenance === 'period'
             ? { words: period.words!, reads_as: period.reads_as }
             : null)
+        // What applies, ordered by the question's own words, as Ask's reads order it.
         const resolution = resolve(bundle, {
           scope,
           today,
@@ -1162,6 +1164,7 @@ export function createToolService(
           hiddenMetrics: [],
           sizeLimit: Number.MAX_SAFE_INTEGER,
           dependenciesAvailable: true,
+          words: questionWords(scoped.question, bundle.terms, bundle.areas),
         })
         const base = report(
           resolution.status,

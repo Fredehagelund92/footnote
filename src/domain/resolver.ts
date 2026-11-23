@@ -8,6 +8,7 @@ import {
 import type { DateWindow } from './validity.ts'
 import { overlaps, calendarDateSchema, dateWindowSchema } from './validity.ts'
 import type { ScopeResult, ResolvedScope } from './scope.ts'
+import { questionScore } from './question-order.ts'
 
 export type ResolverItem = {
   id: string
@@ -20,7 +21,10 @@ export type ResolverItem = {
   checkFlag: CheckFlag | null
   status: 'accepted' | 'retired' | 'proposal'
   audience: Audience
+  /** What the question's own words are read against, with the summary (question-order.ts). */
+  title?: string
   summary: string
+  notToConclude?: string
   body?: string
   conflicts: readonly string[]
   replacedBy?: string
@@ -43,6 +47,11 @@ export type ResolveRequest = {
   // (C17/C26): first-version callers have none.
   groups: readonly string[]
   hiddenMetrics: readonly string[]
+  /**
+   * The question's own words (`questionWords`), which order what applies: the items that hold
+   * them first, a rarer word weighing more. None keeps the engine's order.
+   */
+  words?: readonly string[]
   preview?: {
     personId: string
     ownerAreas: readonly string[]
@@ -238,8 +247,13 @@ export function resolve(bundle: EditionBundle, request: ResolveRequest): Resolut
       },
     })
   }
+  // The question's own words first (question-order.ts), then whole matches before partial ones,
+  // higher risk, newer start and id.
+  const score = questionScore(bundle.items, request.words ?? [])
+  const scores = new Map(hits.map((hit) => [hit.item.id, score(hit.item.id)]))
   hits.sort(
     (a, b) =>
+      scores.get(b.item.id)! - scores.get(a.item.id)! ||
       Number(a.match.match === 'partial') - Number(b.match.match === 'partial') ||
       risk[b.item.riskLevel] - risk[a.item.riskLevel] ||
       compareIds(b.item.validity.start, a.item.validity.start) ||

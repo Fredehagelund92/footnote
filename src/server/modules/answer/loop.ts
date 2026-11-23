@@ -707,6 +707,7 @@ export async function* askLoop(
             : call.input
         const result = await reads.one(call.toolName, given, {
           lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+          question: input.question,
         })
         if (isError(result)) return null
         const ref = `r${earlier.length + made.length + plain.length + 1}`
@@ -756,6 +757,8 @@ export async function* askLoop(
             turns,
             done.map((result, k) => ({ ...wanted[k]!, result })),
           ),
+          // Its own turn's question, so it reads as it read then.
+          question: turns[wanted[i]!.turn]!.question,
         }),
       )
       earlier = wanted.map((w, i) => ({ ...w, result: made[i], ref: `r${i + 1}` }))
@@ -802,6 +805,7 @@ export async function* askLoop(
           const read = (async () => {
             const result = await reads.one(name, given, {
               lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+              question: input.question,
             })
             // Numbered as it comes back, after the chat's earlier reads: what the words cite it by.
             const ref = `r${earlier.length + made.length + 1}`

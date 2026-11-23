@@ -810,8 +810,13 @@ const getOutput = z.object({
   notCovered: z.array(z.string()),
   /** The same, by id, as `names` gives them. */
   uncovered: z.array(z.string()),
-  /** Items that apply and are not shown. Items that only match the words are never counted. */
+  /**
+   * Items that apply and are not given whole: `rest` names the first of them. Items that only match
+   * the words are never counted.
+   */
   more: z.number(),
+  /** The items that apply past the first 20, in the same order, by title: read one with read_context. */
+  rest: z.array(z.object({ id: z.string(), title: z.string(), kind: z.string() })),
   /** What the wider read found when it left a part out: about the names, not the whole subject. */
   wider: z.nullable(
     z.object({
@@ -998,6 +1003,9 @@ function eventAnchor(
   }
 }
 
+/** The most items past the first 20 a read names by title. */
+const REST_NAMED = 50
+
 /** Whether a subject's words name dates of their own. */
 const namesDates = (words: string, today: string, calendar: Calendar) =>
   readDates(normalizeName(words), today, { loose: true, ...calendar }).status !== 'none'
@@ -1007,7 +1015,7 @@ function getContext(
   input: z.output<typeof getReadInput>,
   today: string,
   calendar: Calendar,
-  { lastPeriod }: ReadContext,
+  { lastPeriod, question = '' }: ReadContext,
 ) {
   // The period the person chose stands. Else the model's days for the period, cross-checked
   // against the reader's of the person's words, or read against the last question's period on a
@@ -1025,8 +1033,11 @@ function getContext(
           : null,
       )
   const given = days ? { from: days.window.start, to: shiftDate(days.window.end, -1) } : undefined
+  // What applies, ordered by the words of the person's question and of the subject read: the
+  // engine's order, as agents get it (question-order.ts).
+  const order = [question, input.about, input.widen?.other_name ?? ''].join(' ')
   const lookup = (ask: Parameters<typeof answer>[1]) =>
-    answer(view.bundle, ask, { today, calendar, person: true })
+    answer(view.bundle, ask, { today, calendar, person: true, order })
   const plain = lookup({ question: input.about, ...(given ? { window: given } : {}) })
   // Words the reader placed no period for may name an event the days start or end at.
   const anchored =
@@ -1164,7 +1175,13 @@ function getContext(
     metricAreas,
     items.map((i) => byId.get(i.id)?.areaId),
   )
-  const cut = counted.leftOut.filter((l) => l.reason === 'cut').length
+  const cutItems = counted.leftOut.filter((l) => l.reason === 'cut')
+  const cut = cutItems.length
+  // The rest of what applies, by title, so the model can read any of it (decided 23 November).
+  const rest = cutItems.slice(0, REST_NAMED).map((l) => {
+    const item = byId.get(l.id)
+    return { id: l.id, title: l.title, kind: item ? itemOf(view, item, today).kind : l.kind }
+  })
   const shownItems = [...items, ...widerItems, ...nearby].flatMap((i) => byId.get(i.id) ?? [])
   const readWords = searched.at(wider ? 0 : -1)!.words
   const synonyms = synonymsRead(view, readWords, keysOf(counted))
@@ -1242,6 +1259,7 @@ function getContext(
       ? [...counted.uncovered.metrics.map(named), ...counted.uncovered.values].map(nounId)
       : [],
     more: cut,
+    rest,
     wider: wider ? { without: input.widen!.without!, items: widerItems } : null,
     owners,
     definitions: [...new Set(keysOf(counted).map((k) => view.familyOf.get(k) ?? k))].flatMap(
@@ -1266,7 +1284,7 @@ function getContext(
       areas: owners.map((o) => o.id.slice('domain:'.length)),
       people: ownerPeople(owners),
     }),
-    ids: [...items, ...widerItems].map((i) => i.id).concat(nearby.map((n) => n.id)),
+    ids: [...items, ...widerItems, ...nearby, ...rest].map((i) => i.id),
   }
 }
 
@@ -1332,6 +1350,7 @@ function unreadOf(
     notCovered: [],
     uncovered: [],
     more: 0,
+    rest: [],
     wider: null,
     owners: [],
     definitions: [],
@@ -2476,7 +2495,7 @@ const definitionsFor = {
   },
   get_context: {
     description:
-      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read, with what the words people wrote in Definitions that it uses mean (terms): background for reading the words, never a source. A family named with none of its values is read as its usual variant when its owners picked one (read.usual): the question is about that variant, so answer about it, and say its values once, such as “in EUR”. It reads published items only, never drafts: when nothing applies, say that nothing published covers it, never that nothing is written. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
+      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, in the order agents get them (first those that hold the words of the question that name no metric, value or date, a rarer word first; then whole matches, higher risk, newer start), the first 20 whole and the rest by title in rest (read one with read_context when its title is what the question turns on), the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read, with what the words people wrote in Definitions that it uses mean (terms): background for reading the words, never a source. A family named with none of its values is read as its usual variant when its owners picked one (read.usual): the question is about that variant, so answer about it, and say its values once, such as “in EUR”. It reads published items only, never drafts: when nothing applies, say that nothing published covers it, never that nothing is written. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
     input: getInput,
     output: getOutput,
   },
@@ -2539,7 +2558,14 @@ export type AskToolResult<N extends AskToolName> =
  * a follow-up's period may be read against (`relative_to`); null when it read none, or the day it
  * assumed.
  */
-export type ReadContext = { lastPeriod: { start: string; end: string } | null }
+export type ReadContext = {
+  lastPeriod: { start: string; end: string } | null
+  /**
+   * The person's question of the turn the read is for: a get_context read orders what applies by
+   * its words, with the subject's (question-order.ts). Read in memory only (FR-602).
+   */
+  question?: string
+}
 
 /** Each tool's read, given the person's view, their reads and the checked input. */
 type Handlers = {

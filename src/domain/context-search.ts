@@ -1,5 +1,6 @@
 import { domainsInText, matchDomain } from './domain-match.ts'
-import type { Scope } from './item.ts'
+import type { CheckFlag, Scope } from './item.ts'
+import { overlaps, shiftDate, type DateWindow } from './validity.ts'
 import {
   memberTokens,
   namesOf,
@@ -27,6 +28,10 @@ export type SearchItem = {
   summary: string
   body?: string
   scope: Scope
+  /** When it applies, and whether it may be out of date: what breaks a tie between equals. */
+  validity?: DateWindow
+  checkFlag?: CheckFlag | null
+  reviewDate?: string | null
 }
 /** One thing the query names. A phrase that names a domain and a term matches either. */
 type Concept =
@@ -58,7 +63,7 @@ export type ReadQuery = {
 // Words that carry no meaning in a search of short governed facts: function words, question
 // words and the product's own nouns ("item", "domain"), so "what does the Sales domain
 // cover" reads as Sales and "cover".
-const stopWords = new Set(
+export const searchStopWords = new Set(
   (
     'a about across after all also am an and any are as at be been before being between both but by ' +
     'can could did do does doing done during each for from had has have having how i if in into is it ' +
@@ -166,7 +171,7 @@ export function readQuery(
   // The words outside the recognised phrases.
   const rest = [...text].map((char, i) => (occupied.has(i) ? ' ' : char)).join('')
   for (const word of wordsOf(rest)) {
-    if (stopWords.has(word) || word.length < 2) {
+    if (searchStopWords.has(word) || word.length < 2) {
       used.ignored.push(word)
       continue
     }
@@ -220,48 +225,66 @@ function mentions(text: string, phrase: string) {
 
 export type Ranked<T> = { item: T; score: number; all: boolean }
 
+/** How much a part of a query weighs: a part few items have says more than one most items have. */
+const rarity = (n: number, having: number) => Math.log(1 + n / (1 + having))
+
 /**
- * The items that match a read query, best first: every part matched before some, a named domain
- * or term before a plain word, then by id. An empty query keeps every item, in id order; a query
- * of only ignored words or unknown source members keeps none.
+ * The items that match a read query, best first: every part matched before some, then by how much
+ * the parts matched weigh, a rare word above a common name ("store credit" above Norway); among
+ * equals, the item titled with just the words asked, then the one in force on `today` before one
+ * that ended or starts later, the current before one that may be out of date, the newer start,
+ * then id. An empty query keeps every item, in that order; a query of only ignored words or
+ * unknown source members keeps none.
  */
 export function rankItems<T extends SearchItem>(
   read: ReadQuery,
   items: readonly T[],
   terms: readonly Term[],
+  today?: string,
 ): Ranked<T>[] {
-  const byId = (a: Ranked<T>, b: Ranked<T>) =>
-    a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0
+  const day = today ? { start: today, end: shiftDate(today, 1) } : null
+  const inForce = (item: T) => Number(!!day && !!item.validity && overlaps(item.validity, day))
+  const current = (item: T) =>
+    Number(!item.checkFlag && !(today && item.reviewDate && item.reviewDate < today))
+  const trusted = (a: Ranked<T>, b: Ranked<T>) =>
+    inForce(b.item) - inForce(a.item) ||
+    current(b.item) - current(a.item) ||
+    compare(b.item.validity?.start ?? '', a.item.validity?.start ?? '') ||
+    compare(a.item.id, b.item.id)
   if (!read.concepts.length) {
     if (read.used.ignored.length || read.used.unknown_members.length) return []
-    return items.map((item) => ({ item, score: 0, all: true })).sort(byId)
+    return items.map((item) => ({ item, score: 0, all: true })).sort(trusted)
   }
   const parents = new Map(terms.map((term) => [term.key, term.parentKey]))
-  const ranked: Ranked<T>[] = []
-  for (const item of items) {
+  const hits = items.map((item) => {
     const { text, stems } = indexed(item)
-    let score = 0
-    let matched = 0
-    for (const concept of read.concepts) {
-      const hit =
-        concept.kind === 'word'
-          ? stems.has(concept.stem)
-          : concept.areas.includes(item.areaId) ||
-            concept.terms.some((key) => about(item, key, parents)) ||
-            mentions(text, concept.phrase)
-      if (!hit) continue
-      matched++
-      score += concept.kind === 'word' ? 1 : 3
-    }
-    if (matched) ranked.push({ item, score, all: matched === read.concepts.length })
+    return read.concepts.map((concept) =>
+      concept.kind === 'word'
+        ? stems.has(concept.stem)
+        : concept.areas.includes(item.areaId) ||
+          concept.terms.some((key) => about(item, key, parents)) ||
+          mentions(text, concept.phrase),
+    )
+  })
+  const weights = read.concepts.map((_, c) =>
+    rarity(items.length, hits.filter((hit) => hit[c]).length),
+  )
+  const ranked: Ranked<T>[] = []
+  for (const [i, item] of items.entries()) {
+    const hit = hits[i]!
+    const matched = hit.filter(Boolean).length
+    if (!matched) continue
+    const score = weights.reduce((sum, weight, c) => sum + (hit[c] ? weight : 0), 0)
+    ranked.push({ item, score, all: matched === read.concepts.length })
   }
   // Among equals, the item titled with just the words asked comes first.
   const titled = (r: Ranked<T>) => Number(stemmedTitle(r.item.title) === read.title)
   return ranked.sort(
     (a, b) =>
-      Number(b.all) - Number(a.all) || b.score - a.score || titled(b) - titled(a) || byId(a, b),
+      Number(b.all) - Number(a.all) || b.score - a.score || titled(b) - titled(a) || trusted(a, b),
   )
 }
+const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
 /**
  * A domain by its id, `area:<id>` or its name ("Sales", "the Sales domain"), read
