@@ -97,6 +97,9 @@ for (const { name, width, height } of widths) {
         await expect(page.getByRole('region', { name: 'Split into metrics' })).toContainText(
           'Partner payouts (EUR) and Partner payouts (USD), split by you on',
         )
+        // The toast's time stands still while the pointer is over it, so the checks below, slow
+        // on a busy runner, don't take Undo away.
+        await toasts(page).getByRole('button', { name: 'Undo' }).hover()
         expect(await sideways(page)).toBe(0)
         expect(await axe(page)).toEqual([])
         await toasts(page).getByRole('button', { name: 'Undo' }).click()
