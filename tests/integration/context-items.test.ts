@@ -60,7 +60,7 @@ const ok = async <T>(response: Promise<{ statusCode: number; body: string; json:
 }
 
 /** A market of its own for each item, so no item clashes with another. */
-const markets = Array.from({ length: 80 }, (_, i) => `m${String(i).padStart(2, '0')}`)
+const markets = Array.from({ length: 90 }, (_, i) => `m${String(i).padStart(2, '0')}`)
 let nextMarket = 0
 
 beforeAll(async () => {
@@ -748,6 +748,84 @@ describe('a change to many items at once (FR-139)', () => {
     expect((await call('POST', '/items/itm_nothere001/read', 'admin')).statusCode).toBe(404)
     expect((await undo('admin', r.undo!.token)).statusCode).toBe(200)
     expect(await served(opened)).toMatchObject({ n: 1 })
+  })
+})
+
+describe('publishing many drafts at once (FR-139)', () => {
+  const proposal = (who: Who, id: string) =>
+    ok<ProposalRecord>(call('GET', `/proposals/${id}`, who))
+  const drafts = async (who: Who) =>
+    (
+      await ok<{ rows: ProposalRecord[] }>(
+        call('GET', '/proposals?state=draft&limit=100&offset=0', who),
+      )
+    ).rows
+
+  it("publishes an owner's drafts and a member's in their domain at once, as each writer's", async () => {
+    const theirs = await aDraft()
+    const own = await aDraft({}, 'owner')
+    const published = await live()
+    const noSource = await aDraft({ evidence: [] })
+    const elsewhere = await aDraft({ areaId: 'marketing' })
+    const r = await bulk('owner', {
+      action: 'publish',
+      rows: [theirs, own, published, noSource, elsewhere],
+    })
+    expect(r).toMatchObject({ done: [theirs, own], sent: [], failed: [] })
+    expect(r.skipped).toEqual([
+      // A member's draft in another domain is not the owner's to see.
+      expect.objectContaining({ id: elsewhere, code: 'not_found' }),
+      expect.objectContaining({ id: published, code: 'published' }),
+      expect.objectContaining({ id: noSource, code: 'not_ready', why: 'not ready' }),
+    ])
+    expect(r.change?.summary).toMatch(/^Published “.*” and 1 more\.$/)
+    const item = (await proposal('owner', theirs)).itemId!
+    expect((await served(item))?.n).toBe(1)
+    // The member stays its writer; the draft that failed the checks is still a draft.
+    expect(await proposal('author', theirs)).toMatchObject({
+      state: 'accepted',
+      proposerId: people.author,
+    })
+    expect((await proposal('author', noSource)).state).toBe('draft')
+    const changes = await ok<ItemChange[]>(call('GET', '/context/changes', 'owner'))
+    expect(changes[0]).toMatchObject({ action: 'published', personId: people.owner })
+
+    // Undo takes both from agents, and each is a draft again, its writer's.
+    expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
+    expect(await served(item)).toBeNull()
+    for (const [who, id] of [
+      ['author', theirs],
+      ['owner', own],
+    ] as const) {
+      const unsent = await proposal(who, id)
+      expect(unsent.state).toBe('withdrawn')
+      const back = (await drafts(who)).find((d) => d.draft?.title === unsent.draft?.title)
+      expect(back).toMatchObject({ state: 'draft', proposerId: people[who] })
+    }
+  })
+
+  it("sends a member's own drafts to the domain's owners, and Undo makes them drafts again", async () => {
+    const mine = await aDraft()
+    const r = await bulk('author', { action: 'publish', rows: [mine] })
+    expect(r).toMatchObject({ done: [mine], sent: [mine], skipped: [], failed: [] })
+    expect(r.change?.summary).toMatch(/^Sent “.*” to its domain's owners\.$/)
+    const sent = await proposal('author', mine)
+    expect(sent.state).toBe('submitted')
+    expect(await served(sent.itemId!)).toBeNull()
+    expect((await undo('author', r.undo!.token)).statusCode).toBe(200)
+    expect((await proposal('author', mine)).state).toBe('withdrawn')
+    expect((await drafts('author')).some((d) => d.draft?.title === sent.draft?.title)).toBe(true)
+  })
+
+  it("leaves someone else's draft in another domain alone, and refuses too many at once", async () => {
+    const theirs = await aDraft({}, 'owner')
+    const r = await bulk('stranger', { action: 'publish', rows: [theirs] })
+    expect(r.done).toEqual([])
+    expect(r.skipped).toEqual([expect.objectContaining({ id: theirs })])
+    const many = Array.from({ length: 51 }, () => randomUUID())
+    const refused = await call('POST', '/items/bulk', 'owner', { action: 'publish', rows: many })
+    expect(refused.statusCode).toBe(422)
+    expect(refused.body).toContain('Publish up to 50 drafts at once.')
   })
 })
 

@@ -150,6 +150,7 @@ export {
   RulerIcon,
   ScanSearchIcon,
   SearchIcon,
+  SendIcon,
   SettingsIcon,
   ShapesIcon,
   ShareIcon,

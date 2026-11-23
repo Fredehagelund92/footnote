@@ -10,12 +10,18 @@ import { findDefinition, goesWith } from '@/lib/definitions'
 import {
   canChange,
   askDelete,
+  CONFIRM_ABOVE,
   doneLine,
+  draftReadiness,
   heldRows,
   movableTo,
   needsTyping,
   planFacts,
   planTerms,
+  PUBLISH_MAX,
+  publishedLine,
+  publishesNow,
+  publishParts,
   skippedLine,
   toCsv,
   toMarkdown,
@@ -311,5 +317,115 @@ describe('the store', () => {
     const s = reduce(start, { type: 'viewedFact', id: 'x' })
     expect(s.viewed).toEqual({ x: true })
     expect(reduce(s, { type: 'viewedFact', id: 'x' })).toBe(s)
+  })
+})
+
+describe('publishing drafts from the list', () => {
+  const ines = { name: 'Ines Duarte', admin: false }
+  const ready: Fact = {
+    ...fact('itm_draft_black_friday'),
+    source: 'https://wiki.example/a',
+    quote: 'A sentence.',
+  }
+  const byInes: Fact = { ...ready, id: 'd_ines', domain: 'marketing', by: 'Ines Duarte' }
+
+  it('publishes only drafts that pass the editor checks, and says what is missing', () => {
+    const noSource = { ...ready, id: 'd_nosource', source: '', quote: '' }
+    const noQuote = { ...ready, id: 'd_noquote', quote: '' }
+    const badLink = { ...ready, id: 'd_link', source: 'wiki page' }
+    const long = { ...ready, id: 'd_long', summary: 'word '.repeat(80) }
+    const nowhere = { ...ready, id: 'd_nowhere', where: [] }
+    const plan = planFacts(
+      'publish',
+      [ready, noSource, noQuote, badLink, long, nowhere, salesLive[0]!],
+      jon,
+      domains,
+    )
+    expect(plan.act).toEqual([ready])
+    expect(plan.skipped.map((s) => [s.id, s.why, s.reason])).toEqual([
+      ['d_nosource', 'missing a source', 'Add a source first.'],
+      [
+        'd_noquote',
+        'missing a sentence copied from the source',
+        'Add a sentence copied from the source first.',
+      ],
+      ['d_link', 'a link to fix', 'Fix the link in Source first.'],
+      [
+        'd_long',
+        'a first paragraph too long',
+        'Shorten the first paragraph to 280 characters first.',
+      ],
+      ['d_nowhere', 'missing where it applies', 'Add where it applies first.'],
+      [salesLive[0]!.id, 'published', 'It is published already.'],
+    ])
+    expect(draftReadiness(ready, domains)).toEqual({ state: 'ready' })
+  })
+
+  it("publishes at once for an owner or an admin, and sends a writer's own draft to the owners", () => {
+    expect(publishesNow(ready, sofia, domains)).toBe(true)
+    expect(publishesNow(byInes, jon, domains)).toBe(true)
+    const mine = planFacts('publish', [byInes, ready], ines, domains)
+    expect(mine.act).toEqual([byInes])
+    expect(publishesNow(byInes, ines, domains)).toBe(false)
+    expect(mine.skipped).toEqual([
+      {
+        id: ready.id,
+        title: ready.title,
+        why: 'owned by Sales',
+        reason: 'Only its writer, owners of Sales and admins can publish it.',
+      },
+    ])
+  })
+
+  it('sends what the bar and a draft page publish alike: patches for its domains, ids for the owners', () => {
+    const plan = planFacts('publish', [ready, byInes], ines, domains)
+    expect(publishParts(plan, ines, domains, '23 Nov 2026')).toEqual({
+      patches: {},
+      suggest: ['d_ines'],
+      to: 'Marketing',
+    })
+    const both = planFacts('publish', [ready, byInes], jon, domains)
+    expect(publishParts(both, jon, domains, '23 Nov 2026')).toEqual({
+      patches: {
+        [ready.id]: { status: 'Live', checkedBy: 'Jon Abara', checkedOn: '23 Nov 2026' },
+        d_ines: { status: 'Live', checkedBy: 'Jon Abara', checkedOn: '23 Nov 2026' },
+      },
+      suggest: [],
+      to: '',
+    })
+  })
+
+  it('says what it published and what it sent, and holds a sensible batch', () => {
+    expect(publishedLine(3, 0)).toBe('3 published')
+    expect(publishedLine(2, 1, 0, 'Marketing')).toBe(
+      '2 published, 1 sent to the owners of Marketing',
+    )
+    expect(publishedLine(0, 0, 2)).toBe('None published, 2 failed')
+    expect(CONFIRM_ABOVE).toBe(5)
+    expect(PUBLISH_MAX).toBe(50)
+  })
+
+  it('publishes a draft through the mock as the service would: it is live, the rest wait', async () => {
+    const { api } = createMockApi()
+    const draftIds = drafts.map((d) => d.id)
+    const result = await api.applyBulk({
+      action: 'publish',
+      patches: { itm_draft_black_friday: { status: 'Live' } },
+      remove: [],
+      suggest: ['itm_draft_spring_spend'],
+      entry: {
+        id: 'log-publish',
+        on: '2026-10-23',
+        who: 'Jon Abara',
+        what: 'published',
+        summary: 'Published from the Context list.',
+        items: [{ id: 'itm_draft_black_friday', title: 'Black Friday' }],
+      },
+    })
+    expect(result.done.sort()).toEqual(['itm_draft_black_friday', 'itm_draft_spring_spend'])
+    const page = await api.contextPage()
+    expect(page.find((f) => f.id === 'itm_draft_black_friday')?.status).toBe('Live')
+    expect(page.some((f) => f.id === 'itm_draft_spring_spend')).toBe(false)
+    expect(draftIds).toContain('itm_draft_spring_spend')
   })
 })

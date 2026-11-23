@@ -40467,7 +40467,8 @@
                       "kind",
                       "owner_add",
                       "owner_set",
-                      "check"
+                      "check",
+                      "publish"
                     ],
                     "type": "string"
                   },
@@ -40529,6 +40530,12 @@
                         "type": "string"
                       }
                     },
+                    "sent": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "skipped": {
                       "type": "array",
                       "items": {
@@ -40552,7 +40559,8 @@
                               "not_owner_there",
                               "already_owner",
                               "only_owner",
-                              "not_opened"
+                              "not_opened",
+                              "not_ready"
                             ],
                             "type": "string"
                           },
@@ -40649,6 +40657,7 @@
                   },
                   "required": [
                     "done",
+                    "sent",
                     "skipped",
                     "failed",
                     "change",
@@ -41480,7 +41489,8 @@
                           "moved",
                           "kind",
                           "owners",
-                          "checked"
+                          "checked",
+                          "published"
                         ],
                         "type": "string"
                       },

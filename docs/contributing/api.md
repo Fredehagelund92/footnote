@@ -610,16 +610,21 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   page. Mark as checked takes only items the person opened.
 - `POST /items/bulk` takes `{ action, rows, areaId?, kind?, personId? }`
   (FR-139), up to 200 rows: published items by id and drafts by their proposal's id. `action` is
-  `archive`, `delete` (drafts only), `domain`, `kind`, `owner_add`, `owner_set` or `check`.
-  Owners of an item's domain and admins change it, and a domain is moved into only by its owners
-  and admins (403 otherwise). It names the rows it acts on and each other row with a code
-  (`not_found`, `not_allowed`, `archived`, `draft`, `published`, `same_domain`, `same_kind`,
-  `not_owner_there`, `already_owner`, `only_owner`, `not_opened`), a few words (`why`) and a
-  sentence (`message`). The change does each row it may in full or not at all: an archive is a
-  retire decision, a move or a new kind is a change its owner publishes through the review's
-  checks and gate, a check is a recheck, and a deletion discards the draft. A row that fails
-  stays as it was, in `failed` with why, to try again. One `change:<id>` token undoes the whole
-  change within `limits.undo_seconds`, for its maker only.
+  `archive`, `delete` (drafts only), `domain`, `kind`, `owner_add`, `owner_set`, `check` or
+  `publish` (drafts only, up to 50; 422 above that). Owners of an item's domain and admins change
+  it, and a domain is moved into only by its owners and admins (403 otherwise). It names the rows
+  it acts on and each other row with a code (`not_found`, `not_allowed`, `archived`, `draft`,
+  `published`, `same_domain`, `same_kind`, `not_owner_there`, `already_owner`, `only_owner`,
+  `not_opened`, `not_ready`), a few words (`why`) and a sentence (`message`). The change does
+  each row it may in full or not at all: an archive is a retire decision, a move or a new kind is
+  a change its owner publishes through the review's checks and gate, a check is a recheck, and a
+  deletion discards the draft. A publish is the editor's one step (`POST /items/publish`): sent,
+  checked and published at once by an owner of the draft's domain or an admin, as its writer's;
+  a writer's own draft for another domain goes to its owners, and `sent` names those. A draft the
+  checks refuse is skipped as `not_ready` with their first reason. A row that fails stays as it
+  was, in `failed` with why, to try again. One `change:<id>` token undoes the whole change within
+  `limits.undo_seconds`, for its maker only; Undo of a publish makes each draft a draft again,
+  its writer's.
 - `GET /context/changes` is the History log: each change to many items, newest first, with what
   it did in one sentence. An item the audience rule hides from the reader is counted in
   `withheld`, never named, and then the sentence says only how many items changed. `GET /context/deleted` lists the drafts that were deleted, with who

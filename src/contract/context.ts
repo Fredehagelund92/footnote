@@ -50,6 +50,8 @@ const bulkRowSkipSchema = z.object({
  */
 export const itemBulkResultSchema = z.object({
   done: z.array(z.string()),
+  /** Publish: the drafts of `done` sent to their domain's owners as suggestions, not published. */
+  sent: z.array(z.string()),
   skipped: z.array(bulkRowSkipSchema),
   failed: z.array(z.object({ id: z.string(), title: z.string(), message: z.string() })),
   /** Its line in the History log; null when it changed nothing. */
@@ -60,7 +62,7 @@ export const itemBulkResultSchema = z.object({
 /** A change to many items, as the History log in Settings, Advanced lists it. */
 export const itemChangeSchema = z.object({
   id: z.string(),
-  action: z.enum(['archived', 'deleted', 'moved', 'kind', 'owners', 'checked']),
+  action: z.enum(['archived', 'deleted', 'moved', 'kind', 'owners', 'checked', 'published']),
   personId: z.string(),
   at: z.string(),
   summary: z.string(),
