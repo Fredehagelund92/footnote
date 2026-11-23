@@ -38,7 +38,7 @@ import { draftVocabulary } from '../../mcp/draft-tool.ts'
 import { proposalEvent, readVersions, type ProposalsService } from '../proposals/index.ts'
 import { draftOf, type ReviewPath, type ReviewService } from '../review/index.ts'
 import { readableAddress, type PageReader } from '../web/index.ts'
-import { missing, signedOutKept } from '../../../contract/refusals.ts'
+import { missing, notAllowed, signedOutKept } from '../../../contract/refusals.ts'
 
 /**
  * Context for people (docs/product.md, section 3): a context item's page and its history, the
@@ -821,10 +821,11 @@ export function createContextService(
       : created.revision
     // A draft that was started from an item changes that item.
     const itemId = input.draftId ? (created.itemId ?? undefined) : input.itemId
-    const submitted = await proposals.submit(created.id, revision)
+    const mine = await me()
+    const theirs = created.proposerId !== mine.id
+    const submitted = await proposals.submit(created.id, revision, { byDomainOwners: theirs })
     await review.checkSubmitted(submitted.id)
     const areaId = submitted.areaId!
-    const mine = await me()
     // A change to an item is the person's to publish only where they own both its domain now and
     // the one it goes to, as a move in the Context list is.
     // It fails closed: a change whose item agents don't get now waits as a suggestion.
@@ -838,6 +839,7 @@ export function createContextService(
       )
       fromOwned = !!live && owns(live.areaId)
     }
+    if (theirs && (!owns(areaId) || !fromOwned)) notTheirsToPublish()
     if (!owns(areaId) || !fromOwned)
       return { published: false, proposalId: submitted.id, ownerIds: await domainOwners(areaId) }
     const current = await proposals.get(submitted.id)
@@ -859,17 +861,28 @@ export function createContextService(
   }
 
   /**
-   * The person's own draft, or their suggestion an owner returned, with the words they finished it
-   * with: only its writer sends it.
+   * A draft, or the person's suggestion an owner returned, with the words they finished it with:
+   * its writer sends it, and an owner of its domain or an admin publishes a draft someone else
+   * wrote as itself, so it stays its writer's.
    */
   async function finish(id: string, draft: Draft, reason: string | undefined) {
-    const [row] = await tx.query<{ revision: number }>(
-      `select revision from proposals where id = $1 and subject = 'item'
-          and state in ('draft','changes_requested')`,
+    const [row] = await tx.query<{ revision: number; proposerId: string | null; areaId: string }>(
+      `select revision, proposer_id::text as "proposerId", area_id as "areaId" from proposals
+        where id = $1 and subject = 'item' and state in ('draft','changes_requested')`,
       [id],
     )
     if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
-    return proposals.save(id, row.revision, draft, reason)
+    const mine = await me()
+    const to = draft.areaId ?? row.areaId
+    if (row.proposerId !== mine.id && !mine.admin && !mine.owns.includes(to)) notTheirsToPublish()
+    return proposals.save(id, row.revision, draft, reason, { byDomainOwners: true })
+  }
+
+  /** Someone else's draft is only finished to be published: it is never sent on their behalf. */
+  function notTheirsToPublish(): never {
+    throw new ORPCError('FORBIDDEN', {
+      message: notAllowed('publish this draft in that domain', 'an owner of the domain'),
+    })
   }
 
   /**

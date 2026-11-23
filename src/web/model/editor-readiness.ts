@@ -61,3 +61,35 @@ export function holdLine(r: Readiness, join = ', ') {
       return `Say how this relates to “${r.title}” first.`
   }
 }
+
+export type Standing = {
+  /** The editor's mode: a suggested change starts from a live item's page. */
+  mode: 'new' | 'edit' | 'suggest'
+  /** Not published yet: a draft nobody has published. */
+  draft: boolean
+  /** It is sent to the owners instead of published: the person doesn't own its domain. */
+  suggests: boolean
+  /** Who wrote the draft, when it is someone else. */
+  writer?: string | undefined
+  /** The owner who decides a suggestion, and their domain. */
+  owner: string
+  domain: string
+}
+
+/**
+ * The line above the title: whether agents have it now, and what the button does with it. Empty
+ * where there is nothing to say (a new item, or an owner's edit of a live one).
+ */
+export function standingLine(s: Standing) {
+  if (s.draft) {
+    const never = "never published, so agents don't have it yet."
+    if (s.suggests)
+      return `This draft was ${never} ${s.owner}, owner of ${s.domain}, decides whether to publish it once you send it.`
+    return s.writer
+      ? `${s.writer} wrote this draft. It was ${never} Publish makes it live, with ${s.writer} as its writer.`
+      : `This draft was ${never} Publish makes it live.`
+  }
+  if (s.mode === 'suggest')
+    return `You're suggesting a change. ${s.owner}, owner of ${s.domain}, decides; agents keep getting the context item as it is until then.`
+  return ''
+}

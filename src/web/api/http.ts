@@ -764,8 +764,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
 
   /**
    * What the editor publishes in one step, or sends to the owners: only what it changes from the
-   * item as the service has it, or the whole of a new one. The person's own draft is finished and
-   * sent as itself; someone else's draft stays theirs, and what was written from it goes as new.
+   * item as the service has it, or the whole of a new one. A draft is finished and sent as itself,
+   * also one someone else wrote, which an owner publishes as theirs: never a copy beside it. A
+   * suggestion returned to someone else stays theirs, and what was written from it goes as new.
    */
   async function publishFromEditor(
     fact: Fact,
@@ -775,9 +776,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   ) {
     const [vocabulary, who] = await Promise.all([readWords(), signedIn()])
     const started = !isNew && isUuid(fact.id) ? await readDraft(fact.id) : null
-    const own = started?.proposerId === who.id ? started : null
+    const itself =
+      started && (started.proposerId === who.id || started.state === 'draft') ? started : null
     const itemId = isNew ? undefined : started ? (started.itemId ?? undefined) : fact.id
-    const before = itemId && !own ? (await itemPage(itemId))?.item : undefined
+    const before = itemId && !itself ? (await itemPage(itemId))?.item : undefined
     if (!isNew && !started && !before)
       throw new ApiError('not-found', "This context item isn't in Context any more.")
     const answered = Object.entries(relations).map(([id, relation]) => ({
@@ -787,12 +789,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     // Written from a Not found card: the publish names its gap, which it then covers.
     const gap = card ? parseCardKey(card) : null
     // A change starts from the version the editor opened, so the service refuses it once someone
-    // has published since. Someone else's draft was not read from a version: it starts from now.
+    // has published since. Someone else's returned suggestion was not read from a version: it starts
+    // from now.
     const version = started ? before?.version : fact.version
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
-      ...(own
-        ? { draftId: own.id }
+      ...(itself
+        ? { draftId: itself.id }
         : itemId
           ? { itemId, ...(version !== undefined ? { version } : {}) }
           : {}),
