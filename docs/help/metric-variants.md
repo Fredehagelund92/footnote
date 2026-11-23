@@ -3,7 +3,7 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 6
+minutes: 7
 reviewed: 2026-11-23
 ---
 
@@ -57,7 +57,7 @@ A source that gives only the names of its metrics, not how they are worked out, 
 
 ## Split a family into separate metrics
 
-A family Footnote found can be split back into its metrics from the family's own page. An owner of its domain, or an admin, chooses Split into 2 metrics. One dialog says what happens first:
+A family a read found can be split back into its metrics from the family's own page. An owner of its domain, or an admin, chooses Split into 2 metrics. One dialog says what happens first:
 
 - Each variant becomes a metric in Definitions, under the name it has. The family goes, and its history, meaning and usual variant are kept.
 - No word of a context item about the family changes. Each keeps reaching agents for every former variant, due for a check, and its owner gets a card in the Inbox. Keep for both points it at each of them, and Edit points it at some of them.
