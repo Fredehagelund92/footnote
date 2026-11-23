@@ -133,7 +133,7 @@ async function keepWithoutDomain(
 ): Promise<Map<string, string>> {
   if (!keys.length) return new Map()
   const live = await tx.query<Term & { versionId: string }>(
-    `select t.key,t.kind::text as kind,t.parent_key as "parentKey",v.name,v.aliases,v.area_id as "areaId",
+    `select t.key,t.kind::text as kind,v.parent_key as "parentKey",v.name,v.aliases,v.area_id as "areaId",
             coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C")
                         from vocab_term_refs r where r.version_id=v.id),'{}') as "definitionRefs",
             v.id::text as "versionId"
@@ -157,10 +157,10 @@ async function keepWithoutDomain(
   )
   const each = 'from jsonb_array_elements($1::jsonb) with ordinality as e(row, n)'
   const versions = await tx.query<{ id: string; key: string }>(
-    `insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,proposer_id,content_digest)
+    `insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,parent_key,proposer_id,content_digest)
      select row->>'key',
             (select max(version_no)+1 from vocab_term_versions where term_key=row->>'key'),
-            row->>'name',array(select jsonb_array_elements_text(row->'aliases')),null,null,
+            row->>'name',array(select jsonb_array_elements_text(row->'aliases')),null,row->>'parentKey',null,
             decode(row->>'digest','hex')
        ${each} order by n
      returning id::text,term_key as key`,

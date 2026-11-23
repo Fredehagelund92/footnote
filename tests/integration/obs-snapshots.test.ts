@@ -132,8 +132,8 @@ beforeAll(async () => {
          for values from ('${month.replace('_', '-')}-01 00:00Z') to ('${next} 00:00Z')`,
     )
   await client.query(
-    `insert into vocab_terms (key, kind, parent_key) values
-       ('val:market/poland', 'dimension_value', 'dim:market');
+    `insert into vocab_terms (key, kind) values
+       ('val:market/poland', 'dimension_value');
      insert into vocab_term_versions (term_key, version_no, name, content_digest) values
        ('val:market/norway', 1, 'Norway', sha256('no')), ('val:market/poland', 1, 'Poland', sha256('pl'))
      on conflict do nothing;

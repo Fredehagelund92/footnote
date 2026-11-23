@@ -8,6 +8,8 @@ type FlagChange = {
   flag: CheckFlag
   raise: boolean
   refs: Reference[]
+  /** The families it is about that were split, by name (FR-142). */
+  families: string[]
 }
 
 /** Overlay reasons hold at most 500 characters. */
@@ -18,7 +20,14 @@ function clip(text: string): string {
 
 function flagReason(change: FlagChange): string {
   if (change.flag === 'needs_check')
-    return clip(`Definition changed: ${change.refs.map((r) => r.ref).join(', ')}`)
+    return clip(
+      [
+        change.families.length ? `Family split: ${change.families.join(', ')}` : '',
+        change.refs.length ? `Definition changed: ${change.refs.map((r) => r.ref).join(', ')}` : '',
+      ]
+        .filter(Boolean)
+        .join('; '),
+    )
   return clip(
     `Definition missing: ${change.refs
       .map((r) => (r.renamedTo ? `${r.ref} (now ${r.renamedTo})` : r.ref))
@@ -29,7 +38,8 @@ function flagReason(change: FlagChange): string {
 /**
  * Brings the source flags of live items in line with their definitions (CON-209, CON-210). An item
  * is `needs_check` while a definition its live version references has another change mark than
- * the one recorded at review, and `source_missing` while such a definition has disappeared. Only
+ * the one recorded at review, or while it is about a family that was split back into its metrics
+ * (FR-142), and `source_missing` while such a definition has disappeared. Only
  * stored marks are compared, so an outage, which stores none, never flags (CON-213), and a mark
  * that is unknown never counts as checked (CON-212). Mentions are not references and never flag.
  *
@@ -47,22 +57,38 @@ export async function reconcileSourceFlags(
        select s.item_id, s.version_id, v.area_id from item_version_service s
          join item_versions v on v.id = s.version_id
         where s.editions @> (select seq from live_edition)),
-     wanted as (
+     reasons as (
        select l.item_id, l.area_id, f.flag,
-              jsonb_agg(jsonb_build_object('ref', r.definition_ref, 'renamedTo', d.renamed_to)
-                        order by r.definition_ref) as refs
+              jsonb_build_object('ref', r.definition_ref, 'renamedTo', d.renamed_to) as ref,
+              null::text as family
          from live l
          join item_version_refs r on r.version_id = l.version_id
          join definitions d on d.ref = r.definition_ref
          cross join lateral (select case when d.missing_since_snapshot is not null then 'source_missing'
                                          when d.change_mark <> r.change_mark then 'needs_check' end as flag) f
         where f.flag is not null
-        group by l.item_id, l.area_id, f.flag),
+       union all
+       -- A family split while the item is about it: no word of the item changed, so it still
+       -- reaches agents through the family's former metrics, flagged until its owner points it.
+       select l.item_id, l.area_id, 'needs_check', null, x.name
+         from live l
+         join item_version_metrics m on m.version_id = l.version_id
+         join family_splits x on x.family_key = m.metric_key and x.joined_in is null
+        where not exists (select 1 from vocab_term_service s where s.term_key = x.family_key
+                            and s.editions @> (select seq from live_edition))),
+     wanted as (
+       select item_id, area_id, flag,
+              coalesce(jsonb_agg(ref order by ref->>'ref') filter (where ref is not null), '[]') as refs,
+              coalesce(jsonb_agg(family order by family) filter (where family is not null), '[]') as families
+         from reasons
+        group by item_id, area_id, flag),
      active as (select o.item_id, o.flag::text as flag from v_overlay_on o where o.kind = 'flag_on')
-     select w.item_id as "itemId", w.area_id as "areaId", w.flag, true as raise, w.refs from wanted w
+     select w.item_id as "itemId", w.area_id as "areaId", w.flag, true as raise, w.refs, w.families
+       from wanted w
       where not exists (select 1 from active a where a.item_id = w.item_id and a.flag = w.flag)
      union all
-     select a.item_id, l.area_id, a.flag, false, '[]'::jsonb from active a join live l on l.item_id = a.item_id
+     select a.item_id, l.area_id, a.flag, false, '[]'::jsonb, '[]'::jsonb
+       from active a join live l on l.item_id = a.item_id
       where not exists (select 1 from wanted w where w.item_id = a.item_id and w.flag = a.flag)
      order by 1, 3`,
   )
@@ -89,7 +115,12 @@ export async function reconcileSourceFlags(
         change.itemId,
         JSON.stringify(
           change.raise
-            ? { state: change.flag, flag: change.flag, definitions: change.refs }
+            ? {
+                state: change.flag,
+                flag: change.flag,
+                definitions: change.refs,
+                ...(change.families.length ? { families: change.families } : {}),
+              }
             : { state: 'cleared', flag: change.flag },
         ),
       ],

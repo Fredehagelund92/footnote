@@ -193,9 +193,11 @@ import {
   catalogueSchema,
   definitionRelationsInputSchema,
   definitionRelationsSchema,
+  familyJoinedSchema,
   familyKeyInputSchema,
   familyMeaningInputSchema,
   familyMeaningVersionSchema,
+  familySplitSchema,
   familyUsualInputSchema,
   familyUsualSchema,
 } from './catalogue.ts'
@@ -359,14 +361,17 @@ export type {
   Catalogue,
   CatalogueDefinition,
   CatalogueSource,
+  CatalogueSplit,
   CatalogueTerm,
   CatalogueValue,
   CatalogueVariant,
   DefinitionRelation,
   DefinitionRelations,
+  FamilyJoined,
   FamilyMeaningData,
   FamilyMeaningInput,
   FamilyMeaningVersion,
+  FamilySplit,
   FamilyUsualData,
   FamilyUsualInput,
 } from './catalogue.ts'
@@ -1259,6 +1264,35 @@ export const contract = {
       })
       .input(familyUsualInputSchema)
       .output(familyUsualSchema),
+    splitFamily: read
+      .meta({ scope: 'propose' })
+      .route({
+        method: 'POST',
+        path: '/definitions/families/{key}/split',
+        tags: ['library'],
+        summary:
+          'Split a family of metrics back into its variants, each a metric of its own: an owner of its domain or an admin, never a family its tool declares (FR-142)',
+      })
+      .errors({
+        ...familyNotFound,
+        CONFLICT: { message: 'Its tool declares this family: split it there.' },
+      })
+      .input(familyKeyInputSchema)
+      .output(familySplitSchema),
+    joinFamily: read
+      .meta({ scope: 'propose' })
+      .route({
+        method: 'POST',
+        path: '/definitions/families/{key}/join',
+        tags: ['library'],
+        summary: 'Make a split family one family again, of the metrics it had (FR-142)',
+      })
+      .errors({
+        NOT_FOUND: { message: 'This family is not split.' },
+        CONFLICT: { message: 'Its metrics changed since it was split.' },
+      })
+      .input(familyKeyInputSchema)
+      .output(familyJoinedSchema),
     familyMeaningHistory: read
       .route({
         method: 'GET',

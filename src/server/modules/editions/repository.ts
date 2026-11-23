@@ -234,6 +234,15 @@ export async function loadServingBundle(
   const links = await tx.query<ServingBundle['links'][number]>('select * from serving_links($1)', [
     head.seq,
   ])
+  // A family split back into its metrics in this edition or before, and not joined again by it:
+  // context about it still reaches agents through each of them (FR-142).
+  const splits = await tx.query<{ key: string; variants: string[] }>(
+    `select x.family_key as key, x.variants from family_splits x
+      where x.split_in <= $1 and (x.joined_in is null or x.joined_in > $1)
+        and not exists (select 1 from vocab_term_service s where s.term_key = x.family_key
+                          and s.editions @> $1::bigint)`,
+    [head.seq],
+  )
   // With it, in the same statement, the terms and synonyms people write in Definitions, as they
   // are now (FR-138).
   const [served] = await tx.query<{ doc: Metadata; written: WrittenRow[] }>(
@@ -314,7 +323,13 @@ export async function loadServingBundle(
     groupsOfMetric: Object.fromEntries(
       terms
         .filter((v) => v.kind === 'metric')
-        .map((v) => [v.key, v.parentKey ? [v.parentKey] : []]),
+        .map((v) => [
+          v.key,
+          [
+            ...(v.parentKey ? [v.parentKey] : []),
+            ...splits.flatMap((split) => (split.variants.includes(v.key) ? [split.key] : [])),
+          ],
+        ]),
     ),
     stopped,
     items: rows.map((row) => {

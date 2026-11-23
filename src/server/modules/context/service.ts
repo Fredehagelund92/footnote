@@ -24,6 +24,7 @@ import {
   type BulkRowSkip,
 } from '../../../domain/context-bulk.ts'
 import type { Draft } from '../../../domain/draft.ts'
+import type { Scope } from '../../../domain/item.ts'
 import type { ItemVersion } from '../../../domain/item-version.ts'
 import { termDomain } from '../../../domain/catalogue.ts'
 import { related } from '../../../domain/links.ts'
@@ -267,6 +268,41 @@ export function createContextService(
     const current = await proposals.get(submitted.id)
     const published = await path.publish({ id: current.id, revision: current.revision })
     return published.undo.token.slice('decision:'.length)
+  }
+
+  /**
+   * Points a live item about a family that was split back into its metrics at each of them
+   * (FR-142), published by its owner in one step: the ready change its Inbox card offers, which
+   * ends the flag the split raised. Returns the decision, or null when it is about no such family.
+   */
+  async function pointAtSplitMetrics(itemId: string): Promise<string | null> {
+    const [live] = await tx.query<{ scope: Scope; splits: { key: string; variants: string[] }[] }>(
+      `select jsonb_build_object(
+                'metrics', coalesce((select jsonb_agg(m.metric_key order by m.metric_key)
+                                       from item_version_metrics m where m.version_id = s.version_id), '[]'),
+                'dimensions', coalesce((select jsonb_agg(d.dimension_key order by d.dimension_key)
+                                          from item_version_dimensions d where d.version_id = s.version_id), '[]'),
+                'dimensionValues', coalesce((select jsonb_agg(jsonb_build_object('dimension', d.dimension_key,
+                                                'value', d.value_key) order by d.value_key)
+                                               from item_version_dimension_values d
+                                              where d.version_id = s.version_id), '[]')) as scope,
+              coalesce((select jsonb_agg(jsonb_build_object('key', x.family_key, 'variants', x.variants))
+                          from item_version_metrics m
+                          join family_splits x on x.family_key = m.metric_key and x.joined_in is null
+                         where m.version_id = s.version_id), '[]') as splits
+         from item_version_service s
+        where s.item_id = $1 and s.editions @> (select seq from live_edition)`,
+      [itemId],
+    )
+    if (!live?.splits.length) return null
+    const metrics = [
+      ...new Set(
+        live.scope.metrics.flatMap(
+          (key) => live.splits.find((split) => split.key === key)?.variants ?? [key],
+        ),
+      ),
+    ]
+    return publishChange(itemId, { scope: { ...live.scope, metrics } })
   }
 
   async function lastDecision(itemId: string, outcome: 'retire' | 'accept'): Promise<string> {
@@ -1043,6 +1079,7 @@ export function createContextService(
   return {
     page,
     markRead,
+    pointAtSplitMetrics,
     bulkApply,
     undoChange,
     compare,

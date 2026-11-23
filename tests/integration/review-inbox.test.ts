@@ -60,7 +60,7 @@ beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
     await client.query(
-      `insert into vocab_terms(key,kind,parent_key) select 'val:market/'||m,'dimension_value','dim:market'
+      `insert into vocab_terms(key,kind) select 'val:market/'||m,'dimension_value'
          from unnest($1::text[]) m`,
       [markets],
     )

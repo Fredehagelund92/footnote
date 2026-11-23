@@ -735,7 +735,12 @@ it('excludes proposals outside the validity and dimension overlap and expands me
       scope: { metrics: ['metric:orders'], dimensions: [], dimensionValues: [] },
     }),
   ).toBe(true)
-  await client.query("update vocab_terms set parent_key='group:payments' where key='metric:orders'")
+  // The served version of Orders puts it in Payments, as a family's variant's does.
+  const inPayments = (parent: string) =>
+    client.query(`alter table vocab_term_versions disable trigger ao_row_vocab_term_versions;
+      update vocab_term_versions set parent_key=${parent} where term_key='metric:orders';
+      alter table vocab_term_versions enable trigger ao_row_vocab_term_versions`)
+  await inPayments("'group:payments'")
   try {
     expect(
       await overlap(p.draft, {
@@ -744,7 +749,7 @@ it('excludes proposals outside the validity and dimension overlap and expands me
       }),
     ).toBe(true)
   } finally {
-    await client.query("update vocab_terms set parent_key=null where key='metric:orders'")
+    await inPayments('null')
   }
 })
 it('honors the versioned mention limit at submit', async () => {

@@ -191,6 +191,11 @@ export const catalogueTermSchema = z.object({
       variants: z.array(catalogueVariantSchema),
       meaning: familyMeaningSchema,
       usual: familyUsualSchema,
+      /**
+       * The family's name as its tool declares it (`meta.footnote.family: active_buyers`), for a
+       * family found so (D4): it is changed or split there. Null for any other.
+       */
+      declared: z.nullable(z.string()),
     }),
   ),
   /** The vocabulary's area first, the source's hint second, no domain third. */
@@ -223,9 +228,27 @@ export const catalogueSourceSchema = z.object({
   failing: z.boolean(),
 })
 
+/** A family split back into its metrics, while it stands (FR-142): Definitions lists it. */
+export const catalogueSplitSchema = z.object({
+  /** The family's key, `group:accrued_share`, which joins it again. */
+  key: z.string(),
+  /** Its name when it was split. */
+  name: z.string(),
+  /** The domain it was in; its owners and admins may make it one family again. */
+  areaId: z.nullable(z.string()),
+  /** Its former variants, each a metric of its own now. */
+  metrics: z.array(z.object({ key: z.string(), name: z.string() })),
+  /** Live context items still about the family, which reach agents through its metrics. */
+  items: z.number(),
+  personId: z.string(),
+  at: z.string(),
+})
+
 export const catalogueSchema = z.object({
   /** Metrics and families first, then dimensions, each by name; a family's variants are in it. */
   terms: z.array(catalogueTermSchema),
+  /** The families split back into their metrics, newest first. */
+  splits: z.array(catalogueSplitSchema),
   sources: z.array(catalogueSourceSchema),
   /** Metrics with no domain, against all metrics (CON-516). */
   coverage: z.object({ metrics: z.number(), withoutDomain: z.number() }),
@@ -316,6 +339,18 @@ export const familyUsualInputSchema = z.strictObject({
   revision: z.number().check(z.int(), z.minimum(0)),
 })
 
+/** A family split back into its metrics (FR-142): the edition, the metrics, the items about it. */
+export const familySplitSchema = z.object({
+  edition: z.string(),
+  /** Its former variants, each a metric of its own now, by name. */
+  metrics: z.array(z.object({ key: z.string(), name: z.string() })),
+  /** The context items about the family, each flagged for its owner to check. */
+  items: z.number(),
+})
+
+/** A split family made one again, of the metrics it had. */
+export const familyJoinedSchema = z.object({ edition: z.string(), name: z.string() })
+
 /** One choice of what a family means, as it was made. */
 export const familyMeaningVersionSchema = z.object({
   revision: z.number(),
@@ -330,6 +365,7 @@ export type CatalogueTerm = z.infer<typeof catalogueTermSchema>
 export type CatalogueVariant = z.infer<typeof catalogueVariantSchema>
 export type CatalogueDefinition = z.infer<typeof catalogueDefinitionSchema>
 export type CatalogueSource = z.infer<typeof catalogueSourceSchema>
+export type CatalogueSplit = z.infer<typeof catalogueSplitSchema>
 export type CatalogueValue = z.infer<typeof catalogueValueSchema>
 export type DefinitionRelation = z.infer<typeof definitionRelationSchema>
 export type DefinitionRelations = z.infer<typeof definitionRelationsSchema>
@@ -338,3 +374,5 @@ export type FamilyMeaningInput = z.infer<typeof familyMeaningInputSchema>
 export type FamilyMeaningVersion = z.infer<typeof familyMeaningVersionSchema>
 export type FamilyUsualData = z.infer<typeof familyUsualSchema>
 export type FamilyUsualInput = z.infer<typeof familyUsualInputSchema>
+export type FamilySplit = z.infer<typeof familySplitSchema>
+export type FamilyJoined = z.infer<typeof familyJoinedSchema>

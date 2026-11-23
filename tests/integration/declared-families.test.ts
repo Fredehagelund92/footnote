@@ -5,12 +5,16 @@ import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type {
   Catalogue,
+  CatalogueTerm,
   DefinitionRelations,
+  FamilyJoined,
   FamilyMeaningVersion,
+  FamilySplit,
 } from '../../src/contract/catalogue.ts'
 import type { LoopTurn } from '../../src/contract/answer.ts'
 import type { Feed, NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
+import { resolve } from '../../src/domain/resolver.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import {
@@ -25,12 +29,13 @@ import {
   createWorkspaceSources,
   openLocalSecretStore,
 } from '../../src/server/modules/connectors/index.ts'
+import { loadLiveBundle } from '../../src/server/modules/editions/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { gitHost, type GitHost } from '../server/connectors/git-server.ts'
 import { partnerManifest } from '../server/connectors/partner-relations-fixture.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
-import { foundation, people } from './fixtures.ts'
-import { apiDatabase, askToolsAs, queueReads, testDatabase } from './support.ts'
+import { accept, foundation, people, publish, version } from './fixtures.ts'
+import { apiDatabase, askToolsAs, queueReads, testDatabase, transaction } from './support.ts'
 
 /*
   Families in the order of trust (FR-142, D1, D2, D9) on the real service and PostgreSQL 18: an
@@ -667,5 +672,177 @@ describe('the usual variant of a family (F3)', () => {
     const usd = await ask('What is accrued share 1 in USD?')
     expect(usd.subject?.note).toBeNull()
     expect(usd.text).toMatch(/^Accrued share 1 means: /)
+  })
+})
+
+describe('splitting a family (D2-D4)', () => {
+  const catalogue = () => ok<Catalogue>(call('GET', '/catalogue', 'member'))
+  const family = async (name: string) => (await catalogue()).terms.find((t) => t.name === name)
+  const split = (key: string, who: Who) =>
+    call('POST', `/definitions/families/${encodeURIComponent(key)}/split`, who, { key })
+  const join = (key: string, who: Who) =>
+    call('POST', `/definitions/families/${encodeURIComponent(key)}/join`, who, { key })
+  /** What agents get for a question about one metric, by key: the items, by id. */
+  const reaching = async (metric: string) => {
+    const bundle = (await loadLiveBundle(database))!
+    return resolve(bundle, {
+      scope: {
+        status: 'resolved',
+        scope: {
+          metrics: [metric],
+          filters: {},
+          window: { start: '2026-11-01', end: '2026-11-30' },
+        },
+      },
+      today: '2026-11-21',
+      sizeLimit: 100_000,
+      dependenciesAvailable: true,
+      groups: [],
+      hiddenMetrics: [],
+    }).items.map((match) => match.id)
+  }
+  let accrued: CatalogueTerm
+  let note = ''
+
+  beforeAll(async () => {
+    accrued = (await family('Accrued share 1'))!
+    // A note about the family, published in its domain.
+    const about = await transaction(client, async () => {
+      const made = await version(client, {
+        scope: false,
+        area: 'partners',
+        title: 'Accrued share 1 restated',
+        summary: 'Accrued share 1 was restated for October.',
+        owner: people.owner,
+        validity: { from: '2026-10-01', until: null },
+      })
+      await client.query('insert into item_version_metrics values ($1,$2)', [made.id, accrued.key])
+      await client.query(
+        `insert into item_version_evidence (version_id,position,url,quote,read_on)
+         values ($1,0,'https://example.test/restated','Restated for October','2026-11-02')`,
+        [made.id],
+      )
+      return made
+    })
+    await accept(client, about.id)
+    await publish(client, about.id)
+    note = about.item
+  })
+
+  it('is refused to a member, and for a family its tool declares, which says where', async () => {
+    const forbidden = await split(accrued.key, 'member')
+    expect(forbidden.statusCode, forbidden.body).toBe(403)
+    expect(forbidden.json<{ message: string }>().message).toBe(
+      'Only an owner of Partners or an admin can split it.',
+    )
+    const line = (await family('Net revenue by line'))!
+    expect(line.family!.declared).toBe('net_revenue_by_line')
+    expect(accrued.family!.declared).toBeNull()
+    const declared = await split(line.key, 'admin')
+    expect(declared.statusCode, declared.body).toBe(409)
+    expect(declared.json<{ message: string }>().message).toBe(
+      'dbt declares “Net revenue by line” as one family, under the name net_revenue_by_line. Split it in dbt: the next read follows.',
+    )
+    const unknown = await split('group:no_such_family', 'admin')
+    expect(unknown.statusCode, unknown.body).toBe(404)
+  })
+
+  it('makes each variant a metric of its own, and the items about it still reach agents, flagged', async () => {
+    const variants = accrued.family!.variants
+    const [eur, usd] = variants
+    expect(await reaching(eur!.key)).toContain(note)
+    const done = await ok<FamilySplit>(split(accrued.key, 'owner'))
+    expect(done).toMatchObject({
+      metrics: variants.map((v) => ({ key: v.key, name: v.name })),
+      items: 1,
+    })
+    const after = await catalogue()
+    // The family leaves Definitions; its variants are metrics there, under the names they had.
+    expect(after.terms.find((t) => t.key === accrued.key)).toBeUndefined()
+    expect(after.terms.filter((t) => t.key === eur!.key || t.key === usd!.key)).toMatchObject([
+      { name: eur!.name, family: null },
+      { name: usd!.name, family: null },
+    ])
+    expect(after.splits).toMatchObject([
+      {
+        key: accrued.key,
+        name: 'Accrued share 1',
+        areaId: 'partners',
+        metrics: variants.map((v) => ({ key: v.key, name: v.name })),
+        items: 1,
+        personId: people.owner,
+      },
+    ])
+    // No word of the note changed: it reaches agents for each former variant, flagged.
+    expect(await reaching(eur!.key)).toContain(note)
+    expect(await reaching(usd!.key)).toContain(note)
+    const { rows: flags } = await client.query<{ flag: string; reason: string }>(
+      `select flag::text, reason from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [note],
+    )
+    expect(flags).toEqual([{ flag: 'needs_check', reason: 'Family split: Accrued share 1' }])
+    // Its owner has a card to check it, which names the metrics it reaches agents through.
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
+    expect(feed.cards.find((c) => c.group === 'check' && c.itemId === note)).toMatchObject({
+      reason: 'family',
+      families: [{ name: 'Accrued share 1', metrics: [eur!.name, usd!.name] }],
+    })
+    // The family's history, meaning and usual variant are kept.
+    const { rows: kept } = await client.query<{ n: number }>(
+      `select (select count(*) from vocab_term_versions where term_key = $1)::int
+              + (select count(*) from family_meaning_versions where family_key = $1)::int as n`,
+      [accrued.key],
+    )
+    expect(kept[0]!.n).toBeGreaterThan(1)
+  })
+
+  it('keeps them apart on the next read, and offers nothing new on the Names card', async () => {
+    await read()
+    const list = await names()
+    expect(list.names.find((n) => n.key === accrued.key)).toBeUndefined()
+    const refs = accrued.family!.variants.map((v) => v.ref)
+    expect(list.names.filter((n) => n.definitionRefs.some((ref) => refs.includes(ref)))).toEqual([])
+    expect(await family('Accrued share 1')).toBeUndefined()
+  })
+
+  it('is made one family again by Undo, which ends the flags', async () => {
+    const refused = await join(accrued.key, 'member')
+    expect(refused.statusCode, refused.body).toBe(403)
+    expect(await ok<FamilyJoined>(join(accrued.key, 'admin'))).toMatchObject({
+      name: 'Accrued share 1',
+    })
+    const again = (await family('Accrued share 1'))!
+    expect(again.key).toBe(accrued.key)
+    expect(again.family!.variants.map((v) => v.key)).toEqual(
+      accrued.family!.variants.map((v) => v.key),
+    )
+    expect((await catalogue()).splits).toEqual([])
+    const { rows } = await client.query(
+      `select 1 from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [note],
+    )
+    expect(rows).toEqual([])
+    const twice = await join(accrued.key, 'admin')
+    expect(twice.statusCode, twice.body).toBe(404)
+  })
+
+  it('points an item at each former metric when its owner checks it as still true', async () => {
+    await ok(split(accrued.key, 'admin'))
+    const feed = await ok<Feed>(call('GET', '/inbox/feed', 'owner'))
+    const card = feed.cards.find((c) => c.group === 'check' && c.itemId === note)!
+    await ok(call('POST', '/inbox/cards/decide', 'owner', { card: card.id, action: 'still_true' }))
+    const { rows } = await client.query<{ key: string }>(
+      `select m.metric_key as key from item_version_service s
+         join item_version_metrics m on m.version_id = s.version_id
+        where s.item_id = $1 and upper_inf(s.editions) order by m.metric_key`,
+      [note],
+    )
+    expect(rows.map((r) => r.key)).toEqual(accrued.family!.variants.map((v) => v.key).sort())
+    const { rows: flags } = await client.query(
+      `select 1 from v_overlay_on where kind = 'flag_on' and item_id = $1`,
+      [note],
+    )
+    expect(flags).toEqual([])
+    expect((await catalogue()).splits).toMatchObject([{ key: accrued.key, items: 0 }])
   })
 })

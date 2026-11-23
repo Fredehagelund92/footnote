@@ -165,8 +165,8 @@ beforeAll(async () => {
     ]),
   ]
   await client.query(
-    `insert into vocab_terms (key, kind, parent_key)
-     select key, kind::term_kind, parent from unnest($1::text[], $2::text[], $3::text[]) t(key, kind, parent)
+    `insert into vocab_terms (key, kind)
+     select key, kind::term_kind from unnest($1::text[], $2::text[]) t(key, kind)
      on conflict do nothing`,
     [terms.map((t) => t[0]), terms.map((t) => t[1]), terms.map((t) => t[2])],
   )

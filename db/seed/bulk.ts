@@ -399,7 +399,7 @@ export async function bulkSeed(
       const areaId = termAreas[key] ?? null
       const aliases = [...ownAliases, ...(extras.aliases?.[key] ?? [])]
       const id = randomUUID()
-      terms.push({ key, kind, parent_key: parent })
+      terms.push({ key, kind })
       versions.push({
         id,
         term_key: key,
@@ -407,6 +407,7 @@ export async function bulkSeed(
         name,
         aliases,
         area_id: areaId,
+        parent_key: parent,
         // The digest the review path gives the same term (FR-125), so exports and the restore
         // drill can recompute it.
         content_digest: termDigestContent({

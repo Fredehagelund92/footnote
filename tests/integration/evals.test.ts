@@ -210,8 +210,8 @@ let liveSeq = ''
 beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
-    await client.query(`insert into vocab_terms(key,kind,parent_key) values
-      ('val:market/spain','dimension_value','dim:market'),('metric:revenue','metric',null)`)
+    await client.query(`insert into vocab_terms(key,kind) values
+      ('val:market/spain','dimension_value'),('metric:revenue','metric')`)
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")
     ).rows as [{ seq: string }]

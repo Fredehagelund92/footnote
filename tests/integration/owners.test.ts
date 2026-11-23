@@ -56,7 +56,7 @@ beforeAll(async () => {
   )
   await transaction(client, async () => {
     await client.query(
-      "insert into vocab_terms(key,kind,parent_key) values('metric:spend','metric',null)",
+      "insert into vocab_terms(key,kind) values('metric:spend','metric')",
     )
     // The first edition is a bootstrap: its vocabulary needs no decision.
     const [{ seq }] = (
