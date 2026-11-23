@@ -71,6 +71,7 @@ import { searchWorld } from './search'
 import { createScopeSearch, withScope } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
+import { importedDrafts } from './data/imported'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -698,20 +699,51 @@ export function createMockApi() {
         if (setup) dispatch({ type: 'setupStep', step: 'fact' })
         return { id }
       }),
-    applyBulk: ({ patches, remove, entry }) =>
+    applyBulk: ({ patches, remove, suggest = [], entry }) =>
       now(() => {
-        const rows = [...new Set([...Object.keys(patches), ...remove])]
+        const rows = [...new Set([...Object.keys(patches), ...remove, ...suggest])]
         // ?bulk=fail: the first change to many rows fails on its last row, so a partial failure can be seen.
         const failed = rows.length > 1 && scenario.failsOnce('bulk') ? rows.slice(-1) : []
         const done = rows.filter((id) => !failed.includes(id))
         const before = state
+        // A draft sent to its domain's owners leaves the list and waits for them, as from the editor.
+        const sent = suggest.filter((id) => done.includes(id))
+        for (const id of sent) {
+          const draft = factsOf(state).find((f) => f.id === id)
+          if (!draft) continue
+          const to = workspace.domains().find((d) => d.id === draft.domain)?.owners[0] ?? ''
+          dispatch({
+            type: 'send',
+            sent: {
+              id: `sent_${id}`,
+              title: draft.title,
+              by: me(),
+              to,
+              domain: draft.domain,
+              at: 'just now',
+            },
+          })
+        }
         dispatch({
           type: 'bulk',
           patches: Object.fromEntries(Object.entries(patches).filter(([id]) => done.includes(id))),
-          remove: remove.filter((id) => done.includes(id)),
+          remove: [...remove, ...sent].filter((id) => done.includes(id)),
           entry: { ...entry, items: entry.items.filter((i) => done.includes(i.id)) },
         })
-        return { done, failed, ...revertTo(before, { facts: done, entry: entry.id }) }
+        for (const id of done)
+          if (patches[id]?.status === 'Live') dispatch({ type: 'published', id })
+        const offer = revertTo(before, { facts: done, entry: entry.id })
+        if (sent.length) {
+          const undo = undos.get(offer.undo.token)!
+          undos.set(offer.undo.token, {
+            ...undo,
+            run: () => {
+              undo.run()
+              for (const id of sent) dispatch({ type: 'withdraw', id: `sent_${id}` })
+            },
+          })
+        }
+        return { done, failed, ...offer }
       }),
     sendSuggestion: ({ fact, sent }) =>
       now(() => {
@@ -1330,6 +1362,10 @@ export function createMockApi() {
           for (const fact of familyFacts())
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         }
+        // 21 drafts brought in from a wiki, to publish from the Context list at once.
+        if (demo === 'imported')
+          for (const fact of importedDrafts())
+            if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
         if ((demo === 'done' || demo === 'week') && state.user) {

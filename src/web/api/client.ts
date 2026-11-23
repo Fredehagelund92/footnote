@@ -17,7 +17,7 @@ import type { FamilyMeaningChoice } from '@domain/family-meaning-line'
 import type { ObsFilter, TopicSum, ValueGroup, ValueSort } from '@domain/obs-filters'
 import type { ScopeSearchResult } from '@contract/scope'
 import type { ReactionEmoji } from '@/components/templates/comment-box/types'
-import type { FactAction } from '@/lib/bulk'
+import type { FactAction, Skip } from '@/lib/bulk'
 import type {
   Definition,
   DefinitionRelation,
@@ -352,6 +352,8 @@ export type BulkChange = {
   person?: string
   patches: Record<string, Partial<Fact>>
   remove: string[]
+  /** Publish: the drafts that go to their domain's owners as suggestions, leaving the list. */
+  suggest?: string[]
   entry: LogEntry
 }
 
@@ -484,9 +486,12 @@ export interface FootnoteApi {
   draftFromText: (input: { text: string }) => Promise<Fact>
   /**
    * Changes many items at once, with its line in History. It acts on every row it can; `failed`
-   * names the rows a failure left unchanged, to try again.
+   * names the rows a failure left unchanged, to try again, and `skipped` the drafts a Publish left
+   * alone because the service's checks refused them, each with why.
    */
-  applyBulk: (input: BulkChange) => Promise<{ done: string[]; failed: string[] } & Undoable>
+  applyBulk: (
+    input: BulkChange,
+  ) => Promise<{ done: string[]; failed: string[]; skipped?: Skip[] } & Undoable>
   /**
    * A suggestion sent from the editor to the owners: `fact` is the version it suggests. It waits,
    * visibly, until they decide. `gap` is the Not found card it answers, as for `saveItem`.

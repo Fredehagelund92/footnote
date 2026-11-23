@@ -6,7 +6,9 @@ import { kinds } from './words.ts'
   (FR-139): which rows it acts on, and which it leaves alone and why ("2 skipped: owned by
   Marketing"). Owners of an item's domain and admins change it. A draft (never published) can be
   deleted; a published item is archived, never deleted, so its history stays and agents simply stop
-  getting it. Pure, so the service and the app's mock read one rule and say it in the same words.
+  getting it. A draft is published as publishing one is: at once in a domain the person owns (or by
+  an admin), and as a suggestion to that domain's owners when its writer owns no part of it. Pure,
+  so the service and the app's mock read one rule and say it in the same words.
 */
 
 export const bulkActions = [
@@ -17,6 +19,7 @@ export const bulkActions = [
   'owner_add',
   'owner_set',
   'check',
+  'publish',
 ] as const
 export type BulkAction = (typeof bulkActions)[number]
 
@@ -33,6 +36,7 @@ export const bulkRowSkipCodes = [
   'already_owner',
   'only_owner',
   'not_opened',
+  'not_ready',
 ] as const
 export type BulkRowSkipCode = (typeof bulkRowSkipCodes)[number]
 
@@ -45,7 +49,12 @@ export type BulkRow = {
   status: 'draft' | 'live' | 'archived'
   /** Who answers for it: its own owners, or else its domain's. */
   owners: readonly string[]
+  /** A draft's writer, by id; null for a published item, or a draft nobody signed in wrote. */
+  writer?: string | null
 }
+
+/** The most drafts one Publish takes: each is checked and published on its own. */
+export const PUBLISH_MAX = 50
 
 /** Someone, as the rule needs them: admin or not, and the domains they own. */
 export type BulkPerson = { id: string; name: string; admin: boolean; owns: readonly string[] }
@@ -95,7 +104,18 @@ export function planBulk(
     skipped.push({ id: row.id, title: row.title, code, why, message })
   for (const row of rows) {
     const domain = domainName(row.areaId)
-    if (!changesItem(row, me)) {
+    // Its writer sends their own draft to the owners, as from the editor.
+    const writes = input.action === 'publish' && row.status === 'draft' && row.writer === me.id
+    if (!changesItem(row, me) && !writes) {
+      if (input.action === 'publish') {
+        skip(
+          row,
+          'not_allowed',
+          `owned by ${domain}`,
+          `Only its writer, owners of ${domain} and admins can publish it.`,
+        )
+        continue
+      }
       skip(
         row,
         'not_allowed',
@@ -175,8 +195,20 @@ function whyNot(
       if (!opened.has(row.id))
         return ['not_opened', 'not opened yet', 'Open it first: checking it means reading it.']
       return
+    case 'publish':
+      if (row.status === 'live') return ['published', 'published', 'It is published already.']
+      if (row.status === 'archived')
+        return [
+          'archived',
+          'archived',
+          'It is archived: restore a version of it as a draft to publish it again.',
+        ]
+      return
   }
 }
+
+/** Whether publishing a draft publishes it at once, or sends it to its domain's owners. */
+export const publishesNow = changesItem
 
 /** What a change says in History and in Settings, Advanced: "Moved to Marketing." */
 export function changeSummary(
@@ -202,7 +234,28 @@ export function changeSummary(
       return `Made ${input.person?.name ?? 'someone'} the owner of ${which}.`
     case 'check':
       return `Checked ${which}: still true.`
+    case 'publish':
+      return `Published ${which}.`
   }
+}
+
+/**
+ * What a Publish says in History: what it published, and what it sent to the owners. "Published
+ * “A” and 2 more. Sent “B” to its domain's owners."
+ */
+export function publishSummary(published: readonly string[], sent: readonly string[]): string {
+  const which = (titles: readonly string[]) =>
+    titles.length > 1
+      ? `\u201c${titles[0]}\u201d and ${titles.length - 1} more`
+      : `\u201c${titles[0]}\u201d`
+  return [
+    published.length ? `Published ${which(published)}.` : '',
+    sent.length
+      ? `Sent ${which(sent)} to ${sent.length > 1 ? 'their' : 'its'} domain's owners.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /** The item_changes action a change is recorded as. */
@@ -214,4 +267,5 @@ export const changeAction: Record<BulkAction, string> = {
   owner_add: 'owners',
   owner_set: 'owners',
   check: 'checked',
+  publish: 'published',
 }

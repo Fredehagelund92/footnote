@@ -140,20 +140,22 @@ function NoteLine({ note }: { note: BulkNote }) {
 
 /**
  * A button on the bar. With a `reason` it stays in reach but does nothing, and says why on a hover
- * and to a screen reader.
+ * and to a screen reader; without one, an `aria-description` says what it would do.
  */
 export function BulkButton({
   reason,
   className,
   onClick,
   children,
+  'aria-description': description,
   ...props
-}: React.ComponentProps<typeof Button> & { reason?: string }) {
+}: React.ComponentProps<typeof Button> & { reason?: string; 'aria-description'?: string }) {
   const button = (
     <Button
       variant="ghost"
       aria-disabled={reason ? true : undefined}
-      aria-description={reason}
+      // Why it does nothing wins over what it would do.
+      aria-description={reason ?? description}
       onClick={reason ? (e) => e.preventDefault() : onClick}
       className={cn(
         'shrink-0 text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 max-md:h-11 max-md:min-w-11',

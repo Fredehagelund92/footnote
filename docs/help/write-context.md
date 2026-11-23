@@ -81,6 +81,12 @@ The same news, written weakly:
 | Source                  | Nothing                       | A link anyone can open, so an owner can check it                      |
 | Don't conclude          | Nothing                       | The line that stops an agent from blaming the drop on customers       |
 
+## Publish many drafts at once
+
+In **Context**, filter by Draft and tick the drafts you have read, or tick them all. Publish, on the bar that appears, publishes them at once in a domain you own, or in any domain for an admin. Each goes through the same checks as in the editor. A draft that is missing something, such as a source, stays ticked and says what.
+
+More than five asks once first, because agents get them from the next question. Up to 50 go at a time, and Undo makes them drafts again. Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest.
+
 ## About our business
 
 A short text every agent reads first: what the business is, words that are easy to misread, and house rules for reading numbers. No figures or customer names. An admin writes it in **Settings**, then **General**, under About our business.

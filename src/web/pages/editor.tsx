@@ -35,7 +35,6 @@ import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { conflictPath } from '@/model/conflicts'
 import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/editor-readiness'
-import { type Validity } from '@/model/validity'
 import {
   missingDates,
   validOfWhen,
@@ -87,7 +86,11 @@ import {
   type Status,
 } from '@/model/items'
 import { homeDomain, ownersOf, type Domain, type Domains } from '@/model/people'
-import { toApiError, type Clash } from '@/api/errors'
+import { ApiError, toApiError, type Clash } from '@/api/errors'
+import { planFacts, publishParts } from '@/lib/bulk'
+import { useUndo } from '@/lib/undo'
+import { today } from '@/lib/today'
+import { dateLabel, type Validity } from '@/model/validity'
 import { closeDock, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
@@ -440,6 +443,7 @@ function Editor({
   const glossary = useGlossary()
   const { cards } = useInbox()
   const write = useWrite()
+  const undo = useUndo()
   const queryClient = useQueryClient()
   const { query } = useRoute()
   // Opened from a conflict (Edit this one): the other item stays in view while this one is narrowed.
@@ -583,7 +587,9 @@ function Editor({
 
   // Nothing is kept until Save: words that differ from what the page opened with are unsaved.
   const edited = JSON.stringify(form) !== JSON.stringify(initial)
-  const unchanged = mode !== 'new' && !edited
+  // A draft nobody has published goes as it is: publishing its words is the change.
+  const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
+  const unchanged = mode !== 'new' && !edited && !asIs
   const guard = useLeaveGuard(edited)
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
@@ -629,7 +635,46 @@ function Editor({
   // Sending, then done; or failed with Retry, the text untouched. Offline, nothing is sent.
   // A draft is published by its button, whoever wrote it: it is not Live yet, so nothing is saved.
   const verb = isSuggest ? 'Send' : unpublished ? 'Publish' : 'Save'
+  /**
+   * A draft as it is, through the Context list's Publish of one row: at once where the person owns
+   * its domain or is an admin, as its writer's; their own for another domain goes to its owners.
+   */
+  const publishAsIs = async (f: Fact) => {
+    const who = { name: me.name, admin: me.admin }
+    const plan = planFacts('publish', [f], who, domains)
+    if (!plan.act.length) throw new ApiError('forbidden', plan.skipped[0]!.reason)
+    const parts = publishParts(plan, who, domains, dateLabel(today()))
+    const result = await write('applyBulk', {
+      action: 'publish',
+      patches: parts.patches,
+      remove: [],
+      ...(parts.suggest.length ? { suggest: parts.suggest } : {}),
+      entry: {
+        id: `log-page-${f.id}`,
+        on: today(),
+        who: me.name,
+        what: 'published',
+        summary: 'Published from its page.',
+        items: [{ id: f.id, title: f.title, domain: f.domain }],
+      },
+    })
+    if (!result.done.includes(f.id))
+      throw new ApiError(
+        result.skipped?.length ? 'invalid' : 'failed',
+        result.skipped?.[0]?.reason ?? "It couldn't be published. Try again.",
+      )
+    guard.release()
+    const sent = parts.suggest.length > 0
+    undo.offer(sent ? `Sent to the owners of ${parts.to}` : 'Published', result.undo, {
+      description: sent
+        ? 'Agents get it once an owner publishes it.'
+        : 'Agents get it from the next question.',
+    })
+    navigate('/context')
+  }
+
   const commit = async () => {
+    if (asIs) return publishAsIs(asIs)
     if (isSuggest) {
       // It waits visibly: a line on the item, and a row under All in your Inbox.
       const { id } = await write('sendSuggestion', {

@@ -151,7 +151,8 @@ function Body({
   )
 }
 
-function SkippedList({ skipped }: { skipped: Skip[] }) {
+/** What the confirmation leaves alone, and why: the line and the first few reasons. */
+export function SkippedList({ skipped }: { skipped: Skip[] }) {
   return (
     <div className="text-sm">
       <p className="font-medium">{skippedLine(skipped)}</p>

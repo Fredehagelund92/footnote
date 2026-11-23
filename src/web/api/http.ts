@@ -320,6 +320,7 @@ const bulkActions = {
   'owner-add': 'owner_add',
   'owner-set': 'owner_set',
   check: 'check',
+  publish: 'publish',
 } as const satisfies Record<FactAction, string>
 
 /** A read that finds nothing answers null. */
@@ -1530,7 +1531,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return factOfReadDraft(drafted.draft, names, vocabulary)
     },
     applyBulk: async (change) => {
-      const rows = [...new Set([...Object.keys(change.patches), ...change.remove])]
+      const rows = [
+        ...new Set([...Object.keys(change.patches), ...change.remove, ...(change.suggest ?? [])]),
+      ]
       const personId = change.person ? (await readPeople()).idOf(change.person) : undefined
       if (change.person && !personId)
         throw new ApiError('not-found', `${change.person} isn't in this workspace.`)
@@ -1543,10 +1546,15 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       const done = await write('items.bulkApply', input, (o) => client.items.bulkApply(input, o))
       // A row the service left alone where the screen expected it to act is one that didn't go
-      // through: it stays ticked, to try again. With nothing done there is nothing to undo.
+      // through: it stays ticked, to try again. A draft its checks refused says why instead. With
+      // nothing done there is nothing to undo.
+      const refused = done.skipped.filter((r) => r.code === 'not_ready')
       return {
         done: done.done,
-        failed: [...done.failed, ...done.skipped].map((r) => r.id),
+        failed: [...done.failed, ...done.skipped.filter((r) => r.code !== 'not_ready')].map(
+          (r) => r.id,
+        ),
+        skipped: refused.map((r) => ({ id: r.id, title: r.title, why: r.why, reason: r.message })),
         undo: done.undo ?? { token: '', until: null },
       }
     },

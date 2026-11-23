@@ -15,6 +15,9 @@ import {
   changeAction,
   changeSummary,
   planBulk,
+  PUBLISH_MAX,
+  publishesNow,
+  publishSummary,
   type BulkInput,
   type BulkPerson,
   type BulkRow,
@@ -62,12 +65,20 @@ export type ContextDeps = {
 /** The words a change records as its reason, where the rules ask for one. */
 const reasons = {
   archive: 'Archived from the Context list.',
+  publish: 'Published from the Context list.',
+  unsent: 'Undone from the Context list: back to a draft.',
   check: 'Checked from the Context list: still true.',
   restored: (version: number) => `Restored from version ${version}.`,
 }
 
 const kindName = (kind: string) => kinds[kind as Kind].label
 const isItemId = (id: string) => /^itm_[a-z0-9]{8,16}$/.test(id)
+/** Why the checks refused a draft, in their first sentence; '' for any other failure. */
+function notReady(error: unknown) {
+  if (!(error instanceof ORPCError) || error.code !== 'UNPROCESSABLE_CONTENT') return ''
+  const data = error.data as { findings?: { severity: string; message: string }[] } | undefined
+  return data?.findings?.find((f) => f.severity === 'error')?.message ?? error.message
+}
 const plainError = (error: unknown) =>
   error instanceof ORPCError ? error.message : "It couldn't be changed."
 
@@ -79,6 +90,8 @@ type UndoRecord = {
   drafts?: string[]
   /** The owners each item had before, by item. */
   owners?: Record<string, string[]>
+  /** Drafts it sent, published or to the owners: Undo makes them drafts again, their writers'. */
+  sent?: string[]
 }
 
 export function createContextService(
@@ -137,7 +150,8 @@ export function createContextService(
     )
     const drafts = await tx.query<Omit<BulkRow, 'owners'>>(
       `select p.id::text, coalesce(nullif(p.draft->>'title', ''), 'Untitled draft') as title,
-              coalesce(p.draft->>'kind', 'note') as kind, p.area_id as "areaId", 'draft' as status
+              coalesce(p.draft->>'kind', 'note') as kind, p.area_id as "areaId", 'draft' as status,
+              p.proposer_id::text as writer
          from proposals p
         where p.id = any($1::uuid[]) and p.subject = 'item' and p.state = 'draft'
           and p.discarded_at is null and p.area_id is not null`,
@@ -223,6 +237,10 @@ export function createContextService(
   async function plan(input: ItemBulkInput) {
     const mine = await me()
     const read = await inputOf(input, mine)
+    if (input.action === 'publish' && new Set(input.rows).size > PUBLISH_MAX)
+      throw new ORPCError('UNPROCESSABLE_CONTENT', {
+        message: `Publish up to ${PUBLISH_MAX} drafts at once. Tick fewer, then publish the rest.`,
+      })
     const { rows, missing } = await rowsOf(input.rows)
     const names = await domainNames()
     const result = planBulk(rows, read, mine, {
@@ -279,9 +297,35 @@ export function createContextService(
       )
   }
 
+  /**
+   * A draft published as from the editor: sent, through the checks, and published at once where
+   * the person owns its domain or is an admin, as its writer's. Anyone else's waits for the
+   * domain's owners.
+   */
+  async function publishDraft(row: BulkRow, mine: BulkPerson, undo: UndoRecord) {
+    const [draft] = await tx.query<{ revision: number }>(
+      'select revision from proposals where id = $1',
+      [row.id],
+    )
+    const submitted = await proposals.submit(row.id, draft!.revision, { byDomainOwners: true })
+    await review.checkSubmitted(submitted.id)
+    ;(undo.sent ??= []).push(row.id)
+    if (!publishesNow(row, mine)) return
+    const current = await proposals.get(submitted.id)
+    // The editor's rule: an overlap nobody answered is unrelated.
+    const published = await path.publish(
+      { id: current.id, revision: current.revision, reason: reasons.publish },
+      { clashesOnly: true },
+    )
+    ;(undo.decisions ??= []).push(published.undo.token.slice('decision:'.length))
+  }
+
   /** One row of a change, done in full or not at all; what Undo needs goes into `undo`. */
   async function applyRow(row: BulkRow, read: BulkInput, mine: BulkPerson, undo: UndoRecord) {
     switch (read.action) {
+      case 'publish':
+        await publishDraft(row, mine, undo)
+        return
       case 'archive':
         await review.retire(row.id, reasons.archive)
         ;(undo.decisions ??= []).push(await lastDecision(row.id, 'retire'))
@@ -345,6 +389,7 @@ export function createContextService(
     const done: BulkRow[] = []
     const failed: ItemBulkResult['failed'] = []
     const undo: UndoRecord = {}
+    const sent: string[] = []
     for (const row of act) {
       await tx.query('savepoint item_change')
       // What Undo needs for this row joins the change's only once the row is done.
@@ -356,17 +401,35 @@ export function createContextService(
         undo.decisions = [...(undo.decisions ?? []), ...(own.decisions ?? [])]
         undo.drafts = [...(undo.drafts ?? []), ...(own.drafts ?? [])]
         undo.owners = { ...undo.owners, ...own.owners }
+        undo.sent = [...(undo.sent ?? []), ...(own.sent ?? [])]
+        if (read.action === 'publish' && !publishesNow(row, mine)) sent.push(row.id)
       } catch (error) {
         await tx.query('rollback to savepoint item_change')
-        failed.push({ id: row.id, title: row.title, message: plainError(error) })
+        // A draft the checks refuse is left alone with their reason, as the editor says it.
+        const refused = read.action === 'publish' ? notReady(error) : ''
+        if (refused)
+          skipped.push({
+            id: row.id,
+            title: row.title,
+            code: 'not_ready',
+            why: 'not ready',
+            message: refused,
+          })
+        else failed.push({ id: row.id, title: row.title, message: plainError(error) })
       }
     }
-    if (!done.length) return { done: [], skipped, failed, change: null, undo: null }
-    const summary = changeSummary(
-      read,
-      done.map((r) => r.title),
-      names,
-    )
+    if (!done.length) return { done: [], sent: [], skipped, failed, change: null, undo: null }
+    const summary =
+      read.action === 'publish'
+        ? publishSummary(
+            done.filter((r) => !sent.includes(r.id)).map((r) => r.title),
+            done.filter((r) => sent.includes(r.id)).map((r) => r.title),
+          )
+        : changeSummary(
+            read,
+            done.map((r) => r.title),
+            names,
+          )
     const [change] = await tx.query<{ id: string }>(
       `insert into item_changes (action, made_by, summary, items, undo)
        values ($1, cl_person(), $2, $3, $4) returning id::text`,
@@ -379,6 +442,7 @@ export function createContextService(
     )
     return {
       done: done.map((r) => r.id),
+      sent,
       skipped,
       failed,
       change: { id: change!.id, summary },
@@ -411,9 +475,31 @@ export function createContextService(
       throw new ORPCError('CONFLICT', {
         message: 'It is too late to undo this change. Change them again instead.',
       })
-    const { decisions = [], drafts = [], owners = {} } = change.undo
+    const { decisions = [], drafts = [], owners = {}, sent = [] } = change.undo
     // The decisions first: a move undone puts each item back in its domain, where its owners were.
     const undone = decisions.length ? await path.undoDecisions(decisions) : { edition: null }
+    // Each draft it sent is a draft again, its writer's, with its words: the suggestion is
+    // withdrawn and its draft comes back beside it, as a check undone goes.
+    for (const sentId of sent) {
+      const [withdrawn] = await tx.query<Parameters<typeof proposalEvent>[1]>(
+        `update proposals set state = 'withdrawn', closed_at = now(), reason = $2
+          where id = $1 and state in ('submitted', 'in_review')
+          returning id::text, area_id as "areaId", state::text as state, revision`,
+        [sentId, reasons.unsent],
+      )
+      if (!withdrawn) continue
+      await proposalEvent(tx, withdrawn, 'withdrawn', { reason: reasons.unsent })
+      const [back] = await tx.query<Parameters<typeof proposalEvent>[1]>(
+        `insert into proposals (subject, action, area_id, item_id, proposer_id, channel, draft,
+                                draft_saved_at, provenance, agent_id, agent_name, base_version_id)
+         select subject, action, area_id, case when action = 'change' then item_id end,
+                proposer_id, channel, draft, now(), provenance, agent_id, agent_name, base_version_id
+           from proposals where id = $1
+         returning id::text, area_id as "areaId", state::text as state, revision`,
+        [sentId],
+      )
+      await proposalEvent(tx, back!, 'restored', { change: id, from: sentId })
+    }
     for (const [itemId, before] of Object.entries(owners)) await setOwners(itemId, before)
     for (const draft of drafts) {
       const [back] = await tx.query<Parameters<typeof proposalEvent>[1]>(
