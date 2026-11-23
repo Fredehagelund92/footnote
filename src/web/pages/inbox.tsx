@@ -1061,6 +1061,8 @@ function MentionDetail({
 /** The names a read made, in the Inbox's pane: the one card that publishes them (FR-141). */
 function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next: () => void }) {
   const write = useWrite()
+  const { query } = useRoute()
+  const show = query.get('show')
   React.useEffect(() => {
     void write('markOpened', { ids: [card.id] })
     // Once per card opened.
@@ -1071,6 +1073,8 @@ function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next:
       <NamesReview
         onFinished={next}
         onOpenFamily={(key) => openFromRow('family', key)}
+        show={show === 'families' || show === 'names' ? show : undefined}
+        onShow={(next) => setQuery({ show: next })}
         frame={(body, foot) => (
           <InboxPanel label={card.title} nav={nav} foot={foot}>
             {body}
@@ -1508,8 +1512,10 @@ export function InboxPage() {
       if (e.key === 'j') step(1)
       if (e.key === 'k') step(-1)
       // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
-      // Ticked rows clear first, in the selection's own Esc.
-      if (e.key === 'Escape' && selected && !sel.count) select(undefined)
+      // Ticked rows clear first, in the selection's own Esc. A panel open in the card's place (a
+      // family opened from the Names card) takes its own Esc and closes: the card comes back.
+      if (e.key === 'Escape' && !e.defaultPrevented && selected && !sel.count && !dock)
+        select(undefined)
       if (e.key === 'Enter' && t === document.body) primary()?.click()
     }
     window.addEventListener('keydown', onKey)

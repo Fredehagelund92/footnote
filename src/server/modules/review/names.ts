@@ -126,6 +126,7 @@ export function createNamesService(tx: Queryable) {
     areaId: name.areaId,
     description: name.description,
     tool: tool(name.source),
+    source: name.source,
     state: name.state,
     flags: name.flags,
     leftByOwner: name.leftByOwner,

@@ -252,12 +252,13 @@ export function activityOf(read: SourceReadEntry, tool: string, now: Date): Acti
       : unread
         ? [`${unread === 1 ? '1 chosen view is' : `${unread} chosen views are`} not in the model`]
         : []
+    // Read, not added: nothing a read finds is published until an owner says so on the Names card.
     if (read.first)
       return {
         when,
         tone: listed.length ? 'changed' : 'ok',
         what,
-        detail: [`${plural(added, 'definition')} added`, ...listed].join(', '),
+        detail: [`${plural(added, 'definition')} read`, ...listed].join(', '),
       }
     const parts = [
       changed && `${plural(changed, 'definition')} changed`,
@@ -627,13 +628,16 @@ const splitWords = ({ words, examples }: { words: number; examples: string[] }) 
       ? `${examples.slice(0, -1).join(', ')} and ${examples.at(-1)}`
       : (examples[0] ?? '')
 
-/** What a read that looks like a metric per currency or channel says, before its names are published. */
+/**
+ * What a read that looks like a metric per currency or channel says, before its names are
+ * published, when it finds no family of them: Test connection then leads with the families (D5).
+ */
 export function variantsWords(shape: NonNullable<SourceCheck['variants']>) {
   const n = (count: number) => count.toLocaleString('en-GB')
   const splits = shape.splits.map(splitWords).join(', and by ')
   return {
     title: 'Many metrics look like variants of a few',
-    detail: `${n(shape.variants)} of ${n(shape.metrics)} metrics look like ${n(shape.bases)} metrics, each split by ${splits}. Agents find what is written about them only by each one's exact name. One metric each, with these as dimensions, works best.`,
+    detail: `${n(shape.variants)} of ${n(shape.metrics)} metrics look like ${n(shape.bases)} metrics, each split by ${splits}. One metric each, with these as dimensions, works best.`,
   }
 }
 
@@ -679,7 +683,11 @@ export function connectTestOf(check: SourceCheck, type?: string): ConnectTest {
             metrics: check.metrics,
             dimensions: check.dimensions,
             warnings: readWarnings(check.warnings, connector.warnings),
-            ...(check.variants ? { variants: variantsWords(check.variants) } : {}),
+            ...(check.families
+              ? { families: check.families }
+              : check.variants
+                ? { variants: variantsWords(check.variants) }
+                : {}),
           },
         }
       : {}),

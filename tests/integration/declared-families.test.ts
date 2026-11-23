@@ -253,7 +253,7 @@ describe('the Names card', () => {
       expect(named(list, stem)).toMatchObject({
         kind: 'metric_group',
         state: 'ready',
-        family: { variants: 2, by: ['Currency'], found: 'calculation' },
+        family: { variants: 2, by: ['Currency'], found: 'rate' },
       })
     // A variant is never a name of its own on the card.
     expect(list.names.map((n) => n.name)).not.toContain('Net revenue retail eur')
@@ -352,7 +352,7 @@ describe('a family’s page', () => {
         expect.objectContaining({ by: 'exchange_rate_usd' }),
       ]) as unknown,
     })
-    expect((await family('Accrued share 1'))?.family?.found).toBe('calculation')
+    expect((await family('Accrued share 1'))?.family?.found).toBe('rate')
   })
 
   it('says which variant is converted from which, by the column', async () => {

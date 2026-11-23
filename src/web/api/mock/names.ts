@@ -8,7 +8,8 @@ import {
   variantNameRefusal,
   type WordHolders,
 } from '@domain/source-names'
-import type { CandidateMember } from '@domain/term-candidates'
+import { familiesOf, familyCounts } from '@domain/metric-families'
+import { memberName, type CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'
 import { namesWords, type InboxCard } from '@/model/inbox'
@@ -28,7 +29,8 @@ const member = (
   extra: Partial<CandidateMember> = {},
 ): CandidateMember => ({
   ref: `dbt:${name}`,
-  source: 'dbt',
+  // The dbt project's page in Integrations, where its families are counted.
+  source: 'dbt-metricflow',
   kind: 'metric',
   name,
   title,
@@ -109,6 +111,31 @@ const foundOtherwise: CandidateMember[] = [
   ),
 ]
 
+/**
+ * What Test connection finds in the shop of ?demo=families, as the service counts a test's read:
+ * its metrics and dimensions, and the families of each kind the first read would find (D5).
+ */
+export function familiesShopRead() {
+  const all = [...shop, ...variants, ...foundOtherwise]
+  const metrics = all.filter((m) => m.kind === 'metric')
+  const families = familyCounts(
+    familiesOf(
+      metrics.map((m) => ({
+        ...m,
+        said: memberName(m),
+        variant: m.variant ?? null,
+        declared: m.declared ?? null,
+        builtFrom: m.builtFrom ?? null,
+      })),
+    ),
+  )
+  return {
+    metrics: metrics.length,
+    dimensions: all.length - metrics.length,
+    ...(families ? { families } : {}),
+  }
+}
+
 /** The words that mean something else in the mock's demo: the demo has its own Orders. */
 const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
@@ -134,7 +161,6 @@ export function createMockNames(heldWords: WordHolders = holders) {
   const read = async (who: Reader): Promise<NamesRead> => {
     const shown = readable(who).map(
       ({
-        source: _source,
         views: _views,
         valueType: _type,
         suggested: _s,
@@ -161,7 +187,8 @@ export function createMockNames(heldWords: WordHolders = holders) {
       const ready = list.filter((n) => n.state === 'ready').length
       const flagged = list.filter((n) => n.state === 'flagged').length
       if (!ready && !flagged) return null
-      const counts = { ready, flagged, tools: ['dbt'] }
+      const families = list.filter((n) => n.family && n.state !== 'left_out').length
+      const counts = { ready, flagged, families, tools: ['dbt'] }
       return {
         id: 'names:waiting',
         type: 'names',

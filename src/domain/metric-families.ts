@@ -9,10 +9,11 @@
      (D9), each told apart by its `by`. Two are a family.
   2. Found from the calculation: the metrics of one view whose source says they calculate the same
      thing apart from the literals their filters compare (a definition's `variant`), at least three
-     told apart by the same columns; and the metrics worked out from one another with one column
-     (D2): a metric converted from another (definition-relations.ts) by a column that converts
-     other metrics of the source too, a rate, with that one, by Currency. Two are a family.
-  3. Suggested from names: the metrics of one view whose names are one name in other currencies,
+     told apart by the same columns.
+  3. Found from a rate: a metric converted from another (definition-relations.ts) by a column that
+     converts other metrics of the source too, a rate, with that one, by Currency. Two are a
+     family. Its own kind (D6), as a pair converted from one another is no calculation's variant.
+  4. Suggested from names: the metrics of one view whose names are one name in other currencies,
      whatever their calculations. Never a family by itself: the Names card shows them apart, as
      names that look alike, for the owner to publish as one family or apart.
 
@@ -370,7 +371,7 @@ function convertedFamilies(
         source,
         by: [CURRENCY_AXIS],
         min: PAIR_FAMILY_MIN,
-        found: 'calculation',
+        found: 'rate',
         variants,
       })
     }
@@ -417,8 +418,8 @@ function lookAlikes(members: readonly VariantMember[]): Family[] {
 
 /**
  * The families among a source's metrics, in the order of trust (D1): those its source declares,
- * then those found from the calculation (one calculation's filter variants, then the metrics one
- * rate converts), then those the names alone suggest (`found: 'names'`). A metric is in one family
+ * then those found from the calculation (one calculation's filter variants), then the metrics one
+ * rate converts (`found: 'rate'`), then those the names alone suggest (`found: 'names'`). A metric is in one family
  * at most: the first that takes it. Ordered by name.
  */
 export function familiesOf(members: readonly VariantMember[]): Family[] {
@@ -438,6 +439,33 @@ export function familiesOf(members: readonly VariantMember[]): Family[] {
       for (const { ref } of family.variants) taken.add(ref)
     }
   return families.sort((a, b) => a.name.localeCompare(b.name, 'en') || (a.key < b.key ? -1 : 1))
+}
+
+/** How many families there are of each kind, in the order of trust (D1, D6). */
+export type FamilyCounts = {
+  families: number
+  /** The metrics in them. */
+  metrics: number
+  found: Record<FamilyFound, number>
+  /** The name of the family with the most variants, of the most trusted kind first. */
+  example: string
+}
+
+/** The families counted, of each kind; null for none. */
+export function familyCounts(families: readonly Family[]): FamilyCounts | null {
+  if (!families.length) return null
+  const found: Record<FamilyFound, number> = { declared: 0, calculation: 0, rate: 0, names: 0 }
+  for (const family of families) found[family.found] += 1
+  const trusted = families.filter((family) => family.found !== 'names')
+  const [first] = [...(trusted.length ? trusted : families)].sort(
+    (a, b) => b.variants.length - a.variants.length || a.name.localeCompare(b.name, 'en'),
+  )
+  return {
+    families: families.length,
+    metrics: families.reduce((n, family) => n + family.variants.length, 0),
+    found,
+    example: first!.name,
+  }
 }
 
 /** Why a family a source declares does not hold, by code, as the read warns it. */

@@ -43,6 +43,8 @@ export const cardSchema = z.union([
     /** The names Accept all takes, the ones that need a look first, and the tools that gave them. */
     ready: z.number(),
     flagged: z.number(),
+    /** Of the names that wait, the families of near-identical metrics (FR-142). */
+    families: z.number(),
     tools: z.array(z.string()),
   }),
   z.object({
@@ -218,14 +220,16 @@ export const sourceNameSchema = z.object({
   description: z.nullable(z.string()),
   /** The tool that gave it, as people say it ("dbt"). */
   tool: z.string(),
+  /** The source that read it, by its id in Integrations: its page counts its families. */
+  source: z.string(),
   state: z.enum(nameStates),
   flags: z.array(z.object({ code: z.enum(nameFlagCodes), message: z.string() })),
   /** An owner left it out; otherwise it is a date or an id, which stay out by themselves. */
   leftByOwner: z.boolean(),
   /**
    * A family's variants, counted, what tells them apart in words (["Currency", "Channel"]), and how
-   * it was found (D1): declared in the tool, found from the calculation, or suggested by the names
-   * alone. They go live with it, and are never listed one by one, but for a family the names alone
+   * it was found (D1, D6): declared in the tool, found from the calculation, found from a rate, or
+   * suggested by the names alone. They go live with it, and are never listed one by one, but for a family the names alone
    * suggest: its variants' names (`names`), as the owner publishes them as one family or apart.
    * Null for any other name.
    */

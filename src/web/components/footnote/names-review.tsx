@@ -10,7 +10,12 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
 import { SourceText } from '@/components/footnote/source-text'
+import { FamiliesFound, type FoundCounts } from '@/components/footnote/families-found'
+import { TextSwitch } from '@/components/footnote/switches'
+import { FamilyGlyph } from '@/components/footnote/type-glyph'
+import { FoldTrigger } from '@/components/footnote/fold'
 import { useOnline } from '@/lib/send'
+import { familyFoundKinds, foundKindWords } from '@domain/family-found'
 import { asSuggested } from '@domain/suggested-names'
 import { memberOf } from '@domain/vocabulary'
 import { familyBy } from '@/lib/definitions'
@@ -30,13 +35,13 @@ const kindWord = { metric: 'Metric', dimension: 'Dimension', metric_group: 'Fami
 const familyWords = (family: NonNullable<SourceNameRead['family']>) =>
   `${family.variants.toLocaleString('en-GB')} ${family.variants === 1 ? 'variant' : 'variants'} ${familyBy({ by: family.by, variants: [] })}`
 
-/** How a family was found, in the tool's name (D1): "declared in dbt". */
+/** How a family was found, in the tool's name (D1): "declared in dbt", "found from a rate in dbt". */
 const foundWords = (name: SourceNameRead) =>
-  name.family?.found === 'declared'
-    ? `declared in ${name.tool}`
-    : name.family?.found === 'calculation'
-      ? `found from the calculation in ${name.tool}`
-      : null
+  !name.family || name.family.found === 'names'
+    ? null
+    : name.family.found === 'declared'
+      ? `declared in ${name.tool}`
+      : `found ${foundKindWords(name.family.found, name.tool)} in ${name.tool}`
 
 /** A family the names alone suggest, which waits for the owner to say it is one (D1). */
 const looksAlike = (name: SourceNameRead) =>
@@ -44,14 +49,17 @@ const looksAlike = (name: SourceNameRead) =>
 
 /**
  * A family's name: with `onOpen`, a button that opens its panel, which shows what it would mean,
- * its values and who owns it, with Publish as a family and Keep them separate (F4).
+ * its values and who owns it, with Publish as a family and Keep them separate (F4). `said` is what
+ * the button shows when that is not the family's name, so the name it is heard by holds it.
  */
 function FamilyName({
   name,
+  said = name.name,
   children,
   onOpen,
 }: {
   name: SourceNameRead
+  said?: string
   children: React.ReactNode
   onOpen?: (key: string) => void
 }) {
@@ -61,7 +69,7 @@ function FamilyName({
     <button
       type="button"
       className="text-left font-medium text-foreground underline decoration-border underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-      aria-label={`Look at the family ${name.name}`}
+      aria-label={`Look at the family ${said}`}
       data-row-open={name.key}
       onClick={() => onOpen(name.key)}
     >
@@ -72,56 +80,66 @@ function FamilyName({
 
 /**
  * A name that is ready: what it is, and the source's own words for it. A family says what it holds
- * and is published with one press, its variants with it; they are never listed here.
+ * and is published with one press, its variants with it; they are never listed here. `grouped`
+ * rows sit under how their family was found, so they leave that out. The buttons keep a column of
+ * their own, so every row is as tall as its words.
  */
 function ReadyRow({
   name,
   busy,
+  grouped = false,
   onLeaveOut,
   onPublish,
   onOpen,
 }: {
   name: SourceNameRead
   busy: boolean
+  grouped?: boolean
   onLeaveOut: () => void
   onPublish: () => void
   onOpen?: (key: string) => void
 }) {
   return (
-    <li className="flex min-w-0 flex-col gap-0.5 py-2">
-      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <FamilyName name={name} onOpen={onOpen}>
-          {name.name}
-        </FamilyName>
-        <span className="text-xs text-muted-foreground">
-          {name.family
-            ? [`Family · ${familyWords(name.family)}`, foundWords(name)].filter(Boolean).join(' · ')
-            : kindWord[name.kind]}
-        </span>
-        {name.linked.length > 0 && (
+    <li className="grid min-w-0 grid-cols-(--cols-trail-auto) items-center gap-x-3 py-2">
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <FamilyName name={name} onOpen={onOpen}>
+            {name.name}
+          </FamilyName>
           <span className="text-xs text-muted-foreground">
-            {name.family ? 'Adds variants' : 'Adds another view'}
+            {name.family
+              ? grouped
+                ? familyWords(name.family)
+                : [`Family · ${familyWords(name.family)}`, foundWords(name)]
+                    .filter(Boolean)
+                    .join(' · ')
+              : kindWord[name.kind]}
+          </span>
+          {name.linked.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {name.family ? 'Adds variants' : 'Adds another view'}
+            </span>
+          )}
+          {name.areaId && <Domain id={name.areaId} />}
+        </span>
+        {name.description && (
+          <span className="line-clamp-1 text-xs text-muted-foreground">
+            <SourceText text={name.description} />
           </span>
         )}
-        {name.areaId && <Domain id={name.areaId} />}
-        <span className="ml-auto flex items-center gap-1">
-          {name.family && (
-            <Button variant="outline" disabled={busy} onClick={onPublish}>
-              Publish
-            </Button>
-          )}
-          {name.linked.length === 0 && (
-            <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
-              Leave out
-            </Button>
-          )}
-        </span>
       </span>
-      {name.description && (
-        <span className="line-clamp-1 text-xs text-muted-foreground">
-          <SourceText text={name.description} />
-        </span>
-      )}
+      <span className="flex items-center gap-1">
+        {name.family && (
+          <Button variant="outline" disabled={busy} onClick={onPublish}>
+            Publish
+          </Button>
+        )}
+        {name.linked.length === 0 && (
+          <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
+            Leave out
+          </Button>
+        )}
+      </span>
     </li>
   )
 }
@@ -224,7 +242,7 @@ function LookAlikeRow({
       <label htmlFor={id} className="flex flex-col gap-0.5 text-xs text-muted-foreground">
         <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
           <span className="text-sm">
-            <FamilyName name={name} onOpen={onOpen}>
+            <FamilyName name={name} said={names.join(', ')} onOpen={onOpen}>
               {names.join(', ')}
             </FamilyName>
           </span>
@@ -262,19 +280,124 @@ function LookAlikeRow({
   )
 }
 
+/** Which part of the card shows: the families to group, or the names of single definitions. */
+export type NamesShow = 'families' | 'names'
+
+const n = (x: number) => x.toLocaleString('en-GB')
+const familiesSaid = (x: number) => (x === 1 ? '1 family' : `${n(x)} families`)
+const namesSaid = (x: number) => (x === 1 ? '1 name' : `${n(x)} names`)
+
+/** A family waiting on a name: every flag says its name is taken, shared or can't be used. */
+const nameFlags = new Set(['taken', 'same_name', 'bad_name'])
+
+/**
+ * The families ready to publish, by how each was found (D1, D6), in the order of trust: one row a
+ * kind, which says how many and names a few, and opens to the families themselves.
+ */
+function ReadyGroups({
+  ready,
+  busy,
+  onLeaveOut,
+  onPublish,
+  onOpen,
+}: {
+  ready: readonly SourceNameRead[]
+  busy: boolean
+  onLeaveOut: (name: SourceNameRead) => void
+  onPublish: (name: SourceNameRead) => void
+  onOpen?: (key: string) => void
+}) {
+  // Open at first while they are few; a model of hundreds starts folded, a row a kind.
+  const [open, setOpen] = React.useState<ReadonlySet<string>>(() =>
+    ready.length <= OPEN_READY ? new Set(familyFoundKinds) : new Set(),
+  )
+  const groups = familyFoundKinds.flatMap((kind) => {
+    const of = ready.filter((name) => name.family?.found === kind)
+    return of.length ? [{ kind, of }] : []
+  })
+  return (
+    <ul className="flex flex-col">
+      {groups.map(({ kind, of }) => {
+        const tools = [...new Set(of.map((name) => name.tool))].join(', ')
+        const said = foundKindWords(kind, tools)
+        const title =
+          kind === 'names'
+            ? 'Look alike, published as one family'
+            : `${said.charAt(0).toUpperCase()}${said.slice(1)}`
+        const by = [...new Set(of.map((name) => familyBy({ by: name.family!.by, variants: [] })))]
+        const named = of.slice(0, 3).map((name) => name.name)
+        const more = of.length - named.length
+        const shown = open.has(kind)
+        const id = `names-ready-${kind}`
+        return (
+          <li key={kind} className="border-t first:border-t-0">
+            <h4>
+              <FoldTrigger
+                label={title}
+                summary={`${familiesSaid(of.length)}${by.length === 1 ? ` ${by[0]}` : ''}: ${named.join(', ')}${more > 0 ? ` and ${n(more)} more` : ''}`}
+                lead={<FamilyGlyph className="size-4" />}
+                trail={<Count n={of.length} />}
+                expanded={shown}
+                aria-controls={id}
+                onClick={() =>
+                  setOpen((was) => {
+                    const next = new Set(was)
+                    if (next.has(kind)) next.delete(kind)
+                    else next.add(kind)
+                    return next
+                  })
+                }
+              />
+            </h4>
+            {shown && (
+              <ul id={id} className="mb-2 ml-6 divide-y divide-border">
+                {of.map((name) => (
+                  <ReadyRow
+                    key={name.key}
+                    name={name}
+                    busy={busy}
+                    grouped
+                    onLeaveOut={() => onLeaveOut(name)}
+                    onPublish={() => onPublish(name)}
+                    onOpen={onOpen}
+                  />
+                ))}
+              </ul>
+            )}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** A section's count beside its heading, quiet; a screen reader hears it as part of the name. */
+const Count = ({ n: count }: { n: number }) => (
+  <span className="text-xs font-normal text-muted-foreground tabular-nums">{n(count)}</span>
+)
+
+/** How many ready families open at once, each kind's list shown; past it they start folded. */
+const OPEN_READY = 8
+
 /**
  * The review. `frame` draws its body and its foot in the Inbox's pane or the setup checklist's
- * dialog; `onFinished` runs once nothing is left to publish.
+ * dialog; `onFinished` runs once nothing is left to publish. Families and names are two parts
+ * (D1): Families groups near-identical metrics, by how each family was found; Names names the
+ * single metrics and dimensions. `show` picks one, as the Inbox's address may (?show=families).
  */
 export default function NamesReview({
   frame,
   onFinished,
   onOpenFamily,
+  show: asked,
+  onShow,
 }: {
   frame: (body: React.ReactNode, foot: React.ReactNode) => React.ReactNode
   onFinished?: () => void
   /** Opens a family's panel, by its key; without it a family's name opens nothing. */
   onOpenFamily?: (key: string) => void
+  show?: NamesShow
+  onShow?: (show: NamesShow) => void
 }) {
   const read = useQuery(namesQuery())
   const write = useWrite()
@@ -283,18 +406,26 @@ export default function NamesReview({
   const [busy, setBusy] = React.useState(false)
   const [problems, setProblems] = React.useState<Record<string, string>>({})
   const [all, setAll] = React.useState(false)
+  const [picked, setPicked] = React.useState<NamesShow | undefined>(undefined)
   const names = read.data?.names ?? []
-  const ready = names.filter((name) => name.state === 'ready')
-  const waiting = names.filter((name) => name.state === 'flagged')
-  const flagged = waiting.filter((name) => !looksAlike(name))
-  const alike = waiting.filter(looksAlike)
-  const left = names.filter((name) => name.state === 'left_out')
-  // One title a project keeps in many semantic models flags every copy: they go out at one press.
-  const suggested = asSuggested(flagged)
   const tools = [...new Set(names.map((name) => name.tool))].sort()
-  const families = names.filter(
-    (name) => name.family && name.state !== 'left_out' && !looksAlike(name),
-  ).length
+  const looking = names.filter((name) => name.state !== 'left_out')
+  const families = names.filter((name) => name.family)
+  const singles = names.filter((name) => !name.family)
+  const familiesOpen = families.filter((name) => name.state !== 'left_out')
+  const singlesOpen = singles.filter((name) => name.state !== 'left_out')
+  // Two parts only when there is something in each; one part is just the list.
+  const parts = families.length > 0 && singles.length > 0
+  const show: NamesShow = !parts
+    ? families.length
+      ? 'families'
+      : 'names'
+    : (asked ?? picked ?? (familiesOpen.length || !singlesOpen.length ? 'families' : 'names'))
+  const choose = (next: NamesShow) => {
+    setPicked(next)
+    setAll(false)
+    onShow?.(next)
+  }
 
   const decide = async (
     picks: { key: string; name?: string; apart?: true }[],
@@ -333,6 +464,13 @@ export default function NamesReview({
       [],
       `${chosen} is published`,
     )
+  const leaveOut = (name: SourceNameRead) => decide([], [name.key], `${name.name} is left out`)
+  const apart = (name: SourceNameRead) =>
+    decide(
+      [{ key: name.key, apart: true }],
+      [],
+      `${n(name.family!.names.length)} metrics are published separately`,
+    )
 
   if (!read.data)
     return frame(
@@ -341,19 +479,93 @@ export default function NamesReview({
       </Loadable>,
       null,
     )
+
+  const list = show === 'families' ? families : singles
+  const ready = list.filter((name) => name.state === 'ready')
+  const waiting = list.filter((name) => name.state === 'flagged')
+  const flagged = waiting.filter((name) => !looksAlike(name))
+  const alike = waiting.filter(looksAlike)
+  const left = list.filter((name) => name.state === 'left_out')
+  // One title a project keeps in many semantic models flags every copy: they go out at one press.
+  const suggested = show === 'names' ? asSuggested(flagged) : []
+  const found = Object.fromEntries(
+    familyFoundKinds.map((kind) => [
+      kind,
+      familiesOpen.filter((name) => name.family!.found === kind).length,
+    ]),
+  ) as FoundCounts
   const shown = all ? ready : ready.slice(0, FIRST_ROWS)
+  const counts = {
+    ready: names.filter((name) => name.state === 'ready').length,
+    flagged: names.filter((name) => name.state === 'flagged').length,
+    families: familiesOpen.length,
+    tools,
+  }
+  const tool = tools.length ? tools.join(', ') : 'your definitions tool'
   const body = (
     <>
       <PaneHead
         state={{ label: 'New metrics and dimensions', icon: 'names', tone: 'neutral' }}
-        title={namesWords({ ready: ready.length, flagged: waiting.length, tools }).title}
-        summary={`These metrics and dimensions were found in ${tools.length ? tools.join(', ') : 'your definitions tool'}. Publish them, and people can write context about them and agents can use them.${families ? ` ${families === 1 ? 'One is a family' : `${families} are families`} of near-identical metrics: each is published as one name, with its variants.` : ''}`}
+        title={namesWords(counts).title}
+        summary={`These metrics and dimensions were found in ${tool}. Publish them, and people can write context about them and agents can use them.${familiesOpen.length ? ' A family of near-identical metrics is published as one name, with its variants.' : ''}`}
       />
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
+        {parts && (
+          <TextSwitch
+            label="Show"
+            value={show}
+            onChange={choose}
+            className="-mt-1 border-b pb-2"
+            options={[
+              { value: 'families', label: 'Families', count: familiesOpen.length },
+              { value: 'names', label: 'Names', count: singlesOpen.length },
+            ]}
+          />
+        )}
+        {show === 'families' && familiesOpen.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <p className="text-muted-foreground">
+              Each family is published as one metric, with its variants. Open one to see what it
+              would mean.
+            </p>
+            <FamiliesFound found={found} tool={tool} as="line" />
+          </div>
+        )}
+        {alike.length > 0 && (
+          <section aria-labelledby="names-alike" className="flex flex-col gap-1">
+            <h3 id="names-alike" className="font-medium">
+              Look alike <Count n={alike.length} />
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {alike.length === 1
+                ? 'These metrics have one name in other currencies'
+                : `${n(alike.length)} sets of metrics have one name in other currencies`}
+              , and nothing in {alike[0]!.tool} says they are one metric. Each waits for you.
+            </p>
+            <ul>
+              {alike.map((name) => (
+                <LookAlikeRow
+                  key={name.key}
+                  name={name}
+                  busy={busy || !online}
+                  problem={problems[name.key]}
+                  onFamily={(chosen) => void acceptOne(name, chosen)}
+                  onOpen={onOpenFamily}
+                  onApart={() => void apart(name)}
+                  onLeaveOut={() => void leaveOut(name)}
+                />
+              ))}
+            </ul>
+          </section>
+        )}
         {flagged.length > 0 && (
           <section aria-labelledby="names-flagged" className="flex flex-col gap-1">
             <h3 id="names-flagged" className="font-medium">
-              Look at these first
+              {show === 'families' &&
+              flagged.every((name) => name.flags.every((flag) => nameFlags.has(flag.code)))
+                ? 'Needs another name'
+                : 'Look at these first'}{' '}
+              <Count n={flagged.length} />
             </h3>
             <p className="text-xs text-muted-foreground">
               One word has one meaning here. Keep the name below, change it, or leave it out. A name
@@ -390,44 +602,7 @@ export default function NamesReview({
                   problem={problems[name.key]}
                   onAccept={(chosen) => void acceptOne(name, chosen)}
                   onOpen={onOpenFamily}
-                  onLeaveOut={
-                    name.linked.length
-                      ? undefined
-                      : () => void decide([], [name.key], `${name.name} is left out`)
-                  }
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-        {alike.length > 0 && (
-          <section aria-labelledby="names-alike" className="flex flex-col gap-1">
-            <h3 id="names-alike" className="font-medium">
-              Look alike
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {alike.length === 1
-                ? 'These metrics have one name in other currencies'
-                : `${alike.length.toLocaleString('en-GB')} sets of metrics have one name in other currencies`}
-              , and nothing in {alike[0]!.tool} says they are one metric.
-            </p>
-            <ul>
-              {alike.map((name) => (
-                <LookAlikeRow
-                  key={name.key}
-                  name={name}
-                  busy={busy || !online}
-                  problem={problems[name.key]}
-                  onFamily={(chosen) => void acceptOne(name, chosen)}
-                  onOpen={onOpenFamily}
-                  onApart={() =>
-                    void decide(
-                      [{ key: name.key, apart: true }],
-                      [],
-                      `${name.family!.names.length.toLocaleString('en-GB')} metrics are published separately`,
-                    )
-                  }
-                  onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
+                  onLeaveOut={name.linked.length ? undefined : () => void leaveOut(name)}
                 />
               ))}
             </ul>
@@ -436,31 +611,47 @@ export default function NamesReview({
         {ready.length > 0 && (
           <section aria-labelledby="names-ready" className="flex flex-col gap-1">
             <h3 id="names-ready" className="font-medium">
-              Ready to publish
+              {show === 'families' ? 'Ready' : 'Ready to publish'} <Count n={ready.length} />
             </h3>
-            <ul className="divide-y divide-border">
-              {shown.map((name) => (
-                <ReadyRow
-                  key={name.key}
-                  name={name}
-                  busy={busy}
-                  onLeaveOut={() => void decide([], [name.key], `${name.name} is left out`)}
-                  onPublish={() => void acceptOne(name, name.name)}
-                  onOpen={onOpenFamily}
-                />
-              ))}
-            </ul>
-            {shown.length < ready.length && (
-              <Button variant="ghost" className="w-fit" onClick={() => setAll(true)}>
-                Show all {ready.length}
-              </Button>
+            {show === 'families' ? (
+              <ReadyGroups
+                ready={ready}
+                busy={busy}
+                onLeaveOut={(name) => void leaveOut(name)}
+                onPublish={(name) => void acceptOne(name, name.name)}
+                onOpen={onOpenFamily}
+              />
+            ) : (
+              <>
+                <ul className="divide-y divide-border">
+                  {shown.map((name) => (
+                    <ReadyRow
+                      key={name.key}
+                      name={name}
+                      busy={busy}
+                      onLeaveOut={() => void leaveOut(name)}
+                      onPublish={() => void acceptOne(name, name.name)}
+                      onOpen={onOpenFamily}
+                    />
+                  ))}
+                </ul>
+                {shown.length < ready.length && (
+                  <Button variant="ghost" className="w-fit" onClick={() => setAll(true)}>
+                    Show all {ready.length}
+                  </Button>
+                )}
+              </>
             )}
           </section>
         )}
         {left.length > 0 && (
           <Fold
             title="Left out"
-            summary={`${left.length} ${left.length === 1 ? 'name' : 'names'}: dates and ids stay out by themselves`}
+            summary={
+              show === 'families'
+                ? `${familiesSaid(left.length)}, kept off the list until you publish ${left.length === 1 ? 'it' : 'them'}`
+                : `${left.length} ${left.length === 1 ? 'name' : 'names'}: dates and ids stay out by themselves`
+            }
           >
             <ul className="divide-y divide-border">
               {left.map((name) =>
@@ -472,13 +663,7 @@ export default function NamesReview({
                     problem={problems[name.key]}
                     onFamily={(chosen) => void acceptOne(name, chosen)}
                     onOpen={onOpenFamily}
-                    onApart={() =>
-                      void decide(
-                        [{ key: name.key, apart: true }],
-                        [],
-                        `${name.family!.names.length.toLocaleString('en-GB')} metrics are published separately`,
-                      )
-                    }
+                    onApart={() => void apart(name)}
                   />
                 ) : (
                   <FlaggedRow
@@ -497,15 +682,20 @@ export default function NamesReview({
       </div>
     </>
   )
-  const count = ready.length === 1 ? '1 name' : `${ready.length} names`
+  // What stays on the card once this part's ready ones go: what waits here, and the other part.
+  const staying = looking.length - ready.length
+  const count = show === 'families' ? familiesSaid(ready.length) : namesSaid(ready.length)
+  const goes = ready.length === 1 ? 'is' : 'are'
   const foot =
     ready.length > 0 ? (
       <PaneFoot
         follows={
           online
-            ? waiting.length
-              ? `${count} ${ready.length === 1 ? 'goes' : 'go'} out at once. The other ${waiting.length} ${waiting.length === 1 ? 'stays' : 'stay'} here.`
-              : `${count} ${ready.length === 1 ? 'goes' : 'go'} out at once, for people and agents.`
+            ? `${count} ${goes} published at once. ${
+                staying
+                  ? `The other ${n(staying)} ${staying === 1 ? 'stays' : 'stay'} here.`
+                  : 'Nothing else waits.'
+              }`
             : "Offline: changes wait until you're back."
         }
       >
@@ -519,7 +709,7 @@ export default function NamesReview({
             )
           }
         >
-          Publish all
+          {parts || show === 'families' ? `Publish ${count}` : 'Publish all'}
         </PrimaryAction>
       </PaneFoot>
     ) : null

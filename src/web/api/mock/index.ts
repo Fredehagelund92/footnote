@@ -1090,7 +1090,14 @@ export function createMockApi() {
     // The checks take a moment, as a tool's do.
     testIntegration: ({ connector, config, secrets }) =>
       new Promise((resolve) => setTimeout(resolve, MOCK_TEST_MS)).then(() =>
-        copy(testFor(connector, { config, secrets }, scenario.address().query.views === 'many')),
+        copy(
+          testFor(
+            connector,
+            { config, secrets },
+            scenario.address().query.views === 'many',
+            familiesShop,
+          ),
+        ),
       ),
     connectIntegration: ({ connector, config, chosen, readsAll, reason }) =>
       now(() => {
@@ -1098,7 +1105,7 @@ export function createMockApi() {
         settings.connect(connector)
         kept.set(connector, { config, chosen, readsAll, revision: 1 })
         // A definitions tool's read makes names, and the owner accepts them.
-        if (connectorById(connector)?.kind === 'definitions') names.load()
+        if (connectorById(connector)?.kind === 'definitions') names.load(familiesShop)
         // A content tool's first read is at its next morning read; a definitions tool's now.
         return {
           id: connector,
@@ -1316,6 +1323,7 @@ export function createMockApi() {
         if (demo === 'variants') definitions.loadVariants()
         if (demo === 'dbt') definitions.loadDbtFolder()
         if (demo === 'families') {
+          familiesShop = true
           definitions.loadFamilies()
           names.load(true)
           // Context about a family, and about one of its variants alone, for its quick view.
@@ -1348,6 +1356,8 @@ export function createMockApi() {
     subscribe: scenario.subscribe,
   }
   let lastDemo: string | undefined
+  // Once ?demo=families was opened, Test connection and a dbt connected read its shop's families.
+  let familiesShop = false
 
   return { api, controls }
 }

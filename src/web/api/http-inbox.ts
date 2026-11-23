@@ -162,7 +162,12 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         detail: '',
         primary: 'Review',
         secondary: [],
-        names: { ready: card.ready, flagged: card.flagged, tools: card.tools },
+        names: {
+          ready: card.ready,
+          flagged: card.flagged,
+          families: card.families,
+          tools: card.tools,
+        },
       }
     case 'suggestion': {
       const synced = card.synced

@@ -76,7 +76,7 @@ export type Family = {
   variants: Variant[]
   /** What the source says of how a variant is worked out from another, as plain lines. */
   derivations?: string[]
-  /** How it was found (D1): declared in its tool, from the calculation, or from its names. */
+  /** How it was found (D1, D6): declared in its tool, from the calculation, from a rate, or from its names. */
   found?: FamilyFound
   /**
    * The variants worked out from another with one column more, as the tool's structure says (D2):
