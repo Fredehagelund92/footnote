@@ -260,7 +260,7 @@ function SourceFamilies({ source, tool }: { source: string; tool: string }) {
   const ready = waiting.filter((name) => name.state === 'ready').length
   const look = waiting.length - alike - ready
   const owners = [...new Set(waiting.flatMap((name) => (name.areaId ? [name.areaId] : [])))]
-  const ownerOf = `an owner of ${listOf(owners.map((id) => domains[id as DomainId]?.name ?? id))}`
+  const ownerOf = `an owner of ${listOf(owners.map((id) => domains[id]?.name ?? id))}`
   const whose = !owners.length
     ? 'an admin'
     : waiting.every((name) => name.areaId)

@@ -65,10 +65,7 @@ export function FamiliesFound({
         ))}
       </div>
       {as === 'counts' ? (
-        <ul
-          aria-label="Families by how they were found"
-          className="flex flex-wrap gap-x-4 gap-y-3"
-        >
+        <ul aria-label="Families by how they were found" className="flex flex-wrap gap-x-4 gap-y-3">
           {/* Four in a row where they fit, two on a phone. */}
           {kinds.map((k) => (
             <li
