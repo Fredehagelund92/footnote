@@ -147,7 +147,7 @@ test('a member is never sent to Settings are for admins', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'New term' })).toHaveCount(0)
   await page.keyboard.press('ControlOrMeta+k')
   const palette = page.getByRole('dialog', { name: 'Search' })
-  await expect(palette.getByRole('option', { name: 'New context' })).toBeVisible()
+  await expect(palette.getByRole('option', { name: 'Write context' })).toBeVisible()
   await expect(palette.getByRole('option', { name: 'New term' })).toHaveCount(0)
   await page.keyboard.press('Escape')
 })

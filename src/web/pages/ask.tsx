@@ -1304,7 +1304,7 @@ export function AskPage() {
 
   return (
     <div data-touch-targets className="flex h-full min-h-0 flex-col">
-      <SiteHeader title="Ask" icon={<MessageSquareIcon />}>
+      <SiteHeader title="Ask" icon={<MessageSquareIcon />} fold>
         <Tooltip>
           <TooltipTrigger
             render={

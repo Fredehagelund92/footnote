@@ -149,7 +149,7 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
           />
           {meaning && (
             <p className="mt-3 text-base leading-7 text-pretty">
-              <P.MeaningWords meaning={meaning} by={family.by} />
+              <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
             </p>
           )}
           {source && (

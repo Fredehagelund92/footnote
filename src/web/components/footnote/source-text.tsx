@@ -22,8 +22,8 @@ const editorCode = 'rounded-sm bg-(--rte-code-inline-bg) px-1.5 py-0.5 font-mono
 export const answerCode = 'rounded-xs bg-muted px-1 font-mono text-sm'
 
 /** How a place draws code: the editor's look a step smaller than its words, or an answer's. */
-type CodeLook = 'text-xs' | 'text-sm' | 'answer'
-const codeLook = (look: CodeLook) => (look === 'answer' ? answerCode : cn(editorCode, look))
+export type CodeLook = 'text-xs' | 'text-sm' | 'answer'
+export const codeLook = (look: CodeLook) => (look === 'answer' ? answerCode : cn(editorCode, look))
 
 /**
  * Words with their marks, drawn the one way every Markdown reader here draws them: code, struck

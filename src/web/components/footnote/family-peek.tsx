@@ -231,7 +231,7 @@ function MeaningLead({
   return (
     <>
       <p className="mt-3 text-base leading-7 text-pretty">
-        <P.MeaningWords meaning={meaning} by={family.by} />
+        <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
       </p>
       {(source || mayChange) && (
         <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
@@ -302,11 +302,13 @@ function FoundBy({ family, name }: { family: Family; name: string }) {
           Found by its variant <b className="font-semibold">{variant.name}</b>
         </p>
         <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-          {!variant.description
-            ? 'Its tool gives no words for it.'
-            : differs || !family.meaning?.words
-              ? variant.description
-              : `Same words as the family, with ${listed(variant.values)}.`}
+          {!variant.description ? (
+            'Its tool gives no words for it.'
+          ) : differs || !family.meaning?.words ? (
+            <P.SourceText text={variant.description} />
+          ) : (
+            `Same words as the family, with ${listed(variant.values)}.`
+          )}
         </p>
       </div>
     </div>

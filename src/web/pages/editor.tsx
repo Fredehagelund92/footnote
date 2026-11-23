@@ -110,6 +110,7 @@ import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
 import { relationWords } from '@domain/clash-relations'
 import { draftFromTextQuery, itemPageQuery, useInbox, useVocabulary, useWrite } from '@/api/queries'
+import { useGlossary, type Definition } from '@/lib/definitions'
 import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useWide } from '@/hooks/use-wide'
 import { Kbd } from '@/components/ui/kbd'
@@ -230,11 +231,14 @@ function initialForm(
     gapDraft,
     fromText,
     publishes,
+    definitionOf,
   }: {
     domains: Domains
     vocabulary: Vocabulary
     gapDraft?: Fact
     fromText?: Fact
+    /** A definition by its name, as Definitions reads it: its domain is where an item about it starts. */
+    definitionOf: (name: string) => Pick<Definition, 'domain'> | undefined
     /** Whether the writer publishes in a domain: its owner, or an administrator. */
     publishes: (domain: DomainId) => boolean
   },
@@ -256,15 +260,27 @@ function initialForm(
   const metric = query.get('metric')
   const market = query.get('market')
   const about = query.get('about')?.split('|') ?? []
-  // Written from a definition, it starts in the definition's domain when the writer publishes
-  // there, rather than in the first domain they own.
-  const own = query.get('domain')
+  // Written from a definition or about a question, it starts in the domain of what it is about
+  // when the writer publishes there, or owns no domain of their own to start in; else in the first
+  // domain they own.
+  const own =
+    query.get('domain') ??
+    [metric, ...about].flatMap((name) => {
+      const d = name ? definitionOf(name) : undefined
+      return d?.domain ? [d.domain] : []
+    })[0]
   const ownDomain = own && Object.hasOwn(domains, own) ? domains[own] : undefined
-  const start = own && ownDomain && publishes(own) ? { domain: own, owners: ownDomain.owners } : {}
+  const start =
+    own && ownDomain && (publishes(own) || !publishes(home))
+      ? { domain: own, owners: ownDomain.owners }
+      : {}
+  // The kind the question makes likely: a rule about a metric, an event about a date.
+  const kind = query.get('kind')
   if (metric || market || about.length)
     return {
       ...blank,
       ...start,
+      ...(kind && Object.hasOwn(kindLabel, kind) ? { kind: kind as Kind } : {}),
       where: termsOfNames(
         [metric, market, ...about].filter((w): w is string => !!w),
         vocabulary,
@@ -421,6 +437,7 @@ function Editor({
   const domainList = useDomainList()
   const people = usePeople()
   const vocabulary = useVocabulary()
+  const glossary = useGlossary()
   const { cards } = useInbox()
   const write = useWrite()
   const queryClient = useQueryClient()
@@ -435,6 +452,10 @@ function Editor({
       gapDraft: cards.find((c) => c.id === query.get('gap'))?.gap?.draft,
       fromText: mode === 'new' ? fromText : undefined,
       publishes: (domain) => me.admin || me.owns.includes(domain),
+      definitionOf: (name) => {
+        const d = glossary.find(name)
+        return d && glossary.meaningOf(d)
+      },
     }),
   )
   const [form, setForm] = React.useState<Form>(initial)

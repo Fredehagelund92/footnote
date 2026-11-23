@@ -228,7 +228,7 @@ export function CommandPalette() {
           <CommandGroup className="border-t" heading="Do">
             <CommandItem onSelect={run(() => navigate('/context/new'))}>
               <PlusIcon />
-              New context
+              Write context
             </CommandItem>
             {(me.admin || me.owns.length > 0) && (
               <CommandItem onSelect={run(() => navigate('/definitions/new'))}>

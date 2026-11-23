@@ -36,6 +36,7 @@ import {
   PeekTitle,
 } from '@/components/footnote/peek'
 import { Related } from '@/components/footnote/related'
+import { SourceText } from '@/components/footnote/source-text'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -107,6 +108,7 @@ export const familyParts = {
   PeekLink,
   PeekTitle,
   Related,
+  SourceText,
   Button,
   Command,
   CommandEmpty,

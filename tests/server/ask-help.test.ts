@@ -119,7 +119,7 @@ describe('an answer from the help', () => {
       {
         question: 'How do I create a context item about a metric?',
         words: 'add a context item about a metric',
-        text: 'To create a context item, open Context and choose New context. The editor opens on a new item with its first question: What should agents know?',
+        text: 'To create a context item, open Context and choose Write context. The editor opens on a new item with its first question: What should agents know?',
         part: 'write-context#add-a-context-item',
       },
       {
@@ -212,7 +212,7 @@ describe('the quick actions an answer offers', () => {
 
   it('offers the action a help part explains when the words mark it, and drops the mark from the words', () => {
     const t = turnOf(
-      'Open Context and choose New context: the editor opens on a new item [do:write_context].',
+      'Open Context and choose Write context: the editor opens on a new item [do:write_context].',
       [helpRead('create my first context item')],
       [],
       'How do I create my first context item?',
@@ -223,7 +223,7 @@ describe('the quick actions an answer offers', () => {
   })
 
   it('offers nothing the words do not mark, nor what no read offered, nor past two', () => {
-    const words = 'Open Context and choose New context.'
+    const words = 'Open Context and choose Write context.'
     expect(turnOf(words, [helpRead('create my first context item')], [], 'How?').actions).toBe(
       undefined,
     )

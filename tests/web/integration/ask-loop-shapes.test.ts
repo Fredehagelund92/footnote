@@ -248,7 +248,7 @@ const cases: Case[] = [
     question: 'How do I create my first context item?',
     calls: [{ toolName: 'help', input: { words: 'create my first context item' } }],
     write: () => ({
-      text: 'Open Context and choose New context. The editor opens on a new item, with its first question: what should agents know? [do:write_context]',
+      text: 'Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know? [do:write_context]',
     }),
   },
   {
@@ -282,6 +282,22 @@ const cases: Case[] = [
     write: (p) => ({
       calls: [{ toolName: 'find_context', input: { words: `orders ${p.step}` } }],
     }),
+  },
+  {
+    // A how-to that names a metric: its Write context opens on the metric, in its domain.
+    id: 'loop-help-write-metric',
+    question: 'How do I write a context item about churn rate?',
+    calls: [
+      { toolName: 'help', input: { words: 'add a context item' } },
+      { toolName: 'definitions', input: { names: ['churn rate'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      const id = `metric:${String(d.id)}`
+      return {
+        text: `To write a context item about ${mention(id)}, open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know? [do:write_context]`,
+      }
+    },
   },
 ]
 
@@ -516,6 +532,14 @@ describe("Ask's loop answers, as the page draws them", () => {
     const loop = await ask(cases.find((c) => c.id === 'loop-stopped')!)
     expect(loop).toMatchObject({ kind: 'stopped', stopped: 'steps', state: null })
     expect(loop.text).toMatch(/^Ask stopped at its limit of \d+ steps/)
+  })
+
+  it('offers Write context on a how-to that names a metric, its words naming the metric', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-help-write-metric')!)
+    expect(loop.actions).toEqual([{ id: 'write_context' }])
+    // A how-to reads no subject: the page opens the editor on the metric the words name.
+    expect(loop.subject).toBeNull()
+    expect(runsOf(loop.body)).toContainEqual({ t: 'noun', id: 'metric:churn_rate' })
   })
 
   it('writes the examples the mock shows, when asked to', () => {

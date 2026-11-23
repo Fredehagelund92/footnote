@@ -134,6 +134,8 @@ test('only the rows in view are drawn, and the keys and Select all reach every r
   // Scrolled to the bottom, the last rows are drawn and the add row closes the list.
   await page.getByRole('main').locator('tbody').hover()
   await page.mouse.wheel(0, 200_000)
-  await expect(page.getByRole('button', { name: 'Write context' })).toBeInViewport()
+  await expect(
+    page.getByRole('table').getByRole('button', { name: 'Write context' }),
+  ).toBeInViewport()
   await expect(rowStops(page).last()).toHaveAttribute('data-row-open', lastId!)
 })

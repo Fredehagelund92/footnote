@@ -434,7 +434,7 @@ export function ContextPage() {
           onClick={() => navigate('/context/new')}
         >
           <PlusIcon data-icon="inline-start" />
-          <span className="max-sm:sr-only">New context</span>
+          <span className="max-sm:sr-only">Write context</span>
         </Button>
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
