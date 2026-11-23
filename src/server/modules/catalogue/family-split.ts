@@ -5,7 +5,7 @@ import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { recordAudit } from '../admin/index.ts'
 import { connectorType, reconcileSourceFlags } from '../connectors/index.ts'
 import { lockReleases } from '../editions/index.ts'
-import { acceptTermVersions } from '../review/index.ts'
+import { acceptTermVersions, type TermVersion } from '../review/index.ts'
 
 /** A live term as `serving_vocabulary` reads it, with the version agents get now. */
 type LiveTerm = {
@@ -55,6 +55,14 @@ export function createFamilySplitService(tx: Queryable) {
     return row!.owner ? ('owner' as const) : ('administrator' as const)
   }
 
+  /** What each domain of the metrics is decided in: the database wants an owner of each one's own domain. */
+  async function capacities(terms: readonly LiveTerm[], verb: string) {
+    const by = new Map<string | null, 'owner' | 'administrator'>()
+    for (const term of terms)
+      if (!by.has(term.areaId)) by.set(term.areaId, await mayDecide(term.areaId, verb))
+    return (term: LiveTerm) => by.get(term.areaId)!
+  }
+
   async function split(key: string): Promise<FamilySplit> {
     await lockReleases(tx)
     const terms = await tx.query<LiveTerm>(
@@ -67,7 +75,8 @@ export function createFamilySplitService(tx: Queryable) {
     const variants = terms.filter((term) => term.key !== key)
     if (!family || !variants.length) throw notFound()
     const [area] = await tx.query<{ id: string | null }>('select cl_family_area($1) as id', [key])
-    const capacity = await mayDecide(area!.id, 'split it')
+    await mayDecide(area!.id, 'split it')
+    const capacityOf = await capacities(variants, 'split it')
     // Its tool is where a declared family is changed (D4): the tool says what it is one of.
     const [declared] = await tx.query<{ type: string; source: string; family: string }>(
       `select c.type, c.name as source, d.family_name as family
@@ -100,7 +109,7 @@ export function createFamilySplitService(tx: Queryable) {
         definitionRefs: variant.definitionRefs,
         action: 'change',
         base: variant.versionId,
-        capacity,
+        capacity: capacityOf(variant),
       })),
       {
         channel: 'form',
@@ -179,7 +188,7 @@ export function createFamilySplitService(tx: Queryable) {
     )
     if (!standing)
       throw new ORPCError('NOT_FOUND', { message: 'This family is not split. Look at it again.' })
-    const capacity = await mayDecide(standing.areaId, 'make them one family again')
+    await mayDecide(standing.areaId, 'make them one family again')
     const variants = await tx.query<LiveTerm>(`${live} where t.key=any($1::text[])`, [
       standing.variants,
     ])
@@ -190,6 +199,39 @@ export function createFamilySplitService(tx: Queryable) {
       throw new ORPCError('CONFLICT', {
         message: `The metrics of ${standing.name} changed since it was split, so they can't be one family again here.`,
       })
+    const capacityOf = await capacities(variants, 'make them one family again')
+    // A family whose domain was deleted while it was split comes back in none, as deleting it left
+    // the others.
+    const [kept] = await tx.query<{
+      name: string
+      aliases: string[]
+      definitionRefs: string[]
+      archived: boolean
+    }>(
+      `select v.name, v.aliases,
+              coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C")
+                          from vocab_term_refs r where r.version_id=v.id), '{}') as "definitionRefs",
+              v.area_id is not null and not exists (select 1 from areas a
+                where a.id=v.area_id and a.archived_at is null) as archived
+         from vocab_term_versions v where v.id=$1`,
+      [standing.version],
+    )
+    const familyAgain: TermVersion[] = kept!.archived
+      ? [
+          {
+            key,
+            kind: 'metric_group',
+            parentKey: null,
+            name: kept!.name,
+            aliases: kept!.aliases,
+            areaId: null,
+            definitionRefs: kept!.definitionRefs,
+            action: 'change',
+            base: standing.version,
+            capacity: await mayDecide(null, 'make them one family again'),
+          },
+        ]
+      : []
     // A split brought back by going back to an edition from after it, once joined, stands again.
     const [reopened] = standing.joined
       ? await tx.query<{ id: string }>(
@@ -201,24 +243,27 @@ export function createFamilySplitService(tx: Queryable) {
       : []
     const edition = await acceptTermVersions(
       tx,
-      variants.map((variant) => ({
-        key: variant.key,
-        kind: 'metric',
-        parentKey: key,
-        name: variant.name,
-        aliases: variant.aliases,
-        areaId: variant.areaId,
-        definitionRefs: variant.definitionRefs,
-        action: 'change',
-        base: variant.versionId,
-        capacity,
-      })),
+      [
+        ...familyAgain,
+        ...variants.map((variant): TermVersion => ({
+          key: variant.key,
+          kind: 'metric',
+          parentKey: key,
+          name: variant.name,
+          aliases: variant.aliases,
+          areaId: variant.areaId,
+          definitionRefs: variant.definitionRefs,
+          action: 'change',
+          base: variant.versionId,
+          capacity: capacityOf(variant),
+        })),
+      ],
       {
         channel: 'form',
         reason: `Made ${standing.name} one family again.`,
         change: { note: `Joined ${standing.name}` },
         areaId: standing.areaId,
-        serveAgain: [standing.version],
+        serveAgain: familyAgain.length ? [] : [standing.version],
       },
     )
     await tx.query(

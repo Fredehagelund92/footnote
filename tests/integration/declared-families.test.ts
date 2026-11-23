@@ -11,6 +11,7 @@ import type {
   FamilyMeaningVersion,
   FamilySplit,
 } from '../../src/contract/catalogue.ts'
+import type { ItemBulkResult } from '../../src/contract/context.ts'
 import type { LoopTurn } from '../../src/contract/answer.ts'
 import type { Feed, NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceCheck, SourceSettings } from '../../src/contract/sources.ts'
@@ -793,12 +794,18 @@ describe('splitting a family (D2-D4)', () => {
       families: [{ name: 'Accrued share 1', metrics: [eur!.name, usd!.name] }],
     })
     // The family's history, meaning and usual variant are kept.
-    const { rows: kept } = await client.query<{ n: number }>(
-      `select (select count(*) from vocab_term_versions where term_key = $1)::int
-              + (select count(*) from family_meaning_versions where family_key = $1)::int as n`,
+    const { rows: kept } = await client.query<{ meanings: number; usuals: number; closed: number }>(
+      `select (select count(*) from family_meanings where family_key = $1)::int as meanings,
+              (select count(*) from family_usual where family_key = $1)::int as usuals,
+              (select count(*) from vocab_term_service where term_key = $1 and not upper_inf(editions))::int as closed`,
       [accrued.key],
     )
-    expect(kept[0]!.n).toBeGreaterThan(1)
+    expect(kept[0]).toEqual({ meanings: 1, usuals: 1, closed: 1 })
+    const { rows: open } = await client.query(
+      'select 1 from vocab_term_service where term_key = $1 and upper_inf(editions)',
+      [accrued.key],
+    )
+    expect(open).toEqual([])
   })
 
   it('keeps them apart on the next read, and offers nothing new on the Names card', async () => {
@@ -818,6 +825,8 @@ describe('splitting a family (D2-D4)', () => {
     })
     const again = (await family('Accrued share 1'))!
     expect(again.key).toBe(accrued.key)
+    expect(again.family!.meaning).toEqual(accrued.family!.meaning)
+    expect(again.family!.usual).toEqual(accrued.family!.usual)
     expect(again.family!.variants.map((v) => v.key)).toEqual(
       accrued.family!.variants.map((v) => v.key),
     )
@@ -936,8 +945,25 @@ describe('splitting a family (D2-D4)', () => {
     await ok(join(accrued.key, 'admin'))
   })
 
+  it('is checked from the item page by pointing it at each former metric', async () => {
+    await ok(split(accrued.key, 'admin'))
+    const done = await ok<ItemBulkResult>(
+      call('POST', '/items/bulk', 'owner', { action: 'check', rows: [note] }),
+    )
+    expect(done.done).toEqual([note])
+    expect(await flagged()).toEqual([])
+    const { rows } = await client.query<{ key: string }>(
+      `select m.metric_key as key from item_version_service s
+         join item_version_metrics m on m.version_id = s.version_id
+        where s.item_id = $1 and upper_inf(s.editions) order by m.metric_key`,
+      [note],
+    )
+    expect(rows.map((r) => r.key)).toEqual(accrued.family!.variants.map((v) => v.key).sort())
+  })
+
   it('is not split when the family is closed after it was joined, whatever the reason', async () => {
     const [eur] = accrued.family!.variants
+    await ok(join(accrued.key, 'admin'))
     expect((await catalogue()).splits).toEqual([])
     expect(await flagged()).toEqual([])
     const seq = await openEdition(client)

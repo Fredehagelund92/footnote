@@ -410,6 +410,11 @@ export function createContextService(
         return
       }
       case 'check': {
+        const pointed = await pointAtSplitMetrics(row.id)
+        if (pointed) {
+          ;(undo.decisions ??= []).push(pointed)
+          return
+        }
         const checked = await review.recheck(row.id, reasons.check)
         const [decision] = await tx.query<{ id: string }>(
           `select id::text from decisions where proposal_id = $1 order by decided_at desc, id desc limit 1`,
