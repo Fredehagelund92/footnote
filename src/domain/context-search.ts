@@ -1,6 +1,7 @@
 import { domainsInText, matchDomain } from './domain-match.ts'
 import type { CheckFlag, Scope } from './item.ts'
 import { overlaps, shiftDate, type DateWindow } from './validity.ts'
+import { looseForms, looseNames, searchStopWords, stem, type LooseName } from './names-read.ts'
 import {
   memberTokens,
   namesOf,
@@ -58,30 +59,12 @@ export type ReadQuery = {
    * Suppliers" for "Stores & Suplliers"), each with the words as the person wrote them.
    */
   spelled: { area: string; wrote: string; kind: 'loose' | 'close' }[]
+  /** The names read in a loose form (names-read.ts), as every reader of words reads them. */
+  loose: LooseName[]
 }
 
-// Words that carry no meaning in a search of short governed facts: function words, question
-// words and the product's own nouns ("item", "domain"), so "what does the Sales domain
-// cover" reads as Sales and "cover".
-export const searchStopWords = new Set(
-  (
-    'a about across after all also am an and any are as at be been before being between both but by ' +
-    'can could did do does doing done during each for from had has have having how i if in into is it ' +
-    'its me my no not of on or our over per please should so some than that the their them then there ' +
-    'these they this those through to under until up us very was we were what when where which while ' +
-    'who whom why will with within would you your ' +
-    'area areas context domain domains item items tell show find list search look know'
-  ).split(' '),
-)
+export { searchStopWords, stem }
 
-/** A word reduced to a plain form: "accounts" and "account" match, "orders" and "order". */
-export function stem(word: string): string {
-  let w = word.replace(/'s$/, '').replace(/'/g, '')
-  if (w.length > 4 && w.endsWith('ies')) w = w.slice(0, -3) + 'y'
-  else if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss') && !w.endsWith('us'))
-    w = w.slice(0, -1)
-  return w
-}
 /** A text's words: a compound joined by a hyphen ("orders-cpa") is one word, as phrasesIn reads it. */
 const wordsOf = (text: string) =>
   normalizeName(text).match(/[\p{L}\p{N}_']+(?:[-\u2010\u2011][\p{L}\p{N}_']+)*/gu) ?? []
@@ -143,10 +126,35 @@ export function readQuery(
     const to = (asWritten.at[hit.end - 1] ?? from) + 1
     spelled.push({ area: hit.area.id, wrote: query.slice(from, to), kind: hit.kind })
   }
+  // Names in a loose form, as get_context reads them (names-read.ts): another form or order of a
+  // longer name first, then whole names, then single words in a loose form.
+  const byKey = new Map(terms.map((term) => [term.key, term]))
+  const formed = looseForms(text, terms, taken)
+  for (const hit of formed) for (let i = hit.start; i < hit.end; i++) taken.add(i)
   const exact = phrasesIn(text, [...named.keys()], taken)
   const occupied = exact.occupied
+  const metricsOf = (keys: readonly string[]) =>
+    keys.filter((key) => byKey.get(key)?.kind === 'metric')
+  const loose = [
+    ...formed,
+    ...looseNames(
+      text,
+      terms,
+      occupied,
+      areas.map((area) => area.name),
+      metricsOf([
+        ...exact.found.flatMap((f) => [...(named.get(f.name)?.terms ?? [])]),
+        ...formed.map((hit) => hit.key),
+      ]),
+    ),
+  ].sort((a, b) => a.start - b.start)
+  for (const hit of loose) {
+    for (let i = hit.start; i < hit.end; i++) occupied.add(i)
+    if (!named.has(hit.words)) named.set(hit.words, { areas: new Set(), terms: new Set([hit.key]) })
+  }
   const found: { name: string; start: number; end: number; area: string | null }[] = [
     ...exact.found.map((f) => ({ ...f, area: null })),
+    ...loose.map((hit) => ({ name: hit.words, start: hit.start, end: hit.end, area: null })),
     ...spelt.map((hit) => ({
       name: text.slice(hit.start, hit.end),
       start: hit.start,
@@ -184,7 +192,7 @@ export function readQuery(
   used.terms = [...new Set(used.terms)].sort()
   used.ignored = [...new Set(used.ignored)].sort()
   used.unknown_members = [...new Set(used.unknown_members)].sort()
-  return { concepts, used, spelled, title: stemmedTitle(query) }
+  return { concepts, used, spelled, loose, title: stemmedTitle(query) }
 }
 
 type Indexed = { text: string; stems: Set<string> }

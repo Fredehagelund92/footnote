@@ -27,6 +27,7 @@ import { isFamily } from '../../../domain/say.ts'
 import { TERMS_SHOWN, termsIn } from '../../../domain/served-terms.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
+import { looseForms, looseNames, type UnreadWord } from '../../../domain/names-read.ts'
 import { searchHelp } from './help.ts'
 import type { ResolvedScope } from '../../../domain/scope.ts'
 import { productName } from '../../brand.ts'
@@ -780,6 +781,15 @@ const readSchema = z.object({
   /** The words read only by a synonym someone wrote in Definitions, and what each was read as. */
   synonyms: z.array(z.object({ word: z.string(), name: z.string() })).optional(),
   /**
+   * The words read as a name they are not exactly, and how: another form or order of it (form), its
+   * initials (initials), or a word only its name holds (part, such as "churn" for Churn rate).
+   */
+  loose: z
+    .array(
+      z.object({ words: z.string(), name: z.string(), by: z.enum(['form', 'initials', 'part']) }),
+    )
+    .optional(),
+  /**
    * Each family the words named with none of its values, read as its usual variant, which its
    * owners picked (F3): the family by id and name, and the variant's values ("EUR").
    */
@@ -843,12 +853,17 @@ const getOutput = z.object({
   searched: z.array(searchedSchema),
   widened: widenedSchema,
   outOf: outOfSchema,
-  unread: z.nullable(
+  /**
+   * The words that could have named the subject and named nothing: each with the names that hold it
+   * as a word or are closest to it, the domain it names, and why a value word could not be read
+   * ("There is no value of Market named 'Jordan'."). Empty when every such word was read.
+   */
+  unread: z.array(
     z.object({
-      words: z.array(z.string()),
+      word: z.string(),
       closest: z.array(z.string()),
-      /** Why a value word could not be read: "There is no value of Market named 'Jordan'." */
-      why: z.array(z.string()).optional(),
+      domain: z.string().optional(),
+      why: z.string().optional(),
     }),
   ),
   nothing: z.nullable(z.string()),
@@ -1006,6 +1021,10 @@ function eventAnchor(
 /** The most items past the first 20 a read names by title. */
 const REST_NAMED = 50
 
+/** The places from `start` up to `end`. */
+const range = (start: number, end: number) =>
+  Array.from({ length: end - start }, (_, i) => start + i)
+
 /** Whether a subject's words name dates of their own. */
 const namesDates = (words: string, today: string, calendar: Calendar) =>
   readDates(normalizeName(words), today, { loose: true, ...calendar }).status !== 'none'
@@ -1073,7 +1092,7 @@ function getContext(
   // is not Partial for want of a date (the words' own dates, or from and to, still stand).
   const atAnyDate =
     input.no_period && asked.assumed && asked.scope
-      ? lookup({ scope: { ...asked.scope, window: anyDate } })
+      ? { ...lookup({ scope: { ...asked.scope, window: anyDate } }), names: asked.names }
       : asked
   // A family the words name with none of its values is read as its usual variant, once its owners
   // picked one (F3): what applies to the family and to that variant, never to another one alone.
@@ -1099,9 +1118,10 @@ function getContext(
             },
           }),
           assumed: atAnyDate.assumed,
+          names: atAnyDate.names,
         }
       : atAnyDate
-  if (hidesName(first)) return unreadOf(view, input.about, [], window)
+  if (hidesName(first)) return unreadOf(view, input.about, null, window)
   const searched = [searchedOf(first, input.about, null)]
   let widened: z.infer<typeof widenedSchema> = input.widen ? 'not needed' : 'not asked'
   let counted = first
@@ -1135,7 +1155,7 @@ function getContext(
     }
   }
   if (counted.status === 'need_more_detail')
-    return unreadOf(view, input.about, counted.issues, window, { searched, widened })
+    return unreadOf(view, input.about, counted, window, { searched, widened })
   const byId = new Map(view.bundle.items.map((i) => [i.id, i]))
   const itemsOf = (a: Answer) =>
     a.items.flatMap((i) => {
@@ -1185,6 +1205,11 @@ function getContext(
   const shownItems = [...items, ...widerItems, ...nearby].flatMap((i) => byId.get(i.id) ?? [])
   const readWords = searched.at(wider ? 0 : -1)!.words
   const synonyms = synonymsRead(view, readWords, keysOf(counted))
+  const loose = (counted.names.loose ?? []).flatMap((hit) =>
+    isShown(view, named(hit.key))
+      ? [{ words: hit.words, name: termName(view, named(hit.key)), by: hit.by }]
+      : [],
+  )
   // The other reading of the period's words, when it finds other items (R7, D6): the read gives
   // both as choices, for the model to ask back with. Never for days read from the last question
   // or from an event, where the words leave one reading.
@@ -1237,6 +1262,7 @@ function getContext(
               },
           otherDays: days?.other ? windowWords(days.other) : null,
           ...(synonyms.length ? { synonyms } : {}),
+          ...(loose.length ? { loose } : {}),
           ...(usual.length
             ? {
                 usual: usual.map(({ family, variant }) => ({
@@ -1274,7 +1300,7 @@ function getContext(
     searched,
     widened,
     outOf: outOf(view),
-    unread: null,
+    unread: unreadFor(view, counted.names.unread ?? []),
     nothing: items.length
       ? null
       : `No context item you can see applies to all of it. ${nothingSaid(searched, view)}${synonyms.map((x) => ` "${x.word}" was read as ${x.name} only by a synonym written in Definitions, and may mean something else.`).join('')}`,
@@ -1307,23 +1333,33 @@ function synonymsRead(view: View, words: string, keys: readonly string[]) {
   })
 }
 
+/**
+ * The words that could have named the subject and named nothing (names-read.ts), with the names
+ * the person may see that hold each as a word, or else the closest by spelling.
+ */
+function unreadFor(view: View, words: readonly UnreadWord[]) {
+  const shownTerms = speakable(view)
+  const shownKeys = new Set(shownTerms.map((t) => t.key))
+  return words.map((w) => {
+    const holding = w.closest.filter((k) => shownKeys.has(k)).map((k) => termName(view, k))
+    const near = holding.length
+      ? holding
+      : [closest(w.word, shownTerms, (t) => [t.name, ...t.aliases])?.name ?? ''].filter(Boolean)
+    const domain = w.domain && view.areas.some((a) => a.name === w.domain) ? w.domain : undefined
+    return { word: w.word, closest: near, ...(domain ? { domain } : {}) }
+  })
+}
+
 /** Words that name nothing the person may read: what could not be read, and the closest names. */
 function unreadOf(
   view: View,
   about: string,
-  issues: Answer['issues'],
+  answered: Pick<Answer, 'issues' | 'names'> | null,
   window: { from: string; to: string } | undefined,
   /** The wider read it made, when it was asked to and could. */
   tried?: { searched: readonly Searched[]; widened: z.infer<typeof widenedSchema> },
 ) {
   const shownTerms = speakable(view)
-  const unknown = issues.flatMap((i) =>
-    'input' in i && typeof i.input === 'string' ? [i.input] : [],
-  )
-  const near = unknown.flatMap((w) => {
-    const c = closest(w, shownTerms, (t) => [t.name, ...t.aliases])
-    return c ? [c.name] : []
-  })
   // A value word Footnote does not know, in words that name a metric: what it is not, said plainly,
   // only when the person may see every dimension and value the words name.
   const shownIssue = (i: Answer['issues'][number]) =>
@@ -1331,7 +1367,21 @@ function unreadOf(
       ? view.bundle.terms.every((t) => t.kind !== 'dimension' || isShown(view, t.key))
       : i.field.startsWith('dim:') && isShown(view, i.field)) &&
     i.options.every((k) => isShown(view, k))
-  const why = issues.flatMap((i) => (i.message && shownIssue(i) ? [i.message] : []))
+  // Each word that could not be read, with its closest name; words that name nothing at all are
+  // said one by one, as the reader of names gives them, not as the whole subject.
+  const fromIssues = (answered?.issues ?? []).flatMap((i) => {
+    if (i.field === 'scope' && !i.message && !i.meanings) return []
+    const near = closest(i.input, shownTerms, (t) => [t.name, ...t.aliases])
+    const why = i.message && shownIssue(i) ? i.message : null
+    return [{ word: i.input, closest: near ? [near.name] : [], ...(why ? { why } : {}) }]
+  })
+  const words = unreadFor(view, answered?.names.unread ?? []).filter(
+    (w) => !fromIssues.some((i) => i.word === w.word),
+  )
+  const unread =
+    fromIssues.length || words.length ? [...fromIssues, ...words] : [{ word: about, closest: [] }]
+  const why = unread.flatMap((w) => ('why' in w && w.why ? [w.why] : []))
+  const near = [...new Set(unread.flatMap((w) => w.closest))]
   const searched: Searched = {
     words: about,
     names: [],
@@ -1357,12 +1407,8 @@ function unreadOf(
     searched: [searched, ...(tried?.searched.slice(1) ?? [])],
     widened: tried?.widened ?? ('not asked' as const),
     outOf: outOf(view),
-    unread: {
-      words: unknown.length ? unknown : [about],
-      closest: [...new Set(near)],
-      ...(why.length ? { why } : {}),
-    },
-    nothing: `${why.length ? `${why.join(' ')} So nothing was looked up, for any value.` : `The words "${about}" name no metric, value or date ${productName} knows, so nothing was looked up.`}${near.length ? ` The closest names are ${list([...new Set(near)])}.` : ''}`,
+    unread,
+    nothing: `${why.length ? `${why.join(' ')} So nothing was looked up, for any value.` : `The words "${about}" name no metric, value or date ${productName} knows, so nothing was looked up.`}${near.length ? ` The closest names are ${list(near)}.` : ''}`,
     names: [],
     ids: [],
   }
@@ -1877,14 +1923,23 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       ...[...synced, ...written].flatMap((d) => d.names),
     ].map(normalizeName),
   )
-  // What a name finds: what is named so, or else what it is the short name of, or else, for a
-  // name nothing goes by, what its words say as a whole word ("clearing account" in Returns),
-  // marked with the name looked up.
+  // What a name finds: what is named so, or else what the one reader of names reads it as (another
+  // form, its initials, a word only one metric's name holds: names-read.ts), or else what it is the
+  // short name of, or else, for a name nothing goes by, what its words say as a whole word
+  // ("clearing account" in Returns), marked with the name looked up.
   const mentioned = new Map<Entry, string>()
+  const domains = view.areas.map((a) => a.name)
   const finds = (n: string) => {
     const said = normalizeName(n)
     const named = all.filter((d) => d.names.some((x) => normalizeName(x) === said))
     if (named.length) return named
+    const formed = looseForms(said, view.bundle.terms, new Set())
+    const taken = new Set(formed.flatMap((hit) => range(hit.start, hit.end)))
+    const loosely = new Set(
+      [...formed, ...looseNames(said, view.bundle.terms, taken, domains)].map((hit) => hit.key),
+    )
+    const read = all.filter((d) => loosely.has(d.id))
+    if (read.length) return read
     const short = all.filter((d) => d.short.includes(said))
     if (short.length || known.has(said)) return short
     const inText = all.filter(

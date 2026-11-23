@@ -1,4 +1,5 @@
 import * as z from 'zod'
+import { AGENT_MAX_ITEMS } from '../../domain/answer.ts'
 import { replyStatuses } from '../../domain/answer-state.ts'
 import { kindFilters } from '../../domain/mcp-text.ts'
 import { isCalendarDate } from '../../domain/validity.ts'
@@ -90,8 +91,23 @@ export const contextFormat = z
 export const getContextInput = z.strictObject({
   ...scopeFields,
   edition,
-  max_items: z.number().int().min(1).max(50).default(20),
+  max_items: z
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(AGENT_MAX_ITEMS)
+    .describe(
+      'How many context items a reply gives at most: the ones the question turns on come first. next_cursor gives the rest.',
+    ),
   max_bytes: z.number().int().min(1000).max(100000).default(100000),
+  cursor: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe(
+      "The next_cursor of a reply to the same question: the context items after that reply's, in the same order.",
+    ),
   response_format: contextFormat.default('concise'),
 })
 export type GetContextInput = z.infer<typeof getContextInput>
@@ -558,6 +574,25 @@ export const contextOutput = z
       ),
     context: z.array(contextEntry).optional(),
     terms,
+    next_cursor: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        'Where the rest of the context items that apply start: pass it as cursor with the same question for the next ones. Null when the reply gives the last of them.',
+      ),
+    unread: z
+      .array(
+        z.object({
+          word: z.string(),
+          closest: z.array(z.string()),
+          domain: z.string().optional(),
+        }),
+      )
+      .optional()
+      .describe(
+        "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+      ),
     reply_id: z
       .string()
       .optional()

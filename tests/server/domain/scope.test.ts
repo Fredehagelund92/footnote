@@ -724,15 +724,13 @@ describe('a question that names no metric, on a metric per currency', () => {
     metric('revenue_aed', 'Revenue (AED)'),
   ]
 
-  it('offers the metrics its words name first, the plain one before Net revenue', () => {
+  it('offers the metrics its words name, the plain one before Net revenue, and no other', () => {
     const read = extractScope('What should I know about revenue?', shop, '2026-10-08')
     expect(read).toMatchObject({ status: 'need_more_detail' })
     expect(read.status === 'need_more_detail' && read.issues[0]!.options).toEqual([
       'metric:revenue_aed',
       'metric:revenue_eur',
       'metric:net_revenue_aed',
-      'metric:chargebacks_aed',
-      'metric:chargebacks_eur',
     ])
   })
 })

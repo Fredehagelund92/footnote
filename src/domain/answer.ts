@@ -43,6 +43,7 @@ import {
   extractScope,
   type AssumedDate,
   type DatesRead,
+  type NamesRead,
   type ResolvedScope,
   type ScopeIssue,
   type ScopeResult,
@@ -66,8 +67,13 @@ export const answerStates = [
 ] as const
 export type AnswerState = (typeof answerStates)[number]
 
-/** How many items an answer gives, as get_context does by default (`max_items`). */
+/** How many items an answer gives in Ask: the first 20 whole, the rest by title. */
 export const ANSWER_MAX_ITEMS = 20
+/**
+ * How many items an agent's get_context gives by default (`max_items`): those the question turns
+ * on come first, and next_cursor gives the rest (decided 23 November 2026).
+ */
+export const AGENT_MAX_ITEMS = 10
 
 /** An item of the bundle as the engine needs it: what the resolver reads, its kind and title. */
 export type AnswerSource = ResolverItem & {
@@ -212,6 +218,8 @@ export type Answer = {
   issues: ScopeIssue[]
   items: AnswerItem[]
   leftOut: LeftOut[]
+  /** How the words were read beyond whole names, and those unread (names-read.ts). */
+  names: NamesRead
   /** Near misses past `NEAR_MISSES_SHOWN`, counted only. */
   leftOutMore: number
   /** Items that apply but are for another group: counted, never named. */
@@ -234,6 +242,8 @@ export function readAsk(
   today: string,
   person = false,
   calendar?: Calendar,
+  /** The domains' names: a word that names one is never read as a word of a metric's name. */
+  domains: readonly string[] = [],
 ): ScopeResult {
   if ('scope' in ask) return { status: 'resolved', scope: ask.scope }
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
@@ -247,6 +257,7 @@ export function readAsk(
       : { window: { start: ask.window.from, end: shiftDate(ask.window.to, 1) } }),
     ...(person ? { loose: true } : {}),
     ...(calendar ? { calendar } : {}),
+    domains,
   })
 }
 
@@ -417,11 +428,22 @@ export function* lookUp(
     return value
   }
 
-  const read = readAsk(ask, bundle.terms, today, person, calendar)
+  const read = readAsk(
+    ask,
+    bundle.terms,
+    today,
+    person,
+    calendar,
+    (bundle.areas ?? []).map((area) => area.name),
+  )
   const scope = read.status === 'resolved' ? read.scope : null
   const dates = (read.status === 'resolved' && read.dates) || null
   const assumed = (read.status === 'resolved' && read.assumed) || null
   const issues = read.status === 'need_more_detail' ? read.issues : []
+  const names: NamesRead = {
+    ...(read.loose ? { loose: read.loose } : {}),
+    ...(read.unread ? { unread: read.unread } : {}),
+  }
   yield step({ step: 'read_scope', ms: lap(), scope, dates, assumed, issues })
   mark = now()
 
@@ -514,6 +536,7 @@ export function* lookUp(
     issues,
     items,
     leftOut,
+    names,
     leftOutMore: more,
     forAnotherGroup,
     uncovered,

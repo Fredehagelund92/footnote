@@ -217,7 +217,9 @@ describe('get_context says, for each status', () => {
     expect(sayOf(reply)).toBe(
       "1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. 1 more context item applies but didn't fit in this reply. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check.",
     )
-    expect(nextOf(reply)).toBe('Call again with a higher max_bytes to get them.')
+    expect(nextOf(reply)).toBe(
+      'Call again with cursor set to next_cursor for the rest, or with a higher max_items (at most 50).',
+    )
   })
 
   it('need_more_detail: what to fix, the choices, and that it read nothing', async () => {
@@ -243,7 +245,8 @@ describe('get_context says, for each status', () => {
   it('need_more_detail with no name in the question: never an absence', async () => {
     const reply = await setup()('get_context', { question: 'Anything written down this week?' })
     const say = sayOf(reply)
-    expect(say).toBe(`${notLookedUp} The question needs a metric, such as Orders.`)
+    // No metric shares a word with the question, so none is offered as if it were meant.
+    expect(say).toBe(`${notLookedUp} The question needs a metric.`)
     expect(say).not.toContain('Nothing is written down')
   })
 

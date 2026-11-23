@@ -1358,14 +1358,16 @@ describe('get_context', () => {
     const s = setup()
     s.data.items[0]!.summary = 'x'.repeat(900)
     second(s, { summary: 'y'.repeat(900) })
-    const out = (await s.call('get_context', { question, max_bytes: 4600 })).structuredContent as {
+    const out = (await s.call('get_context', { question, max_bytes: 4800 })).structuredContent as {
       say: string
       next: string
       context: unknown[]
     }
     expect(out.context).toHaveLength(1)
     expect(out.say).toContain("1 more context item applies but didn't fit in this reply.")
-    expect(out.next).toContain('Call again with a higher max_bytes to get them.')
+    expect(out.next).toContain(
+      'Call again with cursor set to next_cursor for the rest, or with a higher max_bytes.',
+    )
   })
 })
 

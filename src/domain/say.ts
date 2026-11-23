@@ -52,7 +52,7 @@ export const contextVoice: Voice = {
   find: 'find_context',
   read: 'read_context',
   report: 'if the person agrees, call report with kind missing',
-  cuts: 'Call again with a higher max_bytes to get them.',
+  cuts: 'Call again with cursor set to next_cursor for the rest.',
   appliesField: 'applies',
   disagreesField: 'disagrees_with',
   stateFirst: true,
@@ -392,13 +392,84 @@ function contestedNext({ meanings }: ContestedAsk) {
   return `Ask the person which one they mean, then call again with ${field} (${list(keys, 'or')}). Never choose one yourself.`
 }
 
+/** A word of the question that named nothing, as a reply says it: the names that hold it. */
+export type UnreadSaid = { word: string; closest: readonly string[]; domain?: string }
+
+/**
+ * The words that could have named a metric and named none: '"sales" names no metric here: Gross
+ * sales has the word, and Sales is a domain.', '"EBITDA" is not a name here.'
+ */
+function unreadWordsSay(unread: readonly UnreadSaid[]) {
+  return unread
+    .slice(0, 3)
+    .map((w) => {
+      const parts = [
+        ...(w.closest.length
+          ? [`${list(w.closest.slice(0, 3))} ${w.closest.length === 1 ? 'has' : 'have'} the word`]
+          : []),
+        ...(w.domain ? [`${w.domain} is a domain`] : []),
+      ]
+      return parts.length
+        ? `"${w.word}" names no metric here: ${list(parts)}.`
+        : `"${w.word}" is not a name here.`
+    })
+    .join(' ')
+}
+
+/** The AI agent's way on from words that named nothing: the person says which, or it is missing. */
+function unreadNext(unread: readonly UnreadSaid[], voice: Voice) {
+  const named = unread.filter((w) => w.closest.length)
+  const none = unread.filter((w) => !w.closest.length)
+  return [
+    ...(named.length
+      ? [
+          `If the person meant ${list(
+            [...new Set(named.flatMap((w) => w.closest.slice(0, 3)))],
+            'or',
+          )}, call again with it in metrics; ask them when it is unclear, and never read it as one yourself.`,
+        ]
+      : []),
+    ...(none.length
+      ? [
+          `Search ${list(
+            none.map((w) => `"${w.word}"`),
+            'and',
+          )} with ${voice.find}; if nothing is written about it, say so plainly and, ${voice.report}.`,
+        ]
+      : []),
+  ].join(' ')
+}
+
 /** A reply whose question could not be read (`need_more_detail`): what to fix, and that it read nothing. */
-export function unreadSaid(bundle: Names, issues: readonly ScopeIssue[], question?: string): Said {
+export function unreadSaid(
+  bundle: Names,
+  issues: readonly ScopeIssue[],
+  question?: string,
+  /** The words that could have named a metric, when the question names none. */
+  unread: readonly UnreadSaid[] = [],
+): Said {
   const contested = issues.find((issue) => issue.meanings)
   if (contested) {
     const ask = { word: contested.word ?? contested.input, meanings: contested.meanings! }
     return { say: `${notLookedUp} ${contestedQuestion(ask, bundle)}`, next: contestedNext(ask) }
   }
+  // A question that names nothing says its words that could have, one by one, not a metric it
+  // never named.
+  const named = unread.length ? issues.filter((issue) => issue.field !== 'scope') : issues
+  if (unread.length)
+    return {
+      say: [
+        notLookedUp,
+        ...(named.length ? [issueSay(bundle, named, question)] : []),
+        unreadWordsSay(unread),
+      ].join(' '),
+      next: [
+        ...(named.length
+          ? [`Fix it from options and call again. ${issueWords(bundle, named)}`]
+          : []),
+        unreadNext(unread, contextVoice),
+      ].join(' '),
+    }
   return {
     say: `${notLookedUp} ${issueSay(bundle, issues, question)}`,
     next: `Fix it from options and call again. ${issueWords(bundle, issues)}`,
@@ -477,8 +548,15 @@ export type ContextSay = {
   partial: number
   /** Facts given that need checking: their source changed or their check date passed. */
   unverified?: number
-  /** Facts that apply but were left out to fit the size limit. */
+  /** Facts that apply but were left out, past max_items or to fit the size limit. */
   cut: number
+  /** How the AI agent gets what was left out, when the reply says it; else the voice's own. */
+  cutNext?: string
+  /**
+   * The words that could have named a metric and named none (names-read.ts), each with the names
+   * that hold it as a word and the domain it names: said, never dropped.
+   */
+  unread?: readonly UnreadSaid[]
   /** Why each held-back fact isn't given, in the resolver's reasons (FR-314). */
   withheld: readonly string[]
   /** The sentence of `assumed_date`, when the question gave no dates. */
@@ -506,7 +584,8 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     const failed = failedSaid('The checks could not run. Try again shortly.')
     return voice.stateFirst ? { ...failed, say: `${stateWords('failed')} ${failed.say}` } : failed
   }
-  if (c.status === 'need_more_detail' || !c.scope) return unreadSaid(bundle, c.issues, c.question)
+  if (c.status === 'need_more_detail' || !c.scope)
+    return unreadSaid(bundle, c.issues, c.question, c.unread)
   const scope = scopeWords(bundle, c.scope, {
     show: !c.assumed,
     readsAs: c.readsAs ?? null,
@@ -535,7 +614,7 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     say.push(
       `${sentence(applies(c.cut))} to ${scope}, but ${c.cut === 1 ? "it doesn't" : "they don't"} fit in this reply.`,
     )
-    next.push(`${voice.cuts} Never say nothing is written down.`)
+    next.push(`${c.cutNext ?? voice.cuts} Never say nothing is written down.`)
   } else {
     say.push(`${sentence(applies(c.delivered))} to ${scope}.`, onlyThat)
     if (c.partial === c.delivered)
@@ -558,9 +637,14 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     if (c.partial) next.push(`${voice.appliesField} says which part each partial ${one} covers.`)
     if (c.status === 'conflict')
       next.push(`Give both sides of ${voice.disagreesField} and say they disagree.`)
-    if (c.cut) next.push(voice.cuts)
+    if (c.cut) next.push(c.cutNext ?? voice.cuts)
     if (c.about)
       next.push(`Each ${one} names the metrics it is about (about): answer for each metric apart.`)
+  }
+  // A word that could have named a metric is said, so no answer stands on the rest alone.
+  if (c.unread?.length) {
+    say.push(unreadWordsSay(c.unread))
+    next.push(unreadNext(c.unread, voice))
   }
   // What a group asked for holds, right after what was read for it and how far that went.
   const grouped = groupWords(c.groups ?? [])

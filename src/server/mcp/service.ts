@@ -287,6 +287,7 @@ export function scopeOf(
     ...(input.dimension_filters === undefined ? {} : { filters }),
     ...(window === undefined ? {} : { window }),
     calendar,
+    domains: bundle.areas.map((area) => area.name),
   })
   if (words !== undefined && !placed) {
     const issue: ScopeIssue = {
@@ -335,7 +336,11 @@ export function scopeOf(
  * could not: a choice for the agent to confirm, never taken for it.
  */
 function looseReading(question: string, bundle: ServingBundle, today: string, calendar: Calendar) {
-  const read = readQuestion(question, bundle.terms, today, { loose: true, calendar })
+  const read = readQuestion(question, bundle.terms, today, {
+    loose: true,
+    calendar,
+    domains: bundle.areas.map((area) => area.name),
+  })
   if (!read.window || !read.dates || isAnyDate(read.window) || !read.window.end) return null
   return {
     from: read.window.start,
@@ -1157,6 +1162,7 @@ export function createToolService(
             ? { words: period.words!, reads_as: period.reads_as }
             : null)
         // What applies, ordered by the question's own words, as Ask's reads order it.
+        const words = questionWords(scoped.question, bundle.terms, bundle.areas)
         const resolution = resolve(bundle, {
           scope,
           today,
@@ -1164,8 +1170,20 @@ export function createToolService(
           hiddenMetrics: [],
           sizeLimit: Number.MAX_SAFE_INTEGER,
           dependenciesAvailable: true,
-          words: questionWords(scoped.question, bundle.terms, bundle.areas),
+          words,
         })
+        // A later page of the same question starts where the reply before it ended (next_cursor).
+        const pages = pageKey(bundle, { scope: resolution.scope, words, asker }).slice(0, 16)
+        const offset = cursorOffset(scoped.cursor, pages)
+        // The words that could have named a metric and named none, said, never dropped.
+        const unread = (scope.unread ?? []).map((w) => ({
+          word: w.word,
+          closest: w.closest.flatMap((key) => {
+            const term = bundle.terms.find((t) => t.key === key)
+            return term && termShown(bundle, term) ? [term.name] : []
+          }),
+          ...(w.domain ? { domain: w.domain } : {}),
+        }))
         const base = report(
           resolution.status,
           resolution.report.matched,
@@ -1194,7 +1212,7 @@ export function createToolService(
             .filter((key) => !own.size || own.has(key))
             .map((key) => bundle.terms.find((t) => t.key === key)?.name ?? key)
         }
-        const items = resolution.items.map((match) => {
+        const items = resolution.items.slice(offset).map((match) => {
           const item = index.item(match.id) as ServingItem
           const linked = outgoing(bundle, item, today, resolution.scope?.window, index)
           check.links_withheld += linked.withheld
@@ -1294,6 +1312,11 @@ export function createToolService(
               : { metrics: [], values: [] },
             assumed: !!assumed,
           })
+        // How the agent reaches what the reply left out: the next page by cursor, or a larger one,
+        // by the limit that cut it.
+        let bySize = false
+        const cutNext = () =>
+          `Call again with cursor set to next_cursor for the rest, or with a higher ${bySize ? 'max_bytes' : 'max_items (at most 50)'}.`
         // FR-344: what the reply read and did not, as it stands after any cut.
         const said = () => {
           const out = withTermsNext(
@@ -1308,11 +1331,14 @@ export function createToolService(
                 partial: items.filter((item) => item.match === 'partial').length,
                 unverified: items.filter((item) => item.freshness === 'unverified').length,
                 cut: check.cut_ids.length,
+                // A cut by count is reached by the cursor; a cut by size too, or by more bytes.
+                ...(check.cut_ids.length ? { cutNext: cutNext() } : {}),
                 withheld: resolution.withheld.map((w) => w.reason),
                 assumed: assumed?.note.sentence ?? null,
                 readsAs: read?.reads_as ?? null,
                 groups,
                 about: metrics.length > 1,
+                unread,
               },
               contextVoice,
             ),
@@ -1343,6 +1369,8 @@ export function createToolService(
             return { ...entry, ...rest }
           })
         }
+        // Where the rest of what applies starts, after the items this reply gives.
+        const nextCursor = () => cursorFor(pages, offset + items.length)
         const render = () => {
           const head = {
             status: statusNow(),
@@ -1350,6 +1378,10 @@ export function createToolService(
             asked: askedWords,
             ...(period ? { period_read: period } : {}),
             ...(meant.length ? { defined: meant } : {}),
+            ...(unread.length ? { unread } : {}),
+            ...(offset + items.length < resolution.items.length
+              ? { next_cursor: nextCursor() }
+              : {}),
           }
           return concise
             ? resultFor({
@@ -1399,7 +1431,10 @@ export function createToolService(
             if (item.links.length) check.cut = true
             item.links = []
           }
-        while (items.length && byteSize(render()) > limit) cutItem()
+        while (items.length && byteSize(render()) > limit) {
+          bySize = true
+          cutItem()
+        }
         const output = render()
         if (byteSize(output) > limit)
           return failure('The required report cannot fit this size limit. Increase max_bytes.')
@@ -1423,7 +1458,7 @@ export function createToolService(
             delivered: items.map((i, rank) => ({
               id: i.id,
               v: i.version,
-              rank,
+              rank: offset + rank,
               label: i.freshness,
             })),
             withheld: resolution.withheld,
