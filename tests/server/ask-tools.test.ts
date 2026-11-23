@@ -770,3 +770,73 @@ describe('the definitions tool by other names', () => {
     expect(JSON.stringify(result)).toContain('Revenue after returns and discounts.')
   })
 })
+
+describe('get_context and the words people wrote (FR-718.7)', () => {
+  const edition = bundle()
+  const written = (
+    id: string,
+    name: string,
+    meaning: string | null,
+    sameAs: string | null = null,
+  ) => ({
+    id,
+    name,
+    meaning,
+    sameAs,
+    areaId: 'finance',
+    writtenOn: '2026-09-16',
+    writtenAs: 'owner' as const,
+    conflict: false,
+  })
+  const commission = '0190f3a2-0000-7000-8000-00000000000a'
+  const terms = [
+    written(commission, 'Marketplace commission', 'The share of each marketplace sale it keeps.'),
+    written('0190f3a2-0000-7000-8000-00000000000b', 'Cut', null, `term:${commission}`),
+    written('0190f3a2-0000-7000-8000-00000000000c', 'Purchases', null, 'metric:orders'),
+  ]
+  const toolsWith = (words: typeof terms) =>
+    createAskTools({
+      ...noReads,
+      bundle: () => Promise.resolve({ ...edition, written: words }),
+      readable: () => Promise.resolve(edition.items.map((i) => ({ ...i, status: 'accepted' }))),
+      areas: () => Promise.resolve([{ id: 'finance', name: 'Finance', ownerIds: [] }]),
+      people: () => Promise.resolve([]),
+      catalogue: () => Promise.resolve({ terms: [] }),
+      glossary: () => Promise.resolve({ terms: [] }),
+      records: () => Promise.resolve([]),
+    } as unknown as ToolReads)
+  const look = (words: typeof terms, about: string) =>
+    toolsWith(words).run('get_context', { about, no_period: true }) as Promise<
+      Record<string, unknown>
+    >
+
+  it('gives what each term the words use means, as written in Definitions', async () => {
+    const read = await look(terms, 'Orders in Norway after the marketplace commission')
+    expect(read.terms).toEqual([
+      {
+        id: `term:${commission}`,
+        word: 'marketplace commission',
+        name: 'Marketplace commission',
+        meaning: 'The share of each marketplace sale it keeps.',
+        domain: 'Finance',
+        from: 'written in Definitions',
+      },
+    ])
+    // A synonym of a term is that term, once; a synonym of a metric reads as the metric.
+    const again = await look(
+      terms,
+      'Purchases in Norway after the cut and the marketplace commission',
+    )
+    expect((again.terms as { word: string }[]).map((t) => t.word)).toEqual(['cut'])
+    // A term alone names no metric: the read is not looked up, and still says what it means.
+    const alone = await look(terms, 'marketplace commission')
+    expect(alone).toMatchObject({ state: null, terms: [{ name: 'Marketplace commission' }] })
+  })
+
+  it('reads as before when the words use no term', async () => {
+    const before = await look([], 'Orders in Norway')
+    const after = await look(terms, 'Orders in Norway')
+    expect(after).not.toHaveProperty('terms')
+    expect(JSON.stringify(after)).toBe(JSON.stringify(before))
+  })
+})

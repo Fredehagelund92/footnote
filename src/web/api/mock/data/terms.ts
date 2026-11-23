@@ -51,6 +51,26 @@ export const TERMS: Definition[] = [
     by: 'Noor Haddad',
     updated: '2 Jul 2026',
   }),
+  term('Marketplace commission', {
+    domain: 'sales',
+    definition: 'The share of each marketplace sale that the marketplace keeps.',
+    by: 'Jon Abara',
+    updated: '16 Sep 2026',
+  }),
+  term('Selling country', {
+    domain: 'sales',
+    definition:
+      'The country of the webshop or app that took the order. It can differ from the market, the country or region the order ships to.',
+    by: 'Sofia Brandt',
+    updated: '16 Sep 2026',
+  }),
+  term('Season', {
+    domain: 'marketing',
+    definition:
+      'Spring and summer, or autumn and winter. Compare a season with the same season a year before.',
+    by: 'Tomas Eriksen',
+    updated: '18 Sep 2026',
+  }),
   // Synonyms: Footnote's own words that mean a synced item, or another term.
   term('GMV', { sameAs: 'Gross sales', domain: 'sales', by: 'Jon Abara', updated: '14 Oct 2026' }),
   term('Turnover', {

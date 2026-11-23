@@ -91,6 +91,7 @@ import {
   createKeptReads,
   liveEditionKey,
   liveServingBundle,
+  readAboutBusiness,
   readLoopLimits,
   readAssistantModel,
   scriptedLoopModel,
@@ -467,6 +468,7 @@ export function createRouter({
     if (live && modelChecks)
       void modelChecks.of(await readAssistantModel(context.tx, models), 'assistant')
     const { steps, seconds } = await readLoopLimits(context.tx)
+    const about = await readAboutBusiness(context.tx)
     const model =
       askTrace?.loopModel ??
       (live ? await readAssistantModel(context.tx, models) : scriptedLoopModel())
@@ -499,6 +501,7 @@ export function createRouter({
           admin: scope.admin,
           owns: areas.filter((a) => scope.areas.includes(a.id)).map((a) => a.name),
         },
+        about,
         today: todayIn(clock, calendar.timeZone),
         timeZone: calendar.timeZone,
         steps,

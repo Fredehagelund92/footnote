@@ -33,6 +33,10 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   and says nothing published covers Black Friday; K10 and G21 answer the France switch where they
   should ask which one. Two more tries of each: K10 asks 1 of 2 times, and G21 asks in neither, as
   on main's code.
+  The same day Ask's instructions began to end with About our business, get_context began to say
+  what the terms its words use mean, and the demo week gained three terms, so every step was keyed
+  again with no model, by place, as above. One more step goes unrecorded: a place in the case
+  about what is missing from Definitions that main's code never reaches.
 */
 
 askEvalSuite({

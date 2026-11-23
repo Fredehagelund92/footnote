@@ -3,8 +3,8 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 4
-reviewed: 2026-11-22
+minutes: 5
+reviewed: 2026-11-23
 open:
   label: Write context
   href: /context/new
@@ -89,4 +89,6 @@ More than five asks once first, because agents get them from the next question. 
 
 ## About our business
 
-A short text every agent reads first: what the business is, words that are easy to misread, and house rules for reading numbers. No figures or customer names. An admin writes it in **Settings**, then **General**, under About our business.
+One or two sentences on what the company does: what you sell, to whom, where and through which channels. Ask reads it with every question, and an agent when it connects, as background, never as a source. An agent connected now gets a change when it next connects. An admin writes it in **Settings**, then **General**, under About our business, in up to 500 characters.
+
+The words people use and what they mean go in Definitions, as terms with an owner, not here: Ask and agents get a term with each question that uses its word. Under the text, a line that defines a word Definitions already has says so. Figures, deals, dates and what happened in a market are context items.

@@ -97,7 +97,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
       },
       {
         key: 'business.about',
-        what: 'About our business: background the assistant and agents get, never evidence',
+        what: 'About our business: what the company does, background Ask and agents get, never a source',
         value: (v) => (typeof v === 'string' && v ? count(v.length, 'character') : 'No text yet'),
       },
       {

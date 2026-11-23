@@ -4,6 +4,7 @@ import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
 import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
+import { ABOUT_BUSINESS_STARTER } from '@domain/about-business'
 import { ApiError } from '../errors'
 import { missing } from '@contract/refusals'
 import { reviewActions, type ReviewAction } from '@domain/review-actions'
@@ -27,7 +28,6 @@ import type { InboxCard } from '@/model/inbox'
 import type { Relation, Review } from '@/model/review'
 import { plainOf } from '@/components/templates/comment-box/utils'
 import {
-  ABOUT_BUSINESS,
   dimensions,
   facts as seedFacts,
   markets,
@@ -423,7 +423,7 @@ export function createMockApi() {
         people: workspace.people(),
         invites: workspace.invites(),
         about: state.about,
-        aboutTemplate: ABOUT_BUSINESS,
+        aboutTemplate: ABOUT_BUSINESS_STARTER,
         setup: { done: state.setup, serverSource: null },
       })),
     getVocabulary: () =>

@@ -281,27 +281,29 @@ The mock model in `db/seed/fixtures/cube-model.ts` follows these files
 
 ## 8. About our business
 
-The starter text (`ABOUT_BUSINESS_STARTER` in `src/domain/about-business.ts`) is below: 1,102
-characters, under the limit of 1,200. It names no company, figures or deals, and draws no legal
-conclusion.
+The starter text (`ABOUT_BUSINESS_STARTER` in `src/domain/about-business.ts`) is one company
+sentence, 176 characters, under the limit of 500. It names no company, figures or deals, draws no
+legal conclusion, and agrees with the demo's definitions: Platform (web, iOS, Android), Product
+(the four groups) and Market (twelve markets).
 
 ```text
-We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our own stores, in our webshop and apps, and through marketplaces, in twelve markets.
-
-Words that are easy to misread here:
-- Order: a purchase a customer completed and paid for, in a store, the webshop or an app. A cancelled order is not an order.
-- Return: a product a customer sends back for a refund. Gross sales are before returns, discounts and VAT. Net revenue is after them.
-- First-time buyer: a customer whose first paid order falls in the period, whenever they signed up.
-- Marketplace: another company's online shop that sells our gear. It reports those sales to us a day or more late.
-- Marketplace commission: the share of each marketplace sale the marketplace keeps.
-- Gross margin: net revenue minus what the goods cost us, as a share of net revenue.
-- Market: the country or region an order ships to. Selling country: the country of the store or webshop that took the order. They can differ.
-- Season: spring and summer, or autumn and winter. Compare a season with the same season a year before.
+We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our webshop and our iOS and Android apps, and through marketplaces, in twelve markets.
 ```
+
+The words that are easy to misread are terms in Definitions, not lines of this text. Words the
+demo's definitions already hold (Orders, Returns, Gross sales, Net revenue, First-time buyers,
+Gross margin, Market) are left to them. Three have no definition there, so they are terms with
+owners in `src/web/api/mock/data/terms.ts`, which the demo week seeds too:
+
+| Term                   | Domain    | Written by    |
+| ---------------------- | --------- | ------------- |
+| Marketplace commission | Sales     | Jon Abara     |
+| Selling country        | Sales     | Sofia Brandt  |
+| Season                 | Marketing | Tomas Eriksen |
 
 Where it lives:
 
-- `src/domain/about-business.ts`: the starter text, line by line.
+- `src/domain/about-business.ts`: the starter text.
 - `db/seed/bulk.ts`: the demo seeds write it as a version of `business.about`. A new install
   starts with no text (`db/migrations/0001_schema.sql`).
 

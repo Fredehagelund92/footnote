@@ -256,8 +256,8 @@ async function seedDefinitions(
       change_mark: sha256(member.ref),
     })),
   ])
-  // The demo company says what it is about: a new install starts with no text, and the
-  // demo, the golden library and the assistant evals' About arm read the retailer's worked example.
+  // The demo company says what it is about: a new install starts with no text, and the demo,
+  // the golden library and Ask's evals read the retailer's worked example.
   await client.query(
     `insert into settings_versions (key, version, value, reason)
      select 'business.about', max(version) + 1, to_jsonb($1::text), 'demo: the outdoor-gear retailer'
