@@ -27,6 +27,12 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   A bare word that names no one metric ("revenue") is asked about by code before the model reads
   (H16), so that case needs no recorded step; in a sentence the model reads the metrics it may mean.
   G02's sentence with a hole is gone since code drops the brackets a placed mention leaves empty.
+  On 23 November 2026 find_context's wider search began taking its other names as a list, each
+  searched on its own, so the steps that wrote one phrase of them failed to read: K10, K11, G21 and
+  F09 were recorded again (Haiku 5.5, one try, USD 0.016). In it F09 widens by three other names
+  and says nothing published covers Black Friday; K10 and G21 answer the France switch where they
+  should ask which one. Two more tries of each: K10 asks 1 of 2 times, and G21 asks in neither, as
+  on main's code.
 */
 
 askEvalSuite({
@@ -40,6 +46,7 @@ askEvalSuite({
   },
   missingToday: [
     'C2',
+    'K10',
     'K12',
     'K16',
     'K18',
@@ -52,7 +59,6 @@ askEvalSuite({
     'F05',
     'F06',
     'F07',
-    'F09',
     'F15',
     'F16',
     'F17',
@@ -76,6 +82,7 @@ askEvalSuite({
     'G12',
     'G13',
     'G15',
+    'G21',
     'G22',
     'G23',
     'G25',

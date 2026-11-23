@@ -374,7 +374,7 @@ it("keeps none of the words Ask's tools are given, in any table, and changes not
   await transaction(client, () => servingEdition(client))
   const marker = 'Quillfeather'
   const calls: [AskToolName, object][] = [
-    ['find_context', { words: `orders ${marker}`, widen: { other_words: `${marker} audit` } }],
+    ['find_context', { words: `orders ${marker}`, widen: { other_words: [`${marker} audit`] } }],
     ['get_context', { about: `orders in Norway after the ${marker} audit` }],
     ['get_context', { about: `${marker} orders`, widen: { other_name: `${marker} sales` } }],
     ['read_context', { id: 'itm_target0001' }],

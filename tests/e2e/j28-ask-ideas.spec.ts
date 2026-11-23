@@ -60,7 +60,7 @@ test('Share copies an answer for Slack with its state and sources, or as a card;
   const nothing = page
     .getByRole('region', { name: 'Share this answer' })
     .getByRole('tabpanel', { name: 'Slack message' })
-  await expect(nothing).toContainText('Not found. Nothing is written about this yet.')
+  await expect(nothing).toContainText('Not found. Nothing published about this yet.')
   await expect(nothing.getByRole('listitem')).toHaveCount(0)
 })
 
@@ -186,7 +186,7 @@ test('Asked this week: one line per topic, the state in its own column, the coun
   const sentence = {
     Checked: 'This is written down and checked.',
     Partial: 'Only part of this is written down.',
-    'Not found': 'Nothing is written about this yet.',
+    'Not found': 'Nothing published about this yet.',
     Conflict: 'Two items say different things.',
     Outdated: 'Some of this may be old.',
     'Not looked up': 'Ask could not look this up just now.',
