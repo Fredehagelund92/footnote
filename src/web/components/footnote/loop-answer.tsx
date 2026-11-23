@@ -28,6 +28,7 @@ import {
   type LoopParts,
   type Nouns,
 } from '@/components/footnote/loop-nouns'
+import { SourcePassages, SourceText } from '@/components/footnote/source-text'
 import { useReveal } from '@/lib/ask-motion'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
@@ -1334,7 +1335,7 @@ function FamilyDefinition({
   const parts = [family.meaning ?? '', ...family.own.map((o) => o.words)]
   const marked = mark ? parts.findIndex((p) => p.toLowerCase().includes(mark.toLowerCase())) : -1
   const words = (text: string, at: number) =>
-    at === marked ? <Marked words={text} mark={mark!} /> : text
+    at === marked ? <Marked words={text} mark={mark!} /> : <SourceText text={text} code="answer" />
   return (
     <div className={className}>
       {family.meaning ? (
@@ -1414,7 +1415,7 @@ function DefinitionCardOf({
       ) : (
         card.words && (
           <blockquote className="px-4 pt-2.5 text-base leading-chat text-pretty">
-            {card.words}
+            <SourcePassages text={card.words} code="answer" />
           </blockquote>
         )
       )}

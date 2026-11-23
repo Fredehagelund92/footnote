@@ -24,7 +24,7 @@ import {
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
-import { ContextText } from '@/components/footnote/mention-chip'
+import { ContextText } from '@/components/footnote/context-text'
 import { hostOf } from '@/lib/host'
 import { useSideChoice } from '@/lib/side-panel'
 import { useSend } from '@/lib/send'
@@ -830,7 +830,7 @@ function Editor({
             )}
           >
             {form.body.trim() ? (
-              <ContextText text={form.body.replace(/\*\*|`/g, '')} dense />
+              <ContextText text={form.body} dense />
             ) : (
               <p className="text-muted-foreground">…</p>
             )}

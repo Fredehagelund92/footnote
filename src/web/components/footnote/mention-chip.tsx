@@ -256,41 +256,6 @@ export function MentionText({ text, interactive }: { text: string; interactive?:
 }
 
 /**
- * Stored context text as the editor wrote it, read-only: paragraphs, lists and quotes, with
- * mentions as chips. `dense` is the quick view's smaller text.
- */
-export function ContextText({ text, dense }: { text: string; dense?: boolean }) {
-  return text.split('\n\n').map((para, i) =>
-    /^(- |\d\. )/.test(para) ? (
-      <ul
-        key={i}
-        className={cn(
-          'list-disc marker:text-muted-foreground',
-          dense ? 'ml-5 space-y-1' : 'ml-6 space-y-1.5',
-        )}
-      >
-        {para.split('\n').map((li, j) => (
-          <li key={j}>
-            <MentionText text={li.replace(/^(- |\d\. )/, '')} />
-          </li>
-        ))}
-      </ul>
-    ) : para.startsWith('> ') ? (
-      <blockquote
-        key={i}
-        className={cn('border-l-2 text-muted-foreground', dense ? 'pl-3' : 'pl-4')}
-      >
-        <MentionText text={para.replace(/^> ?/gm, '')} />
-      </blockquote>
-    ) : (
-      <p key={i}>
-        <MentionText text={para} />
-      </p>
-    ),
-  )
-}
-
-/**
  * "Mentioned in": the context items and terms that link here, as a plain list (not a graph).
  * Nothing when nothing does. Links never change what agents get.
  */

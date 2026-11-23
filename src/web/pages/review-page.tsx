@@ -31,6 +31,7 @@ import { Mark } from '@/components/footnote/mark'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Panel } from '@/components/footnote/panel'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { SiteHeader } from '@/components/site-header'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
@@ -777,8 +778,8 @@ function SyncedFrom({ r }: { r: Review }) {
           {s.folder} / {s.doc}, read {s.read.toLowerCase()}
         </span>
       </header>
-      <blockquote className="rounded-frame bg-muted px-3 py-2 text-sm italic">
-        “{s.quote}”
+      <blockquote className="border-l-2 pl-3 text-sm">
+        <SourcePassages text={s.quote} />
       </blockquote>
       <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-(--cols-lead-40)">
         <dt className="text-muted-foreground">Set by the document</dt>

@@ -1,5 +1,6 @@
 import { and, cn } from '@/lib/utils'
-import { ContextText, MentionText } from '@/components/footnote/mention-chip'
+import { MentionText } from '@/components/footnote/mention-chip'
+import { ContextText } from '@/components/footnote/context-text'
 import {
   ArchiveIcon,
   CircleCheckIcon,
@@ -8,6 +9,7 @@ import {
 } from '@/components/icons'
 import { DetailsBody, detailsSummary } from '@/components/footnote/details-body'
 import { PeekFact, PeekFacts } from '@/components/footnote/peek'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { DocFold, prose } from '@/components/footnote/doc'
 import { Badge } from '@/components/ui/badge'
 import type { Fact } from '@/model/items'
@@ -51,8 +53,8 @@ export function ItemDocument({
         </p>
         {fact.body && <ContextText text={fact.body} />}
         {fact.quote && (
-          <blockquote className="mt-2 border-l-2 pl-4 text-muted-foreground italic">
-            “{fact.quote}”
+          <blockquote className="mt-2 border-l-2 pl-4 text-muted-foreground">
+            <SourcePassages text={fact.quote} code="text-sm" />
           </blockquote>
         )}
       </div>
