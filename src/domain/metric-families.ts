@@ -447,7 +447,7 @@ export type FamilyCounts = {
   /** The metrics in them. */
   metrics: number
   found: Record<FamilyFound, number>
-  /** The name of the family with the most variants, of the most trusted kind first. */
+  /** The name of the family with the most variants, of any kind but names. */
   example: string
 }
 

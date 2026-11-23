@@ -248,7 +248,7 @@ export const sourceCheckSchema = z.object({
     }),
   ),
   /**
-   * The families of metrics the read would find (FR-142, D5), as the first read finds them: how
+   * The families of metrics the read would find (FR-142, D5), as a read of every view the test read would find them: how
    * many, the metrics in them, how many of each kind in the order of trust, and the name of the
    * family with the most variants, to say what one is. Absent when it finds none.
    */

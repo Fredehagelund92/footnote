@@ -628,10 +628,7 @@ const splitWords = ({ words, examples }: { words: number; examples: string[] }) 
       ? `${examples.slice(0, -1).join(', ')} and ${examples.at(-1)}`
       : (examples[0] ?? '')
 
-/**
- * What a read that looks like a metric per currency or channel says, before its names are
- * published, when it finds no family of them: Test connection then leads with the families (D5).
- */
+/** Whether the families found hold at least half of the metrics that look like variants. */
 function coversMost(
   families: SourceCheck['families'],
   variants: NonNullable<SourceCheck['variants']>,
@@ -639,6 +636,10 @@ function coversMost(
   return !!families && families.metrics * 2 >= variants.variants
 }
 
+/**
+ * What a read that looks like a metric per currency or channel says, before its names are
+ * published, when it finds no family of them: Test connection then leads with the families (D5).
+ */
 export function variantsWords(shape: NonNullable<SourceCheck['variants']>) {
   const n = (count: number) => count.toLocaleString('en-GB')
   const splits = shape.splits.map(splitWords).join(', and by ')

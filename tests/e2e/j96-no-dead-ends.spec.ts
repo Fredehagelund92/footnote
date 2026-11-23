@@ -94,7 +94,7 @@ test("a family waiting in another owner's domain has no Publish for this owner",
 }) => {
   await onMockOnly('families waiting to be published (?demo=families)', async () => {
     await go(page, '/inbox?demo=families')
-    const card = page.getByText(/families and \d+ names from dbt/).first()
+    const card = page.getByText(/from dbt$/).first()
     await expect(card).toBeVisible()
     const family = '/inbox?card=names:waiting&dock=family.group:packaging_costs'
 
@@ -109,7 +109,7 @@ test("a family waiting in another owner's domain has no Publish for this owner",
     await expect(
       page.getByText('Regulator paused price promotions in Italy on 18 April 2026').first(),
     ).toBeVisible()
-    await expect(page.getByText(/families and \d+ names from dbt/)).toHaveCount(0)
+    await expect(page.getByText(/from dbt$/)).toHaveCount(0)
     await go(page, family)
     await expect(page.getByText('This family is not waiting on your Names card.')).toBeVisible()
     await expect(page.getByRole('button', { name: /^Publish/ })).toHaveCount(0)

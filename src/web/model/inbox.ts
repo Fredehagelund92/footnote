@@ -40,12 +40,13 @@ export function namesWords({
   const total = ready + flagged
   const others = total - families
   const from = `from ${tools.join(', ')}`
+  const n = (x: number) => x.toLocaleString('en-GB')
   return {
     title: !total
       ? 'Names left out'
       : families
-        ? `${families === 1 ? '1 family' : `${families} families`}${others ? ` and ${others === 1 ? '1 name' : `${others} names`}` : ''} ${from}`
-        : `${total === 1 ? '1 new metric or dimension' : `${total} new metrics and dimensions`} ${from}`,
+        ? `${families === 1 ? '1 family' : `${n(families)} families`}${others ? ` and ${others === 1 ? '1 name' : `${n(others)} names`}` : ''} ${from}`
+        : `${total === 1 ? '1 new metric or dimension' : `${n(total)} new metrics and dimensions`} ${from}`,
     line: !total
       ? 'Every new name was left out.'
       : flagged

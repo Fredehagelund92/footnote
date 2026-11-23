@@ -297,7 +297,7 @@ export function testFor(
   const demo = demoTools[connector]
   if (!demo) {
     const checked = checkOf(manifest, values)
-    if (!families || !checked.read) return checked
+    if (!families || connector !== 'dbt-metricflow' || !checked.read) return checked
     const shop = familiesShopRead()
     return {
       ...checked,
