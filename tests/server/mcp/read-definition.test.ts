@@ -3,6 +3,7 @@ import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 import { servedWords, type WrittenTerm } from '../../../src/domain/served-terms.ts'
 import { createToolService } from '../../../src/server/mcp/service.ts'
 import type { EditionSource, ServingBundle } from '../../../src/server/modules/editions/index.ts'
+import type { DefinitionRead } from '../../../src/server/mcp/reads.ts'
 import { bundle, fakeReads, memoryStore } from './fixtures.ts'
 
 /*
@@ -70,16 +71,48 @@ function edition(): ServingBundle {
       source: 'Cube local model',
     },
   }
-  const served = servedWords([...data.terms, share], written, data.stopped)
+  // A metric in a domain that is paused: agents get nothing of it, not even its name.
+  const refunds = { ...share, key: 'metric:refunds', name: 'Refunds', aliases: [], areaId: 'paid' }
+  const stopped = { ...data.stopped, areas: ['paid'] }
+  const served = servedWords([...data.terms, share, refunds], written, stopped)
   return {
     ...data,
+    stopped,
+    areas: [
+      ...data.areas,
+      { id: 'paid', name: 'Paid media', team: null, summary: '', description: '' },
+    ],
     terms: served.vocabulary,
     written: served.written,
     metricArea: { ...data.metricArea, 'metric:market_share': 'finance' },
   }
 }
 
-const reads = fakeReads()
+/** What Definitions shows of Orders: what it is built from, as its source's structure says. */
+const relation = (r: Partial<DefinitionRead['relations'][number]>) => ({
+  kind: 'built_from' as const,
+  ref: null,
+  name: '',
+  key: null,
+  missing: false,
+  by: null,
+  ...r,
+})
+const reads = fakeReads(undefined, {
+  'metric:orders': {
+    term: { definitions: [], definition: null, family: null } as unknown as DefinitionRead['term'],
+    relations: [
+      relation({
+        ref: 'cube:finance.market_share',
+        name: 'Market share',
+        key: 'metric:market_share',
+      }),
+      relation({ ref: 'cube:finance.refunds', name: 'Refunds', key: 'metric:refunds' }),
+      relation({ ref: 'cube:finance.unpublished', name: 'finance.unpublished' }),
+      relation({ name: 'amount_eur' }),
+    ],
+  },
+})
 function call(input: Record<string, unknown>) {
   const source: EditionSource = {
     bundle: () => Promise.resolve(edition()),
@@ -194,4 +227,15 @@ it('reads what Definitions shows of a metric from the live catalogue, by its key
   reads.asked.length = 0
   await call({ id: 'Peak season' })
   expect(reads.asked).toEqual([])
+})
+
+it('names only what agents may read of what a metric is built from: never a paused or unpublished one', async () => {
+  const reply = await call({ id: 'Orders' })
+  expect((reply.definition as { relations: unknown }).relations).toEqual([
+    { kind: 'built_from', name: 'Market share', key: 'metric:market_share' },
+    { kind: 'built_from', name: 'amount_eur', key: null },
+  ])
+  expect(JSON.stringify(reply)).not.toMatch(/Refunds|unpublished/)
+  // A definition in a paused domain is not read at all.
+  expect(await call({ id: 'Refunds' })).toMatchObject({ status: 'no_match' })
 })

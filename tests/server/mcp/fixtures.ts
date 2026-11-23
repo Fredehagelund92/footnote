@@ -1,6 +1,6 @@
 import type { ServingBundle } from '../../../src/server/modules/editions/index.ts'
 import type { AnonymousRecord, AnonymousStore } from '../../../src/server/mcp/records.ts'
-import type { ServingReads, WaitingTerms } from '../../../src/server/mcp/reads.ts'
+import type { DefinitionRead, ServingReads, WaitingTerms } from '../../../src/server/mcp/reads.ts'
 
 export function bundle(): ServingBundle {
   return {
@@ -189,6 +189,8 @@ export function memoryStore() {
 export function fakeReads(
   /** The source members that are no term yet: none by default. */
   waiting: WaitingTerms = { members: [] },
+  /** What Definitions shows of a definition, by key: nothing by default. */
+  definitions: Record<string, DefinitionRead> = {},
 ): ServingReads & { asked: unknown[] } {
   const asked: unknown[] = []
   return {
@@ -197,10 +199,9 @@ export function fakeReads(
       asked.push('waiting')
       return Promise.resolve(structuredClone(waiting))
     },
-    // The fixture edition's definitions have no catalogue beside them: none of it is shown.
     definition: (key) => {
       asked.push(['definition', key])
-      return Promise.resolve(null)
+      return Promise.resolve(definitions[key] ? structuredClone(definitions[key]) : null)
     },
   }
 }

@@ -208,7 +208,17 @@ export function definitionEntry(
     family?.variants.find((v) => v.key === key)?.name ??
     bundle.terms.find((t) => t.key === key)?.name ??
     key
-  const usual = family?.variants.find((v) => v.key === family.usual.member)
+  // The catalogue is what people see: only what agents may read of it goes on (FR-314), so a
+  // metric or a relation in a paused domain, or a definition no one published, is left out.
+  const shownKey = (key: string | null) => {
+    const named = key === null ? undefined : bundle.terms.find((t) => t.key === key)
+    return !!named && termShown(bundle, named)
+  }
+  const variants = family?.variants.filter((v) => shownKey(v.key)) ?? []
+  const conversions = family?.conversions.filter((c) => shownKey(c.from) && shownKey(c.to)) ?? []
+  // A column is named by its source alone; a definition only when agents may read it.
+  const relations = (read?.relations ?? []).filter((r) => (r.ref === null ? true : shownKey(r.key)))
+  const usual = variants.find((v) => v.key === family?.usual.member)
   return {
     key: term.key,
     name: term.name,
@@ -257,15 +267,15 @@ export function definitionEntry(
               'Its metrics differ only by the values that tell them apart.',
             meaning_from: family.meaning.source,
             ...(usual ? { usual: { key: usual.key, name: usual.name, values: usual.values } } : {}),
-            members: family.variants.map((v) => ({
+            members: variants.map((v) => ({
               key: v.key,
               name: v.name,
               values: v.values,
               ...(v.description?.trim() ? { words: v.description.trim() } : {}),
             })),
-            ...(family.conversions.length
+            ...(conversions.length
               ? {
-                  converted: family.conversions.map((c) => ({
+                  converted: conversions.map((c) => ({
                     from: nameOf(c.from),
                     to: nameOf(c.to),
                     by: c.by,
@@ -276,9 +286,9 @@ export function definitionEntry(
         }
       : {}),
     ...(memberOf ? { member_of: memberOf } : {}),
-    ...(read?.relations.length
+    ...(relations.length
       ? {
-          relations: read.relations.map((r) => ({
+          relations: relations.map((r) => ({
             kind: r.kind,
             name: r.name,
             key: r.key,
