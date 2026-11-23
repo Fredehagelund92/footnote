@@ -223,9 +223,10 @@ export const publishItemInputSchema = z.strictObject({
    */
   version: z.optional(z.number().check(z.int(), z.minimum(1))),
   /**
-   * The person's own draft it finishes, or their suggestion an owner returned: it takes these
-   * words and is sent as itself, instead of a new suggestion beside it. Its item, when it changes
-   * one, is its own.
+   * The draft it finishes, or the person's suggestion an owner returned: it takes these words and
+   * is sent as itself, instead of a new suggestion beside it. Its item, when it changes one, is its
+   * own. An owner of its domain or an admin publishes a draft someone else wrote as itself; it
+   * keeps its writer.
    */
   draftId: z.optional(z.string().check(z.uuid())),
   /** What is wrong with the current version, for a suggested change. */
