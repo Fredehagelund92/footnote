@@ -961,6 +961,81 @@ describe('splitting a family (D2-D4)', () => {
     expect(rows.map((r) => r.key)).toEqual(accrued.family!.variants.map((v) => v.key).sort())
   })
 
+  /** Serves the live version of a term again in another domain, as an edition from the bootstrap does. */
+  const reissue = async (key: string, areaId: string | null) => {
+    const { rows } = await client.query<{ old: string; id: string }>(
+      `with old as (
+         select v.* from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
+          where s.term_key = $1 and upper_inf(s.editions)),
+       made as (
+         insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,parent_key,proposer_id,content_digest)
+         select o.term_key, (select max(version_no) + 1 from vocab_term_versions where term_key = o.term_key),
+                o.name, o.aliases, $2, o.parent_key, null,
+                decode(md5(random()::text) || md5(random()::text), 'hex')
+           from old o returning id)
+       select (select id::text from old) as old, (select id::text from made) as id`,
+      [key, areaId],
+    )
+    const { old, id } = rows[0]!
+    await client.query(
+      `insert into vocab_term_refs(version_id,definition_ref)
+       select $2, definition_ref from vocab_term_refs where version_id = $1`,
+      [old, id],
+    )
+    const seq = (
+      await client.query<{ seq: string }>("select edition_open('bootstrap', null) as seq")
+    ).rows[0]!.seq
+    await client.query('select edition_serve_vocab_version($1, $2)', [seq, id])
+    await client.query('select edition_seal($1)', [seq])
+    await client.query('select edition_publish($1)', [seq])
+    return id
+  }
+  const liveVersion = async (key: string) =>
+    (
+      await client.query<{ id: string; area: string | null }>(
+        `select v.id::text, v.area_id as area from vocab_term_service s
+           join vocab_term_versions v on v.id = s.version_id
+          where s.term_key = $1 and upper_inf(s.editions)`,
+        [key],
+      )
+    ).rows[0]!
+
+  it('is decided in each metric’s own domain: an owner of the family’s is refused one in none', async () => {
+    await ok(join(accrued.key, 'admin'))
+    const [eur] = accrued.family!.variants
+    await reissue(eur!.key, null)
+    const refused = await split(accrued.key, 'owner')
+    expect(refused.statusCode, refused.body).toBe(403)
+    expect(refused.json<{ message: string }>().message).toBe(
+      'Only an admin can split it in no domain.',
+    )
+    expect(await family('Accrued share 1')).toBeDefined()
+    expect(await ok<FamilySplit>(split(accrued.key, 'admin'))).toMatchObject({ items: 1 })
+    const again = await join(accrued.key, 'owner')
+    expect(again.statusCode, again.body).toBe(403)
+    expect(again.json<{ message: string }>().message).toBe(
+      'Only an admin can make them one family again in no domain.',
+    )
+    expect(await ok<FamilyJoined>(join(accrued.key, 'admin'))).toMatchObject({
+      name: 'Accrued share 1',
+    })
+    await ok(split(accrued.key, 'admin'))
+  })
+
+  it('is joined in no domain when the one it was split in was deleted meanwhile', async () => {
+    await ok(join(accrued.key, 'admin'))
+    await client.query("insert into areas (id,name) values ('attic','Attic')")
+    const stale = await reissue(accrued.key, 'attic')
+    await ok(split(accrued.key, 'admin'))
+    await client.query("update areas set archived_at = now() where id = 'attic'")
+    await ok(join(accrued.key, 'admin'))
+    const served = await liveVersion(accrued.key)
+    expect(served.id).not.toBe(stale)
+    expect(served.area).toBeNull()
+    expect(await family('Accrued share 1')).toBeDefined()
+    await ok(split(accrued.key, 'admin'))
+  })
+
   it('is not split when the family is closed after it was joined, whatever the reason', async () => {
     const [eur] = accrued.family!.variants
     await ok(join(accrued.key, 'admin'))
