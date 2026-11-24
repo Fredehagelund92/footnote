@@ -9,6 +9,7 @@ import type {
   ItemVersionEntry,
   PublishItemResult,
   RelatedContext,
+  SavedDraft,
 } from '../../../contract/context.ts'
 import { deriveAgentDraft } from '../../../domain/agent-draft.ts'
 import {
@@ -136,7 +137,8 @@ export function createContextService(
 
   /**
    * The rows of a change, as the rule reads them, in the order asked: published items the person
-   * may read, and drafts row security lets them see. A row that is neither is not found.
+   * may read, and their own drafts, the only ones row security lets them see (FR-139). A row that
+   * is neither is not found.
    */
   async function rowsOf(ids: readonly string[]): Promise<{ rows: BulkRow[]; missing: string[] }> {
     const itemIds = ids.filter(isItemId)
@@ -335,16 +337,16 @@ export function createContextService(
   }
 
   /**
-   * A draft published as from the editor: sent, through the checks, and published at once where
-   * the person owns its domain or is an admin, as its writer's. Anyone else's waits for the
-   * domain's owners.
+   * The person's own draft published as from the editor: sent, through the checks, and published
+   * at once where they own its domain or are an admin. Anywhere else it waits for the domain's
+   * owners.
    */
   async function publishDraft(row: BulkRow, mine: BulkPerson, undo: UndoRecord) {
     const [draft] = await tx.query<{ revision: number }>(
       'select revision from proposals where id = $1',
       [row.id],
     )
-    const submitted = await proposals.submit(row.id, draft!.revision, { byDomainOwners: true })
+    const submitted = await proposals.submit(row.id, draft!.revision)
     await review.checkSubmitted(submitted.id)
     ;(undo.sent ??= []).push(row.id)
     if (!publishesNow(row, mine)) return
@@ -372,7 +374,7 @@ export function createContextService(
           'select revision from proposals where id = $1',
           [row.id],
         )
-        await proposals.discard(row.id, draft!.revision, { byDomainOwners: true })
+        await proposals.discard(row.id, draft!.revision)
         ;(undo.drafts ??= []).push(row.id)
         return
       }
@@ -531,11 +533,14 @@ export function createContextService(
       )
       if (!withdrawn) continue
       await proposalEvent(tx, withdrawn, 'withdrawn', { reason: reasons.unsent })
+      // An imported draft comes back as one of its import, so its writer's Inbox still counts it.
       const [back] = await tx.query<Parameters<typeof proposalEvent>[1]>(
         `insert into proposals (subject, action, area_id, item_id, proposer_id, channel, draft,
-                                draft_saved_at, provenance, agent_id, agent_name, base_version_id)
+                                draft_saved_at, provenance, agent_id, agent_name, base_version_id,
+                                import_batch_id)
          select subject, action, area_id, case when action = 'change' then item_id end,
-                proposer_id, channel, draft, now(), provenance, agent_id, agent_name, base_version_id
+                proposer_id, channel, draft, now(), provenance, agent_id, agent_name, base_version_id,
+                import_batch_id
            from proposals where id = $1
          returning id::text, area_id as "areaId", state::text as state, revision`,
         [sentId],
@@ -994,10 +999,10 @@ export function createContextService(
   }
 
   /**
-   * A draft, or the person's suggestion an owner returned, with the words they finished it with:
-   * its writer sends it, and an owner of its domain or an admin publishes a draft someone else
-   * wrote as itself, so it stays its writer's. A suggestion waiting for review is edited only by
-   * an owner or an admin, to publish it as itself (Edit then publish): its writer withdraws it.
+   * The person's own draft, or their suggestion an owner returned, with the words they finished it
+   * with: its writer sends it. A suggestion waiting for review is edited only by an owner or an
+   * admin, to publish it as itself (Edit then publish): its writer withdraws it. Someone else's
+   * draft is never found: only its writer reads it (FR-139).
    */
   async function finish(id: string, draft: Draft, reason: string | undefined) {
     const [row] = await tx.query<{
@@ -1021,10 +1026,49 @@ export function createContextService(
         message: 'It is waiting for review. Withdraw it to change it, then send it again.',
       })
     if (row.proposerId !== mine.id && !mayPublish) notTheirsToPublish()
-    return proposals.save(id, row.revision, draft, reason, { byDomainOwners: true })
+    return proposals.save(id, row.revision, draft, reason, { byDomainOwners: row.waiting })
   }
 
-  /** Someone else's draft is only finished to be published: it is never sent on their behalf. */
+  /**
+   * Save as draft (FR-139): the person's words kept as their own draft, which only they read and
+   * agents never get, to finish later. A new one, or a change to a published item written from the
+   * version it names; or the words of a draft of theirs saved again. Written from a Not found card,
+   * the draft is that card's, as its publish would cover the gap.
+   */
+  async function saveDraft(input: {
+    draft: Draft
+    itemId?: string | undefined
+    version?: number | undefined
+    reason?: string | undefined
+    draftId?: string | undefined
+    gapId?: string | undefined
+  }): Promise<SavedDraft> {
+    if (input.gapId) await createGapsService(tx).linkable(input.gapId)
+    let saved
+    if (input.draftId) {
+      const [row] = await tx.query<{ revision: number }>(
+        `select revision from proposals
+          where id = $1 and subject = 'item' and state = 'draft' and proposer_id = cl_person()`,
+        [input.draftId],
+      )
+      if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
+      saved = await proposals.save(input.draftId, row.revision, input.draft, input.reason)
+    } else
+      saved = await proposals.create({
+        draft: input.draft,
+        ...(input.itemId ? { itemId: input.itemId } : {}),
+        ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
+        ...(input.reason ? { reason: input.reason } : {}),
+      })
+    if (!input.gapId) return { proposalId: saved.id, revision: saved.revision }
+    const [linked] = await tx.query<{ revision: number }>(
+      'update proposals set source_gap_id = $2 where id = $1 returning revision',
+      [saved.id, input.gapId],
+    )
+    return { proposalId: saved.id, revision: linked!.revision }
+  }
+
+  /** Someone else's suggestion is only finished to be published: never sent on their behalf. */
   function notTheirsToPublish(): never {
     throw new ORPCError('FORBIDDEN', {
       message: notAllowed('publish this draft in that domain', 'an owner of the domain'),
@@ -1110,6 +1154,7 @@ export function createContextService(
     restoreAsDraft,
     related: relatedOf,
     publish,
+    saveDraft,
     draftFromText,
     changes,
     deleted,

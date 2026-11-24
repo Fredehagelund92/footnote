@@ -20,7 +20,7 @@ import { undoOfferSchema } from './undo.ts'
 const shownCount = z.nullable(z.number())
 
 const cardBase = {
-  /** The card's own name, stable across reads: "proposal:<id>", "gap:<id>", "feedback:<id>", "check:<item>", "look:<domain>", "alert:<raise>". */
+  /** The card's own name, stable across reads: "proposal:<id>", "gap:<id>", "feedback:<id>", "check:<item>", "look:<domain>", "alert:<raise>", "drafts:yours". */
   id: z.string(),
   areaId: z.string(),
   /** When what it shows happened. */
@@ -32,7 +32,7 @@ const cardBase = {
 
 /**
  * One card, by what happened (the Inbox's groups: Names, Not found, Reported, Saved questions,
- * Alerts, Mentioned you, Due for a check, Suggestions).
+ * Alerts, Mentioned you, Due for a check, Suggestions, Your drafts).
  */
 export const cardSchema = z.union([
   z.object({
@@ -135,6 +135,17 @@ export const cardSchema = z.union([
     title: z.string(),
     /** Where its one action goes: a topic's answer panel, a page, or an integration. */
     subject: raiseSubjectSchema,
+  }),
+  z.object({
+    ...cardBase,
+    group: z.literal('drafts'),
+    /** The domain of the drafts, when they share one. */
+    areaId: z.nullable(z.string()),
+    /**
+     * The person's own drafts that wait for them, oldest first (FR-139): each one imported, or not
+     * saved for DRAFT_OLD_DAYS days. Only they can see them; they send or publish them all at once.
+     */
+    drafts: z.array(z.object({ id: z.string(), areaId: z.string(), imported: z.boolean() })),
   }),
   z.object({
     ...cardBase,

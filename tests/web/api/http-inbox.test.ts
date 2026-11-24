@@ -107,6 +107,31 @@ describe('the Inbox', () => {
     expect(cards[0]?.suggestion?.agent).toBeUndefined()
   })
 
+  it("reads the person's own drafts card: how many, and why they wait (FR-230)", () => {
+    const drafts: Card = {
+      ...base,
+      id: 'drafts:yours',
+      group: 'drafts',
+      areaId: null,
+      drafts: [
+        { id: 'd1', areaId: 'area_sales', imported: true },
+        { id: 'd2', areaId: 'area_sales', imported: true },
+        { id: 'd3', areaId: 'area_sales', imported: false },
+      ],
+    }
+    const { cards } = inboxOf(feed([drafts]), 'Ines Duarte', domains, now)
+    expect(cards[0]).toMatchObject({
+      id: 'drafts:yours',
+      type: 'drafts',
+      domain: '',
+      for: 'Ines Duarte',
+      title: '3 drafts waiting for you',
+      line: 'Only you can see them. Agents get them once they are published.',
+      secondary: ['See them in Context'],
+      drafts: { ids: ['d1', 'd2', 'd3'], imported: 2, old: 1 },
+    })
+  })
+
   it('names the tool a read came from, and its connector, which draws its logo', () => {
     const { cards } = inboxOf(
       feed([

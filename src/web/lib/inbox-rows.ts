@@ -32,6 +32,7 @@ export const INBOX_GROUPS = [
   { id: 'returned', label: 'Returned to you' },
   { id: 'closed', label: 'Closed' },
   { id: 'check', label: 'Due for a check' },
+  { id: 'drafts', label: 'Your drafts' },
   { id: 'waiting', label: 'Waiting on others' },
   { id: 'done', label: 'Done' },
 ] as const

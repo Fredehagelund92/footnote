@@ -25,7 +25,7 @@ import { obsData } from './data/observability'
 import { obsPage } from './obs-page'
 import { BEFORE, changedSteps, replay } from './replay'
 import { reviews } from './data/review'
-import type { InboxCard } from '@/model/inbox'
+import { draftsWords, type InboxCard } from '@/model/inbox'
 import type { Relation, Review } from '@/model/review'
 import { plainOf } from '@/components/templates/comment-box/utils'
 import {
@@ -76,7 +76,7 @@ import { searchWorld } from './search'
 import { createScopeSearch, withScope } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
-import { importedDrafts } from './data/imported'
+import { IMPORTED, importedDrafts } from './data/imported'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -211,7 +211,12 @@ export function createMockApi() {
     }
     const nameCard = names.card(me(), obsReader())
     return {
-      cards: [...(nameCard ? [nameCard] : []), ...splitCards, ...(state.fresh ? [] : cards)],
+      cards: [
+        ...(nameCard ? [nameCard] : []),
+        ...splitCards,
+        ...(state.fresh ? [] : cards),
+        ...draftsCard(),
+      ],
       waiting: state.fresh ? [] : waiting,
       sent: state.sent,
       done: state.done,
@@ -317,8 +322,44 @@ export function createMockApi() {
     })
     return [...reviewed, ...sentNow]
   }
-  /** Context's rows: the items, the drafts, and what waits for review that the person may open. */
-  const contextFacts = () => [...factsOf(state), ...waitingFacts()]
+  /** What the person may read: every item, and of the drafts only their own (FR-139). */
+  const shownFacts = () => factsOf(state).filter((f) => f.status !== 'Draft' || f.by === me())
+  /** Context's rows: the items, their drafts, and what waits for review that they may open. */
+  const contextFacts = () => [...shownFacts(), ...waitingFacts()]
+  /**
+   * Who left with drafts they never sent, by name, with how many: an admin deletes them unread.
+   * The demo names a person by their name here, as they are gone from People.
+   */
+  const leftDrafts = () => {
+    const here = new Set(workspace.people().map((p) => p.name))
+    const counts = new Map<string, number>()
+    for (const f of factsOf(state))
+      if (f.status === 'Draft' && f.by && !here.has(f.by))
+        counts.set(f.by, (counts.get(f.by) ?? 0) + 1)
+    return [...counts].map(([name, drafts]) => ({ id: name, name, drafts }))
+  }
+  /** The person's own drafts card: the drafts they brought in with an import (FR-139). */
+  const draftsCard = (): InboxCard[] => {
+    const ids = shownFacts()
+      .filter((f) => f.status === 'Draft' && f.by === me() && f.id.startsWith(IMPORTED))
+      .map((f) => f.id)
+    if (!ids.length) return []
+    const domains = new Set(ids.map((id) => factsOf(state).find((f) => f.id === id)!.domain))
+    return [
+      {
+        id: 'drafts:yours',
+        type: 'drafts',
+        domain: domains.size === 1 ? [...domains][0]! : '',
+        for: me(),
+        when: 'Today, 09:20',
+        ...draftsWords({ imported: ids.length, old: 0 }),
+        detail: '',
+        primary: 'Publish all',
+        secondary: ['See them in Context'],
+        drafts: { ids, imported: ids.length, old: 0 },
+      },
+    ]
+  }
 
   /** The threads where `who` may take back what they hang on: a suggestion to archive they sent, while it waits. */
   const withdrawableBy = (who: string) =>
@@ -551,7 +592,7 @@ export function createMockApi() {
     searchAll: ({ q }) =>
       now(() =>
         searchWorld(q, {
-          facts: factsOf(state),
+          facts: shownFacts(),
           definitions: definitions.list(),
           domains: workspace.domains(),
           people: workspace.people(),
@@ -568,7 +609,7 @@ export function createMockApi() {
     contextPage: () => read('contextPage', '', contextFacts),
     itemPage: ({ id }) =>
       read('itemPage', id, () => {
-        const item = factsOf(state).find((f) => f.id === id)
+        const item = shownFacts().find((f) => f.id === id)
         const waits = item ? undefined : waitingFacts().find((f) => f.id === id)
         if (waits) return { item: withScope(waits), history: [] }
         if (!item) return null
@@ -578,7 +619,8 @@ export function createMockApi() {
           pair && conflictOf(pair[0], pair[1], meAsPerson(), workspace.domainMap(), undefined)
         return {
           item: withScope(item),
-          history: historyOf(item, state.log),
+          // A draft was never published, so it has no versions yet, as the service has it.
+          history: item.status === 'Draft' ? [] : historyOf(item, state.log),
           ...(conflict
             ? {
                 conflict: {
@@ -702,7 +744,7 @@ export function createMockApi() {
     getItemHistory: ({ id }) =>
       now(() => {
         const fact = factsOf(state).find((f) => f.id === id)
-        return fact ? historyOf(fact, state.log) : []
+        return fact && fact.status !== 'Draft' ? historyOf(fact, state.log) : []
       }),
     compareVersions: ({ id, from, to }) =>
       now(() => {
@@ -733,6 +775,41 @@ export function createMockApi() {
     markViewed: ({ id }) => now(() => dispatch({ type: 'viewedFact', id })),
     editItem: ({ id, patch }) => now(() => dispatch({ type: 'editFact', id, patch })),
     draftFromText: () => now(() => withScope(norwayDraft)),
+    // Save as draft: the person's own words, kept where only they can see them.
+    saveDraft: ({ fact, isNew }) =>
+      now(() => {
+        const mine = isNew ? undefined : shownFacts().find((f) => f.id === fact.id)
+        if (mine && mine.status !== 'Draft' && !fact.id.startsWith('itm_'))
+          throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+        const saved = { ...fact, status: 'Draft' as const, by: me(), checkedBy: '', checkedOn: '' }
+        if (mine?.status === 'Draft') {
+          dispatch({ type: 'editFact', id: fact.id, patch: saved })
+          return { id: fact.id }
+        }
+        const id = `itm_draft_${Date.now().toString(36)}`
+        dispatch({ type: 'addFact', fact: { ...saved, id } })
+        return { id }
+      }),
+    clearLeftDrafts: ({ id }) =>
+      now(() => {
+        const gone = factsOf(state).filter((f) => f.status === 'Draft' && f.by === id)
+        if (!gone.length || workspace.people().some((p) => p.name === id))
+          throw new ApiError('conflict', 'Only the drafts of someone who left can be deleted here.')
+        dispatch({
+          type: 'bulk',
+          patches: {},
+          remove: gone.map((f) => f.id),
+          entry: {
+            id: `log-left-${Date.now().toString(36)}`,
+            on: today(),
+            who: me(),
+            what: 'deleted',
+            summary: `Deleted ${gone.length === 1 ? '1 draft' : `${gone.length} drafts`} of ${id}, who left.`,
+            items: [],
+          },
+        })
+        return { deleted: gone.length }
+      }),
     saveItem: ({ fact, isNew, relations = {}, gap, setup }) =>
       now(() => {
         // An owner's words in a new item waiting for their review publish that suggestion as
@@ -1266,7 +1343,7 @@ export function createMockApi() {
       }),
     advancedPage: () =>
       read('advancedPage', '', () =>
-        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic),
+        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic, leftDrafts()),
       ),
     setAutomaticRuns: ({ on, version }) =>
       now(() => {

@@ -192,6 +192,8 @@ export const docControls: DocControl[] = [
   { phrase: 'Write context', page: 'write-context', at: '/context', drawn: 'button' },
   { phrase: 'Settings', page: 'write-context', at: '/inbox', drawn: 'link' },
   { phrase: 'General', page: 'write-context', at: '/settings/agents', drawn: 'link' },
+  { phrase: 'Save as draft', page: 'write-context', at: '/context/new', drawn: 'button' },
+  { phrase: 'Advanced', page: 'write-context', at: '/settings/agents', drawn: 'link' },
   { phrase: 'Event', page: 'write-context', at: '/context/new', drawn: 'option', open: 'Kind' },
   { phrase: 'Warning', page: 'write-context', at: '/context/new', drawn: 'option', open: 'Kind' },
   { phrase: 'Rule', page: 'write-context', at: '/context/new', drawn: 'option', open: 'Kind' },

@@ -157,8 +157,8 @@ test('a toast whose Undo ends at a moment runs on while pointed at', async ({ pa
     .getByRole('button', { name: /^Delete/ })
     .click()
   await page
-    .getByRole('dialog', { name: 'Delete 3 drafts?' })
-    .getByRole('button', { name: 'Delete 3 drafts' })
+    .getByRole('dialog', { name: 'Delete 2 drafts?' })
+    .getByRole('button', { name: 'Delete 2 drafts' })
     .click()
   const toast = page.locator('[data-sonner-toast]', { hasText: 'gone for good' })
   await expect(toast.locator('[data-timed]')).toBeVisible()

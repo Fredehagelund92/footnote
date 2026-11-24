@@ -4,8 +4,9 @@ import { kinds } from './words.ts'
 /*
   What a change to many rows of the Context list does, row by row, before anything happens
   (FR-139): which rows it acts on, and which it leaves alone and why ("2 skipped: owned by
-  Marketing"). Owners of an item's domain and admins change it. A draft (never published) can be
-  deleted; a published item is archived, never deleted, so its history stays and agents simply stop
+  Marketing"). Owners of an item's domain and admins change it. A draft (never published) is its
+  writer's alone (FR-139): only they see it, so the rows hold only their own, which they publish or
+  delete. A published item is archived, never deleted, so its history stays and agents simply stop
   getting it. A draft is published as publishing one is: at once in a domain the person owns (or by
   an admin), and as a suggestion to that domain's owners when its writer owns no part of it. Pure,
   so the service and the app's mock read one rule and say it in the same words.
@@ -104,18 +105,13 @@ export function planBulk(
     skipped.push({ id: row.id, title: row.title, code, why, message })
   for (const row of rows) {
     const domain = domainName(row.areaId)
-    // Its writer sends their own draft to the owners, as from the editor.
-    const writes = input.action === 'publish' && row.status === 'draft' && row.writer === me.id
+    // Its writer publishes their own draft, or sends it to the owners, as from the editor, and
+    // deletes it.
+    const writes =
+      (input.action === 'publish' || input.action === 'delete') &&
+      row.status === 'draft' &&
+      row.writer === me.id
     if (!changesItem(row, me) && !writes) {
-      if (input.action === 'publish') {
-        skip(
-          row,
-          'not_allowed',
-          `owned by ${domain}`,
-          `Only its writer, owners of ${domain} and admins can publish it.`,
-        )
-        continue
-      }
       skip(
         row,
         'not_allowed',

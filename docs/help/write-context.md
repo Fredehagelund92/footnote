@@ -4,7 +4,7 @@ line: How to add a context item, what it is, what to put in it, its source and i
 group: Write and review
 order: 1
 minutes: 5
-reviewed: 2026-11-23
+reviewed: 2026-11-24
 open:
   label: Write context
   href: /context/new
@@ -54,6 +54,14 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
 
+## Save as draft
+
+Not finished yet? Choose **Save as draft** in the editor. A draft is yours alone: only you see it in Context, with the chip Draft, and agents don't get it. Open it to finish it, then publish it, or send it to the domain's owners, from its page. You can also delete it there.
+
+Drafts you imported, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
+
+When someone leaves the workspace, nobody can read their drafts any more. An admin can delete them in **Settings**, then **Advanced**, by how many there are.
+
 ## Waiting for review
 
 A new item you send is Waiting for review until an owner decides. Context lists it with the chip Waiting, who sent it, how long ago and who decides. Only you, the owners of its domain and admins see it, and agents don't get it yet. Filter by Waiting for review to see them all.
@@ -89,7 +97,7 @@ The same news, written weakly:
 
 ## Publish many drafts at once
 
-In **Context**, filter by Draft and tick the drafts you have read, or tick them all. Publish, on the bar that appears, publishes them at once in a domain you own, or in any domain for an admin. Each goes through the same checks as in the editor. A draft that is missing something, such as a source, stays ticked and says what.
+In **Context**, filter by Draft to see your drafts, and tick the ones you have read, or tick them all. Publish, on the bar that appears, publishes them at once in a domain you own, or in any domain for an admin. Each goes through the same checks as in the editor. A draft that is missing something, such as a source, stays ticked and says what.
 
 More than five asks once first, because agents get them from the next question. Up to 50 go at a time, and Undo makes them drafts again. Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest.
 

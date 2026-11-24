@@ -119,21 +119,25 @@ describe('publishing drafts', () => {
     expect(publishesNow(draft('m', { areaId: 'marketing' }), admin)).toBe(true)
   })
 
-  it("lets a writer send their own draft to another domain's owners, and nobody else's", () => {
+  it("lets a writer send their own draft to another domain's owners, or delete it, and nobody else's", () => {
     const own = draft('own', { areaId: 'marketing' })
     const other = draft('other', { areaId: 'marketing', writer: 'someone' })
+    const skipped = {
+      id: 'other',
+      title: 'Item other',
+      code: 'not_allowed',
+      why: 'owned by Marketing',
+      message: 'Only owners of Marketing and admins can change it.',
+    }
     const result = plan([own, other], { action: 'publish' }, ines)
     expect(result.act).toEqual([own])
     expect(publishesNow(own, ines)).toBe(false)
-    expect(result.skipped).toEqual([
-      {
-        id: 'other',
-        title: 'Item other',
-        code: 'not_allowed',
-        why: 'owned by Marketing',
-        message: 'Only its writer, owners of Marketing and admins can publish it.',
-      },
-    ])
+    expect(result.skipped).toEqual([skipped])
+    const deleted = plan([own, other], { action: 'delete' }, ines)
+    expect(deleted.act).toEqual([own])
+    expect(deleted.skipped).toEqual([skipped])
+    // Nothing else of a draft is its writer's to change where they own nothing.
+    expect(plan([own], { action: 'kind', kind: 'event' }, ines).act).toEqual([])
   })
 
   it('says in History what it published and what it sent to the owners', () => {
