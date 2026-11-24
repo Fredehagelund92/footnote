@@ -24,6 +24,7 @@
 
   Pure: the catalogue and the mock binding work out the same meaning from the same variants.
 */
+import { isCurrencyCode } from './currencies.ts'
 import { meaningLine, type FamilyMeaningSource, type MeaningChosen } from './family-meaning-line.ts'
 import { normalizeName } from './normalize-name.ts'
 
@@ -63,6 +64,9 @@ const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** Words that say a value is worked out from another one at a rate. */
 export const RATE_WORDS =
   /(?<![\p{L}\p{N}])(?:rates?|fx|exchange|convert(?:ed|s)?|conversion)(?![\p{L}\p{N}])/iu
+
+/** Words that say a variant is converted from another, which a bare "rate" does not. */
+const CONVERTED_WORDS = /(?<![\p{L}\p{N}])(?:convert(?:ed|s)?|fx|exchange)(?![\p{L}\p{N}])/iu
 
 /** Words people write for a currency in place of its code: a question that says one names it. */
 const CURRENCY_WORDS: Readonly<Record<string, readonly string[]>> = {
@@ -140,8 +144,8 @@ export function worksOut(
 /**
  * The variants of a family worked out from another, which have no say in its meaning: those
  * converted from one (`conversions`), those whose words name a rate and another variant's value
- * (`worksOut`), and, in a family by Currency, the one variant whose own words name a rate and its
- * own currency when no other's name a rate ("Payouts converted to USD at each month's rate", C3).
+ * (`worksOut`), and, in a family by Currency (an axis whose values are all currency codes), the one
+ * variant whose own words say it is converted and name its own currency when no other's do ("Payouts converted to USD at each month's rate", C3).
  * `axes` are each axis's values (`axisValues`).
  */
 export function workedOut(
@@ -158,12 +162,10 @@ export function workedOut(
       .filter((variant) => converted.has(variant.key) || worksOut(variant, axes))
       .map((variant) => variant.key),
   )
-  const currency = family.by.findIndex((axis) =>
-    /^currency( code)?$/.test(normalizeName(axis).trim()),
-  )
+  const currency = axes.findIndex((values) => values.length > 0 && values.every(isCurrencyCode))
   if (currency < 0) return derived
   const free = family.variants.filter((variant) => !derived.has(variant.key))
-  const rated = free.filter((variant) => RATE_WORDS.test(variant.description ?? ''))
+  const rated = free.filter((variant) => CONVERTED_WORDS.test(variant.description ?? ''))
   const [own] = rated
   if (free.length >= 2 && rated.length === 1 && own?.values[currency])
     if (mentions(own.description!, own.values[currency])) derived.add(own.key)

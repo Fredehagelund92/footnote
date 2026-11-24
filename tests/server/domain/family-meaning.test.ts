@@ -14,6 +14,7 @@ import { meaningLine } from '../../../src/domain/family-meaning-line.ts'
 import {
   declaredFamilyProblems,
   declaredWords,
+  derivationsOf,
   derivedVariants,
 } from '../../../src/domain/metric-families.ts'
 
@@ -223,6 +224,32 @@ describe('a variant whose words say it is converted, naming only its own currenc
     expect(workedOut(family(['Currency'], eur, unnamed))).toEqual(new Set())
     // Alone, it has none to be converted from.
     expect(workedOut(family(['Currency'], usd))).toEqual(new Set())
+  })
+
+  it('needs words that say it is converted: a bare rate or a conversion rate is none', () => {
+    const share = variant('refunds_eur', ['EUR'], 'Share of EUR orders refunded within 30 days.')
+    const rate = variant('refunds_usd', ['USD'], 'Refund rate of USD orders within 30 days.')
+    expect(workedOut(family(['Currency'], share, rate))).toEqual(new Set())
+    expect(
+      familyMeaning({ ...family(['Currency'], share, rate), declared: null, chosen: null }),
+    ).toMatchObject({ source: 'none', base: null })
+    const conversion = variant('sessions_usd', ['USD'], 'Conversion rate of USD sessions.')
+    expect(workedOut(family(['Currency'], share, conversion))).toEqual(new Set())
+  })
+
+  it('is decided by the values of the axis, not its name', () => {
+    expect(workedOut(family(['Currency (orders)'], eur, usd))).toEqual(new Set(['payouts_usd']))
+    expect(workedOut(family(['Order currency'], eur, usd))).toEqual(new Set(['payouts_usd']))
+    const eu = { ...eur, values: ['EU'] }
+    const us = { ...usd, values: ['US'] }
+    expect(workedOut(family(['Currency'], eu, us))).toEqual(new Set())
+  })
+
+  it('is one of the lines a family’s page gives on how its variants are worked out', () => {
+    expect(derivedVariants([eur, usd])).toEqual([usd])
+    expect(derivationsOf([eur, usd].map((v) => ({ ...v, said: v.key })))).toEqual([
+      `payouts_usd: ${usd.description}`,
+    ])
   })
 })
 
