@@ -4,7 +4,7 @@ import { PanelRightIcon } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
 import { DocFooter, Paper } from '@/components/footnote/doc'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
@@ -22,7 +22,11 @@ import { useAutosave } from '@/lib/autosave'
 import { useMe } from '@/lib/workspace'
 import { useGlossary } from '@/lib/definitions'
 import { definedInAbout, definedWords } from '@/lib/about-words'
-import { ABOUT_BUSINESS_MAX } from '@domain/about-business'
+import {
+  ABOUT_BUSINESS_MAX,
+  aboutBusinessLength,
+  normalizeAboutBusiness,
+} from '@domain/about-business'
 
 // About our business in the same document editor shell as a context item: the formatting row under
 // the header, the text on the document sheet, markdown in and out, one footer with the count. It
@@ -71,10 +75,11 @@ export function AboutPage({
     editorProps: { attributes: { 'aria-label': 'About our business' } },
     onUpdate: ({ editor }) => save(editor.getMarkdown()),
   })
-  // Count what the editor writes back, so the number never jumps on the first keystroke.
+  // Count what the editor writes back, so the number never jumps on the first keystroke, as the
+  // service counts it: the characters a person reads, once the text is in Footnote's form.
   const written = React.useMemo(() => editor?.getMarkdown() ?? about, [editor, about])
   const text = typed ?? written
-  const length = text.length
+  const length = aboutBusinessLength(normalizeAboutBusiness(text))
   const tooLong = length > LIMIT
   const defined = React.useMemo(() => definedInAbout(text, glossary.find), [text, glossary])
 
@@ -182,26 +187,29 @@ export function AboutPage({
             Start from the guide
           </Button>
         )}
-        {defined.length > 0 && (
-          <ul className="mt-4 max-w-reading space-y-1 text-sm text-muted-foreground">
-            {defined.map((d) => (
-              <li key={d.name}>
-                <a
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
-                  href={href(`/definitions/${encodeURIComponent(d.name)}`)}
-                >
-                  {d.name}
-                </a>{' '}
-                {definedWords(d)}
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* Said as it is typed, so a screen reader hears it too. */}
+        <div aria-live="polite">
+          {defined.length > 0 && (
+            <ul className="mt-4 max-w-reading space-y-1 text-sm text-muted-foreground">
+              {defined.map((d) => (
+                <li key={d.name}>
+                  <a
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                    href={href(`/definitions/${encodeURIComponent(d.name)}`)}
+                  >
+                    {d.name}
+                  </a>{' '}
+                  {definedWords(d)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <div className="mt-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
           <p>Words and what they mean go in Definitions.</p>
-          <Button variant="outline" render={<a href={href('/definitions/new')} />}>
+          <a href={href('/definitions/new')} className={cn(buttonVariants({ variant: 'outline' }))}>
             New term
-          </Button>
+          </a>
         </div>
       </Paper>
       {help.open && !wide && (

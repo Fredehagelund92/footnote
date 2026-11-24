@@ -282,18 +282,21 @@ The mock model in `db/seed/fixtures/cube-model.ts` follows these files
 ## 8. About our business
 
 The starter text (`ABOUT_BUSINESS_STARTER` in `src/domain/about-business.ts`) is one company
-sentence, 176 characters, under the limit of 500. It names no company, figures or deals, draws no
-legal conclusion, and agrees with the demo's definitions: Platform (web, iOS, Android), Product
-(the four groups) and Market (twelve markets).
+sentence, 175 characters, under the limit of 500. It names no company, figures or deals, draws no
+legal conclusion, and agrees with the demo (section 2) and its definitions: the stores the items
+and Online share speak of, Platform (web, iOS, Android), Product (the four groups) and Market
+(twelve markets).
 
 ```text
-We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our webshop and our iOS and Android apps, and through marketplaces, in twelve markets.
+We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our own stores, in our webshop and apps, and through marketplaces, in twelve markets.
 ```
 
 The words that are easy to misread are terms in Definitions, not lines of this text. Words the
 demo's definitions already hold (Orders, Returns, Gross sales, Net revenue, First-time buyers,
-Gross margin, Market) are left to them. Three have no definition there, so they are terms with
-owners in `src/web/api/mock/data/terms.ts`, which the demo week seeds too:
+Gross margin, Market, and Marketplace as a value of Channel) are left to them. Three have no
+definition there, so they are terms with owners in `src/web/api/mock/data/terms.ts`, which the
+demo week seeds too, and the same three in `db/seed/fixtures/reference-data.ts` for the demo
+library:
 
 | Term                   | Domain    | Written by    |
 | ---------------------- | --------- | ------------- |
@@ -304,7 +307,7 @@ owners in `src/web/api/mock/data/terms.ts`, which the demo week seeds too:
 Where it lives:
 
 - `src/domain/about-business.ts`: the starter text.
-- `db/seed/bulk.ts`: the demo seeds write it as a version of `business.about`. A new install
+- `db/seed/bulk.ts`: the seeds write it as a version of `business.about`. A new install
   starts with no text (`db/migrations/0001_schema.sql`).
 
 ## 9. The fact templates, by kind

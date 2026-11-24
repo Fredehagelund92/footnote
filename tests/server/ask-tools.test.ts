@@ -794,10 +794,10 @@ describe('get_context and the words people wrote (FR-718.7)', () => {
     written('0190f3a2-0000-7000-8000-00000000000b', 'Cut', null, `term:${commission}`),
     written('0190f3a2-0000-7000-8000-00000000000c', 'Purchases', null, 'metric:orders'),
   ]
-  const toolsWith = (words: typeof terms) =>
+  const toolsWith = (words: typeof terms, vocabulary = edition.terms) =>
     createAskTools({
       ...noReads,
-      bundle: () => Promise.resolve({ ...edition, written: words }),
+      bundle: () => Promise.resolve({ ...edition, terms: vocabulary, written: words }),
       readable: () => Promise.resolve(edition.items.map((i) => ({ ...i, status: 'accepted' }))),
       areas: () => Promise.resolve([{ id: 'finance', name: 'Finance', ownerIds: [] }]),
       people: () => Promise.resolve([]),
@@ -805,8 +805,8 @@ describe('get_context and the words people wrote (FR-718.7)', () => {
       glossary: () => Promise.resolve({ terms: [] }),
       records: () => Promise.resolve([]),
     } as unknown as ToolReads)
-  const look = (words: typeof terms, about: string) =>
-    toolsWith(words).run('get_context', { about, no_period: true }) as Promise<
+  const look = (words: typeof terms, about: string, vocabulary = edition.terms) =>
+    toolsWith(words, vocabulary).run('get_context', { about, no_period: true }) as Promise<
       Record<string, unknown>
     >
 
@@ -831,6 +831,26 @@ describe('get_context and the words people wrote (FR-718.7)', () => {
     // A term alone names no metric: the read is not looked up, and still says what it means.
     const alone = await look(terms, 'marketplace commission')
     expect(alone).toMatchObject({ state: null, terms: [{ name: 'Marketplace commission' }] })
+  })
+
+  it('gives a term the words use after five other names of metrics', async () => {
+    const orders = edition.terms.find((t) => t.key === 'metric:orders')!
+    const metrics = ['Refunds', 'Visits', 'Baskets', 'Signups', 'Reviews'].map((name, i) => ({
+      ...orders,
+      key: `metric:m${i}`,
+      name,
+    }))
+    const others = metrics.map((m, i) =>
+      written(`0190f3a2-0000-7000-8000-00000000001${i}`, `Other ${m.name}`, null, m.key),
+    )
+    const read = await look(
+      [...terms, ...others],
+      'Other refunds, other visits, other baskets, other signups, other reviews and the marketplace commission',
+      [...edition.terms, ...metrics],
+    )
+    expect((read.terms as { name: string }[]).map((t) => t.name)).toEqual([
+      'Marketplace commission',
+    ])
   })
 
   it('reads as before when the words use no term', async () => {

@@ -60,7 +60,7 @@ export const TERMS: Definition[] = [
   term('Selling country', {
     domain: 'sales',
     definition:
-      'The country of the webshop or app that took the order. It can differ from the market, the country or region the order ships to.',
+      'The country of the store or webshop that took the order. It can differ from the market, the country or region the order ships to.',
     by: 'Sofia Brandt',
     updated: '16 Sep 2026',
   }),

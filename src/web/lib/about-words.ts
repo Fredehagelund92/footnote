@@ -5,16 +5,25 @@ import type { Definition } from '@/lib/definitions'
 // text written as a word, a colon and its meaning ("Net revenue: after VAT") for a word that
 // already has a definition is said under the field, so the text never holds a second meaning.
 
-/** The word a line defines, as "Word: meaning" writes it in Markdown, or null. */
+/**
+ * The word a line defines, as "Word: meaning" writes it in Markdown, the colon inside the bold or
+ * outside it, or null when nothing follows the colon.
+ */
 function wordOf(line: string): string | null {
   const said =
-    /^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*|__)?([^:*_\n]{1,60}?)(?:\*\*|__)?\s*:\s*\S/.exec(line)
+    /^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*|__)?([^:*_\n]{1,60}?)(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*[^\s*_]/.exec(
+      line,
+    )
   return said ? said[1]!.trim() || null : null
 }
 
+/** A definition by its name, a variant's name or its plural, either way ("Order" is Orders). */
+const named = (word: string, find: (name: string) => Definition | undefined) =>
+  find(word) ?? find(`${word}s`) ?? (/s$/i.test(word) ? find(word.slice(0, -1)) : undefined)
+
 /**
  * The definitions the text's "Word: meaning" lines name again, in the order the text has them,
- * each once: by the word's name, a variant's name or its plural ("Order" is Orders).
+ * each once.
  */
 export function definedInAbout(
   text: string,
@@ -23,7 +32,7 @@ export function definedInAbout(
   const found: Definition[] = []
   for (const line of text.split('\n')) {
     const word = wordOf(line)
-    const definition = word ? (find(word) ?? find(`${word}s`)) : undefined
+    const definition = word ? named(word, find) : undefined
     if (definition && !found.includes(definition)) found.push(definition)
   }
   return found
@@ -31,6 +40,8 @@ export function definedInAbout(
 
 /** What the line under the field says after the definition's name, by where its words are. */
 export const definedWords = (d: Definition) =>
-  d.synced
-    ? `already has a definition${d.tool ? `, from ${d.tool}` : ''}.`
-    : 'is already a term in Definitions.'
+  d.sameAs
+    ? `is already in Definitions, as another name for ${d.sameAs}.`
+    : d.synced
+      ? `already has a definition${d.tool ? `, from ${d.tool}` : ''}.`
+      : 'is already a term in Definitions.'

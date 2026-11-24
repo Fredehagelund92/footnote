@@ -926,7 +926,9 @@ describe('About our business in the instructions', () => {
         `${block}\n\nToday is Friday, 23 October 2026 (UTC). The person is not an administrator. They own no domain.`,
       ),
     ).toBe(true)
-    expect(block).toContain('It is not a source: never cite or quote it')
+    expect(block).toContain(
+      'It is not a source: never cite or quote it, never take anything about a metric, a market or a date from it',
+    )
   })
 
   it('reaches the model of a turn when the workspace wrote it, and only then', async () => {

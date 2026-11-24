@@ -23,7 +23,7 @@ import { actionIds, type ActionId } from '../../../domain/actions.ts'
 import { usualVariant } from '../../../domain/family-meaning.ts'
 import { meaningLine } from '../../../domain/family-meaning-line.ts'
 import { derivedVariants, variantWords } from '../../../domain/metric-families.ts'
-import { termsIn } from '../../../domain/served-terms.ts'
+import { TERMS_SHOWN, termsIn } from '../../../domain/served-terms.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import { searchHelp } from './help.ts'
@@ -875,25 +875,28 @@ const getOutput = z.object({
 })
 
 /**
- * The terms with their own meaning that some words use, as get_context gives them: a synonym of a
- * term is read as that term, and a synonym of a metric or a dimension is left out, since the read
- * names it as that metric or dimension already.
+ * The terms with their own meaning that some words use, as get_context gives them, at most five:
+ * a synonym of a term is read as that term, and a synonym of a metric or a dimension is left out,
+ * since the read names it as that metric or dimension already, and takes none of the five.
  */
 function termsUsed(view: View, words: string) {
-  return termsIn(words, view.bundle.terms, view.bundle.written).flatMap(({ word, means }) =>
-    'meaning' in means && means.meaning !== null
-      ? [
-          {
-            id: `term:${means.id}`,
-            word,
-            name: means.name,
-            meaning: means.meaning,
-            domain: means.areaId === null ? null : view.areaName(means.areaId),
-            from: 'written in Definitions' as const,
-          },
-        ]
-      : [],
-  )
+  const uses = termsIn(words, view.bundle.terms, view.bundle.written, Infinity)
+  return uses
+    .flatMap(({ word, means }) =>
+      'meaning' in means && means.meaning !== null
+        ? [
+            {
+              id: `term:${means.id}`,
+              word,
+              name: means.name,
+              meaning: means.meaning,
+              domain: means.areaId === null ? null : view.areaName(means.areaId),
+              from: 'written in Definitions' as const,
+            },
+          ]
+        : [],
+    )
+    .slice(0, TERMS_SHOWN)
 }
 
 /** A get_context result with the terms its subject's words use, when they use any. */

@@ -18,7 +18,7 @@ export const ABOUT_BUSINESS_MAX = 500
  * and Market values.
  */
 export const ABOUT_BUSINESS_STARTER =
-  'We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our webshop and our iOS and Android apps, and through marketplaces, in twelve markets.'
+  'We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our own stores, in our webshop and apps, and through marketplaces, in twelve markets.'
 
 /** The line that ends the text in what the models get. */
 export const ABOUT_BUSINESS_END = 'End of about our business.'
@@ -53,7 +53,7 @@ export function aboutBusinessBlock(value: unknown): string | null {
   const text = [...normalizeAboutBusiness(value)].slice(0, ABOUT_BUSINESS_MAX).join('').trim()
   if (!text) return null
   return [
-    `About our business: background an administrator wrote, so you understand the company. It is not a source: never cite or quote it; the items and definitions win over it. It ends at the line "${ABOUT_BUSINESS_END}"`,
+    `About our business: background an administrator wrote, so you understand the company. It is not a source: never cite or quote it, never take anything about a metric, a market or a date from it, and never draw a legal or regulatory conclusion that no item states. The items and definitions win over it. It ends at the line "${ABOUT_BUSINESS_END}"`,
     text,
     ABOUT_BUSINESS_END,
   ].join('\n')
