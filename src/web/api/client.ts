@@ -35,7 +35,6 @@ import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import type { Conflict, ConflictDecision, ConflictRow, SettleConflict } from '@/model/conflicts'
 import type { InboxCard, Outcome, Waiting } from '@/model/inbox'
 import type { Alerts, RaisedPage, RuleId } from '@/model/alerts'
-import type { FigureAsk, FigureReport, FigureTry, FigureView } from '@/model/figures'
 import type {
   ConnectChoice,
   LeftOutView,
@@ -43,7 +42,6 @@ import type {
   ConnectForm,
   ConnectTest,
   ConnectValues,
-  FigureConnection,
   IntegrationsView,
   SourcePage,
 } from '@/model/integrations'
@@ -261,20 +259,8 @@ export type Settings = {
    * `domain` is the domain paused, or null.
    */
   pause: { all: boolean; domain: DomainId | null }
-  /** Whether Ask shows figures, per figure-capable integration: off until an admin turns it on. */
-  figures: Record<string, boolean>
-  /** Who answers for each integration's data, by name. */
-  contacts: Record<string, string>
-  /** The tool each figure-capable integration reads, as people say it ("Cube"), by its id. */
-  figureTools: Record<string, string>
   /** The integrations connected. */
   connected: string[]
-}
-
-/** What the figures read: how each figure-capable integration is reached, its second connection. */
-export type Integrations = {
-  /** How each figure-capable integration is reached. */
-  figureConnections: Record<string, FigureConnection>
 }
 
 export type { Relation } from '@/model/review'
@@ -690,11 +676,6 @@ export interface FootnoteApi {
     what: string
     correction?: string
     link?: string
-    /**
-     * For `part: 'figure'`: the figure that doesn't fit the context item (`sources[0]`), as the
-     * answer named it, and who hears: the item's owners, the integration's data contact, or both.
-     */
-    figure?: FigureReport
   }) => Promise<{ id: string }>
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
@@ -795,13 +776,6 @@ export interface FootnoteApi {
   exportHistory: () => Promise<Exported>
   /** What agents get now, every context item and term, as one file for a backup or a move. */
   exportContext: () => Promise<Exported>
-  setFigures: (input: { source: string; on: boolean }) => Promise<void>
-  setDataContact: (input: { source: string; name: string }) => Promise<void>
-  /**
-   * Where an integration's figures are read: its data endpoint and a token for it, which is kept
-   * in the secret store, sent only to the endpoint's origin and never shown again.
-   */
-  setFigureConnection: (input: { source: string; endpoint: string; token: string }) => Promise<void>
   /**
    * The connect flow's form, by the address's id: a connected tool's settings to change (its
    * page's id), or a tool of the catalog to connect anew; null for neither, or for a tool whoever
@@ -815,6 +789,11 @@ export interface FootnoteApi {
   testIntegration: (
     input: { connector: string; source?: string } & ConnectValues,
   ) => Promise<ConnectTest>
+  /**
+   * Test connection on a definitions tool's page: the tool as it is saved, set up in the app or by
+   * whoever runs the server, checked and read once. It keeps nothing and changes nothing.
+   */
+  checkIntegration: (input: { id: string }) => Promise<ConnectTest>
   /**
    * Connects a tool with the form's settings, what was chosen to read with each one's domain, and
    * why (kept in the history log). Nothing is published by a read.
@@ -857,7 +836,6 @@ export interface FootnoteApi {
    * content tool's open suggestions are withdrawn. What it read, and what owners published, stays.
    */
   disconnectIntegration: (input: { id: string }) => Promise<void>
-  getIntegrations: () => Promise<Integrations>
   /** Settings › Integrations: the tools connected, each with how it is, and what can be connected. */
   integrationsPage: () => Promise<IntegrationsView>
   /** One connected tool's page, by its id; null for none connected by that id. */
@@ -866,13 +844,6 @@ export interface FootnoteApi {
   readIntegration: (input: { id: string }) => Promise<void>
   /** Pauses reading a tool, or lets it go on; what was published stays as it is. */
   pauseIntegration: (input: { id: string; paused: boolean }) => Promise<void>
-  /** What an answer shows of the data: one figure line, a link into the tool, or why there is none. */
-  readFigure: (input: FigureAsk) => Promise<FigureView | null>
-  /**
-   * Try a figure: one figure read now with the integration's figures settings as they are saved,
-   * on or off, so an admin sees the endpoint and its token work. Kept nowhere.
-   */
-  tryFigure: (input: { source: string }) => Promise<FigureTry>
   /**
    * The agents, by name, the last used first (FR-420): an admin sees every agent, anyone else the
    * apps they signed in with.
@@ -1074,22 +1045,17 @@ export const footnoteApiMethods = [
   'checkHistory',
   'exportHistory',
   'exportContext',
-  'setFigures',
-  'setDataContact',
-  'setFigureConnection',
   'connectForm',
   'testIntegration',
+  'checkIntegration',
   'connectIntegration',
   'changeIntegration',
   'integrationLeftOut',
   'disconnectIntegration',
-  'getIntegrations',
   'integrationsPage',
   'integrationPage',
   'readIntegration',
   'pauseIntegration',
-  'readFigure',
-  'tryFigure',
   'listAgentConnections',
   'setAgentTool',
   'revokeAgent',
@@ -1161,14 +1127,12 @@ export const readMethods = [
   'getMyReports',
   'getSettings',
   'advancedPage',
-  'getIntegrations',
   'integrationsPage',
   'integrationPage',
   'connectForm',
   'testIntegration',
+  'checkIntegration',
   'integrationLeftOut',
-  'readFigure',
-  'tryFigure',
   'listAgentConnections',
   'getAutoPublish',
   'getDomainPolicies',

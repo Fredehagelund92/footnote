@@ -6,9 +6,10 @@ import { expect, go, moveTo, test } from './go.ts'
 // ?demo=families dbt project, Test connection leads with the families the first read would find,
 // counted by how each is found, a rate its own kind, and says they are confirmed in the Inbox,
 // under Families, with the advice on dimensions as one line. Once connected, the source's page
-// counts its families and Review families opens the Names card on its Families part, apart from
-// its Names. A family opened from the card closes on Escape back to the card. At 390 and 1440
-// wide, in light and dark, nothing is wider than the screen and axe finds nothing.
+// counts its families, lists each with how it stands, and Review families opens the Names card on
+// its Families part, apart from its Names. A family opened from the card closes on Escape back to
+// the card. At 390 and 1440 wide, in light and dark, nothing is wider than the screen and axe
+// finds nothing.
 
 const widths = [
   { name: '390', width: 390, height: 844 },
@@ -105,7 +106,12 @@ for (const { name, width, height } of widths) {
         await expect(block).toContainText(
           '5 families wait in the Inbox for an owner of Sales. Nothing is published before. 1 looks alike; 4 are ready.',
         )
-        await expect(block).toContainText(/\d+ families are published\./)
+        // Each family is a row: how it was found, its variants and how it stands.
+        const rows = block.getByRole('table')
+        await expect(rows).toContainText('Published')
+        await expect(rows).toContainText('Waits in the Inbox')
+        await expect(rows).toContainText('Look alike: waits for a yes')
+        await expect(block.getByRole('button', { name: 'See them in Definitions' })).toBeVisible()
         // The first read is read, not added: nothing is published until an owner says so.
         await expect(page.getByText(/definitions added/)).toHaveCount(0)
         expect(await sideways(page)).toBe(0)

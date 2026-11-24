@@ -189,8 +189,7 @@ export const concepts = {
   },
   integration: {
     name: 'integration',
-    definition:
-      'A connected tool: where definitions live, where documents live, where figures come from.',
+    definition: 'A connected tool: where definitions live, or where documents live.',
     internal: ['source', 'connector'],
   },
   agent: {

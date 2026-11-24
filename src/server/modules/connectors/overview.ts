@@ -407,8 +407,7 @@ export function createSourceOverview({
 
     /**
      * Pauses reading a source, or lets it go on: the job leaves a paused source out, and Read
-     * again refuses it. A definitions source's figures in Ask are switched off while it is paused
-     * (they read only the sources that are on); what is published stays. Kept in the history log,
+     * again refuses it. What is published stays. Kept in the history log,
      * with why, when it changes anything. A source resumed is queued: the job's next turn reads it.
      */
     async pause(tx: Queryable, input: PauseSourceInput): Promise<{ id: string; paused: boolean }> {

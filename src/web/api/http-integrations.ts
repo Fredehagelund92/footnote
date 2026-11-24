@@ -96,6 +96,27 @@ const FAILURES: Record<string, string> = {
   git_missing: 'the server has no git program to read a repository with',
   private_address: 'its address is not one it may reach: use https, on a public host',
   redirect_refused: 'it redirects somewhere it may not follow',
+  folder_missing: "the folder it reads isn't there",
+  ref_not_found: "the branch or tag isn't in the repository",
+  no_model_files: 'the folder holds no model files',
+  compile_error: 'the model has a mistake the tool cannot read past',
+  compile_timeout: 'the model took too long to read',
+}
+
+/** What to do when a test could not read, by the code of why. */
+const FIXES: Record<string, string> = {
+  unauthorized: 'Check that the token can read it, then replace it under Change settings.',
+  secret_missing: 'Give it its key again under Change settings.',
+  unreachable: 'Check the address, and that the host is up, then test again.',
+  not_found: 'Check the address and the folder in its settings.',
+  timed_out: 'Test again in a moment.',
+  folder_missing:
+    'Check the folder in its settings. A folder on the server is set by the person who hosts this app.',
+  ref_not_found: 'Check the branch or tag in its settings.',
+  no_model_files: 'Point it at the folder that holds the model files.',
+  compile_error: 'Fix the model in the tool, then test again.',
+  compile_timeout: 'Test again in a moment, or read fewer views.',
+  private_address: 'Use an https address on a public host.',
 }
 
 /** Why a read failed, by the first of its warnings that says so. */
@@ -540,6 +561,14 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
     detail: 'It stays with that source, and this one leaves it out.',
   },
   too_many_records: { title: 'Too much to read at once', detail: 'The rest is left out.' },
+  unsupported_file: {
+    title: 'A file was skipped',
+    detail: 'It is not plain YAML, so nothing in it is read. Jinja and Python are never run.',
+  },
+  unreadable_file: {
+    title: 'A file could not be read',
+    detail: 'It is a link, too large or not text, so nothing in it is read.',
+  },
   group_not_found: {
     title: 'A chosen view is not in the model',
     detail: 'Nothing is read for it. Leave it out, or add it to the model.',
@@ -583,20 +612,30 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
 }
 
 /** A read's warnings, each kind once with how many there are, in the words of who says them. */
+/** The warnings about one file of the tool's, which name the file. */
+const FILE_WARNINGS = new Set(['unsupported_file', 'unreadable_file'])
+/** How many files a warning names before it only counts them. */
+const FILES_SHOWN = 5
+
 function readWarnings(
   warnings: SourceCheck['warnings'],
   own: ConnectorManifest['warnings'] = {},
 ): ConnectRead['warnings'] {
   const found = new Map<string, ConnectRead['warnings'][number]>()
-  for (const { code } of warnings) {
+  for (const { code, target } of warnings) {
     const name = code.slice(code.lastIndexOf('.') + 1)
+    // A file left out is named: someone looks for it in the model.
+    const file = FILE_WARNINGS.has(code) ? [target] : []
     const seen = found.get(code)
-    if (seen) seen.count += 1
-    else
+    if (seen) {
+      seen.count += 1
+      if (seen.files && seen.files.length < FILES_SHOWN) seen.files.push(...file)
+    } else
       found.set(code, {
         title: name.replaceAll('_', ' '),
         ...(own[name] ?? READ_WARNINGS[code]),
         count: 1,
+        ...(file.length ? { files: file } : {}),
       })
   }
   return [...found.values()]
@@ -619,6 +658,10 @@ function testFailureOf(
   }
   return "It couldn't be read."
 }
+
+/** What to do about a test that could not read, by the first warning that has a fix. */
+const testFixOf = (warnings: SourceCheck['warnings']) =>
+  warnings.flatMap(({ code }) => FIXES[code] ?? [])[0]
 
 /** The words one split takes: "eur, usd, gbp and 47 more". */
 const splitWords = ({ words, examples }: { words: number; examples: string[] }) =>
@@ -684,7 +727,10 @@ export function connectTestOf(check: SourceCheck, type?: string): ConnectTest {
     scopes: check.ok ? scopes : [],
     ...(check.ok || said
       ? {}
-      : { failure: testFailureOf(check.warnings, type, connector?.warnings) }),
+      : {
+          failure: testFailureOf(check.warnings, type, connector?.warnings),
+          ...(testFixOf(check.warnings) ? { fix: testFixOf(check.warnings) } : {}),
+        }),
     ...(check.ok && connector?.kind === 'definitions'
       ? {
           read: {
@@ -698,6 +744,7 @@ export function connectTestOf(check: SourceCheck, type?: string): ConnectTest {
           },
         }
       : {}),
+    ...(check.ok && check.chosen ? { chosen: check.chosen } : {}),
   }
 }
 

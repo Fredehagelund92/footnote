@@ -1185,6 +1185,18 @@
         }
       }
     },
+    "check": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/sources/{id}/check"
+        }
+      }
+    },
     "leftOut": {
       "~orpc": {
         "errorMap": {},
@@ -1906,56 +1918,6 @@
         "route": {
           "method": "POST",
           "path": "/try-it/read"
-        }
-      }
-    }
-  },
-  "figures": {
-    "list": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "read"
-        },
-        "route": {
-          "method": "GET",
-          "path": "/figures"
-        }
-      }
-    },
-    "set": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "admin"
-        },
-        "route": {
-          "method": "PUT",
-          "path": "/figures/{id}"
-        }
-      }
-    },
-    "read": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "read"
-        },
-        "route": {
-          "method": "POST",
-          "path": "/figures/read"
-        }
-      }
-    },
-    "try": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "admin"
-        },
-        "route": {
-          "method": "POST",
-          "path": "/figures/{id}/try"
         }
       }
     }

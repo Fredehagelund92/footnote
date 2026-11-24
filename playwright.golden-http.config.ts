@@ -126,6 +126,10 @@ export default defineConfig({
     // J110 mentions a family of the mock's ?demo=families in Ask; the service's catalogue gives the
     // app the same family, which tests/web/lib/mentions.test.ts finds in Ask's '@' list.
     /\/j110-ask-mention-family\.spec\.ts$/,
+    // J118 asks the mock for a failed test and a Cube set up on the server (?check=, ?origin=);
+    // the service tests a saved source in tests/integration/cube-sources.test.ts and its own
+    // folder in tests/integration/approved-groups.test.ts.
+    /\/j118-cube-page\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

@@ -99,11 +99,10 @@ const adminOperations = [
   'sources.types',
   'sources.get',
   'sources.add',
-  'figures.set',
-  'figures.try',
   'sources.update',
   'sources.groups',
   'sources.test',
+  'sources.check',
   'sources.leftOut',
   'sources.read',
   'sources.remove',
@@ -228,8 +227,6 @@ const readOperations = [
   'tryIt.read',
   // The answer engine: Ask's look-up and Asked this week, and the reach of a draft the person
   // may read (the service checks the draft).
-  'figures.list',
-  'figures.read',
   'reports.create',
   'reports.mine',
   'ask.lookup',

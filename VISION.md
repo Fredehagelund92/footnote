@@ -48,8 +48,8 @@ Context that does not age stays small: Footnote keeps only what a dated item nee
 The semantic layer, such as Cube or dbt, defines the figures and returns them.
 A definition says what a metric is; a context item says what happened to it, when and where.
 Footnote reads definitions as a read-only copy and pushes nothing into any other tool, not even its own context; another tool may read published items the way an agent does.
-A figure is read only when someone asks and an admin switched figures on, and it is kept nowhere.
-With figures switched on, Ask answers a number question in full, with the figure, the checked context and words that connect them, so people can try the whole loop in one place.
+Footnote reads no figure and keeps none, and Ask says so plainly when a question needs one.
+Figures come back to Ask only when they can be read as the person asking, with the access the semantic layer gives that person.
 Footnote does not watch the numbers: spotting a move nobody explained is the work of the agent that holds the figures, at the moment someone asks it.
 One agent call that returns a figure together with its context is welcome only once it proves to give agents better output than two separate reads.
 Footnote does not enforce data access or replace the semantic layer's access rules.
@@ -88,7 +88,7 @@ A direction that stops earning its place is deleted, not kept beside its replace
 ## Scope
 
 Footnote is not a BI tool, a monitoring tool, a semantic layer, a warehouse, a store of figures or a store of standing rules.
-People's own agents, which hold the figures, are the everyday place for numbers and analysis, and they include the agents inside the tools a company already pays for; Ask is where people try the whole loop and where stewards look after the context itself.
+People's own agents, which hold the figures, are the everyday place for numbers and analysis, and they include the agents inside the tools a company already pays for; Ask is where people read the checked context and where stewards look after it.
 It is not a wiki: no page tree and no company directory.
 It is not a notification service: the Inbox is the only announcement, with no email or chat digest.
 

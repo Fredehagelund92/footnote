@@ -25,13 +25,6 @@ vi.mock('@/api/queries', async (original) => ({
 }))
 vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/figures', () => ({
-  useFigures: () => ({
-    enabled: () => false,
-    contact: () => 'the data team',
-    sourceOf: () => undefined,
-  }),
-}))
 vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
 vi.mock('@/lib/router', async (original) => ({
   ...(await original<Record<string, unknown>>()),

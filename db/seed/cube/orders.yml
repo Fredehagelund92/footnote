@@ -1,7 +1,5 @@
 # The demo Cube model: an invented semantic layer over invented tables, read offline by the Cube
 # connector. The bulk seed stores what the connector reads from this folder; no data is queried.
-# Figures in Ask read one figure from a Cube over these tables only when an admin sets a data
-# endpoint and switches figures on: the tests run a stand-in Cube over a seeded demo warehouse.
 cubes:
   - name: order_facts
     public: false

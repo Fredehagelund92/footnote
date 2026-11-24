@@ -63,7 +63,6 @@ import {
   testFor,
   type Kept,
 } from './integrations'
-import { figureFor, figureTryFor } from './data/figures'
 import { reportedOn, type Answer, type AskInput } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
 import { createDefinitions } from './definitions'
@@ -127,7 +126,7 @@ export function createMockApi() {
   /** What the connect flow set for each tool this visit. */
   const kept = new Map<string, Kept>()
   const integrations = createIntegrations(
-    () => settings.read(scenario.address()).connected,
+    () => settings.read().connected,
     (id) => kept.get(id),
   )
   let views: SavedView[] = []
@@ -1326,7 +1325,7 @@ export function createMockApi() {
     setAlertThreshold: ({ id, value }) => now(() => alerts.setThreshold(id, value)),
 
     // Settings, integrations and agents
-    getSettings: () => now(() => settings.read(scenario.address())),
+    getSettings: () => now(() => settings.read()),
     setTool: ({ name, on }) => now(() => settings.setTool(name, on)),
     setPause: (change) => now(() => settings.setPause(change)),
     createAccessKey: ({ name }) =>
@@ -1416,14 +1415,8 @@ export function createMockApi() {
             .map((f) => ({ id: f.id, title: f.title })),
         ),
       ),
-    setFigures: ({ source, on }) => now(() => settings.setFigures(source, on)),
-    setDataContact: ({ source, name }) => now(() => settings.setContact(source, name)),
-    setFigureConnection: ({ source, endpoint }) =>
-      now(() => settings.setConnection(source, endpoint)),
     connectForm: ({ id }) =>
-      read('connectForm', id, () =>
-        connectFormFor(id, settings.read(scenario.address()).connected, kept.get(id)),
-      ),
+      read('connectForm', id, () => connectFormFor(id, settings.read().connected, kept.get(id))),
     // The checks take a moment, as a tool's do.
     testIntegration: ({ connector, config, secrets }) =>
       new Promise((resolve) => setTimeout(resolve, MOCK_TEST_MS)).then(() =>
@@ -1435,6 +1428,10 @@ export function createMockApi() {
             familiesShop,
           ),
         ),
+      ),
+    checkIntegration: ({ id }) =>
+      new Promise((resolve) => setTimeout(resolve, MOCK_TEST_MS)).then(() =>
+        copy(integrations.check(id, scenario.address())),
       ),
     connectIntegration: ({ connector, config, chosen, readsAll, reason }) =>
       now(() => {
@@ -1452,16 +1449,12 @@ export function createMockApi() {
     changeIntegration: ({ id, revision, config, chosen, readsAll, acceptLeftOut, reason }) =>
       now(() => {
         const tool = connectorById(id)
-        if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
+        if (!tool || !settings.read().connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         checkConnect(tool.id, { chosen, reason })
         // ?change=fail: someone else saves the tool's settings, as they are, just before this.
         if (scenario.failsOnce('change', tool.id)) {
-          const theirs = connectFormFor(
-            tool.id,
-            settings.read(scenario.address()).connected,
-            kept.get(tool.id),
-          )!
+          const theirs = connectFormFor(tool.id, settings.read().connected, kept.get(tool.id))!
           kept.set(tool.id, {
             config: Object.fromEntries(theirs.fields.map((f) => [f.key, f.value])),
             chosen: theirs.chosen,
@@ -1486,38 +1479,24 @@ export function createMockApi() {
     integrationLeftOut: ({ id, readsAll, views }) =>
       read('integrationLeftOut', id, () => {
         const tool = connectorById(id)
-        if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
+        if (!tool || !settings.read().connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         return leftOutNow(tool.id, { readsAll, views })
       }),
     disconnectIntegration: ({ id }) =>
       now(() => {
         const tool = connectorById(id)
-        if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
+        if (!tool || !settings.read().connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         settings.disconnect(tool.id)
         kept.delete(tool.id)
       }),
-    getIntegrations: () =>
-      now(() => ({
-        figureConnections: settings.connections(scenario.address(), integrations.paused),
-      })),
     integrationsPage: () =>
       read('integrationsPage', '', () => integrations.page(scenario.address())),
     integrationPage: ({ id }) =>
       read('integrationPage', id, () => integrations.sourcePage(id, scenario.address())),
     readIntegration: ({ id }) => now(() => integrations.readAgain(id, new Date())),
     pauseIntegration: ({ id, paused }) => now(() => integrations.pause(id, paused)),
-    readFigure: (asked) =>
-      now(() => {
-        // As the service: only a tool whose figures are on is asked, never one paused or broken.
-        const shown = settings.connections(scenario.address(), integrations.paused)
-        return figureFor(asked, (id) => shown[id]?.state === 'on')
-      }),
-    tryFigure: ({ source }) =>
-      now(() =>
-        figureTryFor(source, settings.connections(scenario.address(), integrations.paused)[source]),
-      ),
     listAgentConnections: () =>
       now(() =>
         settings

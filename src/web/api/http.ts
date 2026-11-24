@@ -41,10 +41,10 @@ import { plainOf } from '@/components/templates/comment-box/utils'
 import { reportedOn, reportOutcomeWords } from '@/model/ask'
 import type { FactAction } from '@/lib/bulk'
 import { parseMentionId } from '@/lib/mentions'
+import { daysOfDates } from '@/lib/dates'
 import { setToday } from '@/lib/today'
 import type { Definition } from '@/lib/definitions'
 import type { Version } from '@/model/history'
-import type { FigureReport } from '@/model/figures'
 import type { Fact, Sent } from '@/model/items'
 import { ALL_VALUES } from '@/model/observability'
 import { excerptOf, type Domains } from '@/model/people'
@@ -70,7 +70,6 @@ import {
   nothingLiveAnswer,
   type Shelf,
 } from './http-ask'
-import { daysOfDates, figureTryOf, figureViewOf } from './http-figures'
 import {
   dayShiftOf,
   draftOf,
@@ -220,18 +219,13 @@ export const wiredMethods = [
   'getConnectRequest',
   'answerConnectRequest',
   'getSettings',
-  'setFigures',
-  'setDataContact',
-  'setFigureConnection',
-  'readFigure',
-  'tryFigure',
-  'getIntegrations',
   'integrationsPage',
   'integrationPage',
   'readIntegration',
   'pauseIntegration',
   'connectForm',
   'testIntegration',
+  'checkIntegration',
   'connectIntegration',
   'changeIntegration',
   'integrationLeftOut',
@@ -1110,13 +1104,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
 
   /* ---------- people ---------- */
 
-  /** A member of the workspace by name, as the integrations page names a data contact. */
-  async function memberNamed(name: string) {
-    const member = (await read(() => client.members.list())).find((m) => m.name === name)
-    if (!member) throw new ApiError('not-found', `${name} isn't in the workspace any more.`)
-    return member
-  }
-
   /** Sets a domain's owners by id; false when it would leave the domain without one. */
   async function setOwnerIds(areaId: string, personIds: string[]) {
     const input = { areaId, personIds: [...new Set(personIds)] }
@@ -1144,46 +1131,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const token = `people:${randomKey()}`
     peopleUndos.set(token, work)
     return { token, until }
-  }
-
-  /* ---------- figures in Ask ---------- */
-
-  /** The integrations that read figures, by their connector's id: every one the service lists. */
-  const connectorOf = (type: string): string | undefined => type
-  async function figureSources() {
-    return (await read(() => client.figures.list())).sources.flatMap((source) => {
-      const id = connectorOf(source.type)
-      return id ? [{ id, source }] : []
-    })
-  }
-  /** The service's own integration for an app's tool: the first that reads figures for it. */
-  async function figureSourceId(id: string) {
-    const found = (await figureSources()).find((f) => f.id === id)
-    if (!found) throw new ApiError('not-found', "This integration isn't connected.")
-    return found.source.id
-  }
-  async function setFiguresOf(
-    id: string,
-    change: Omit<Parameters<typeof client.figures.set>[0], 'id'>,
-  ) {
-    const input = { id: await figureSourceId(id), ...change }
-    return write('figures.set', input, (o) => client.figures.set(input, o))
-  }
-  /** A figure that doesn't fit a context item, as the service files it: its keys and its days. */
-  async function reportedFigure(figure: FigureReport | undefined) {
-    if (!figure) throw new ApiError('invalid', 'Say which figure does not fit.')
-    const days = daysOfDates(figure.dates, localDay(new Date()))
-    const names = namesOf(await readVocabulary())
-    const metric = names.metricKey(figure.metric)
-    if (!days || !metric)
-      throw new ApiError('invalid', 'This figure has no metric or days to report.')
-    return {
-      source: await figureSourceId(figure.source),
-      metric,
-      values: figure.markets.flatMap((m) => names.marketKey(m) ?? []),
-      ...days,
-      route: figure.to,
-    }
   }
 
   const wired: Pick<FootnoteApi, (typeof wiredMethods)[number]> = {
@@ -1999,13 +1946,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       write('connections.decide', input, (o) => client.connections.decide(input, o)),
 
     // Settings, agents and access. The switches are what everyone signed in may read: the tools on
-    // and what is paused. Figures and their data contacts come with the figures (P11a, part 2).
+    // and what is paused.
     getSettings: async () => {
-      const [connect, stops, who, figured] = await Promise.all([
+      const [connect, stops, who] = await Promise.all([
         read(() => client.connect.get()),
         read(() => client.serving.stops()),
         signedIn(),
-        figureSources(),
       ])
       // The tools connected, which only an admin reads: Settings' menu counts them as Integrations
       // lists them, so not the service's demo definitions (src/server/modules/connectors/demo.ts),
@@ -2022,79 +1968,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return {
         mcpAddress: connect.address,
         ...(await settingsWords()).switchesOf(connect.tools, stops),
-        figures: Object.fromEntries(figured.map(({ id, source }) => [id, source.enabled])),
-        figureTools: Object.fromEntries(figured.map(({ id, source }) => [id, source.tool])),
-        contacts: Object.fromEntries(
-          figured.flatMap(({ id, source }) =>
-            source.dataContact ? [[id, source.dataContact.name]] : [],
-          ),
-        ),
         connected,
       }
     },
-    setFigures: async ({ source, on }) =>
-      void (await setFiguresOf(source, {
-        enabled: on,
-        reason: on ? 'Show figures in Ask, switched on.' : 'Show figures in Ask, switched off.',
-      })),
-    setDataContact: async ({ source, name }) => {
-      const member = await memberNamed(name)
-      await setFiguresOf(source, {
-        dataContactId: member.id,
-        reason: 'The data contact, chosen on the integration.',
-      })
-    },
-    setFigureConnection: async ({ source, endpoint, token }) =>
-      void (await setFiguresOf(source, {
-        endpoint,
-        token,
-        reason: 'Where figures are read, set on the integration.',
-      })),
-    readFigure: async ({ metric, markets, values: read, dates, state, sources }) => {
-      if (!metric || state === 'failed') return null
-      const days = daysOfDates(dates, localDay(new Date()))
-      if (!days) return null
-      const names = namesOf(await readVocabulary())
-      const key = names.metricKey(metric)
-      // The values the answer was read for, of any dimension; an answer without them, its markets.
-      const values = read ?? markets.flatMap((m) => names.marketKey(m) ?? [])
-      // A metric or a market Definitions doesn't name has no figure the service could read.
-      if (!key || (!read && values.length !== markets.length)) return null
-      const items = (sources ?? []).filter(isItemId)
-      const input = { metric: key, values, ...days, ...(items.length ? { items } : {}) }
-      const figure = await readPosted((o) => client.figures.read(input, o))
-      return figureViewOf(
-        figure,
-        { metric, markets: read ? read.map(names.value) : markets, ...(dates ? { dates } : {}) },
-        connectorOf,
-        new Date(),
-      )
-    },
-    tryFigure: async ({ source }) => {
-      const id = await figureSourceId(source)
-      const tried = figureTryOf(
-        await readPosted((o) => client.figures.try({ id }, o)),
-        connectorOf,
-        new Date(),
-      )
-      if (!tried) throw new ApiError('not-found', "This integration isn't connected.")
-      return tried
-    },
-    // What the figures read: how each integration that reads figures is reached.
-    getIntegrations: async () => ({
-      figureConnections: Object.fromEntries(
-        (await figureSources()).map(({ id, source }) => [
-          id,
-          {
-            endpoint: source.connection?.endpoint ?? null,
-            host: source.connection?.declaredHost ?? null,
-            secretSet: source.connection?.tokenSet ?? false,
-            contact: source.dataContact?.name ?? '',
-            state: source.state,
-          },
-        ]),
-      ),
-    }),
     // Settings › Integrations: the sources the service reads, each with how it is (CON-104).
     integrationsPage: async () => {
       const [rows, types] = await Promise.all([
@@ -2170,6 +2046,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           return { ok: false, steps: [], scopes: [], failure: error.message }
         throw error
       }
+    },
+    // Keeps nothing and changes nothing: a POST because a test may take a while.
+    checkIntegration: async ({ id }) => {
+      const [{ connectTestOf }, rows] = await Promise.all([
+        integrationWords(),
+        read(() => client.sources.list()),
+      ])
+      const type = rows.find((row) => row.id === id)?.type
+      if (!type) throw new ApiError('not-found', "This integration isn't connected.")
+      return connectTestOf(await readPosted((o) => client.sources.check({ id }, o)), type)
     },
     // The source is named after its tool; the service reads it at once (CON-115).
     connectIntegration: async ({ connector, config, secrets, chosen, readsAll, reason }) => {
@@ -2476,22 +2362,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     renameChat: async ({ id, title }) => chats.rename((await signedIn()).id, id, title),
     deleteChat: async ({ id }) => chats.remove((await signedIn()).id, id),
     // A named report: the question, the part and the words the person sent, with their name.
-    reportAnswer: async ({ question, part, sources, what, correction, link, figure }) => {
-      const itemId = part === 'answer' || part === 'figure' ? sources[0] : part
+    reportAnswer: async ({ question, part, sources, what, correction, link }) => {
+      const itemId = part === 'answer' ? sources[0] : part
       if (!itemId) throw new ApiError('invalid', 'This answer has no context item to report.')
       const input = {
         question,
         itemId,
-        part:
-          part === 'answer'
-            ? ('answer' as const)
-            : part === 'figure'
-              ? ('figure' as const)
-              : ('item' as const),
+        part: part === 'answer' ? ('answer' as const) : ('item' as const),
         what,
         ...(correction?.trim() ? { correction } : {}),
         ...(link?.trim() ? { link: link.trim() } : {}),
-        ...(part === 'figure' ? { figure: await reportedFigure(figure) } : {}),
       }
       const sent = await write('reports.create', input, (o) => client.reports.create(input, o))
       return { id: sent.id }

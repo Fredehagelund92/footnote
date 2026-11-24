@@ -59,7 +59,6 @@ export const shellSearch = lenient(
     ptab: oneOf(['overview', 'steps', 'warnings']),
     when: text,
     wn: digits,
-    figures: text,
     state: text,
     slow: oneOf(['1']),
     statehelp: oneOf(['1']),

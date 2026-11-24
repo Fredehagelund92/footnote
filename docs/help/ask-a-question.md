@@ -34,9 +34,9 @@ The answer starts with its [answer line](answer-lines.md): Checked, Partial, Not
 - When you ask what something is, the answer is its definition card: the words of the tool that defines it, who owns it, and the context items about it, which open in the card. With none yet about a metric, its owners and admins get Write context, which starts an item about it. In other answers a definition shows as a quote, with the tool that defines it.
 - When Ask stops at its time or step limit, the answer says Stopped and shows what is written, as agents get it. Ask again tries once more. When Ask read a metric or a market in your question, Search for these words opens Search on them.
 
-### Figures
+### Numbers
 
-When an admin has switched figures on for a metric's tool, an answer that names dates can show the number too, with the tool it comes from and the day its data is from. Show the query has what was asked of the tool. Nothing the tool returned is kept: run the query in the tool to check it.
+Your workspace keeps no business figures, so Ask never shows one. An answer to a question about a number says what is written about it, and the number itself is in the tool that holds your data.
 
 ## Ask again at other dates
 

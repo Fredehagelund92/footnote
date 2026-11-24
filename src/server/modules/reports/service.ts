@@ -13,9 +13,7 @@ import { missing } from '../../../contract/refusals.ts'
   Named reports (FR-622; docs/product.md, section 9). A person sends one from Ask as themselves:
   the question, the part that is wrong, what is wrong and, optionally, the correct version and a
   link. It is filed on the item it is about, in that item's domain, and reaches that domain's
-  owners as a Reported card (the Inbox, src/server/modules/inbox). A figure report says a figure
-  Ask showed doesn't fit the item (FR-716): it names the integration, the metric, the values and
-  the days, never the figure, and reaches the owners, the integration's data contact, or both. What the owners did after it is
+  owners as a Reported card (the Inbox, src/server/modules/inbox). What the owners did after it is
   read by cl_report_outcome, so its sender sees it in their chat. Row security keeps a report to
   its sender, the owners of its domain and administrators (db/migrations/0001_schema.sql);
   the MCP read path has no grant on it, and nothing an edition holds is built from it.
@@ -49,21 +47,9 @@ export function createReportsService(tx: Queryable) {
         [input.itemId],
       )
       if (!item) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
-      const figure = input.figure
-      if (figure) {
-        // A figure report names an integration that holds definitions; it says nothing more of it.
-        const [source] = await tx.query<{ id: string }>(
-          `select id from connectors where id = $1 and kind = 'definition_source'`,
-          [figure.source],
-        )
-        if (!source) throw new ORPCError('NOT_FOUND', { message: missing('this source') })
-        if (figure.from > figure.to)
-          throw new ORPCError('BAD_REQUEST', { message: 'The last day comes after the first.' })
-      }
       const [row] = await tx.query<SentReport>(
-        `insert into reports (person_id, area_id, item_id, part, question, what, correction, link,
-           figure_source, figure_metric, figure_values, figure_from, figure_to, figure_route)
-         values (cl_person(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        `insert into reports (person_id, area_id, item_id, part, question, what, correction, link)
+         values (cl_person(), $1, $2, $3, $4, $5, $6, $7)
          returning id::text, ${iso('created_at')} as at`,
         [
           item.area,
@@ -73,12 +59,6 @@ export function createReportsService(tx: Queryable) {
           input.what,
           input.correction ?? null,
           input.link ?? null,
-          figure?.source ?? null,
-          figure?.metric ?? null,
-          figure ? [...new Set(figure.values)].sort() : null,
-          figure?.from ?? null,
-          figure?.to ?? null,
-          figure?.route ?? null,
         ],
       )
       return row!

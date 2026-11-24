@@ -305,7 +305,9 @@ views it reads and the domain of each (every view, or only those listed, with
 (`POST /api/v1/sources/{id}/disconnect`). The views a definitions source reads are the
 organisation's approved set, for the server's own sources too: `GET /api/v1/sources/{id}` gives a
 server source's set (`origin: server`, with no settings or secrets), `POST /api/v1/sources/test`
-with its id reads it as the server set it, with every view, and `PUT /api/v1/sources/{id}/groups`
+with its id reads it as the server set it, with every view, `POST /api/v1/sources/{id}/check` tests
+any definitions source as it is saved (its check, one read of every view, the views it reads looked
+for in the model as `chosen`, and the files a read skipped among the warnings), keeping nothing, and `PUT /api/v1/sources/{id}/groups`
 chooses the views and their domains for any definitions source, with a reason, keeping one line in
 the history log. A view a change leaves out keeps the domain it had (`kept`). See
 [the connector contract](connector-contract.md) for what a connector declares and reports, the
@@ -1187,33 +1189,3 @@ the contract is in `src/contract/alerts.ts`.
   page, `total` and `rules` count every raise the person may read, in all and by each rule that
   raised any, whatever the page, so Alerts says "20 of 198" and lists one rule by itself.
   Administrators read every raise; an owner those about a domain they own.
-
-## Figures in Ask
-
-Figures in Ask on the service (FR-716, CON-612, golden plan P11a). A definitions integration whose
-connector reads figures (Cube) has figures settings, off by default; the connector side is in
-[the connector contract](connector-contract.md#figures-in-ask) and
-[the Cube connector](cube-connector.md#figures-in-ask). The app's http binding words them for
-Ask and the integration's page (`src/web/api/http-figures.ts`).
-
-- `GET /figures`: each integration that reads figures, with Show figures in Ask (`enabled`) and
-  its data contact, for everyone signed in; for administrators also `connection`, the data
-  endpoint, its declared host and whether its token is set. Never the token, or any of it.
-- `PUT /figures/{id}` (administrators): `enabled`, `dataContactId` (a person in the workspace, or
-  null), `endpoint` (Cube's `/v1/load`) and `token`, each optional, with a `reason`. The token goes
-  to the secret store and is sent only to the endpoint's origin; an endpoint at another scheme,
-  host or port forgets it. Switching on needs the endpoint, its token and a data contact (422
-  otherwise). The history log records `figures.changed` with what changed, and of the token only
-  whether it was set, replaced or removed.
-- `POST /figures/read`: one figure for an answer, `{ metric, values, from, to, items? }` with the
-  metric's key, the dimension values' keys and the days, both included. It answers `off` (with the
-  tool's address to link to, when its endpoint is set and the reader is an administrator), `none`
-  with a reason (`undefined`, `ambiguous`, `no_date`, `no_split`, `no_value`, or `failed` with a
-  code), or `figure`: the value
-  and its format, the same for the days just before, when the tool last refreshed its data, the
-  query in words, the data contact, and `against`, a context item someone said the figure doesn't
-  fit while their report is open. It is read within 4 seconds, kept a minute in the server's
-  memory, and stored nowhere; no person's identity is passed on.
-- `POST /reports` takes `part: 'figure'` with `figure: { source, metric, values, from, to, route }`:
-  the figure doesn't fit the item, to the item's owners, the data contact, or both (`route`). The
-  data contact reads it in their Inbox and may close it as not a problem.

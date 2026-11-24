@@ -679,6 +679,7 @@ describe('the connect flow, on the manifests', () => {
       steps: [],
       scopes: [],
       failure: "It couldn't be read: the key was refused.",
+      fix: 'Check that the token can read it, then replace it under Change settings.',
     })
     const said = connectTestOf({
       ...failed,
@@ -857,6 +858,25 @@ describe('a tool whose file lives in a place you choose', () => {
       'This signature can do more than read. Make a shared access signature with read permission only: sp=r.',
     )
     expect(failedWith('timed_out')).toBe("It couldn't be read: it took too long.")
+    expect(failedWith('folder_missing')).toBe(
+      "It couldn't be read: the folder it reads isn't there.",
+    )
+    // With what to do about it, apart, when there is something to do.
+    const fixed = (code: string) =>
+      connectTestOf({
+        ok: false,
+        steps: [],
+        version: null,
+        complete: false,
+        views: 0,
+        metrics: 0,
+        dimensions: 0,
+        warnings: [{ code, target: 'folder' }],
+      }).fix
+    expect(fixed('folder_missing')).toBe(
+      'Check the folder in its settings. A folder on the server is set by the person who hosts this app.',
+    )
+    expect(fixed('something_new')).toBeUndefined()
     expect(failedWith('unreadable_file')).toBe("It couldn't be read: it is too large, or not text.")
     expect(failedWith('fetch_failed')).toBe(
       "It couldn't be read: the site that keeps it did not send it.",
@@ -908,5 +928,34 @@ describe('a tool whose file lives in a place you choose', () => {
         { title: 'something new', count: 1 },
       ],
     })
+  })
+
+  it('names the files a read skipped, and says what the source reads against the model', () => {
+    const test = connectTestOf(
+      {
+        ok: true,
+        steps: [],
+        version: 'abc',
+        complete: true,
+        views: 7,
+        metrics: 22,
+        dimensions: 5,
+        warnings: [
+          { code: 'unsupported_file', target: 'cube/model/currencies.yml.jinja' },
+          { code: 'unsupported_file', target: 'cube/model/rates.py' },
+        ],
+        chosen: { all: false, groups: 3, missing: ['segments'] },
+      },
+      'cube',
+    )
+    expect(test.read?.warnings).toEqual([
+      {
+        title: 'A file was skipped',
+        detail: 'It is not plain YAML, so nothing in it is read. Jinja and Python are never run.',
+        count: 2,
+        files: ['cube/model/currencies.yml.jinja', 'cube/model/rates.py'],
+      },
+    ])
+    expect(test.chosen).toEqual({ all: false, groups: 3, missing: ['segments'] })
   })
 })

@@ -21,23 +21,13 @@ vi.mock('@/api/queries', async (original) => ({
 }))
 vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/figures', () => ({
-  useFigures: () => ({
-    enabled: () => false,
-    contact: () => 'the data team',
-    sourceOf: () => undefined,
-  }),
-}))
 vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
 
 const { AnswerBody, AnswerActions, ReportLine, SomethingWrong } =
   await import('@/components/footnote/answer')
 const { LoopAnswerBody } = await import('@/components/footnote/loop-answer')
 const { loopParts } = await import('@/components/footnote/loop-parts')
-// The figure reads the data through the app's query cache: here, where it goes is enough.
-const AnswerFigure = ({ answer }: { answer: { metric: string } }) =>
-  React.createElement('p', { 'data-figure': answer.metric })
-const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong, AnswerFigure }
+const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong }
 const { askedTurn, turnReducer } = await import('@/model/ask-turn')
 
 beforeAll(() => {
