@@ -76,7 +76,7 @@ import { searchWorld } from './search'
 import { createScopeSearch, withScope } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
-import { IMPORTED, importedDrafts } from './data/imported'
+import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -1632,6 +1632,10 @@ export function createMockApi() {
         // 21 drafts brought in from a wiki, to publish from the Context list at once.
         if (demo === 'imported')
           for (const fact of importedDrafts())
+            if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
+        // 60 more, past what one Publish takes.
+        if (demo === 'backlog')
+          for (const fact of backlogDrafts())
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
