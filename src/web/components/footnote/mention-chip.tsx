@@ -4,7 +4,7 @@ import { CircleSlashIcon, FolderIcon, GlobeIcon, TagIcon, UserRoundIcon } from '
 import { useReadAhead } from '@/lib/read-ahead'
 import { cn } from '@/lib/utils'
 import { PersonAvatar } from '@/components/footnote/bits'
-import { TypeGlyph } from '@/components/footnote/type-glyph'
+import { FamilyGlyph, TypeGlyph } from '@/components/footnote/type-glyph'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -31,7 +31,7 @@ export function MentionIcon({
   className,
   avatar,
 }: {
-  m: Pick<Mentionable, 'kind' | 'contextKind' | 'synonym' | 'label'> & { id?: string }
+  m: Pick<Mentionable, 'kind' | 'contextKind' | 'synonym' | 'family' | 'label'> & { id?: string }
   className?: string
   avatar?: boolean
 }) {
@@ -42,6 +42,8 @@ export function MentionIcon({
     case 'metric':
     case 'dimension':
     case 'term':
+      // A family is marked by its stack, as search and Definitions mark it.
+      if (m.family) return <FamilyGlyph className={cls} />
       return (
         <TypeGlyph d={{ type: m.kind, sameAs: m.synonym ? m.label : undefined }} className={cls} />
       )

@@ -121,6 +121,9 @@ export default defineConfig({
     /\/j104-family-split\.spec\.ts$/,
     /\/j105-definitions-families\.spec\.ts$/,
     /\/j106-family-member\.spec\.ts$/,
+    // J110 mentions a family of the mock's ?demo=families in Ask; the service's catalogue gives the
+    // app the same family, which tests/web/lib/mentions.test.ts finds in Ask's '@' list.
+    /\/j110-ask-mention-family\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
