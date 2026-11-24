@@ -151,7 +151,7 @@ When `id` is no context item's id, `read_context` reads it as a definition: its 
 - What it is built from and converted from, by name, never the calculation.
 - How many published context items about it the agent may read, with their titles, 20 to a page.
 
-Read at a pinned edition, a family comes back with only its metrics as that edition has them: its words and values come from the live definitions, and the reply says so. Words that name several definitions come back with their keys to choose from, and words that name none with the closest names. Only published definitions are read: never a draft, a suggestion or a name waiting in the Inbox.
+Read from a version an agent is held to, a family comes back with only its metrics as that version has them: its words and values come from the live definitions, and the reply says so. Words that name several definitions come back with their keys to choose from, and words that name none with the closest names. Only published definitions are read: never a draft, a suggestion or a name waiting in the Inbox.
 
 ## List what there is: list_definitions and list_context
 
