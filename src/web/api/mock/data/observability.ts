@@ -354,9 +354,8 @@ const TOOL_CALLS: {
   failed: number
 }[] = [
   { name: 'get_context', calls: 142, answered: 105, detail: 12, nothing: 25, failed: 0 },
-  { name: 'read_context', calls: 83, answered: 83, detail: 0, nothing: 0, failed: 0 },
+  { name: 'read_context', calls: 100, answered: 100, detail: 0, nothing: 0, failed: 0 },
   { name: 'find_context', calls: 61, answered: 54, detail: 0, nothing: 7, failed: 0 },
-  { name: 'get_related', calls: 17, answered: 17, detail: 0, nothing: 0, failed: 0 },
   { name: 'report', calls: 5, answered: 5, detail: 0, nothing: 0, failed: 0 },
   { name: 'suggest_context', calls: 4, answered: 2, detail: 0, nothing: 0, failed: 2 },
 ]

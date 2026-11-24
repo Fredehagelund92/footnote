@@ -180,7 +180,7 @@ export const versionPairSchema = z.object({
   source: z.object({ before: z.string(), after: z.string() }),
 })
 
-/** Context related to an item or a definition, as get_related follows it one step, for people. */
+/** Context related to an item or a definition, as agents follow it one step, for people. */
 export const relatedNodeSchema = z.object({
   /** A `term` is a term written in Definitions, by `term:<id>`. */
   type: z.enum(['item', 'metric', 'dimension', 'dimension_value', 'area', 'term', 'other']),
@@ -201,8 +201,6 @@ export const relatedSchema = z.object({
   nodes: z.array(relatedNodeSchema),
   /** Neighbours the person may not see: counted, never named. */
   withheld: z.number(),
-  /** Whether agents follow links now: get_related is switched on for every client (FR-407). */
-  following: z.boolean(),
 })
 
 /** A synced definition whose related context is read: a metric or a dimension, by its key. */

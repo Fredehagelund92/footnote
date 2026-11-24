@@ -1011,7 +1011,7 @@ export const contract = {
         path: '/items/{id}/related',
         tags: ['library'],
         summary:
-          'Context related to an item, one step away, as get_related follows it: what people see in Related',
+          'Context related to an item, one step away, as agents follow it: what people see in Related',
       })
       .errors(notFound)
       .input(itemId)
@@ -1213,7 +1213,7 @@ export const contract = {
         path: '/definitions/related',
         tags: ['library'],
         summary:
-          'Context related to a metric or a dimension, one step away, as get_related follows it: what people see in Related',
+          'Context related to a metric or a dimension, one step away, as agents follow it: what people see in Related',
       })
       .errors(notFound)
       .input(definitionRelatedInputSchema)

@@ -37,7 +37,7 @@ itself, kept up to date at each sign-in and shown as it says it; an access key's
 administrator gives it.
 
 - **One switch per tool.** An administrator switches each MCP tool (`get_context`,
-  `find_context`, `read_context`, `report`, `suggest_context`, `get_related`) on or off for each
+  `find_context`, `read_context`, `report`, `suggest_context`) on or off for each
   agent (`agents.setTool`, with a reason the history log keeps as `agent.tool_switched`, with the
   agent's name, the tool and the switch). A switch bounds what the person allowed at consent and
   never widens it: a tool works only when it is switched on and its scope was allowed, so an app the

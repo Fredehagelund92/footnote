@@ -60,10 +60,11 @@ import {
   canRead,
   linkIndex,
   outgoing,
-  related,
+  relations,
   termShown,
   writtenTermId,
   type Link,
+  type Relation,
 } from '../../domain/links.ts'
 import type { AnonymousRecord, AnonymousStore } from './records.ts'
 import {
@@ -81,16 +82,14 @@ import {
   appliesWords,
   askedGroups,
   askedMetrics,
-  contextListSaid,
   contextSaid,
   contextVoice,
   definitionReadSaid,
-  definitionsListSaid,
   failedSaid,
   findSaid,
+  listSaid,
   readSaid,
   refusedSaid,
-  relatedSaid,
   reportSaid,
   scopeWords,
   severalDefinitionsSaid,
@@ -101,15 +100,15 @@ import {
   type Said,
 } from '../../domain/say.ts'
 import {
+  definitionKinds,
   findContextInput,
+  findLimits,
   checkContextInput,
   getContextInput,
-  listContextInput,
-  listDefinitionsInput,
   itemIdPattern,
   readInput,
-  relatedInput,
   reportInput,
+  type FindContextInput,
   type GetContextInput,
   type ReadInput,
 } from './schemas.ts'
@@ -220,9 +219,6 @@ const contextLinkInstructions =
 /** FR-322: what a link is and how to follow one, in the reply that lists them. */
 export const linkStatement =
   'A link shows what a text refers to. It does not mean the item applies to your question.'
-const relatedInstructions =
-  agentInstructions +
-  ' To read a neighbour item in full, call read_context with its id. A term node gives what its word means, as a person wrote it in Definitions: read the words by it and say whose words they are, but never give it as a checked source. Follow a link only when it helps answer the question.'
 const report = (status: Resolution['status'], matched = 0, withheld = 0) => ({
   status,
   matched,
@@ -479,7 +475,12 @@ type Definition = { term: string }
  * The sentences of find_context's reply (FR-344): a name nobody knows, or what it found and how.
  * A refusal brings its own.
  */
-function outcomeSaid(body: Record<string, unknown>, args: unknown, bundle: ServingBundle): Said {
+function outcomeSaid(
+  body: Record<string, unknown>,
+  args: unknown,
+  bundle: ServingBundle,
+  offset: number,
+): Said {
   if (body.status === 'need_more_detail')
     return typeof body.say === 'string'
       ? { say: body.say, ...(typeof body.next === 'string' ? { next: body.next } : {}) }
@@ -497,13 +498,29 @@ function outcomeSaid(body: Record<string, unknown>, args: unknown, bundle: Servi
     withheld: check.withheld,
     definitions: ((body.definitions as Definition[] | undefined) ?? []).map((d) => d.term),
     area: find.domain === undefined ? null : (findArea(find.domain, bundle.areas)?.name ?? null),
+    offset,
   })
 }
 
-/** find_context's arguments as findContext reads them: a kind by the name it is stored as. */
-const findArgsOf = ({ kind, ...args }: ReturnType<typeof findContextInput.parse>): FindArgs => ({
+/** An item's kind as agents name it, and the kind it is stored as (`kindFilters`). */
+type ItemKindName = keyof typeof kindFilters
+const isItemKind = (kind: string | undefined): kind is ItemKindName =>
+  kind !== undefined && Object.hasOwn(kindFilters, kind)
+const isDefinitionKind = (kind: string | undefined): kind is (typeof definitionKinds)[number] =>
+  (definitionKinds as readonly string[]).includes(kind ?? '')
+
+/**
+ * find_context's arguments as findContext reads them, for a search by words: a kind by the name it
+ * is stored as, and enough of the ranking for the page asked for.
+ */
+const findArgsOf = (
+  { kind, query, cursor: _cursor, limit: _limit, ...args }: FindContextInput,
+  upTo: number,
+): FindArgs => ({
   ...args,
-  ...(kind ? { kind: kindFilters[kind] } : {}),
+  query: query!,
+  limit: upTo,
+  ...(isItemKind(kind) ? { kind: kindFilters[kind] } : {}),
 })
 
 /** Whether find_context's words or its domain name a domain, as findContext reads them. */
@@ -535,7 +552,7 @@ function definitionOwner(bundle: ServingBundle, areaId: string | null | undefine
 }
 
 /**
- * Every definition an agent may see now, in list_definitions' order (FR-351): metrics and families
+ * Every definition an agent may see now, in the order find_context lists them: metrics and families
  * of metrics, then dimensions, then the terms people wrote, each A to Z. A family is one entry for
  * its metrics, which the Definitions page lists in it and nowhere else; a word's other names are
  * none of its own. Only words: never a calculation, the source's text past its first sentence, or
@@ -590,6 +607,40 @@ function definitionsOf(bundle: ServingBundle, web: string | null) {
   return [...metrics.sort(byName), ...dimensions.sort(byName), ...terms.sort(byName)]
 }
 
+/** How a link row reads from the item it points at: who mentions, replaces or conflicts with it. */
+const incoming: Readonly<Record<string, Relation>> = {
+  mentions: 'mentioned_by',
+  replaces: 'replaced_by',
+  conflicts_with: 'conflicts_with',
+}
+/**
+ * The items the caller may read that link to an item (FR-332, FR-334), each once for each way it
+ * links, in a fixed order: by how it links (`relations`), then by id. One the caller may not see
+ * is left out, as if it did not link.
+ */
+function linkedFrom(
+  bundle: ServingBundle,
+  item: ServingItem,
+  today: string,
+  wanted: ReadonlySet<Relation>,
+  index: ReturnType<typeof linkIndex>,
+) {
+  const seen = new Set<string>()
+  const rows = index.to(item.id).flatMap((row) => {
+    const rel = incoming[row.rel]
+    const from = rel && wanted.has(rel) ? index.item(row.from_item) : undefined
+    if (!rel || !from || from.id === item.id || seen.has(`${rel}|${from.id}`)) return []
+    if (!canRead(bundle, from, today)) return []
+    seen.add(`${rel}|${from.id}`)
+    return [{ rel, id: from.id, title: from.title }]
+  })
+  return rows.sort(
+    (a, b) =>
+      relations.indexOf(a.rel) - relations.indexOf(b.rel) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  )
+}
+
 export function createToolService(
   source: EditionSource,
   store: AnonymousStore,
@@ -620,8 +671,9 @@ export function createToolService(
   const withTermsNext = (said: Said, terms: readonly unknown[]): Said =>
     terms.length ? { ...said, next: said.next ? `${said.next} ${termsNext}` : termsNext } : said
   /**
-   * find_context (FR-338) on the live edition. A result that cannot fit the size limit loses its
-   * longest lists first.
+   * find_context (FR-338) on the live edition: with words, a search, a page at a time, and a
+   * result that cannot fit the size limit loses its longest lists first; without words, or with
+   * the words of a definition's kind, what there is (`listed`).
    */
   async function outcome(
     input: unknown,
@@ -631,13 +683,25 @@ export function createToolService(
     today: string,
     calendar: Calendar,
   ): Promise<ToolResult> {
-    const args = findArgsOf(findContextInput.parse(input))
-    const edition = args.edition
-    // Naming an edition needs edition scope, as for get_facts.
-    if (edition && !principal.canSelectEdition)
+    const parsed = findContextInput.parse(input)
+    // Naming an edition needs edition scope, as for get_context.
+    if (parsed.edition && !principal.canSelectEdition)
       return failure('Selecting an edition requires edition scope.')
-    const bundle = await source.bundle(edition)
+    const bundle = await source.bundle(parsed.edition)
     onEdition(bundle.seq)
+    if (parsed.query === undefined || isDefinitionKind(parsed.kind))
+      return listed(parsed, bundle, maxBytes, today)
+    const size = parsed.limit ?? findLimits.words
+    const key = pageKey(bundle, {
+        tool: 'find_context',
+        query: parsed.query,
+        kind: parsed.kind ?? null,
+        domain: parsed.domain ?? null,
+        window: parsed.window ?? null,
+        day: today,
+      }),
+      offset = cursorOffset(parsed.cursor, key)
+    const args = findArgsOf(parsed, offset + size)
     const common = {
       edition: bundle.edition,
       overlay: bundle.overlay,
@@ -651,14 +715,16 @@ export function createToolService(
       reads && namesDomain(bundle, args) ? await reads.waiting() : null,
       calendar,
     )
-    const body = contextFound(found, bundle, today)
+    const { more: _more, ...body } = contextFound(found, bundle, today)
+    // The page asked for: the ranking past the pages before it.
+    if (Array.isArray(body.context)) body.context = body.context.slice(offset)
     // FR-342: a concise find_context leaves out the source details its definitions already say in
     // words.
     const concise = args.response_format === 'concise'
     // It names the words of the query that a person defined (FR-138).
     const terms = termsOf(bundle, args.query)
     const saidNow = (shown: Record<string, unknown>) =>
-      withTermsNext(outcomeSaid(shown, args, bundle), terms)
+      withTermsNext(outcomeSaid(shown, args, bundle, offset), terms)
     const out: Record<string, unknown> = {
       ...saidFields(saidNow(body)),
       ...common,
@@ -673,6 +739,13 @@ export function createToolService(
       out.definitions = (out.definitions as Record<string, unknown>[]).map(
         ({ source: _source, ...definition }) => definition,
       )
+    // Where the next page starts, as the page stands after any cut.
+    const paged = () => {
+      if (!Array.isArray(out.context)) return
+      const end = offset + (out.context as unknown[]).length
+      out.next_cursor = end < Number(out.total) ? cursorFor(key, end) : null
+    }
+    paged()
     const limit = Math.min(maxBytes, args.max_bytes)
     // Long lists are shortened from the end, the most useful entries first, until it fits: the
     // longest part of each list that fits is found by halving, so a large list costs few renders.
@@ -698,6 +771,7 @@ export function createToolService(
       }
       out[key] = whole.slice(0, fits)
       out.cut = true
+      paged()
     }
     // A shortened list changes how many are shown, which the sentence says.
     if (out.cut) Object.assign(out, saidFields(saidNow(out)))
@@ -838,27 +912,18 @@ export function createToolService(
   }
 
   /**
-   * list_definitions and list_context (FR-351, FR-352) on the live edition: what there is, a page
-   * at a time in a fixed order, with how many there are. The context items are those get_context
-   * could give the caller (`canRead`): published, for its audience, not paused, and never a
-   * suggestion or a draft. Titles and dates only: read_context gives an item's text.
+   * find_context without words, or with the words of a definition's kind (FR-338): what there is,
+   * a page at a time in a fixed order, with how many there are. Definitions come first, then the
+   * context items those get_context could give the caller (`canRead`): published, for its
+   * audience, not paused, and never a suggestion or a draft. A row has an item's title and summary,
+   * never its text: read_context gives that.
    */
-  async function listed(
-    name: 'list_definitions' | 'list_context',
-    input: unknown,
-    principal: Principal,
+  function listed(
+    args: FindContextInput,
+    bundle: ServingBundle,
     maxBytes: number,
-    onEdition: (seq: string) => void,
     today: string,
-  ): Promise<ToolResult> {
-    const args =
-      name === 'list_definitions'
-        ? listDefinitionsInput.parse(input)
-        : listContextInput.parse(input)
-    if (args.edition && !principal.canSelectEdition)
-      return failure('Selecting an edition requires edition scope.')
-    const bundle = await source.bundle(args.edition)
-    onEdition(bundle.seq)
+  ): ToolResult {
     const common = {
       edition: bundle.edition,
       overlay: bundle.overlay,
@@ -878,81 +943,78 @@ export function createToolService(
           },
         ],
       })
-    const entries =
-      name === 'list_definitions'
-        ? definitionsOf(bundle, web)
-            .filter(
-              (d) =>
-                (!args.kind || d.kind === args.kind) &&
-                (!area || d.areaId === area.id) &&
-                namedBy(args.query, d.names),
-            )
-            .map(({ names: _names, areaId, ...d }) => {
-              const { domain, owner } = definitionOwner(bundle, areaId)
-              return {
-                key: d.key,
-                name: d.name,
-                kind: d.kind,
-                domain,
-                owner,
-                family: d.family,
-                ...('members' in d ? { members: d.members } : {}),
-                ...('meaning' in d ? { meaning: d.meaning } : {}),
-                url: d.url,
-              }
-            })
-        : bundle.items
-            .filter(
-              (item) =>
-                item.status === 'accepted' &&
-                (!args.kind || item.kind === kindFilters[args.kind as keyof typeof kindFilters]) &&
-                (!area || item.areaId === area.id) &&
-                namedBy(args.query, [item.title]) &&
-                canRead(bundle, item, today),
-            )
-            .sort(
-              (a, b) =>
-                a.title.localeCompare(b.title, 'en') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
-            )
-            .map((item) => {
-              const unverified =
-                item.checkFlag !== null || (item.reviewDate !== null && item.reviewDate < today)
-              return {
-                id: item.id,
-                title: item.title,
-                kind: agentKinds[item.kind],
-                domain: domainName(bundle, item.areaId),
-                applies: appliesWords(bundle, item.scope),
-                when: whenWords(item.validity),
-                ...checkedOutput(item, bundle),
-                ...(unverified ? { may_be_out_of_date: true } : {}),
-                url: urlOf(item.id),
-              }
-            })
+    const definitions = isItemKind(args.kind)
+      ? []
+      : definitionsOf(bundle, web)
+          .filter(
+            (d) =>
+              (!args.kind || d.kind === args.kind) &&
+              (!area || d.areaId === area.id) &&
+              namedBy(args.query, d.names),
+          )
+          .map(({ names: _names, areaId, ...d }) => {
+            const { domain, owner } = definitionOwner(bundle, areaId)
+            return {
+              key: d.key,
+              name: d.name,
+              kind: d.kind,
+              domain,
+              owner,
+              family: d.family,
+              ...('members' in d ? { members: d.members } : {}),
+              ...('meaning' in d ? { meaning: d.meaning } : {}),
+              url: d.url,
+            }
+          })
+    const items = isDefinitionKind(args.kind)
+      ? []
+      : bundle.items
+          .filter(
+            (item) =>
+              item.status === 'accepted' &&
+              (!isItemKind(args.kind) || item.kind === kindFilters[args.kind]) &&
+              (!area || item.areaId === area.id) &&
+              canRead(bundle, item, today),
+          )
+          .sort(
+            (a, b) =>
+              a.title.localeCompare(b.title, 'en') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+          )
+          .map((item) => {
+            // A row names its item and where it applies, without the source's sentence.
+            const { source: _source, ...entry } = contextEntry(item, bundle, today, urlOf(item.id))
+            return { ...entry, domain: domainName(bundle, item.areaId) }
+          })
+    const total = definitions.length + items.length
     const key = pageKey(bundle, {
-        tool: name,
+        tool: 'find_context',
         kind: args.kind ?? null,
         domain: area?.id ?? null,
         query: args.query ?? null,
-        day: name === 'list_context' ? today : null,
+        day: today,
       }),
       offset = cursorOffset(args.cursor, key)
-    const page: unknown[] = entries.slice(offset, offset + args.limit)
-    const field = name === 'list_definitions' ? 'definitions' : 'context'
+    const page: unknown[] = [...definitions, ...items].slice(
+      offset,
+      offset + (args.limit ?? findLimits.list),
+    )
     const render = () => {
-      const counts = { total: entries.length, offset, shown: page.length }
+      const shownDefinitions = Math.max(0, Math.min(page.length, definitions.length - offset))
       return resultFor({
         ...saidFields(
-          name === 'list_definitions'
-            ? definitionsListSaid(counts)
-            : contextListSaid(counts, contextVoice.item),
+          listSaid({
+            definitions: definitions.length,
+            items: items.length,
+            offset,
+            shown: page.length,
+          }),
         ),
         ...common,
-        status: entries.length ? 'matched' : 'no_match',
-        total: entries.length,
-        [field]: page,
-        next_cursor:
-          offset + page.length < entries.length ? cursorFor(key, offset + page.length) : null,
+        status: total ? 'matched' : 'no_match',
+        total,
+        ...(definitions.length ? { definitions: page.slice(0, shownDefinitions) } : {}),
+        ...(items.length ? { context: page.slice(shownDefinitions) } : {}),
+        next_cursor: offset + page.length < total ? cursorFor(key, offset + page.length) : null,
         ttlMs: 0,
         cacheScope: 'private',
       })
@@ -1000,7 +1062,7 @@ export function createToolService(
           named.closest.length
             ? ` The closest: ${named.closest.map((d) => d.term.name).join(', ')}.`
             : ''
-        } Find definitions with list_definitions or find_context.`,
+        } Find definitions with find_context.`,
         ...(named.closest.length
           ? { options: [{ field: 'id', input: read.id, options: named.closest.map(optionOf) }] }
           : {}),
@@ -1059,14 +1121,10 @@ export function createToolService(
       if (name === 'report') return await reportFor(input, principal, onEdition, today, calendar)
       if (name === 'find_context')
         return await outcome(input, principal, maxBytes, onEdition, today, calendar)
-      if (name === 'list_definitions' || name === 'list_context')
-        return await listed(name, input, principal, maxBytes, onEdition, today)
       const args =
         name === 'get_context'
           ? (asker === 'check' ? checkContextInput : getContextInput).parse(input)
-          : name === 'read_context'
-            ? readInput.parse(input)
-            : relatedInput.parse(input)
+          : readInput.parse(input)
       const edition = 'edition' in args ? args.edition : undefined
       if (edition && !principal.canSelectEdition)
         return failure('Selecting an edition requires edition scope.')
@@ -1368,118 +1426,69 @@ export function createToolService(
         })
         return output
       }
-      if (name === 'read_context') {
-        const read = readInput.parse(input)
-        // Anything but a context item's id names a definition (FR-353).
-        if (!itemIdPattern.test(read.id))
-          return await definitionRead(read, bundle, common, limit, today, edition === undefined)
-        const item = bundle.items.find((i) => i.id === read.id)
-        if (!item || !canRead(bundle, item, today))
-          return resultFor({
-            ...saidFields(readSaid(null)),
-            ...common,
-            status: 'no_match',
-            message: 'Not found',
-            check_report: report('no_match'),
-          })
-        const links = outgoing(bundle, item, today)
-        const backlinks = bundle.links
-          .filter((l) => l.to_id === item.id && l.rel === 'mentions')
-          .map((l) => bundle.items.find((i) => i.id === l.from_item))
-          .filter((i): i is ServingItem => !!i && canRead(bundle, i, today))
-          .filter((i, index, all) => all.findIndex((p) => p.id === i.id) === index)
-          .sort((a, b) => (a.id < b.id ? -1 : 1))
-        const key = pageKey(bundle, { tool: name, id: read.id }),
-          offset = cursorOffset(read.cursor, key)
-        const page = backlinks.slice(offset, offset + 20).map((i) => ({ id: i.id, title: i.title }))
-        const shown = itemOutput(item, bundle, today, links.links, urlOf(item.id))
-        // The whole item as the agent contract gives it, then the item's other details.
-        const whole = {
-          ...contextEntry(item, bundle, today, urlOf(item.id)),
-          ...Object.fromEntries(Object.entries(shown).filter(([k]) => !entryKeys.has(k))),
-        }
-        // The words of the item a person defined (FR-138).
-        const terms = termsOf(bundle, [item.title, item.summary, item.body ?? ''].join('\n'))
-        const out = {
-          ...saidFields(
-            withTermsNext(readSaid({ kind: agentKinds[item.kind], version: item.version }), terms),
-          ),
-          ...common,
-          status: 'matched',
-          context: whole,
-          ...(terms.length ? { terms } : {}),
-          backlinks: { count: backlinks.length, items: page },
-          next_cursor:
-            offset + page.length < backlinks.length ? cursorFor(key, offset + page.length) : null,
-          ttlMs: 0,
-          cacheScope: 'private',
-          check_report: { ...report('matched', 1), links_withheld: links.withheld },
-          instructions: withCaveats(contextLinkInstructions, [whole]),
-        }
-        const rendered = resultFor(out)
-        return byteSize(rendered) <= limit
-          ? rendered
-          : failure('The item cannot fit this size limit. Increase max_bytes.')
-      }
-      const ask = relatedInput.parse(input)
-      const graph = related(bundle, {
-        id: ask.id,
-        relations: ask.relations,
-        depth: ask.depth,
-        today,
-        window: ask.window && { start: ask.window.from, end: shiftDate(ask.window.to, 1) },
-      })
-      // A start the caller may not see answers exactly like one that does not exist (FR-334).
-      if (!graph.found)
+      // read_context (FR-353): an item, by its id, with its links one step out and in.
+      const read = readInput.parse(input)
+      // Anything but a context item's id names a definition (FR-353).
+      if (!itemIdPattern.test(read.id))
+        return await definitionRead(read, bundle, common, limit, today, edition === undefined)
+      const item = bundle.items.find((i) => i.id === read.id)
+      if (!item || !canRead(bundle, item, today))
         return resultFor({
-          ...saidFields(relatedSaid(null)),
+          ...saidFields(readSaid(null)),
           ...common,
           status: 'no_match',
           message: 'Not found',
           check_report: report('no_match'),
         })
+      const wanted = new Set<Relation>(read.relations ?? relations)
+      const index = linkIndex(bundle)
+      const links = outgoing(bundle, item, today, undefined, index)
+      const linksOut = links.links.filter((link) => wanted.has(link.rel as Relation))
+      const linksIn = linkedFrom(bundle, item, today, wanted, index)
       const key = pageKey(bundle, {
           tool: name,
-          id: ask.id,
-          relations: ask.relations ? [...new Set(ask.relations)].sort() : null,
-          depth: ask.depth,
-          window: ask.window ?? null,
+          id: read.id,
+          relations: read.relations ? [...wanted].sort() : null,
+          day: today,
         }),
-        offset = cursorOffset(ask.cursor, key)
-      const page = graph.nodes.slice(offset, offset + ask.max_nodes)
-      const render = () => {
-        const end = offset + page.length
-        return resultFor({
-          ...saidFields(
-            relatedSaid({ shown: page.length, total: graph.nodes.length, depth: ask.depth }),
-          ),
-          ...common,
-          status: 'matched',
-          root: graph.root,
-          depth: ask.depth,
-          nodes: page,
-          // An edge is on the page that lists its later end, so paging never repeats one.
-          edges: graph.edges
-            .filter((e) => e.after >= offset && e.after < end)
-            .map(({ after: _after, ...edge }) => edge),
-          counts: graph.counts,
-          next_cursor: end < graph.nodes.length ? cursorFor(key, end) : null,
-          ttlMs: 0,
-          cacheScope: 'private',
-          check_report: {
-            ...report('matched', page.length),
-            links_withheld: graph.withheld,
-            statements: [linkStatement],
-          },
-          instructions: relatedInstructions,
-        })
+        offset = cursorOffset(read.cursor, key)
+      const page = linksIn.slice(offset, offset + 20)
+      const more = offset + page.length < linksIn.length
+      const { links: _links, ...shown } = itemOutput(item, bundle, today, [], urlOf(item.id))
+      // The whole item as the agent contract gives it, then the item's other details.
+      const whole = {
+        ...contextEntry(item, bundle, today, urlOf(item.id)),
+        ...Object.fromEntries(Object.entries(shown).filter(([k]) => !entryKeys.has(k))),
       }
-      do {
-        const rendered = render()
-        if (byteSize(rendered) <= limit) return rendered
-        page.pop()
-      } while (page.length)
-      return failure('The neighbours cannot fit this size limit. Increase max_bytes.')
+      // The words of the item a person defined (FR-138).
+      const terms = termsOf(bundle, [item.title, item.summary, item.body ?? ''].join('\n'))
+      const out = {
+        ...saidFields(
+          withTermsNext(
+            readSaid({ kind: agentKinds[item.kind], version: item.version, more }),
+            terms,
+          ),
+        ),
+        ...common,
+        status: 'matched',
+        context: whole,
+        ...(terms.length ? { terms } : {}),
+        links_out: linksOut,
+        links_in: { count: linksIn.length, items: page },
+        next_cursor: more ? cursorFor(key, offset + page.length) : null,
+        ttlMs: 0,
+        cacheScope: 'private',
+        check_report: {
+          ...report('matched', 1),
+          links_withheld: links.withheld,
+          statements: [coverageStatement, linkStatement],
+        },
+        instructions: withCaveats(contextLinkInstructions, [whole]),
+      }
+      const rendered = resultFor(out)
+      return byteSize(rendered) <= limit
+        ? rendered
+        : failure('The item cannot fit this size limit. Increase max_bytes.')
     } catch {
       return failure()
     }

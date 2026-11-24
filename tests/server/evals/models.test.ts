@@ -428,41 +428,61 @@ describe('the answer agent and the scripted mock', () => {
     )
     expect(result.messages[0]).toEqual({ role: 'user', content: 'Why did orders drop?' })
   })
-  it('follows the links of the first item delivered once when get_related is offered, and cites only items in service', async () => {
+  it('reads the first item delivered and one item it links to when read_context is offered, and cites only that', async () => {
     const tools = arm(delivery)
     const asked: unknown[] = []
+    const reads: Record<string, object> = {
+      itm_closure0001: {
+        status: 'matched',
+        context: {
+          id: 'itm_closure0001',
+          title: 'Norway closure',
+          summary: 'Online sales stopped.',
+        },
+        links_out: [
+          { rel: 'mentions', target: { type: 'item', id: 'itm_oldrule001', status: 'retired' } },
+          { rel: 'mentions', target: { type: 'item', id: 'itm_refunds001', status: 'current' } },
+          { rel: 'mentions', target: { type: 'metric', id: 'metric:orders', status: 'current' } },
+        ],
+        links_in: { count: 0, items: [] },
+      },
+      itm_refunds001: {
+        status: 'matched',
+        context: {
+          id: 'itm_refunds001',
+          title: 'Refund rule',
+          summary: 'Orders are counted net of refunds.',
+        },
+        links_out: [],
+        links_in: { count: 1, items: [{ rel: 'mentioned_by', id: 'itm_closure0001' }] },
+      },
+    }
     const withLinks = {
       ...tools,
       tools: {
         ...tools.tools,
-        get_related: dynamicTool({
-          description: 'Follow links.',
+        read_context: dynamicTool({
+          description: 'Read one in full.',
           inputSchema: jsonSchema({ type: 'object', properties: { id: { type: 'string' } } }),
           execute: (input) => {
             asked.push(input)
-            return Promise.resolve({
-              status: 'matched',
-              nodes: [
-                {
-                  type: 'item',
-                  id: 'itm_refunds001',
-                  status: 'current',
-                  label: 'Refund rule',
-                  summary: 'Orders are counted net of refunds.',
-                },
-                { type: 'item', id: 'itm_oldrule001', status: 'retired', label: 'the old rule' },
-                { type: 'metric', id: 'metric:orders', status: 'current', label: 'Orders' },
-              ],
-            })
+            return Promise.resolve(reads[(input as { id: string }).id] ?? { status: 'no_match' })
           },
         }),
       },
     }
     const port = createModelPort({ mode: 'mock' })
     const result = await answerQuestion(withLinks, port.choose('eval_answer'), 'Orders?')
-    expect(asked).toEqual([{ id: 'itm_closure0001' }])
-    expect(result.toolCalls.map((c) => c.tool)).toEqual(['get_context', 'get_related'])
-    expect(result).toMatchObject({ delivered: ['itm_closure0001'], reached: ['itm_refunds001'] })
+    expect(asked).toEqual([{ id: 'itm_closure0001' }, { id: 'itm_refunds001' }])
+    expect(result.toolCalls.map((c) => c.tool)).toEqual([
+      'get_context',
+      'read_context',
+      'read_context',
+    ])
+    expect(result).toMatchObject({
+      delivered: ['itm_closure0001'],
+      reached: ['itm_closure0001', 'itm_refunds001'],
+    })
     expect(result.answer).toContain(
       '[itm_refunds001] Refund rule: Orders are counted net of refunds.',
     )

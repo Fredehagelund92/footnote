@@ -7,11 +7,10 @@ import { canResume } from '../../../src/server/modules/evals/runs.ts'
 */
 
 it('resumes only an incomplete run of a kind the worker takes', () => {
-  const kinds = ['full', 'scheduled', 'links', 'held_out']
+  const kinds = ['full', 'scheduled', 'held_out']
   expect(kinds.filter((kind) => canResume({ kind, state: 'incomplete' }).resume)).toEqual([
     'full',
     'scheduled',
-    'links',
   ])
   const heldOut = canResume({ kind: 'held_out', state: 'incomplete' })
   expect(heldOut.resume || heldOut.why).toContain('npm run held-out -- eval')

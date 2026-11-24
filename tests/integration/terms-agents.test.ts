@@ -311,8 +311,8 @@ it('names the terms of a query and of an item', async () => {
   expect(read.terms).toEqual([peakEntry('peak season')])
 })
 
-it('lists a term with what it means, its owner as a role, and no synonym as a term (FR-351)', async () => {
-  const terms = (await tool('list_definitions', { kind: 'term' })).reply as Reply & {
+it('lists a term with what it means, its owner as a role, and no synonym as a term (FR-338)', async () => {
+  const terms = (await tool('find_context', { kind: 'term' })).reply as Reply & {
     total: number
     definitions: Record<string, unknown>[]
   }
@@ -330,11 +330,11 @@ it('lists a term with what it means, its owner as a role, and no synonym as a te
     },
   ])
   // A synonym of a metric is one of its other names, never a definition of its own.
-  const all = (await tool('list_definitions', { limit: 100 })).reply.definitions as unknown as {
+  const all = (await tool('find_context', { limit: 100 })).reply.definitions as unknown as {
     name: string
   }[]
   expect(all.map((d) => d.name)).toEqual(['Orders', 'Market', 'Peak season'])
-  const purchases = (await tool('list_definitions', { query: 'purchases' })).reply
+  const purchases = (await tool('find_context', { kind: 'metric', query: 'purchases' })).reply
   expect(purchases).toMatchObject({ status: 'matched', definitions: [{ key: 'metric:orders' }] })
 })
 

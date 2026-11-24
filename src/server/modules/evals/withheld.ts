@@ -116,7 +116,7 @@ export async function runWithheld(
   const prepared = await database.transaction(person, async (tx) => {
     const head = await liveHead(tx)
     if (!head) throw new Error('There is no live edition yet')
-    const tools = await armTools(tx, 'full')
+    const tools = await armTools(tx)
     const bundle = (await sidesFor(tx, head)).baseline!
     const cells = questions.reduce((n, q) => n + q.wordings.length * settings.tries, 0)
     const run = await insertRun(tx, {

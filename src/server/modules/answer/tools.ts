@@ -1364,7 +1364,7 @@ async function readContext(
       ids: [],
     }
   const whole = out.context as Record<string, unknown>
-  const links = (Array.isArray(whole.links) ? whole.links : []) as {
+  const links = (Array.isArray(out.links_out) ? out.links_out : []) as {
     target: { type: string; id: string; label: string }
   }[]
   const linksTo = links.flatMap(({ target }) =>
@@ -1374,8 +1374,13 @@ async function readContext(
       ? [{ type: target.type, id: target.id, name: target.label }]
       : [],
   )
-  const back = (out.backlinks ?? { items: [] }) as { items: { id: string; title: string }[] }
-  const linkedFrom = back.items.filter((b) => view.readable.has(b.id))
+  // The items whose words mention it: what links to it, as Ask names it.
+  const back = (out.links_in ?? { items: [] }) as {
+    items: { rel: string; id: string; title: string }[]
+  }
+  const linkedFrom = back.items
+    .filter((b) => b.rel === 'mentioned_by' && view.readable.has(b.id))
+    .map(({ id, title }) => ({ id, title }))
   const source = whole.source as { url: string; quote: string } | undefined
   const ownerIds = view.areas.find((a) => a.id === item.areaId)?.ownerIds ?? []
   const changes = (await reads.itemHistory(item.id)) ?? []

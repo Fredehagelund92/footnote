@@ -43,7 +43,6 @@ import {
   usedLine,
   type Connected,
 } from '@/lib/connect'
-import { useSetLinksEnabled, useLinksEnabled } from '@/lib/links-switch'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
 import { useReported } from '@/lib/reported'
 import { cn } from '@/lib/utils'
@@ -590,8 +589,6 @@ function AgentRow({
 export function Agents() {
   const domains = useDomains()
   const domainIds = useDomainList().map((d) => d.id)
-  const linksOn = useLinksEnabled()
-  const setLinksEnabled = useSetLinksEnabled()
   const write = useWrite()
   const { admin } = useMe()
   const { pause, tools } = useSettings()
@@ -625,8 +622,7 @@ export function Agents() {
           description: toApiError(e).message,
         }),
       )
-  const workspaceOff = (tool: AgentToolName) =>
-    tool === 'get_related' ? !linksOn : tools[tool] === false
+  const workspaceOff = (tool: AgentToolName) => tools[tool] === false
   const rows = useAgentConnections()
   const [revoking, setRevoking] = React.useState<Connected>()
   const leaving = useLeavingRows()
@@ -763,45 +759,22 @@ export function Agents() {
         >
           <FrameRows
             rows={[
-              ...AGENT_TOOLS.filter((t) => t.name !== 'get_related').map(
-                ({ name, title, what }) => ({
-                  id: name,
-                  label: (
-                    <label htmlFor={`tool-${name}`} className="text-sm">
-                      {title}{' '}
-                      <code className="font-mono text-xs text-muted-foreground">{name}</code>
-                    </label>
-                  ),
-                  hint: what,
-                  value: (
-                    <Switch
-                      id={`tool-${name}`}
-                      checked={tools[name] ?? true}
-                      onCheckedChange={(on) => setTool(name, on)}
-                    />
-                  ),
-                }),
-              ),
-              // Following links has its own switch: on in the demo, and it never changes what an answer includes.
-              {
-                id: 'get_related',
+              ...AGENT_TOOLS.map(({ name, title, what }) => ({
+                id: name,
                 label: (
-                  <label htmlFor="tool-get_related" className="flex flex-col gap-0.5">
-                    <span className="text-sm">
-                      Let agents follow links{' '}
-                      <code className="font-mono text-xs text-muted-foreground">get_related</code>
-                    </span>
+                  <label htmlFor={`tool-${name}`} className="text-sm">
+                    {title} <code className="font-mono text-xs text-muted-foreground">{name}</code>
                   </label>
                 ),
-                hint: 'Follows a link between context items, definitions and domains, one step at a time. It never changes what an answer includes, and never lets agents read comments.',
+                hint: what,
                 value: (
                   <Switch
-                    id="tool-get_related"
-                    checked={linksOn}
-                    onCheckedChange={setLinksEnabled}
+                    id={`tool-${name}`}
+                    checked={tools[name] ?? true}
+                    onCheckedChange={(on) => setTool(name, on)}
                   />
                 ),
-              },
+              })),
               {
                 id: 'keys',
                 label: 'Access keys',

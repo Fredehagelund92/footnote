@@ -54,7 +54,6 @@ export const writesStillToReport = [
   'src/web/components/footnote/fact-peek.tsx',
   'src/web/components/obs/save-question.tsx',
   'src/web/components/obs/topic-filters.tsx',
-  'src/web/lib/links-switch.ts',
   'src/web/lib/threads.ts',
   'src/web/pages/ask.tsx',
   'src/web/pages/fact.tsx',

@@ -29360,10 +29360,7 @@
                                 "find_context",
                                 "read_context",
                                 "report",
-                                "suggest_context",
-                                "get_related",
-                                "list_definitions",
-                                "list_context"
+                                "suggest_context"
                               ],
                               "type": "string"
                             },
@@ -30145,10 +30142,7 @@
                       "find_context",
                       "read_context",
                       "report",
-                      "suggest_context",
-                      "get_related",
-                      "list_definitions",
-                      "list_context"
+                      "suggest_context"
                     ],
                     "type": "string"
                   },
@@ -37430,7 +37424,7 @@
     "/items/{id}/related": {
       "get": {
         "operationId": "items.related",
-        "summary": "Context related to an item, one step away, as get_related follows it: what people see in Related",
+        "summary": "Context related to an item, one step away, as agents follow it: what people see in Related",
         "tags": [
           "library"
         ],
@@ -37510,15 +37504,11 @@
                     },
                     "withheld": {
                       "type": "number"
-                    },
-                    "following": {
-                      "type": "boolean"
                     }
                   },
                   "required": [
                     "nodes",
-                    "withheld",
-                    "following"
+                    "withheld"
                   ]
                 }
               }
@@ -48621,7 +48611,7 @@
     "/definitions/related": {
       "get": {
         "operationId": "definitions.related",
-        "summary": "Context related to a metric or a dimension, one step away, as get_related follows it: what people see in Related",
+        "summary": "Context related to a metric or a dimension, one step away, as agents follow it: what people see in Related",
         "tags": [
           "library"
         ],
@@ -48702,15 +48692,11 @@
                     },
                     "withheld": {
                       "type": "number"
-                    },
-                    "following": {
-                      "type": "boolean"
                     }
                   },
                   "required": [
                     "nodes",
-                    "withheld",
-                    "following"
+                    "withheld"
                   ]
                 }
               }
@@ -77788,7 +77774,6 @@
                         "enum": [
                           "full",
                           "scheduled",
-                          "links",
                           "held_out"
                         ],
                         "type": "string"
@@ -78437,7 +78422,6 @@
                           "enum": [
                             "full",
                             "scheduled",
-                            "links",
                             "held_out"
                           ],
                           "type": "string"
@@ -79051,94 +79035,6 @@
                         }
                       ]
                     },
-                    "links": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "gained": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "lost": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "arms": {
-                              "type": "object",
-                              "properties": {
-                                "baseline": {
-                                  "type": "object",
-                                  "properties": {
-                                    "answers": {
-                                      "type": "number"
-                                    },
-                                    "calls": {
-                                      "type": "number"
-                                    },
-                                    "costMicros": {
-                                      "type": "number"
-                                    },
-                                    "causeClaims": {
-                                      "type": "number"
-                                    }
-                                  },
-                                  "required": [
-                                    "answers",
-                                    "calls",
-                                    "costMicros",
-                                    "causeClaims"
-                                  ]
-                                },
-                                "candidate": {
-                                  "type": "object",
-                                  "properties": {
-                                    "answers": {
-                                      "type": "number"
-                                    },
-                                    "calls": {
-                                      "type": "number"
-                                    },
-                                    "costMicros": {
-                                      "type": "number"
-                                    },
-                                    "causeClaims": {
-                                      "type": "number"
-                                    }
-                                  },
-                                  "required": [
-                                    "answers",
-                                    "calls",
-                                    "costMicros",
-                                    "causeClaims"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "baseline",
-                                "candidate"
-                              ]
-                            },
-                            "gain": {
-                              "type": "boolean"
-                            }
-                          },
-                          "required": [
-                            "gained",
-                            "lost",
-                            "arms",
-                            "gain"
-                          ]
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
                     "agreement": {
                       "anyOf": [
                         {
@@ -79420,7 +79316,6 @@
                     "results",
                     "flips",
                     "scorecard",
-                    "links",
                     "agreement",
                     "judging",
                     "stopped",
@@ -79860,7 +79755,6 @@
                       "enum": [
                         "full",
                         "scheduled",
-                        "links",
                         "held_out"
                       ],
                       "type": "string"
@@ -80504,7 +80398,6 @@
                       "enum": [
                         "full",
                         "scheduled",
-                        "links",
                         "held_out"
                       ],
                       "type": "string"
@@ -81149,7 +81042,6 @@
                       "enum": [
                         "full",
                         "scheduled",
-                        "links",
                         "held_out"
                       ],
                       "type": "string"

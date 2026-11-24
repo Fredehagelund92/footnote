@@ -254,9 +254,7 @@ export type Settings = {
    * Null where this workspace serves no agents.
    */
   mcpAddress: string | null
-  /** Let agents follow links (get_related). */
-  links: boolean
-  /** Which of the other tools agents may call, by name: on unless an admin switched it off. */
+  /** Which tools agents may call, by name: on unless an admin switched it off. */
   tools: Record<string, boolean>
   /**
    * Pause sharing, for an emergency: agents get no context at all, or none of one domain's.
@@ -332,11 +330,11 @@ export type ItemPage = {
 }
 
 /**
- * Related: what an agent can follow from a context item or a definition with get_related, one
+ * Related: what an agent can follow from a context item or a definition with read_context, one
  * step, as people see it. The links in the text both ways and the owners' relations, in the order
- * agents follow them, and whether agents follow links now (the switch in Agents and access).
+ * agents follow them.
  */
-export type Related = { links: Link[]; following: boolean }
+export type Related = { links: Link[] }
 
 /**
  * A change to many items at once: what it does, their edits, the drafts it deletes, and its line in
@@ -743,7 +741,6 @@ export interface FootnoteApi {
 
   // Settings, integrations and agents
   getSettings: () => Promise<Settings>
-  setLinks: (input: { on: boolean }) => Promise<void>
   /** Switches one tool agents call on or off, for every agent. */
   setTool: (input: { name: string; on: boolean }) => Promise<void>
   /**
@@ -1038,7 +1035,6 @@ export const footnoteApiMethods = [
   'muteAlert',
   'setAlertThreshold',
   'getSettings',
-  'setLinks',
   'setTool',
   'setPause',
   'createAccessKey',

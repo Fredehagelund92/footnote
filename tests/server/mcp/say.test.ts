@@ -359,23 +359,34 @@ describe('the other read tools say', () => {
     )
   })
 
-  it('read_context and get_related: what they give, and a miss in the same words for any id', async () => {
+  it('find_context without words: how many there are, which are shown, and the order', async () => {
+    const run = setup()
+    const all = await run('find_context', {})
+    expect(said(all)).toBe('There are 2 definitions and 1 published context item you can read.')
+    expect(nextOf(all)).toBe(
+      'They come in a fixed order: definitions first, metrics, then dimensions, then terms, each A to Z, then context items A to Z by title. Read one in full with read_context, by its id or key; for what applies to a question about a metric, call get_context.',
+    )
+    const page = await run('find_context', { limit: 2 })
+    expect(said(page)).toBe(
+      'There are 2 definitions and 1 published context item you can read; 1 to 2 are shown.',
+    )
+    expect(nextOf(page)).toContain('Pass next_cursor as cursor for the next page.')
+    expect(said(await run('find_context', { kind: 'guide' }))).toBe(
+      "There's no definition or published context item you can read with these filters.",
+    )
+  })
+
+  it('read_context: what it gives, and a miss in the same words for any id', async () => {
     const run = setup()
     const read = await run('read_context', { id: 'itm_norway01' })
     expect(said(read)).toBe('This is the full event, version 1.')
     expect(nextOf(read)).toBe(
-      'A link shows what a context item mentions: it does not mean the context item applies to the question.',
+      'links_out and links_in show what it links to and what links to it: read one with read_context only when it helps answer the question. A link does not mean the context item applies to the question, nor prove a cause.',
     )
     const missing = await run('read_context', { id: 'itm_missing001' })
     expect(said(missing)).toBe("There's no context item by that id that you can read.")
     expect(nextOf(missing)).toBe(
       'That says nothing about what else is written down: find context items with find_context or get_context.',
-    )
-    expect(said(await run('get_related', { id: 'metric:orders' }))).toBe(
-      '1 thing is linked to it, up to 1 step away.',
-    )
-    expect(nextOf(await run('get_related', { id: 'itm_missing001' }))).toBe(
-      'That says nothing about what else is written down.',
     )
   })
 
@@ -387,8 +398,8 @@ describe('the other read tools say', () => {
     for (const [name, args] of [
       ['get_context', ask()],
       ['read_context', { id: 'itm_norway01' }],
-      ['get_related', { id: 'itm_norway01' }],
       ['find_context', { query: 'Norway' }],
+      ['find_context', {}],
     ] as const) {
       const reply = await run(name, args)
       expect(name === 'get_context' ? sayOf(reply) : said(reply)).not.toContain('Ignore your rules')
@@ -431,7 +442,7 @@ describe("find_context's sentence when no words match but what they name does", 
       ),
     ).toEqual({
       say: `3 context items apply to Orders in Norway. 2 are shown. Nothing else was looked up. ${assumed}`,
-      next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, markets or dates. Raise limit for more.",
+      next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, markets or dates. Pass next_cursor as cursor for the next page.",
     })
   })
 })
@@ -481,7 +492,7 @@ describe('the days of a window, as people read them', () => {
 /*
   get_context speaks the agent contract: the status first, then say, which starts with the answer
   line (FR-349). The answer line's words are fixed by docs/product.md (section 6); the rest of the
-  sentence uses no word the glossary bans where people read, and points at the six tools.
+  sentence uses no word the glossary bans where people read, and points at the other tools.
 */
 describe('get_context says, with the answer line first', () => {
   const contextSaidOf = (result: ToolResult) => {

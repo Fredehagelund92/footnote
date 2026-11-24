@@ -663,8 +663,6 @@ export const invalidations: {
   rateAnswer: () => [queryKeys.observabilityPages],
   takeBackRating: () => [queryKeys.observabilityPages],
   tellOwner: () => inbox,
-  // Related says whether agents follow links.
-  setLinks: () => [queryKeys.settings, queryKeys.relateds],
   setTool: () => [queryKeys.settings, queryKeys.agentConnections, queryKeys.allDomainPolicies],
   setPause: () => [queryKeys.settings, queryKeys.advancedPage],
   setAutomaticRuns: () => [queryKeys.settings, queryKeys.advancedPage],

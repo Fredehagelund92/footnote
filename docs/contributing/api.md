@@ -16,17 +16,19 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
   --header "Authorization: Bearer $(npm run --silent token:dev)"
 ```
 
-### The eight tools (the agent contract)
+### The five tools (the agent contract)
 
-The server offers eight tools ([the product page](../product.md#10-what-agents-get)), described in
+The server offers five tools ([the product page](../product.md#10-what-agents-get)), described in
 one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
-`read_context`, `report`, `suggest_context`, `get_related`, `list_definitions` and
-`list_context`. A call by any other id is refused
-as an unknown tool. The review's delivery check and the evals read `get_context`'s full reply,
+`read_context`, `report` and `suggest_context`. A call by any other id is refused as an unknown
+tool. Each description says what the tool is for and what it is not: only `get_context` says to
+call it before answering, and only for a question about a metric. `get_context` carries
+`_meta: { "anthropic/alwaysLoad": true }`, so Claude Code loads it when a session starts, while
+its tool search loads the others when they are needed. The review's delivery check and the evals read `get_context`'s full reply,
 made by the same code with nothing recorded.
 
 Footnote's server instructions (FR-343) tell the agent what Footnote holds and what the data tool holds,
-to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
+to call `get_context` first for a metric, how to read each status and its answer state (FR-349), to pass on a
 result's `say`, which starts with the answer line, and to follow its `next`, the step for the agent
 (every read result has them, FR-344, so they reach a client that drops the instructions), how to
 speak about a context item with people, how dates in a question's words are read and that a question
@@ -146,12 +148,23 @@ the whole compound is one), and says why when nothing is found. It takes a `doma
 `rule`, `guide`), a `window` and a `limit`, and lists titles and summaries under `context`, never a
 body. An unknown domain comes back with the closest match and every valid choice (FR-341); a
 domain named by another spelling is read as that domain (`src/domain/domain-match.ts`). The words
-of the query a person defined come back in `terms`, as for `get_context`.
+of the query a person defined come back in `terms`, as for `get_context`. A search gives 10 to a
+page by default, at most 100, with `total` and `next_cursor`. Without `query`, it lists what there
+is (the browse that was `list_definitions` and `list_context`): the definitions agents may see
+(metrics and families, then dimensions, then terms, each A to Z, each with its owner as a role and
+a one-line meaning) and then the published items the caller may read (FR-314), A to Z by title,
+each with its title and summary and never its text. `kind` takes `metric`, `dimension` or `term`
+too, which lists only those definitions, by the words of their names when `query` is given. A list
+gives 25 to a page by default, at most 100, with `total` and `next_cursor`.
 
-**`read_context`** reads one item in full (`context`): its text, every source, who checked it, its
-Don't conclude line and its outgoing links, with a page of the items that link to it. The
-words of its title, summary and text that a person defined come back in `terms`, as for
-`get_context`. An `id` that is no item's id names a definition (FR-353,
+**`read_context`** reads one item in full (`context`): its text, every source, who checked it and
+its Don't conclude line, with its links one step: `links_out`, the links it writes (FR-331), and
+`links_in`, a page of 20 of the items the caller may read that mention it, replace it or conflict
+with it, with `next_cursor`. `relations` keeps only some kinds (`replaces`, `replaced_by`,
+`conflicts_with`, `applies_to`, `mentions`, `mentioned_by`, `in_area`). A link the caller may not
+see is counted in `links_withheld`, and an item the caller may not see is "Not found", exactly like
+one that does not exist (FR-334). A link never changes what `get_context` delivers. The words of
+its title, summary and text that a person defined come back in `terms`, as for `get_context`. An `id` that is no item's id names a definition (FR-353,
 `src/server/mcp/read-definition.ts`): its name, another name, its key or its member name in the
 source. It reads one definition in full (`definition`) from the live edition, with what
 Definitions shows of it (family, meaning, usual metric, read date, relations), read as nobody
@@ -167,22 +180,6 @@ missing, wrong and unclear into a gap for the reply's topic (FR-606, case 3). So
 no reply takes the question's metrics, markets and dates instead and is recorded as a gap.
 The reply says who will see it (`to`, "the owner of Sales") and never keeps who
 asked (FR-602).
-
-`get_related` (FR-332) follows links from an item id, a vocabulary key such as `metric:orders`,
-a term written in Definitions (`term:<id>`, FR-138) or a domain (`area:finance`): the neighbours one step away (`depth: 2` for two), each listed once
-at its shortest distance, in a fixed order (distance, kind of link, higher risk, newer start, id),
-at most 50 a page (`max_nodes`, default 20) with `next_cursor`, and the stored links among them
-as `edges`. `relations` narrows the kinds (`replaces`, `replaced_by`, `conflicts_with`,
-`applies_to`, `mentions`, `mentioned_by`, `in_area`; all but `in_area` by default) and `window`
-the dates of neighbour items. Neighbours carry titles and summaries, never bodies; a retired or
-replaced item shows only the author's words. A term comes with its word and what it means (`meaning`), as
-a person wrote it (a synonym with what it is another name for, `same_as`), read as it is now:
-terms are not sealed in an edition, so a deleted term reads as `retired` with the author's words,
-and a term that means something else now as `unresolved`. A neighbour the caller may not see is counted in
-`links_withheld`, never listed or counted in `counts`, and a start the caller may not see is "Not
-found", exactly like one that does not exist. A link never changes what `get_context` delivers.
-The pure resolver is `src/domain/links.ts`. **It is on by default**, with its own switch
-(`POST /tools/get_related`).
 
 **`suggest_context`** (FR-121) lets an agent send a suggestion, as the person it acts for, after
 the person says yes. **It is on by default**, and the `propose` scope is granted at consent (the
@@ -288,7 +285,7 @@ records. Questions, bearer tokens, addresses and incoming RPC ids never enter th
 Tool descriptions, schemas and annotations have a snapshot and SHA-256 digest, exposed in
 `X-Footnote-Tool-Digest` and each tool result's `_meta` and stored with deliveries. What serves a cache
 or an audit stays out of what a model reads (FR-346): `tool_schema_digest`, `overlay` and, on
-paged replies (`read_context`, `get_related`), `ttlMs: 0` and `cacheScope:
+paged replies (`read_context`, `find_context` without words), `ttlMs: 0` and `cacheScope:
 "private"` travel in `_meta`, which clients keep from the model (ChatGPT documents it as hidden).
 The text and `structuredContent` carry `say`, `next`, the status, `edition` and the items. A cache keys on
 `edition` and `_meta.overlay`, as before under the same names.
@@ -649,15 +646,14 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   table reads a version (`fields`, with the domain and the owner by name) and as its stored text
   (`source`). A mention of an item hidden from the reader reads as its words.
 - `GET /items/{id}/related` is Related on a context item: its neighbours one step away, as
-  `get_related` follows them on what agents get now, with how each relates to the item itself
+  agents follow them on what they get now, with how each relates to the item itself
   (`mentions`, `mentioned_by`, `replaces`, `replaced_by`, `conflicts_with`, `applies_to`).
   Neighbours the person may not see are counted in `withheld`, never named. A retired or replaced
   item is named by its title, as the Context list shows it, where agents get only the words that
   linked to it. A term written in Definitions is a `term` node, by `term:<id>` and its word. A
   metric the text mentions is a `mentions` link even when the item also applies to it.
   `areaId` is the item's domain and each neighbour's, a metric's or a dimension's as
-  Definitions shows it; `following` says whether agents follow links now (the `get_related`
-  switch).
+  Definitions shows it.
 - `POST /items/publish` takes `{ draft, itemId?, version?, reason?, draftId?, relations? }` (FR-137). An
   owner of the draft's domain (and, for a change, of the item's domain now) or an admin publishes
   it in one step, through the same checks and clash gate as the review; anyone else's goes to the

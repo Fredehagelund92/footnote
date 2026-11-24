@@ -1,8 +1,16 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-23
+reviewed: 2026-11-24
 ---
+
+## Five tools for agents
+
+2026-11-24
+
+Agents now call five tools. Given no words, find_context lists what is defined and written down, a page at a time, with each item's summary. read_context gives an item's links with every read, so Agents and access no longer has a Let agents follow links switch, and Settings lists five tools.
+
+Only get_context says to call it first, and only for a question about a metric, so an agent looks a name up with find_context. In Claude Code, get_context loads when a session starts. See [Agent tools](tools.md).
 
 ## Waiting for review, and Don't publish
 

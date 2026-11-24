@@ -251,13 +251,12 @@ const shot = (name: string) => {
   <section class="agents" id="agents" aria-labelledby="h-agents">
     <div class="inner">
       <div>
-        <h2 id="h-agents">Six MCP tools, and no model on our side.</h2>
+        <h2 id="h-agents">Five MCP tools, and no model on our side.</h2>
         <p class="lede">Your agent connects over MCP and signs in as you. Footnote doesn't run a model for agents, so the same question gets the same items until an owner publishes a change.</p>
         <ul class="tools">
           <li><code>get_context</code><span>The items that apply to a question about a metric, a market or some dates, with the answer line first.</span></li>
-          <li><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV.</span></li>
-          <li><code>read_context</code><span>One item in full, with its source and its owner.</span></li>
-          <li><code>get_related</code><span>Follow the links from an item, a metric or a domain. A link is not proof of a cause.</span></li>
+          <li><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV, or list what there is.</span></li>
+          <li><code>read_context</code><span>One item or definition in full, with its source, its owner and its links. A link is not proof of a cause.</span></li>
           <li><code>report<i>asks first</i></code><span>Tell the owner an item looks wrong or unclear, after the person says yes.</span></li>
           <li><code>suggest_context<i>asks first</i></code><span>Send the owner a suggestion. Nothing goes live until they've checked it.</span></li>
         </ul>

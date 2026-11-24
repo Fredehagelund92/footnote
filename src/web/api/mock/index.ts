@@ -715,7 +715,6 @@ export function createMockApi() {
           definitions: definitions.list(),
           domains: Object.fromEntries(workspace.domains().map((d) => [d.id, d])),
         }),
-        following: settings.read(scenario.address()).links,
       })),
     // The item's words as they are now: the demo's versions are made up, so each restores the same.
     restoreAsDraft: ({ id }) =>
@@ -1239,7 +1238,6 @@ export function createMockApi() {
 
     // Settings, integrations and agents
     getSettings: () => now(() => settings.read(scenario.address())),
-    setLinks: ({ on }) => now(() => settings.setLinks(on)),
     setTool: ({ name, on }) => now(() => settings.setTool(name, on)),
     setPause: (change) => now(() => settings.setPause(change)),
     createAccessKey: ({ name }) =>

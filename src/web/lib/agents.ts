@@ -4,6 +4,7 @@ import openai from '@/assets/logos/openai.svg'
 import vscode from '@/assets/logos/vscode.svg'
 import { MCP_URL, SLUG } from '@/lib/brand'
 import type { LivePhase } from '@/lib/connect'
+import { AGENT_TOOLS, askFirstLine } from '@domain/mcp-text'
 
 // How an agent connects. One prompt first: the agent adds the server, writes the Ask-first line into
 // the project's instructions file and says how to sign in. Quick links where a client has a real
@@ -13,8 +14,7 @@ import type { LivePhase } from '@/lib/connect'
 export const ADDRESS = MCP_URL
 
 /** What a coding agent adds to its instructions so it asks before it answers about numbers. */
-export const ASK_FIRST_LINE =
-  'Before you answer a question about company data, call get_context first and use what it returns.'
+export const ASK_FIRST_LINE = askFirstLine
 
 /** Claude Code's one line, for the MCP server at `address`. */
 export const claudeCodeCommand = (address = ADDRESS) =>
@@ -190,76 +190,10 @@ export function logoFor(agent: string) {
 }
 
 /** The tools an agent can call, with what each does in plain words: Settings and the docs list the same. */
-export const AGENT_TOOLS: {
-  name: string
-  /** The plain name: shown first, with the exact tool name small beside it. */
-  title: string
-  what: string
-  takes: string
-  returns: string
-}[] = [
-  {
-    name: 'get_context',
-    title: 'Get the context for a question',
-    what: 'The context that applies to a question, with one sentence to relay.',
-    takes: 'The question, or a metric, markets and dates.',
-    returns: 'The answer line, the context items that apply, and one sentence to relay.',
-  },
-  {
-    name: 'find_context',
-    title: 'Search context by words',
-    what: 'A word search over names, titles and summaries.',
-    takes: 'A few words.',
-    returns: 'Matching context items and definitions, titles only.',
-  },
-  {
-    name: 'read_context',
-    title: 'Read one context item or definition',
-    what: 'One context item or one definition in full.',
-    takes: 'A context item, or a definition by its name.',
-    returns:
-      "A context item's text, source, check date and don't conclude line; a definition's words, owner, family and the context items about it.",
-  },
-  {
-    name: 'report',
-    title: 'Tell an owner something is wrong',
-    what: 'Tell the owner something is missing, wrong or unclear.',
-    takes: 'What is wrong, after the person says yes.',
-    returns: 'That it was sent, and to which owner.',
-  },
-  {
-    name: 'suggest_context',
-    title: 'Suggest context to an owner',
-    what: 'Send a suggestion to the owner, after the person says yes.',
-    takes: 'The suggested text and what it applies to.',
-    returns:
-      "That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.",
-  },
-  {
-    name: 'get_related',
-    title: 'Follow a link',
-    what: 'Follow a link between context items, definitions and domains, one step at a time.',
-    takes: 'A context item, a definition or a domain.',
-    returns: 'What it links to and is linked from, without changing what an answer includes.',
-  },
-  {
-    name: 'list_definitions',
-    title: 'List definitions',
-    what: 'The metrics, dimensions and terms in Definitions, a page at a time.',
-    takes: 'A domain, a kind or a word, all optional.',
-    returns: 'Each name with its kind, domain, owner and a one-line meaning.',
-  },
-  {
-    name: 'list_context',
-    title: 'List context items',
-    what: 'The published context items, a page at a time.',
-    takes: 'A domain, a kind or a word, all optional.',
-    returns: "Each context item's title, kind, domain and dates, never its text.",
-  },
-]
+export { AGENT_TOOLS }
 
 /** The tools a connected agent can call on connecting, as the live line names them. */
-export const TOOL_NAMES = AGENT_TOOLS.filter((t) => t.name !== 'get_related').map((t) => t.name)
+export const TOOL_NAMES = AGENT_TOOLS.map((t) => t.name)
 
 /* ---------- What the live line says ---------- */
 
