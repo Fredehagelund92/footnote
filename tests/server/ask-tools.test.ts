@@ -767,3 +767,38 @@ describe('the definitions tool by other names', () => {
     expect(JSON.stringify(result)).toContain('Revenue after returns and discounts.')
   })
 })
+
+describe('read_context in Ask', () => {
+  it('lists 20 items that mention the item, reading past the conflicts that sort first', async () => {
+    const data = bundle(),
+      item = data.items[0]!
+    const added = (prefix: string, rel: string, count: number) =>
+      Array.from({ length: count }, (_, n) => {
+        const id = `itm_${prefix}${String(n).padStart(4, '0')}`
+        data.items.push({ ...item, id })
+        data.links.push({
+          from_item: id,
+          rel,
+          to_kind: 'item',
+          to_id: item.id,
+          label: item.title,
+        })
+        return id
+      })
+    added('conflict', 'conflicts_with', 5)
+    const mentions = added('mention', 'mentions', 25)
+    const reads = {
+      ...noReads,
+      bundle: () => Promise.resolve(data),
+      readable: () => Promise.resolve(data.items),
+      catalogue: () => Promise.resolve({ terms: [] }),
+      areas: () => Promise.resolve([]),
+      people: () => Promise.resolve([]),
+      itemHistory: () => Promise.resolve([]),
+    } as unknown as ToolReads
+    const result = (await createAskTools(reads).run('read_context', { id: item.id })) as {
+      item: { linkedFrom: { id: string }[] }
+    }
+    expect(result.item.linkedFrom.map((l) => l.id)).toEqual(mentions.slice(0, 20))
+  })
+})

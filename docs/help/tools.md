@@ -137,7 +137,14 @@ To pick a few at random, an agent reads a page of up to 100 and picks from it, o
 - `links_out`: what the item links to, such as a metric it applies to or an item it mentions, each with how it links and whether it is still there.
 - `links_in`: the items that link to it, 20 to a page with `next_cursor`: those that mention it, replace it or disagree with it.
 
-`relations` keeps only some kinds of link: `replaces`, `replaced_by`, `conflicts_with`, `applies_to`, `mentions`, `mentioned_by` or `in_area`. To follow a link, the agent reads the linked item the same way. A link never changes what `get_context` delivers, and an item the agent may not see is left out.
+`relations` keeps only some kinds of link, out and in. It takes any of these:
+
+- `replaces` and `replaced_by`
+- `conflicts_with`
+- `applies_to` and `in_area`
+- `mentions` and `mentioned_by`
+
+To follow a link, the agent reads the linked item the same way. A link never changes what `get_context` delivers, and an item the agent may not see is left out.
 
 ## Read a definition: read_context
 

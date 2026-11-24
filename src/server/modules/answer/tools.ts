@@ -1298,6 +1298,8 @@ function unreadOf(
 const historySchema = z.array(z.object({ on: z.string(), change: z.string() }))
 /** The most changes a history lists. */
 const HISTORY_SHOWN = 6
+/** The most items that mention an item that Ask lists. */
+const BACKLINKS_SHOWN = 20
 
 /** What a version of an item changed, as its History says it (versionKinds). */
 const versionWords: Record<string, string> = {
@@ -1375,11 +1377,25 @@ async function readContext(
       : [],
   )
   // The items whose words mention it: what links to it, as Ask names it.
-  const back = (out.links_in ?? { items: [] }) as {
-    items: { rel: string; id: string; title: string }[]
+  type Back = { rel: string; id: string; title: string }
+  const mentions: Back[] = []
+  let page = out
+  for (;;) {
+    const back = (page.links_in ?? { items: [] }) as { items: Back[] }
+    mentions.push(...back.items.filter((b) => b.rel === 'mentioned_by' && view.readable.has(b.id)))
+    const cursor = page.next_cursor
+    if (mentions.length >= BACKLINKS_SHOWN || typeof cursor !== 'string') break
+    const next = await view.execute(
+      'read_context',
+      { id: input.id, cursor },
+      ASK_PRINCIPAL,
+      100_000,
+      () => {},
+    )
+    page = next?.structuredContent ?? {}
   }
-  const linkedFrom = back.items
-    .filter((b) => b.rel === 'mentioned_by' && view.readable.has(b.id))
+  const linkedFrom = mentions
+    .slice(0, BACKLINKS_SHOWN)
     .map(({ id, title }) => ({ id, title }))
   const source = whole.source as { url: string; quote: string } | undefined
   const ownerIds = view.areas.find((a) => a.id === item.areaId)?.ownerIds ?? []
