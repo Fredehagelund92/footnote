@@ -173,7 +173,7 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
         : `Waiting for ${row.item.waitingFor.split(',')[0]}`
   const { card, done } = row
   if (done) return `${done.label}, ${midSentence(done.at)}`
-  if (card.names) return card.line
+  if (card.names || card.drafts) return card.line
   const s = card.suggestion
   const from = card.source
     ? `${card.source.tool}, ${card.source.folder}`
@@ -953,6 +953,7 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
 }
 
 const NamesReview = React.lazy(() => import('@/components/footnote/names-review'))
+const DraftsReview = React.lazy(() => import('@/components/footnote/drafts-review'))
 const NamesDialog = React.lazy(() =>
   import('@/components/footnote/names-review').then((m) => ({ default: m.NamesDialog })),
 )
@@ -1129,6 +1130,29 @@ function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next:
         onOpenFamily={(key) => openFromRow('family', key)}
         show={show === 'families' || show === 'names' ? show : undefined}
         onShow={(next) => setQuery({ show: next })}
+        frame={(body, foot) => (
+          <InboxPanel label={card.title} nav={nav} foot={foot}>
+            {body}
+          </InboxPanel>
+        )}
+      />
+    </React.Suspense>
+  )
+}
+
+/** The person's own drafts that wait for them, in the Inbox's pane: one card publishes them all (FR-139). */
+function DraftsDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next: () => void }) {
+  const write = useWrite()
+  React.useEffect(() => {
+    void write('markOpened', { ids: [card.id] })
+    // Once per card opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card.id])
+  return (
+    <React.Suspense fallback={<ListSkeleton />}>
+      <DraftsReview
+        card={card}
+        onFinished={next}
         frame={(body, foot) => (
           <InboxPanel label={card.title} nav={nav} foot={foot}>
             {body}
@@ -1654,6 +1678,8 @@ export function InboxPage() {
   const detail = selected ? (
     selected.kind === 'card' && selected.card.type === 'names' ? (
       <NamesDetail key={selected.card.id} card={selected.card} nav={nav} next={next} />
+    ) : selected.kind === 'card' && selected.card.type === 'drafts' ? (
+      <DraftsDetail key={selected.card.id} card={selected.card} nav={nav} next={next} />
     ) : selected.kind === 'card' ? (
       <CardDetail
         key={selected.card.id}

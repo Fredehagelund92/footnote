@@ -7,11 +7,12 @@ import { ownersOf, type Domains } from '@/model/people'
 
 // What a change to many rows does, row by row, before anything happens: which rows it acts on, and
 // which it leaves alone and why ("2 skipped: owned by Marketing"). Owners of an item's domain and
-// admins change it. A draft (never published) can be deleted; a published item is archived, never
-// deleted, so its history stays and agents simply stop getting it. A draft is published as from the
-// editor, after the editor's own checks: at once in a domain the person owns (or by an admin), and
-// otherwise sent to that domain's owners as a suggestion, which only its writer does. A suggestion
-// waiting for review is left alone: an owner decides it on its page.
+// admins change it. A draft (never published) is its writer's alone (FR-139): only they see it, and
+// they publish it or delete it. A published item is archived, never deleted, so its history stays
+// and agents simply stop getting it. A draft is published as from the editor, after the editor's
+// own checks: at once in a domain the person owns (or by an admin), and otherwise sent to that
+// domain's owners as a suggestion. A suggestion waiting for review is left alone: an owner decides
+// it on its page.
 
 export type Me = { name: string; admin: boolean }
 
@@ -55,18 +56,12 @@ export function planFacts(
       })
       continue
     }
-    // Its writer sends their own draft to the owners, as from the editor.
-    const writes = action === 'publish' && f.status === 'Draft' && f.by === me.name
+    // Its writer publishes their own draft, or sends it to the owners, as from the editor, and
+    // deletes it.
+    const writes =
+      (action === 'publish' || action === 'delete') && f.status === 'Draft' && f.by === me.name
     if (!canChange(f, me, domains) && !writes) {
-      skip(
-        f,
-        action === 'publish'
-          ? {
-              why: `owned by ${domains[f.domain]?.name}`,
-              reason: `Only its writer, owners of ${domains[f.domain]?.name} and admins can publish it.`,
-            }
-          : owned(f.domain, domains),
-      )
+      skip(f, owned(f.domain, domains))
       continue
     }
     const why = whyNot(action, f, domains, opts)

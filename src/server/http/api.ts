@@ -33,9 +33,11 @@ import {
 } from '../modules/editions/index.ts'
 import { createEvalsService } from '../modules/evals/index.ts'
 import {
+  clearLeftDrafts,
   exportAudit,
   exportEdition,
   importItems,
+  leftDrafts,
   knownTools,
   listClients,
   listSettings,
@@ -924,6 +926,17 @@ export function createRouter({
     drafts: {
       fromText: authorized.drafts.fromText.handler(({ input, context }) =>
         context.context.draftFromText(input.text),
+      ),
+      save: authorized.drafts.save.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'drafts.save', input, () =>
+          context.context.saveDraft(input),
+        ),
+      ),
+      left: authorized.drafts.left.handler(({ context }) => leftDrafts(context.tx)),
+      clearLeft: authorized.drafts.clearLeft.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'drafts.clearLeft', input, () =>
+          clearLeftDrafts(context.tx, input.personId),
+        ),
       ),
     },
     library: {

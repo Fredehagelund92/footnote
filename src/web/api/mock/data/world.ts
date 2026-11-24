@@ -568,7 +568,8 @@ const stored: StoredFact[] = [
       '**Germany payment files** are loaded two days after the orders. The `payments_daily_by_market_and_provider` export waits for _both_ banks, see the [freshness notes](https://wiki.example/data/freshness).',
     dontConclude: "Low last two days for Germany orders aren't a drop.",
   },
-  // Drafts: started, never published. Agents don't get them; they can be finished or deleted.
+  // Drafts: started, never published. Only each writer sees theirs, and agents don't get them;
+  // they can be finished or deleted.
   {
     id: 'itm_draft_spain_returns',
     title: 'Store returns in Spain count on the day they are booked',
@@ -579,7 +580,7 @@ const stored: StoredFact[] = [
     where: ['Returns', 'Spain'],
     valid: { ongoing: true },
     status: 'Draft',
-    by: 'Sofia Brandt',
+    by: 'Jon Abara',
     checkedBy: '',
     checkedOn: '',
     source: '',

@@ -76,6 +76,8 @@ grant select, insert, update, delete on auth.oauth_clients, auth.oauth_requests,
 grant select, insert, update on auth.oauth_grants to :api;
 grant execute on function cl_parse_mention_text(text), cl_next_item_version(text),
   cl_scopes_overlap(jsonb,jsonb), cl_other_proposal_overlap(uuid) to :api;
+-- Drafts are personal (FR-139): an admin counts and clears the drafts of people who left, unread.
+grant execute on function cl_left_drafts(), cl_clear_left_drafts(uuid) to :api;
 -- An agent's draft (FR-121): accepted items whose words read like it, before it is saved.
 grant execute on function cl_similar_items(text, text) to :api;
 grant execute on function serving_metadata(bigint) to :api;

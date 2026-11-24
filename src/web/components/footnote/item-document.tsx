@@ -77,14 +77,8 @@ export function ItemDocument({
             </PeekFact>
           ) : fact.status === 'Draft' ? (
             <PeekFact icon={CircleDashedIcon}>
-              <b>{domains[fact.domain]?.name}</b> - a draft
-              {fact.by && (
-                <>
-                  {' '}
-                  by <b>{fact.by}</b>
-                </>
-              )}
-              , agents don't get it until it is published
+              <b>{domains[fact.domain]?.name}</b> - your draft, only you can see it. Agents don't
+              get it until it is published
             </PeekFact>
           ) : (
             <PeekFact icon={CircleCheckIcon}>

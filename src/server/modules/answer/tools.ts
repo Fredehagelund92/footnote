@@ -2284,9 +2284,13 @@ async function inbox(view: View, reads: ToolReads, input: z.output<typeof inboxI
   const drafts = new Set(
     feed.cards.flatMap((c) => (c.group === 'gap' && c.draft && !c.done ? [c.draft] : [])),
   )
+  // The person's own drafts card stays out: Ask never names a draft (FR-718.2).
   const open = feed.cards.filter(
-    (c) =>
-      !c.done && groupWords[c.group] && !(c.group === 'suggestion' && drafts.has(c.proposalId)),
+    (c): c is Exclude<typeof c, { group: 'drafts' }> =>
+      c.group !== 'drafts' &&
+      !c.done &&
+      !!groupWords[c.group] &&
+      !(c.group === 'suggestion' && drafts.has(c.proposalId)),
   )
   // A card's id in the app: a suggestion, and a Not found card with a draft, by what it reviews.
   const appId = (c: (typeof open)[number]) =>

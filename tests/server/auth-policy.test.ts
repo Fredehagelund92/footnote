@@ -58,6 +58,9 @@ const adminOperations = [
   // Alert rules: administrators turn them on and off and set their thresholds.
   'alerts.setRule',
   'roles.grant',
+  // The drafts of people who left: counted and deleted unread (FR-139).
+  'drafts.left',
+  'drafts.clearLeft',
   'roles.revoke',
   'assignments.grant',
   'assignments.revoke',
@@ -194,6 +197,8 @@ const readOperations = [
   'items.bulkApply',
   'items.changes',
   'drafts.fromText',
+  // Save as draft: the person's own draft, which only they read (FR-139).
+  'drafts.save',
   'inbox.feed',
   'inbox.names',
   'inbox.decideNames',

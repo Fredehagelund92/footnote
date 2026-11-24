@@ -106,8 +106,10 @@ export function advancedOf(
   autoPublish = false,
   pins: Pins = { keys: [] },
   automatic: Automatic = { on: false, version: 1 },
+  left: Advanced['left'] = [],
 ): Advanced {
   return {
+    left,
     settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic),
     // Newest first: drafts and terms. Published context is archived, never deleted.
     deleted: [

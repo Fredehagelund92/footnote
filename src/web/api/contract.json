@@ -711,6 +711,42 @@
           "path": "/drafts/from-text"
         }
       }
+    },
+    "save": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/drafts"
+        }
+      }
+    },
+    "left": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/drafts/left"
+        }
+      }
+    },
+    "clearLeft": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/drafts/left/{personId}/clear"
+        }
+      }
     }
   },
   "library": {
