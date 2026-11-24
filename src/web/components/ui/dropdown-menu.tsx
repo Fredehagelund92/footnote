@@ -35,6 +35,9 @@ function DropdownMenuContent({
       >
         <MenuPrimitive.Popup
           data-slot="dropdown-menu-content"
+          // Takes a picture of its own in a view transition, after the rows, so rows moving under
+          // an open menu never paint over it (a Filter pick moves the Context list).
+          style={{ viewTransitionName: 'match-element' }}
           className={cn(
             'z-overlay max-h-(--available-height) w-(--anchor-width) min-w-32 origin-(--transform-origin) pop-motion overflow-x-hidden overflow-y-auto rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-none data-closed:overflow-hidden',
             className,
