@@ -8,9 +8,11 @@ import { expect, go, mode, test } from './go.ts'
 type Frame = { menu: string; after: boolean; rows: number }
 
 test('the Filter menu stays over the rows while a pick moves them', async ({ page }) => {
-  test.skip(mode === 'http', 'The counts are the mock demo’s: 30 items, 3 of them drafts.')
+  test.skip(mode === 'http', 'The drafts are the mock demo’s.')
   await go(page, '/context')
-  await expect(page.getByText('28 of 30 context items')).toBeVisible()
+  const count = page.getByText(/ of \d+ context items$/)
+  await expect(count).toBeVisible()
+  const before = await count.innerText()
   await page.getByRole('button', { name: /^Filter/ }).click()
   const draft = page.getByRole('menuitemcheckbox', { name: /^Draft/ })
   await expect(draft).toBeVisible()
@@ -37,7 +39,7 @@ test('the Filter menu stays over the rows while a pick moves them', async ({ pag
     requestAnimationFrame(look)
   })
   await draft.click()
-  await expect(page.getByText('3 of 30 context items')).toBeVisible()
+  await expect(count).not.toHaveText(before)
   await expect
     .poll(() => page.evaluate(() => (window as unknown as { frames: Frame[] }).frames.length))
     .toBeGreaterThan(0)

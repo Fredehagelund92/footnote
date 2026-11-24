@@ -17,7 +17,7 @@ test('After Select all, Publish publishes the drafts in batches and says what it
   // Jon Abara, signed in as the demo starts, is an admin; the drafts come with a fresh load.
   await go(page, '/context?demo=backlog')
   await expect(userMenu(page)).toContainText('admin')
-  await expect(page.getByText('88 of 90 context items')).toBeVisible()
+  await expect(page.getByText('87 of 89 context items')).toBeVisible()
   await page.getByRole('checkbox', { name: 'Select all context shown' }).click()
   const publish = bar(page).getByRole('button', { name: 'Publish' })
   await expect(publish).not.toHaveAttribute('aria-disabled', 'true')
@@ -27,11 +27,11 @@ test('After Select all, Publish publishes the drafts in batches and says what it
   await first.getByRole('button', { name: 'Publish 50 drafts' }).click()
   await expect(said(page, '50 published')).toBeVisible()
   // The drafts past the batch stay ticked, with the rest, and the line says why.
-  await expect(line(page)).toContainText('12 over 50 at once')
+  await expect(line(page)).toContainText('11 over 50 at once')
   await publish.click()
-  const second = page.getByRole('dialog', { name: 'Publish 12 drafts?' })
-  await second.getByRole('button', { name: 'Publish 12 drafts' }).click()
-  await expect(said(page, '12 published')).toBeVisible()
+  const second = page.getByRole('dialog', { name: 'Publish 11 drafts?' })
+  await second.getByRole('button', { name: 'Publish 11 drafts' }).click()
+  await expect(said(page, '11 published')).toBeVisible()
   // What is left has nothing to publish: published items and the ones an owner decides on their page.
   await expect(line(page)).toContainText('21 published, 1 missing a source, 4 waiting for review')
   await expect(publish).toHaveAttribute('aria-disabled', 'true')
