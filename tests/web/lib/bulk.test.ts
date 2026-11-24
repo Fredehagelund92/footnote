@@ -14,16 +14,12 @@ import {
   doneLine,
   draftReadiness,
   heldRows,
-  leftOutLine,
   movableTo,
   needsTyping,
-  nextLine,
-  nothingToPublish,
   planFacts,
   planTerms,
   PUBLISH_MAX,
   publishedLine,
-  publishedWhen,
   publishesNow,
   publishParts,
   skippedLine,
@@ -31,6 +27,7 @@ import {
   toMarkdown,
   TYPE_ABOVE,
 } from '@/lib/bulk'
+import { leftOutLine, nextLine, nothingToPublish, publishedWhen } from '@/lib/publish-lines'
 import { reduce, start } from '@/api/mock/store'
 import type { LogEntry } from '@/model/items'
 

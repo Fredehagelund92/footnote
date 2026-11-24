@@ -51,8 +51,12 @@ export function BulkBar({
   const [said, setSaid] = React.useState('')
   const before = React.useRef({ count, note: note?.text })
   React.useEffect(() => {
-    if (note?.text && note.text !== before.current.note) setSaid(note.text)
-    else if (count !== before.current.count) setSaid(countLine(count))
+    const newNote = note?.text && note.text !== before.current.note
+    const newCount = count !== before.current.count
+    // A selection that comes with its note (nothing to publish) is heard as both.
+    if (newNote && newCount) setSaid(`${countLine(count)}. ${note.text}`)
+    else if (newNote) setSaid(note.text)
+    else if (newCount) setSaid(countLine(count))
     before.current = { count, note: note?.text }
   }, [count, note?.text])
   return (
@@ -109,10 +113,7 @@ function NoteLine({ note }: { note: BulkNote }) {
             variant="ghost"
             size="icon"
             aria-label="Why they were skipped"
-            className={cn(
-              'text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60',
-              note.info && '-ml-2',
-            )}
+            className="text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60"
           />
         }
       >
@@ -134,8 +135,7 @@ function NoteLine({ note }: { note: BulkNote }) {
     <div
       className={cn(
         'flex max-w-full items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-3 text-xs text-background max-md:w-full max-md:rounded-none max-md:border-b max-md:border-background/15 max-md:py-2',
-        note.info && 'pr-3',
-        note.info && !listed && 'py-1.5',
+        note.info && (listed ? 'pr-3 pl-1' : 'py-1.5 pr-3'),
       )}
     >
       {note.info && (why || <InfoIcon aria-hidden className="size-3.5 shrink-0" />)}

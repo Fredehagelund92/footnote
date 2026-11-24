@@ -12,7 +12,11 @@ import {
 } from '@/components/ui/dialog'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { DomainDot } from '@/components/footnote/tag-chip'
-import { count, leftOutLine, PUBLISH_MAX, type Skip } from '@/lib/bulk'
+import { count, PUBLISH_MAX, type Skip } from '@/lib/bulk'
+import { leftOutLine } from '@/lib/publish-lines'
+// Loaded together with the delete dialog, as before the summary-first dialog: without this edge the
+// bundler splits the dialog and input code out of the first load chunk, which costs 1.4 KB gzip.
+import '@/components/footnote/delete-dialog'
 import { useDomains } from '@/lib/workspace'
 import { kindLabel, type Fact, type Kind } from '@/model/items'
 

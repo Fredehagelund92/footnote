@@ -43,11 +43,8 @@ import {
   download,
   heldRows,
   movableTo,
-  nextLine,
-  nothingToPublish,
   planFacts,
   publishedLine,
-  publishedWhen,
   publishesNow,
   publishParts,
   skippedLine,
@@ -56,6 +53,7 @@ import {
   type FactAction,
   type Me,
 } from '@/lib/bulk'
+import { nextLine, nothingToPublish, publishedWhen } from '@/lib/publish-lines'
 import { api } from '@/api'
 import { useLibrary, useRefreshAfter } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
