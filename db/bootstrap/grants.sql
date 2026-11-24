@@ -267,3 +267,5 @@ grant select, insert, delete on names_left_out to :api;
 -- The undo window (FR-227): the row policies read it, and the service tells the screens how long Undo
 -- is offered. Nothing here is granted to the serving or the analytics role.
 grant execute on function cl_undo_until(timestamptz) to :api;
+-- Reading a link a person pastes (FR-144): one read taken under the limits, counted unread.
+grant execute on function cl_link_read_take() to :api;

@@ -92,44 +92,48 @@ export function metadataDocumentProblem(id: string): string | null {
 }
 
 /**
- * Addresses the login server never fetches a document from: this computer, private networks,
- * link-local, shared, documentation, multicast and reserved ranges. A metadata address is chosen
- * by whoever starts a sign-in, so reading it must not reach anything inside the network.
+ * Addresses the service never fetches from, for a client's metadata document or a page a person
+ * linked: this computer, private networks, link-local, shared, documentation, benchmarking,
+ * translation, multicast and reserved ranges. Such an address is chosen by whoever starts a
+ * sign-in or pastes a link, so reading it must not reach anything inside the network. Every block
+ * of IANA's special-purpose registries that is not globally reachable is here
+ * (tests/server/oauth/special-ranges.test.ts holds the registries), and a few that are:
+ * multicast, IPv4-compatible IPv6, NAT64, 6to4 and Teredo, which carry an IPv4 address inside.
  */
+export const blockedRanges: readonly (readonly [string, number, 'ipv4' | 'ipv6'])[] = [
+  ['0.0.0.0', 8, 'ipv4'],
+  ['10.0.0.0', 8, 'ipv4'],
+  ['100.64.0.0', 10, 'ipv4'],
+  ['127.0.0.0', 8, 'ipv4'],
+  ['169.254.0.0', 16, 'ipv4'],
+  ['172.16.0.0', 12, 'ipv4'],
+  ['192.0.0.0', 24, 'ipv4'],
+  ['192.0.2.0', 24, 'ipv4'],
+  ['192.88.99.0', 24, 'ipv4'],
+  ['192.168.0.0', 16, 'ipv4'],
+  ['198.18.0.0', 15, 'ipv4'],
+  ['198.51.100.0', 24, 'ipv4'],
+  ['203.0.113.0', 24, 'ipv4'],
+  ['224.0.0.0', 4, 'ipv4'],
+  ['240.0.0.0', 4, 'ipv4'],
+  // The unspecified address, loopback and IPv4-compatible addresses (::10.0.0.1, deprecated).
+  ['::', 96, 'ipv6'],
+  ['64:ff9b::', 96, 'ipv6'],
+  ['64:ff9b:1::', 48, 'ipv6'],
+  ['100::', 64, 'ipv6'],
+  ['100:0:0:1::', 64, 'ipv6'],
+  ['2001::', 23, 'ipv6'],
+  ['2001:db8::', 32, 'ipv6'],
+  ['2002::', 16, 'ipv6'],
+  ['3fff::', 20, 'ipv6'],
+  ['5f00::', 16, 'ipv6'],
+  ['fc00::', 7, 'ipv6'],
+  ['fe80::', 10, 'ipv6'],
+  ['fec0::', 10, 'ipv6'],
+  ['ff00::', 8, 'ipv6'],
+]
 const blocked = new BlockList()
-for (const [network, prefix] of [
-  ['0.0.0.0', 8],
-  ['10.0.0.0', 8],
-  ['100.64.0.0', 10],
-  ['127.0.0.0', 8],
-  ['169.254.0.0', 16],
-  ['172.16.0.0', 12],
-  ['192.0.0.0', 24],
-  ['192.0.2.0', 24],
-  ['192.88.99.0', 24],
-  ['192.168.0.0', 16],
-  ['198.18.0.0', 15],
-  ['198.51.100.0', 24],
-  ['203.0.113.0', 24],
-  ['224.0.0.0', 4],
-  ['240.0.0.0', 4],
-] as const)
-  blocked.addSubnet(network, prefix, 'ipv4')
-for (const [network, prefix] of [
-  ['::', 128],
-  ['::1', 128],
-  ['64:ff9b::', 96],
-  ['64:ff9b:1::', 48],
-  ['100::', 64],
-  ['2001::', 23],
-  ['2001:db8::', 32],
-  ['2002::', 16],
-  ['fc00::', 7],
-  ['fe80::', 10],
-  ['fec0::', 10],
-  ['ff00::', 8],
-] as const)
-  blocked.addSubnet(network, prefix, 'ipv6')
+for (const [network, prefix, family] of blockedRanges) blocked.addSubnet(network, prefix, family)
 
 export function isPublicAddress(address: string): boolean {
   const family = isIP(address)

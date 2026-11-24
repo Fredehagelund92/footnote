@@ -45,6 +45,7 @@ import {
   historyFile,
   UNDO_SECONDS,
   type Automatic,
+  type Links,
   type Pins,
 } from './advanced'
 import { loopExample, playAnswer, recordedAnswer } from './ask-live'
@@ -107,6 +108,8 @@ export function createMockApi() {
   /** The dimensions an admin pinned on Overview in this visit (observability.pinned_dimensions). */
   let pins: Pins = { keys: [] }
   let automatic: Automatic = { on: false, version: 1 }
+  /** Reading the links people paste in this visit: on as installed, no host listed. */
+  let links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 }
   /** An Observability page as the person signed in may read it, for a view. */
   const obsPageFor = ({ range, domain, agent }: Omit<ObsPageInput, 'section'>) => {
     const person = workspace.people().find((p) => p.name === me())
@@ -773,7 +776,15 @@ export function createMockApi() {
       }),
     markViewed: ({ id }) => now(() => dispatch({ type: 'viewedFact', id })),
     editItem: ({ id, patch }) => now(() => dispatch({ type: 'editFact', id, patch })),
-    draftFromText: () => now(() => withScope(norwayDraft)),
+    draftFromText: ({ text }) =>
+      now(() => {
+        if (!links.on && /^https?:\/\/\S+$/i.test(text.trim()))
+          throw new ApiError(
+            'invalid',
+            "Reading links is off in this workspace. Paste the page's text instead.",
+          )
+        return withScope(norwayDraft)
+      }),
     // Save as draft: the person's own words, kept where only they can see them.
     saveDraft: ({ fact, isNew }) =>
       now(() => {
@@ -1341,7 +1352,7 @@ export function createMockApi() {
       }),
     advancedPage: () =>
       read('advancedPage', '', () =>
-        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic, leftDrafts()),
+        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic, leftDrafts(), links),
       ),
     setAutomaticRuns: ({ on, version }) =>
       now(() => {
@@ -1365,6 +1376,34 @@ export function createMockApi() {
               ? 'Turned on in Settings, Advanced, after reading what a run is estimated to cost.'
               : 'Turned off in Settings, Advanced.',
           },
+        }
+      }),
+    setLinkReading: ({ on, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin turns reading links on or off.')
+        if (version !== links.version)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        const why = on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.'
+        links = { ...links, on, version: version + 1, changed: { who: me(), when: 'Today', why } }
+      }),
+    setNeverReadHosts: ({ hosts, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin lists the hosts links are never read on.')
+        if (version !== links.hostsVersion)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        links = {
+          ...links,
+          hosts,
+          hostsVersion: version + 1,
+          hostsChanged: { who: me(), when: 'Today', why: 'Changed in Settings, Advanced.' },
         }
       }),
     checkHistory: () => now(() => ({ whole: true, entries: 1284 })),

@@ -6,6 +6,7 @@ import { identifier, localRoles } from '../../../src/server/db/roles.ts'
 import { createLogger } from '../../../src/server/observability/logger.ts'
 import { createEditionSource } from '../../../src/server/modules/editions/index.ts'
 import { createAnonymousStore } from '../../../src/server/mcp/store.ts'
+import { createPageReader } from '../../../src/server/modules/web/index.ts'
 import { withAgents } from '../../../src/server/mcp/auth.ts'
 import { servingAgentCheck } from '../../../src/server/modules/access-keys/index.ts'
 import { idleJobs } from '../../server/idle-jobs.ts'
@@ -114,6 +115,9 @@ export async function freshService(
       registry: new ConnectorRegistry([]),
     }),
     login,
+    // A link pasted into Draft from text is a page a journey serves on this machine, read as the
+    // service reads one with FOOTNOTE_WEB_READ_LOOPBACK=on (J116).
+    readPage: createPageReader({ loopback: true }),
     // An agent that signed in reads over MCP with the login server's tokens.
     mcp: {
       source: createEditionSource(serving),

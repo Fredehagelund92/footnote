@@ -670,6 +670,8 @@ export const invalidations: {
   setTool: () => [queryKeys.settings, queryKeys.agentConnections, queryKeys.allDomainPolicies],
   setPause: () => [queryKeys.settings, queryKeys.advancedPage],
   setAutomaticRuns: () => [queryKeys.settings, queryKeys.advancedPage],
+  setLinkReading: () => [queryKeys.settings, queryKeys.advancedPage],
+  setNeverReadHosts: () => [queryKeys.settings, queryKeys.advancedPage],
   // A new key is listed on Connected agents; the history log notes it.
   createAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
   renameAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],

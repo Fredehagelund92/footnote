@@ -71,7 +71,7 @@ import { readOf } from '@/lib/read'
 import { Loading } from '@/App'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -113,6 +113,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
 import { relationWords } from '@domain/clash-relations'
+import { instructionWords } from '@domain/provenance'
 import { draftFromTextQuery, itemPageQuery, useInbox, useVocabulary, useWrite } from '@/api/queries'
 import { useGlossary, type Definition } from '@/lib/definitions'
 import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '@/lib/workspace'
@@ -477,6 +478,10 @@ function Editor({
   const [overlap, setOverlap] = React.useState<Record<string, Relation>>({})
   const [pasted, setPasted] = React.useState('')
   const [draftOpen, setDraftOpen] = React.useState(false)
+  // Why the pasted text filled nothing in, such as a page Footnote can't open; the text stays, so
+  // pasting the page's own words is the next step.
+  const [fillProblem, setFillProblem] = React.useState('')
+  const [filling, setFilling] = React.useState(false)
   const [previewAll, setPreviewAll] = React.useState(false)
   const { state: sendState, error: sendError, send, online, reset } = useSend()
   // Live items the service named when it refused to publish until this says how it relates to
@@ -574,15 +579,28 @@ function Editor({
   // Counted as agents read it: a mention is its words.
   const text = plainText(form.body)
   const words = countWords(`${form.title} ${text}`)
+  // Words that read like orders to an AI agent (NFR-024), such as a pasted page can carry: said
+  // while drafting, as the owner's review says them, and kept as words.
+  const orders = React.useMemo(
+    () => instructionWords([form.title, text, form.quote].join('\n')),
+    [form.title, text, form.quote],
+  )
   // Long enough to clamp: about six lines of the preview's width.
   const long = text.split('\n').filter(Boolean).length + Math.floor(text.length / 45) > 6
 
   const fill = async () => {
-    const filled = fromFact(
-      await queryClient.fetchQuery(draftFromTextQuery(pasted)),
-      domains,
-      vocabulary,
-    )
+    setFillProblem('')
+    setFilling(true)
+    let drafted
+    try {
+      drafted = await queryClient.fetchQuery(draftFromTextQuery(pasted))
+    } catch (e) {
+      setFillProblem(toApiError(e).message)
+      return
+    } finally {
+      setFilling(false)
+    }
+    const filled = fromFact(drafted, domains, vocabulary)
     setForm(filled)
     editor?.commands.setContent(filled.body, { contentType: 'markdown' })
     setDraftOpen(false)
@@ -866,7 +884,13 @@ function Editor({
 
   // Draft from text: a short dialog, opened from the More menu.
   const draftFromText = (
-    <Dialog open={draftOpen} onOpenChange={setDraftOpen}>
+    <Dialog
+      open={draftOpen}
+      onOpenChange={(open) => {
+        setDraftOpen(open)
+        if (!open) setFillProblem('')
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Draft from text</DialogTitle>
@@ -879,14 +903,22 @@ function Editor({
           <Textarea
             id="draft-text"
             value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
+            onChange={(e) => {
+              setPasted(e.target.value)
+              setFillProblem('')
+            }}
+            aria-invalid={fillProblem ? true : undefined}
+            aria-describedby={fillProblem ? 'draft-text-problem' : undefined}
             className="min-h-28"
             placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
           />
+          <FieldError id="draft-text-problem">{fillProblem}</FieldError>
         </Field>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-          <Button onClick={() => void fill()}>Fill it in</Button>
+          <Button onClick={() => void fill()} loading={filling} loadingLabel="Reading…">
+            Fill it in
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1235,6 +1267,19 @@ function Editor({
         {problemAt('title') && (
           <p data-problem className="-mt-3 mb-4 text-sm text-destructive">
             {problemAt('title')}
+          </p>
+        )}
+        {orders.length > 0 && (
+          <p
+            aria-label="Words that read like orders"
+            className="mb-5 flex items-start gap-2 rounded-frame bg-muted px-3 py-2 text-sm"
+          >
+            <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-caution" aria-hidden />
+            <span>
+              Some words read like orders to an AI agent: {orders.map((w) => `“${w}”`).join(', ')}.
+              Agents get them as words to read, never as orders. Check that they belong before you
+              publish.
+            </span>
           </p>
         )}
         {/* What stopped a publish, in the service's words, and the live items it named to relate

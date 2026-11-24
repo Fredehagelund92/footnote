@@ -4,23 +4,31 @@ import { request as httpsRequest } from 'node:https'
 import { isIP, type LookupFunction } from 'node:net'
 import { createBrotliDecompress, createGunzip, createInflate } from 'node:zlib'
 import type { Readable } from 'node:stream'
+import { textFindings } from '../../../domain/draft.ts'
 import { isPublicAddress, publicLookup } from '../oauth/index.ts'
 import { decodePage, pageText, charsetOf } from './page-text.ts'
 
 /*
   Footnote opens a web page a person linked, to draft context from it (the editor's draft from text).
-  It is the service reaching out to an address someone else chose, so it reaches only the public web:
-  https only; a name resolved here with every answer public and the connection made to that
-  answer, so a second lookup cannot point it inside the network (DNS rebinding); no credentials
-  in the address; every redirect checked again, at most five; at most 2 MB, decompressed, within
-  15 seconds; text pages only. Every failure is one plain reason, so nothing about the network
-  behind an address reaches the person. The page is kept in memory for the call and never stored
-  (FR-116).
+  It is the service reaching out to an address someone else chose, so it reaches only the public web
+  (FR-144): https on port 443 only; a name resolved here with every answer public and the
+  connection made to that answer, so a second lookup cannot point it inside the network (DNS
+  rebinding); no credentials and no key in the address, so a signed or one-time link is never
+  opened, used up or kept; none of the hosts an admin listed, nor their subdomains; every redirect
+  checked again, at most five; at most 2 MB, decompressed, within 15 seconds; text pages only, and
+  never a sign-in page. It connects directly, never through an outbound proxy, so the checked
+  answer is the one it reaches; it sends no cookie and no authorisation. At most four reads at
+  once, one per host, so a slow site cannot tie up the service. Every failure is one plain reason,
+  so nothing about the network behind an address reaches the person. The page is kept in memory
+  for the call and never stored (FR-116).
 */
 
 export const readFailures = [
   'not_https',
+  'port',
   'credentials',
+  'has_key',
+  'blocked_host',
   'not_public',
   'unreachable',
   'timeout',
@@ -29,6 +37,7 @@ export const readFailures = [
   'pdf',
   'not_text',
   'redirects',
+  'needs_sign_in',
 ] as const
 export type ReadFailure = (typeof readFailures)[number]
 
@@ -68,14 +77,23 @@ export type PageReaderOptions = {
    * production by the configuration (FOOTNOTE_WEB_READ_LOOPBACK).
    */
   loopback?: boolean
+  /** The most reads at once, and at once on one host. Four and one. */
+  concurrency?: { total: number; perHost: number }
+}
+
+export type ReadOptions = {
+  signal?: AbortSignal | undefined
+  /** Hosts an admin listed never to be read (`links.never_read_hosts`); each covers its subdomains. */
+  blockedHosts?: readonly string[] | undefined
 }
 
 /** Opens one address; rejects with a PageReadError. */
-export type PageReader = (address: string, signal?: AbortSignal) => Promise<PageRead>
+export type PageReader = (address: string, options?: ReadOptions) => Promise<PageRead>
 
 const MAX_BYTES = 2 * 1024 * 1024
 const TIMEOUT_MS = 15_000
 const MAX_REDIRECTS = 5
+const CONCURRENCY = { total: 4, perHost: 1 }
 
 /** Said plainly to every site Footnote reads, so its owner can tell what reads it. */
 const headers = {
@@ -108,18 +126,79 @@ const loopbackLookup: LookupFunction = (hostname, options, callback) => {
 }
 
 /**
- * An address Footnote may open, as a URL without its fragment, or the reason it may not. Plain http
- * is read as https: the same page, over the only protocol Footnote uses.
+ * Words a query parameter is named with when it carries a key, a signature or a sign-in: a part
+ * of its name (access_token, apiKey, X-Amz-Signature). `code` and `sig` count only as the whole
+ * name, as country_code and zip_code are common and harmless.
  */
-export function readableAddress(address: string, loopback = false): URL | ReadFailure {
+const keyWords = new Set([
+  'apikey',
+  'auth',
+  'authorization',
+  'credential',
+  'credentials',
+  'jwt',
+  'key',
+  'otp',
+  'passwd',
+  'password',
+  'secret',
+  'session',
+  'sessionid',
+  'signature',
+  'token',
+])
+const keyNames = new Set(['code', 'sig'])
+
+/** Whether a query parameter's name is a key's, a signature's or a sign-in's. */
+export function isKeyParameter(name: string): boolean {
+  const lower = name.toLowerCase()
+  if (/^x-(?:amz|goog)-/.test(lower) || keyNames.has(lower)) return true
+  return name
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .some((part) => keyWords.has(part))
+}
+
+/** Whether an address carries a key: a parameter named like one, or what FR-117 refuses in text. */
+function carriesKey(url: URL): boolean {
+  if ([...url.searchParams.keys()].some(isKeyParameter)) return true
+  let words = url.href
+  try {
+    words = decodeURIComponent(url.href)
+  } catch {
+    // An address that does not decode is checked as it is written.
+  }
+  return textFindings(words).length > 0
+}
+
+/** A host in Footnote's form of it: lower case, no brackets, no final dot. */
+const hostOf = (url: URL) =>
+  url.hostname
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.$/, '')
+    .toLowerCase()
+
+/** Whether an admin listed the host, or a name it is under. */
+const listed = (host: string, blockedHosts: readonly string[]) =>
+  blockedHosts.some((entry) => host === entry || host.endsWith(`.${entry}`))
+
+/**
+ * An address Footnote may open, as a URL without its fragment, or the reason it may not. Plain http
+ * is read as https: the same page, over the only protocol and port Footnote uses.
+ */
+export function readableAddress(
+  address: string,
+  loopback = false,
+  blockedHosts: readonly string[] = [],
+): URL | ReadFailure {
   const url = URL.parse(address.trim())
   if (!url) return 'not_https'
   url.hash = ''
   if (url.username || url.password) return 'credentials'
-  const host = url.hostname
-    .replace(/^\[|\]$/g, '')
-    .replace(/\.$/, '')
-    .toLowerCase()
+  if (carriesKey(url)) return 'has_key'
+  const host = hostOf(url)
+  if (listed(host, blockedHosts)) return 'blocked_host'
   const local =
     host === 'localhost' ||
     host.endsWith('.localhost') ||
@@ -127,8 +206,106 @@ export function readableAddress(address: string, loopback = false): URL | ReadFa
   if (local) return loopback && /^https?:$/.test(url.protocol) ? url : 'not_public'
   if (url.protocol === 'http:') url.protocol = 'https:'
   if (url.protocol !== 'https:') return 'not_https'
+  // An empty port is 443: the URL drops a scheme's own port.
+  if (url.port !== '') return 'port'
   if (isIP(host) !== 0 && !isPublicAddress(host)) return 'not_public'
   return url
+}
+
+/**
+ * Whether a page is a sign-in page: it asks for a password, or, when the link led to another
+ * host, it holds a form that signs in. Footnote never signs in, so such a page is never the
+ * content the person linked.
+ */
+function isSignIn(html: string, otherHost: boolean): boolean {
+  // Every scan is bounded: the page is someone else's, up to 2 MB, and may be made to be slow.
+  if (/<input\b[^<>]{0,1000}?\btype\s*=\s*["']?password\b/i.test(html)) return true
+  if (!otherHost) return false
+  const lower = html.toLowerCase()
+  for (let at = lower.indexOf('<form'), forms = 0; at !== -1 && forms < 20; forms++) {
+    const end = lower.indexOf('</form', at)
+    const form = html.slice(at, Math.min(end === -1 ? html.length : end, at + 20_000))
+    if (
+      /\b(?:sign|log)[\s-]?(?:in|on)\b|\blogin\b|\bsso\b/i.test(
+        form.replace(/<[^<>]{0,1000}>/g, ' '),
+      ) ||
+      /\baction\s*=\s*["'][^"'<>]{0,500}?(?:login|signin|sign-in|sso|oauth|authorize)/i.test(form)
+    )
+      return true
+    at = lower.indexOf('<form', at + 5)
+  }
+  return false
+}
+
+/**
+ * A lookup that also refuses the addresses an admin listed (`links.never_read_hosts`), so a name
+ * that leads to a listed address is never read, whatever the name.
+ */
+function withoutListed(lookup: LookupFunction, blockedHosts: readonly string[]): LookupFunction {
+  const listedAddresses = new Set(blockedHosts.filter((host) => isIP(host) !== 0))
+  if (!listedAddresses.size) return lookup
+  return (hostname, options, callback) =>
+    lookup(hostname, options, (error, address, family) => {
+      const answers = Array.isArray(address) ? address.map((a) => a.address) : [address]
+      if (!error && answers.some((a) => listedAddresses.has(a.replace(/^::ffff:/i, ''))))
+        return callback(
+          Object.assign(new Error('The address is listed'), { code: 'ELISTED' }),
+          '',
+          0,
+        )
+      return (callback as (e: unknown, a: unknown, f?: number) => void)(error, address, family)
+    })
+}
+
+/**
+ * Lets at most `total` reads run at once, and `perHost` on one host; the rest wait their turn, or
+ * until their read's time is up.
+ */
+function createGate({ total, perHost }: { total: number; perHost: number }) {
+  let running = 0
+  const hosts = new Map<string, number>()
+  const waiting: { host: string; go: () => void }[] = []
+  const free = (host: string) => running < total && (hosts.get(host) ?? 0) < perHost
+  const take = (host: string) => {
+    running++
+    hosts.set(host, (hosts.get(host) ?? 0) + 1)
+  }
+  const release = (host: string) => {
+    running--
+    const left = (hosts.get(host) ?? 1) - 1
+    if (left) hosts.set(host, left)
+    else hosts.delete(host)
+    for (let i = 0; i < waiting.length;) {
+      const next = waiting[i]!
+      if (!free(next.host)) i++
+      else {
+        waiting.splice(i, 1)
+        take(next.host)
+        next.go()
+      }
+    }
+  }
+  return (host: string, signal: AbortSignal) =>
+    new Promise<() => void>((resolve, reject) => {
+      if (signal.aborted) return reject(new PageReadError('timeout'))
+      if (free(host)) {
+        take(host)
+        return resolve(() => release(host))
+      }
+      const entry = {
+        host,
+        go: () => {
+          signal.removeEventListener('abort', abort)
+          resolve(() => release(host))
+        },
+      }
+      const abort = () => {
+        waiting.splice(waiting.indexOf(entry), 1)
+        reject(new PageReadError('timeout'))
+      }
+      signal.addEventListener('abort', abort, { once: true })
+      waiting.push(entry)
+    })
 }
 
 function send(url: URL, lookup: LookupFunction, signal: AbortSignal): Promise<IncomingMessage> {
@@ -171,35 +348,45 @@ const failureOf = (error: unknown, signal: AbortSignal): PageReadError => {
   if (error instanceof PageReadError) return error
   if (signal.aborted) return new PageReadError('timeout')
   const code = (error as { code?: unknown } | null)?.code
-  return new PageReadError(code === 'ENOTPUBLIC' ? 'not_public' : 'unreachable')
+  return new PageReadError(
+    code === 'ENOTPUBLIC' ? 'not_public' : code === 'ELISTED' ? 'blocked_host' : 'unreachable',
+  )
 }
 
 export function createPageReader(options: PageReaderOptions = {}): PageReader {
   const max = options.maxBytes ?? MAX_BYTES
   const loopback = options.loopback ?? false
   const lookup = loopback ? loopbackLookup : publicLookup
-  return async (address, outer) => {
+  const gate = createGate(options.concurrency ?? CONCURRENCY)
+  return async (address, { signal: outer, blockedHosts = [] } = {}) => {
     const signal = AbortSignal.any([
       AbortSignal.timeout(options.timeoutMs ?? TIMEOUT_MS),
       ...(outer ? [outer] : []),
     ])
-    const first = readableAddress(address, loopback)
+    const first = readableAddress(address, loopback, blockedHosts)
     if (typeof first === 'string') throw new PageReadError(first)
     let url = first
     const asked = url.href
+    const guarded = withoutListed(lookup, blockedHosts)
+    let release: (() => void) | undefined
     try {
+      release = await gate(hostOf(first), signal)
       for (let hops = 0; ; hops++) {
-        const response = await send(url, lookup, signal)
+        const response = await send(url, guarded, signal)
         const status = response.statusCode ?? 0
         if ([301, 302, 303, 307, 308].includes(status) && response.headers.location) {
           response.resume()
           if (hops >= (options.maxRedirects ?? MAX_REDIRECTS)) throw new PageReadError('redirects')
           const next: URL | ReadFailure = URL.canParse(response.headers.location, url)
-            ? readableAddress(new URL(response.headers.location, url).href, loopback)
+            ? readableAddress(new URL(response.headers.location, url).href, loopback, blockedHosts)
             : 'not_https'
           if (typeof next === 'string') throw new PageReadError(next)
           url = next
           continue
+        }
+        if (status === 401 || status === 403) {
+          response.resume()
+          throw new PageReadError('needs_sign_in', status)
         }
         if (status !== 200) {
           response.resume()
@@ -224,6 +411,8 @@ export function createPageReader(options: PageReaderOptions = {}): PageReader {
         const bytes = await body(response, max)
         const text = decodePage(bytes, contentType)
         const kind = declared === 'sniff' ? (/^\s*</.test(text) ? 'html' : 'text') : declared
+        if (kind === 'html' && isSignIn(text, hostOf(url) !== hostOf(first)))
+          throw new PageReadError('needs_sign_in')
         return {
           url: asked,
           finalUrl: url.href,
@@ -235,6 +424,8 @@ export function createPageReader(options: PageReaderOptions = {}): PageReader {
       }
     } catch (error) {
       throw failureOf(error, signal)
+    } finally {
+      release?.()
     }
   }
 }

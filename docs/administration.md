@@ -30,9 +30,22 @@ A change applies at once, and the history log keeps it with who made it.
 | `limits.mcp_requests_per_minute` | Agent calls, by person and by client label    |
 | `limits.mcp_rate_per_minute`     | Agent calls to each tool                      |
 | `limits.agent_drafts`            | Drafts one person's agents can save           |
+| `limits.link_reads`              | Links people can read, failed reads too       |
 | `limits.undo_seconds`            | How long a decision can be undone             |
 | `privacy.min_count`              | The smallest count shown                      |
 | `retention.delivery_days`        | How long what agents asked about is kept      |
+
+## Links people paste
+
+Draft from text opens the public page a pasted link points to. Three settings govern it, and Settings, Advanced changes the first two:
+
+| Setting                  | What it does                                                    |
+| ------------------------ | --------------------------------------------------------------- |
+| `links.read_pages`       | On as installed. Off, people paste the page's text instead      |
+| `links.never_read_hosts` | Hosts never read: a name with its subdomains, or an address     |
+| `limits.link_reads`      | Reads a person may make in an hour and a day, and the workspace |
+
+The limits are counted in the database, so every service process keeps the same ones. The count keeps who and when, never an address, for two days. What the reader refuses, and why it never uses a proxy, is in [Links people paste](run-in-production.md#links-people-paste).
 
 ## Switch a tool off for every agent
 

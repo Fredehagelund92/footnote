@@ -155,6 +155,19 @@ export function settingsOf(
 const list = (names: readonly string[]) =>
   names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
+/** Whether links people paste are read, and the hosts never read, from the settings as read. */
+export function linkReadingOf(settings: readonly Setting[]): Advanced['links'] {
+  const on = settings.find((s) => s.key === 'links.read_pages')
+  const hosts = settings.find((s) => s.key === 'links.never_read_hosts')
+  if (!on || !hosts) return null
+  return {
+    on: on.value !== false,
+    version: on.version,
+    hosts: Array.isArray(hosts.value) ? hosts.value.filter((h) => typeof h === 'string') : [],
+    hostsVersion: hosts.version,
+  }
+}
+
 /** Drafts and terms deleted for good, newest first, each with who deleted it and when. */
 export function deletedOf(
   drafts: readonly DeletedDraft[],

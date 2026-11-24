@@ -32,6 +32,10 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { isHost, NEVER_READ_HOSTS_MAX, normalizeHost } from '@domain/never-read-hosts'
 import { GuideLink } from '@/components/footnote/guide-link'
 import { servedToAgents } from '@/model/items'
 import { useQuery } from '@tanstack/react-query'
@@ -400,7 +404,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Tuning settings"
         level={3}
-        description={`All ${count} settings and their values now. Answer tests can be turned on here; the rest change through the API.`}
+        description={`All ${count} settings and their values now. Answer tests and links people paste can be changed here; the rest change through the API.`}
         collapsible
       >
         <div className="space-y-2 border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
@@ -500,6 +504,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           rows={page.editions.map((e) => [e.label, e.sealed, e.change])}
         />
       </FrameSection>
+      {page.links && <LinkReading links={page.links} />}
       <FrameSection
         title="Answer tests"
         level={3}
@@ -644,6 +649,140 @@ function LeftDrafts({ left }: { left: AdvancedPage['left'] }) {
               }}
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </FrameSection>
+  )
+}
+
+/**
+ * Reading the links people paste (FR-144): on as installed. Draft from text opens the public
+ * page a link points to, under the reader's rules; off, people paste the page's text. The sites an
+ * admin lists are never read, such as internal systems on public addresses, which the address
+ * rules cannot tell from the public web.
+ */
+function LinkReading({ links }: { links: NonNullable<AdvancedPage['links']> }) {
+  const write = useWrite()
+  const [editing, setEditing] = React.useState(false)
+  const [text, setText] = React.useState('')
+  const [problem, setProblem] = React.useState('')
+  const [saving, setSaving] = React.useState(false)
+  const sites = (n: number) => (n === 1 ? '1 site' : `${n.toLocaleString('en-GB')} sites`)
+  const setOn = (on: boolean) =>
+    void write('setLinkReading', { on, version: links.version }).then(
+      () => toast(on ? 'Links people paste are read' : 'Links people paste are not read'),
+      (e: unknown) =>
+        toast(on ? "Couldn't turn it on" : "Couldn't turn it off", {
+          description: toApiError(e).message,
+        }),
+    )
+  const edit = () => {
+    setText(links.hosts.join('\n'))
+    setProblem('')
+    setEditing(true)
+  }
+  const save = () => {
+    // One site a line or separated by commas; a whole address keeps only its site.
+    const hosts = [
+      ...new Set(
+        text
+          .split(/[\n,]+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const url = URL.parse(line)
+            return normalizeHost(url && /^https?:$/.test(url.protocol) ? url.hostname : line)
+          }),
+      ),
+    ]
+    const bad = hosts.find((host) => !isHost(host))
+    if (bad)
+      return setProblem(
+        `“${bad}” isn’t a site’s name. Write one a line, such as intranet.example.com.`,
+      )
+    if (hosts.length > NEVER_READ_HOSTS_MAX)
+      return setProblem(`List at most ${NEVER_READ_HOSTS_MAX.toLocaleString('en-GB')} sites.`)
+    setSaving(true)
+    void write('setNeverReadHosts', { hosts, version: links.hostsVersion })
+      .then(
+        () => {
+          setEditing(false)
+          toast(hosts.length ? `${sites(hosts.length)} never read` : 'No site listed')
+        },
+        (e: unknown) => setProblem(toApiError(e).message),
+      )
+      .finally(() => setSaving(false))
+  }
+  return (
+    <FrameSection
+      title="Links people paste"
+      level={3}
+      description={
+        links.on
+          ? 'On. Draft from text opens the public page a link points to and fills in from it.'
+          : "Off. People paste the page's text instead."
+      }
+      collapsible
+      defaultOpen={false}
+    >
+      <FrameRows
+        rows={[
+          {
+            id: 'read-links',
+            label: <label htmlFor="read-links">Read links people paste</label>,
+            hint: 'Public pages only, read once and never kept: the draft keeps the link and one sentence. A sign-in page or a link that carries a key is never opened.',
+            value: <Switch id="read-links" checked={links.on} onCheckedChange={setOn} />,
+          },
+          {
+            id: 'never-read',
+            label: 'Sites never read',
+            hint: links.hosts.length
+              ? `${
+                  links.hosts.length > 3
+                    ? `${links.hosts.slice(0, 3).join(', ')} and ${(links.hosts.length - 3).toLocaleString('en-GB')} more`
+                    : listOf(links.hosts, 'and')
+                }. Each covers its subdomains.`
+              : 'Links are read from inside your network, so list your internal sites that have public addresses. Each covers its subdomains.',
+            value: (
+              <Button variant="outline" onClick={edit}>
+                {links.hosts.length ? 'Change' : 'Add sites'}
+              </Button>
+            ),
+          },
+        ]}
+      />
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sites never read</DialogTitle>
+            <DialogDescription>
+              A link to one of these sites, or to a site under one, is never opened. List a
+              site&apos;s address too, and no other name for it is read either. People paste the
+              page&apos;s text instead.
+            </DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel htmlFor="never-read-hosts">One site a line</FieldLabel>
+            <Textarea
+              id="never-read-hosts"
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value)
+                setProblem('')
+              }}
+              aria-invalid={problem ? true : undefined}
+              aria-describedby={problem ? 'never-read-problem' : undefined}
+              className="min-h-28 font-mono text-xs"
+              placeholder={'intranet.example.com\nwiki.example.com'}
+            />
+            <FieldError id="never-read-problem">{problem}</FieldError>
+          </Field>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button onClick={save} loading={saving} loadingLabel="Saving…">
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

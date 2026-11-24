@@ -51,7 +51,7 @@ import {
 import { createRelay, outboxRelayJob, type Relay } from './modules/notifications/index.ts'
 import { createLoginServer, loadKeyRing } from './modules/oauth/index.ts'
 import { snapshotJob, weeklyRollupJob } from './modules/observability/index.ts'
-import { createPageReader } from './modules/web/index.ts'
+import { createPageReader, type PageReader } from './modules/web/index.ts'
 
 /**
  * The service, composed from its configuration: the database, sign-in, the models, the job
@@ -128,6 +128,15 @@ export async function reportModelKeys(
     else if (line) logger.warn(line)
     else logger.info({ provider: key.provider }, 'model key accepted')
   }
+}
+
+/**
+ * The reader of the pages people link (FR-144): the public web only, or, for the end-to-end
+ * tests, which serve their pages on this machine, this machine too. Every build has one: without
+ * it a pasted link was never read (30 Oct to 24 Nov 2026).
+ */
+export function pageReaderOf(config: Pick<Config, 'webReadLoopback'>): PageReader {
+  return createPageReader({ loopback: config.webReadLoopback })
 }
 
 /** Composes the service. When that fails, the database pool it opened is closed again. */
@@ -304,8 +313,7 @@ async function compose(
     metricsToken: config.metricsToken,
     ...(checks ? { modelChecks: checks } : {}),
     profileLabel: config.profileLabel,
-    // The end-to-end tests serve their web pages on this machine; elsewhere, the public web only.
-    ...(config.webReadLoopback ? { readPage: createPageReader({ loopback: true }) } : {}),
+    readPage: pageReaderOf(config),
     login,
   })
   app.addHook('preClose', () => relay.stop())
