@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "9c33c096b0a6c2b99bc1c08e7e356d7d827c1f4e5321df76603ae090cc8ec2cb",
+  "digest": "75e3f10cf2e5ec1f56dc24afb2993515358ac342863199602bcfed346ed40ddc",
   "tools": [
     {
       "annotations": {
@@ -782,7 +782,6 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                       "required": [
                         "key",
                         "name",
-                        "values",
                       ],
                       "type": "object",
                     },
@@ -814,9 +813,6 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                   },
                 },
                 "required": [
-                  "by",
-                  "found",
-                  "meaning_from",
                   "members",
                 ],
                 "type": "object",
