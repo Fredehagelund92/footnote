@@ -4,6 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { DefinitionCard, LoopTurn } from '@contract/answer'
+import type { Answer } from '@/model/ask'
 import { dimensionHue } from '@domain/ask-nouns'
 import { answerLines } from '@domain/words'
 import examples from '@/api/mock/data/loop-examples.json'
@@ -62,7 +63,8 @@ vi.mock('@/lib/router', async (original) => ({
   useRoute: () => ({ path: '/ask', query: new URLSearchParams() }),
 }))
 
-const { LoopAnswerBody } = await import('@/components/footnote/loop-answer')
+const { AskedAtLine, LoopAnswerBody, LoopReadLine } =
+  await import('@/components/footnote/loop-answer')
 const { loopParts } = await import('@/components/footnote/loop-parts')
 const { AnswerActions, ReportLine, SomethingWrong } = await import('@/components/footnote/answer')
 // The figure reads the data through the app's query cache: here, where it goes is enough.
@@ -1403,5 +1405,69 @@ describe('the nouns of an answer on any workspace', () => {
     const el = render(invented, 'Tickets closed by billing?')
     act(() => (buttons(el, /^Billing, value$/)[0] as HTMLElement).click())
     expect(document.body.textContent).toContain('A value of Team')
+  })
+})
+
+describe('the read line under a question', () => {
+  /** The read line of a turn, asked at a period chosen, or none; with Change and the menu. */
+  function line(turn: LoopTurn, period?: Answer['period']) {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    const answer = {
+      ...loopAnswerOf(turn, 'Orders in Norway?', names),
+      ...(period ? { period } : {}),
+    }
+    act(() =>
+      root!.render(
+        React.createElement(LoopReadLine, {
+          parts,
+          answer,
+          onRescope: () => {},
+          onReperiod: () => {},
+        }),
+      ),
+    )
+    return host
+  }
+  const at = (period: string): LoopTurn => {
+    const turn = example('loop-checked')
+    return { ...turn, subject: { ...turn.subject!, period, note: null, assumedToday: false } }
+  }
+
+  it('names the period chosen with its days, and any date or days picked as their days', () => {
+    expect(
+      buttons(line(at('1-30 Sep 2026'), 'last month'), /^last month \(1-30 Sep 2026\)$/),
+    ).toHaveLength(1)
+    expect(buttons(line(at('any date'), 'any date'), /^any date$/)).toHaveLength(1)
+    expect(
+      buttons(
+        line(at('5-11 Oct 2026'), { from: '2026-10-05', to: '2026-10-11' }),
+        /^5-11 Oct 2026$/,
+      ),
+    ).toHaveLength(1)
+    // Asked with no period chosen, the days the words were read at.
+    expect(buttons(line(at('1-23 Oct 2026')), /^1-23 Oct 2026$/)).toHaveLength(1)
+  })
+
+  it('offers no period on the answer of what a metric means: dates do not change it', () => {
+    const el = line(example('loop-definition'))
+    expect(buttons(el, /^Net revenue, metric$/)).toHaveLength(1)
+    expect(text(el)).not.toMatch(/date|assumed|Today/)
+  })
+
+  it('says the period a question was asked again at until its answer is in', () => {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root!.render(React.createElement(AskedAtLine, { period: 'last month' })))
+    const said = () => [...host!.querySelectorAll('span')].map((s) => s.textContent)
+    expect(said()).toEqual(['Asked again at', 'last month'])
+    act(() =>
+      root!.render(
+        React.createElement(AskedAtLine, { period: { from: '2026-10-05', to: '2026-10-11' } }),
+      ),
+    )
+    expect(said()).toEqual(['Asked again at', '5 Oct 2026 to 11 Oct 2026'])
   })
 })

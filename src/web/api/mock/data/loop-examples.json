@@ -4070,5 +4070,211 @@
       "overview": null,
       "checks": []
     }
+  },
+  "loop-period": {
+    "question": "What should I know about orders in Norway?",
+    "period": "last month",
+    "turn": {
+      "kind": "answer",
+      "text": "This answer is for last month, September 2026. 3 items apply to Orders in Norway:\n\n- Online sales to Norway stopped on 4 August 2026 [1]\n- Norway orders are card and cash payments only [2]",
+      "sources": ["itm_norwaystop", "itm_giftcardonly"],
+      "state": "conflict",
+      "footer": {
+        "denominator": "3 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Looked up Orders and Norway, 1-30 Sep 2026: 3 items apply, 6 nearby items do not."],
+      "subject": {
+        "names": ["Orders", "Norway"],
+        "about": ["metric:orders", "value:market/norway"],
+        "period": "1-30 Sep 2026",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "What should I know about orders in Norway?",
+            "period": "last month"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "This answer is for last month, September 2026. "
+            },
+            {
+              "t": "count",
+              "value": "3",
+              "of": null
+            },
+            {
+              "t": "text",
+              "text": " items apply to "
+            },
+            {
+              "t": "noun",
+              "id": "metric:orders"
+            },
+            {
+              "t": "text",
+              "text": " in "
+            },
+            {
+              "t": "noun",
+              "id": "value:market/norway"
+            },
+            {
+              "t": "text",
+              "text": ":"
+            }
+          ]
+        },
+        {
+          "t": "ul",
+          "items": [
+            [
+              {
+                "t": "text",
+                "text": "Online sales to Norway stopped on 4 August 2026 "
+              },
+              {
+                "t": "cite",
+                "n": 1
+              }
+            ],
+            [
+              {
+                "t": "text",
+                "text": "Norway orders are card and cash payments only "
+              },
+              {
+                "t": "cite",
+                "n": 2
+              }
+            ]
+          ]
+        }
+      ],
+      "said": "This answer is for last month, September 2026. 3 items apply to [@metric:orders] in [@value:market/norway]:\n\n- Online sales to Norway stopped on 4 August 2026 [itm_norwaystop]\n- Norway orders are card and cash payments only [itm_giftcardonly]",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_norwaystop",
+          "title": "Online sales to Norway stopped on 4 August 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-03",
+          "outOfDate": null,
+          "n": 1
+        },
+        {
+          "id": "itm_giftcardonly",
+          "title": "Norway orders are card and cash payments only",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-02",
+          "outOfDate": null,
+          "n": 2
+        }
+      ],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
   }
 }
