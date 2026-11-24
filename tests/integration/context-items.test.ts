@@ -905,7 +905,7 @@ describe("a context item's page, history and related context", () => {
     if (!r.published) throw new Error('not published')
     // Both apply to Orders: the other item's own link to it is not how it relates here.
     const related = await ok<RelatedContext>(call('GET', `/items/${r.itemId}/related`, 'author'))
-    expect(related).toMatchObject({ areaId: 'finance', following: true })
+    expect(related).toMatchObject({ areaId: 'finance' })
     expect(related.nodes).toContainEqual(
       expect.objectContaining({ type: 'item', id: other, relation: 'conflicts_with' }),
     )
@@ -914,7 +914,7 @@ describe("a context item's page, history and related context", () => {
     )
   })
 
-  it('names a replaced item by its title and domain for people, and says when agents follow nothing', async () => {
+  it('names a replaced item by its title and domain for people', async () => {
     const { scope } = draft()
     const old = await live({ scope, title: 'Orders lag by two days in the source tool' })
     const r = await ok<PublishItemResult>(
@@ -934,13 +934,6 @@ describe("a context item's page, history and related context", () => {
       kind: 'note',
     })
     expect(related.nodes[0]!.status).not.toBe('current')
-    await client.query("update tool_config set enabled=false where tool='get_related'")
-    try {
-      const off = await ok<RelatedContext>(call('GET', `/items/${r.itemId}/related`, 'author'))
-      expect(off.following).toBe(false)
-    } finally {
-      await client.query("update tool_config set enabled=true where tool='get_related'")
-    }
   })
 
   it('reads the related context of a metric or a dimension by its key', async () => {
@@ -948,7 +941,7 @@ describe("a context item's page, history and related context", () => {
     const related = await ok<RelatedContext>(
       call('GET', '/definitions/related?key=metric:orders', 'author'),
     )
-    expect(related).toMatchObject({ areaId: 'finance', following: true })
+    expect(related).toMatchObject({ areaId: 'finance' })
     expect(related.nodes).toContainEqual(
       expect.objectContaining({ type: 'item', id: item, relation: 'applies_to' }),
     )

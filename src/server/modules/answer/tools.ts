@@ -1347,6 +1347,8 @@ function unreadOf(
 const historySchema = z.array(z.object({ on: z.string(), change: z.string() }))
 /** The most changes a history lists. */
 const HISTORY_SHOWN = 6
+/** The most items that mention an item that Ask lists. */
+const BACKLINKS_SHOWN = 20
 
 /** What a version of an item changed, as its History says it (versionKinds). */
 const versionWords: Record<string, string> = {
@@ -1413,7 +1415,7 @@ async function readContext(
       ids: [],
     }
   const whole = out.context as Record<string, unknown>
-  const links = (Array.isArray(whole.links) ? whole.links : []) as {
+  const links = (Array.isArray(out.links_out) ? out.links_out : []) as {
     target: { type: string; id: string; label: string }
   }[]
   const linksTo = links.flatMap(({ target }) =>
@@ -1423,8 +1425,25 @@ async function readContext(
       ? [{ type: target.type, id: target.id, name: target.label }]
       : [],
   )
-  const back = (out.backlinks ?? { items: [] }) as { items: { id: string; title: string }[] }
-  const linkedFrom = back.items.filter((b) => view.readable.has(b.id))
+  // The items whose words mention it: what links to it, as Ask names it.
+  type Back = { rel: string; id: string; title: string }
+  const mentions: Back[] = []
+  let page = out
+  for (;;) {
+    const back = (page.links_in ?? { items: [] }) as { items: Back[] }
+    mentions.push(...back.items.filter((b) => b.rel === 'mentioned_by' && view.readable.has(b.id)))
+    const cursor = page.next_cursor
+    if (mentions.length >= BACKLINKS_SHOWN || typeof cursor !== 'string') break
+    const next = await view.execute(
+      'read_context',
+      { id: input.id, cursor },
+      ASK_PRINCIPAL,
+      100_000,
+      () => {},
+    )
+    page = next?.structuredContent ?? {}
+  }
+  const linkedFrom = mentions.slice(0, BACKLINKS_SHOWN).map(({ id, title }) => ({ id, title }))
   const source = whole.source as { url: string; quote: string } | undefined
   const ownerIds = view.areas.find((a) => a.id === item.areaId)?.ownerIds ?? []
   const changes = (await reads.itemHistory(item.id)) ?? []

@@ -83,12 +83,9 @@ describe("Ask's tool registry", () => {
       'read_context',
       'report',
       'suggest_context',
-      'get_related',
-      'list_definitions',
-      'list_context',
     ])
     expect(toolSchemaDigest).toBe(
-      '75e3f10cf2e5ec1f56dc24afb2993515358ac342863199602bcfed346ed40ddc',
+      '8599c68f6b54ebc9c87ecaf2a072dc52109c487f5358516bff4075662f93414c',
     )
     // No Ask tool writes, reports or suggests: none is an agent tool that is not a read.
     expect(askToolNames.filter((n) => ['report', 'suggest_context'].includes(n))).toEqual([])
@@ -858,5 +855,40 @@ describe('get_context and the words people wrote (FR-718.7)', () => {
     const after = await look(terms, 'Orders in Norway')
     expect(after).not.toHaveProperty('terms')
     expect(JSON.stringify(after)).toBe(JSON.stringify(before))
+  })
+})
+
+describe('read_context in Ask', () => {
+  it('lists 20 items that mention the item, reading past the conflicts that sort first', async () => {
+    const data = bundle(),
+      item = data.items[0]!
+    const added = (prefix: string, rel: string, count: number) =>
+      Array.from({ length: count }, (_, n) => {
+        const id = `itm_${prefix}${String(n).padStart(4, '0')}`
+        data.items.push({ ...item, id })
+        data.links.push({
+          from_item: id,
+          rel,
+          to_kind: 'item',
+          to_id: item.id,
+          label: item.title,
+        })
+        return id
+      })
+    added('conflict', 'conflicts_with', 5)
+    const mentions = added('mention', 'mentions', 25)
+    const reads = {
+      ...noReads,
+      bundle: () => Promise.resolve(data),
+      readable: () => Promise.resolve(data.items),
+      catalogue: () => Promise.resolve({ terms: [] }),
+      areas: () => Promise.resolve([]),
+      people: () => Promise.resolve([]),
+      itemHistory: () => Promise.resolve([]),
+    } as unknown as ToolReads
+    const result = (await createAskTools(reads).run('read_context', { id: item.id })) as {
+      item: { linkedFrom: { id: string }[] }
+    }
+    expect(result.item.linkedFrom.map((l) => l.id)).toEqual(mentions.slice(0, 20))
   })
 })

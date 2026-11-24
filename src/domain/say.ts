@@ -25,7 +25,7 @@ export type Said = { say: string; next?: string }
 
 /**
  * The words a reply speaks in: what one written thing is called, and the tools it points to. The
- * six tools of the agent contract point at each other and start with the answer line
+ * tools of the agent contract point at each other and start with the answer line
  * (`contextVoice`), and call a written thing by the glossary's name (src/domain/words.ts), so they
  * follow when it changes. What a person reads (`peopleVoice`) speaks the same words, with the
  * answer line drawn apart.
@@ -586,6 +586,8 @@ export function findSaid(
     withheld: number
     definitions: readonly string[]
     area: string | null
+    /** Where the page starts: 0 on the first page. */
+    offset?: number
   },
 ): Said {
   // The words are the caller's own: the sentence never repeats them, nor what they may probe.
@@ -595,8 +597,14 @@ export function findSaid(
   const scope = c.scope
     ? scopeWords(bundle, c.scope, { show: !c.assumed, readsAs: c.readsAs ?? null })
     : null
-  const shown = c.shown < c.total ? ` ${c.shown} are shown.` : ''
-  const more = c.shown < c.total ? ' Raise limit for more.' : ''
+  const offset = c.offset ?? 0
+  const paged = offset > 0 || c.shown < c.total
+  const shown = !paged
+    ? ''
+    : offset
+      ? ` ${(offset + 1).toLocaleString('en')} to ${(offset + c.shown).toLocaleString('en')} are shown.`
+      : ` ${c.shown} are shown.`
+  const more = offset + c.shown < c.total ? ' Pass next_cursor as cursor for the next page.' : ''
   const defined = c.definitions.length
     ? `The definition of ${list(c.definitions)} is here too, in its source's own words.`
     : null
@@ -636,12 +644,12 @@ export function findSaid(
  * item by that id may be read, in the same words for one the caller may not see as for one that
  * does not exist (FR-334). `kind` is the kind as the reply names it.
  */
-export const readSaid = (item: { kind: string; version: number } | null): Said => {
+export const readSaid = (item: { kind: string; version: number; more?: boolean } | null): Said => {
   const [one, many] = contextVoice.item
   return item
     ? {
         say: `This is the full ${item.kind}, version ${item.version}.`,
-        next: `A link shows what a ${one} mentions: it does not mean the ${one} applies to the question.`,
+        next: `links_out and links_in show what it links to and what links to it: read one with ${contextVoice.read} only when it helps answer the question. A link does not mean the ${one} applies to the question, nor prove a cause.${item.more ? ' Pass next_cursor as cursor for more of links_in.' : ''}`,
       }
     : {
         say: `There's no ${one} by that id that you can read.`,
@@ -667,7 +675,7 @@ export const definitionReadSaid = (d: { name: string; kind: string; items: numbe
 /** read_context's sentences for words that name no definition (FR-353): the closest, if any. */
 export const unknownDefinitionSaid = (closest: readonly string[]): Said => ({
   say: `There's no ${peopleConcepts.definition.name} or ${contextVoice.item[0]} by that name or id that you can read.`,
-  next: `${closest.length ? 'Call again with one of options, the closest names, or find' : 'Find'} it with list_definitions or ${contextVoice.find}.`,
+  next: `${closest.length ? 'Call again with one of options, the closest names, or find' : 'Find'} it with ${contextVoice.find}.`,
 })
 /** read_context's sentences for words that name several definitions (FR-353). */
 export const severalDefinitionsSaid = (n: number): Said => ({
@@ -675,69 +683,56 @@ export const severalDefinitionsSaid = (n: number): Said => ({
   next: 'Call again with one key from options.',
 })
 
-/** get_related's two sentences: what links to the start, or that it may not be read (FR-334). */
-export const relatedSaid = (c: { shown: number; total: number; depth: number } | null): Said =>
-  c
-    ? {
-        say: `${sentence(c.shown < c.total ? `${c.shown} of ${count(c.total, 'linked thing', 'linked things')}` : count(c.total, 'thing is', 'things are'))}${c.shown < c.total ? ' are shown' : ' linked to it'}, up to ${count(c.depth, 'step', 'steps')} away.`,
-        next: `A link shows what a text refers to: it doesn't mean an item applies to the question, nor prove a cause.${c.shown < c.total ? ' next_cursor gives the next page.' : ''}`,
-      }
-    : {
-        say: "There's nothing by that id that you can read.",
-        next: 'That says nothing about what else is written down.',
-      }
-
-/** One page of a list (FR-351, FR-352): how many there are, and which of them it shows. */
-type ListPage = { total: number; offset: number; shown: number }
-/** "There are 87 definitions; 1 to 25 are shown." A page that shows all says only how many. */
-const pageWords = (c: ListPage, one: string, many: string) =>
-  c.shown === c.total
-    ? `There ${c.total === 1 ? `is ${count(1, one, many)}` : `are ${count(c.total, one, many)}`}.`
-    : `There are ${count(c.total, one, many)}; ${(c.offset + 1).toLocaleString('en')} to ${(c.offset + c.shown).toLocaleString('en')} are shown.`
-const morePages = (c: ListPage) =>
-  c.offset + c.shown < c.total ? ' Pass next_cursor as cursor for the next page.' : ''
-/** A cursor past the end of a list that has since shrunk: nothing is shown. */
-const pastTheEnd = (c: ListPage, one: string, many: string): Said => ({
-  say: `This page starts past the end of the list. There ${c.total === 1 ? `is ${count(1, one, many)}` : `are ${count(c.total, one, many)}`} now.`,
-  next: 'Call again without cursor to start over from the first page.',
-})
-/** A list's domain that names none: nothing was listed. The words are the agent's: never repeated. */
+/** One page of what find_context lists without words: how many of each, and which it shows. */
+type ListPage = { definitions: number; items: number; offset: number; shown: number }
+const definitionWords = [
+  peopleConcepts.definition.name,
+  `${peopleConcepts.definition.name}s`,
+] as const
+/** "22 definitions and 1,500 published context items you can read". */
+function listedWords(c: ListPage) {
+  const [one, many] = contextVoice.item
+  return list([
+    ...(c.definitions ? [count(c.definitions, ...definitionWords)] : []),
+    ...(c.items
+      ? [count(c.items, `published ${one} you can read`, `published ${many} you can read`)]
+      : []),
+  ])
+}
+/** A domain that names none: nothing was found or listed. The words are the agent's: never repeated. */
 export const unknownDomainSaid: Said = {
-  say: "There's no domain by that name, so nothing was listed.",
+  say: "There's no domain by that name, so nothing was found.",
   next: 'Call again with a domain from options, or without domain.',
 }
 
-/** list_definitions' sentences (FR-351): how many definitions there are, and the next page. */
-export const definitionsListSaid = (c: ListPage): Said =>
-  c.total && !c.shown
-    ? pastTheEnd(c, peopleConcepts.definition.name, `${peopleConcepts.definition.name}s`)
-    : c.total
-      ? {
-          say: pageWords(c, peopleConcepts.definition.name, `${peopleConcepts.definition.name}s`),
-          next: `They come in a fixed order: metrics, then dimensions, then terms, each A to Z.${morePages(c)} For what one means and the context about it, call find_context with its name, or get_context for a question.`,
-        }
-      : {
-          say: `There's no ${peopleConcepts.definition.name} with these filters.`,
-          next: 'That says nothing about what context items say: for words, call find_context.',
-        }
-
-/** list_context's sentences (FR-352): how many published context items there are, and the next page. */
-export const contextListSaid = (c: ListPage, item: readonly [string, string]): Said =>
-  c.total && !c.shown
-    ? pastTheEnd(c, `published ${item[0]} you can read`, `published ${item[1]} you can read`)
-    : c.total
-      ? {
-          say: pageWords(
-            c,
-            `published ${item[0]} you can read`,
-            `published ${item[1]} you can read`,
-          ),
-          next: `They come in a fixed order, A to Z by title.${morePages(c)} Read one in full with read_context, by its id; for what applies to a question, call get_context.`,
-        }
-      : {
-          say: `There's no published ${item[0]} you can read with these filters.`,
-          next: 'That proves nothing about a question: call get_context with its metrics, markets and dates.',
-        }
+/**
+ * find_context's sentences without words (FR-338): how many definitions and published context
+ * items there are with the filters, which of them the page shows, and the next page.
+ */
+export function listSaid(c: ListPage): Said {
+  const [one, many] = contextVoice.item
+  const total = c.definitions + c.items
+  const there = `There ${total === 1 ? 'is' : 'are'} ${listedWords(c)}`
+  if (!total)
+    return {
+      say: `There's no ${definitionWords[0]} or published ${one} you can read with these filters.`,
+      next: `That proves nothing about a question: call ${contextVoice.get} with its metrics, markets and dates.`,
+    }
+  if (!c.shown)
+    return {
+      say: `This page starts past the end of the list. ${there} now.`,
+      next: 'Call again without cursor to start over from the first page.',
+    }
+  const shown =
+    c.shown === total
+      ? `${there}.`
+      : `${there}; ${(c.offset + 1).toLocaleString('en')} to ${(c.offset + c.shown).toLocaleString('en')} are shown.`
+  const more = c.offset + c.shown < total ? ' Pass next_cursor as cursor for the next page.' : ''
+  return {
+    say: shown,
+    next: `They come in a fixed order: definitions first, metrics, then dimensions, then terms, each A to Z, then ${many} A to Z by title.${more} Read one in full with ${contextVoice.read}, by its id or key; for what applies to a question about a metric, call ${contextVoice.get}.`,
+  }
+}
 
 /**
  * report's sentence: what was sent, and to which owner when the report names a context item or a

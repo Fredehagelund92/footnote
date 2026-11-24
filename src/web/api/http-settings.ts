@@ -105,11 +105,10 @@ const SWITCHED = AGENT_TOOLS.map((t) => t.name)
 export function switchesOf(
   tools: readonly { tool: string; enabled: boolean }[],
   stops: readonly { scope: string; areaId: string | null }[],
-): Pick<Settings, 'links' | 'tools' | 'pause'> {
+): Pick<Settings, 'tools' | 'pause'> {
   const on = (name: string) => tools.find((t) => t.tool === name)?.enabled ?? false
   return {
-    links: on('get_related'),
-    tools: Object.fromEntries(SWITCHED.filter((n) => n !== 'get_related').map((n) => [n, on(n)])),
+    tools: Object.fromEntries(SWITCHED.map((n) => [n, on(n)])),
     pause: {
       all: stops.some((s) => s.scope === 'all'),
       domain: stops.find((s) => s.scope === 'area')?.areaId ?? null,

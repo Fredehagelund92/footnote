@@ -321,7 +321,7 @@ it('compares a mention with the mark it recorded, not with the references of the
   })
 })
 
-it('pages backlinks and rejects a cursor after the overlay changes', async () => {
+it('pages the items that link to it and rejects a cursor after the overlay changes', async () => {
   const s = setup(),
     item = s.data.items[0]!
   for (let n = 0; n < 25; n++) {
@@ -336,13 +336,16 @@ it('pages backlinks and rejects a cursor after the overlay changes', async () =>
     })
   }
   const read = await s.call('read_context', { id: item.id })
-  expect(read.structuredContent.backlinks).toMatchObject({ count: 25 })
-  expect((read.structuredContent.backlinks as { items: unknown[] }).items).toHaveLength(20)
+  expect(read.structuredContent.links_in).toMatchObject({ count: 25 })
+  const page = (read.structuredContent.links_in as { items: { rel: string; id: string }[] }).items
+  expect(page).toHaveLength(20)
+  expect(page[0]).toEqual({ rel: 'mentioned_by', id: 'itm_backlink00', title: item.title })
   const next = await s.call('read_context', {
     id: item.id,
     cursor: read.structuredContent.next_cursor,
   })
-  expect((next.structuredContent.backlinks as { items: unknown[] }).items).toHaveLength(5)
+  expect((next.structuredContent.links_in as { items: unknown[] }).items).toHaveLength(5)
+  expect(next.structuredContent.next_cursor).toBeNull()
   s.data.overlay = '2'
   expect(
     (await s.call('read_context', { id: item.id, cursor: read.structuredContent.next_cursor }))
@@ -398,8 +401,8 @@ it('records failed queue writes and bounded overflow without failing delivery', 
   expect(failures).toEqual([1, 1])
 })
 
-describe('get_related', () => {
-  it('follows a mention of a term written in Definitions to what it means, and back', async () => {
+describe("read_context's links (FR-331 to FR-334)", () => {
+  it('gives a mention of a term written in Definitions, and the term the items about it', async () => {
     const s = setup(),
       item = s.data.items[0]!
     const id = '0190a0a0-0000-7000-8000-00000000000f'
@@ -421,146 +424,126 @@ describe('get_related', () => {
       to_id: `term:${id}`,
       label: 'the webshop',
     })
-    const from = (await s.call('get_related', { id: item.id })).structuredContent as {
-      nodes: Record<string, unknown>[]
+    const from = (await s.call('read_context', { id: item.id })).structuredContent as {
+      links_out: Record<string, unknown>[]
+      context: Record<string, unknown>
     }
-    expect(from.nodes).toContainEqual({
-      type: 'term',
-      id: `term:${id}`,
-      label: 'Webshop',
-      status: 'current',
-      meaning: 'Orders placed on our site or in our apps.',
-      area: item.areaId,
-      distance: 1,
+    expect(from.links_out).toContainEqual({
+      rel: 'mentions',
+      target: {
+        type: 'term',
+        id: `term:${id}`,
+        label: 'Webshop',
+        status: 'current',
+        area: item.areaId,
+      },
     })
-    const back = (await s.call('get_related', { id: `term:${id}` })).structuredContent as {
-      root: Record<string, unknown>
-      nodes: { id: string }[]
+    // The links are the reply's own, never part of the item.
+    expect(from.context).not.toHaveProperty('links')
+    const back = (await s.call('read_context', { id: `term:${id}` })).structuredContent as {
+      definition: { name: string; context: { items: { id: string }[] } }
     }
-    expect(back.root).toMatchObject({ type: 'term', label: 'Webshop' })
-    expect(back.nodes.map((n) => n.id)).toEqual([item.id])
+    expect(back.definition.name).toBe('Webshop')
+    expect(back.definition.context.items.map((i) => i.id)).toEqual([item.id])
   })
 
-  function graph(n: number) {
+  function linked() {
     const s = setup(),
       item = s.data.items[0]!
-    for (let i = 0; i < n; i++) {
-      const id = `itm_mention${String(i).padStart(3, '0')}`
-      s.data.items.push({ ...item, id, title: `Mentioning item ${i}` })
-      s.data.links.push({
-        from_item: id,
+    const other = (id: string, title: string): ServingItem => ({ ...item, id, title })
+    s.data.items.push(other('itm_conflict01', 'Other count'), other('itm_mention001', 'Mentions'))
+    s.data.links.push(
+      {
+        from_item: 'itm_conflict01',
+        rel: 'conflicts_with',
+        to_kind: 'item',
+        to_id: item.id,
+        label: null,
+      },
+      {
+        from_item: 'itm_mention001',
         rel: 'mentions',
-        to_kind: 'metric',
-        to_id: 'metric:orders',
-        label: 'Orders',
-        definition_ref: 'cube:finance.orders',
-        change_mark: '1',
-      })
-    }
-    return s
+        to_kind: 'item',
+        to_id: item.id,
+        label: 'it',
+      },
+    )
+    return { s, item }
   }
 
-  it('pages neighbours in a fixed order, at most 50 a page, with counts over all of them', async () => {
-    const s = graph(60)
-    const first = await s.call('get_related', { id: 'metric:orders', max_nodes: 50 })
-    expect(first.isError).not.toBe(true)
-    const out = first.structuredContent as {
-      nodes: { id: string; type: string }[]
-      edges: { from: string; to: string; rel: string }[]
-      counts: Record<string, number>
-      next_cursor: string | null
-      check_report: { statements: string[]; links_withheld: number }
-      instructions: string
-    }
-    expect(out.nodes).toHaveLength(50)
-    expect(out.counts).toEqual({ mentioned_by: 61 })
-    expect(out.check_report.statements[0]).toMatch(/does not mean the item applies/)
-    expect(out.instructions).toContain('read_context')
-    const second = await s.call('get_related', {
-      id: 'metric:orders',
-      max_nodes: 50,
-      cursor: out.next_cursor,
+  it('gives what links to it in a fixed order, by how it links, then by id', async () => {
+    const { s, item } = linked()
+    const read = await s.call('read_context', { id: item.id })
+    expect(read.structuredContent.links_in).toEqual({
+      count: 2,
+      items: [
+        { rel: 'conflicts_with', id: 'itm_conflict01', title: 'Other count' },
+        { rel: 'mentioned_by', id: 'itm_mention001', title: 'Mentions' },
+      ],
     })
-    const rest = second.structuredContent as typeof out
-    expect(rest.nodes).toHaveLength(11)
-    expect(rest.next_cursor).toBeNull()
-    const ids = [...out.nodes, ...rest.nodes].map((n) => n.id)
-    expect(new Set(ids).size).toBe(61)
-    // Every edge appears once, on the page that lists its later end.
-    const edges = [...out.edges, ...rest.edges].map((e) => `${e.from}>${e.rel}>${e.to}`)
-    expect(new Set(edges).size).toBe(edges.length)
-    expect(edges).toHaveLength(61)
+    expect(read.structuredContent.next_cursor).toBeNull()
+    expect(read.structuredContent.check_report).toMatchObject({
+      statements: [expect.any(String), expect.stringMatching(/does not mean the item applies/)],
+    })
     // The same input and edition give the same reply (FR-327).
-    const again = await s.call('get_related', { id: 'metric:orders', max_nodes: 50 })
-    expect(again.structuredContent).toEqual(first.structuredContent)
-    expect(
-      (await s.call('get_related', { id: 'metric:orders', max_nodes: 51 })).structuredContent,
-    ).toMatchObject({ status: 'check_failed' })
-    expect(
-      (await s.call('get_related', { id: 'metric:orders', depth: 3 })).structuredContent,
-    ).toMatchObject({ status: 'check_failed' })
+    expect((await s.call('read_context', { id: item.id })).structuredContent).toEqual(
+      read.structuredContent,
+    )
   })
 
-  it('moves what does not fit the byte limit to the next page instead of cutting it', async () => {
-    const s = graph(20)
-    const reply = await s.call('get_related', { id: 'metric:orders', max_bytes: 8000 })
-    expect(byteSize(reply)).toBeLessThanOrEqual(8000)
-    const out = reply.structuredContent as { nodes: unknown[]; next_cursor: string | null }
-    expect(out.nodes.length).toBeGreaterThan(0)
-    expect(out.nodes.length).toBeLessThan(20)
-    expect(out.next_cursor).not.toBeNull()
-    // Not even one neighbour fits: say so, never return an empty page that repeats its cursor.
-    expect((await s.call('get_related', { id: 'metric:orders', max_bytes: 3000 })).isError).toBe(
+  it('counts withheld links only of the kinds of link asked for', async () => {
+    const s = setup(),
+      item = s.data.items[0]!
+    s.data.items.push({
+      ...item,
+      id: 'itm_hidden0001',
+      audience: { kind: 'groups' as const, groups: ['secret'] },
+    })
+    s.data.links.push({
+      from_item: item.id,
+      rel: 'mentions',
+      to_kind: 'item',
+      to_id: 'itm_hidden0001',
+      label: 'Authored label',
+    })
+    const withheld = async (relations: string[]) =>
+      (
+        (await s.call('read_context', { id: item.id, relations })).structuredContent as {
+          check_report: { links_withheld: number }
+        }
+      ).check_report.links_withheld
+    expect(await withheld(['mentions'])).toBe(1)
+    expect(await withheld(['in_area'])).toBe(0)
+  })
+  it('keeps only the kinds of link asked for, both ways', async () => {
+    const { s, item } = linked()
+    const only = await s.call('read_context', { id: item.id, relations: ['mentioned_by'] })
+    expect(only.structuredContent).toMatchObject({
+      links_out: [],
+      links_in: { count: 1, items: [{ rel: 'mentioned_by', id: 'itm_mention001' }] },
+    })
+    const out = await s.call('read_context', { id: item.id, relations: ['in_area'] })
+    expect(out.structuredContent).toMatchObject({
+      links_out: [{ rel: 'in_area', target: { type: 'area', id: item.areaId } }],
+      links_in: { count: 0, items: [] },
+    })
+    expect((await s.call('read_context', { id: item.id, relations: ['sideways'] })).isError).toBe(
       true,
     )
   })
 
-  it('answers a hidden start like a missing one, and rejects a cursor from another edition', async () => {
-    const s = graph(25)
-    const hidden: ServingItem = {
-      ...s.data.items[0]!,
-      id: 'itm_hidden0001',
-      title: 'PRIVATE target',
+  it('leaves out an item the caller may not see that links to it, and is no delivery', async () => {
+    const { s, item } = linked()
+    s.data.items[1] = {
+      ...s.data.items[1]!,
       audience: { kind: 'groups' as const, groups: ['secret'] },
     }
-    s.data.items.push(hidden)
-    const missing = await s.call('get_related', { id: 'itm_missing001' })
-    const secret = await s.call('get_related', { id: hidden.id })
-    expect(secret.structuredContent).toEqual(missing.structuredContent)
-    expect(secret.structuredContent).toMatchObject({ status: 'no_match', message: 'Not found' })
-    const first = await s.call('get_related', { id: 'metric:orders', max_nodes: 10 })
-    s.data.overlay = '2'
-    expect(
-      (
-        await s.call('get_related', {
-          id: 'metric:orders',
-          max_nodes: 10,
-          cursor: first.structuredContent.next_cursor,
-        })
-      ).isError,
-    ).toBe(true)
-  })
-
-  it('filters neighbours by dates and relation and pins historical editions to edition scope', async () => {
-    const s = graph(2)
-    s.data.items[1]!.validity = { start: '2026-09-15', end: null }
-    const august = await s.call('get_related', {
-      id: 'metric:orders',
-      relations: ['mentioned_by'],
-      window: { from: '2026-08-01', to: '2026-08-31' },
+    const read = await s.call('read_context', { id: item.id })
+    expect(read.structuredContent.links_in).toEqual({
+      count: 1,
+      items: [{ rel: 'mentioned_by', id: 'itm_mention001', title: 'Mentions' }],
     })
-    expect((august.structuredContent.nodes as { id: string }[]).map((n) => n.id)).toEqual([
-      'itm_mention001',
-      'itm_norway01',
-    ])
-    expect(august.structuredContent).toMatchObject({ check_report: { links_withheld: 1 } })
-    expect(
-      (await s.call('get_related', { id: 'metric:orders', edition: s.data.edition })).isError,
-    ).toBe(true)
-    expect(
-      (await s.call('get_related', { id: 'metric:orders', edition: s.data.edition }, true)).isError,
-    ).not.toBe(true)
-    // A neighbour list is not a delivery: nothing is recorded (FR-603).
+    // A read is not a delivery: nothing is recorded (FR-603).
     expect(s.records).toEqual([])
   })
 })
@@ -635,7 +618,7 @@ describe('what a model reads (FR-346)', () => {
       ['get_context', { question, response_format: 'full' }, ['tool_schema_digest', 'overlay']],
       ['find_context', { query: 'orders' }, ['tool_schema_digest', 'overlay']],
       ['read_context', { id: 'itm_norway01' }, machine],
-      ['get_related', { id: 'metric:orders' }, machine],
+      ['find_context', { kind: 'metric' }, machine],
     ]
     for (const [name, input, inMeta] of calls) {
       const reply = await execute(name, input, principal, 100000, (r) => s.records.push(r))
@@ -1387,6 +1370,48 @@ describe('get_context', () => {
 })
 
 describe('read_context and find_context', () => {
+  const withHits = (count: number) => {
+    const s = setup(),
+      item = s.data.items.find((i) => i.id === 'itm_norway01')!
+    for (let n = 0; n < count; n++)
+      s.data.items.push({ ...item, id: `itm_hit${String(n).padStart(4, '0')}` })
+    return s
+  }
+  type Page = { context: unknown[]; next_cursor: string | null; total: number }
+  it('find_context under a byte cut keeps a fitting page and a valid cursor', async () => {
+    const s = withHits(9)
+    let cut = 0
+    for (let max = 1500; max <= 20000; max += 100) {
+      const reply = await s.call('find_context', { query: 'Norway', max_bytes: max })
+      if (reply.isError) continue
+      const out = reply.structuredContent as unknown as Page
+      if (!out.context.length) continue
+      expect(JSON.stringify(reply).length).toBeGreaterThan(0)
+      if (out.context.length < out.total) {
+        cut++
+        expect(out.next_cursor).toEqual(expect.any(String))
+        const next = await s.call('find_context', {
+          query: 'Norway',
+          max_bytes: 20000,
+          cursor: out.next_cursor,
+        })
+        expect(next.isError).toBeFalsy()
+        expect((next.structuredContent as unknown as Page).context.length).toBeGreaterThan(0)
+      }
+    }
+    expect(cut).toBeGreaterThan(0)
+  })
+  it('find_context never returns an empty page with a cursor when one hit cannot fit', async () => {
+    const s = withHits(29)
+    for (let max = 200; max <= 20000; max += 100) {
+      const reply = await s.call('find_context', { query: 'Norway', max_bytes: max })
+      if (reply.isError) continue
+      const out = reply.structuredContent as unknown as Page
+      if (out.total > 0) expect(out.context.length).toBeGreaterThan(0)
+    }
+    const tiny = await s.call('find_context', { query: 'Norway', max_bytes: 200 })
+    expect(tiny.isError).toBe(true)
+  })
   it('read_context gives the whole item as the agent contract does, by its label', async () => {
     const s = setup()
     const out = (await s.call('read_context', { id: 'itm_norway01' })).structuredContent as {

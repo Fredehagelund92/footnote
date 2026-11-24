@@ -162,7 +162,6 @@ describe('Related, from the service', () => {
     areaId: 'area_marketing',
     nodes,
     withheld: 0,
-    following: true,
   })
 
   it("names each end as the app's mentions do, with how it relates and whose it is", () => {

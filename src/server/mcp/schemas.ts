@@ -3,7 +3,7 @@ import { replyStatuses } from '../../domain/answer-state.ts'
 import { kindFilters } from '../../domain/mcp-text.ts'
 import { isCalendarDate } from '../../domain/validity.ts'
 import { itemKinds } from '../../domain/item.ts'
-import { relatedLimits, relations } from '../../domain/links.ts'
+import { relations } from '../../domain/links.ts'
 import {
   fieldMarks,
   limits,
@@ -114,17 +114,30 @@ export const checkContextInput = getContextInput.extend({
 })
 /** A context item's id: what read_context reads as an item, and anything else as a definition. */
 export const itemIdPattern = /^itm_[a-z0-9]{8,16}$/
-/** read_context (FR-353): one context item, by its id, or one definition, by a name or its key. */
+/**
+ * read_context (FR-353): one context item, by its id, with its links one step out and in, or one
+ * definition, by a name or its key.
+ */
 export const readInput = z.strictObject({
   id: z
     .string()
     .min(1)
     .max(200)
     .describe(
-      "A context item's id (itm_...), or a definition: its name, another of its names, or its key from find_context or list_definitions (such as metric:orders or term:...).",
+      "A context item's id (itm_...), or a definition: its name, another of its names, or its key from find_context (such as metric:orders or term:...).",
     ),
+  relations: z
+    .array(z.enum(relations))
+    .min(1)
+    .max(relations.length)
+    .optional()
+    .describe("Only an item's links of these kinds. Leave it out for all of them."),
   edition,
-  cursor: z.string().max(2000).optional(),
+  cursor: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe('The next_cursor of the reply before, for the next page.'),
   max_bytes: z.number().int().min(1000).max(100000).default(100000),
 })
 export type ReadInput = z.infer<typeof readInput>
@@ -155,20 +168,48 @@ export const findInput = z.strictObject({
   max_bytes: z.number().int().min(1000).max(100000).default(100000),
   response_format: responseFormat.default('full'),
 })
+/** What find_context finds or lists by kind: a definition's kind, or an item's as agents read it. */
+export const definitionKinds = ['metric', 'dimension', 'term'] as const
+export const findKinds = [
+  ...definitionKinds,
+  ...(Object.keys(kindFilters) as (keyof typeof kindFilters)[]),
+] as const
+/** How many find_context gives to a page: by default, with words and without, and at most. */
+export const findLimits = { words: 10, list: 25, max: 100 } as const
 /**
- * find_context (FR-338, merging the tools that found facts): what is written down about a few
- * words, by the names people use. A kind is named as agents read it (event, warning, rule, guide).
+ * find_context (FR-338): what is written down about a few words, by the names people use, or
+ * without words everything of a kind or in a domain, a page at a time. A kind is named as agents
+ * read it (metric, dimension, term, event, warning, rule, guide).
  */
 export const findContextInput = z.strictObject({
-  query: findInput.shape.query,
+  query: findInput.shape.query
+    .optional()
+    .describe(
+      'A few words or the question as asked: a metric, a market, a domain or a topic, such as "GMV Spain" or "what is net revenue". Leave it out to list everything of a kind or in a domain.',
+    ),
   domain: domainName.optional(),
   kind: z
-    .enum(Object.keys(kindFilters) as [keyof typeof kindFilters, ...(keyof typeof kindFilters)[]])
+    .enum(findKinds)
     .optional()
-    .describe('Only items of this kind: event, warning, rule or guide.'),
+    .describe(
+      'Only this kind: a definition (metric, families too, dimension, or term, a word a person defined) or an item (event, warning, rule or guide).',
+    ),
   window: findInput.shape.window,
   edition,
-  limit: z.number().int().min(1).max(50).default(10),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(findLimits.max)
+    .optional()
+    .describe(
+      `How many to a page: ${findLimits.words} with words and ${findLimits.list} without by default, at most ${findLimits.max}.`,
+    ),
+  cursor: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe('The next_cursor of the page before, for the next page.'),
   max_bytes: z.number().int().min(1000).max(100000).default(100000),
   response_format: responseFormat
     .default('concise')
@@ -215,75 +256,6 @@ export const reportInput = z.strictObject({
     ),
 })
 export type ReportInput = z.infer<typeof reportInput>
-/** FR-332: an item id, a vocabulary key, or a domain (`area:<id>` or the bare area id). */
-export const relatedInput = z.strictObject({
-  id: z.string().min(1).max(160),
-  relations: z.array(z.enum(relations)).min(1).max(relations.length).optional(),
-  depth: z.number().int().min(1).max(relatedLimits.maxDepth).default(1),
-  max_nodes: z
-    .number()
-    .int()
-    .min(1)
-    .max(relatedLimits.maxNodes)
-    .default(relatedLimits.defaultNodes),
-  window: scopeFields.window,
-  edition,
-  cursor: z.string().max(2000).optional(),
-  max_bytes: z.number().int().min(1000).max(100000).default(100000),
-})
-/** The page sizes of the two list tools (FR-351, FR-352): a default page, and the most one may hold. */
-export const listLimits = { defaultPage: 25, maxPage: 100 } as const
-/** What both list tools take beside their kind: a domain, a few words, a page and its size. */
-const listFields = {
-  domain: domainName.optional(),
-  query: z
-    .string()
-    .min(1)
-    .max(200)
-    .optional()
-    .describe('Only those whose name has these words, such as "revenue". Leave it out for all.'),
-  limit: z
-    .number()
-    .int()
-    .min(1)
-    .max(listLimits.maxPage)
-    .default(listLimits.defaultPage)
-    .describe(
-      `How many to a page: ${listLimits.defaultPage} by default, at most ${listLimits.maxPage}.`,
-    ),
-  cursor: z
-    .string()
-    .max(2000)
-    .optional()
-    .describe('The next_cursor of the page before, for the next page.'),
-  edition,
-  max_bytes: z.number().int().min(1000).max(100000).default(100000),
-}
-/** The kinds list_definitions lists (FR-351): a metric (a family among them), a dimension, a term. */
-export const definitionKinds = ['metric', 'dimension', 'term'] as const
-/** list_definitions (FR-351): what Definitions holds, a page at a time, in a fixed order. */
-export const listDefinitionsInput = z.strictObject({
-  kind: z
-    .enum(definitionKinds)
-    .optional()
-    .describe(
-      'Only this kind: metric (families too), dimension, or term (a word a person defined).',
-    ),
-  ...listFields,
-})
-export type ListDefinitionsInput = z.infer<typeof listDefinitionsInput>
-/** list_context (FR-352): the published context items the caller may see, a page at a time. */
-export const listContextInput = z.strictObject({
-  kind: z
-    .enum(Object.keys(kindFilters) as [keyof typeof kindFilters, ...(keyof typeof kindFilters)[]])
-    .optional()
-    .describe('Only items of this kind: event, warning, rule or guide.'),
-  ...listFields,
-  query: listFields.query.describe(
-    'Only those whose title has these words, such as "holiday". Leave it out for all.',
-  ),
-})
-export type ListContextInput = z.infer<typeof listContextInput>
 /**
  * FR-121: what an agent passes to draft context for the person. Every field is a suggestion the
  * person confirms; Footnote resolves names against the vocabulary and never trusts a key or a fact
@@ -593,12 +565,8 @@ export const contextOutput = z
     edition: z.string().optional(),
   })
   .loose()
-/** find_context: the matching items, with their pages in Footnote (FR-347). */
-export const findContextOutput = z
-  .object({ ...said, context: z.array(contextEntry).optional(), terms })
-  .loose()
-/** The page and where the next one is, in both list tools' replies. */
-const listPage = {
+/** The page and where the next one is, in find_context's and read_context's replies. */
+const page = {
   total: z
     .number()
     .int()
@@ -614,6 +582,36 @@ const listPage = {
 const listOwner = z
   .object({ role: z.string(), team: z.string().nullable() })
   .describe('Who looks after it, as a role and a team (never a person).')
+/**
+ * find_context (FR-338, FR-347): the matching or listed items with their pages in Footnote, each
+ * with its title and summary and never its text, and the definitions.
+ */
+export const findContextOutput = z
+  .object({
+    ...said,
+    ...page,
+    definitions: z
+      .array(z.object({}).loose())
+      .optional()
+      .describe(
+        "With words, each metric or dimension they name: the definition its source gives and what this context adds. Without words, a page of definitions: each one's key, name, kind, domain, owner and one-line meaning.",
+      ),
+    context: z
+      .array(
+        contextEntry.extend({
+          summary: z.string(),
+          applies: z.string().describe('What it applies to, in words.'),
+          when: z.string().describe('When it applies, in words.'),
+          may_be_out_of_date: z
+            .literal(true)
+            .optional()
+            .describe('It is due for a check: say so if you use it.'),
+        }),
+      )
+      .optional(),
+    terms,
+  })
+  .loose()
 /** A name a definition is known by, with its key: what read_context reads it by. */
 const namedDefinition = z.object({ key: z.string(), name: z.string() })
 /**
@@ -623,7 +621,7 @@ const namedDefinition = z.object({ key: z.string(), name: z.string() })
  */
 const definitionEntry = z
   .object({
-    key: z.string().describe('Its key, for get_related, such as metric:orders.'),
+    key: z.string().describe('Its key, which read_context reads it by, such as metric:orders.'),
     name: z.string(),
     kind: z
       .enum(['metric', 'metric family', 'dimension', 'term'])
@@ -729,12 +727,60 @@ const definitionEntry = z
     url: z.string().describe('Its page in Definitions, for the person.'),
   })
   .loose()
-/** read_context: the one item in full, or the one definition (FR-353), with its page in Footnote (FR-347). */
+/** A link as an item writes it: how it links, and what it links to as it stands now. */
+const linkOut = z
+  .object({
+    rel: z
+      .string()
+      .describe('How it links: replaces, conflicts_with, applies_to, mentions or in_area.'),
+    target: z
+      .object({
+        type: z.string().describe('item, metric, dimension, term or area.'),
+        id: z.string(),
+        label: z.string(),
+        status: z
+          .string()
+          .describe(
+            'current; retired or replaced for an item no longer served; source_missing, source_changed or unresolved for a definition.',
+          ),
+      })
+      .loose(),
+  })
+  .loose()
+/**
+ * read_context: the one item in full with its links one step out and in, or the one definition
+ * (FR-353), with its page in Footnote (FR-347).
+ */
 export const readContextOutput = z
   .object({
     ...said,
     context: contextEntry.optional(),
+    links_out: z
+      .array(linkOut)
+      .optional()
+      .describe('What the item links to, in a fixed order. Read a linked item with read_context.'),
+    links_in: z
+      .object({
+        count: z
+          .number()
+          .int()
+          .describe('How many links to it you may read: one for each item and way it links.'),
+        items: z.array(
+          z.object({
+            rel: z
+              .string()
+              .describe('How it links to this item: mentioned_by, replaced_by or conflicts_with.'),
+            id: z.string(),
+            title: z.string(),
+          }),
+        ),
+      })
+      .optional()
+      .describe(
+        'A page of the items that link to it, in a fixed order; next_cursor gives the next.',
+      ),
     definition: definitionEntry.optional(),
+    next_cursor: page.next_cursor,
     options: z
       .array(
         z.object({
@@ -746,57 +792,6 @@ export const readContextOutput = z
       .optional()
       .describe('The definitions the words may mean, by key: call again with one of them.'),
     terms,
-  })
-  .loose()
-/** list_definitions: a page of Definitions (FR-351). */
-export const listDefinitionsOutput = z
-  .object({
-    ...said,
-    ...listPage,
-    definitions: z
-      .array(
-        z
-          .object({
-            key: z.string().describe('Its key, for get_related, such as metric:orders.'),
-            name: z.string(),
-            kind: z.enum(definitionKinds),
-            domain: z.string().nullable(),
-            owner: listOwner,
-            family: z
-              .boolean()
-              .describe('A family of metrics, one for each value such as a currency, read as one.'),
-            members: z.number().int().optional().describe("A family's number of metrics."),
-            meaning: z
-              .string()
-              .optional()
-              .describe(
-                "The first sentence of what it means: its source's words, or for a term, what a person wrote.",
-              ),
-            url: z.string().describe('Its page in Definitions, for the person.'),
-          })
-          .loose(),
-      )
-      .optional(),
-  })
-  .loose()
-/** list_context: a page of the published context items (FR-352), titles and dates only. */
-export const listContextOutput = z
-  .object({
-    ...said,
-    ...listPage,
-    context: z
-      .array(
-        contextEntry.extend({
-          domain: z.string(),
-          applies: z.string().describe('What it applies to, in words.'),
-          when: z.string().describe('When it applies, in words.'),
-          may_be_out_of_date: z
-            .literal(true)
-            .optional()
-            .describe('It is due for a check: say so if you use it.'),
-        }),
-      )
-      .optional(),
   })
   .loose()
 /** report: that it was sent, and to which owner. */

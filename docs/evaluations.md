@@ -163,19 +163,12 @@ saved questions follows each publish instead (FR-526).
   regressions against the previous one, measures the held-out targets of requirements section
   1.7, and posts an `eval.scorecard` outbox event. A scheduled run that has not finished within a
   day, stopped or not, fails with an `eval_run_unfinished` alert; the watchdog alerts when eight days pass without one.
-- **Links runs** (FR-523): whether following links helps is measured with `get_related` off on
-  one side and on on the other (it is on by default since the agent contract). A link-follow question sets `expected.reachable_via_link` (the
-  items whose context the answer must reach through `read_context` or `get_related`, and cite) and
+- **Link-follow questions** (FR-523): a question sets `expected.reachable_via_link` (the items
+  whose context the answer must reach by reading a link with `read_context`, and cite) and
   `expected.forbidden_links` (stale or hidden targets the answer must neither read nor cite).
-  `npm run eval -- --area <id> --links` runs the domain's
-  questions on the live edition twice: with `get_related` off (baseline) and on (candidate),
-  everything else equal, with flips repeated as above. The run's `links` result lists the
-  questions that pass only with links and those that fail because of them, and per side the
-  answers, the mean tool calls and cost per answer (over-following shows here) and the answers
-  that claim a cause. `gain` is true only with a gain, nothing lost and no new cause claims. The
-  tool stays off until an administrator switches it on. Each run fixes the tools each side
-  offers when it is planned, and the cell cache key includes them.
-- `GET /evals/runs`, `GET /evals/runs/{id}` (results, flips, cells, replay, links),
+  Links come with every `read_context`, so there is no run with links off: each run fixes the
+  tools switched on when it is planned, and the cell cache key includes them.
+- `GET /evals/runs`, `GET /evals/runs/{id}` (results, flips, cells, replay),
   `POST /evals/runs/{id}/approve`, `POST /evals/runs/{id}/cancel` and
   `POST /evals/runs/{id}/resume` are API only, with no screen in the web app. A domain's runs start
   from `npm run eval` and the weekly job.
@@ -186,8 +179,9 @@ saved questions follows each publish instead (FR-526).
   stays readable by everyone signed in (FR-616).
 - **Models**: `MODELS=mock` (the default, and in every test) is a scripted model: it asks
   `get_context` with the question and answers with the delivered ids, titles and summaries and the
-  reply's `say` (and, when `get_related` is offered, follows the first delivered item's links once
-  and adds the neighbour items in service); the scripted judge grades by fixed rules. `MODELS=live` calls each role's
+  reply's `say` (and, when `read_context` is offered, reads the first delivered item, then the first
+  item in service it links to or is linked from, once, and adds that item); the scripted judge
+  grades by fixed rules. `MODELS=live` calls each role's
   provider with explicit model objects (`models.eval_answer`, Claude Sonnet 5.5 on the Anthropic
   API by default, and `models.judge`); a string model is refused by lint. The judge defaults to
   `different_family`: the first model the answering model's provider lists (Opus, Sonnet, Haiku)

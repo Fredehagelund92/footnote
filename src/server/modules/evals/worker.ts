@@ -36,7 +36,6 @@ import {
   resumeRun,
   runColumns,
   sidesFor,
-  sidesOfRun,
   stopRun,
   TestRunRefused,
   type EvalDeps,
@@ -216,10 +215,7 @@ async function workRun(
         `The run was planned for ${run.model_id} judged by ${run.judge_model_id ?? 'unknown'}; this service now uses ${models.answer.id} judged by ${models.judge.id}. Resume it with those models, or restore the settings.`,
       )
     const { bodies, sides } = await database.transaction(person, async (tx) => {
-      const sides = sidesOfRun(
-        run.kind,
-        await sidesFor(tx, await headAt(tx, run.baseline_edition_seq!)),
-      )
+      const sides = await sidesFor(tx, await headAt(tx, run.baseline_edition_seq!))
       return { bodies: await loadRevisions(tx, run.summary.plan.questions), sides }
     })
     const paired = sides.candidate !== undefined

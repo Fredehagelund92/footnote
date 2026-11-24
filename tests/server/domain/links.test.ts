@@ -90,7 +90,7 @@ const link = (from: string, rel: string, to: string, label: string | null = null
   label,
 })
 
-describe('get_related, by example', () => {
+describe('related, by example', () => {
   it('lists the items that mention or apply to a metric, with both links and counts', () => {
     const a = item('itm_aaaaaaaa'),
       b = item('itm_bbbbbbbb', { riskLevel: 'high' })
@@ -501,7 +501,7 @@ describe('a term written in Definitions, as a link reads it', () => {
     })
   })
 
-  it('gives get_related what it means, and the items that mention it from the term', () => {
+  it('gives a term what it means, and the items that mention it from the term', () => {
     const a = item('itm_aaaaaaaa')
     const data = bundle([a], [termLink(a.id, webshopId, 'the webshop')], written())
     const from = related(data, { id: a.id, depth: 1, today })

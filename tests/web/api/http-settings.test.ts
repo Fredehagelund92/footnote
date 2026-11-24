@@ -189,21 +189,17 @@ describe('the switches', () => {
         [
           { tool: 'get_context', enabled: true },
           { tool: 'suggest_context', enabled: false },
-          { tool: 'get_related', enabled: true },
           { tool: 'a_retired_tool', enabled: true },
         ],
         [{ scope: 'area', areaId: 'area_marketing' }],
       ),
     ).toEqual({
-      links: true,
       tools: {
         get_context: true,
         find_context: false,
         read_context: false,
         report: false,
         suggest_context: false,
-        list_definitions: false,
-        list_context: false,
       },
       pause: { all: false, domain: 'area_marketing' },
     })

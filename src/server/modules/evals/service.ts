@@ -183,13 +183,6 @@ export function createEvalsService(
           results,
           flips: results.flatMap((q) => (q.flip ? [{ id: q.id, flip: q.flip }] : [])),
           scorecard: redactCard(row.summary.result?.scorecard ?? null, hidden),
-          links: row.summary.result?.links
-            ? {
-                ...row.summary.result.links,
-                gained: row.summary.result.links.gained.map(shown),
-                lost: row.summary.result.links.lost.map(shown),
-              }
-            : null,
           agreement: row.summary.result?.agreement
             ? {
                 baseline: redactAgreement(row.summary.result.agreement.baseline, hidden),
@@ -201,15 +194,14 @@ export function createEvalsService(
           cells: cells.map((c) => ({ ...c, questionId: shown(c.questionId) })),
         }
       },
-      async estimate(area: string, kind: 'full' | 'links' = 'full') {
-        const plan = await planArea(tx, deps, area, kind)
+      async estimate(area: string) {
+        const plan = await planArea(tx, deps, area)
         const [budget] = await tx.query<{ n: number }>(
           "select (value #>> '{}')::bigint::float8 as n from settings_current where key='evals.run_budget_micros'",
         )
         const budgetMicros = budget?.n ?? 2_000_000
         return {
           area,
-          kind,
           edition: plan?.head.label ?? null,
           questions: plan?.planned.length ?? 0,
           setAside: plan?.setAside.length ?? 0,
@@ -236,7 +228,7 @@ export function createEvalsService(
         )
         const totals = { domains: 0, questions: 0, costMicros: 0 }
         for (const area of areas) {
-          const plan = await planArea(tx, deps, area.id, 'full')
+          const plan = await planArea(tx, deps, area.id)
           if (!plan?.planned.length) continue
           totals.domains++
           totals.questions += plan.planned.length
