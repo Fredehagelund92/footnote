@@ -1,4 +1,4 @@
-import { expect, go, test } from './go.ts'
+import { expect, go, mode, test } from './go.ts'
 
 // J113: a pick in the Context list's Filter menu moves the rows to their new places in a view
 // transition, with the menu still open over them. A moving row takes a picture of its own, drawn
@@ -8,6 +8,7 @@ import { expect, go, test } from './go.ts'
 type Frame = { menu: string; after: boolean; rows: number }
 
 test('the Filter menu stays over the rows while a pick moves them', async ({ page }) => {
+  test.skip(mode === 'http', 'The counts are the mock demo’s: 30 items, 3 of them drafts.')
   await go(page, '/context')
   await expect(page.getByText('28 of 30 context items')).toBeVisible()
   await page.getByRole('button', { name: /^Filter/ }).click()
