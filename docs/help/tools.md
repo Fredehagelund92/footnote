@@ -3,7 +3,7 @@ title: Agent tools
 line: The five tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 9
+minutes: 10
 reviewed: 2026-11-24
 ---
 

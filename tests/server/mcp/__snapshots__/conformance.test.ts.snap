@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "8599c68f6b54ebc9c87ecaf2a072dc52109c487f5358516bff4075662f93414c",
+  "digest": "861fd80b15d6ea1b1f13db6d503993aba5e05f0750828f6ea091f58b7a8fa510",
   "tools": [
     {
       "_meta": {
@@ -14,11 +14,16 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "The context that applies to a question about a metric, with one sentence to relay. Call it before you answer a question about company numbers, never to browse or to look a name up (call find_context). Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
+      "description": "The context that applies to a question about a metric, with one sentence to relay. Call it before you answer a question about company numbers, never to browse or to look a name up (call find_context). Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. The items come in one order, the one Ask reads too: first those whose title, summary or not_to_conclude line hold the question's own words (those that name no metric, value or domain), a rarer word weighing more; then whole matches, higher risk and newer start. A reply gives max_items of them, 10 by default; when more apply, next_cursor passed back as cursor with the same question gives the next ones. A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). When the question names no metric, unread gives each word that could have named one, with the names that hold it: ask the person, or search it with find_context, and never read it as one of them yourself. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
+          "cursor": {
+            "description": "The next_cursor of a reply to the same question: the context items after that reply's, in the same order.",
+            "maxLength": 2000,
+            "type": "string",
+          },
           "dimension_filters": {
             "items": {
               "additionalProperties": false,
@@ -59,7 +64,8 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "integer",
           },
           "max_items": {
-            "default": 20,
+            "default": 10,
+            "description": "How many context items a reply gives at most: the ones the question turns on come first. next_cursor gives the rest.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer",
@@ -215,6 +221,10 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "minLength": 1,
             "type": "string",
           },
+          "next_cursor": {
+            "description": "Where the rest of the context items that apply start, when more apply than the reply gives: pass it as cursor with the same question for the next ones.",
+            "type": "string",
+          },
           "period_read": {
             "additionalProperties": false,
             "description": "The days that were looked up, inclusive, and how they were read: say them.",
@@ -262,6 +272,35 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
               "provenance",
             ],
             "type": "object",
+          },
+          "read_as": {
+            "description": "The question's words read as a name they are not exactly: another form or order of it (form), its initials (initials), or a word only its name holds (part). Say a part reading to the person, since the word may mean something else.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "by": {
+                  "enum": [
+                    "form",
+                    "initials",
+                    "part",
+                  ],
+                  "type": "string",
+                },
+                "name": {
+                  "type": "string",
+                },
+                "words": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "words",
+                "name",
+                "by",
+              ],
+              "type": "object",
+            },
+            "type": "array",
           },
           "reply_id": {
             "description": "The id of this reply, for report when the person says what was wrong or helped.",
@@ -346,6 +385,32 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 "kind",
                 "written",
                 "url",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "unread": {
+            "description": "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "closest": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+                "domain": {
+                  "type": "string",
+                },
+                "word": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "word",
+                "closest",
               ],
               "type": "object",
             },
