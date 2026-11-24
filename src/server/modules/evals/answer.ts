@@ -21,6 +21,7 @@ import {
 } from '../../../domain/golden-question.ts'
 import { resolverStatusOf } from '../../../domain/answer-state.ts'
 import { gradingTag, type GradingInput, type ModelChoice } from '../models/index.ts'
+import { definitionKinds } from '../../mcp/schemas.ts'
 import { ToolCallRefused, type Arm } from './arm.ts'
 
 /**
@@ -82,7 +83,7 @@ export type AnswerResult = {
   answer: string
   delivered: string[]
   applied: string[]
-  /** Items read by following a link (read_context, or an item in service listed by get_related). */
+  /** Items read by following a link: those read_context read in full. */
   reached: string[]
   statuses: string[]
   toolCalls: ToolCallRecord[]
@@ -93,31 +94,34 @@ type Listed = { id?: unknown; match?: unknown }
 type Reply = {
   status?: unknown
   context?: Listed[] | Listed
-  nodes?: { id?: unknown; type?: unknown; status?: unknown }[]
 }
 export function recordOf(tool: string, input: unknown, output: unknown): ToolCallRecord {
   const reply = (output && typeof output === 'object' ? output : {}) as Reply
   // get_context and find_context list their items under context; read_context gives one there.
-  const listed = Array.isArray(reply.context) ? reply.context : []
+  const asked = (input && typeof input === 'object' ? input : {}) as {
+    query?: unknown
+    kind?: unknown
+  }
+  // A find_context without words, or for a definition kind, browses: a page of what there is.
+  const browsed =
+    tool === 'find_context' &&
+    (asked.query === undefined || (definitionKinds as readonly unknown[]).includes(asked.kind))
+  const listed = Array.isArray(reply.context) && !browsed ? reply.context : []
   const items = [
     ...listed.map((i) => i.id),
     ...(reply.context && !Array.isArray(reply.context) ? [reply.context.id] : []),
-    // A neighbour item in service gives its summary; a tombstone gives only the author's words.
-    ...(Array.isArray(reply.nodes)
-      ? reply.nodes.filter((n) => n.type === 'item' && n.status === 'current').map((n) => n.id)
-      : []),
   ].filter((id): id is string => typeof id === 'string')
   const applied = listed
-    // get_context's items all apply; find_context's apply only as scope matches, its word matches
-    // ('all', 'some') are search hits.
-    .filter((i) => tool !== 'find_context' || i.match === undefined || i.match === 'scope')
+    // get_context's items all apply; find_context's apply only as scope matches: its word matches
+    // ('all', 'some') are search hits, and a row it lists without words is no match at all.
+    .filter((i) => tool !== 'find_context' || i.match === 'scope')
     .map((i) => i.id)
     .filter((id): id is string => typeof id === 'string')
   return {
     tool,
     input,
     // A test question expects what the resolver found: Partial and Outdated are matches (FR-349).
-    status: typeof reply.status === 'string' ? resolverStatusOf(reply.status) : null,
+    status: typeof reply.status === 'string' && !browsed ? resolverStatusOf(reply.status) : null,
     items,
     applied,
   }
@@ -231,7 +235,7 @@ export function observed(
   toolCalls: readonly ToolCallRecord[],
 ): Pick<AnswerResult, 'delivered' | 'applied' | 'reached' | 'statuses'> {
   const answered = toolCalls.filter((c) => contextTools.includes(c.tool))
-  const followed = toolCalls.filter((c) => c.tool === 'read_context' || c.tool === 'get_related')
+  const followed = toolCalls.filter((c) => c.tool === 'read_context')
   return {
     delivered: [...new Set(answered.flatMap((c) => c.items))],
     applied: [...new Set(answered.flatMap((c) => c.applied))],

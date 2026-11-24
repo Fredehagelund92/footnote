@@ -116,7 +116,7 @@ test('an admin makes a named access key, shown once, lists it, and revokes it', 
     .getByRole('listitem')
     .filter({ hasText: 'Weekly sales digest' })
   await expect(key).toHaveCount(1)
-  await expect(key).toContainText('Weekly sales digestNewAll 7 tools')
+  await expect(key).toContainText('Weekly sales digestNewAll 4 tools')
   await expect(key).toContainText('Access key, made by Jon Abara')
   await expect(key).toContainText(/never used/i)
   await key.getByRole('button', { name: 'Delete' }).click()
@@ -135,25 +135,16 @@ test('an admin switches one tool off for one agent', async ({ page }) => {
     .getByRole('list', { name: 'Connected agents' })
     .getByRole('listitem')
     .filter({ hasText: 'Kofi Mensah' })
-  await expect(kofi.first()).toContainText('Claude CodeAll 8 tools')
+  await expect(kofi.first()).toContainText('Claude CodeAll 5 tools')
   await kofi.getByRole('button', { name: 'Details of Claude Code for Kofi Mensah' }).click()
   const tools = page.getByRole('list', { name: 'Tools Claude Code may call' })
-  for (const tool of [
-    'get_context',
-    'find_context',
-    'read_context',
-    'report',
-    'suggest_context',
-    'get_related',
-    'list_definitions',
-    'list_context',
-  ])
+  for (const tool of ['get_context', 'find_context', 'read_context', 'report', 'suggest_context'])
     await expect(tools.getByRole('switch', { name: tool })).toBeChecked()
   await expect(kofi.first()).toContainText('Payment provider delays order data in Poland')
   await tools.getByRole('switch', { name: 'suggest_context' }).click()
   await expect(page.getByText('suggest_context off for Claude Code')).toBeVisible()
   await expect(tools.getByRole('switch', { name: 'suggest_context' })).not.toBeChecked()
-  await expect(kofi.first()).toContainText('Claude Code7 of 8 tools')
+  await expect(kofi.first()).toContainText('Claude Code4 of 5 tools')
   await expect(kofi.first()).toContainText('Changed by Jon Abara')
 })
 
@@ -163,7 +154,7 @@ test("a tool the person didn't allow can't be switched on", async ({ page }) => 
     .getByRole('list', { name: 'Connected agents' })
     .getByRole('listitem')
     .filter({ hasText: 'Cursor' })
-  await expect(cursor.first()).toContainText('CursorAll 7 tools')
+  await expect(cursor.first()).toContainText('CursorAll 4 tools')
   await cursor.getByRole('button', { name: 'Details of Cursor for Jon Abara' }).click()
   const tools = page.getByRole('list', { name: 'Tools Cursor may call' })
   await expect(tools.getByRole('switch', { name: 'suggest_context' })).toBeDisabled()

@@ -39,7 +39,7 @@ Three smaller rules follow from them:
 
 An engineer needs the exact term to search a log, match a setting or follow a guide. A sales person must not have to read it. Show **the plain line first, the exact term second and smaller**, in one of three shapes:
 
-1. **Two lines.** The plain line is the label and the exact term sits under it, or beside it, in small mono: "Get the context for a question" with `get_context`.
+1. **Two lines.** The plain line is the label and the exact term sits under it, or beside it, in small mono: "Get context for a question" with `get_context`.
 2. **Brackets on first use.** "As a spreadsheet (CSV)", "choose OAuth (sign in through the browser)".
 3. **A fold.** "Developer details" in Ask, "Connection details" on a tool's figures, "For engineers" in Advanced.
 

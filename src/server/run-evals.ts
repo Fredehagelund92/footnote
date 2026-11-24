@@ -27,9 +27,8 @@ import {
 import { createLogger } from './observability/logger.ts'
 
 /**
- * `npm run eval -- --area <id>`: the full test set of an area on the live edition, now. With
- * `--links`, a links run instead: every question with get_related off and on, to see whether
- * following links helps (FR-523). It uses the scripted mock model. A real-model run is always an
+ * `npm run eval -- --area <id>`: the full test set of an area on the live edition, now. It uses
+ * the scripted mock model. A real-model run is always an
  * explicit act (plan section 3.3): `--real` uses the providers and models of the `models.*`
  * settings, needs each provider's key in .env.local and a cost ceiling at or above the estimate,
  * which is shown first (FR-516). The ceiling holds for the whole run: no call starts once the run
@@ -46,13 +45,12 @@ import { createLogger } from './observability/logger.ts'
  */
 
 const usage =
-  'Usage: npm run eval -- (--area <domain id> [--links] | --resume <run id>) [--pass-rule majority|all] [--real --max-cost-usd <dollars>]'
+  'Usage: npm run eval -- (--area <domain id> | --resume <run id>) [--pass-rule majority|all] [--real --max-cost-usd <dollars>]'
 const { values } = parseArgs({
   options: {
     area: { type: 'string' },
     resume: { type: 'string' },
     real: { type: 'boolean', default: false },
-    links: { type: 'boolean', default: false },
     'max-cost-usd': { type: 'string' },
     'pass-rule': { type: 'string' },
   },
@@ -157,9 +155,8 @@ async function main() {
       runId = id
     } else {
       const area = values.area!
-      const kind = values.links ? 'links' : 'full'
       const estimate = await database.transaction(null, (tx) =>
-        createEvalsService(tx, deps).runs.estimate(area, kind),
+        createEvalsService(tx, deps).runs.estimate(area),
       )
       console.log(
         `Domain ${area}, edition ${estimate.edition ?? 'none'}: ${plural(estimate.questions, 'question')}` +
@@ -179,7 +176,7 @@ async function main() {
           `Ceiling ${usd(ceiling)}: no answer starts unless what was spent, plus ${CEILING_MARGIN} times an answer's estimate for each answer in flight, stays within it.`,
         )
       const run = await database.transaction(null, async (tx) => {
-        const queued = await queueAreaRun(tx, deps, area, kind, false, undefined, {
+        const queued = await queueAreaRun(tx, deps, area, 'full', false, undefined, {
           passRule: rule as PassRule,
           costCeilingMicros: ceiling,
         })
@@ -220,26 +217,7 @@ async function main() {
     const result = await database.transaction(null, (tx) =>
       createEvalsService(tx, deps, 'operator').runs.get(runId),
     )
-    const links = result.links
-    for (const q of result.results)
-      console.log(
-        links
-          ? `${q.baseline ?? 'not run'} -> ${q.candidate ?? 'not run'}\t${q.id}`
-          : `${q.baseline ?? 'not run'}\t${q.id}`,
-      )
-    if (links) {
-      for (const [side, arm] of Object.entries(links.arms))
-        console.log(
-          `get_related ${side === 'baseline' ? 'off' : 'on'}: ${plural(arm.answers, 'answer')}; ` +
-            `per answer ${arm.calls} tool calls on average and ${usd(arm.costMicros)}; ` +
-            `${plural(arm.causeClaims, 'cause claim')}.`,
-        )
-      console.log(
-        links.gain
-          ? `Links helped: ${links.gained.join(', ')} passed only with get_related on.`
-          : `No gain from links (gained ${links.gained.length}, lost ${links.lost.length}); keep get_related off.`,
-      )
-    }
+    for (const q of result.results) console.log(`${q.baseline ?? 'not run'}\t${q.id}`)
     const agreement = result.agreement?.candidate ?? result.agreement?.baseline
     if (agreement) {
       const listed = (ids: string[]) => (ids.length ? `: ${ids.join(', ')}` : '')

@@ -269,9 +269,9 @@ describe('the catalogue', () => {
 })
 
 describe('listed to an agent', () => {
-  it('is one entry per family, with how many metrics it has, and no variant (FR-351)', async () => {
+  it('is one entry per family, with how many metrics it has, and no variant (FR-338)', async () => {
     const reply = await agent.callTool({
-      name: 'list_definitions',
+      name: 'find_context',
       arguments: { kind: 'metric', limit: 100 },
     })
     expect(reply.isError).not.toBe(true)

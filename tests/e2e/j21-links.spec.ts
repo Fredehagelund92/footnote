@@ -1,10 +1,10 @@
 import type { Page } from '@playwright/test'
 import { card, expect, go, mode, test, unfold } from './go.ts'
 
-// J21, following links (get_related): Related shows what an agent can follow in two groups, one
-// clean line per link: the owners' relations labelled and an archived item marked; the switch in
-// Settings turns it off, and Related says so; a review shows a new link, and Try it says whether
-// the answer follows it.
+// J21, following links: Related shows what an agent can follow with read_context in two groups,
+// one clean line per link: the owners' relations labelled and an archived item marked; Settings
+// has no switch for links, since they come with every read; a review shows a new link, and Try it
+// says the answer follows it.
 
 /**
  * Opens Details in the quick view once it shows the item: go moves inside the app and goes on at
@@ -83,22 +83,16 @@ test('on the service, a draft has no empty History and the Inbox counts no zero'
   await expect(page.getByText(/\b0 questions/)).toHaveCount(0)
 })
 
-test('switched off in Settings, Related says agents follow nothing', async ({ page }) => {
+test('Settings lists the five tools agents call, with no switch for links', async ({ page }) => {
   await go(page, '/settings/agents')
   await unfold(page, 'Tools and access keys')
-  const toggle = page.getByRole('switch', { name: /Let agents follow links/ })
-  await toggle.click()
-  await expect(toggle).not.toBeChecked()
-  await go(page, '/context?dock=context.itm_eprlkrz2')
-  await details(page, campaign)
-  await expect(
-    page.getByText("Agents don't follow links: it is switched off in Agents and access."),
-  ).toBeVisible()
+  for (const tool of ['get_context', 'find_context', 'read_context', 'report', 'suggest_context'])
+    await expect(page.getByRole('switch', { name: new RegExp(tool) })).toBeChecked()
+  await expect(page.getByRole('switch', { name: /Let agents follow links/ })).toHaveCount(0)
+  await expect(page.getByText('get_related')).toHaveCount(0)
 })
 
-test('the review shows a new link, and Try it says whether the answer follows it', async ({
-  page,
-}) => {
+test('the review shows a new link, and Try it says the answer follows it', async ({ page }) => {
   await go(page, '/inbox/sug-ines/review')
   // The source shows the new link as its words; the preview draws it as the item's page will.
   await expect(
@@ -112,12 +106,6 @@ test('the review shows a new link, and Try it says whether the answer follows it
   await expect(
     decide.getByText(
       'The answer would follow the new link to Test account, one step, to read what it means.',
-    ),
-  ).toBeVisible()
-  await go(page, '/inbox/sug-ines/review?links=off')
-  await expect(
-    decide.getByText(
-      "Following links is off, so the answer won't follow the new link to Test account.",
     ),
   ).toBeVisible()
 })

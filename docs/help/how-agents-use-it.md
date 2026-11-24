@@ -17,7 +17,7 @@ Published context only, one answer line first, and what happens when nothing is 
 
 ## Following links
 
-An agent can follow a link between context items, definitions and domains, one step at a time, to read what it points to. An archived item is never followed, and following never changes what an answer includes. Admins can switch it off in Agents and access.
+When an agent reads a context item in full, it gets the item's links too: what the item links to, and the items that link to it. It can read a linked one the same way, one step at a time. An archived item is never followed, and following never changes what an answer includes.
 
 ## Agents offer, people decide
 

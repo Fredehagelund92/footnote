@@ -69,9 +69,8 @@ including the backslash in plain text. Token positions start at zero separately 
 The database compares target, label, field and position at commit, caps the total at 50,
 rejects self/unknown targets, and requires the markup's visible text to equal the plain field.
 Mentions never supply scope. Live-target and source-health validation belongs to the write
-services; link filtering and `get_related` are the pure resolver in `src/domain/links.ts`.
-`get_related` is on in `tool_config` unless an admin switched it off (FR-332, FR-407); the
-`links` evaluation kind is a paired run with the tool off and on (FR-523).
+services; link filtering, the links `read_context` gives and Related are the pure resolver in
+`src/domain/links.ts` (FR-331 to FR-335).
 
 ## Jobs
 

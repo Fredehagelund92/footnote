@@ -236,7 +236,6 @@ export const wiredMethods = [
   'changeIntegration',
   'integrationLeftOut',
   'disconnectIntegration',
-  'setLinks',
   'setTool',
   'createAccessKey',
   'renameAccessKey',
@@ -1552,9 +1551,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           : definition && definition.kind === (kind === 'metric' ? 'metric' : 'dim')
             ? await orNull(() => read(() => client.definitions.related({ key: definition.key })))
             : null
-      return found
-        ? { links: linksOfRelated(found, words), following: found.following }
-        : { links: [], following: true }
+      return { links: found ? linksOfRelated(found, words) : [] }
     },
     restoreAsDraft: async ({ id, v }) => {
       const page = await orNull(() => read(() => client.items.page({ id })))
@@ -2250,10 +2247,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     disconnectIntegration: async ({ id }) => {
       const input = { id, reason: 'Disconnected, in Settings, Integrations.' }
       await write('sources.remove', input, (o) => client.sources.remove(input, o))
-    },
-    setLinks: async ({ on }) => {
-      const input = { tool: 'get_related', enabled: on, reason: BY_SETTINGS }
-      await write('tools.set', input, (o) => client.tools.set(input, o))
     },
     setTool: async ({ name, on }) => {
       const input = { tool: name, enabled: on, reason: BY_SETTINGS }

@@ -11,11 +11,11 @@ import { MockLanguageModelV4 } from 'ai/test'
  * behaves like a careful agent so the evaluation harness can be tested end to end without a key:
  * the answer model calls get_context with the question, then answers with what was delivered
  * (ids, titles, summaries) and the reply's sentence (say); the judge model grades by fixed rules.
- * A deliberately wrong item therefore changes the answer in a way the judge sees. When get_related
- * is offered, it follows the links of the first item delivered, once, and adds the neighbour
- * items it read, so a links run can show the instrument working; one call a turn, as a careful
- * agent follows a link, keeps a run inside the eval client's rate. It never claims what a real
- * model would say.
+ * A deliberately wrong item therefore changes the answer in a way the judge sees. When read_context
+ * is offered, it reads the first item delivered and then the first item that one links to or is
+ * linked from, once, and adds the linked item it read, so a link-follow question can show the
+ * instrument working; one call a turn, as a careful agent follows a link, keeps a run inside the
+ * eval client's rate. It never claims what a real model would say.
  */
 
 /** The judge's data block. The evaluation judge writes it; the scripted judge reads it. */
@@ -60,8 +60,12 @@ type Delivery = {
   context?: { id: string; title: string; summary: string }[]
   options?: { field: string; input: string; options: string[] }[]
 }
-type Neighbours = {
-  nodes?: { id: string; type: string; status: string; label: string; summary?: string }[]
+/** read_context's reply as the scripted answer reads it: the item, and what links to and from it. */
+type Read = {
+  status?: string
+  context?: { id: string; title: string; summary: string }
+  links_out?: { target: { id: string; type: string; status: string } }[]
+  links_in?: { items: { id: string }[] }
 }
 function results<T>(prompt: LanguageModelV4Prompt, tool: string, failed: T): T[] {
   const found: T[] = []
@@ -85,7 +89,7 @@ function results<T>(prompt: LanguageModelV4Prompt, tool: string, failed: T): T[]
 const lastDelivery = (prompt: LanguageModelV4Prompt): Delivery | null =>
   results<Delivery>(prompt, 'get_context', { status: 'check_failed' })[0] ?? null
 
-function answerFor(delivery: Delivery, neighbours: Neighbours[] = []): string {
+function answerFor(delivery: Delivery, linked: Read[] = []): string {
   if (delivery.status === 'need_more_detail') {
     const asks = (delivery.options ?? []).map((o) =>
       o.options.length ? `${o.field} (${o.options.slice(0, 5).join(', ')})` : o.field,
@@ -98,18 +102,21 @@ function answerFor(delivery: Delivery, neighbours: Neighbours[] = []): string {
   const items = delivery.context ?? []
   if (!items.length) return `No governed context applies to this question. ${coverage}`
   const lines = items.map((item) => `- [${item.id}] ${item.title}: ${item.summary}`)
-  // Only neighbour items in service carry a summary; a retired one is a marker, never cited.
+  // Only a linked item read in full is cited; a retired one is a marker, never read.
   const shown = new Set(items.map((item) => item.id))
-  const linked: string[] = []
-  for (const node of neighbours.flatMap((n) => n.nodes ?? [])) {
-    if (node.type !== 'item' || node.status !== 'current' || shown.has(node.id)) continue
-    shown.add(node.id)
-    linked.push(`- [${node.id}] ${node.label}: ${node.summary ?? ''}`)
+  const followed: string[] = []
+  for (const read of linked) {
+    const item = read.status === 'matched' ? read.context : undefined
+    if (!item || shown.has(item.id)) continue
+    shown.add(item.id)
+    followed.push(`- [${item.id}] ${item.title}: ${item.summary}`)
   }
   return [
     `Governed context for this question:`,
     ...lines,
-    ...(linked.length ? ['Linked context, which may not apply to this question:', ...linked] : []),
+    ...(followed.length
+      ? ['Linked context, which may not apply to this question:', ...followed]
+      : []),
     coverage,
   ].join('\n')
 }
@@ -133,25 +140,39 @@ function answer(options: LanguageModelV4CallOptions): Promise<LanguageModelV4Gen
         'tool-calls',
       ),
     )
-  const canFollow = options.tools?.some((t) => t.name === 'get_related') ?? false
-  const neighbours = results<Neighbours>(prompt, 'get_related', {})
+  const canFollow = options.tools?.some((t) => t.name === 'read_context') ?? false
+  // Oldest first: the first read is the delivered item, the second the item it links to.
+  const reads = results<Read>(prompt, 'read_context', {}).reverse()
   const delivered = delivery?.context ?? []
-  if (delivered.length && canFollow && !neighbours.length)
-    return Promise.resolve(
+  const read = (id: string, n: number) =>
+    Promise.resolve(
       result(
         [
           {
             type: 'tool-call' as const,
-            toolCallId: 'call_get_related',
-            toolName: 'get_related',
-            input: JSON.stringify({ id: delivered[0]!.id }),
+            toolCallId: `call_read_context_${n}`,
+            toolName: 'read_context',
+            input: JSON.stringify({ id }),
           },
         ],
         prompt,
         'tool-calls',
       ),
     )
-  const text = delivery ? answerFor(delivery, neighbours) : 'I cannot reach the context tools.'
+  if (delivered.length && canFollow && !reads.length) return read(delivered[0]!.id, 1)
+  if (canFollow && reads.length === 1) {
+    // The first item in service it links to, or that links to it, that was not delivered.
+    const shown = new Set(delivered.map((item) => item.id))
+    const first = reads[0]!
+    const next = [
+      ...(first.links_out ?? [])
+        .filter((link) => link.target.type === 'item' && link.target.status === 'current')
+        .map((link) => link.target.id),
+      ...(first.links_in?.items ?? []).map((item) => item.id),
+    ].find((id) => !shown.has(id))
+    if (next) return read(next, 2)
+  }
+  const text = delivery ? answerFor(delivery, reads.slice(1)) : 'I cannot reach the context tools.'
   return Promise.resolve(result([{ type: 'text', text }], prompt, 'stop'))
 }
 

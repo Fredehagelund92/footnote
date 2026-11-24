@@ -495,16 +495,7 @@ describe('the instructions an agent gets at connect', () => {
       await wire.close()
     }
   }
-  const all = [
-    'get_context',
-    'find_context',
-    'read_context',
-    'report',
-    'suggest_context',
-    'get_related',
-    'list_definitions',
-    'list_context',
-  ]
+  const all = ['get_context', 'find_context', 'read_context', 'report', 'suggest_context']
 
   it('names the domain, the owner and the limit of an open permission, and changes nothing else', async () => {
     const plain = await connect('author')
@@ -564,7 +555,7 @@ describe('the instructions an agent gets at connect', () => {
       )
     }
 
-    // Paused: suggest_context is off for the agent, which then lists seven tools. Another person's
+    // Paused: suggest_context is off for the agent, which then lists four tools. Another person's
     // app, since a new agent of the same person and app keeps an admin's switch.
     const off = await connect('stranger')
     expect((await setPolicy(owner, off.agentId)).status).toBe(200)

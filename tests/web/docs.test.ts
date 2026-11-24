@@ -390,7 +390,7 @@ describe('the docs search', () => {
       slug: 'connect-an-agent',
       id: 'if-nothing-signs-in',
     })
-    expect(searchDocs('get_related')[0]?.slug).toBe('tools')
+    expect(searchDocs('next_cursor')[0]?.slug).toBe('tools')
     expect(searchDocs('glossary')[0]?.slug).toBe('words')
     expect(searchDocs('words')[0]?.slug).toBe('words')
     expect(searchDocs('observability')[0]?.slug).toBe('see-what-agents-asked')

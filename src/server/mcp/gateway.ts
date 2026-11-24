@@ -479,6 +479,8 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
               inputSchema: lenientInputSchema(tool),
               ...(outputSchema ? { outputSchema } : {}),
               annotations: definition.annotations,
+              // get_context loads in Claude Code before any search for it (anthropic/alwaysLoad).
+              ...('_meta' in definition ? { _meta: definition._meta } : {}),
             },
             // The typed callback has no room for an input-required return, which the SDK accepts
             // on tools/call (protocol 2026-07-28).
