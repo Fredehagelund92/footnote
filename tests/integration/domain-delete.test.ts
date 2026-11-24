@@ -215,4 +215,37 @@ describe('a domain from its page', () => {
     expect(await editions()).toBe(before)
     expect((await client.query("select 1 from areas where id='empty'")).rowCount).toBe(0)
   })
+
+  it("tells an admin only how many drafts stay with their writers, never a draft's id or title", async () => {
+    await client.query("insert into areas (id,name) values ('quiet','Quiet')")
+    const made = await call('POST', '/proposals', 'author', {
+      draft: draft('quiet', 'Private pantry numbers', 'metric:orders'),
+    })
+    expect(made.statusCode, made.body).toBe(200)
+    const { id } = made.json<ProposalRecord>()
+    const plan = await client.query<{ plan: { drafts: number; draftWriters: string[] } }>(
+      "select cl_area_deletion_plan('quiet') as plan",
+    )
+    expect(plan.rows[0]!.plan.drafts).toBe(1)
+    expect(plan.rows[0]!.plan.draftWriters).toEqual([people.author])
+    expect(JSON.stringify(plan.rows[0]!.plan)).not.toContain('Private pantry numbers')
+    expect(JSON.stringify(plan.rows[0]!.plan)).not.toContain(id)
+    const response = await deleteEmpty('quiet')
+    expect(response.statusCode, response.body).toBe(200)
+    expect(response.json<AreaRemoved>()).toMatchObject({
+      outcome: 'archived',
+      holdings: { drafts: 1 },
+    })
+    const stored = await client.query<{ details: object; contents: object }>(
+      `select (select details from audit_log where action='area.deleted' and subject_id='quiet') as details,
+              (select contents from area_deletions where area_id='quiet') as contents`,
+    )
+    const { details, contents } = stored.rows[0]!
+    expect(details).toMatchObject({ drafts: 1 })
+    expect(contents).toMatchObject({ drafts: 1 })
+    for (const text of [JSON.stringify(details), JSON.stringify(contents)]) {
+      expect(text).not.toContain('Private pantry numbers')
+      expect(text).not.toContain(id)
+    }
+  })
 })

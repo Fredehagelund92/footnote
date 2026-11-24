@@ -71,7 +71,8 @@ type Plan = {
     title: string | null
     withheld: boolean
   }[]
-  drafts: { id: string; proposerId: string; author: string; title: string }[]
+  drafts: number
+  draftWriters: string[]
   team: { personId: string; name: string; role: Role }[]
   sourceMembers: number
   history: boolean
@@ -83,7 +84,7 @@ type Contents = {
   terms: { key: string; versionId: string; fate: 'retired' | 'kept'; keptVersionId?: string }[]
   sourceTerms: string[]
   openProposals: string[]
-  drafts: string[]
+  drafts: number
   team: { personId: string; role: Role }[]
 }
 
@@ -104,7 +105,7 @@ function holdingsOf(plan: Plan): AreaHoldings {
     terms: plan.terms.length + plan.sourceTerms.length,
     openProposals: plan.openProposals.length,
     sourceMembers: plan.sourceMembers,
-    drafts: plan.drafts.length,
+    drafts: plan.drafts,
     team: plan.team.length,
     history: plan.history,
   }
@@ -352,14 +353,14 @@ async function removeArea(
     }),
     sourceTerms: plan.sourceTerms.map((term) => term.key),
     openProposals: withdrawn.map((p) => p.id),
-    drafts: plan.drafts.map((draft) => draft.id),
+    drafts: plan.drafts,
     team: plan.team.map(({ personId, role }) => ({ personId, role })),
   }
   const recipients = [
     ...new Set([
       ...plan.items.map((item) => item.proposerId),
       ...plan.openProposals.map((p) => p.proposerId),
-      ...plan.drafts.map((draft) => draft.proposerId),
+      ...plan.draftWriters,
       ...plan.team.map((role) => role.personId),
     ]),
   ].filter(Boolean)
@@ -390,7 +391,7 @@ async function removeArea(
         number,
         title,
       })),
-      drafts: plan.drafts.map(({ id, title }) => ({ id, title })),
+      drafts: plan.drafts,
       roles: plan.team.map(({ personId, name, role }) => ({ personId, name, role })),
       ...why,
     },
