@@ -117,6 +117,38 @@ describe('offline Cube source', () => {
     expect(JSON.stringify(built)).not.toMatch(/ROUND|\{CUBE\}|\*/)
   }, 60_000)
 
+  it('sends nothing for a measure that takes a hidden measure (C2)', async () => {
+    const built = await read(
+      await model((text) =>
+        text
+          .replace('public: false', 'public: true')
+          .replace(
+            '      - name: count\n        type: count\n',
+            [
+              '      - name: refunds',
+              '        type: sum',
+              '        sql: "{CUBE}.refund"',
+              '        public: false',
+              '      - name: kept',
+              '        type: number',
+              '        sql: "{revenue} - {refunds}"',
+              '      - name: net',
+              '        type: number',
+              '        sql: "{revenue} * 2"',
+              '      - name: count',
+              '        type: count',
+              '',
+            ].join('\n'),
+          ),
+      ),
+    )
+    const builtFrom = (ref: string) =>
+      built.definitions.find((entry) => entry.ref === ref)?.builtFrom ?? null
+    expect(built.definitions.some((entry) => entry.ref === 'cube:orders.refunds')).toBe(false)
+    expect(builtFrom('cube:orders.kept')).toBeNull()
+    expect(builtFrom('cube:orders.net')).toEqual({ refs: ['cube:orders.revenue'], columns: [] })
+  }, 60_000)
+
   it("reads a measure's meta.footnote family as written, in each view, and moves no mark for it", async () => {
     // Revenue in EUR and the count as its twin in USD: one family of two in every view with both.
     const declaring = (revenue: string, count = '{family: order_amount, by: {currency: USD}}') =>

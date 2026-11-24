@@ -299,7 +299,13 @@ async function compile(
         // is none. A dimension's is sent too, for the core to say a family holds two kinds.
         const family = declaredFamily(member.meta, (name) => dimensions.get(name) ?? null)
         if (family === 'invalid') warnings.push({ code: 'invalid_family', target: member.name })
-        const builtFrom = kind === 'metric' ? builtFromOf(member.name, config.measures) : null
+        const builtFrom =
+          kind === 'metric'
+            ? builtFromOf(
+                member.name,
+                config.measures.filter((other) => other.isVisible !== false),
+              )
+            : null
         definitions.push({
           ref: `cube:${member.name}`,
           kind,

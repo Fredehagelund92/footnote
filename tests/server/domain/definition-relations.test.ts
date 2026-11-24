@@ -83,6 +83,11 @@ describe("what a Cube measure's own calculation reads (C2)", () => {
       measures: ['revenue', 'refunds'],
       columns: [],
     })
+    expect(arithmeticInputs('{CUBE}.amount * 1e3')).toEqual({ measures: [], columns: ['amount'] })
+    expect(arithmeticInputs('{CUBE}.amount * 2.5E-3')).toEqual({
+      measures: [],
+      columns: ['amount'],
+    })
     expect(arithmeticInputs('{orders.revenue} * fx_rate')).toEqual({
       measures: ['orders.revenue'],
       columns: ['fx_rate'],

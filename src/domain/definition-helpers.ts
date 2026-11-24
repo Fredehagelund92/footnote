@@ -207,8 +207,9 @@ export function arithmeticInputs(sql: string): { measures: string[]; columns: st
       return ' 0 '
     })
   if (!/^[\w\s.+\-*/()]*$/.test(rest)) return null
-  const words = [...rest.matchAll(/[A-Za-z_]\w*/g)].map((match) => match[0])
-  const columns = columnsOf(rest)
+  const plain = rest.replace(/(?<![\w.])\d+(?:\.\d+)?(?:e[+-]?\d+)?(?![\w.])/gi, ' 0 ')
+  const words = [...plain.matchAll(/[A-Za-z_]\w*/g)].map((match) => match[0])
+  const columns = columnsOf(plain)
   // A word that is no column is a keyword or a function's name, or names a column's table.
   if (words.some((word) => !columns.includes(word)) || /\.\D/.test(rest)) return null
   if (!measures.length && !columns.length) return null
