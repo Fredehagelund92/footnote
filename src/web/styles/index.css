@@ -216,6 +216,25 @@
     view-transition-name: match-element;
     view-transition-class: move;
   }
+
+  /* An open menu or popover (the Filter one that made the change) takes a picture of its own,
+     after the rows, so the rows moving never paint over it. It stays as it is now. */
+  & [data-slot='dropdown-menu-content'],
+  & [data-slot='dropdown-menu-sub-content'],
+  & [data-slot='popover-content'],
+  & [data-slot='select-content'] {
+    view-transition-name: match-element;
+    view-transition-class: float;
+  }
+}
+
+::view-transition-group(.float),
+::view-transition-new(.float) {
+  animation: none;
+}
+
+::view-transition-old(.float) {
+  display: none;
 }
 
 /* A press while the rows move reaches what is under it: ticking one facet after another loses no
