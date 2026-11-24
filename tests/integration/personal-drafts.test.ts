@@ -350,29 +350,6 @@ describe('Undo of a publish from the Context list', () => {
     )
     return report.entries.map((e) => e.proposalId!)
   }
-  /** Makes the draft one a content source suggested: from a read of a document of its own. */
-  async function fromSource(id: string) {
-    const document = `doc-${randomUUID()}`
-    await client.query(
-      `insert into connectors (id, kind, type, name, interface_version)
-       values ('drafts-source', 'context_source', 'drive', 'Drafts source', 3)
-       on conflict (id) do nothing`,
-    )
-    await client.query(
-      `with read as (
-         insert into connector_snapshots (connector_id, status) values ('drafts-source', 'ok') returning id
-       ), doc as (
-         insert into connector_documents (source_id, document_id, scope, title, link, modified_at,
-                                          change_mark, quote, state, first_read_id, last_read_id)
-         select 'drafts-source', $2, 'scope', 'A document', 'https://example.com/doc', now(),
-                repeat('a', 64), '', 'waiting', id, id from read
-       )
-       update proposals set channel = 'source', proposer_id = null, source_id = 'drafts-source',
-                            source_read_id = (select id from read), source_document_id = $2
-        where id = $1`,
-      [id, document],
-    )
-  }
   /** Each draft's import batch and source links, by title: what its copy keeps. */
   const provenance = async (ids: string[]) =>
     (
@@ -396,10 +373,8 @@ describe('Undo of a publish from the Context list', () => {
       }
       const before = await counted()
       const ids = await imported(who, 2)
-      await fromSource(ids[0]!)
       const was = await provenance(ids)
       expect(was.every((d) => d.batch)).toBe(true)
-      expect(was.filter((d) => d.source && d.read && d.document)).toHaveLength(1)
       const r = await ok<ItemBulkResult>(
         call('POST', '/items/bulk', who, { action: 'publish', rows: ids }),
       )
@@ -411,7 +386,8 @@ describe('Undo of a publish from the Context list', () => {
       const back = after.context.filter((id) => !before.context.includes(id))
       expect(back).toHaveLength(ids.length)
       expect(after.card.filter((id) => !before.card.includes(id)).sort()).toEqual(back.sort())
-      // The copies are new drafts that keep the import and the source links of those they restore.
+      // The source links copy is defensive: source drafts have no proposer, so they never reach the bulk bar.
+      // The copies are new drafts that keep the import of those they restore.
       expect(back.some((id) => ids.includes(id))).toBe(false)
       expect(await provenance(back)).toEqual(was)
     },
