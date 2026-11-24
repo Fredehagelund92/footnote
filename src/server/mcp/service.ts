@@ -745,8 +745,13 @@ export function createToolService(
       const end = offset + (out.context as unknown[]).length
       out.next_cursor = end < Number(out.total) ? cursorFor(key, end) : null
     }
-    paged()
     const limit = Math.min(maxBytes, args.max_bytes)
+    // Each measure is of the whole reply: the cursor and the sentence as the page then stands.
+    const measure = () => {
+      paged()
+      if (out.cut) Object.assign(out, saidFields(saidNow(out)))
+      return byteSize(resultFor(out))
+    }
     // Long lists are shortened from the end, the most useful entries first, until it fits: the
     // longest part of each list that fits is found by halving, so a large list costs few renders.
     for (const key of [
@@ -759,24 +764,24 @@ export function createToolService(
       'dimensions',
     ]) {
       const value = out[key]
-      if (!Array.isArray(value) || byteSize(resultFor(out)) <= limit) continue
+      if (!Array.isArray(value) || measure() <= limit) continue
       const whole = [...(value as unknown[])]
       let fits = 0,
         over = whole.length
+      out.cut = true
       while (over - fits > 1) {
         const middle = Math.floor((fits + over) / 2)
         out[key] = whole.slice(0, middle)
-        if (byteSize(resultFor(out)) <= limit) fits = middle
+        if (measure() <= limit) fits = middle
         else over = middle
       }
       out[key] = whole.slice(0, fits)
-      out.cut = true
-      paged()
     }
-    // A shortened list changes how many are shown, which the sentence says.
-    if (out.cut) Object.assign(out, saidFields(saidNow(out)))
-    const rendered = resultFor(out)
-    return byteSize(rendered) <= limit
+    // A page cut to nothing while hits remain would send the agent back to the same page.
+    if (out.cut && Array.isArray(out.context) && !out.context.length && offset < Number(out.total))
+      return failure('The result cannot fit this size limit. Increase max_bytes.')
+    const rendered = measure() <= limit ? resultFor(out) : null
+    return rendered
       ? rendered
       : failure('The result cannot fit this size limit. Increase max_bytes.')
   }

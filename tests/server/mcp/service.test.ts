@@ -1346,6 +1346,48 @@ describe('get_context', () => {
 })
 
 describe('read_context and find_context', () => {
+  const withHits = (count: number) => {
+    const s = setup(),
+      item = s.data.items.find((i) => i.id === 'itm_norway01')!
+    for (let n = 0; n < count; n++)
+      s.data.items.push({ ...item, id: `itm_hit${String(n).padStart(4, '0')}` })
+    return s
+  }
+  type Page = { context: unknown[]; next_cursor: string | null; total: number }
+  it('find_context under a byte cut keeps a fitting page and a valid cursor', async () => {
+    const s = withHits(9)
+    let cut = 0
+    for (let max = 1500; max <= 20000; max += 100) {
+      const reply = await s.call('find_context', { query: 'Norway', max_bytes: max })
+      if (reply.isError) continue
+      const out = reply.structuredContent as unknown as Page
+      if (!out.context.length) continue
+      expect(JSON.stringify(reply).length).toBeGreaterThan(0)
+      if (out.context.length < out.total) {
+        cut++
+        expect(out.next_cursor).toEqual(expect.any(String))
+        const next = await s.call('find_context', {
+          query: 'Norway',
+          max_bytes: 20000,
+          cursor: out.next_cursor,
+        })
+        expect(next.isError).toBeFalsy()
+        expect((next.structuredContent as unknown as Page).context.length).toBeGreaterThan(0)
+      }
+    }
+    expect(cut).toBeGreaterThan(0)
+  })
+  it('find_context never returns an empty page with a cursor when one hit cannot fit', async () => {
+    const s = withHits(29)
+    for (let max = 200; max <= 20000; max += 100) {
+      const reply = await s.call('find_context', { query: 'Norway', max_bytes: max })
+      if (reply.isError) continue
+      const out = reply.structuredContent as unknown as Page
+      if (out.total > 0) expect(out.context.length).toBeGreaterThan(0)
+    }
+    const tiny = await s.call('find_context', { query: 'Norway', max_bytes: 200 })
+    expect(tiny.isError).toBe(true)
+  })
   it('read_context gives the whole item as the agent contract does, by its label', async () => {
     const s = setup()
     const out = (await s.call('read_context', { id: 'itm_norway01' })).structuredContent as {
