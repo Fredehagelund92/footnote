@@ -834,7 +834,13 @@ export function createMockApi() {
         dispatch({ type: 'send', sent: { ...sent, id } })
         return { id }
       }),
-    withdrawSuggestion: ({ id }) => now(() => dispatch({ type: 'withdraw', id })),
+    withdrawSuggestion: ({ id }) =>
+      now(() => {
+        dispatch({ type: 'withdraw', id })
+        const r = reviews.find((x) => x.id === id)
+        if (r && r.from === me() && !state.done[id])
+          dispatch({ type: 'complete', card: id, outcome: 'Withdrawn' })
+      }),
     undo: ({ token }) =>
       now(() => {
         const offer = undos.get(token)

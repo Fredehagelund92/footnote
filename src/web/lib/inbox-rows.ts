@@ -159,6 +159,6 @@ export function inboxRows(
   return {
     needing: sorted.filter((r) => needs(r, inbox.opened)),
     rows: sorted,
-    waiting: mineWaiting,
+    waiting: mineWaiting.filter((w) => !w.closed && !w.returned),
   }
 }
