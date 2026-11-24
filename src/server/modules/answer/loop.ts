@@ -26,7 +26,7 @@ import { ACTIONS_SHOWN, isActionId, type ActionOffer } from '../../../domain/act
 import type { AnswerState } from '../../../domain/answer-state.ts'
 import { LOOP_READS } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
-import { dateNote, windowWords, type ChosenPeriod } from '../../../domain/dates.ts'
+import { dateNote, periodWords, windowWords, type ChosenPeriod } from '../../../domain/dates.ts'
 import { personInstead, personSaid, refusalOffers } from '../../../domain/say.ts'
 import { anyDate, shiftDate } from '../../../domain/validity.ts'
 import { productName } from '../../brand.ts'
@@ -62,6 +62,7 @@ import {
   overviewOf,
   overviewProblem,
   overviewWords,
+  SENTENCE_END,
   shownBody,
   typedId,
   withoutCites,
@@ -547,6 +548,22 @@ function chatMessages(
 
 const withoutChosen = ({ period: _, ...input }: Record<string, unknown>) => input
 
+/**
+ * What a question asked at a period the person chose is read about first (R12): the subject reads
+ * of the chat's latest turn that asked the same words, as its model wrote them, else the words.
+ */
+function chosenReadsOf(
+  question: string,
+  turns: readonly ChatTurnInput[],
+): Record<string, unknown>[] {
+  const words = question.trim()
+  const same = turns.findLast((t) => t.question.trim().toLowerCase() === words.toLowerCase())
+  const gets = (same?.reads ?? []).filter((r) => r.tool === 'get_context')
+  return gets.length
+    ? gets.map((r) => withoutChosen(r.input))
+    : [{ about: words.slice(0, 500) || 'context' }]
+}
+
 /** A result as the model is given it: with its ref first, so its words can cite its values. */
 const withRef = (ref: string, result: unknown) =>
   result && typeof result === 'object' && !Array.isArray(result)
@@ -822,6 +839,33 @@ export async function* askLoop(
           'shown' in r.output,
       )
 
+  // A period the person chose is read by code before the model writes (R12): the subject's reads
+  // of the same question earlier in the chat, else its words, at that period. Asked again with the
+  // chat, a model answers from the earlier reads, at the days they were read at.
+  const chosen = input.period ? chosenReadsOf(input.question, turns) : []
+  try {
+    for (const asked of chosen) {
+      const given = { ...asked, period: input.period }
+      const result = await reads.one('get_context', given, {
+        lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+      })
+      const read: MadeRead = {
+        tool: 'get_context',
+        input: given,
+        result,
+        ref: `r${earlier.length + made.length + 1}`,
+        call: `chosen_${made.length + 1}`,
+      }
+      made.push(read)
+      steps.push({ call: read.call!, runs: stepRuns(read), done: true })
+    }
+  } catch (error) {
+    deps.onError?.(error)
+    yield await stopped('model')
+    return
+  }
+  if (chosen.length) yield progress('Reading…')
+
   const system = loopSystem(deps.today, deps.asker, deps.timeZone, deps.about)
   const messages: ModelMessage[] = [
     ...chatMessages(turns, earlier),
@@ -832,6 +876,30 @@ export async function* askLoop(
         { type: 'text', text: LANGUAGE_NOTE },
       ],
     },
+    // The reads code made at the period chosen, as the model's own first step: its input as the
+    // model would write it, never the period (R12).
+    ...(made.length
+      ? ([
+          {
+            role: 'assistant',
+            content: made.map((m) => ({
+              type: 'tool-call' as const,
+              toolCallId: m.call!,
+              toolName: m.tool,
+              input: withoutChosen(m.input),
+            })),
+          },
+          {
+            role: 'tool',
+            content: made.map((m) => ({
+              type: 'tool-result' as const,
+              toolCallId: m.call!,
+              toolName: m.tool,
+              output: { type: 'json' as const, value: withRef(m.ref!, m.result) as never },
+            })),
+          },
+        ] satisfies ModelMessage[])
+      : []),
   ]
   const meter = deps.limits
     ? createCallMeter({
@@ -970,7 +1038,8 @@ export async function* askLoop(
         const done = checkedStart(finishedWords(draft), checking())
         if (done.length > shown.length) {
           shown = done
-          yield { type: 'words', turn: turnOf(done, made, earlier.map(readOf), input.question) }
+          const words = turnOf(done, made, earlier.map(readOf), input.question)
+          yield { type: 'words', turn: withChosenPeriod(words, input.period, made) }
         }
       } else if (part.type === 'tool-input-start' || part.type === 'tool-call') {
         reading = true
@@ -1047,7 +1116,7 @@ export async function* askLoop(
       yield await stopped(modelSteps.length >= deps.steps ? 'steps' : 'model')
       return
     }
-    const turn = turnOf(text, made, again, input.question)
+    const turn = withChosenPeriod(turnOf(text, made, again, input.question), input.period, made)
     yield { type: 'turn', turn: { ...turn, checks: [...turn.checks, ...found] } }
   } catch (error) {
     // A Stop is the person's: nothing more is sent.
@@ -2066,6 +2135,55 @@ export function turnOf(
     owners: fromHelp ? [] : ownersOf(about, sources),
     overview: null,
     checks: words.checks,
+  }
+}
+
+/**
+ * An answer to a question asked at a period the person chose (R12), with that period in its first
+ * sentence, by code: the model's own first sentence when it names the period or its days, else a
+ * fixed one before it, "This answer is for last month, September 2026.". Only an answer about a
+ * subject this turn read at that period says so: never a definition's, the help's, a question
+ * back or a stop.
+ */
+export function withChosenPeriod(
+  turn: LoopTurn,
+  chosen: ChosenPeriod | undefined,
+  made: readonly MadeRead[],
+): LoopTurn {
+  const subject = turn.subject
+  if (!chosen || turn.kind !== 'answer' || !subject || subject.carried || subject.assumedToday)
+    return turn
+  if ((!turn.state && turn.defined) || turn.help?.length) return turn
+  // The days of the subject's read, as it gave them: none at any date.
+  const read = made.find(
+    (m) =>
+      m.tool === 'get_context' &&
+      isObj(m.result) &&
+      isObj(m.result.read) &&
+      m.result.read.period === subject.period,
+  )?.result as Obj | undefined
+  const days = read && isObj(read.read) && isObj(read.read.days) ? read.read.days : null
+  const window =
+    days && typeof days.from === 'string' && typeof days.to === 'string'
+      ? { start: days.from, end: shiftDate(days.to, 1) }
+      : anyDate
+  const named = typeof chosen === 'string' ? chosen : null
+  const said = periodWords(window).replace(/^(?:from|on|in|at) /, '')
+  const first = turn.text.split(SENTENCE_END)[0]?.toLowerCase() ?? ''
+  if ((named && first.includes(named)) || first.includes(said.toLowerCase())) return turn
+  const lead =
+    named && named !== said
+      ? `This answer is for ${named}, ${said}.`
+      : `This answer is for ${said}.`
+  const [head, ...rest] = turn.body
+  return {
+    ...turn,
+    text: `${lead} ${turn.text}`,
+    said: `${lead} ${turn.said}`,
+    body:
+      head?.t === 'p'
+        ? [{ ...head, runs: [{ t: 'text', text: `${lead} ` }, ...head.runs] }, ...rest]
+        : [{ t: 'p', runs: [{ t: 'text', text: lead }] }, ...turn.body],
   }
 }
 

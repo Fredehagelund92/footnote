@@ -726,6 +726,80 @@ describe("Ask's loop on a period the person chose on the read line", () => {
     for (const input of calls) expect(input).not.toHaveProperty('period')
   })
 
+  it('names the period chosen in the first sentence, by code, when the words do not', async () => {
+    const api = await world.as(ML)
+    const month = await api.ask({ question: 'orders in Norway', period: 'last month' })
+    expect(month.loop?.subject).toMatchObject({ period: '1-30 Sep 2026', assumedToday: false })
+    expect(month.text).toMatch(/^This answer is for last month, September 2026\. \S/)
+    // The sentence is the first of the words' first paragraph, before the model's own.
+    const [first] = month.loop!.body
+    expect(first?.t === 'p' && first.runs[0]).toEqual({
+      t: 'text',
+      text: 'This answer is for last month, September 2026. ',
+    })
+    const any = await api.ask({ question: 'orders in Norway', period: 'any date' })
+    expect(any.text).toMatch(/^This answer is for any date\. \S/)
+    const picked = await api.ask({
+      question: 'orders in Norway',
+      period: { from: '2026-10-05', to: '2026-10-11' },
+    })
+    expect(picked.text).toMatch(/^This answer is for 5 to 11 October 2026\. \S/)
+    // Asked with no period, it is read as it always was.
+    const plain = await api.ask({ question: 'orders in Norway' })
+    expect(plain.text).not.toMatch(/^This answer is for/)
+  })
+
+  it('reads the question asked again with the chat at the period chosen, though the model reads nothing', async () => {
+    const api = await world.as(ML)
+    decide = reading({ about: 'orders in Norway', no_period: true })
+    let first: Answer
+    try {
+      first = await api.ask({ question: 'orders in Norway' })
+    } finally {
+      decide = null
+    }
+    expect(first.loop?.subject).toMatchObject({ period: 'any date' })
+    // As a live model did: the same words asked again, answered from the chat's reads.
+    decide = () => ({ text: 'Nothing more is written.' })
+    try {
+      const again = await api.ask({
+        question: 'orders in Norway',
+        turns: [turnOf(first)],
+        period: 'last month',
+      })
+      expect(again.loop?.subject).toMatchObject({ period: '1-30 Sep 2026', carried: false })
+      expect(again.text).toBe(
+        'This answer is for last month, September 2026. Nothing more is written.',
+      )
+      // The read made at the period, with the earlier turn's words, as the model wrote them.
+      expect(again.reads?.[0]).toEqual({
+        tool: 'get_context',
+        input: { about: 'orders in Norway', no_period: true, period: 'last month' },
+      })
+    } finally {
+      decide = null
+    }
+  })
+
+  it("keeps the model's first sentence when it names the period or its days", async () => {
+    const api = await world.as(ML)
+    for (const text of [
+      'For last month, nothing more is written.',
+      'In September 2026, nothing more is written.',
+    ]) {
+      decide = ({ step }) =>
+        step === 0
+          ? { calls: [{ toolName: 'get_context', input: { about: 'orders in Norway' } }] }
+          : { text }
+      try {
+        const a = await api.ask({ question: 'orders in Norway', period: 'last month' })
+        expect(a.text).toBe(text)
+      } finally {
+        decide = null
+      }
+    }
+  })
+
   it('refuses days that end before they start', async () => {
     const api = await world.as(ML)
     await expect(
