@@ -649,6 +649,32 @@ export const readSaid = (item: { kind: string; version: number } | null): Said =
       }
 }
 
+/**
+ * read_context's sentences for one definition (FR-353): what it is and how many published context
+ * items are about it. A term's words are a person's, never a checked source.
+ */
+export const definitionReadSaid = (d: { name: string; kind: string; items: number }): Said => {
+  const [one, many] = contextVoice.item
+  return {
+    say: `This is the whole definition of ${d.name}, a ${d.kind}. ${
+      d.items
+        ? `${sentence(count(d.items, `published ${one} is`, `published ${many} are`))} about it.`
+        : `No published ${one} is about it.`
+    }`,
+    next: `${d.kind === 'term' ? 'Its words are what a person wrote: say whose words they are, but never give them as a checked source. ' : ''}Read a ${one} about it in full with read_context, by its id; for a question about the data, call ${contextVoice.get}.`,
+  }
+}
+/** read_context's sentences for words that name no definition (FR-353): the closest, if any. */
+export const unknownDefinitionSaid = (closest: readonly string[]): Said => ({
+  say: `There's no ${peopleConcepts.definition.name} or ${contextVoice.item[0]} by that name or id that you can read.`,
+  next: `${closest.length ? 'Call again with one of options, the closest names, or find' : 'Find'} it with list_definitions or ${contextVoice.find}.`,
+})
+/** read_context's sentences for words that name several definitions (FR-353). */
+export const severalDefinitionsSaid = (n: number): Said => ({
+  say: `Those words name ${count(n, peopleConcepts.definition.name, `${peopleConcepts.definition.name}s`)}.`,
+  next: 'Call again with one key from options.',
+})
+
 /** get_related's two sentences: what links to the start, or that it may not be read (FR-334). */
 export const relatedSaid = (c: { shown: number; total: number; depth: number } | null): Said =>
   c
