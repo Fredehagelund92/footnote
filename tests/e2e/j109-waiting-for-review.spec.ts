@@ -123,3 +123,19 @@ test("the review offers Don't publish beside Send back, and asks for the reason 
     decide.getByText("It won't be published. Kofi reads why in their Inbox."),
   ).toBeVisible()
 })
+
+test('its sender withdraws it and it leaves Context', async ({ page }) => {
+  await signInAs(page, 'Sofia Brandt')
+  await go(page, '/context')
+  await page.getByPlaceholder('Search context').fill(CLASH)
+  await expect(row(page, CLASH)).toHaveCount(1)
+
+  await go(page, '/context/sug-sofia-clash')
+  await expect(page.getByRole('button', { name: 'Publish', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Withdraw', exact: true }).click()
+  await expect(page.getByText('The owners no longer see it.')).toBeVisible()
+
+  await go(page, '/context')
+  await page.getByPlaceholder('Search context').fill(CLASH)
+  await expect(row(page, CLASH)).toHaveCount(0)
+})
