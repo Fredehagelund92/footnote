@@ -371,10 +371,12 @@ export function outgoing(
   today: string,
   window?: DateWindow,
   index: LinkIndex = linkIndex(bundle),
+  wanted?: ReadonlySet<string>,
 ): { links: Link[]; withheld: number } {
   const links: Link[] = []
   let withheld = 0
   for (const row of [...index.from(item.id), areaRow(item)]) {
+    if (wanted && !wanted.has(row.rel)) continue
     const resolved = resolveRow(bundle, index, item, row, today, window)
     if (resolved.kind === 'hidden') {
       withheld++

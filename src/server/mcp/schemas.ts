@@ -761,7 +761,7 @@ export const readContextOutput = z
       .describe('What the item links to, in a fixed order. Read a linked item with read_context.'),
     links_in: z
       .object({
-        count: z.number().int().describe('How many items you may read link to it.'),
+        count: z.number().int().describe('How many links to it you may read: one for each item and way it links.'),
         items: z.array(
           z.object({
             rel: z

@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "619ccf18cfa937a82eddbe91e024e268ce3e9d94b089afeb39b0f71705ed438c",
+  "digest": "8599c68f6b54ebc9c87ecaf2a072dc52109c487f5358516bff4075662f93414c",
   "tools": [
     {
       "_meta": {
@@ -1081,7 +1081,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "description": "A page of the items that link to it, in a fixed order; next_cursor gives the next.",
             "properties": {
               "count": {
-                "description": "How many items you may read link to it.",
+                "description": "How many links to it you may read: one for each item and way it links.",
                 "maximum": 9007199254740991,
                 "minimum": -9007199254740991,
                 "type": "integer",

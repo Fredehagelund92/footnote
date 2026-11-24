@@ -491,6 +491,30 @@ describe("read_context's links (FR-331 to FR-334)", () => {
     )
   })
 
+  it('counts withheld links only of the kinds of link asked for', async () => {
+    const s = setup(),
+      item = s.data.items[0]!
+    s.data.items.push({
+      ...item,
+      id: 'itm_hidden0001',
+      audience: { kind: 'groups' as const, groups: ['secret'] },
+    })
+    s.data.links.push({
+      from_item: item.id,
+      rel: 'mentions',
+      to_kind: 'item',
+      to_id: 'itm_hidden0001',
+      label: 'Authored label',
+    })
+    const withheld = async (relations: string[]) =>
+      (
+        (await s.call('read_context', { id: item.id, relations })).structuredContent as {
+          check_report: { links_withheld: number }
+        }
+      ).check_report.links_withheld
+    expect(await withheld(['mentions'])).toBe(1)
+    expect(await withheld(['in_area'])).toBe(0)
+  })
   it('keeps only the kinds of link asked for, both ways', async () => {
     const { s, item } = linked()
     const only = await s.call('read_context', { id: item.id, relations: ['mentioned_by'] })

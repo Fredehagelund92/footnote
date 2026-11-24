@@ -21,6 +21,7 @@ import {
 } from '../../../domain/golden-question.ts'
 import { resolverStatusOf } from '../../../domain/answer-state.ts'
 import { gradingTag, type GradingInput, type ModelChoice } from '../models/index.ts'
+import { definitionKinds } from '../../mcp/schemas.ts'
 import { ToolCallRefused, type Arm } from './arm.ts'
 
 /**
@@ -97,7 +98,15 @@ type Reply = {
 export function recordOf(tool: string, input: unknown, output: unknown): ToolCallRecord {
   const reply = (output && typeof output === 'object' ? output : {}) as Reply
   // get_context and find_context list their items under context; read_context gives one there.
-  const listed = Array.isArray(reply.context) ? reply.context : []
+  const asked = (input && typeof input === 'object' ? input : {}) as {
+    query?: unknown
+    kind?: unknown
+  }
+  // A find_context without words, or for a definition kind, browses: a page of what there is.
+  const browsed =
+    tool === 'find_context' &&
+    (asked.query === undefined || (definitionKinds as readonly unknown[]).includes(asked.kind))
+  const listed = Array.isArray(reply.context) && !browsed ? reply.context : []
   const items = [
     ...listed.map((i) => i.id),
     ...(reply.context && !Array.isArray(reply.context) ? [reply.context.id] : []),
@@ -112,7 +121,7 @@ export function recordOf(tool: string, input: unknown, output: unknown): ToolCal
     tool,
     input,
     // A test question expects what the resolver found: Partial and Outdated are matches (FR-349).
-    status: typeof reply.status === 'string' ? resolverStatusOf(reply.status) : null,
+    status: typeof reply.status === 'string' && !browsed ? resolverStatusOf(reply.status) : null,
     items,
     applied,
   }

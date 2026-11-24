@@ -1447,8 +1447,7 @@ export function createToolService(
         })
       const wanted = new Set<Relation>(read.relations ?? relations)
       const index = linkIndex(bundle)
-      const links = outgoing(bundle, item, today, undefined, index)
-      const linksOut = links.links.filter((link) => wanted.has(link.rel as Relation))
+      const links = outgoing(bundle, item, today, undefined, index, wanted)
       const linksIn = linkedFrom(bundle, item, today, wanted, index)
       const key = pageKey(bundle, {
           tool: name,
@@ -1478,7 +1477,7 @@ export function createToolService(
         status: 'matched',
         context: whole,
         ...(terms.length ? { terms } : {}),
-        links_out: linksOut,
+        links_out: links.links,
         links_in: { count: linksIn.length, items: page },
         next_cursor: more ? cursorFor(key, offset + page.length) : null,
         ttlMs: 0,
