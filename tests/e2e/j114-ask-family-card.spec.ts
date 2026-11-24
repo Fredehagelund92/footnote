@@ -51,19 +51,22 @@ for (const { name, viewport } of [
         expect(await own.evaluate((el) => getComputedStyle(el).fontSize)).toBe('16px')
         await expect(card).toContainText(/From dbt\s*Owned by/)
         await card.getByRole('button', { name: 'Write what it means' }).click()
-        await expect(page).toHaveURL(/dock=def\.Partner(%20|\+)forecasts.*meaning=write/)
         const dialog = page.getByRole('dialog', { name: 'What Partner forecasts means' })
         await expect(dialog.getByRole('radio', { name: /^Written for the family/ })).toBeChecked()
         await expect(dialog.getByRole('textbox', { name: 'What it means' })).toBeFocused()
         await page.keyboard.press('Escape')
         await expect(dialog).toHaveCount(0)
         await expect(page).not.toHaveURL(/meaning=write/)
-        // The quick view says the same as the card, with Change for its owner.
         const peek = page.getByRole('region', { name: 'Definition' })
+        expect(await peek.evaluate((el) => el.contains(document.activeElement))).toBe(true)
+        // The quick view says the same as the card, with Change for its owner.
         await expect(peek).toContainText('Its 2 variants say what it is in their own words:')
         await expect(
           peek.getByRole('button', { name: 'Change what Partner forecasts means' }),
         ).toBeVisible()
+        await page.goBack()
+        await expect(page).not.toHaveURL(/meaning=write/)
+        await expect(dialog).toHaveCount(0)
       })
 
       test('with a base: the family’s words, and whose they are', async ({ page }) => {

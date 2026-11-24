@@ -29,6 +29,7 @@ export default function FamilyMeaningDialog({
   family,
   parts,
   writing = false,
+  finalFocus,
   onClose,
 }: {
   name: string
@@ -37,6 +38,8 @@ export default function FamilyMeaningDialog({
   parts: MeaningParts
   /** It opens on words written for the family, when no owner has chosen yet. */
   writing?: boolean
+  /** Where focus goes once it closes; its opener's own place when none. */
+  finalFocus?: React.RefObject<HTMLElement | null>
   onClose: () => void
 }) {
   const {
@@ -60,7 +63,7 @@ export default function FamilyMeaningDialog({
   const meaning = family.meaning!
   const chosen = meaning.chosen
   const [choice, setChoice] = React.useState<FamilyMeaningChoice>(
-    chosen?.choice ?? (writing ? 'written' : 'auto'),
+    writing ? 'written' : (chosen?.choice ?? 'auto'),
   )
   const [words, setWords] = React.useState(
     chosen?.words ?? (meaning.automatic ? meaningLine(meaning.automatic, family.by) : ''),
@@ -118,7 +121,11 @@ export default function FamilyMeaningDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && !sending && onClose()}>
-      <DialogContent className="sm:max-w-lg" {...(writing && !chosen ? { initialFocus: box } : {})}>
+      <DialogContent
+        className="sm:max-w-lg"
+        {...(writing ? { initialFocus: box } : {})}
+        {...(finalFocus ? { finalFocus } : {})}
+      >
         <form onSubmit={save} noValidate className="contents">
           <DialogHeader>
             <DialogTitle>What {name} means</DialogTitle>

@@ -217,18 +217,28 @@ function MeaningLead({
 }) {
   const P = useParts()
   const [changing, setChanging] = React.useState(false)
+  const [writing, setWriting] = React.useState(false)
+  const change = React.useRef<HTMLButtonElement>(null)
   // Write what it means, on Ask's card of a family with no meaning, opens the panel writing it.
   const { query } = P.useRoute()
   const asked = query.get('meaning') === 'write'
   const meaning = family.meaning
+  const mayChange = !!meaning && canChange && meaning.source !== 'declared'
+  React.useEffect(() => {
+    if (!asked) return
+    if (mayChange) {
+      setWriting(true)
+      setChanging(true)
+    }
+    void P.changeQuery({ meaning: undefined }, { replace: true })
+  }, [asked, mayChange, P])
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
   const Icon =
     meaning.source === 'common' && meaning.base ? P.CircleDotIcon : sourceIcon(P)[meaning.source]
-  const mayChange = canChange && meaning.source !== 'declared'
   const close = () => {
     setChanging(false)
-    if (asked) P.setQuery({ meaning: undefined })
+    setWriting(false)
   }
   // A variant converted from another says how, which the values band shows: it says nothing else.
   const converted = new Set((family.conversions ?? []).map((c) => c.to))
@@ -254,6 +264,7 @@ function MeaningLead({
               <>
                 {source && ' '}
                 <P.Button
+                  ref={change}
                   variant="link"
                   className="h-auto p-0 text-xs"
                   onClick={() => setChanging(true)}
@@ -283,13 +294,14 @@ function MeaningLead({
           {quote ? `: “${quote}”.` : '.'}
         </P.PeekAttention>
       )}
-      {(changing || (asked && mayChange)) && (
+      {changing && (
         <React.Suspense fallback={null}>
           <P.MeaningDialog
             name={d.name}
             family={family}
             parts={P.meaningParts}
-            writing={asked}
+            writing={writing}
+            finalFocus={writing ? change : undefined}
             onClose={close}
           />
         </React.Suspense>
