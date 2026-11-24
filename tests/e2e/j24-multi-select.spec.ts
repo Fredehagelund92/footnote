@@ -115,6 +115,8 @@ test('Context: Cmd or Ctrl ticks a row, a title opens, a row click ticks while p
 test('Context: Shift and an arrow extend from the keyboard; Cmd or Ctrl and A ticks every row shown', async ({
   page,
 }) => {
+  // Tall enough to draw every row, as a row waiting for review is taller than the rest.
+  await page.setViewportSize({ ...page.viewportSize()!, height: 2400 })
   await go(page, '/context')
   await page.locator('tbody [data-row-open]').nth(2).focus()
   await page.keyboard.press('Shift+ArrowDown')

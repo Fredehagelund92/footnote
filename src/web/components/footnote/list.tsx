@@ -574,7 +574,7 @@ export function SortMenu<K extends string>({
 
 const dot: Record<Status, string> = {
   Draft: 'bg-transparent ring-1 ring-inset ring-off',
-  Waiting: 'bg-transparent ring-1 ring-inset ring-foreground',
+  Waiting: 'bg-transparent ring-1 ring-inset ring-ring',
   Live: 'bg-good',
   'Due for a check': 'bg-caution',
   Archived: 'bg-off',

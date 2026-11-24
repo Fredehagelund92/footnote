@@ -1389,7 +1389,7 @@ function Decision({
         <Button
           size="lg"
           variant="ghost"
-          className="sm:order-last"
+          className="order-last"
           disabled={blockedBySend}
           onClick={() => ask('close')}
         >

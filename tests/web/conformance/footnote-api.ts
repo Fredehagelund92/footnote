@@ -2203,18 +2203,19 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'closeReview'))(
-      'closes nothing its sender did not take back',
+      'closes nothing without its reason',
       async () => {
         await api().signIn({ name: person })
         const inbox = await api().inboxPage()
         const plain = (await api().getReviews()).find(
           (r) =>
             r.mode !== 'retire' &&
+            !r.drafted &&
             inbox.cards.some((c) => c.id === r.id && c.for === person && !inbox.done[c.id]),
         )
         expect(plain, `a suggestion for ${person}`).toBeDefined()
         await expect(api().closeReview({ id: plain!.id })).rejects.toMatchObject({
-          kind: 'conflict',
+          kind: 'invalid',
         })
         expect((await api().inboxPage()).done[plain!.id]).toBeUndefined()
       },
