@@ -238,7 +238,7 @@ Eight tools. Each is described in one list in the code (`AGENT_TOOLS`), which Se
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_context`      | The context that applies to a question, with the answer line and one sentence to relay.                                                            |
 | `find_context`     | A word search over names, titles and summaries.                                                                                                    |
-| `read_context`     | One context item in full: text, source, check date and the don't conclude line.                                                                    |
+| `read_context`     | One context item in full: text, source, check date and the don't conclude line. Or one definition in full, even with no context item about it.     |
 | `report`           | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                  |
 | `suggest_context`  | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
 | `get_related`      | Follow a link between items, definitions and domains, one step at a time. It has its own switch.                                                   |
