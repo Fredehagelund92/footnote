@@ -134,10 +134,13 @@ const notes: [title: string, summary: string, domain: Fact['domain'], where: str
   ],
 ]
 
+/** The id every imported draft starts with: its writer's Inbox has one card for them. */
+export const IMPORTED = 'itm_draft_imported_'
+
 export const importedDrafts = (): Fact[] =>
   notes.map(([title, summary, domain, where], i) =>
     withWhen({
-      id: `itm_draft_imported_${String(i + 1).padStart(2, '0')}`,
+      id: `${IMPORTED}${String(i + 1).padStart(2, '0')}`,
       title,
       summary,
       domain,

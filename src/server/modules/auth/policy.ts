@@ -121,6 +121,9 @@ export const policies = {
   'items.changes': 'read',
   'items.deleted': 'admin',
   'drafts.fromText': 'propose',
+  'drafts.save': 'propose',
+  'drafts.left': 'admin',
+  'drafts.clearLeft': 'admin',
   // The Inbox of Footnote v1: the service narrows every card to the domains the person owns.
   'inbox.feed': 'read',
   'inbox.names': 'read',

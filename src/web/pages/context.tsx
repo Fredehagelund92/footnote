@@ -172,13 +172,19 @@ export function ContextPage() {
   const dock = useDock()
   const [text, setText] = React.useState('')
   // A domain page links here filtered to its domain (and to what is due for a check); a records
-  // answer in Ask to what is due or archived.
+  // answer in Ask to what is due or archived; the Inbox's drafts card to the person's drafts.
   const { query } = useRoute()
   const [domain, setDomain] = React.useState<DomainId[]>(() =>
     query.get('domain') ? [query.get('domain') as DomainId] : [],
   )
   const [status, setStatus] = React.useState<Status[]>(() =>
-    query.get('due') ? ['Due for a check'] : query.get('status') === 'archived' ? ['Archived'] : [],
+    query.get('due')
+      ? ['Due for a check']
+      : query.get('status') === 'archived'
+        ? ['Archived']
+        : query.get('status') === 'draft'
+          ? ['Draft']
+          : [],
   )
   const [kind, setKind] = React.useState<Kind[]>([])
   // In the address, so a link (the old Conflicts list, a help page) lands on it and a reload keeps it.
