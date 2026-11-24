@@ -151,6 +151,11 @@ export type Waiting = {
    * who edits it and sends it again.
    */
   returned?: { by: string; when: string }
+  /**
+   * An owner closed it (Don't publish), with the reason they gave: it won't be published. Its row
+   * tells the person once, until they open it.
+   */
+  closed?: { by: string; when: string; reason: string }
 }
 
 export type SetupStep = { id: string; title: string; description: string; action: string }

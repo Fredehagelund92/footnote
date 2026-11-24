@@ -107,15 +107,18 @@ export function decide<D>(state: DecisionState<D>, event: DecisionEvent<D>): Dec
         : state
     case 'press': {
       if (!mayDo(event.actions, event.action)) return state
-      // Archive and Return are pressed from their own step; a Close from its own step when it
-      // takes a reason, else from the buttons; the rest from the buttons.
+      // Archive and Return are pressed from their own step; a Close from its own step, where it
+      // takes a reason, or from the buttons where it leads (its sender took it back); the rest from
+      // the buttons.
       const from: DecisionState<D>['kind'][] =
         event.action === 'archive'
           ? ['confirmingArchive']
           : event.action === 'return'
             ? ['writingReturn']
             : event.action === 'close'
-              ? ['idle', 'confirmingClose']
+              ? event.actions.primary === 'close'
+                ? ['idle', 'confirmingClose']
+                : ['confirmingClose']
               : ['idle']
       const fromFailedReturn =
         event.action === 'return' && state.kind === 'failed' && state.action === 'return'

@@ -30,6 +30,7 @@ export const INBOX_GROUPS = [
   { id: 'look', label: 'Saved questions' },
   { id: 'alert', label: 'Alerts' },
   { id: 'returned', label: 'Returned to you' },
+  { id: 'closed', label: 'Closed' },
   { id: 'check', label: 'Due for a check' },
   { id: 'waiting', label: 'Waiting on others' },
   { id: 'done', label: 'Done' },
@@ -54,9 +55,11 @@ export const groupOf = (r: InboxRow): InboxGroup =>
     : r.kind === 'waiting'
       ? r.item.returned
         ? 'returned'
-        : r.note
-          ? 'mention'
-          : 'waiting'
+        : r.item.closed
+          ? 'closed'
+          : r.note
+            ? 'mention'
+            : 'waiting'
       : r.done && !r.note
         ? 'done'
         : r.card.type
@@ -64,14 +67,14 @@ export const groupOf = (r: InboxRow): InboxGroup =>
 const order = (r: InboxRow) => INBOX_GROUPS.findIndex((g) => g.id === groupOf(r))
 
 /**
- * What needs you: an open card, your suggestion an owner returned to you, and anything that
- * mentions you that you haven't read.
+ * What needs you: an open card, your suggestion an owner returned to you, one an owner closed
+ * that you haven't opened, and anything that mentions you that you haven't read.
  */
-export const needs = (r: InboxRow) =>
+export const needs = (r: InboxRow, opened: Record<string, boolean> = {}) =>
   r.kind === 'card'
     ? !r.done || !!r.note
     : r.kind === 'waiting'
-      ? !!r.note || !!r.item.returned
+      ? !!r.note || !!r.item.returned || (!!r.item.closed && !opened[r.item.id])
       : !!r.note
 
 /**
@@ -153,5 +156,9 @@ export function inboxRows(
     .map((r, i) => ({ r, i }))
     .sort((a, b) => order(a.r) - order(b.r) || a.i - b.i)
     .map((x) => x.r)
-  return { needing: sorted.filter(needs), rows: sorted, waiting: mineWaiting }
+  return {
+    needing: sorted.filter((r) => needs(r, inbox.opened)),
+    rows: sorted,
+    waiting: mineWaiting.filter((w) => !w.closed && !w.returned),
+  }
 }

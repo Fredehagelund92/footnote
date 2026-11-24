@@ -366,8 +366,9 @@ and a concurrent request using the same key returns 409. A rolled-back request c
   `{ rows, total, limit, offset }` for every kind of proposal the person may read (item, retire,
   recheck and vocabulary), newest first by actual timestamp. `total` counts the readable matches
   before pagination. `GET /proposals/{id}` reads a proposal under row security; `draft` holds
-  item form content only and is empty for the other kinds. Every mutation checks `revision`; a
-  stale write returns 409 with the current record.
+  item form content only and is empty for the other kinds. `submittedAt` is when it was last sent
+  for review, null for a draft never sent. Every mutation checks `revision`; a stale write returns
+  409 with the current record.
 - `POST /proposals/{id}/submit` takes `{ revision }`. The proposer submits an immutable version,
   scope, evidence, references, mention rows, digests and format checks in one transaction with
   the proposal state, audit and outbox records. Resubmit creates another version, still written
@@ -477,10 +478,11 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   no answer is 422. `POST /review/{id}/return` takes `{ revision, note, body? }`: the suggestion
   goes back to its writer, and the note is its first comment, marked returned (`body` is the
   note as the comment box wrote it, with its mentions; without it the comment is the note's
-  words). `POST /review/{id}/close` takes `{ revision, reason? }` and closes a suggestion to
-  archive: nothing changes, and the answer has a token that undoes it. One its sender took back in
-  the comments needs no reason; any other needs the owner's `reason`, kept with the decision (422
-  without one).
+  words). `POST /review/{id}/close` takes `{ revision, reason? }` and closes a suggestion:
+  nothing changes, and the answer has a token that undoes it. A suggestion to archive its sender
+  took back in the comments needs no reason; any other needs the owner's `reason`, kept with the
+  decision (422 without one). A new item or a change closes as Don't publish (`rejected`): its
+  sender reads who closed it and the reason in their Inbox feed (`waiting[].closed`).
 - `POST /review/{id}/read` takes `{ itemVersionId }` and records that the person read that
   version (FR-226); a version that is no longer the one under review is 409.
   `POST /review/publish-read` takes `{ ids }` (up to 50) and publishes each suggestion the
@@ -507,8 +509,9 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   the item they are about; one waits until an owner closes it or checks, changes or archives its
   item, and is then done with that outcome. A Not found card's title
   names what agents asked about and the month: "Orders in Spain, October 2026". Under All come what the person sent that waits
-  on an owner, and what an owner returned to them with a note (`returned`, who and when), and
-  what was done in the last 14 days. A suggestion's card says whether the
+  on an owner, what an owner returned to them with a note (`returned`, who and when), what an
+  owner closed in the last 14 days (`closed`: who, when, the reason, and `read` once the person
+  marked the card `closed:<proposal id>` read), and what was done in the last 14 days. A suggestion's card says whether the
   person read the version under review (`read`), so it may go out with the others they read.
   `week` counts this week's agent questions, each hidden under `privacy.min_count` (FR-614).
 - `POST /inbox/cards/read` takes `{ cards }`: the person opened them (a Mentioned you card:
@@ -666,7 +669,10 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   changing the item it was started from, if any. An owner of a draft's domain or an admin may
   also finish a draft someone else wrote: it is published as itself and keeps its writer, and where
   they could not publish it (a domain they don't own) it is refused with 403, never sent on the
-  writer's behalf. A returned suggestion is its writer's alone (403 otherwise). A publish the checks refuse keeps
+  writer's behalf. A suggestion waiting for review may be finished the same way by an owner of its
+  domain or an admin (Edit then publish): their words are a new version that supersedes the one
+  sent, names them as its editor and keeps its writer; its sender gets 409 and withdraws it
+  instead, and another owner's claim on it is 409. A returned suggestion is its writer's alone (403 otherwise). A publish the checks refuse keeps
   nothing. A change to an item (`itemId`) may name the `version` it was written from (else the
   version agents get now): the change stays written from it, and once someone has published other words since, it is refused when it is sent with 409 and
   `data.stale.version`, the version agents get now, so an older view never takes away a newer

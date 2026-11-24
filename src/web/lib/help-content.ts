@@ -88,7 +88,7 @@ export const WORDS: [string, string][] = [
   ],
   [
     'Suggestion',
-    'A change someone else sends to an owner, from the editor or through their agent. Nothing changes until the owner publishes it.',
+    'A change someone else sends to an owner, from the editor or through their agent. It waits for review until the owner publishes it, sends it back or closes it.',
   ],
   [
     'Definition',

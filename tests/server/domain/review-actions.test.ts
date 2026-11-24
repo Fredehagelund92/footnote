@@ -27,17 +27,17 @@ describe('what may be done with a suggestion', () => {
     [
       'a plain change',
       {},
-      { can: ['publish', 'return'], primary: 'publish', blockedBy: {}, ready: true },
+      { can: ['publish', 'return', 'close'], primary: 'publish', blockedBy: {}, ready: true },
     ],
     [
       'a new item',
       { mode: 'new' },
-      { can: ['publish', 'return'], primary: 'publish', blockedBy: {}, ready: true },
+      { can: ['publish', 'return', 'close'], primary: 'publish', blockedBy: {}, ready: true },
     ],
     [
       'a change with claims to check: Return leads, Publish anyway stays',
       { claimsToCheck: 2 },
-      { can: ['publish', 'return'], primary: 'return', blockedBy: {}, ready: false },
+      { can: ['publish', 'return', 'close'], primary: 'return', blockedBy: {}, ready: false },
     ],
     [
       'a draft for a Not found card: published or edited, never returned',
@@ -53,7 +53,7 @@ describe('what may be done with a suggestion', () => {
       'a clash with no answer holds Publish',
       { clashes: 2 },
       {
-        can: ['publish', 'return'],
+        can: ['publish', 'return', 'close'],
         primary: 'publish',
         blockedBy: { publish: 'clash' },
         ready: false,
@@ -63,7 +63,7 @@ describe('what may be done with a suggestion', () => {
       'claims and a clash: Return leads, Publish anyway waits',
       { clashes: 1, claimsToCheck: 1 },
       {
-        can: ['publish', 'return'],
+        can: ['publish', 'return', 'close'],
         primary: 'return',
         blockedBy: { publish: 'clash' },
         ready: false,
@@ -73,7 +73,7 @@ describe('what may be done with a suggestion', () => {
       'a change written against an earlier version: Return leads, Publish waits',
       { stale: true },
       {
-        can: ['publish', 'return'],
+        can: ['publish', 'return', 'close'],
         primary: 'return',
         blockedBy: { publish: 'stale' },
         ready: false,
@@ -121,7 +121,8 @@ describe('what may be done with a suggestion', () => {
     expect(mayDo(held, 'publish')).toBe(false)
     expect(mayDo(held, 'return')).toBe(true)
     expect(mayDo(held, 'archive')).toBe(false)
-    expect(mayDo(held, 'close')).toBe(false)
+    // Don't publish is never held by a clash: it changes nothing agents get.
+    expect(mayDo(held, 'close')).toBe(true)
     expect(mayDo(reviewActions(input({ clashes: 0 })), 'publish')).toBe(true)
   })
 })

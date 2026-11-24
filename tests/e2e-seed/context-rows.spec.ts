@@ -90,14 +90,15 @@ test('only the rows in view are drawn, and the keys and Select all reach every r
       .match(/of ([\d,]+)/)![1]!
       .replace(',', ''),
   )
-  // The footer counts every row the filters let through, drawn or not.
-  const shown = Number(
-    (await page
-      .locator('main tfoot')
-      .getByText(/context items$/)
-      .textContent())!
-      .match(/^([\d,]+)/)![1]!
-      .replace(',', ''),
+  // The footer counts every row the filters let through, drawn or not: published, then waiting
+  // for review and drafts.
+  const foot = await page
+    .locator('main tfoot')
+    .getByText(/published/)
+    .textContent()
+  const shown = [...foot!.matchAll(/([\d,]+) [a-z]/g)].reduce(
+    (sum, m) => sum + Number(m[1]!.replace(',', '')),
+    0,
   )
   expect(shown).toBeGreaterThan(1000)
   expect(shown).toBeLessThanOrEqual(total)

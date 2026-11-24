@@ -60,11 +60,12 @@ import { agentNameProblem, type AgentToolName } from '@domain/agents'
 /** What a suggestion's state reads as on an agent's list of what it sent. */
 const SENT_STATES: Record<string, string> = {
   draft: 'kept as a draft',
-  submitted: 'waiting for the owner',
-  in_review: 'waiting for the owner',
+  submitted: 'waiting for review',
+  in_review: 'waiting for review',
   changes_requested: 'sent back',
   accepted: 'published',
-  rejected: 'not published',
+  // Closed by an owner, with a reason: never "not published", which a draft is too.
+  rejected: 'closed by the owner',
   withdrawn: 'withdrawn',
 }
 

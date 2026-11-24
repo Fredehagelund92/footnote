@@ -10,7 +10,8 @@ import { ownersOf, type Domains } from '@/model/people'
 // admins change it. A draft (never published) can be deleted; a published item is archived, never
 // deleted, so its history stays and agents simply stop getting it. A draft is published as from the
 // editor, after the editor's own checks: at once in a domain the person owns (or by an admin), and
-// otherwise sent to that domain's owners as a suggestion, which only its writer does.
+// otherwise sent to that domain's owners as a suggestion, which only its writer does. A suggestion
+// waiting for review is left alone: an owner decides it on its page.
 
 export type Me = { name: string; admin: boolean }
 
@@ -46,6 +47,14 @@ export function planFacts(
   const skip = (f: Fact, s: { why: string; reason: string }) =>
     skipped.push({ id: f.id, title: f.title, ...s })
   for (const f of facts) {
+    // A suggestion waiting for review is decided on its own page, one at a time.
+    if (f.status === 'Waiting') {
+      skip(f, {
+        why: 'waiting for review',
+        reason: 'It waits for review: open it to publish it, send it back or close it.',
+      })
+      continue
+    }
     // Its writer sends their own draft to the owners, as from the editor.
     const writes = action === 'publish' && f.status === 'Draft' && f.by === me.name
     if (!canChange(f, me, domains) && !writes) {

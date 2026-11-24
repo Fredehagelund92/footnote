@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-23
 ---
 
+## Waiting for review, and Don't publish
+
+2026-11-23
+
+A new item someone sent now shows in Context as Waiting, with who sent it, how long ago and who decides, to its sender, its domain's owners and admins. Filter by Waiting for review to see them all.
+
+On its page an owner can publish it, edit it and then publish it, send it back with a note, or choose Don't publish with a reason. The sender reads who closed it and why in their Inbox. See [Review a suggestion](review-a-suggestion.md#from-context).
+
 ## Families where you connect a source
 
 2026-11-23

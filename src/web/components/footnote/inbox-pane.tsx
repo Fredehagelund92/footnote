@@ -4,6 +4,7 @@ import {
   BellIcon,
   CalendarClockIcon,
   CircleDashedIcon,
+  CircleXIcon,
   ClockIcon,
   CornerUpLeftIcon,
   FlagIcon,
@@ -49,6 +50,7 @@ export const cardIcon = {
   mention: AtSignIcon,
   waiting: ClockIcon,
   returned: CornerUpLeftIcon,
+  closed: CircleXIcon,
 } satisfies Record<PaneState['icon'], unknown>
 
 /** The card's state as Footnote's one chip: its icon and its word, tinted only when it needs care. */

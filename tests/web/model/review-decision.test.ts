@@ -99,8 +99,13 @@ describe('the decision', () => {
       ...sending('close'),
       reason,
     })
-    // Close is not offered on a change, so it has no step there.
-    expect(run(at, { type: 'ask', action: 'close', actions: edit })).toBe(at)
+    // A change closes as Don't publish, only through its own step, where it takes the reason.
+    const closing = run(at, { type: 'ask', action: 'close', actions: edit })
+    expect(closing).toEqual({ kind: 'confirmingClose', id: 'a' })
+    expect(run(at, { type: 'press', action: 'close', actions: edit })).toBe(at)
+    expect(
+      run(closing, { type: 'press', action: 'close', actions: edit, reason: 'Not ours' }),
+    ).toEqual({ ...sending('close'), reason: 'Not ours' })
   })
 
   it('failed close: retry sends the reason as it is written now', () => {

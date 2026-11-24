@@ -33,6 +33,8 @@ const places = [
   '/context/itm_norway_stop',
   '/context/itm_norway_stop/edit',
   '/context/itm_norway_stop/suggest',
+  // A new item waiting for review, as an owner decides it.
+  '/context/sug-agent',
   '/context/new',
   '/definitions',
   '/definitions?dock=def.Orders',
@@ -241,6 +243,22 @@ for (const { name, width, height } of widths) {
         await page.getByLabel('File address').fill('https://b.s3.amazonaws.com/f.json')
         await page.getByRole('button', { name: 'Test connection' }).click()
         await expect(page.getByText('A read would hold', { exact: false })).toBeVisible()
+        expect(await violations(page)).toEqual([])
+        expect(await fitsTheScreen(page)).toBe(true)
+      })
+
+      // Don't publish: the reason an owner gives to close a new item waiting for review.
+      test("Don't publish, its dialog open", async ({ page }) => {
+        await page.goto(withTheme('/context/sug-agent', theme))
+        // On a phone it is in the page's More menu.
+        if (width < 768) {
+          await page.getByRole('button', { name: 'More', exact: true }).click()
+          await page.getByRole('menuitem', { name: "Don't publish" }).click()
+        } else await page.getByRole('button', { name: "Don't publish", exact: true }).click()
+        const dialog = page.getByRole('dialog', { name: "Don't publish it?" })
+        await expect(
+          dialog.getByRole('textbox', { name: "Why you don't publish it" }),
+        ).toBeVisible()
         expect(await violations(page)).toEqual([])
         expect(await fitsTheScreen(page)).toBe(true)
       })

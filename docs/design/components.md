@@ -151,20 +151,22 @@ Unused primitives in the mockup (about seven) are not imported.
 
 ### Lists and bulk
 
-| Part               | File                                              | Job                                                                              |
-| ------------------ | ------------------------------------------------- | -------------------------------------------------------------------------------- |
-| List parts         | `components/footnote/list.tsx`                    | The filter bar, the thin header row, rows of one line at one density, the cursor |
-| Sorting            | `lib/sort.ts`                                     | A key and a direction; `SortMenu` and `SortTh` in the list parts flip it         |
-| Columns            | `components/footnote/columns.tsx`                 | Design B: kind icon, scope, status icon, when, freshness dot                     |
-| Context list       | `pages/context.tsx`                               | The Context list                                                                 |
-| Selection          | `hooks/use-selection.ts`, `lib/selection.ts`      | One picking model for every list                                                 |
-| Bulk bar           | `components/footnote/bulk-bar.tsx`, `lib/bulk.ts` | The one bar in its own band, with skips and reasons                              |
-| Context actions    | `components/footnote/context-bulk.tsx`            | Publish, Archive, Delete, Change domain, kind, owners, Mark as checked, Export   |
-| Definition actions | `components/footnote/definitions-bulk.tsx`        | Terms only; synced items are left alone                                          |
-| Delete dialog      | `components/footnote/delete-dialog.tsx`           | The one confirmation before a delete                                             |
-| Publish dialog     | `components/footnote/publish-dialog.tsx`          | The one question before more than five drafts are published                      |
-| Suggest list       | `components/footnote/suggest-list.tsx`            | The one list a text box offers while typing                                      |
-| Switches           | `components/footnote/switches.tsx`                | `ViewToggle`, `TextSwitch`, `ChoiceMenu`                                         |
+| Part                 | File                                              | Job                                                                               |
+| -------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| List parts           | `components/footnote/list.tsx`                    | The filter bar, the thin header row, rows of one line at one density, the cursor  |
+| Sorting              | `lib/sort.ts`                                     | A key and a direction; `SortMenu` and `SortTh` in the list parts flip it          |
+| Columns              | `components/footnote/columns.tsx`                 | Design B: kind icon, scope, status icon, when, freshness dot                      |
+| Context list         | `pages/context.tsx`                               | The Context list                                                                  |
+| Selection            | `hooks/use-selection.ts`, `lib/selection.ts`      | One picking model for every list                                                  |
+| Bulk bar             | `components/footnote/bulk-bar.tsx`, `lib/bulk.ts` | The one bar in its own band, with skips and reasons                               |
+| Context actions      | `components/footnote/context-bulk.tsx`            | Publish, Archive, Delete, Change domain, kind, owners, Mark as checked, Export    |
+| Definition actions   | `components/footnote/definitions-bulk.tsx`        | Terms only; synced items are left alone                                           |
+| Delete dialog        | `components/footnote/delete-dialog.tsx`           | The one confirmation before a delete                                              |
+| Publish dialog       | `components/footnote/publish-dialog.tsx`          | The one question before more than five drafts are published                       |
+| Don't publish dialog | `components/footnote/dont-publish-dialog.tsx`     | The reason an owner gives to close a new item or a change, which its sender reads |
+| Waiting decision     | `components/footnote/waiting-decision.tsx`        | Publish, Send back and Don't publish of a waiting item, from its page             |
+| Suggest list         | `components/footnote/suggest-list.tsx`            | The one list a text box offers while typing                                       |
+| Switches             | `components/footnote/switches.tsx`                | `ViewToggle`, `TextSwitch`, `ChoiceMenu`                                          |
 
 ### The Inbox and the review
 

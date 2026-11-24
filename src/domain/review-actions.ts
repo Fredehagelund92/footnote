@@ -6,7 +6,8 @@
   The rules follow what the service allows:
   - a suggestion to archive is archived or closed, never returned and never published; an owner
     may close one they do not want, with a reason, and Close leads once its sender took it back;
-  - anything else is published or returned;
+  - anything else is published, returned, or closed with a reason its sender reads (Don't
+    publish);
   - a suggestion written against an earlier version of its item (`standingOf`) is not published
     or archived as it is: a change is returned, a suggestion to archive is closed;
   - Publish waits while a live item it clashes with has no answer (FR-225); a claim to check or a
@@ -50,7 +51,11 @@ export type ReviewActions = {
 export function reviewActions(input: ReviewActionsInput): ReviewActions {
   const { mode, withdrawn, stale, clashes, claimsToCheck, drafted } = input
   const can: ReviewAction[] =
-    mode === 'retire' ? ['archive', 'close'] : drafted ? ['publish'] : ['publish', 'return']
+    mode === 'retire'
+      ? ['archive', 'close']
+      : drafted
+        ? ['publish']
+        : ['publish', 'return', 'close']
   const primary: ReviewAction =
     mode === 'retire'
       ? withdrawn || stale

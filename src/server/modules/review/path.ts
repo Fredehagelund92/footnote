@@ -690,9 +690,9 @@ export function createReviewPath(
   }
 
   /**
-   * Closes a suggestion to archive its sender took back in the comments: nothing changes, and the
-   * context item stays live. The review service checks who may (an owner or an admin, as for a
-   * decision) and that it was taken back.
+   * Closes a suggestion, so nothing changes: one to archive leaves the context item live, and a new
+   * item or a change is not published. The review service checks who may (an owner or an admin, as
+   * for a decision) and that a reason is given where one is needed.
    */
   async function close(input: { id: string; revision: number; reason?: string | undefined }) {
     const closed = await review.close(input)
@@ -830,7 +830,7 @@ export function createReviewPath(
         continue
       }
       // A close changed nothing agents get: the suggestion waits again.
-      if (d.outcome === 'reject' && d.action === 'retire') continue
+      if (d.outcome === 'reject') continue
       if (d.outcome === 'retire') {
         // An archive: the archived version comes back, unless something else is live for it now.
         if (await liveVersionId(tx, d.itemId))

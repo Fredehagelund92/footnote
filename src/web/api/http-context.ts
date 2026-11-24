@@ -355,6 +355,26 @@ export function factOfDraft(
   }
 }
 
+/**
+ * A suggestion waiting for review, as the Context list and its page show it to the people who may
+ * open it (its sender, the owners of its domain, admins): its words, who sent it and when.
+ */
+export function factOfWaiting(
+  proposal: Pick<
+    ProposalRecord,
+    'id' | 'title' | 'areaId' | 'draft' | 'proposerId' | 'submittedAt'
+  >,
+  names: Names,
+  words: Words,
+  shift: number,
+): Fact {
+  return {
+    ...factOfDraft(proposal, names, words),
+    status: 'Waiting',
+    ...(proposal.submittedAt ? { sentAt: serviceDay(proposal.submittedAt, shift) } : {}),
+  }
+}
+
 /* ---------- history ---------- */
 
 /** A field as the app's difference names it. */

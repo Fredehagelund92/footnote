@@ -227,8 +227,8 @@ export const publishItemInputSchema = z.strictObject({
   /**
    * The draft it finishes, or the person's suggestion an owner returned: it takes these words and
    * is sent as itself, instead of a new suggestion beside it. Its item, when it changes one, is its
-   * own. An owner of its domain or an admin publishes a draft someone else wrote as itself; it
-   * keeps its writer.
+   * own. An owner of its domain or an admin publishes a draft someone else wrote as itself, or a
+   * suggestion waiting for their review with their edits (Edit then publish); it keeps its writer.
    */
   draftId: z.optional(z.string().check(z.uuid())),
   /** What is wrong with the current version, for a suggested change. */

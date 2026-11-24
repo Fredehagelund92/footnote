@@ -52,7 +52,8 @@ import { missing } from '../../../contract/refusals.ts'
   Mentioned you: threads where a comment mentions the person and they haven't read it,
   whatever domain it is in. Due for a check: live items whose check date passed or whose
   definition changed. Suggestions: those waiting for a decision. Under All, the person's own
-  suggestions that wait on an owner, and what was decided in the last two weeks. Saved questions:
+  suggestions that wait on an owner, those an owner closed (Don't publish) in the last two weeks
+  with the reason, and what was decided in the last two weeks. Saved questions:
   one card for each domain whose saved questions need a look (FR-526). Names: one card for the
   names a read made that the person may accept (FR-141), above the rest, since nothing can be
   written about a metric that has none. Once only names an owner left out remain, it goes under
@@ -81,7 +82,8 @@ const outcomeWords: Record<string, string> = {
   // Published without a review round, under the policy the owner set for the agent (FR-421).
   policy: 'Published with your permission',
   request_changes: 'Returned',
-  reject: 'Rejected',
+  // Not published, with a reason its sender reads: Don't publish.
+  reject: 'Closed',
   retire: 'Archived',
   // A suggestion to archive that is not archived: closed once its sender took it back.
   close: 'Closed',
@@ -714,11 +716,23 @@ export function createInboxFeedService(
                 (select json_build_object('by',x.display_name,'at',d.decided_at::text)
                    from decisions d left join people x on x.id=d.decided_by
                   where d.proposal_id=p.id and d.outcome='request_changes'
-                  order by d.decided_at desc,d.id desc limit 1) end as returned
+                  order by d.decided_at desc,d.id desc limit 1) end as returned,
+              case when p.state='rejected' then
+                (select json_build_object('by',x.display_name,'at',d.decided_at::text,'reason',d.reason,
+                          'read',exists(select 1 from card_reads r where r.person_id=cl_person() and r.card='closed:'||p.id))
+                   from decisions d left join people x on x.id=d.decided_by
+                  where d.proposal_id=p.id and d.outcome='reject'
+                  order by d.decided_at desc,d.id desc limit 1) end as closed
          from proposals p left join item_versions v on v.id=p.item_version_id
-        where p.proposer_id=cl_person() and p.state in ('submitted','in_review','changes_requested')
-          and p.discarded_at is null
-        order by p.submitted_at desc nulls last limit 100`,
+        where p.proposer_id=cl_person() and p.subject='item' and p.discarded_at is null
+          and (p.state in ('submitted','in_review','changes_requested')
+               or (p.state='rejected' and exists(
+                     select 1 from decisions d
+                      where d.proposal_id=p.id and d.outcome='reject' and d.decided_by<>cl_person()
+                        and d.decided_at > now() - make_interval(days => $1)
+                        and not exists (select 1 from decision_undos u where u.decision_id=d.id))))
+        order by coalesce(p.closed_at,p.submitted_at) desc nulls last limit 100`,
+      [doneDays],
     )
   }
 
@@ -818,7 +832,8 @@ export function createInboxFeedService(
       const counted = sorted.filter((c) => !(c.group === 'suggestion' && drafts.has(c.proposalId)))
       return {
         week: await week(bundle),
-        groups: groupCounts(counted, waits.length),
+        // What the person sent that still waits: a suggestion an owner closed waits on nobody.
+        groups: groupCounts(counted, waits.filter((w) => !w.closed).length),
         cards: sorted,
         waiting: waits,
       }

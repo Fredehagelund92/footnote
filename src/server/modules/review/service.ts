@@ -445,11 +445,12 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     },
 
     /**
-     * Closes a suggestion to archive: the owners' decision not to archive, so nothing changes and
-     * the item stays live, or stays archived. One its sender took back in the comments (migration
-     * 0028) closes as it is; any other with the owner's reason, kept with the decision, as when the
-     * item changed since it was suggested. An owner of its domain or an admin closes it, as they would
-     * decide it, and may undo it in the window.
+     * Closes a suggestion: the owners' decision not to act on it, so nothing changes. A suggestion
+     * to archive leaves the item live, or archived. One its sender took back in the comments
+     * (migration 0028) closes as it is; any other with the owner's reason, kept with the decision,
+     * as when the item changed since it was suggested. A new item or a change is not published
+     * (Don't publish), always with a reason, which its sender reads in their Inbox. An owner of its
+     * domain or an admin closes it, as they would decide it, and may undo it in the window.
      */
     async close(input: { id: string; revision: number; reason?: string | undefined }) {
       const p = await loadProposal(tx, input.id, true)
@@ -465,14 +466,17 @@ export function createReviewService(tx: Queryable, clock: Clock) {
                          and c.deleted_at is null and c.author_id=$2::uuid) as yes`,
         [p.id, p.proposerId],
       )
-      if (p.subject !== 'item' || p.action !== 'retire')
+      if (p.subject !== 'item' || !['retire', 'create', 'change'].includes(p.action))
         throw new ORPCError('CONFLICT', {
-          message: 'Only a suggestion to archive is closed. Decide this one instead.',
+          message: 'Only a suggestion of a context item is closed. Decide this one instead.',
         })
+      const retire = p.action === 'retire'
       const given = input.reason?.trim()
-      if (!withdrawn?.yes && !given)
+      if (!(retire && withdrawn?.yes) && !given)
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
-          message: 'Write why you close it. The reason is kept with the decision.',
+          message: retire
+            ? 'Write why you close it. The reason is kept with the decision.'
+            : "Write why you don't publish it. Its sender reads the reason.",
         })
       if (given) plainReason(given)
       const capacity = await capacityFor(p.areaId!, undefined, p.proposerId)

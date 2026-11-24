@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { dateNote } from '../../../src/domain/dates.ts'
 import { people } from '@/api/mock/data/world'
+import { unpublished } from '@/model/items'
 import type { AskToolName, AskTools } from '../../../src/server/modules/answer/index.ts'
 import { tableContents } from '../../integration/support.ts'
 import { devPeople } from '../http/demo-week.ts'
@@ -96,7 +97,7 @@ beforeAll(async () => {
 describe.each(persons)('as %s', (name) => {
   it('records counts the Context list as its filters do (FR-718.1, FR-720.3)', async () => {
     const api = await world.as(name)
-    const listed = (await api.getLibrary()).items.filter((f) => f.status !== 'Draft')
+    const listed = (await api.getLibrary()).items.filter((f) => !unpublished(f))
     const status = (s: string) => listed.filter((f) => f.status === s)
     const sales = listed.filter((f) => f.domain === 'area_sales' || f.domain === 'sales')
     await world.withTools(name, async (tools) => {
@@ -196,7 +197,7 @@ describe.each(persons)('as %s', (name) => {
   it('returns only what the person may read, and every id it returned (FR-718.2, FR-720.2)', async () => {
     const api = await world.as(name)
     const readable = new Set(
-      (await api.getLibrary()).items.filter((f) => f.status !== 'Draft').map((f) => f.id),
+      (await api.getLibrary()).items.filter((f) => !unpublished(f)).map((f) => f.id),
     )
     // What the person's pages never give them: drafts, by their titles.
     const drafts = (await (await world.as(ADMIN)).getLibrary()).items
