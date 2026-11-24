@@ -186,6 +186,7 @@ const armWith = (execute: () => unknown): Arm => ({
       execute: () => Promise.resolve().then(execute),
     }),
   },
+  instructions: '',
   close: () => Promise.resolve(),
 })
 
@@ -254,6 +255,24 @@ describe('the prompt cache of an answer (round 5)', () => {
       content: answerSystemPrompt,
       providerOptions: breakpoint,
     })
+  })
+
+  it('sends the server instructions after its own, marked once, as an AI client gives them (F1)', async () => {
+    const { choice, prompts } = agent()
+    const arm = {
+      ...armWith(() => ({ status: 'matched', context: [{ id: 'itm_abc12345' }] })),
+      instructions: 'Footnote holds checked context about company metrics.',
+    }
+    await answerQuestion(arm, { ...choice, cacheBreakpoint: breakpoint }, 'Orders in Norway?')
+    const system = prompts[0]!.filter((m) => m.role === 'system')
+    expect(system).toEqual([
+      { role: 'system', content: answerSystemPrompt },
+      { role: 'system', content: arm.instructions, providerOptions: breakpoint },
+    ])
+    expect(prompts.map(marks)).toEqual([
+      ['system', 'user:0'],
+      ['system', 'tool:0'],
+    ])
   })
 
   it('sends the same prompt with no marks to a model without a prompt cache', async () => {

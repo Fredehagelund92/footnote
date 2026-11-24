@@ -18,7 +18,7 @@ Here you write down what your numbers mean, so AI tools stop guessing. Your Inbo
 
 <!-- include setup-steps -->
 
-1. **Say what the business is about**. Paste a paragraph or write a few lines. Every agent reads it first.
+1. **Say what the business is about**. One or two sentences on what the company does. Ask and agents read it as background.
 2. **Add your first domain**. A domain is a part of the business with an owner, such as Sales. Context and names belong to one.
 3. **Connect your definitions**. Connect where your metrics are defined, then publish their names. Context applies to those names.
 4. **Write your first context item**. Two sentences and a source. In a domain you own, it is published at once.

@@ -23,6 +23,7 @@ import { actionIds, type ActionId } from '../../../domain/actions.ts'
 import { usualVariant, workedOut } from '../../../domain/family-meaning.ts'
 import { meaningLine } from '../../../domain/family-meaning-line.ts'
 import { variantWords } from '../../../domain/metric-families.ts'
+import { TERMS_SHOWN, termsIn } from '../../../domain/served-terms.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import { searchHelp } from './help.ts'
@@ -854,9 +855,57 @@ const getOutput = z.object({
       }),
     )
     .optional(),
+  /**
+   * The words of the subject that people wrote in Definitions with their own meaning, at most
+   * five, as agents get them with get_context (src/domain/served-terms.ts): background for
+   * reading the words, never a source. Left out when the subject uses none.
+   */
+  terms: z
+    .array(
+      z.object({
+        id: z.string(),
+        word: z.string(),
+        name: z.string(),
+        meaning: z.string(),
+        domain: z.nullable(z.string()),
+        from: z.literal('written in Definitions'),
+      }),
+    )
+    .optional(),
   names: namesSchema,
   ids,
 })
+
+/**
+ * The terms with their own meaning that some words use, as get_context gives them, at most five:
+ * a synonym of a term is read as that term, and a synonym of a metric or a dimension is left out,
+ * since the read names it as that metric or dimension already, and takes none of the five.
+ */
+function termsUsed(view: View, words: string) {
+  const uses = termsIn(words, view.bundle.terms, view.bundle.written, Infinity)
+  return uses
+    .flatMap(({ word, means }) =>
+      'meaning' in means && means.meaning !== null
+        ? [
+            {
+              id: `term:${means.id}`,
+              word,
+              name: means.name,
+              meaning: means.meaning,
+              domain: means.areaId === null ? null : view.areaName(means.areaId),
+              from: 'written in Definitions' as const,
+            },
+          ]
+        : [],
+    )
+    .slice(0, TERMS_SHOWN)
+}
+
+/** A get_context result with the terms its subject's words use, when they use any. */
+function withTerms<T extends object>(view: View, words: string, result: T) {
+  const terms = termsUsed(view, words)
+  return terms.length ? { ...result, terms } : result
+}
 
 const nearbyWhy = {
   dates: 'it applies on other dates',
@@ -2420,7 +2469,7 @@ const definitionsFor = {
   },
   get_context: {
     description:
-      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read. A family named with none of its values is read as its usual variant when its owners picked one (read.usual): the question is about that variant, so answer about it, and say its values once, such as “in EUR”. It reads published items only, never drafts: when nothing applies, say that nothing published covers it, never that nothing is written. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
+      "Look up what applies to a subject, as agents get it: the metrics, the values of dimensions and the dates in its words. Returns the answer state (Checked, Partial, Not found, Conflict, Outdated or Not checked) computed by code, the items that apply, the items nearby about the same names and why they do not apply, what nothing covers, who owns the subject, the definition of each metric it read (a family's with its variants' own words, such as how one currency's is worked out from another's), and what was read, with what the words people wrote in Definitions that it uses mean (terms): background for reading the words, never a source. A family named with none of its values is read as its usual variant when its owners picked one (read.usual): the question is about that variant, so answer about it, and say its values once, such as “in EUR”. It reads published items only, never drafts: when nothing applies, say that nothing published covers it, never that nothing is written. Ask it to widen, and when nothing applies it reads once more by another name or without one part.",
     input: getInput,
     output: getOutput,
   },
@@ -2506,7 +2555,8 @@ export function createAskTools(reads: ToolReads) {
   const today = reads.today
   const handlers: Handlers = {
     find_context: (v, input) => findContext(v, input, today),
-    get_context: (v, input, context) => getContext(v, input, today, reads.calendar, context),
+    get_context: (v, input, context) =>
+      withTerms(v, input.about, getContext(v, input, today, reads.calendar, context)),
     read_context: (v, input) => readContext(v, reads, input, today),
     definitions: (v, input) => definitions(v, reads, input),
     records: (v, input) => records(v, reads, input),

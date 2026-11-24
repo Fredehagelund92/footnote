@@ -85,7 +85,7 @@ export type Workspace = {
   people: Person[]
   /** The open invites: nobody here yet, and never anyone's stand-in as a domain's owner. */
   invites: Invite[]
-  /** What the business is about, in its own words: every agent reads it first. */
+  /** What the company does, in its own words: Ask and agents read it as background. */
   about: string
   /** What Start from the guide fills in: a worked example of that text. */
   aboutTemplate: string

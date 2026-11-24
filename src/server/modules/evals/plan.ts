@@ -4,10 +4,11 @@ import type { GoldenQuestion } from '../../../domain/golden-question.ts'
 import { onDay, type Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { toolSchemaDigest } from '../../mcp/tools.ts'
-import type { ServingBundle } from '../editions/index.ts'
+import type { ServingBundle, ServingPolicy } from '../editions/index.ts'
 import { costMicros, type ModelChoice } from '../models/index.ts'
 import { previewDelivery } from '../proposals/index.ts'
 import { answerPromptDigest, judgePromptDigest } from './answer.ts'
+import { armInstructions } from './arm.ts'
 
 /**
  * Planning a run without a model: what each wording would be delivered on each side (the
@@ -63,6 +64,7 @@ function keyBase(
   delivered: string,
   models: Models,
   offered: readonly string[],
+  instructions: string,
 ) {
   return sha({
     v: 1,
@@ -75,6 +77,8 @@ function keyBase(
     tools: toolSchemaDigest,
     // Which tools are switched on changes what the model can do (FR-407, FR-523).
     offered,
+    // What the server tells the model at connect: its rules and About our business.
+    instructions: sha(instructions),
     answer: { model: models.answer.id, effort: models.answer.effort, prompt: answerPromptDigest },
     judge: { model: models.judge.id, effort: models.judge.effort, prompt: judgePromptDigest },
   })
@@ -87,6 +91,8 @@ export async function planQuestions(
   clock: Clock,
   models: Models,
   tools: ArmTools,
+  /** The eval client's policy: what its server instructions say beside the edition's. */
+  policy: Pick<ServingPolicy, 'about' | 'calendar'>,
 ): Promise<PlannedQuestion[]> {
   const planned: PlannedQuestion[] = []
   for (const { id, revision, body } of questions) {
@@ -95,9 +101,10 @@ export async function planQuestions(
       const bundle = sides[arm]
       if (!bundle) continue
       keys[arm] = []
+      const instructions = armInstructions(bundle, policy)
       for (const wording of body.wordings) {
         const delivered = await deliveryDigest(bundle, clock, body, wording.text)
-        keys[arm].push(keyBase(body, wording.text, delivered, models, tools[arm]))
+        keys[arm].push(keyBase(body, wording.text, delivered, models, tools[arm], instructions))
       }
     }
     planned.push({ id, revision, keys, asOf: body.as_of ?? clock.today() })

@@ -30,6 +30,7 @@ import {
   insertRun,
   liveHead,
   modelsFor,
+  plannedPolicy,
   sidesFor,
   type EvalDeps,
 } from './runs.ts'
@@ -117,6 +118,7 @@ export async function runWithheld(
     const head = await liveHead(tx)
     if (!head) throw new Error('There is no live edition yet')
     const tools = await armTools(tx)
+    const policy = await plannedPolicy(tx)
     const bundle = (await sidesFor(tx, head)).baseline!
     const cells = questions.reduce((n, q) => n + q.wordings.length * settings.tries, 0)
     const run = await insertRun(tx, {
@@ -133,6 +135,7 @@ export async function runWithheld(
         plan: { questions: [], setAside: [] },
         estimate: { cells, cached: 0, micros: cells * cellEstimateMicros(models) },
         tools,
+        policy,
         manual: person !== null,
         heldOut: { area: options.area, questions: questions.length },
         ...(rule !== 'majority' ? { passRule: rule } : {}),
@@ -144,9 +147,9 @@ export async function runWithheld(
       `update eval_runs set started_at=now(),worker=$2,lease_until=now()+interval '${LEASE}' where id=$1`,
       [run.id, worker],
     )
-    return { run, tools, bundle }
+    return { run, tools, policy, bundle }
   })
-  const { run, tools, bundle } = prepared
+  const { run, tools, policy, bundle } = prepared
   const limits = await readCallLimits(database)
   const ceiling = options.ceilingMicros
   const estimate = cellEstimateMicros(models)
@@ -161,7 +164,7 @@ export async function runWithheld(
   const armOn = (day: string) => {
     let arm = arms.get(day)
     if (!arm) {
-      arm = openArm(bundle, database, onDay(deps.clock, day), tools.baseline)
+      arm = openArm(bundle, database, onDay(deps.clock, day), { tools: tools.baseline, ...policy })
       arms.set(day, arm)
     }
     return arm

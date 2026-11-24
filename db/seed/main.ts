@@ -1,10 +1,9 @@
 import { parseArgs } from 'node:util'
 import pg from 'pg'
 import type { ContextItem } from '../../src/domain/item.ts'
-import { generateItems } from './fixtures/items.ts'
 import { isEmpty } from '../prepare.ts'
 import { bulkSeed, type LibraryExtras } from './bulk.ts'
-import { loadDemo } from './demo.ts'
+import { demoLibrary, loadDemo } from './demo.ts'
 import { loadStory } from './story.ts'
 import { goldenExtras, goldenLibrary } from './golden-fixtures.ts'
 
@@ -55,7 +54,7 @@ function library(
 ): { items: ContextItem[]; extras?: LibraryExtras } {
   if (count !== undefined && name !== 'demo')
     throw new UsageError('--count makes a generated library; it goes with the demo library only')
-  if (name === 'demo') return { items: generateItems(count) }
+  if (name === 'demo') return demoLibrary(count)
   if (name === 'golden') return { items: goldenLibrary(), extras: goldenExtras }
   throw new UsageError(usage)
 }

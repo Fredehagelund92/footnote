@@ -127,8 +127,8 @@ export const settingSchemas = {
       }, 'Expected an https address without credentials, query or fragment'),
     ),
   ),
-  // About our business (domain/about-business.ts): what the company does and the words models
-  // misread, as background the assistant and connected agents get, never as evidence. Kept as
+  // About our business (domain/about-business.ts): what the company does, in one or two
+  // sentences, as background the assistant and connected agents get, never as evidence. Kept as
   // plain text in Footnote's form of it; empty gives them none.
   'business.about': z.string().check(
     z.overwrite(normalizeAboutBusiness),

@@ -121,8 +121,9 @@ saved questions follows each publish instead (FR-526).
   deliveries differ from the previous pass of the same edition and overlay (`date_expiry`). The
   run names its `trigger`; the budget and the spending caps hold as for any run.
 - **Cell cache** (FR-522): a cell whose inputs did not change (wording, expected results, what
-  `get_context` delivers, tool descriptions, prompts, models and effort, try) reuses the earlier
-  result without a model call.
+  `get_context` delivers, tool descriptions, the server instructions the model is given, prompts,
+  models and effort, try) reuses the earlier result without a model call. A run keeps the About
+  our business text and calendar it was planned with, so its answers match its keys.
 - **Cost** (FR-409, FR-516): every run is estimated first, from typical calls that read and
   write the prompt cache as measured runs do; one above `evals.run_budget_micros` waits for
   `POST /evals/runs/{id}/approve` by an administrator. Before each answer the runner checks the

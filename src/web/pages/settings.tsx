@@ -234,10 +234,21 @@ function AboutHelp() {
   return (
     <>
       <ul>
-        <li>What the business is, in one or two sentences.</li>
-        <li>Words that are easy to misread here, each with what it means for you.</li>
-        <li>House rules for reading numbers, such as which calendar or currency to assume.</li>
-        <li>No figures, deals or names of customers: agents read this with every question.</li>
+        <li>
+          What the company does, in one or two sentences: what you sell, to whom, where and through
+          which channels.
+        </li>
+        <li>
+          Not the words people use: write each as a term in Definitions, with an owner. Ask and
+          agents get a term with each question that uses its word.
+        </li>
+        <li>
+          No figures, deals, dates or names of customers: those are context items, or stay out.
+        </li>
+        <li>
+          Ask reads it with every question, and an agent when it connects. An agent connected now
+          gets a change when it next connects.
+        </li>
       </ul>
       <GuideLink slug="write-context" className="mt-4" />
     </>

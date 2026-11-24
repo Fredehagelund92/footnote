@@ -8,7 +8,13 @@ import type {
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { toolSchemaDigest } from '../../mcp/tools.ts'
-import { enabledTools, loadServingBundle, type ServingBundle } from '../editions/index.ts'
+import {
+  enabledTools,
+  loadServingBundle,
+  loadServingPolicy,
+  type ServingBundle,
+  type ServingPolicy,
+} from '../editions/index.ts'
 import {
   differentFamily,
   testRunRefusal,
@@ -57,6 +63,12 @@ export type RunSummary = {
   estimate: { cells: number; cached: number; micros: number }
   /** The tools each side offered. */
   tools: ArmTools
+  /**
+   * About our business and the calendar the eval client's server instructions said when the run
+   * was planned: its cells are keyed on them, so its arms say the same however the settings
+   * change before the run is worked or resumed.
+   */
+  policy: PlannedPolicy
   /** A run a person started themself counts against their daily limit. */
   manual?: boolean
   trigger?: RunTrigger
@@ -288,6 +300,14 @@ export async function insertRun(
 /** An area run's kind: the whole set, started by hand or by a change, or scheduled. */
 export type AreaRunKind = 'full' | 'scheduled'
 
+export type PlannedPolicy = Pick<ServingPolicy, 'about' | 'calendar'>
+
+/** What of the eval client's policy a run fixes when it is planned (`RunSummary.policy`). */
+export async function plannedPolicy(tx: Queryable): Promise<PlannedPolicy> {
+  const { about, calendar } = await loadServingPolicy(tx, evalClient)
+  return { about, calendar }
+}
+
 /** Plans an area's whole active set on the live edition, without saving anything (FR-516). */
 export async function planArea(tx: Queryable, deps: EvalDeps, area: string) {
   const head = await liveHead(tx)
@@ -296,15 +316,17 @@ export async function planArea(tx: Queryable, deps: EvalDeps, area: string) {
   const models = modelsFor(deps.port, settings)
   const { questions, setAside } = await loadActiveQuestions(tx, [area])
   const tools = await armTools(tx)
+  const policy = await plannedPolicy(tx)
   const planned = await planQuestions(
     questions,
     await sidesFor(tx, head),
     deps.clock,
     models,
     tools,
+    policy,
   )
   const cost = await estimate(tx, planned, settings.tries, models)
-  return { head, settings, models, planned, setAside, cost, tools }
+  return { head, settings, models, planned, setAside, cost, tools, policy }
 }
 
 /**
@@ -336,6 +358,7 @@ export async function queueAreaRun(
       plan: { questions: planned.planned, setAside: planned.setAside },
       estimate: cost,
       tools: planned.tools,
+      policy: planned.policy,
       manual,
       ...(trigger ? { trigger } : {}),
       ...(options.passRule && options.passRule !== 'majority'

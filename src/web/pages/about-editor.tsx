@@ -4,7 +4,7 @@ import { PanelRightIcon } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
 import { DocFooter, Paper } from '@/components/footnote/doc'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
@@ -15,18 +15,27 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useHelpAside } from '@/lib/help-aside'
 import { useWide } from '@/hooks/use-wide'
 import { docExtensions } from '@/lib/doc-extensions'
-import { navigate, useRoute } from '@/lib/router'
+import { href, navigate, useRoute } from '@/lib/router'
 import { toApiError } from '@/api/errors'
 import { useWorkspace, useWrite } from '@/api/queries'
 import { useAutosave } from '@/lib/autosave'
 import { useMe } from '@/lib/workspace'
+import { useGlossary } from '@/lib/definitions'
+import { definedInAbout, definedWords } from '@/lib/about-words'
+import {
+  ABOUT_BUSINESS_MAX,
+  aboutBusinessLength,
+  normalizeAboutBusiness,
+} from '@domain/about-business'
 
 // About our business in the same document editor shell as a context item: the formatting row under
 // the header, the text on the document sheet, markdown in and out, one footer with the count. It
 // saves itself, so a quiet status replaces a Save button. The help panel is closed until asked for.
-// Loaded on its own, like the other editors, to keep Tiptap out of the first load.
+// The text says what the company does; words and their meanings go in Definitions, so a line
+// that defines a word Definitions already has says so under the field. Loaded on its own, like
+// the other editors, to keep Tiptap out of the first load.
 
-const LIMIT = 1200
+const LIMIT = ABOUT_BUSINESS_MAX
 
 export function AboutPage({
   title,
@@ -37,36 +46,42 @@ export function AboutPage({
 }) {
   const me = useMe()
   const { about, aboutTemplate } = useWorkspace()
+  const glossary = useGlossary()
   const write = useWrite()
   const { query } = useRoute()
   const setup = query.get('setup')
-  // Null until the first keystroke; until then the count is what the editor writes back.
-  const [typed, setLength] = React.useState<number | null>(null)
+  // Null until the first keystroke; until then the count and the words are what the editor writes back.
+  const [typed, setTyped] = React.useState<string | null>(null)
   const autosave = useAutosave({
     save: (text: string) => write('setAbout', { text }),
     onError: (e) =>
       toast("Couldn't save About our business", { description: toApiError(e).message }),
   })
   const save = (text: string) => {
-    setLength(text.length)
+    setTyped(text)
     // Too long is never sent; shortening it saves it.
-    if (text.length <= LIMIT) autosave.change(text)
+    if (aboutBusinessLength(normalizeAboutBusiness(text)) <= LIMIT) autosave.change(text)
     else autosave.discard()
   }
 
   const editor = useEditor({
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
-    extensions: docExtensions('We are a … We sell …'),
+    extensions: docExtensions(
+      'What the company does: what you sell, to whom, where and through which channels.',
+    ),
     content: about,
     contentType: 'markdown',
     editorProps: { attributes: { 'aria-label': 'About our business' } },
     onUpdate: ({ editor }) => save(editor.getMarkdown()),
   })
-  // Count what the editor writes back, so the number never jumps on the first keystroke.
-  const written = React.useMemo(() => editor?.getMarkdown().length ?? about.length, [editor, about])
-  const length = typed ?? written
+  // Count what the editor writes back, so the number never jumps on the first keystroke, as the
+  // service counts it: the characters a person reads, once the text is in Footnote's form.
+  const written = React.useMemo(() => editor?.getMarkdown() ?? about, [editor, about])
+  const text = typed ?? written
+  const length = aboutBusinessLength(normalizeAboutBusiness(text))
   const tooLong = length > LIMIT
+  const defined = React.useMemo(() => definedInAbout(text, glossary.find), [text, glossary])
 
   const help = useHelpAside(me.name)
   const [paneRef, wide] = useWide<HTMLDivElement>()
@@ -95,7 +110,10 @@ export function AboutPage({
                   .flush()
                   .then(() => write('completeSetupStep', { step: 'about' }))
                   .then(() => {
-                    toast('Saved', { description: 'Agents read it from the next question.' })
+                    toast('Saved', {
+                      description:
+                        'Ask reads it from the next question, and an agent when it next connects.',
+                    })
                     navigate('/inbox')
                   })
               }}
@@ -153,7 +171,8 @@ export function AboutPage({
           About our business
         </h2>
         <p className="mt-2 mb-6 border-b pb-5 text-sm text-muted-foreground sm:mb-8">
-          The one text every agent reads first, before any context.
+          What the company does, in one or two sentences. Ask and agents read it as background,
+          never as a source.
         </p>
         <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-64! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
         {length === 0 && (
@@ -168,6 +187,30 @@ export function AboutPage({
             Start from the guide
           </Button>
         )}
+        {/* Said as it is typed, so a screen reader hears it too. */}
+        <div aria-live="polite">
+          {defined.length > 0 && (
+            <ul className="mt-4 max-w-reading space-y-1 text-sm text-muted-foreground">
+              {defined.map((d) => (
+                <li key={d.name}>
+                  <a
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                    href={href(`/definitions/${encodeURIComponent(d.name)}`)}
+                  >
+                    {d.name}
+                  </a>{' '}
+                  {definedWords(d)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
+          <p>Words and what they mean go in Definitions.</p>
+          <a href={href('/definitions/new')} className={cn(buttonVariants({ variant: 'outline' }))}>
+            New term
+          </a>
+        </div>
       </Paper>
       {help.open && !wide && (
         <div className="border-t bg-background p-4 text-sm text-muted-foreground [&_li]:mt-2 [&_li:first-child]:mt-0 [&_ul]:ml-4 [&_ul]:list-disc">

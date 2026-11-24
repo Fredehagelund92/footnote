@@ -3,7 +3,8 @@ import type { Outcome } from '@/model/inbox'
 import { setupSteps } from '@/lib/setup'
 import { cards } from './data/inbox'
 import { reviews } from './data/review'
-import { ABOUT_BUSINESS, facts as seedFacts } from './data/world'
+import { ABOUT_BUSINESS_STARTER } from '@domain/about-business'
+import { facts as seedFacts } from './data/world'
 
 const reviewIds = () => reviews.map((r) => r.id)
 
@@ -83,7 +84,7 @@ export const start: State = {
   published: {},
   edits: {},
   added: [],
-  about: ABOUT_BUSINESS,
+  about: ABOUT_BUSINESS_STARTER,
   viewed: {},
   deleted: {},
   log: [],

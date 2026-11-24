@@ -14,6 +14,7 @@ import { systemClock } from '../../src/server/clock.ts'
 import {
   createEvalsService,
   evalJobs,
+  liveHead,
   queueAreaRun,
   readEvalSettings,
   runWithheld,
@@ -25,6 +26,8 @@ import {
   readCallLimits,
   type ModelPort,
 } from '../../src/server/modules/models/index.ts'
+import { armInstructions, evalClient, openArm } from '../../src/server/modules/evals/arm.ts'
+import { loadServingBundle, loadServingPolicy } from '../../src/server/modules/editions/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { foundation, people } from './fixtures.ts'
@@ -1489,5 +1492,86 @@ describe('the model check (P5, D4)', () => {
     ).rejects.toThrow(refusal)
     const after = await client.query<{ n: number }>('select count(*)::int as n from eval_runs')
     expect(after.rows[0]!.n).toBe(before.rows[0]!.n)
+  })
+})
+
+describe('the server instructions of an answer test (F1)', () => {
+  const setAbout = (text: string) => setting('business.about', text)
+  /** The scripted answer model, noting the system messages of every call. */
+  const scripted = models.choose('eval_answer').model as MockLanguageModelV4
+  const systems: string[] = []
+  const noting = new MockLanguageModelV4({
+    provider: 'mock',
+    modelId: 'scripted-answer',
+    doGenerate: (options) => {
+      systems.push(
+        options.prompt
+          .filter((m) => m.role === 'system')
+          .map((m) => m.content)
+          .join('\n'),
+      )
+      return scripted.doGenerate(options)
+    },
+  })
+  const port: ModelPort = {
+    ...models,
+    choose: (role, ref) => ({
+      ...models.choose(role, ref),
+      ...(role === 'eval_answer' ? { model: noting } : {}),
+    }),
+  }
+  afterAll(() => setAbout(''))
+
+  it('are what the eval client is told when it connects, About our business last', async () => {
+    const about = 'We are an outdoor-gear retailer, in twelve markets.'
+    await setAbout(about)
+    const { bundle, policy } = await database.transaction(people.owner, async (tx) => ({
+      bundle: await loadServingBundle(tx, (await liveHead(tx))!),
+      policy: await loadServingPolicy(tx, evalClient),
+    }))
+    const arm = await openArm(bundle, database, clock)
+    try {
+      expect(arm.instructions).toBe(armInstructions(bundle, policy))
+      expect(arm.instructions).toMatch(/^Footnote holds checked context about company metrics/)
+      expect(arm.instructions).toContain(`\n${about}\nEnd of about our business.`)
+    } finally {
+      await arm.close()
+    }
+  })
+
+  it('key a run and reach its model as it was planned, when About changes before it is worked', async () => {
+    const queue = () =>
+      database.transaction(people.admin, (tx) =>
+        queueAreaRun(tx, { port, clock }, 'finance', 'full', true),
+      )
+    const keys = (run: Awaited<ReturnType<typeof queue>>) =>
+      run!.summary.plan.questions.flatMap((q) => q.keys.baseline ?? [])
+    await save(question('f1-about', 'Online sales'))
+    await setAbout('We are an outdoor-gear retailer, in twelve markets.')
+    const planned = await queue()
+    await setAbout('We are a bicycle maker, in three markets.')
+    const later = await queue()
+    expect(keys(planned).length).toBeGreaterThan(0)
+    expect(keys(later).filter((key) => keys(planned).includes(key))).toEqual([])
+    expect(planned!.summary.policy.about).toBe(
+      'We are an outdoor-gear retailer, in twelve markets.',
+    )
+    await client.query("update eval_runs set state='cancelled' where id=$1", [later!.id])
+    systems.length = 0
+    await workEvaluations(
+      database,
+      { port, clock },
+      {
+        deadline: Date.now() + 30_000,
+        signal: new AbortController().signal,
+        logger,
+        only: planned!.id,
+      },
+    )
+    expect(systems.length).toBeGreaterThan(0)
+    for (const system of systems) {
+      expect(system).toContain('\nWe are an outdoor-gear retailer, in twelve markets.\n')
+      expect(system).not.toContain('bicycle')
+    }
   })
 })
