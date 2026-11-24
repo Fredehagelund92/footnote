@@ -360,7 +360,6 @@ export function describeFootnoteApi(
         const to = (r: Related, id: string) => r.links.find((l) => l.to.id === id)
         // A metric another domain owns, written in the text: Orders is Sales's.
         const campaign = await related('Norway launch campaign started on 24 March 2026')
-        expect(campaign.following).toBe(true)
         expect(to(campaign, 'metric:Orders')).toMatchObject({
           rel: 'mentions',
           to: { label: 'Orders', retired: false },
@@ -1025,22 +1024,26 @@ export function describeFootnoteApi(
       },
     )
 
-    it.skipIf(lacks('signIn', 'getSettings', 'setLinks', 'setTool'))(
-      'switches a tool agents call off and on again, links among them',
+    it.skipIf(lacks('signIn', 'getSettings', 'setTool'))(
+      'switches a tool agents call off and on again',
       async () => {
         const live = await signedIn()
         const before = await live.getSettings()
-        expect(Object.keys(before.tools)).toEqual(
-          expect.arrayContaining(['get_context', 'find_context', 'read_context', 'report']),
-        )
+        expect(Object.keys(before.tools).sort()).toEqual([
+          'find_context',
+          'get_context',
+          'read_context',
+          'report',
+          'suggest_context',
+        ])
         await live.setTool({ name: 'suggest_context', on: false })
         expect((await live.getSettings()).tools.suggest_context).toBe(false)
         await live.setTool({ name: 'suggest_context', on: true })
         expect((await live.getSettings()).tools.suggest_context).toBe(true)
-        await live.setLinks({ on: !before.links })
-        expect((await live.getSettings()).links).toBe(!before.links)
-        await live.setLinks({ on: before.links })
-        expect((await live.getSettings()).links).toBe(before.links)
+        await live.setTool({ name: 'read_context', on: false })
+        expect((await live.getSettings()).tools.read_context).toBe(false)
+        await live.setTool({ name: 'read_context', on: true })
+        expect((await live.getSettings()).tools.read_context).toBe(true)
       },
     )
 

@@ -17,7 +17,7 @@ import { loadServingPolicy, type ServingBundle } from '../editions/index.ts'
  * One side of a paired run (FR-508, FR-509): the real MCP server code on a loopback port,
  * serving one edition held in memory (the live edition, or the live edition plus the proposed
  * version), with the production tool descriptions and the `eval` client's own policy, and the
- * tools the run fixed for this side (a links run offers get_related on one side only). The model
+ * tools the run fixed for this side. The model
  * reaches it through an MCP client, exactly as an AI client would. Nothing it serves counts as
  * demand: the eval runner records its own cells, never deliveries (FR-603).
  *

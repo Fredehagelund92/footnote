@@ -462,14 +462,11 @@ function SourceCard({ fact }: { fact: Fact }) {
 /** In a source's card: the links an agent can follow from it, a retired one marked. */
 function SourceLinks({ fact }: { fact: Fact }) {
   const related = useRelated(`context:${fact.id}`)
-  const enabled = related.following
   const links = related.links.filter((l) => l.rel !== 'mentioned_by' && l.rel !== 'replaced_by')
   if (!links.length) return null
   return (
     <div className="flex flex-col gap-1 border-t pt-1.5">
-      <p className="text-xs text-muted-foreground">
-        {enabled ? 'Links an agent can follow from it' : "Links (agents don't follow them now)"}
-      </p>
+      <p className="text-xs text-muted-foreground">Links an agent can follow from it</p>
       <p className="flex flex-wrap items-center gap-1">
         {links.slice(0, 4).map((l) => (
           <MentionChip key={l.to.id} mention={{ id: l.to.id, label: l.to.label }} />

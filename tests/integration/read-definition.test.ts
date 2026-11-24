@@ -241,10 +241,10 @@ describe('words that name no definition', () => {
       "There's no definition or context item by that name or id that you can read.",
     )
     expect(reply.next).toBe(
-      'Call again with one of options, the closest names, or find it with list_definitions or find_context.',
+      'Call again with one of options, the closest names, or find it with find_context.',
     )
     expect(reply.options![0]!.options[0]).toBe(`${roasKey} (${roas.name})`)
-    expect(reply.message).toContain('Find definitions with list_definitions or find_context.')
+    expect(reply.message).toContain('Find definitions with find_context.')
     expect(reply.definition).toBeUndefined()
   })
 

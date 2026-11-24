@@ -200,8 +200,7 @@ export const test = base.extend<{ demoWeek: void }>({
   the first try of a decision, and of adding or removing a synonym, fail, `?bulk=fail` makes the
   last row of the first change to many rows fail, `?quality=failed` makes the last check of the
   saved questions one that stopped after 8 of them, `?demo=last` decides every suggestion but the one opened, through the service,
-  `?demo=setup` starts on an empty workspace, `?links=off` (or `on`) switches following links
-  for agents in Agents and access, on the service, before the page loads, `?figures=on|off` switches
+  `?demo=setup` starts on an empty workspace, `?figures=on|off` switches
   Cube's figures, and Ask's `?example=` asks the example's question in the composer (`figconflict`
   after someone reported that its figure doesn't fit).
 */
@@ -289,8 +288,6 @@ async function httpRoute(
   const bulk = query.get('bulk')
   const connect = query.get('connect')
   const quality = query.get('quality')
-  const links = query.get('links')
-  query.delete('links')
   const figures = query.get('figures')
   const example = path === '/ask' ? query.get('example') : null
   query.delete('demo')
@@ -318,8 +315,6 @@ async function httpRoute(
   else if (bulk) throw new Error(`?bulk=${bulk} has no http meaning yet`)
   if (quality === 'failed') await failedCheck(8)
   else if (quality) throw new Error(`?quality=${quality} has no http meaning yet`)
-  if (links === 'on' || links === 'off') await followLinks(page, links === 'on')
-  else if (links) throw new Error(`?links=${links} has no http meaning yet`)
   // Figures on or off for Cube, as an admin switches them.
   if (figures === 'on' || figures === 'off') await figuresOn(page, figures === 'on')
   else if (figures) throw new Error(`?figures=${figures} has no http meaning yet`)
@@ -328,7 +323,7 @@ async function httpRoute(
   return {
     route: `${path}${search ? `?${search}` : ''}`,
     // Another workspace on another service, or a switch the app has read: the app loads again.
-    ...(demo === 'setup' || links ? { load: true } : {}),
+    ...(demo === 'setup' ? { load: true } : {}),
     // The live line's states happen for real: a wait, an agent's sign-in, a no in the browser.
     ...(connect ? { after: () => connectState(page, connect) } : {}),
     ...(example ? { after: () => askExample(page, example) } : {}),
@@ -473,17 +468,6 @@ async function publishedItem(page: Page, part: string) {
   const item = items.find((i) => i.title === title)
   if (!item) throw new Error(`“${title}” is not in the library: was it published?`)
   return item.id
-}
-
-/** Following links for agents (get_related), switched in Agents and access as Jon, an admin. */
-async function followLinks(page: Page, on: boolean) {
-  const session = await page.request.get('/api/v1/auth/session')
-  const { csrfToken } = (await session.json()) as { csrfToken: string }
-  const set = await page.request.post('/api/v1/tools/get_related', {
-    headers: { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
-    data: { enabled: on, reason: 'Changed in Settings, Agents and access.' },
-  })
-  if (!set.ok()) throw new Error(`Following links could not be switched: ${await set.text()}`)
 }
 
 /** A change through the service's API as Jon, with his session's token. */
