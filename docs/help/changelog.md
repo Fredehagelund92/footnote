@@ -8,7 +8,7 @@ reviewed: 2026-11-24
 
 2026-11-24
 
-When you choose other dates in Read as, the new answer says so: its Read as names the period with its days, such as last month (1-30 Sep 2026), and its first sentence names it. The answer above keeps its own dates. An answer about what a metric means offers no dates, since they do not change it. See [Ask a question](ask-a-question.md#ask-again-at-other-dates).
+When you choose other dates in Read as, the new answer says so: its Read as names the period with its days, such as last month with its first and last day, and its first sentence names it. The answer above keeps its own dates. An answer about what a metric means offers no dates, since they do not change it. See [Ask a question](ask-a-question.md#ask-again-at-other-dates).
 
 ## Waiting for review, and Don't publish
 

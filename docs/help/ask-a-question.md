@@ -42,7 +42,7 @@ When an admin has switched figures on for a metric's tool, an answer that names 
 
 Press the dates in Read as. Choose Today, Any date, Last month, Last quarter or Last year, or Pick dates for days of your own. Ask asks the same question again at those dates, as a new answer under the last one, which keeps its own dates.
 
-The new answer's Read as names the period with its days, such as last month (1-30 Sep 2026), and its first sentence names it too. An answer about what a metric means has no dates to choose: dates do not change what it means.
+The new answer's Read as names the period with its days, such as last month with its first and last day, and its first sentence names it too. An answer about what a metric means has no dates to choose: dates do not change what it means.
 
 ## Ask a follow-up
 
