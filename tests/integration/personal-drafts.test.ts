@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { LeftDrafts, SavedDraft } from '../../src/contract/context.ts'
-import type { LibraryIndex } from '../../src/contract/index.ts'
+import type { ItemBulkResult, LeftDrafts, SavedDraft } from '../../src/contract/context.ts'
+import type { ItemImportReport, LibraryIndex } from '../../src/contract/index.ts'
 import type { Card, Feed } from '../../src/contract/inbox.ts'
 import type { ProposalListResult, ProposalRecord } from '../../src/contract/proposals.ts'
 import type { Draft } from '../../src/domain/draft.ts'
@@ -335,4 +335,61 @@ describe("the writer's drafts card in the Inbox", () => {
     expect(r.done).toEqual([imported, old])
     expect(await draftsCard('admin')).toBeUndefined()
   })
+})
+
+describe('Undo of a publish from the Context list', () => {
+  const undo = (who: Who, token: string) => ok(call('POST', '/decisions/undo', who, { token }))
+  /** Imports `n` drafts as `who`'s, kept as drafts: the ids of the proposals it made. */
+  async function imported(who: Who, n: number) {
+    const report = await ok<ItemImportReport>(
+      call('POST', '/imports', who, {
+        content: JSON.stringify(Array.from({ length: n }, () => draft())),
+        dryRun: false,
+        submit: false,
+      }),
+    )
+    return report.entries.map((e) => e.proposalId!)
+  }
+  /** Each draft's import batch and source links, by title: what its copy keeps. */
+  const provenance = async (ids: string[]) =>
+    (
+      await client.query<Record<string, string | null>>(
+        `select draft->>'title' as title, import_batch_id::text as batch, source_id::text as source,
+                source_read_id::text as read, source_document_id as document
+           from proposals where id = any($1::uuid[]) order by draft->>'title'`,
+        [ids],
+      )
+    ).rows
+
+  // Published at once by an owner, and sent to the owners by a member: either way, Undo makes the
+  // drafts again, one of their import each, so the card counts what the Context list counts.
+  it.each(['owner', 'author'] as const)(
+    "keeps a %s's imported drafts in their import, so the Inbox card and Context agree",
+    async (who) => {
+      // What each counted before, as other tests leave drafts of theirs.
+      const counted = async () => {
+        const [context, card] = [await contextOf(who), await draftsCard(who)]
+        return { context: context.drafts, card: card?.drafts.map((d) => d.id) ?? [] }
+      }
+      const before = await counted()
+      const ids = await imported(who, 2)
+      const was = await provenance(ids)
+      expect(was.every((d) => d.batch)).toBe(true)
+      const r = await ok<ItemBulkResult>(
+        call('POST', '/items/bulk', who, { action: 'publish', rows: ids }),
+      )
+      expect(r.done).toEqual(ids)
+      expect(await counted()).toEqual(before)
+
+      await undo(who, r.undo!.token)
+      const after = await counted()
+      const back = after.context.filter((id) => !before.context.includes(id))
+      expect(back).toHaveLength(ids.length)
+      expect(after.card.filter((id) => !before.card.includes(id)).sort()).toEqual(back.sort())
+      // The source links copy is defensive: source drafts have no proposer, so they never reach the bulk bar.
+      // The copies are new drafts that keep the import of those they restore.
+      expect(back.some((id) => ids.includes(id))).toBe(false)
+      expect(await provenance(back)).toEqual(was)
+    },
+  )
 })

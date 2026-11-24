@@ -532,14 +532,15 @@ export function createContextService(
       )
       if (!withdrawn) continue
       await proposalEvent(tx, withdrawn, 'withdrawn', { reason: reasons.unsent })
-      // An imported draft comes back as one of its import, so its writer's Inbox still counts it.
+      // An imported draft comes back as one of its import, so its writer's Inbox still counts it,
+      // and a source's keeps the read it came from.
       const [back] = await tx.query<Parameters<typeof proposalEvent>[1]>(
         `insert into proposals (subject, action, area_id, item_id, proposer_id, channel, draft,
                                 draft_saved_at, provenance, agent_id, agent_name, base_version_id,
-                                import_batch_id)
+                                import_batch_id, source_id, source_read_id, source_document_id)
          select subject, action, area_id, case when action = 'change' then item_id end,
                 proposer_id, channel, draft, now(), provenance, agent_id, agent_name, base_version_id,
-                import_batch_id
+                import_batch_id, source_id, source_read_id, source_document_id
            from proposals where id = $1
          returning id::text, area_id as "areaId", state::text as state, revision`,
         [sentId],
