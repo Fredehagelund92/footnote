@@ -28,12 +28,15 @@ export default function FamilyMeaningDialog({
   name,
   family,
   parts,
+  writing = false,
   onClose,
 }: {
   name: string
   family: Family
   /** What it uses of the app (family-meaning.tsx). */
   parts: MeaningParts
+  /** It opens on words written for the family, when no owner has chosen yet. */
+  writing?: boolean
   onClose: () => void
 }) {
   const {
@@ -56,7 +59,9 @@ export default function FamilyMeaningDialog({
   } = parts
   const meaning = family.meaning!
   const chosen = meaning.chosen
-  const [choice, setChoice] = React.useState<FamilyMeaningChoice>(chosen?.choice ?? 'auto')
+  const [choice, setChoice] = React.useState<FamilyMeaningChoice>(
+    chosen?.choice ?? (writing ? 'written' : 'auto'),
+  )
   const [words, setWords] = React.useState(
     chosen?.words ?? (meaning.automatic ? meaningLine(meaning.automatic, family.by) : ''),
   )
@@ -113,7 +118,7 @@ export default function FamilyMeaningDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && !sending && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg" {...(writing && !chosen ? { initialFocus: box } : {})}>
         <form onSubmit={save} noValidate className="contents">
           <DialogHeader>
             <DialogTitle>What {name} means</DialogTitle>

@@ -112,9 +112,13 @@ for (const { name, width, height } of widths) {
         await expect(row.locator('code')).toHaveText('commission_eur')
         await expect(row).not.toContainText('`')
       }
-      // With no meaning there is nothing to say something else than: no warning.
+      // With no meaning its variants say what it is, in their own words; there is nothing to say
+      // something else than: no warning.
       await go(page, '/definitions?demo=families&dock=def.Partner%20payouts')
-      await expect(dock).toContainText('No meaning yet: no words speak for all its variants.')
+      await expect(dock).toContainText('Its 2 variants say what it is in their own words:')
+      await expect(dock.getByRole('list', { name: 'In its variants’ own words' })).toContainText(
+        'USD: Partner payouts converted to USD at each month’s rate.',
+      )
       await expect(dock.getByRole('note')).toHaveCount(0)
       await expect(dock).not.toContainText('something else')
       expect(await sideways(page)).toBe(0)

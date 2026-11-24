@@ -416,6 +416,38 @@ describe('a family’s meaning (M1)', () => {
     expect(found.differing).toEqual(['metric:revenue_usd_app'])
   })
 
+  it('is words written or declared for a family whose variants share none, which none says something else than (S3)', () => {
+    const apart = {
+      by: ['Currency'],
+      variants: [
+        {
+          key: 'metric:planned_eur',
+          values: ['EUR'],
+          description: 'Forecast revenue from the planning model, in EUR.',
+        },
+        {
+          key: 'metric:planned_usd',
+          values: ['USD'],
+          description: 'Planned sales as the board approved them.',
+        },
+      ],
+      conversions: [],
+      declared: null,
+      chosen: null,
+    }
+    expect(familyMeaning(apart)).toMatchObject({ source: 'none', differing: [] })
+    const words = 'Revenue the planning model forecasts, in each currency.'
+    expect(familyMeaning({ ...apart, chosen: { choice: 'written', words } })).toMatchObject({
+      source: 'written',
+      words,
+      differing: [],
+    })
+    expect(familyMeaning({ ...apart, declared: words })).toMatchObject({
+      source: 'declared',
+      differing: [],
+    })
+  })
+
   it('is the rule again once an owner chose it to be worked out', () => {
     expect(meaning(many, { chosen: { choice: 'auto', words: null } }).source).toBe('common')
   })

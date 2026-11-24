@@ -242,7 +242,7 @@ function accruedShare(tool: string): Definition {
  * USD words are the EUR ones with a note on the rate, so the family means what both say; and one
  * whose two variants are written apart, so it has no meaning yet.
  */
-function partnerPairs(tool: string): Definition[] {
+export function partnerPairs(tool: string): Definition[] {
   const pair = (name: string, eur: string, usd: string): Definition => {
     const variants = [
       { name: `${name} (EUR)`, values: ['EUR'], description: eur, ref: refOf(`${name} EUR`) },

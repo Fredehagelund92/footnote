@@ -217,12 +217,19 @@ function MeaningLead({
 }) {
   const P = useParts()
   const [changing, setChanging] = React.useState(false)
+  // Write what it means, on Ask's card of a family with no meaning, opens the panel writing it.
+  const { query } = P.useRoute()
+  const asked = query.get('meaning') === 'write'
   const meaning = family.meaning
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
   const Icon =
     meaning.source === 'common' && meaning.base ? P.CircleDotIcon : sourceIcon(P)[meaning.source]
   const mayChange = canChange && meaning.source !== 'declared'
+  const close = () => {
+    setChanging(false)
+    if (asked) P.setQuery({ meaning: undefined })
+  }
   // A variant converted from another says how, which the values band shows: it says nothing else.
   const converted = new Set((family.conversions ?? []).map((c) => c.to))
   const others = meaning.differing.filter((name) => !converted.has(name))
@@ -231,9 +238,13 @@ function MeaningLead({
   const page = `/definitions/${encodeURIComponent(d.name)}`
   return (
     <>
-      <p className="mt-3 text-base leading-7 text-pretty">
-        <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
-      </p>
+      {meaning.words ? (
+        <p className="mt-3 text-base leading-7 text-pretty">
+          <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
+        </p>
+      ) : (
+        <P.VariantsOwnWords family={family} code="text-sm" className="mt-3 text-base leading-7" />
+      )}
       {(source || mayChange) && (
         <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
           <Icon aria-hidden className="mt-0.75 size-3.5 shrink-0" />
@@ -272,13 +283,14 @@ function MeaningLead({
           {quote ? `: “${quote}”.` : '.'}
         </P.PeekAttention>
       )}
-      {changing && (
+      {(changing || (asked && mayChange)) && (
         <React.Suspense fallback={null}>
           <P.MeaningDialog
             name={d.name}
             family={family}
             parts={P.meaningParts}
-            onClose={() => setChanging(false)}
+            writing={asked}
+            onClose={close}
           />
         </React.Suspense>
       )}

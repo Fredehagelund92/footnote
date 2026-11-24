@@ -537,7 +537,7 @@ describe('Ask on a family', () => {
         name: string
         from: string
         words: string | null
-        family?: { by: string[]; variants: number; meaning: string | null }
+        family?: { by: string[]; variants: number; meaning: string | null; source?: object }
       }[]
     }
     const [looked, defined] = (await askToolsAs(database, clock)(people.member, async (tools) => [
@@ -555,6 +555,11 @@ describe('Ask on a family', () => {
     // The page draws it as a family, from the same read: what tells its variants apart, how many.
     expect(looked.definitions?.[0]?.family).toMatchObject({ variants: 6 })
     expect(looked.definitions?.[0]?.family).toEqual(defined.definitions?.[0]?.family)
+    // Its card says whose words the meaning is: those its owner wrote above, by name and day (C1).
+    expect(looked.definitions?.[0]?.family).toMatchObject({
+      meaning: 'Revenue after refunds.',
+      source: { kind: 'written', by: 'owner', on: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+    })
   })
 
   it('answers a why-question from its definition under the Definition label, in words of its own', async () => {

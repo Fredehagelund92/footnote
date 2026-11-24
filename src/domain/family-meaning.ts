@@ -347,12 +347,12 @@ export function familyMeaning(family: {
         ? { source: 'common', words: common.words }
         : { source: 'none', words: null }
   // A variant says something else when its words, values aside, are not those most of them share.
-  // With no meaning, none does.
-  const differing = meaning.words
-    ? described
-        .filter((variant) => !(shared && sameAs(variant, shared.said)))
-        .map((variant) => variant.key)
-    : []
+  // With no meaning, none does; nor with words declared or written for the family when most share
+  // none: those words speak for every variant.
+  const differing =
+    meaning.words && shared
+      ? described.filter((variant) => !sameAs(variant, shared.said)).map((variant) => variant.key)
+      : []
   return {
     ...meaning,
     common,

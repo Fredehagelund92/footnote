@@ -3,8 +3,8 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
-minutes: 5
-reviewed: 2026-11-23
+minutes: 6
+reviewed: 2026-11-24
 open:
   label: Open Definitions
   href: /definitions
@@ -40,7 +40,8 @@ These come from the source at each read and are never edited here. They never sh
 A family is one entry for many near-identical metrics, such as a metric for each currency and channel. Its row is as tall as a metric's, marked by a stack of tiles in place of a metric's tile. Point at the stack to see how many variants it has and what tells them apart, such as Family of 250 metrics, by Currency and Channel.
 
 - Its variants are never rows of their own. A search for one finds its family, and says how many variants match. Its quick view then names the variant the search found.
-- Its row and quick view lead with what the family means. A family no words speak for reads No meaning yet. The quick view shows the values its variants hold, such as EUR and USD, marks the base variant, and says which variant is converted from which.
+- Its row and quick view lead with what the family means. The quick view shows the values its variants hold, such as EUR and USD, marks the base variant, and says which variant is converted from which.
+- A family no words speak for reads No meaning yet in its row. Its quick view, and its card in Ask, say that its variants say what it is in their own words, and show those words. Owners and admins get Write what it means on the card.
 - An owner of its domain, or an admin, can pick the usual variant, such as Revenue (EUR) web. Ask reads a question that names no currency or channel as that variant, and says so under the question. A question that names one is read as written.
 - Its quick view counts the context about the family apart from the context about one variant alone.
 - Its quick view and page say what the family means, and where those words come from, in this order:
@@ -49,7 +50,7 @@ A family is one entry for many near-identical metrics, such as a metric for each
   3. The words most variants share, with each value shown as what it stands for, such as Currency, and a note on how a value is converted, such as (EUR × the row's rate), left out. A currency's name, such as euros, counts as its code. Words most variants hold within their own count too.
 - A variant converted from another, or whose words say it is worked out from one at a rate, has no say. When only the variant the others are converted from is left, its words are the meaning.
 - Words that still name one variant's value, such as in euros, are never the family's: it reads No meaning yet.
-- An owner of its domain, or an admin, can choose Change: worked out from its variants, or written for the family. Written words can begin from what its variants say, each wording once. History keeps each choice. Variants whose own words say something else than the meaning are named, and agents read their words too. A family with no meaning names none.
+- An owner of its domain, or an admin, can choose Change: worked out from its variants, or written for the family. Written words can begin from what its variants say, each wording once. History keeps each choice. Variants whose own words say something else than the meaning are named, and agents read their words too. A family with no meaning names none. Nor do words written for the family when its variants share no words: those words speak for every variant.
 - The Families view lists every family with how it was found, its variants and what tells them apart, what it means or No meaning yet, and the context about it that is due for a check. A row opens the family's quick view.
 - A family split back into its metrics is listed under Split into metrics, with who split it and the context still about it. An owner of its domain, or an admin, can choose Make them one family again. [Split a family](metric-variants.md#split-a-family-into-separate-metrics) says what a split does.
 - Its own page lists the variants, and narrows them by each value, such as Currency: EUR. It says how the family was found, such as declared in dbt, and which variant is converted from which.

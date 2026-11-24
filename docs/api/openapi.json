@@ -94602,6 +94602,94 @@
                                               },
                                               "more": {
                                                 "type": "number"
+                                              },
+                                              "source": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "kind": {
+                                                        "const": "declared"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "kind"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "kind": {
+                                                        "const": "written"
+                                                      },
+                                                      "by": {
+                                                        "type": "string"
+                                                      },
+                                                      "on": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "kind",
+                                                      "by",
+                                                      "on"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "kind": {
+                                                        "const": "common"
+                                                      },
+                                                      "agree": {
+                                                        "type": "number"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "kind",
+                                                      "agree"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "kind": {
+                                                        "const": "base"
+                                                      },
+                                                      "values": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "converted": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "array",
+                                                          "items": {
+                                                            "type": "string"
+                                                          }
+                                                        }
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "kind",
+                                                      "values",
+                                                      "converted"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "kind": {
+                                                        "const": "none"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "kind"
+                                                    ]
+                                                  }
+                                                ]
                                               }
                                             },
                                             "required": [
@@ -94715,6 +94803,99 @@
                                                   },
                                                   "more": {
                                                     "type": "number"
+                                                  },
+                                                  "source": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "declared"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "written"
+                                                          },
+                                                          "by": {
+                                                            "type": "string"
+                                                          },
+                                                          "on": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind",
+                                                          "by",
+                                                          "on"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "common"
+                                                          },
+                                                          "agree": {
+                                                            "type": "number"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind",
+                                                          "agree"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "base"
+                                                          },
+                                                          "values": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "converted": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "array",
+                                                              "items": {
+                                                                "anyOf": [
+                                                                  {},
+                                                                  {
+                                                                    "type": "null"
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind",
+                                                          "values",
+                                                          "converted"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "none"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind"
+                                                        ]
+                                                      }
+                                                    ]
                                                   }
                                                 },
                                                 "required": [
@@ -96268,6 +96449,94 @@
                                                   },
                                                   "more": {
                                                     "type": "number"
+                                                  },
+                                                  "source": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "declared"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "written"
+                                                          },
+                                                          "by": {
+                                                            "type": "string"
+                                                          },
+                                                          "on": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind",
+                                                          "by",
+                                                          "on"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "common"
+                                                          },
+                                                          "agree": {
+                                                            "type": "number"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind",
+                                                          "agree"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "base"
+                                                          },
+                                                          "values": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "converted": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "array",
+                                                              "items": {
+                                                                "type": "string"
+                                                              }
+                                                            }
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind",
+                                                          "values",
+                                                          "converted"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "kind": {
+                                                            "const": "none"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "kind"
+                                                        ]
+                                                      }
+                                                    ]
                                                   }
                                                 },
                                                 "required": [
@@ -96381,6 +96650,99 @@
                                                       },
                                                       "more": {
                                                         "type": "number"
+                                                      },
+                                                      "source": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "kind": {
+                                                                "const": "declared"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "kind"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "kind": {
+                                                                "const": "written"
+                                                              },
+                                                              "by": {
+                                                                "type": "string"
+                                                              },
+                                                              "on": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "kind",
+                                                              "by",
+                                                              "on"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "kind": {
+                                                                "const": "common"
+                                                              },
+                                                              "agree": {
+                                                                "type": "number"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "kind",
+                                                              "agree"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "kind": {
+                                                                "const": "base"
+                                                              },
+                                                              "values": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                  "type": "string"
+                                                                }
+                                                              },
+                                                              "converted": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                  "type": "array",
+                                                                  "items": {
+                                                                    "anyOf": [
+                                                                      {},
+                                                                      {
+                                                                        "type": "null"
+                                                                      }
+                                                                    ]
+                                                                  }
+                                                                }
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "kind",
+                                                              "values",
+                                                              "converted"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "kind": {
+                                                                "const": "none"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "kind"
+                                                            ]
+                                                          }
+                                                        ]
                                                       }
                                                     },
                                                     "required": [

@@ -263,7 +263,9 @@ async function viewOf(reads: ToolReads): Promise<View> {
                 {
                   words: termWords(t),
                   from: termFrom(t),
-                  ...(t.family ? { family: familyShown(t.family) } : {}),
+                  ...(t.family
+                    ? { family: familyShown(t.family, (id) => names.get(id) ?? 'Someone who left') }
+                    : {}),
                 },
               ] as const,
             ]
@@ -1617,11 +1619,43 @@ function familyWords(family: Family): string {
 /** The most variants whose own words a family shows with an answer. */
 const OWN_SHOWN = 4
 
+/** Where a family's meaning comes from, as Ask's page says it (C1). `personName` names an owner. */
+function meaningFrom(family: Family, personName: (id: string) => string): FamilyShown['source'] {
+  const { meaning } = family
+  const base = family.variants.find((variant) => variant.key === meaning.base)
+  switch (meaning.source) {
+    case 'declared':
+      return { kind: 'declared' }
+    case 'written':
+      // An owner's words always come with who chose them.
+      return meaning.chosen
+        ? {
+            kind: 'written',
+            by: personName(meaning.chosen.personId),
+            on: meaning.chosen.at.slice(0, 10),
+          }
+        : { kind: 'none' }
+    case 'common':
+      return base
+        ? {
+            kind: 'base',
+            values: base.values,
+            converted: family.variants.flatMap((variant) =>
+              variant.key === base.key ? [] : [variant.values],
+            ),
+          }
+        : { kind: 'common', agree: meaning.common?.agree ?? family.variants.length }
+    case 'none':
+      return { kind: 'none' }
+  }
+}
+
 /**
- * A family as Ask's page shows its definition (R7): its meaning in one plain line, and the own
- * words of the variants `familyWords` gives, each by its values. The model never reads it.
+ * A family as Ask's page shows its definition (R7): its meaning in one plain line, where it comes
+ * from, and the own words of the variants `familyWords` gives, each by its values. The model never
+ * reads it. `personName` names the owner who wrote its meaning.
  */
-function familyShown(family: Family): FamilyShown {
+function familyShown(family: Family, personName: (id: string) => string): FamilyShown {
   const { differing, derived } = ownWords(family)
   const own = [...differing, ...derived].flatMap((variant) => {
     const words = variant.description?.trim()
@@ -1633,6 +1667,7 @@ function familyShown(family: Family): FamilyShown {
     meaning: family.meaning.words ? meaningLine(family.meaning.words, family.by) : null,
     own: own.slice(0, OWN_SHOWN),
     more: Math.max(0, own.length - OWN_SHOWN),
+    source: meaningFrom(family, personName),
   }
 }
 
@@ -1698,7 +1733,7 @@ async function definitions(view: View, reads: ToolReads, input: z.output<typeof 
       otherNames: [...new Set(t.aliases)].filter((a) => a !== t.name),
       words,
       from: termFrom(t),
-      ...(t.family ? { family: familyShown(t.family), does: FAMILY_ACTIONS } : {}),
+      ...(t.family ? { family: familyShown(t.family, view.personName), does: FAMILY_ACTIONS } : {}),
       sameAs: null,
       state: t.definition ? (t.definition.state === 'missing' ? 'gone' : t.definition.state) : null,
       items: t.shelf.items,
