@@ -150,23 +150,34 @@ function ReadLine({
   const nouns: Nouns = React.useMemo(() => new Map(loop.nouns.map((n) => [n.id, n])), [loop])
   if (!subject || (!subject.about.length && subject.assumedToday)) return null
   const about = subject.about.filter((id) => nouns.has(id))
+  // Dates change nothing of what a metric means: a definition's answer has no period to choose.
+  const dated = !!loop.state || !loop.defined
+  if (!about.length && !dated) return null
   return (
     <p className="flex max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-right text-xs text-muted-foreground @lg:max-w-4/5">
       <span>{subject.carried ? 'Read with' : 'Read as'}</span>
       {/* Each dot stays with what it follows, so a line that wraps never starts with one. */}
-      {about.map((id) => (
+      {about.map((id, i) => (
         <span key={id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
           <NounChip id={id} nouns={nouns} />
-          <span aria-hidden>·</span>
+          {(i < about.length - 1 || dated || !!subject.note) && <span aria-hidden>·</span>}
         </span>
       ))}
-      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        <PeriodChip
-          days={subject.assumedToday ? 'Today · assumed' : subject.period}
-          onChoose={onReperiod}
-        />
-        {subject.note && <span aria-hidden>·</span>}
-      </span>
+      {dated && (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <PeriodChip
+            days={
+              subject.assumedToday
+                ? 'Today · assumed'
+                : subject.carried
+                  ? subject.period
+                  : chosenWords(answer.period, subject.period)
+            }
+            onChoose={onReperiod}
+          />
+          {subject.note && <span aria-hidden>·</span>}
+        </span>
+      )}
       {subject.note && <span>{subject.note}</span>}
       {subject.carried && <span>carried from your last question</span>}
       {onRescope && (
@@ -186,6 +197,36 @@ function ReadLine({
           {subject.carried ? 'Drop them' : 'Change'}
         </button>
       )}
+    </p>
+  )
+}
+
+/**
+ * The days a question was read at, after the period the person chose for it when that has a name
+ * other than its days: "last month (1-30 Sep 2026)". Any date and the days picked are their days.
+ */
+const chosenWords = (chosen: ChosenPeriodInput | undefined, days: string) =>
+  typeof chosen === 'string' && chosen !== 'any date' ? `${chosen} (${days})` : days
+
+/** The days on the read line, as a chip. */
+const periodChip =
+  'inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground'
+
+/**
+ * The period a question was asked again at, under it until its answer says how it was read
+ * (`ReadLine`): "Asked again at last month".
+ */
+export function AskedAtLine({ period }: { period: ChosenPeriodInput }) {
+  return (
+    <p className="flex min-h-6 max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 text-right text-xs text-muted-foreground @lg:max-w-4/5">
+      <span>Asked again at</span>
+      <span className={periodChip}>
+        {typeof period === 'string'
+          ? period
+          : period.from === period.to
+            ? dayText(period.from, true)
+            : `${dayText(period.from, true)} to ${dayText(period.to, true)}`}
+      </span>
     </p>
   )
 }
@@ -223,9 +264,7 @@ function PeriodChip({
     if (wasPicking.current && !picking) pickRow.current?.focus()
     wasPicking.current = picking
   }, [picking])
-  const chip =
-    'inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground'
-  if (!onChoose) return <span className={chip}>{days}</span>
+  if (!onChoose) return <span className={periodChip}>{days}</span>
   const choose = (period: ChosenPeriodInput) => {
     setOpen(false)
     onChoose(period)
@@ -240,7 +279,7 @@ function PeriodChip({
     >
       <P.PopoverTrigger
         className={P.cn(
-          chip,
+          periodChip,
           'gap-0.5 outline-none hover:bg-foreground/8 focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-foreground/8',
         )}
       >

@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import type { LoopBlock, LoopTurn } from '@contract/answer'
+import type { ChosenPeriodInput, LoopBlock, LoopTurn } from '@contract/answer'
 import type { Answer } from '@/model/ask'
 import {
   scriptedLoopChoice,
@@ -38,6 +38,8 @@ const mention = (id: unknown) => `[@${String(id)}]`
 type Case = {
   id: string
   question: string
+  /** The period chosen on the read line, which code reads at before the model's first step. */
+  period?: ChosenPeriodInput
   calls: ScriptedStep['calls']
   write: (p: ScriptedPrompt) => ScriptedStep
 }
@@ -299,6 +301,23 @@ const cases: Case[] = [
       }
     },
   },
+  {
+    // Asked again at Last month on the read line (R12): code reads the subject at it first.
+    id: 'loop-period',
+    question: 'What should I know about orders in Norway?',
+    period: 'last month',
+    calls: [],
+    write: (p) => {
+      const r = readOf(p, 'get_context')
+      const about = (r.read as Obj).about as string[]
+      const lines = arr(r.items)
+        .slice(0, 2)
+        .map((i) => `- ${String(i.title)} [${String(i.id)}]`)
+      return {
+        text: `[#${r.ref}.items.length] items apply to ${mention(about[0])} in ${mention(about[1])}:\n${lines.join('\n')}`,
+      }
+    },
+  },
 ]
 
 let current: Case | undefined
@@ -316,7 +335,7 @@ const turns: Record<string, Answer> = {}
 const ask = async (c: Case) => {
   current = c
   const api = await world.as(JON)
-  const answer = await api.ask({ question: c.question })
+  const answer = await api.ask({ question: c.question, ...(c.period ? { period: c.period } : {}) })
   turns[c.id] = answer
   return answer.loop!
 }
@@ -542,13 +561,30 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(runsOf(loop.body)).toContainEqual({ t: 'noun', id: 'metric:churn_rate' })
   })
 
+  it('names the period chosen on the read line first, by code, and reads the subject at it', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-period')!)
+    expect(loop.subject).toMatchObject({
+      period: '1-30 Sep 2026',
+      assumedToday: false,
+      carried: false,
+    })
+    expect(loop.text).toMatch(
+      /^This answer is for last month, September 2026\. \d+ items apply to /,
+    )
+    expect(loop.read[0]).toMatch(/^Looked up Orders and Norway, 1-30 Sep 2026: /)
+  })
+
   it('writes the examples the mock shows, when asked to', () => {
     const out = process.env.LOOP_SHAPES_OUT
     if (!out) return
     const examples = Object.fromEntries(
       Object.entries(turns).map(([id, a]) => [
         id,
-        { question: a.question, turn: a.loop as LoopTurn },
+        {
+          question: a.question,
+          ...(a.period ? { period: a.period } : {}),
+          turn: a.loop as LoopTurn,
+        },
       ]),
     )
     writeFileSync(out, `${JSON.stringify(examples, null, 2)}\n`)

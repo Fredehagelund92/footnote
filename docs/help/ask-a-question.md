@@ -4,7 +4,7 @@ line: Ask about a number, read how the answer was made, ask again at other dates
 group: Ask
 order: 1
 minutes: 6
-reviewed: 2026-11-22
+reviewed: 2026-11-24
 open:
   label: Open Ask
   href: /ask
@@ -40,7 +40,9 @@ When an admin has switched figures on for a metric's tool, an answer that names 
 
 ## Ask again at other dates
 
-Press the dates in Read as. Choose Today, Any date, Last month, Last quarter or Last year, or Pick dates for days of your own. Ask asks the same question again at those dates, as a new answer under the last one.
+Press the dates in Read as. Choose Today, Any date, Last month, Last quarter or Last year, or Pick dates for days of your own. Ask asks the same question again at those dates, as a new answer under the last one, which keeps its own dates.
+
+The new answer's Read as names the period with its days, such as last month with its first and last day, and its first sentence names it too. An answer about what a metric means has no dates to choose: dates do not change what it means.
 
 ## Ask a follow-up
 

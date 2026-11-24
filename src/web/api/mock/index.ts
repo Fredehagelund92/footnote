@@ -407,14 +407,15 @@ export function createMockApi() {
   }
 
   /** Ask's answer: as the loop answers the question, or an example, on the demo week. */
-  const answer = ({ question = '', parts, scope, example, period }: AskInput): Answer => {
+  const answer = ({ question = '', parts, scope, example }: AskInput): Answer => {
     const found = example ? examples.find((e) => e.id === example) : undefined
     if (example && !found) throw new ApiError('not-found', 'This question is not offered any more.')
     const asked = found?.question ?? question
+    // A period chosen on the read line is not kept: the mock's answers were read at the dates
+    // they were, which the read line says, never the period chosen.
     const extra = {
       ...(parts?.some((p) => typeof p !== 'string') ? { parts } : {}),
       ...(scope?.length ? { scope } : {}),
-      ...(period ? { period } : {}),
     }
     // The check could not run: what the page shows when the service does not answer.
     if (example === 'failed') return { ...failedAnswer(asked), id: example, ...extra }
