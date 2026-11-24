@@ -3,7 +3,7 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 6
+minutes: 7
 reviewed: 2026-11-24
 open:
   label: Write context
@@ -60,6 +60,10 @@ Not finished yet? Choose **Save as draft** in the editor. A draft is yours alone
 
 Drafts you imported, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
 
+Open a draft on the card to read it in the card's place. The bar says where you are, such as 5 of 21, and J and K go to the next draft and the one before. Esc, or the arrow beside 21 drafts, goes back to the list where you left it.
+
+Publish it with Enter, Edit it, or choose Don't publish, which deletes it at once with Undo. Then the next draft opens.
+
 When someone leaves the workspace, nobody can read their drafts any more. An admin can delete them in **Settings**, then **Advanced**, by how many there are.
 
 ## Waiting for review
@@ -99,7 +103,9 @@ The same news, written weakly:
 
 In **Context**, filter by Draft to see your drafts, and tick the ones you have read, or tick them all. Publish, on the bar that appears, publishes them at once in a domain you own, or in any domain for an admin. Each goes through the same checks as in the editor. A draft that is missing something, such as a source, stays ticked and says what.
 
-More than five asks once first, because agents get them from the next question. Up to 50 go at a time; the rest stay ticked for the next Publish. Undo makes them drafts again. Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest.
+More than five asks once first, because agents get them from the next question. It says how many go, their domains and kinds, and a few of their titles. One Publish takes the first 50 as the list shows them, and says so first; the rest stay ticked, and the line above the bar offers Publish next for them. Undo makes them drafts again.
+
+Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest. When nothing you ticked can be published, the line above the bar says why, such as Nothing to publish: these 3 are published already.
 
 ## About our business
 

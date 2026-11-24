@@ -82,7 +82,10 @@ export function Panel({
           </Tooltip>
         )}
       </div>
-      <div className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}>
+      <div
+        data-slot="panel-body"
+        className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}
+      >
         {children}
       </div>
       {footer && (

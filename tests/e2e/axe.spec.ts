@@ -20,6 +20,9 @@ const places = [
   '/inbox?dock=review.sug-sofia-clash',
   '/inbox?demo=setup',
   '/inbox?demo=names',
+  // The imported drafts card, its list and one draft open in the card's place.
+  '/inbox?demo=imported&card=drafts%3Ayours',
+  '/inbox?demo=imported&card=drafts%3Ayours&draft=itm_draft_imported_07',
   '/inbox/sug-ines/review',
   '/inbox/sug-sofia-clash/review',
   '/inbox/gap-spain/review',

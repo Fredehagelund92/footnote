@@ -18,7 +18,8 @@ export type Me = { name: string; admin: boolean }
 
 /** A row left alone: `why` in a few words for the line, `reason` in a sentence for its tooltip. */
 export type Skip = { id: string; title: string; why: string; reason: string }
-export type Plan<T> = { act: T[]; skipped: Skip[] }
+/** What a change acts on, what it leaves alone with why, and (Publish only) what waits for the next press. */
+export type Plan<T> = { act: T[]; skipped: Skip[]; next: T[] }
 
 export type FactAction =
   'archive' | 'delete' | 'domain' | 'kind' | 'owner-add' | 'owner-set' | 'check' | 'publish'
@@ -45,6 +46,7 @@ export function planFacts(
 ): Plan<Fact> {
   const act: Fact[] = []
   const skipped: Skip[] = []
+  const next: Fact[] = []
   const skip = (f: Fact, s: { why: string; reason: string }) =>
     skipped.push({ id: f.id, title: f.title, ...s })
   for (const f of facts) {
@@ -66,15 +68,12 @@ export function planFacts(
     }
     const why = whyNot(action, f, domains, opts)
     if (why) skip(f, why)
-    // One Publish takes a batch: the drafts past it stay ticked for the next press.
-    else if (action === 'publish' && act.length >= PUBLISH_MAX)
-      skip(f, {
-        why: `over ${PUBLISH_MAX} at once`,
-        reason: `One Publish takes ${PUBLISH_MAX} drafts: press Publish again for the rest.`,
-      })
+    // One Publish takes a batch, the first ones in the list's order: the drafts past it are not
+    // left out, they stay ticked for the next press.
+    else if (action === 'publish' && act.length >= PUBLISH_MAX) next.push(f)
     else act.push(f)
   }
-  return { act, skipped }
+  return { act, skipped, next }
 }
 
 function whyNot(
@@ -211,12 +210,6 @@ export function publishParts(plan: Plan<Fact>, me: Me, domains: Domains, checked
   }
 }
 
-/** What a Publish's toast says under its line: when agents get them. */
-export const publishedWhen = (published: number) =>
-  published
-    ? 'Agents get them from the next question.'
-    : 'Agents get them once an owner publishes them.'
-
 /**
  * What a Publish did: "2 published", "1 sent to the owners of Marketing", or both; after a
  * failure, how many failed.
@@ -268,7 +261,7 @@ export function planTerms(
       )
     else act.push(d)
   }
-  return { act, skipped }
+  return { act, skipped, next: [] }
 }
 
 /* ---------- what the bar and the toasts say ---------- */

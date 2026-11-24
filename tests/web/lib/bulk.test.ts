@@ -27,6 +27,7 @@ import {
   toMarkdown,
   TYPE_ABOVE,
 } from '@/lib/bulk'
+import { leftOutLine, nextLine, nothingToPublish, publishedWhen } from '@/lib/publish-lines'
 import { reduce, start } from '@/api/mock/store'
 import type { LogEntry } from '@/model/items'
 
@@ -329,13 +330,74 @@ describe('publishing drafts from the list', () => {
   }
   const byInes: Fact = { ...ready, id: 'd_ines', domain: 'marketing', by: 'Ines Duarte' }
 
-  it('publishes a batch of 50 at a time and keeps the rest ticked, saying why', () => {
+  it('publishes the first 50 in the list order and keeps the rest for the next press, not as skipped', () => {
     const many = Array.from({ length: PUBLISH_MAX + 6 }, (_, i) => ({ ...ready, id: `d_${i}` }))
     const plan = planFacts('publish', [salesLive[0]!, ...many], jon, domains)
     expect(plan.act.map((f) => f.id)).toEqual(many.slice(0, PUBLISH_MAX).map((f) => f.id))
-    expect(skippedLine(plan.skipped)).toBe('7 skipped: 1 published, 6 over 50 at once')
-    expect(plan.skipped.at(-1)?.reason).toBe(
-      'One Publish takes 50 drafts: press Publish again for the rest.',
+    expect(plan.next.map((f) => f.id)).toEqual(many.slice(PUBLISH_MAX).map((f) => f.id))
+    expect(skippedLine(plan.skipped)).toBe('1 skipped: published')
+    expect(nextLine(plan.next.length)).toBe('6 drafts are still ticked: one Publish takes 50.')
+    expect(nextLine(1)).toBe('1 draft is still ticked: one Publish takes 50.')
+    // A draft that needs a fix does not take a place in the batch.
+    const unready = { ...ready, id: 'd_unready', source: '', quote: '' }
+    const mixed = planFacts('publish', [unready, ...many], jon, domains)
+    expect(mixed.act).toHaveLength(PUBLISH_MAX)
+    expect(mixed.next).toHaveLength(6)
+    expect(planFacts('archive', many, jon, domains).next).toEqual([])
+  })
+
+  it('says why there is nothing to publish at once, by reason, with what to do next', () => {
+    const skip = (why: string, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ id: `${why}${i}`, title: 't', why, reason: 'r' }))
+    expect(nothingToPublish(skip('published', 3))).toBe(
+      'Nothing to publish: these 3 are published already.',
+    )
+    expect(nothingToPublish(skip('published', 1))).toBe(
+      'Nothing to publish: it is published already.',
+    )
+    expect(nothingToPublish([...skip('published', 21), ...skip('waiting for review', 4)])).toBe(
+      'Nothing to publish: 21 are published, 4 wait for review. Open one to decide it.',
+    )
+    expect(
+      nothingToPublish([
+        ...skip('missing a source', 1),
+        ...skip('a link to fix', 1),
+        ...skip('archived', 1),
+      ]),
+    ).toBe('Nothing to publish: 2 need a fix first, 1 is archived. Open one to fix it.')
+    expect(nothingToPublish(skip('owned by Sales', 2))).toBe(
+      'Nothing to publish: 2 are owned by Sales.',
+    )
+    expect(nothingToPublish(skip('owned by Sales', 1))).toBe(
+      'Nothing to publish: it is owned by Sales.',
+    )
+    expect(nothingToPublish(skip('waiting for review', 1))).toBe(
+      'Nothing to publish: it waits for review. Open it to decide it.',
+    )
+    expect(
+      nothingToPublish([
+        { id: 'd', title: 't', why: 'missing a source', reason: 'Add a source first.' },
+      ]),
+    ).toBe('Nothing to publish: add a source first.')
+  })
+
+  it('says what a Publish leaves alone as information, published first', () => {
+    const skip = (why: string, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ id: `${why}${i}`, title: 't', why, reason: 'r' }))
+    expect(leftOutLine([])).toBe('')
+    expect(leftOutLine(skip('published', 2))).toBe('2 published items you ticked stay as they are.')
+    expect(leftOutLine(skip('published', 1))).toBe('A published item you ticked stays as it is.')
+    expect(
+      leftOutLine([
+        ...skip('published', 21),
+        ...skip('missing a source', 1),
+        ...skip('waiting for review', 4),
+      ]),
+    ).toBe(
+      '21 published items you ticked stay as they are. 5 more are not in this Publish: 1 needs a fix first, 4 wait for review.',
+    )
+    expect(leftOutLine(skip('missing a source', 2), 'card')).toBe(
+      '2 on the card are not in this Publish: 2 need a fix first.',
     )
   })
 
@@ -413,6 +475,11 @@ describe('publishing drafts from the list', () => {
       '2 published, 1 sent to the owners of Marketing',
     )
     expect(publishedLine(0, 0, 2)).toBe('None published, 2 failed')
+    // One is "it", as on a draft's own page.
+    expect(publishedWhen(1)).toBe('Agents get it from the next question.')
+    expect(publishedWhen(3)).toBe('Agents get them from the next question.')
+    expect(publishedWhen(0, 1)).toBe('Agents get it once an owner publishes it.')
+    expect(publishedWhen(0, 2)).toBe('Agents get them once an owner publishes them.')
     expect(CONFIRM_ABOVE).toBe(5)
     expect(PUBLISH_MAX).toBe(50)
   })

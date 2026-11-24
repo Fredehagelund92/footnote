@@ -19,6 +19,8 @@ import { useToastFloor } from '@/lib/toast-floor'
 /** What the line above the bar says. */
 export type BulkNote = {
   text: string
+  /** Information rather than an outcome: why an action has nothing to do, led by an info mark. */
+  info?: boolean
   skipped?: Skip[]
   action?: { label: string; onClick: () => void }
 }
@@ -49,8 +51,12 @@ export function BulkBar({
   const [said, setSaid] = React.useState('')
   const before = React.useRef({ count, note: note?.text })
   React.useEffect(() => {
-    if (note?.text && note.text !== before.current.note) setSaid(note.text)
-    else if (count !== before.current.count) setSaid(countLine(count))
+    const newNote = note?.text && note.text !== before.current.note
+    const newCount = count !== before.current.count
+    // A selection that comes with its note (nothing to publish) is heard as both.
+    if (newNote && newCount) setSaid(`${countLine(count)}. ${note.text}`)
+    else if (newNote) setSaid(note.text)
+    else if (newCount) setSaid(countLine(count))
     before.current = { count, note: note?.text }
   }, [count, note?.text])
   return (
@@ -97,35 +103,44 @@ export function BulkBar({
 }
 
 function NoteLine({ note }: { note: BulkNote }) {
+  const listed = !!note.skipped?.length
+  // The rows left alone, with each one's reason, a hover away; an information line starts with it.
+  const why = listed && (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Why they were skipped"
+            className="text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60"
+          />
+        }
+      >
+        <InfoIcon />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-80">
+        <ul className="flex flex-col gap-1">
+          {note.skipped!.slice(0, 8).map((s) => (
+            <li key={s.id}>
+              <span className="font-medium">{s.title}</span> - {s.reason}
+            </li>
+          ))}
+          {note.skipped!.length > 8 && <li>And {note.skipped!.length - 8} more.</li>}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
+  )
   return (
-    <div className="flex max-w-full items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-3 text-xs text-background max-md:w-full max-md:rounded-none max-md:border-b max-md:border-background/15 max-md:py-2">
-      <span className="min-w-0">{note.text}</span>
-      {note.skipped && note.skipped.length > 0 && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Why they were skipped"
-                className="text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60"
-              />
-            }
-          >
-            <InfoIcon />
-          </TooltipTrigger>
-          <TooltipContent className="max-w-80">
-            <ul className="flex flex-col gap-1">
-              {note.skipped.slice(0, 8).map((s) => (
-                <li key={s.id}>
-                  <span className="font-medium">{s.title}</span> - {s.reason}
-                </li>
-              ))}
-              {note.skipped.length > 8 && <li>And {note.skipped.length - 8} more.</li>}
-            </ul>
-          </TooltipContent>
-        </Tooltip>
+    <div
+      className={cn(
+        'flex max-w-full items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-3 text-xs text-background max-md:w-full max-md:rounded-none max-md:border-b max-md:border-background/15 max-md:py-2',
+        note.info && (listed ? 'pr-3 pl-1' : 'py-1.5 pr-3'),
       )}
+    >
+      {note.info && (why || <InfoIcon aria-hidden className="size-3.5 shrink-0" />)}
+      <span className="min-w-0">{note.text}</span>
+      {!note.info && why}
       {note.action && (
         <BulkButton
           onClick={note.action.onClick}

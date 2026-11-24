@@ -60,7 +60,7 @@ test('The drafts someone imported wait on one card, which publishes what it may'
   // Two came without a source: the button says how many it takes, and asks first.
   await pane.getByRole('button', { name: /^Publish 19/ }).click()
   const confirm = page.getByRole('dialog', { name: 'Publish 19 drafts?' })
-  await expect(confirm).toContainText('2 skipped: missing a source')
+  await expect(confirm).toContainText('2 on the card are not in this Publish: 2 need a fix first.')
   await confirm.getByRole('button', { name: 'Publish 19 drafts' }).click()
   await expect(said(page, '19 published')).toBeVisible()
   // What needs a fix stays on the card, with why.
