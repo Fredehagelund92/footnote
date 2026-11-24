@@ -34,7 +34,6 @@ export const runSchema = z.object({
   kind: z.enum([
     'full',
     'scheduled',
-    'links',
     // The sealed held-out questions of an area, run with none of their words kept (FR-525).
     'held_out',
   ]),
@@ -160,24 +159,6 @@ export const scorecardSchema = z.object({
   /** Judge against code; null on a run with no questions. */
   agreement: z.nullable(agreementSchema),
 })
-const armSummary = z.object({
-  answers: z.number(),
-  /** Mean tool calls per answer: over-following shows here (R20). */
-  calls: z.number(),
-  /** Mean cost per answer in micros, counting a reused answer at its original cost. */
-  costMicros: z.number(),
-  causeClaims: z.number(),
-})
-/**
- * A links run (FR-523): get_related off (baseline) and on (candidate). `gain` is true when some
- * questions pass only with links, none fail because of them, and no new cause claims appear.
- */
-export const linkResultSchema = z.object({
-  gained: z.array(z.string()),
-  lost: z.array(z.string()),
-  arms: z.object({ baseline: armSummary, candidate: armSummary }),
-  gain: z.boolean(),
-})
 export const runDetailSchema = z.object({
   run: runSchema,
   results: z.array(
@@ -194,7 +175,6 @@ export const runDetailSchema = z.object({
   ),
   flips: z.array(z.object({ id: z.string(), flip: z.enum(['pass_to_fail', 'fail_to_pass']) })),
   scorecard: z.nullable(scorecardSchema),
-  links: z.nullable(linkResultSchema),
   /** Judge against code, per side; null on runs that did not finish or had no questions. */
   agreement: z.nullable(
     z.object({ baseline: agreementSchema, candidate: z.nullable(agreementSchema) }),

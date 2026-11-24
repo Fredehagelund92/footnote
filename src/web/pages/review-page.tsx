@@ -84,7 +84,6 @@ import {
 import { placeFromKey } from '@/model/source-places'
 import { fieldRows } from '@/model/review-fields'
 import { useSideChoice } from '@/lib/side-panel'
-import { useLinksEnabled } from '@/lib/links-switch'
 import { Composer } from '@/components/templates/comment-box/composer'
 import { CommentBox } from '@/components/templates/comment-box'
 import { useCommentActions } from '@/lib/comments'
@@ -1003,7 +1002,6 @@ function ClashPair({
 function TryItPanel({ r, now }: { r: Review; now?: string }) {
   const { cards } = useInbox()
   const [version, setVersion] = React.useState<'draft' | 'published'>('draft')
-  const linksOn = useLinksEnabled()
   // Links the suggestion adds or removes: whether an answer would follow them.
   const linked = r.blocks.flatMap((b) => (b.kind === 'Link' && 'mention' in b ? [b.mention] : []))
   // Just published: the answer agents now give, in place of the draft.
@@ -1058,9 +1056,7 @@ function TryItPanel({ r, now }: { r: Review; now?: string }) {
         <p key={m.id} className="text-sm text-muted-foreground">
           {m.change === 'removed'
             ? `The answer no longer links to ${m.label}.`
-            : linksOn
-              ? `The answer would follow the new link to ${m.label}, one step, to read what it means.`
-              : `Following links is off, so the answer won't follow the new link to ${m.label}.`}
+            : `The answer would follow the new link to ${m.label}, one step, to read what it means.`}
         </p>
       ))}
     </section>

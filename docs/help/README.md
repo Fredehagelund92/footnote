@@ -94,7 +94,7 @@ The Docs area and the docs site draw the list from its source in the app. What s
 | `word: Context item` | One of the ten words, with its sentence    | `src/web/lib/help-content.ts` |
 | `answer-lines`       | The six answer lines                       | `src/web/lib/help-content.ts` |
 | `words`              | The ten words                              | `src/web/lib/help-content.ts` |
-| `tools`              | The six agent tools                        | `src/web/lib/agents.ts`       |
+| `tools`              | The five agent tools                       | `src/web/lib/agents.ts`       |
 
 Help in the app (`/help`) shows the same answer lines and words, from the same lists.
 

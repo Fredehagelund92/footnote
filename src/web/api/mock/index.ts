@@ -76,7 +76,7 @@ import { searchWorld } from './search'
 import { createScopeSearch, withScope } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
-import { IMPORTED, importedDrafts } from './data/imported'
+import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -758,7 +758,6 @@ export function createMockApi() {
           definitions: definitions.list(),
           domains: Object.fromEntries(workspace.domains().map((d) => [d.id, d])),
         }),
-        following: settings.read(scenario.address()).links,
       })),
     // The item's words as they are now: the demo's versions are made up, so each restores the same.
     restoreAsDraft: ({ id }) =>
@@ -1317,7 +1316,6 @@ export function createMockApi() {
 
     // Settings, integrations and agents
     getSettings: () => now(() => settings.read(scenario.address())),
-    setLinks: ({ on }) => now(() => settings.setLinks(on)),
     setTool: ({ name, on }) => now(() => settings.setTool(name, on)),
     setPause: (change) => now(() => settings.setPause(change)),
     createAccessKey: ({ name }) =>
@@ -1633,6 +1631,10 @@ export function createMockApi() {
         // 21 drafts brought in from a wiki, to publish from the Context list at once.
         if (demo === 'imported')
           for (const fact of importedDrafts())
+            if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
+        // 60 more, past what one Publish takes.
+        if (demo === 'backlog')
+          for (const fact of backlogDrafts())
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })

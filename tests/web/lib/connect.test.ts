@@ -160,11 +160,11 @@ describe('access keys on Connected agents', () => {
     const { api } = createMockApi()
     await api.signIn({ name: 'Jon Abara' })
     const kofi = (await api.listAgentConnections()).find((r) => r.who === 'Kofi Mensah')!
-    expect(toolsLine(kofi)).toBe('All 8 tools')
+    expect(toolsLine(kofi)).toBe('All 5 tools')
     await api.setAgentTool({ id: kofi.id, tool: 'suggest_context', on: false })
     let now = (await api.listAgentConnections()).find((r) => r.id === kofi.id)!
     expect(toolsOn(now)).not.toContain('suggest_context')
-    expect(toolsLine(now)).toBe('7 of 8 tools')
+    expect(toolsLine(now)).toBe('4 of 5 tools')
     expect(now.setBy?.name).toBe('Jon Abara')
     for (const { tool } of now.tools) await api.setAgentTool({ id: kofi.id, tool, on: false })
     now = (await api.listAgentConnections()).find((r) => r.id === kofi.id)!

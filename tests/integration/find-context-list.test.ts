@@ -13,12 +13,13 @@ import { version } from './fixtures.ts'
 import { apiDatabase, ignoreTeardownDisconnects, testDatabase, transaction } from './support.ts'
 
 /*
-  The list tools on the demo (FR-351, FR-352), through the real MCP server as an agent reaches it.
-  Asked "give me 10 random metrics", an agent had no tool that lists: find_context searches words
-  and get_context answers a question, so it picked ten by name search and said it could not
-  sample. Now it lists every metric a page at a time and picks from them. Both tools read the live
-  edition only: a draft or a suggestion waiting for review is never listed, nor an item an agent
-  may not read, and an owner is a role, never a person. Deterministic: no model.
+  find_context without words on the demo (FR-338), through the real MCP server as an agent reaches
+  it. Asked "give me 10 random metrics", an agent once had no tool that lists: a search by words
+  and a question to get_context both need a name, so it picked ten by name search and said it
+  could not sample. Without words, find_context lists every metric a page at a time and the agent
+  picks from them. It reads the live edition only: a draft or a suggestion waiting for review is
+  never listed, nor an item an agent may not read, and an owner is a role, never a person.
+  Deterministic: no model.
 */
 
 const { client: admin, url } = testDatabase({ seeded: true })
@@ -119,6 +120,7 @@ type Definition = {
 type Listed = {
   id: string
   title: string
+  summary: string
   kind: string
   domain: string
   applies: string
@@ -142,15 +144,17 @@ async function call<T>(name: string, args: Record<string, unknown>) {
   const reply = await wire.callTool({ name, arguments: args })
   return { reply, page: reply.structuredContent as Page<T> }
 }
-/** Every page of a list, by its cursors, with the replies' totals. */
-async function everything<T>(name: string, args: Record<string, unknown>) {
+/** find_context without words, or with the words of a definition's kind. */
+const list = <T>(args: Record<string, unknown>) => call<T>('find_context', args)
+/** Every page of a list, definitions and then items, by its cursors, with the replies' totals. */
+async function everything<T>(args: Record<string, unknown>) {
   const all: T[] = []
   const totals = new Set<number>()
   let cursor: string | null | undefined
   do {
-    const { reply, page } = await call<T>(name, { ...args, ...(cursor ? { cursor } : {}) })
+    const { reply, page } = await list<T>({ ...args, ...(cursor ? { cursor } : {}) })
     expect(reply.isError).not.toBe(true)
-    all.push(...(page.definitions ?? page.context ?? []))
+    all.push(...(page.definitions ?? []), ...(page.context ?? []))
     totals.add(page.total)
     cursor = page.next_cursor
   } while (cursor)
@@ -168,21 +172,20 @@ function picks(seed: number) {
 const byName = (a: string, b: string) => a.localeCompare(b, 'en')
 
 describe('give me 10 random metrics', () => {
-  it('had no tool that lists: words name no metric, and get_context needs one', async () => {
+  it('once had no tool that lists: words name no metric, and get_context needs one', async () => {
     const found = await call('find_context', { query: 'metrics' })
     expect(found.page.status).toBe('no_match')
     const asked = await call('get_context', { question: 'give me 10 random metrics' })
     expect(asked.page.status).toBe('need_more_detail')
-    // What the agent has now, beside them.
+    // What the agent has now: the same tool without words.
     const names = (await wire.listTools()).tools.map((t) => t.name)
-    expect(names).toEqual(expect.arrayContaining(['list_definitions', 'list_context']))
+    expect(names).toEqual(['get_context', 'find_context', 'read_context', 'report'])
+    const listed = await list<Definition>({ kind: 'metric' })
+    expect(listed.page.status).toBe('matched')
   })
 
   it('lists every metric a page at a time, so an agent picks ten at random', async () => {
-    const metrics = await everything<Definition>('list_definitions', {
-      kind: 'metric',
-      limit: 100,
-    })
+    const metrics = await everything<Definition>({ kind: 'metric', limit: 100 })
     // Every metric Definitions shows: each one outside a family, and each family once.
     const families = new Set(
       bundle.terms
@@ -208,7 +211,9 @@ describe('give me 10 random metrics', () => {
   })
 
   it('says what each one is, with its owner as a role and never a person', async () => {
-    const all = await everything<Definition>('list_definitions', { limit: 100 })
+    const all = (await everything<Definition | Listed>({ limit: 100 })).filter(
+      (d): d is Definition => 'key' in d,
+    )
     // Metrics, then dimensions, then terms.
     const kinds = all.map((d) => d.kind)
     const order = ['metric', 'dimension', 'term']
@@ -245,39 +250,35 @@ describe('give me 10 random metrics', () => {
   })
 
   it('pages in a fixed order without a repeat, and refuses a cursor of other filters', async () => {
-    const first = await call<Definition>('list_definitions', { limit: 10 })
+    const first = await list<Definition>({ limit: 10 })
     expect(first.page.definitions).toHaveLength(10)
-    expect(first.page.say).toMatch(/^There are [\d,]+ definitions; 1 to 10 are shown\.$/)
+    expect(first.page.say).toMatch(
+      /^There are [\d,]+ definitions and [\d,]+ published context items you can read; 1 to 10 are shown\.$/,
+    )
     expect(first.page.next).toContain('Pass next_cursor as cursor for the next page.')
-    const again = await call<Definition>('list_definitions', { limit: 10 })
+    const again = await list<Definition>({ limit: 10 })
     expect(again.page.definitions).toEqual(first.page.definitions)
-    const second = await call<Definition>('list_definitions', {
-      limit: 10,
-      cursor: first.page.next_cursor,
-    })
+    const second = await list<Definition>({ limit: 10, cursor: first.page.next_cursor })
     expect(second.page.say).toMatch(/; 11 to 20 are shown\.$/)
     const keys = [...first.page.definitions!, ...second.page.definitions!].map((d) => d.key)
     expect(new Set(keys).size).toBe(20)
-    const whole = await call<Definition>('list_definitions', { limit: 20 })
+    const whole = await list<Definition>({ limit: 20 })
     expect(whole.page.definitions!.map((d) => d.key)).toEqual(keys)
     // A cursor belongs to its filters.
-    const other = await call('list_definitions', {
-      kind: 'dimension',
-      cursor: first.page.next_cursor,
-    })
+    const other = await list({ kind: 'dimension', cursor: first.page.next_cursor })
     expect(other.reply.isError).toBe(true)
     expect(other.page.status).toBe('check_failed')
   })
 
   it('says so when a cursor starts past the end of a list that shrank', async () => {
-    const first = await call<Definition>('list_definitions', { limit: 10 })
+    const first = await list<Definition>({ limit: 10 })
     const minted = JSON.parse(
       Buffer.from(first.page.next_cursor!, 'base64url').toString('utf8'),
     ) as { key: string }
     const cursor = Buffer.from(
       JSON.stringify({ key: minted.key, offset: first.page.total + 50 }),
     ).toString('base64url')
-    const past = await call<Definition>('list_definitions', { limit: 10, cursor })
+    const past = await list<Definition>({ limit: 10, cursor })
     expect(past.reply.isError).not.toBe(true)
     expect(past.page).toMatchObject({ status: 'matched', next_cursor: null, definitions: [] })
     expect(past.page.say).toContain('starts past the end of the list')
@@ -286,56 +287,59 @@ describe('give me 10 random metrics', () => {
   })
 
   it('takes 25 to a page by default and never more than 100', async () => {
-    const plain = await call<Definition>('list_definitions', {})
+    const plain = await list<Definition>({})
     expect(plain.page.definitions).toHaveLength(25)
-    const most = await call<Definition>('list_definitions', { limit: 100 })
+    const most = await list<Definition>({ limit: 100 })
     expect(most.page.definitions!.length).toBeLessThanOrEqual(100)
-    const over = await call('list_definitions', { limit: 101 })
+    const over = await list({ limit: 101 })
     expect(over.reply.isError).toBe(true)
     expect(JSON.stringify(over.reply)).toMatch(/limit/)
-    const contextOver = await call('list_context', { limit: 500 })
+    const contextOver = await list({ kind: 'event', limit: 500 })
     expect(contextOver.reply.isError).toBe(true)
     // A page that cannot fit the size limit ends sooner, and the next one starts where it ends.
-    const small = await call<Listed>('list_context', { limit: 100, max_bytes: 4000 })
+    const small = await list<Listed>({ kind: 'event', limit: 100, max_bytes: 4000 })
     expect(small.reply.isError).not.toBe(true)
     const shown = small.page.context!.length
     expect(shown).toBeGreaterThan(0)
     expect(shown).toBeLessThan(100)
-    const next = await call<Listed>('list_context', {
-      limit: 100,
-      cursor: small.page.next_cursor,
-    })
-    const straight = await call<Listed>('list_context', { limit: shown + 1 })
+    const next = await list<Listed>({ kind: 'event', limit: 100, cursor: small.page.next_cursor })
+    const straight = await list<Listed>({ kind: 'event', limit: shown + 1 })
     expect(next.page.context![0]!.id).toBe(straight.page.context![shown]!.id)
   })
 
-  it('filters by domain, kind and words, and says when a domain is not known', async () => {
-    const sales = await everything<Definition>('list_definitions', { domain: 'Sales', limit: 100 })
+  it('filters by domain, kind and words of a name, and says when a domain is not known', async () => {
+    const sales = await everything<Definition>({ domain: 'Sales', kind: 'metric', limit: 100 })
     expect(sales.length).toBeGreaterThan(0)
     expect(new Set(sales.map((d) => d.domain))).toEqual(new Set(['Sales']))
-    const dimensions = await everything<Definition>('list_definitions', {
-      kind: 'dimension',
-      limit: 100,
-    })
+    const dimensions = await everything<Definition>({ kind: 'dimension', limit: 100 })
     expect(dimensions.every((d) => d.kind === 'dimension')).toBe(true)
-    const revenue = await everything<Definition>('list_definitions', {
+    // With a definition's kind, words narrow the names: no search of the items.
+    const revenue = await everything<Definition | Listed>({
+      kind: 'metric',
       query: 'revenue',
       limit: 100,
     })
     expect(revenue.length).toBeGreaterThan(0)
-    expect(revenue.every((d) => /revenue/i.test(d.name) || d.kind !== 'term')).toBe(true)
-    const none = await call<Definition>('list_definitions', { query: 'zebrafjord' })
+    expect(revenue.every((d) => 'key' in d && /revenue/i.test(d.name))).toBe(true)
+    const none = await list<Definition>({ kind: 'metric', query: 'zebrafjord' })
     expect(none.page).toMatchObject({ status: 'no_match', total: 0, next_cursor: null })
-    const unknown = await call<Definition>('list_definitions', { domain: 'Atlantis' })
+    expect(none.page.say).toBe(
+      "There's no definition or published context item you can read with these filters.",
+    )
+    expect(none.page.next).toMatch(/proves nothing about a question: call get_context/)
+    const unknown = await list<Definition>({ domain: 'Atlantis' })
     expect(unknown.page.status).toBe('need_more_detail')
-    expect(unknown.page.say).toBe("There's no domain by that name, so nothing was listed.")
+    expect(unknown.page.say).toBe("There's no domain by that name, so nothing was found.")
     expect(unknown.page.options![0]!.options).toContain('Sales')
   })
 })
 
-describe('list_context', () => {
-  it('lists every published item an agent may read, and never a draft or a suggestion', async () => {
-    const listed = await everything<Listed>('list_context', { limit: 100 })
+describe('the published context items, without words', () => {
+  it('lists every published item an agent may read, after the definitions, and never a draft or a suggestion', async () => {
+    const whole = await everything<Definition | Listed>({ limit: 100 })
+    const first = whole.findIndex((row) => !('key' in row))
+    expect(whole.slice(first).every((row) => !('key' in row))).toBe(true)
+    const listed = whole.slice(first) as Listed[]
     const readable = bundle.items.filter(
       (item) => item.status === 'accepted' && canRead(bundle, item, today),
     )
@@ -346,17 +350,18 @@ describe('list_context', () => {
     expect(listed.map((i) => i.title)).toEqual(listed.map((i) => i.title).sort(byName))
 
     // A suggestion waiting for review, or a draft never sent, is no item an agent reads (as
-    // decided for agents): neither its words nor its id show, listed whole or by its words.
+    // decided for agents): neither its words nor its id show, listed whole or searched.
     const text = JSON.stringify(listed)
     for (const words of ['Glimmerquay', waitingItem]) expect(text).not.toContain(words)
-    const searched = await call<Listed>('list_context', { query: 'Glimmerquay harbour' })
+    const searched = await call<Listed>('find_context', { query: 'Glimmerquay harbour' })
     expect(searched.page).toMatchObject({ status: 'no_match', total: 0 })
 
-    // Titles and dates only: never a body, a summary or a source.
+    // Each row has its title and summary, never a body or a source.
     for (const item of listed) {
       expect(Object.keys(item)).not.toEqual(
-        expect.arrayContaining([expect.stringMatching(/^(body|summary|evidence|source)$/)]),
+        expect.arrayContaining([expect.stringMatching(/^(body|evidence|source)$/)]),
       )
+      expect(item.summary.length).toBeGreaterThan(0)
       expect(item.when.length).toBeGreaterThan(0)
       expect(item.url).toBe(`/context/${item.id}`)
     }
@@ -368,18 +373,19 @@ describe('list_context', () => {
     expect(due.map((i) => i.id).sort()).toEqual(unverified.map((i) => i.id).sort())
   })
 
-  it('filters by kind, domain and words of the title', async () => {
-    const events = await everything<Listed>('list_context', { kind: 'event', limit: 100 })
+  it("lists a domain's warnings, each with its summary, and finds an item by its words", async () => {
+    const warnings = await everything<Listed>({ kind: 'warning', domain: 'Sales', limit: 100 })
+    expect(warnings.length).toBeGreaterThan(0)
+    expect(warnings.every((i) => i.kind === 'warning' && i.domain === 'Sales')).toBe(true)
+    expect(warnings.every((i) => i.summary.length > 0 && !('body' in i))).toBe(true)
+    const events = await everything<Listed>({ kind: 'event', limit: 100 })
     expect(events.length).toBeGreaterThan(0)
     expect(events.every((i) => i.kind === 'event')).toBe(true)
-    const sales = await everything<Listed>('list_context', { domain: 'Sales', limit: 100 })
-    expect(sales.length).toBeGreaterThan(0)
-    expect(sales.every((i) => i.domain === 'Sales')).toBe(true)
-    const word = events[0]!.title.split(' ')[0]!
-    const titled = await everything<Listed>('list_context', { query: word, limit: 100 })
-    expect(titled.map((i) => i.id)).toContain(events[0]!.id)
-    const { page } = await call<Listed>('list_context', { query: 'zebrafjord' })
-    expect(page).toMatchObject({ status: 'no_match', total: 0, next_cursor: null })
-    expect(page.next).toMatch(/proves nothing about a question: call get_context/)
+    // With words and an item's kind it searches, as find_context always did.
+    const { page } = await call<Listed>('find_context', {
+      query: events[0]!.title,
+      kind: 'event',
+    })
+    expect(page.context!.map((i) => i.id)).toContain(events[0]!.id)
   })
 })

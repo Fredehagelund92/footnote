@@ -3,12 +3,11 @@ import type { Domains } from '@/model/people'
 import type { Definition } from '@/lib/definitions'
 import { mentionId, mentionsIn, parseMentionId, type MentionKind } from '@/lib/mentions'
 
-// What an agent can follow from a context item, a definition or a domain: get_related, read-only.
-// A link is an @ mention written in a text (both ways: links to, and linked from), or one of two
-// relations an owner set: replaces, and disagrees with. Following is one step at a time, at most 50
-// nodes, and never changes what an answer includes; a retired target is shown, never followed.
-// Comments are never part of it. The switch "Let agents follow links" (lib/links-switch.ts) turns
-// the tool off.
+// What an agent can follow from a context item or a definition: the links read_context gives with
+// every read. A link is an @ mention written in a text (both ways: links to, and linked from), or
+// one of two relations an owner set: replaces, and disagrees with. Following is one step at a time
+// and never changes what an answer includes; a retired target is shown, never followed. Comments
+// are never part of it.
 
 export type Rel = 'replaces' | 'replaced_by' | 'disagrees' | 'mentions' | 'mentioned_by'
 

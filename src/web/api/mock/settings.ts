@@ -11,17 +11,15 @@ import { MOCK_CONNECT_REQUEST, mockConnectRequest, seedAgents, toolRows } from '
 import { demoConnected, demoTool, figureConnections } from './data/integrations'
 import type { Address } from './scenario'
 
-// The mock's switches and connections, kept until the page reloads: the links switch and the other
-// tools agents call, Pause sharing, figures in Ask per integration and their data contacts, the
-// tools connected, and the agents signed in. The review flags ?links=on|off and
-// ?figures=on|off|<integration> set the switches from the address, and ?connect= shows the live
-// line in any state.
+// The mock's switches and connections, kept until the page reloads: the tools agents call, Pause
+// sharing, figures in Ask per integration and their data contacts, the tools connected, and the
+// agents signed in. The review flag ?figures=on|off|<integration> sets the switches from the
+// address, and ?connect= shows the live line in any state.
 
 /** The tools that can read figures for Ask, as their manifests say. */
 export const FIGURE_SOURCES = connectors.flatMap((c) => (c.figures ? [c.id] : []))
 
 export function createSettings() {
-  let links = true
   /** The tools an admin switched off; every other is on. */
   let off: string[] = []
   let pause: Settings['pause'] = { all: false, domain: null }
@@ -80,25 +78,15 @@ export function createSettings() {
                 : (figures[id] ?? false),
         ]),
       )
-      const l = address.query.links
       return {
         mcpAddress: MCP_URL,
-        links: l === 'on' ? true : l === 'off' ? false : links,
-        tools: Object.fromEntries(
-          AGENT_TOOLS.filter((t) => t.name !== 'get_related').map((t) => [
-            t.name,
-            !off.includes(t.name),
-          ]),
-        ),
+        tools: Object.fromEntries(AGENT_TOOLS.map((t) => [t.name, !off.includes(t.name)])),
         pause,
         figures: shown,
         contacts,
         figureTools: Object.fromEntries(FIGURE_SOURCES.map((id) => [id, demoTool(id)])),
         connected,
       }
-    },
-    setLinks(on: boolean) {
-      links = on
     },
     setTool(name: string, on: boolean) {
       off = on ? off.filter((t) => t !== name) : [...new Set([...off, name])]

@@ -37,7 +37,6 @@ import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { undoOffer } from '../../db/undo.ts'
 import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { conflictsOfItem } from '../conflicts/index.ts'
-import { enabledTools } from '../editions/index.ts'
 import { createGapsService } from '../gaps/index.ts'
 import type { LibraryService } from '../library/index.ts'
 import { draftVocabulary } from '../../mcp/draft-tool.ts'
@@ -854,16 +853,14 @@ export function createContextService(
   }
 
   /**
-   * Related context, one step away, as get_related follows it on what agents get now: from an
-   * item the person may read, or from a metric or a dimension by its key. Whether agents follow
-   * links at all is the get_related switch (FR-407), which people see in Related too.
+   * Related context, one step away, as agents follow it with read_context on what they get now:
+   * from an item the person may read, or from a metric or a dimension by its key.
    */
   async function relatedOf(id: string): Promise<RelatedContext | null> {
     const item = id.startsWith('itm_')
     const row = item ? await library.getIndexRow(id) : null
     if (item && !row) return null
-    const [bundle, tools] = await Promise.all([liveServingBundle(tx, cache), enabledTools(tx)])
-    const following = tools.includes('get_related')
+    const bundle = await liveServingBundle(tx, cache)
     const graph = related(bundle, { id, depth: 1, today: clock.today() })
     const termArea = await termAreas(bundle.terms, [
       ...(item ? [] : [id]),
@@ -872,8 +869,7 @@ export function createContextService(
     const areaId = item ? row?.areaId : termArea(id)
     // An item the person may read that agents are not given has nothing to follow; a definition
     // that is not in the vocabulary agents read is not found.
-    if (!graph.found)
-      return item ? { ...(areaId ? { areaId } : {}), nodes: [], withheld: 0, following } : null
+    if (!graph.found) return item ? { ...(areaId ? { areaId } : {}), nodes: [], withheld: 0 } : null
     // Each node once, by the start's own link to it that comes first in the fixed order, read
     // from the start's side. Links among the neighbours are not how they relate to the start. A
     // metric the text mentions and the item applies to is a link people follow: the mention wins.
@@ -916,7 +912,6 @@ export function createContextService(
         }
       }),
       withheld: graph.withheld,
-      following,
     }
   }
 

@@ -3,7 +3,7 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 5
+minutes: 6
 reviewed: 2026-11-24
 open:
   label: Write context
@@ -99,7 +99,7 @@ The same news, written weakly:
 
 In **Context**, filter by Draft to see your drafts, and tick the ones you have read, or tick them all. Publish, on the bar that appears, publishes them at once in a domain you own, or in any domain for an admin. Each goes through the same checks as in the editor. A draft that is missing something, such as a source, stays ticked and says what.
 
-More than five asks once first, because agents get them from the next question. Up to 50 go at a time, and Undo makes them drafts again. Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest.
+More than five asks once first, because agents get them from the next question. Up to 50 go at a time; the rest stay ticked for the next Publish. Undo makes them drafts again. Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest.
 
 ## About our business
 

@@ -5,7 +5,7 @@ import type { ItemKind } from './item.ts'
 import { concepts } from './words.ts'
 
 /*
-  What the MCP server tells an agent in words, in one place: the eight tools as people read them,
+  What the MCP server tells an agent in words, in one place: the five tools as people read them,
   and the rules an agent follows. The service
   (src/server/mcp/tools.ts) serves them as the server instructions and the tool descriptions, and
   the web app's Agents and access, its setup prompt and its agent steps (src/web/lib/agents.ts)
@@ -22,16 +22,13 @@ import { concepts } from './words.ts'
   "this context".
 */
 
-/** The eight tools of the MCP server, by the ids agents call them (docs/product.md, section 10). */
+/** The five tools of the MCP server, by the ids agents call them (docs/product.md, section 10). */
 export const agentToolNames = [
   'get_context',
   'find_context',
   'read_context',
   'report',
   'suggest_context',
-  'get_related',
-  'list_definitions',
-  'list_context',
 ] as const
 export type AgentToolName = (typeof agentToolNames)[number]
 
@@ -42,12 +39,13 @@ const notToConclude = concepts.dontConclude.name
 
 /**
  * Each tool as people read it (FR-407): a title an agent shows when it calls the tool, what it does,
- * what it takes and what it returns. One list, which the tool descriptions, the Connect page and
- * the docs read (`AGENT_TOOLS`, docs/product.md section 10). A tool's description for the model
- * starts with its `what`.
+ * what it takes and what it returns. One list, which the tool descriptions, Settings, the Connect
+ * page and the docs read (docs/product.md section 10). A tool's description for the model starts
+ * with its `what`.
  */
 export const AGENT_TOOLS: readonly {
   name: AgentToolName
+  /** The plain name: shown first, with the exact tool name small beside it. */
   title: string
   what: string
   takes: string
@@ -56,23 +54,23 @@ export const AGENT_TOOLS: readonly {
   {
     name: 'get_context',
     title: 'Get context for a question',
-    what: 'The context that applies to a question, with one sentence to relay.',
+    what: 'The context that applies to a question about a metric, with one sentence to relay.',
     takes: 'The question, or a metric, markets and dates.',
     returns: `The answer line, the ${facts} that apply, and one sentence to relay.`,
   },
   {
     name: 'find_context',
-    title: 'Find context',
-    what: 'A word search over names, titles and summaries.',
-    takes: 'A few words.',
-    returns: `Matching ${facts} and definitions, titles only.`,
+    title: 'Find or list context',
+    what: `Find ${facts} and definitions by words, or list them by kind or domain.`,
+    takes: 'A few words, a kind or a domain, all optional.',
+    returns: `Each ${fact}'s title and summary, never its text, and each definition's meaning, a page at a time.`,
   },
   {
     name: 'read_context',
     title: `Read a ${fact} or a definition`,
-    what: `One ${fact} or one definition in full.`,
+    what: `One ${fact} or one definition in full, with its links.`,
     takes: `A ${fact}, or a definition by its name.`,
-    returns: `A ${fact}'s text, source, check date and ${notToConclude} line; a definition's words, owner, family and the ${facts} about it.`,
+    returns: `A ${fact}'s text, source, check date, ${notToConclude} line and what it links to and from; a definition's words, owner, family and the ${facts} about it.`,
   },
   {
     name: 'report',
@@ -88,27 +86,6 @@ export const AGENT_TOOLS: readonly {
     takes: 'The suggested text and what it applies to.',
     returns:
       "That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.",
-  },
-  {
-    name: 'get_related',
-    title: 'Follow links',
-    what: `Follow a link between ${facts}, definitions and domains, one step at a time.`,
-    takes: `A ${fact}, a definition or a domain.`,
-    returns: 'What it links to and is linked from, without changing what an answer includes.',
-  },
-  {
-    name: 'list_definitions',
-    title: 'List definitions',
-    what: 'The metrics, dimensions and terms in Definitions, a page at a time.',
-    takes: 'A domain, a kind or a word, all optional.',
-    returns: 'Each name with its kind, domain, owner and a one-line meaning.',
-  },
-  {
-    name: 'list_context',
-    title: 'List context',
-    what: `The published ${facts}, a page at a time.`,
-    takes: 'A domain, a kind or a word, all optional.',
-    returns: `Each ${fact}'s title, kind, domain and dates, never its text.`,
   },
 ]
 
@@ -138,7 +115,7 @@ export const kindFilters = {
 
 /** What a coding agent adds to its instructions, so it asks before it answers about numbers. */
 export const askFirstLine =
-  'Before you answer a question about company data, call get_context first and use what it returns.'
+  'Before you answer a question about a company metric, call get_context first and use what it returns.'
 
 /** The absence rule (FR-318, FR-343): what no_match means, and how far a "nothing" may go. */
 export const absenceRule =
@@ -148,15 +125,15 @@ export const absenceRule =
 export const contextRule = `Tell the person it is a ${fact}, the owner of its domain checked it, its source, and its ${notToConclude} line.`
 
 /**
- * The rules a model needs before anything else: call get_context first, read the status, pass on
- * `say` and follow `next`, speak about an item the way people do, and say nothing is
- * written down only for exactly what a call asked. Several clients read only the start of the
+ * The rules a model needs before anything else: for a metric, call get_context first, read the
+ * status, pass on `say` and follow `next`, speak about an item the way people do, and say nothing
+ * is written down only for exactly what a call asked. Several clients read only the start of the
  * instructions (the OpenAI Apps SDK the first 512 characters, Claude Code up to 4,096), so these
  * come first, with nothing filled in before them but the product's name, which is at most 32
  * characters (FR-343).
  */
 export const instructionRules = (product: string) =>
-  `${product} holds checked context about company metrics: what happened, data problems, how to read a number. No data. Call get_context first. Each reply has status, its answer state, then say, a sentence for the person, and next, your step. ${contextRule} ${absenceRule}`
+  `${product} holds checked context about company metrics: what happened, data problems, how to read a number. No data. For a metric, call get_context first. Each reply has status, its answer state, then say, for the person, and next, your step. ${contextRule} ${absenceRule}`
 
 /** The characters of the instructions every client reads (the OpenAI Apps SDK's limit). */
 export const INSTRUCTIONS_READ_BY_ALL = 512
@@ -203,9 +180,9 @@ export const answerLineRule =
 export const plainWordsRule =
   "With people, say the metric, market and dates, not status, scope, edition or reply_id, which name a reply's fields."
 
-/** How to pass names, what to do without them, where to see what there is and read one (FR-351 to FR-353). */
+/** How to pass names, what to do without them, how to see what there is and read one (FR-338, FR-353). */
 export const namesRule =
-  'Pass the metrics, markets and dates you query, or member names from the data tool (payments.orders); unknown ones get the closest. No names? Call find_context; to browse, list_definitions or list_context; read_context reads one.'
+  'Pass the metrics, markets and dates you query, or member names from the data tool (payments.orders); unknown ones get the closest. No names? Call find_context; to browse, leave out its words; read_context reads one.'
 
 /**
  * How dates are read, on the workspace's calendar (R8): the time zone today is counted in, and

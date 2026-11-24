@@ -21,7 +21,7 @@ export type Readable =
   | { kind: 'vocabulary'; key: string; term: ServingTerm }
   | { kind: 'written'; key: string; term: WrittenTerm }
 
-/** The definitions an agent may see now, as list_definitions has them, and a family's metrics too. */
+/** The definitions an agent may see now, as find_context lists them, and a family's metrics too. */
 function readables(bundle: ServingBundle): Readable[] {
   const vocabulary = bundle.terms
     .filter(
