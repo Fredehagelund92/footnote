@@ -991,7 +991,7 @@ describe("Ask's loop answer, state by state", () => {
   it('Definition card of a family with no meaning: Write what it means, to its owners and the admins only', () => {
     const none = (meaning: string | null) =>
       defining({ name: 'Partner fees', family: { ...fees, meaning, source: { kind: 'none' } } })
-    const write = buttons(render(none(null)), /^Write what it means$/)
+    const write = buttons(render(none(null)), /^Write what Partner fees means$/)
     expect(write).toHaveLength(1)
     act(() => (write[0] as HTMLElement).click())
     expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Partner fees', {
@@ -999,13 +999,22 @@ describe("Ask's loop answer, state by state", () => {
     })
     act(() => root?.unmount())
     host?.remove()
-    expect(buttons(render(none(fees.meaning)), /^Write what it means$/)).toHaveLength(0)
+    expect(buttons(render(none(fees.meaning)), /^Write what Partner fees means$/)).toHaveLength(0)
     act(() => root?.unmount())
     host?.remove()
     const admin = world.me
-    world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    const as = (owns: string[]) => ({ name: 'Noor Other', role: 'Owner', owns, admin: false })
     try {
-      expect(buttons(render(none(null)), /^Write what it means$/)).toHaveLength(0)
+      world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(0)
+      act(() => root?.unmount())
+      host?.remove()
+      world.me = as(['area_sales'])
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(1)
+      act(() => root?.unmount())
+      host?.remove()
+      world.me = as(['area_customer_value'])
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(0)
     } finally {
       world.me = admin
     }

@@ -50,7 +50,7 @@ for (const { name, viewport } of [
         // At the answer's size, as a meaning is.
         expect(await own.evaluate((el) => getComputedStyle(el).fontSize)).toBe('16px')
         await expect(card).toContainText(/From dbt\s*Owned by/)
-        await card.getByRole('button', { name: 'Write what it means' }).click()
+        await card.getByRole('button', { name: 'Write what Partner forecasts means' }).click()
         const dialog = page.getByRole('dialog', { name: 'What Partner forecasts means' })
         await expect(dialog.getByRole('radio', { name: /^Written for the family/ })).toBeChecked()
         await expect(dialog.getByRole('textbox', { name: 'What it means' })).toBeFocused()
@@ -81,7 +81,7 @@ for (const { name, viewport } of [
         await expect(card).toContainText(
           'From dbt: the words of EUR, the variant USD is converted from',
         )
-        await expect(card.getByRole('button', { name: 'Write what it means' })).toHaveCount(0)
+        await expect(card.getByRole('button', { name: /^Write what .* means$/ })).toHaveCount(0)
       })
 
       test('written: the owner’s words, by whom and when', async ({ page }) => {
@@ -89,6 +89,6 @@ for (const { name, viewport } of [
         await expect(log.getByText(/are the payouts we expect to send partners/)).toBeVisible()
         await expect(card).toContainText('Written for the family by Jon Abara on 20 Oct 2026')
         await expect(card).not.toContainText('say something else')
-        await expect(card.getByRole('button', { name: 'Write what it means' })).toHaveCount(0)
+        await expect(card.getByRole('button', { name: /^Write what .* means$/ })).toHaveCount(0)
       })
     })

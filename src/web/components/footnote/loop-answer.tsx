@@ -1548,6 +1548,7 @@ function DefinitionCardOf({
           <P.Button
             variant="ghost"
             onClick={() => P.openDock('def', card.name, { meaning: 'write' })}
+            aria-label={`Write what ${card.name} means`}
           >
             Write what it means
           </P.Button>
