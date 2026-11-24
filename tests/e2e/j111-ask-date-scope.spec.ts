@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test'
 import { expect, go, mode, test } from './go.ts'
 
-// J110: a period chosen on the read line shows in the chat (R12). Choosing Last month asks the
+// J111: a period chosen on the read line shows in the chat (R12). Choosing Last month asks the
 // question again as a new turn under the first, which keeps its own read line; the new turn says
 // it was asked again at last month at once, then its read line names last month with its days and
 // its answer's first sentence names it too, both kept after a reload. An answer about what a
