@@ -558,8 +558,10 @@ describe('Ask on a family', () => {
     // Its card says whose words the meaning is: those its owner wrote above, by name and day (C1).
     expect(looked.definitions?.[0]?.family).toMatchObject({
       meaning: 'Revenue after refunds.',
-      source: { kind: 'written', by: 'owner', on: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
+      source: { kind: 'written', by: 'owner' },
     })
+    const written = looked.definitions?.[0]?.family?.source as { on?: string } | undefined
+    expect(written?.on).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
   it('answers a why-question from its definition under the Definition label, in words of its own', async () => {

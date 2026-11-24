@@ -224,14 +224,17 @@ function MeaningLead({
   const asked = query.get('meaning') === 'write'
   const meaning = family.meaning
   const mayChange = !!meaning && canChange && meaning.source !== 'declared'
-  React.useEffect(() => {
-    if (!asked) return
-    if (mayChange) {
+  const [handled, setHandled] = React.useState(false)
+  if (asked !== handled && (!asked || meaning)) {
+    setHandled(asked)
+    if (asked && mayChange) {
       setWriting(true)
       setChanging(true)
     }
-    void P.changeQuery({ meaning: undefined }, { replace: true })
-  }, [asked, mayChange, P])
+  }
+  React.useEffect(() => {
+    if (asked) void P.changeQuery({ meaning: undefined }, { replace: true })
+  }, [asked, P])
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
   const Icon =
