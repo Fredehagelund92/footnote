@@ -1496,33 +1496,82 @@ describe('the model check (P5, D4)', () => {
 })
 
 describe('the server instructions of an answer test (F1)', () => {
-  it('are what the eval client is told when it connects, About our business last, as the plan keys them', async () => {
-    const about = 'We are an outdoor-gear retailer, in twelve markets.'
-    await client.query(
-      `insert into settings_versions (key, version, value, reason)
-       select 'business.about', max(version) + 1, to_jsonb($1::text), 'test' from settings_versions
-        where key = 'business.about'`,
-      [about],
-    )
-    try {
-      const { bundle, policy } = await database.transaction(people.owner, async (tx) => ({
-        bundle: await loadServingBundle(tx, (await liveHead(tx))!),
-        policy: await loadServingPolicy(tx, evalClient),
-      }))
-      const arm = await openArm(bundle, database, clock)
-      try {
-        expect(arm.instructions).toBe(armInstructions(bundle, policy))
-        expect(arm.instructions).toMatch(/^Footnote holds checked context about company metrics/)
-        expect(arm.instructions).toContain(`\n${about}\nEnd of about our business.`)
-      } finally {
-        await arm.close()
-      }
-    } finally {
-      await client.query(
-        `insert into settings_versions (key, version, value, reason)
-         select 'business.about', max(version) + 1, '""', 'test' from settings_versions
-          where key = 'business.about'`,
+  const setAbout = (text: string) => setting('business.about', text)
+  /** The scripted answer model, noting the system messages of every call. */
+  const scripted = models.choose('eval_answer').model as MockLanguageModelV4
+  const systems: string[] = []
+  const noting = new MockLanguageModelV4({
+    provider: 'mock',
+    modelId: 'scripted-answer',
+    doGenerate: (options) => {
+      systems.push(
+        options.prompt
+          .filter((m) => m.role === 'system')
+          .map((m) => m.content)
+          .join('\n'),
       )
+      return scripted.doGenerate(options)
+    },
+  })
+  const port: ModelPort = {
+    ...models,
+    choose: (role, ref) => ({
+      ...models.choose(role, ref),
+      ...(role === 'eval_answer' ? { model: noting } : {}),
+    }),
+  }
+  afterAll(() => setAbout(''))
+
+  it('are what the eval client is told when it connects, About our business last', async () => {
+    const about = 'We are an outdoor-gear retailer, in twelve markets.'
+    await setAbout(about)
+    const { bundle, policy } = await database.transaction(people.owner, async (tx) => ({
+      bundle: await loadServingBundle(tx, (await liveHead(tx))!),
+      policy: await loadServingPolicy(tx, evalClient),
+    }))
+    const arm = await openArm(bundle, database, clock)
+    try {
+      expect(arm.instructions).toBe(armInstructions(bundle, policy))
+      expect(arm.instructions).toMatch(/^Footnote holds checked context about company metrics/)
+      expect(arm.instructions).toContain(`\n${about}\nEnd of about our business.`)
+    } finally {
+      await arm.close()
+    }
+  })
+
+  it('key a run and reach its model as it was planned, when About changes before it is worked', async () => {
+    const queue = () =>
+      database.transaction(people.admin, (tx) =>
+        queueAreaRun(tx, { port, clock }, 'finance', 'full', true),
+      )
+    const keys = (run: Awaited<ReturnType<typeof queue>>) =>
+      run!.summary.plan.questions.flatMap((q) => q.keys.baseline ?? [])
+    await save(question('f1-about', 'Online sales'))
+    await setAbout('We are an outdoor-gear retailer, in twelve markets.')
+    const planned = await queue()
+    await setAbout('We are a bicycle maker, in three markets.')
+    const later = await queue()
+    expect(keys(planned).length).toBeGreaterThan(0)
+    expect(keys(later).filter((key) => keys(planned).includes(key))).toEqual([])
+    expect(planned!.summary.policy.about).toBe(
+      'We are an outdoor-gear retailer, in twelve markets.',
+    )
+    await client.query("update eval_runs set state='cancelled' where id=$1", [later!.id])
+    systems.length = 0
+    await workEvaluations(
+      database,
+      { port, clock },
+      {
+        deadline: Date.now() + 30_000,
+        signal: new AbortController().signal,
+        logger,
+        only: planned!.id,
+      },
+    )
+    expect(systems.length).toBeGreaterThan(0)
+    for (const system of systems) {
+      expect(system).toContain('\nWe are an outdoor-gear retailer, in twelve markets.\n')
+      expect(system).not.toContain('bicycle')
     }
   })
 })

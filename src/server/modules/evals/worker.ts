@@ -245,7 +245,10 @@ async function workRun(
         let arm = arms.get(key)
         if (!arm) {
           const clock = day ? onDay(deps.clock, day) : deps.clock
-          arm = openArm(sides[name]!, database, clock, run.summary.tools[name])
+          arm = openArm(sides[name]!, database, clock, {
+            tools: run.summary.tools[name],
+            ...run.summary.policy,
+          })
           arms.set(key, arm)
         }
         return arm

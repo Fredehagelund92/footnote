@@ -72,8 +72,11 @@ export async function openArm(
   bundle: ServingBundle,
   database: Queryable,
   clock: Clock,
-  /** The tools this side offers, fixed when the run was planned; the live switch otherwise. */
-  tools?: readonly string[],
+  /**
+   * What the run fixed when it was planned: the tools this side offers, and About our business
+   * and the calendar its instructions say. The live policy for anything not given.
+   */
+  fixed: Partial<Pick<ServingPolicy, 'tools' | 'about' | 'calendar'>> = {},
 ): Promise<Arm> {
   const { privateKey } = generateKeyPairSync('ed25519')
   const resource = 'http://localhost/mcp'
@@ -81,10 +84,7 @@ export async function openArm(
   registerMcpRoutes(app, {
     source: {
       bundle: () => Promise.resolve(bundle),
-      policy: async (label) => {
-        const policy = await loadServingPolicy(database, label)
-        return tools ? { ...policy, tools: [...tools] } : policy
-      },
+      policy: async (label) => ({ ...(await loadServingPolicy(database, label)), ...fixed }),
     },
     store: noDemand,
     verifier: createDevVerifier(privateKey, resource, 'test'),
