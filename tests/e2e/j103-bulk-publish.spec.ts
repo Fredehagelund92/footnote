@@ -38,12 +38,12 @@ test('An owner publishes their own drafts at once; a draft without a source stay
   await allDrafts(page)
   await publish(page).click()
   await expect(said(page, '1 published')).toBeVisible()
-  await expect(said(page, '1 skipped: missing a source')).toBeVisible()
-  // What was left alone stays ticked, with why a hover away.
+  // What was left alone stays ticked, and the line says at once what it needs, with why a hover away.
+  await expect(said(page, 'Nothing to publish: add a source first.')).toBeVisible()
   await expect(titles(page)).toHaveText(['Store returns in Spain count on the day they are booked'])
   await expect(bar(page)).toContainText('1 selected')
   await page.getByRole('button', { name: 'Why they were skipped' }).hover()
-  await expect(page.getByText('Add a source first.')).toBeVisible()
+  await expect(page.locator('li', { hasText: 'Add a source first.' })).toBeVisible()
   // Undo takes it from agents, and it is a draft again.
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(titles(page)).toHaveCount(2)
@@ -62,6 +62,8 @@ test("A member sends their own draft to the domain's owners, and can't publish w
   await expect(publish(page)).toHaveAccessibleDescription(
     /^Only owners of .+ and admins can change it\.$/,
   )
+  // The line above the bar says it at once, not only on a hover.
+  await expect(page.getByText(/^Nothing to publish: it is owned by .+\.$/).last()).toBeVisible()
   await page.keyboard.press('Escape')
   await allDrafts(page)
   // The button says it suggests, not publishes, and to whom; it works from the keyboard.
@@ -70,7 +72,7 @@ test("A member sends their own draft to the domain's owners, and can't publish w
   await suggest.focus()
   await page.keyboard.press('Enter')
   await expect(said(page, '1 sent to the owners of Marketing')).toBeVisible()
-  await expect(said(page, 'Agents get them once an owner publishes them.')).toBeVisible()
+  await expect(said(page, 'Agents get it once an owner publishes it.')).toBeVisible()
   // Sent, it waits for the owners and is no draft of hers any more.
   await expect(titles(page).filter({ hasText: 'Spring campaign spend' })).toHaveCount(0)
 })
@@ -100,14 +102,18 @@ test('Publishing many asks once, says agents get them, and names what it leaves'
   // Jon's own 2 drafts beside the 21 he imported; 3 of them have no source.
   const confirm = page.getByRole('dialog', { name: 'Publish 20 drafts?' })
   await expect(confirm).toContainText('Agents get them from the next question.')
-  await expect(confirm.getByRole('list', { name: 'To publish' }).getByRole('listitem')).toHaveCount(
-    20,
-  )
-  await expect(confirm).toContainText('3 skipped: missing a source')
   // Cancel has the focus: a slip of Enter publishes nothing.
   await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused()
+  // A few titles, the rest one click away; what it leaves, by reason, as information.
+  const titlesIn = confirm.getByRole('list', { name: 'To publish' }).getByRole('listitem')
+  await expect(titlesIn).toHaveCount(4)
+  await confirm.getByRole('button', { name: 'Show all 20' }).click()
+  await expect(titlesIn).toHaveCount(20)
+  await expect(confirm).toContainText('3 you ticked are not in this Publish: 3 need a fix first.')
   await confirm.getByRole('button', { name: 'Publish 20 drafts' }).click()
   await expect(said(page, '20 published')).toBeVisible()
-  await expect(said(page, '3 skipped: missing a source')).toBeVisible()
+  await expect(
+    said(page, 'Nothing to publish: 3 need a fix first. Open one to fix it.'),
+  ).toBeVisible()
   await expect(titles(page)).toHaveCount(3)
 })

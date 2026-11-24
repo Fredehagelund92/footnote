@@ -513,6 +513,8 @@ function IconAction({
 type PaneNav = {
   onStep: (d: 1 | -1) => void
   onBack?: () => void
+  /** Where the back arrow goes, said beside it ("21 drafts"): a draft open in its card's place. */
+  backLabel?: string
   /** "3 of 20 in Needs me". */
   position?: string
   /** The new card's body fades in (a pointer pick or a decision); J and K stay at once. */
@@ -525,7 +527,7 @@ type PaneNav = {
  */
 function InboxPanel({
   label,
-  nav: { onStep, onBack, position, fade },
+  nav: { onStep, onBack, backLabel, position, fade },
   foot,
   children,
 }: {
@@ -542,11 +544,22 @@ function InboxPanel({
       className="group/pane"
       bodyClassName={fade ? 'dock-swap' : undefined}
       leading={
-        onBack && (
+        onBack &&
+        (backLabel ? (
+          <Button
+            variant="ghost"
+            aria-label={`Back to ${backLabel}`}
+            className="-ml-1 text-muted-foreground"
+            onClick={onBack}
+          >
+            <ArrowLeftIcon />
+            {backLabel}
+          </Button>
+        ) : (
           <Button variant="ghost" size="icon" aria-label="Back to the list" onClick={onBack}>
             <ArrowLeftIcon />
           </Button>
-        )
+        ))
       }
       actions={
         <>
@@ -1153,8 +1166,12 @@ function DraftsDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next
       <DraftsReview
         card={card}
         onFinished={next}
-        frame={(body, foot) => (
-          <InboxPanel label={card.title} nav={nav} foot={foot}>
+        frame={(body, foot, reading) => (
+          <InboxPanel
+            label={card.title}
+            nav={reading ? { ...reading, fade: false } : nav}
+            foot={foot}
+          >
             {body}
           </InboxPanel>
         )}
@@ -1556,7 +1573,7 @@ export function InboxPage() {
   const select = (id?: string, pointer = false, key = false) => {
     // On a phone the whole card slides in; its body does not fade on top of that.
     setPicked({ id, fade: pointer && !isMobile, key })
-    setQuery({ card: id ?? (isMobile ? undefined : 'none') })
+    setQuery({ card: id ?? (isMobile ? undefined : 'none'), draft: undefined })
   }
   React.useEffect(() => {
     if (picked.key && picked.id === selectedId) primary()?.focus()
@@ -1589,7 +1606,7 @@ export function InboxPage() {
   const next = () => {
     const rest = needing.filter((r) => rowId(r) !== selectedId)
     setPicked({ id: rest[0] && rowId(rest[0]), fade: true })
-    setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined })
+    setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined, draft: undefined })
   }
 
   // J and K step through the list, Enter opens the selected card's primary action.
@@ -1597,8 +1614,9 @@ export function InboxPage() {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
       if (!pageKey(e)) return
-      if (e.key === 'j') step(1)
-      if (e.key === 'k') step(-1)
+      // A draft open in its card's place takes J and K for its own drafts.
+      if (e.key === 'j' && !e.defaultPrevented) step(1)
+      if (e.key === 'k' && !e.defaultPrevented) step(-1)
       // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
       // Ticked rows clear first, in the selection's own Esc. A panel open in the card's place (a
       // family opened from the Names card) takes its own Esc and closes: the card comes back.
