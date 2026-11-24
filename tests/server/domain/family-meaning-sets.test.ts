@@ -10,8 +10,9 @@ import { meaningLine } from '../../../src/domain/family-meaning-line.ts'
   `base` the variant whose words alone are it, the others worked out from it.
 
   What the rule still gets wrong, on purpose kept here: C4 reads a column formula as the family's
-  words. And no rule reads rewording (P3, L4, R1, X1, X3): those families have no meaning until an
-  owner writes one.
+  words. And no rule reads rewording (L4, R1, X1, X3): those families have no meaning until an
+  owner writes one. P3's USD words say it is converted, naming only its own currency: the EUR words
+  speak for it (C3).
 */
 
 type Invented = {
@@ -76,7 +77,8 @@ const sets: Invented[] = [
       ],
       ['seller_payouts_usd', ['USD'], "Seller payouts converted to USD at each month's rate."],
     ],
-    means: null,
+    means: 'Payouts we send sellers in each currency, booked on the day they are sent.',
+    base: 'seller_payouts_eur',
   },
   {
     id: 'P4',

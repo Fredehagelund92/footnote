@@ -9,6 +9,7 @@ import { dimensionHue } from '@domain/ask-nouns'
 import { answerLines } from '@domain/words'
 import examples from '@/api/mock/data/loop-examples.json'
 import { usedTurn } from '@/api/mock/loop-used'
+import { openDock } from '@/lib/dock'
 
 /*
   Ask's loop answers as the page draws them (direction C, FR-349, FR-718 to FR-720), in every state
@@ -953,7 +954,7 @@ describe("Ask's loop answer, state by state", () => {
       'USD: Fees partners report on referred users in USD (EUR × row fx_usd).',
     ])
     expect(text(shown)).not.toContain('near-identical')
-    // A family with no meaning says so, then gives every variant's words.
+    // A family with no meaning: its variants say what it is, every one's words at full size.
     const none = render(
       defining(
         { name: 'Partner fees', words: agentWords, family: { ...fees, meaning: null } },
@@ -961,9 +962,93 @@ describe("Ask's loop answer, state by state", () => {
       ),
       'What is partner fees?',
     )
-    expect(text(none.querySelector('[data-definition-card] blockquote')!)).toMatch(
-      /^No meaning yet: no words speak for all its variants\.USD: /,
+    const said = none.querySelector('[data-definition-card] blockquote')!
+    expect(text(said)).toMatch(/^Its 2 variants say what it is in their own words:USD: /)
+    expect(said.querySelector('ul')?.className).not.toMatch(/text-sm/)
+    expect(text(none)).not.toContain('No meaning yet')
+  })
+
+  it('Definition card of a family with no meaning: never stands in for the answer’s sentence (C1)', () => {
+    // The sentence repeats a variant's words, which made the card stand in for it (S1).
+    const words = 'Partner fees are what partners report, in USD (EUR × row fx_usd).'
+    const el = render(
+      defining(
+        { name: 'Partner fees', family: { ...fees, meaning: null, source: { kind: 'none' } } },
+        words,
+      ),
+      'What is partner fees?',
     )
+    expect(text(el)).toContain(words)
+    expect(el.querySelector('[data-answer-words] [data-definition-card]')).toBeNull()
+    // With a meaning it still stands in.
+    const meant = render(
+      defining({ name: 'Partner fees', family: fees }, words),
+      'What is partner fees?',
+    )
+    expect(text(meant)).not.toContain(words)
+  })
+
+  it('Definition card of a family with no meaning: Write what it means, to its owners and the admins only', () => {
+    const none = (meaning: string | null) =>
+      defining({ name: 'Partner fees', family: { ...fees, meaning, source: { kind: 'none' } } })
+    const write = buttons(render(none(null)), /^Write what Partner fees means$/)
+    expect(write).toHaveLength(1)
+    act(() => (write[0] as HTMLElement).click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Partner fees', {
+      meaning: 'write',
+    })
+    act(() => root?.unmount())
+    host?.remove()
+    expect(buttons(render(none(fees.meaning)), /^Write what Partner fees means$/)).toHaveLength(0)
+    act(() => root?.unmount())
+    host?.remove()
+    const admin = world.me
+    const as = (owns: string[]) => ({ name: 'Noor Other', role: 'Owner', owns, admin: false })
+    try {
+      world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(0)
+      act(() => root?.unmount())
+      host?.remove()
+      world.me = as(['area_sales'])
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(1)
+      act(() => root?.unmount())
+      host?.remove()
+      world.me = as(['area_customer_value'])
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(0)
+    } finally {
+      world.me = admin
+    }
+  })
+
+  it('Definition card of a family: From names where its meaning comes from (C1, C4)', () => {
+    const from = (
+      source: NonNullable<DefinitionCard['family']>['source'],
+      meaning: string | null = fees.meaning,
+    ) => {
+      const el = render(
+        defining({ name: 'Partner fees', member: null, family: { ...fees, meaning, source } }),
+        'What is partner fees?',
+      )
+      const line = el.querySelector('[data-definition-card] blockquote + div p')!
+      const said = text(line)
+      act(() => root?.unmount())
+      host?.remove()
+      return said
+    }
+    expect(from({ kind: 'base', values: ['EUR'], converted: [['USD']] })).toBe(
+      'From Cube: the words of EUR, the variant USD is converted from',
+    )
+    expect(from({ kind: 'base', values: ['EUR'], converted: [['USD'], ['GBP']] })).toBe(
+      'From Cube: the words of EUR, the variant the others are converted from',
+    )
+    expect(from({ kind: 'common', agree: 2 })).toBe('From Cube: the words its 2 variants share')
+    expect(from({ kind: 'declared' })).toBe('Written for the family in Cube')
+    expect(from({ kind: 'written', by: 'Sofia Brandt', on: '2026-10-20' })).toBe(
+      'Written for the family by Sofia Brandt on 20 Oct 2026',
+    )
+    expect(from({ kind: 'none' }, null)).toBe('From Cube')
+    // A turn written before the card knew says only the tool.
+    expect(from(undefined)).toBe('From Cube')
   })
 
   it('Quoted definition of a family: its meaning and variants’ words, the word the question turns on marked in them (R6)', () => {

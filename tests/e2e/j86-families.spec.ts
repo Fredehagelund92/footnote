@@ -55,7 +55,7 @@ for (const { name, width, height } of widths) {
           .getByRole('img', { name: 'From Cube' }),
       ).toBeVisible()
       await search.fill('')
-      await expect(page.getByText(/\(5,009 variants\)/).first()).toBeVisible()
+      await expect(page.getByText(/\(5,011 variants\)/).first()).toBeVisible()
     })
 
     test('keeps a family’s row at a metric row’s height and its name whole, the panel open or not, and counts what the search shows', async ({

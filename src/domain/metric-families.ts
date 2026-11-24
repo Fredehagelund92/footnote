@@ -22,7 +22,7 @@
 import { CURRENCIES } from './currencies.ts'
 import type { DeclaredFamily, VariantValue } from './definition-helpers.ts'
 import type { FamilyFound } from './family-found.ts'
-import { axisValues, worksOut } from './family-meaning.ts'
+import { workedOut } from './family-meaning.ts'
 import { conversionsOf, type BuiltFrom, type Conversion } from './definition-relations.ts'
 import { keyPart } from './term-candidates.ts'
 import { normalizeName } from './vocabulary.ts'
@@ -580,14 +580,19 @@ const DERIVATIONS_MAX = 3
 /**
  * The variants whose source says how they are worked out from another: each whose description
  * names a rate and another variant's value ("The EUR amount multiplied by the row's exchange
- * rate", of the USD one). The source's words, never Footnote's guess.
+ * rate", of the USD one), or, by Currency, says it is converted to its own currency. The source's words, never Footnote's guess.
  */
 export function derivedVariants<
   V extends { values: readonly string[]; description: string | null },
 >(variants: readonly V[]): V[] {
   // Every variant holds one value for each of what tells them apart, in the same order.
-  const axes = axisValues(variants[0]?.values ?? [], variants)
-  return variants.filter((variant) => worksOut(variant, axes))
+  const by = variants[0]?.values ?? []
+  const worked = workedOut({
+    by,
+    variants: variants.map((variant, i) => ({ ...variant, key: String(i) })),
+    conversions: [],
+  })
+  return variants.filter((_, i) => worked.has(String(i)))
 }
 
 /**

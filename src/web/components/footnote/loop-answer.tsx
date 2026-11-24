@@ -1360,6 +1360,31 @@ function DefinitionCards({ loop, maps }: { loop: LoopTurn; maps: ReturnType<type
 
 const kindWord = { metric: 'Metric', dimension: 'Dimension', term: 'Word' } as const
 
+/**
+ * Where a family's meaning comes from, as its card says it (C1): its tool, and whose words they are.
+ * A turn written before it knew says only the tool.
+ */
+function meaningFrom(family: FamilyShown, tool: string): string {
+  const source = family.source
+  const n = family.variants.toLocaleString('en-GB')
+  switch (source?.kind) {
+    case 'declared':
+      return `Written for the family in ${tool}`
+    case 'written':
+      return `Written for the family by ${source.by} on ${dayText(source.on, true)}`
+    case 'common':
+      return source.agree === family.variants
+        ? `From ${tool}: the words its ${n} variants share`
+        : `From ${tool}: the words ${source.agree.toLocaleString('en-GB')} of its ${n} variants share`
+    case 'base':
+      return `From ${tool}: the words of ${source.values.join(', ')}, the variant ${
+        source.converted.length === 1 ? `${source.converted[0]!.join(', ')} is` : 'the others are'
+      } converted from`
+    default:
+      return `From ${tool}`
+  }
+}
+
 /** What a card says a definition is: "Metric", "Family of 2 metrics, by Currency". */
 const kindOf = (card: DefinitionCard) =>
   card.family
@@ -1368,7 +1393,8 @@ const kindOf = (card: DefinitionCard) =>
 
 /**
  * A family's definition as an answer shows it (FR-142): its meaning, then the own words of its
- * variants that say something else or how they are worked out, each after its values. `mark` is
+ * variants that say something else or how they are worked out, each after its values. With no
+ * meaning, its variants say what it is in their own words, as large as a meaning (C1). `mark` is
  * marked where it first shows.
  */
 function FamilyDefinition({
@@ -1380,6 +1406,7 @@ function FamilyDefinition({
   mark?: string
   className?: string
 }) {
+  const P = useParts()
   const parts = [family.meaning ?? '', ...family.own.map((o) => o.words)]
   const marked = mark ? parts.findIndex((p) => p.toLowerCase().includes(mark.toLowerCase())) : -1
   const words = (text: string, at: number) =>
@@ -1388,13 +1415,18 @@ function FamilyDefinition({
     <div className={className}>
       {family.meaning ? (
         <p>{words(family.meaning, 0)}</p>
-      ) : (
-        <p className="text-muted-foreground">
-          No meaning yet: no words speak for all its variants.
+      ) : family.own.length ? (
+        <p className="text-sm text-muted-foreground">
+          Its {family.variants.toLocaleString('en-GB')} variants say what it is in their own words:
         </p>
+      ) : (
+        <p className="text-muted-foreground">Its variants have no words of their own yet.</p>
       )}
       {family.own.length > 0 && (
-        <ul aria-label="In its variants’ own words" className="mt-2 flex flex-col gap-1.5 text-sm">
+        <ul
+          aria-label="In its variants’ own words"
+          className={P.cn('flex flex-col gap-1.5', family.meaning ? 'mt-2 text-sm' : 'mt-1.5')}
+        >
           {family.own.map((o, i) => (
             <li key={o.values.join(', ')}>
               <span className="font-medium">{o.values.join(', ')}</span>
@@ -1437,6 +1469,11 @@ function DefinitionCardOf({
     (me.admin || card.owners.includes(me.name) || (!!at && me.owns.some((d) => sameDomain(d, at))))
   // The editor starts in the metric's domain, as the workspace names it.
   const domain = at ? Object.keys(domains).find((d) => sameDomain(d, at)) : undefined
+  // A family with no meaning: its owners and the admins are offered to write what it means (C1).
+  const meansNothing =
+    !!card.family &&
+    !card.family.meaning &&
+    (me.admin || card.owners.includes(me.name) || (!!at && me.owns.some((d) => sameDomain(d, at))))
   return (
     <article
       data-definition-card
@@ -1473,7 +1510,7 @@ function DefinitionCardOf({
           <p>Its description mentions “{card.mentions}”</p>
         )}
         <p>
-          From {card.tool}
+          {card.family ? meaningFrom(card.family, card.tool) : `From ${card.tool}`}
           {card.member && (
             <>
               {', as '}
@@ -1507,6 +1544,15 @@ function DefinitionCardOf({
           <P.BookOpenIcon data-icon="inline-start" />
           Open the definition
         </P.Button>
+        {meansNothing && (
+          <P.Button
+            variant="ghost"
+            onClick={() => P.openDock('def', card.name, { meaning: 'write' })}
+            aria-label={`Write what ${card.name} means`}
+          >
+            Write what it means
+          </P.Button>
+        )}
         {rows.length > 0 ? (
           <P.Button variant="ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             {`See the ${items}`}
@@ -2072,10 +2118,12 @@ const wordsLength = (loop: LoopTurn, nouns: Nouns) =>
 
 /**
  * Whether the definition cards stand in for the answer's words: every definition the answer is
- * about has its card, and the words only give those definitions.
+ * about has its card, and the words only give those definitions. A family with no meaning never
+ * does (C1): its card gives its variants' words, and the answer's sentence what it is.
  */
 const cardsStandIn = (loop: LoopTurn) =>
-  !!loop.defined?.cards.length && loop.defined.cards.every((c) => c.inWords)
+  !!loop.defined?.cards.length &&
+  loop.defined.cards.every((c) => c.inWords && !(c.family && !c.family.meaning))
 
 function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const P = useParts()

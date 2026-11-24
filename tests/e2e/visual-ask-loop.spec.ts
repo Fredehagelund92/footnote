@@ -22,6 +22,9 @@ const answers = [
   'loop-period',
   // What a metric means: no period to choose on the read line.
   'loop-definition',
+  'loop-family-none',
+  'loop-family-base',
+  'loop-family-written',
 ]
 const widths = [
   { name: '1440', viewport: { width: 1440, height: 1200 } },

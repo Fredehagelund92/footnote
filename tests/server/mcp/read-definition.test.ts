@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
 import { servedWords, type WrittenTerm } from '../../../src/domain/served-terms.ts'
+import { familyWordsFrom } from '../../../src/server/mcp/read-definition.ts'
 import { createToolService } from '../../../src/server/mcp/service.ts'
 import type { EditionSource, ServingBundle } from '../../../src/server/modules/editions/index.ts'
 import type { DefinitionRead } from '../../../src/server/mcp/reads.ts'
@@ -270,4 +271,13 @@ it('says a family was not read for its words when the live catalogue was not, an
   expect(definition.words_from).toContain('not read for this edition')
   expect(definition.words_from).not.toContain('No definition source')
   expect(Object.keys(definition.family)).toEqual(['members'])
+})
+
+it('says where a family’s words come from: the base’s own when the others are converted from it', () => {
+  expect(familyWordsFrom('common', 'dbt')).toBe(
+    'The words most of its metrics share in dbt, with each value as what it stands for.',
+  )
+  expect(familyWordsFrom('common', 'Cube', ['EUR'])).toBe(
+    'The words of the metric the others are converted from (EUR) in Cube, with each value as what it stands for.',
+  )
 })

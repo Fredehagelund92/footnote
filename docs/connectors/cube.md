@@ -160,6 +160,10 @@ measures:
           currency: EUR
 ```
 
+A measure whose `sql` is plain column arithmetic says what it is built from: the columns it reads and the measures it takes. A USD measure that reads the EUR one's column and a rate, such as `{CUBE}.amount_eur * {CUBE}.exchange_rate_usd`, is converted from it, and the EUR words then speak for the family.
+
+A function, a keyword or a text literal in the `sql` says nothing, nor does a measure that takes a dimension or a member the view leaves out. Only the names are kept, never the `sql`.
+
 ## Links to model files
 
 Set the model folder's address to link each view to its file. On the Cube source's page, set **Model folder address**, for example:

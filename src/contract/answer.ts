@@ -266,6 +266,10 @@ export type LoopOverview = z.infer<typeof overviewSchema>
  * none), and the own words of its variants that say something else or how they are worked out
  * from another (of every variant, with no meaning), by their values: at most a few, and how many
  * more have words of their own. Only the page reads it; Ask's model reads the definition's words.
+ * `source` is where the meaning comes from (C1): words declared for the family in its tool,
+ * written by an owner (by name, and the day), the words most of its variants share (how many), or
+ * the words of its base, the variant the others are converted from (its values, and each other
+ * variant's); `none` for no meaning. A turn written before it has none.
  */
 export const familyShownSchema = z.object({
   by: z.array(z.string()),
@@ -273,6 +277,19 @@ export const familyShownSchema = z.object({
   meaning: z.nullable(z.string()),
   own: z.array(z.object({ values: z.array(z.string()), words: z.string() })),
   more: z.number(),
+  source: z.optional(
+    z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('declared') }),
+      z.object({ kind: z.literal('written'), by: z.string(), on: z.string() }),
+      z.object({ kind: z.literal('common'), agree: z.number() }),
+      z.object({
+        kind: z.literal('base'),
+        values: z.array(z.string()),
+        converted: z.array(z.array(z.string())),
+      }),
+      z.object({ kind: z.literal('none') }),
+    ]),
+  ),
 })
 export type FamilyShown = z.infer<typeof familyShownSchema>
 

@@ -233,7 +233,11 @@ export function definitionEntry(
     other_names: term.aliases,
     words,
     words_from: family
-      ? familyWordsFrom(family.meaning.source, tool)
+      ? familyWordsFrom(
+          family.meaning.source,
+          tool,
+          family.variants.find((v) => v.key === family.meaning.base)?.values ?? null,
+        )
       : unread
         ? `A family's words and values come from the live definitions, which were not read for this edition: read it without an edition for them. Its metrics in this edition are in family.`
         : described
@@ -323,13 +327,19 @@ export function definitionEntry(
 }
 
 /** Where a family's meaning comes from, in a sentence. */
-function familyWordsFrom(source: 'declared' | 'written' | 'common' | 'none', tool: string) {
+export function familyWordsFrom(
+  source: 'declared' | 'written' | 'common' | 'none',
+  tool: string,
+  base: readonly string[] | null = null,
+) {
   switch (source) {
     case 'declared':
       return `The words ${tool} declares for the family.`
     case 'written':
       return 'Words an owner of its domain or an admin wrote for the family in Definitions.'
     case 'common':
+      if (base)
+        return `The words of the metric the others are converted from (${base.join(', ')}) in ${tool}, with each value as what it stands for.`
       return `The words most of its metrics share in ${tool}, with each value as what it stands for.`
     case 'none':
       return "Nothing says what the family means: read its metrics' own words in members."
