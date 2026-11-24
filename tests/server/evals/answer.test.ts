@@ -32,7 +32,9 @@ const passing: JudgeVerdict = {
 /** Scores an answer that cites what it was given, from the tool calls it made. */
 const score = (id: string, calls: [tool: string, output: unknown][]) => {
   const q = question(id)
-  const seen = observed(calls.map(([tool, output]) => recordOf(tool, { query: 'net revenue' }, output)))
+  const seen = observed(
+    calls.map(([tool, output]) => recordOf(tool, { query: 'net revenue' }, output)),
+  )
   const answer = seen.delivered.map((item) => `[${item}]`).join(' ')
   const verdict = { ...passing, rubrics: rubricIds(q.rubrics).map((id) => ({ id, passed: true })) }
   return scoreTry(q.expected, q.rubrics, { refused: false, answer, ...seen, verdict })

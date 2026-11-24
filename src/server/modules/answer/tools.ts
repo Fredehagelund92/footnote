@@ -1394,9 +1394,7 @@ async function readContext(
     )
     page = next?.structuredContent ?? {}
   }
-  const linkedFrom = mentions
-    .slice(0, BACKLINKS_SHOWN)
-    .map(({ id, title }) => ({ id, title }))
+  const linkedFrom = mentions.slice(0, BACKLINKS_SHOWN).map(({ id, title }) => ({ id, title }))
   const source = whole.source as { url: string; quote: string } | undefined
   const ownerIds = view.areas.find((a) => a.id === item.areaId)?.ownerIds ?? []
   const changes = (await reads.itemHistory(item.id)) ?? []
