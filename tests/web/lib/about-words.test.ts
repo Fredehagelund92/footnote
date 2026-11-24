@@ -48,6 +48,8 @@ describe('the words About our business defines again', () => {
     expect(names('Net revenue:')).toEqual([])
     expect(names('**Net revenue:**')).toEqual([])
     expect(names('**Net revenue**:')).toEqual([])
+    expect(names('Orders: _net_ of returns')).toEqual(['Orders'])
+    expect(names('**Orders:** *after VAT*')).toEqual(['Orders'])
   })
 
   it('says where the definition is: from its tool, a term or another name in Definitions', () => {

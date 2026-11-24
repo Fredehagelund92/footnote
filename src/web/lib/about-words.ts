@@ -11,10 +11,13 @@ import type { Definition } from '@/lib/definitions'
  */
 function wordOf(line: string): string | null {
   const said =
-    /^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*|__)?([^:*_\n]{1,60}?)(?:\*\*|__)?\s*:\s*(?:\*\*|__)?\s*[^\s*_]/.exec(
-      line,
-    )
-  return said ? said[1]!.trim() || null : null
+    /^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\*\*|__)?([^\s:*_][^:*_\n]{0,59}?)(?:\*\*|__)?\s*:/.exec(line)
+  if (!said) return null
+  const meaning = line
+    .slice(said[0].length)
+    .trim()
+    .replace(/^(?:\*\*|__)/, '')
+  return meaning.trim() ? said[1]!.trim() : null
 }
 
 /** A definition by its name, a variant's name or its plural, either way ("Order" is Orders). */

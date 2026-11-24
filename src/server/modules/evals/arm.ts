@@ -84,7 +84,10 @@ export async function openArm(
   registerMcpRoutes(app, {
     source: {
       bundle: () => Promise.resolve(bundle),
-      policy: async (label) => ({ ...(await loadServingPolicy(database, label)), ...fixed }),
+      policy: async (label) => ({
+        ...(await loadServingPolicy(database, label)),
+        ...Object.fromEntries(Object.entries(fixed).filter(([, value]) => value !== undefined)),
+      }),
     },
     store: noDemand,
     verifier: createDevVerifier(privateKey, resource, 'test'),
