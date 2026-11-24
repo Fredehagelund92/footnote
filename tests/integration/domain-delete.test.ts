@@ -223,9 +223,12 @@ describe('a domain from its page', () => {
     })
     expect(made.statusCode, made.body).toBe(200)
     const { id } = made.json<ProposalRecord>()
-    const plan = await client.query<{ plan: { drafts: number; draftWriters: string[] } }>(
-      "select cl_area_deletion_plan('quiet') as plan",
-    )
+    const plan = await transaction(client, async () => {
+      await client.query("select set_config('cl.person_id', $1, true)", [people.admin])
+      return client.query<{ plan: { drafts: number; draftWriters: string[] } }>(
+        "select cl_area_deletion_plan('quiet') as plan",
+      )
+    })
     expect(plan.rows[0]!.plan.drafts).toBe(1)
     expect(plan.rows[0]!.plan.draftWriters).toEqual([people.author])
     expect(JSON.stringify(plan.rows[0]!.plan)).not.toContain('Private pantry numbers')
