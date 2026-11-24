@@ -157,3 +157,29 @@ export const importedDrafts = (): Fact[] =>
       dontConclude: '',
     }),
   )
+
+/**
+ * What ?demo=backlog adds to Context: 60 drafts Jon Abara brought in from the team wiki, all ready,
+ * more than one Publish takes, so the list's bar publishes them in two presses.
+ */
+export const backlogDrafts = (): Fact[] =>
+  Array.from({ length: 60 }, (_, i) => {
+    const n = String(i + 1).padStart(2, '0')
+    const summary = `Wiki note ${n} on orders in Norway, as the team wrote it down.`
+    return withWhen({
+      id: `itm_draft_backlog_${n}`,
+      title: `Orders in Norway, wiki note ${n}`,
+      summary,
+      domain: 'sales',
+      kind: 'note',
+      where: ['Orders', 'Norway'],
+      valid: { ongoing: true },
+      status: 'Draft',
+      by: 'Jon Abara',
+      checkedBy: '',
+      checkedOn: '',
+      source: `https://wiki.example/data/backlog-${n}`,
+      quote: summary,
+      dontConclude: '',
+    })
+  })

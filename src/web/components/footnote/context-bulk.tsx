@@ -44,7 +44,6 @@ import {
   heldRows,
   movableTo,
   planFacts,
-  PUBLISH_MAX,
   publishedLine,
   publishedWhen,
   publishesNow,
@@ -238,7 +237,8 @@ export function ContextBulk({
   const deleteReason =
     off ??
     (deletePlan.act.length || publishedPlan.act.length ? undefined : deletePlan.skipped[0]?.reason)
-  // Publish is the writer's too, so it is off only offline, for what is not a draft, or for too many.
+  // Publish is the writer's too, so it is off only offline or for what is not a draft. Past a
+  // batch it takes the first ones and keeps the rest ticked, saying so.
   const publishPlan = planFacts('publish', picked, who, domains)
   const publishNow = publishPlan.act.filter((f) => publishesNow(f, who, domains)).length
   const publishSend = publishPlan.act.length - publishNow
@@ -246,9 +246,7 @@ export function ContextBulk({
     ? OFFLINE
     : !publishPlan.act.length
       ? publishPlan.skipped[0]?.reason
-      : publishPlan.act.length > PUBLISH_MAX
-        ? `Publish up to ${PUBLISH_MAX} drafts at once. Tick fewer, then publish the rest.`
-        : undefined
+      : undefined
   // The button says which it does: publish, send to the owners, or some of each.
   const publishLabel = !publishSend
     ? 'Publish'
