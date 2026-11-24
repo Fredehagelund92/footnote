@@ -1,4 +1,4 @@
-import type { LoopTurn } from '@contract/answer'
+import type { ChosenPeriodInput, LoopTurn } from '@contract/answer'
 import { loopAnswerOf } from '@/api/http-ask'
 import type { Answer } from '@/model/ask'
 import type { AskLive } from '@/model/ask-turn'
@@ -76,20 +76,28 @@ export async function loopExample(id: string): Promise<Answer> {
     return { ...loopAnswerOf(turn, 'Give me all about Orders', sameNames), id: `example-${id}` }
   }
   const { default: examples } = await import('./data/loop-examples.json')
-  const all = examples as unknown as Record<string, { question: string; turn: LoopTurn }>
-  const found =
+  const all = examples as unknown as Record<string, Example>
+  const found: Example | undefined =
     id === 'loop-definition-markdown'
       ? markdownDefinition(all['loop-definition-unwritten']!)
       : all[id]
   if (!found) throw new ApiError('not-found', 'This example is not offered any more.')
-  return { ...loopAnswerOf(found.turn, found.question, sameNames), id: `example-${id}` }
+  // An example asked at a period chosen on the read line (`loop-period`) keeps it.
+  return {
+    ...loopAnswerOf(found.turn, found.question, sameNames),
+    ...(found.period ? { period: found.period } : {}),
+    id: `example-${id}`,
+  }
 }
+
+/** A recorded example: its question, the period chosen for it on the read line, and its turn. */
+type Example = { question: string; period?: ChosenPeriodInput; turn: LoopTurn }
 
 /**
  * The recorded answer for a definition nothing is written about, for Cost per acquisition
  * instead: its words are the demo world's, which Cube holds in Markdown.
  */
-function markdownDefinition(example: { question: string; turn: LoopTurn }) {
+function markdownDefinition(example: Example): Example {
   const turn = structuredClone(example.turn)
   if (turn.kind !== 'answer' || !turn.defined || !turn.subject)
     throw new Error('loop-definition-unwritten is not a definition')

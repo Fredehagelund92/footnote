@@ -12,6 +12,12 @@ Only the person who wrote a draft can see it now. Owners and admins see it once 
 
 Drafts you imported, or haven't saved for 30 days, wait on one card in your Inbox, which publishes or sends them all at once. An admin can delete the drafts of someone who left, without reading them. See [Write context](write-context.md#save-as-draft).
 
+## The period you chose, in the answer
+
+2026-11-24
+
+When you choose other dates in Read as, the new answer says so: its Read as names the period with its days, such as last month with its first and last day, and its first sentence names it. The answer above keeps its own dates. An answer about what a metric means offers no dates, since they do not change it. See [Ask a question](ask-a-question.md#ask-again-at-other-dates).
+
 ## Waiting for review, and Don't publish
 
 2026-11-23
