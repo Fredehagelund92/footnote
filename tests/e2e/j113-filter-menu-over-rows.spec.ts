@@ -41,11 +41,14 @@ test('the Filter menu stays over the rows while a pick moves them', async ({ pag
   await draft.click()
   await expect(count).not.toHaveText(before)
   await expect
-    .poll(() => page.evaluate(() => (window as unknown as { frames: Frame[] }).frames.length))
-    .toBeGreaterThan(0)
+    .poll(() =>
+      page.evaluate(() =>
+        (window as unknown as { frames: Frame[] }).frames.some((f) => f.rows > 0),
+      ),
+    )
+    .toBe(true)
   const frames = await page.evaluate(() => (window as unknown as { frames: Frame[] }).frames)
   for (const f of frames) expect(f).toEqual({ menu: 'match-element', after: true, rows: f.rows })
-  expect(frames.some((f) => f.rows > 0)).toBe(true)
   // The menu is still open, ticked, once the rows are in place.
   await expect(draft).toHaveAttribute('aria-checked', 'true')
 })
