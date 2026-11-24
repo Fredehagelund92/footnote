@@ -4,8 +4,8 @@ import { expect, go, test } from './go.ts'
 // J3, an answer of Ask's loop in each state its recorded answers have (Checked, Not found,
 // Conflict and Outdated), the failed look-up's Not looked up, and the Definition mark, as the chat
 // draws them: the state as a badge at the head of the answer with its fixed sentence beside it
-// (none for Checked), its meaning in a card on the badge (on hover, on keyboard focus and on a
-// tap), the words at 16/26 inside the reading measure, the sources as numbered chips, what was used
+// (none for Checked), its meaning in a floating card on the badge (on hover, on keyboard focus and
+// on a tap) that never moves the chat, the words at 16/26 inside the reading measure, the sources as numbered chips, what was used
 // as source chips with their titles, What Ask read under the footer, and one row of icons with More. Partial is
 // left out: no recorded question answers Partial. The composer is one surface with Send in one
 // 32 px slot.
@@ -58,8 +58,22 @@ type Box = { x: number; y: number; width: number; height: number }
 const apart = (a: Box, b: Box) =>
   a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y
 
-/** The card, wherever it opened, covers neither the badge nor the words it explains. */
-async function coversNothing(page: Page, turn: number, label: string) {
+/** Where everything in the chat is: each answer's words, its action row and the turn itself. */
+const layout = (page: Page) =>
+  page
+    .locator('[data-turn], [data-turn] [data-answer-words], [data-turn] [role="group"]')
+    .evaluateAll((all) =>
+      all.map((el) => {
+        const r = el.getBoundingClientRect()
+        return [r.x, r.y, r.width, r.height].map(Math.round)
+      }),
+    )
+
+/**
+ * The card, wherever it opened, floats: it never covers the badge, and it covers the words it
+ * explains only where nothing else fits, under the badge (the top of the view, or a phone).
+ */
+async function placed(page: Page, turn: number, label: string) {
   const log = page.getByRole('log')
   const badge = log
     .locator(`[data-turn="${turn}"]`)
@@ -71,7 +85,8 @@ async function coversNothing(page: Page, turn: number, label: string) {
   const words = log.locator(`[data-turn="${turn}"] [data-answer-words]`)
   const [b, c] = [(await badge.boundingBox())!, (await card.boundingBox())!]
   expect(apart(b, c)).toBe(true)
-  if (await words.count()) expect(apart((await words.boundingBox())!, c)).toBe(true)
+  if ((await words.count()) && !apart((await words.boundingBox())!, c))
+    expect(c.y).toBeGreaterThanOrEqual(b.y + b.height)
   return { badge: b, card: c }
 }
 
@@ -123,8 +138,8 @@ for (const s of states)
     await expect(card).toBeVisible()
     await expect(card).toContainText(s.sentence.charAt(0).toLowerCase() + s.sentence.slice(1))
     await expect(badge).toHaveAttribute('aria-expanded', 'true')
-    // Wherever there is room for it, never over the badge or the words.
-    await coversNothing(page, 0, s.label)
+    // Never over the badge, and over the words only where nothing else fits.
+    await placed(page, 0, s.label)
     // Gone with Escape.
     await page.keyboard.press('Escape')
     await expect(card).toBeHidden()
@@ -227,7 +242,7 @@ test('Definition: a neutral mark, not a state, with its card, over the definitio
   await expect(card).toBeHidden()
   await expect(mark).toBeFocused()
 
-  // Hovered, it covers neither the mark nor the definition.
+  // Hovered, it covers not the mark, and the definition only from under the mark.
   await mark.hover()
   await expect(card).toBeVisible()
   await expect.poll(() => card.evaluate((el) => getComputedStyle(el).opacity)).toBe('1')
@@ -238,7 +253,7 @@ test('Definition: a neutral mark, not a state, with its card, over the definitio
     (await lead.boundingBox())!,
   ]
   expect(apart(m, c)).toBe(true)
-  expect(apart(l, c)).toBe(true)
+  if (!apart(l, c)) expect(c.y).toBeGreaterThanOrEqual(m.y + m.height)
 })
 
 test('The badge card by keyboard: it opens on focus, Tab goes into it, Escape closes it', async ({
@@ -262,7 +277,7 @@ test('The badge card by keyboard: it opens on focus, Tab goes into it, Escape cl
   await expect(badge).toBeFocused()
 })
 
-test('At the very top of the view the card covers neither its badge nor the words, and with room above it opens there', async ({
+test('At the very top of the view the card floats under its badge and moves nothing, and with room above it opens there', async ({
   page,
 }) => {
   await go(page, `/ask?n=${Date.now()}`)
@@ -271,8 +286,10 @@ test('At the very top of the view the card covers neither its badge nor the word
   // A new question goes to the top of the view: no room above the badge for the card.
   const words = log.locator('[data-turn="0"] [data-answer-words]')
   const before = (await words.boundingBox())!.y
+  const still = await layout(page)
   await log.getByRole('button', { name: 'Conflict', exact: true }).focus()
-  await coversNothing(page, 0, 'Conflict')
+  await placed(page, 0, 'Conflict')
+  expect(await layout(page)).toEqual(still)
   await page.keyboard.press('Escape')
   await expect(page.getByRole('dialog')).toBeHidden()
   await expect.poll(async () => (await words.boundingBox())!.y).toBe(before)
@@ -284,24 +301,93 @@ test('At the very top of the view the card covers neither its badge nor the word
     .locator('[data-turn="1"]')
     .getByRole('button', { name: 'Not found', exact: true })
     .focus()
-  const above = await coversNothing(page, 1, 'Not found')
+  const above = await placed(page, 1, 'Not found')
   expect(above.card.y + above.card.height).toBeLessThanOrEqual(above.badge.y)
 })
 
-// Hovered at the top of the view, a loop answer's card opens under its badge inside the badge's own
-// centred row, which grows and moves the badge out from under the pointer, so the card closes
-// again within a moment. To fix in the loop answer's state row (loop-answer.tsx, StateRow).
-test.fixme('Hovered, the badge keeps its card open while the pointer rests on it', async ({
+// The owner's case: Not found at the top of the view, hovered with the mouse. The card used to open
+// in the thread under the badge and push the whole chat down, out from under the pointer.
+test('Hovered, the badge keeps its card open while the pointer rests on it, and the chat stays put', async ({
   page,
 }) => {
   await go(page, `/ask?n=${Date.now()}`)
-  await ask(page, 'Do Norway orders include gift-card money?')
-  const badge = page.getByRole('log').getByRole('button', { name: 'Conflict', exact: true })
+  await ask(page, 'How did orders in Spain change in October 2026?')
+  const badge = page.getByRole('log').getByRole('button', { name: 'Not found', exact: true })
+  const still = await layout(page)
   await badge.hover()
-  const card = page.getByRole('dialog', { name: 'What Conflict means' })
+  const card = page.getByRole('dialog', { name: 'What Not found means' })
   await expect(card).toBeVisible()
+  await placed(page, 0, 'Not found')
+  expect(await layout(page)).toEqual(still)
   await page.waitForTimeout(500)
   await expect(card).toBeVisible()
+})
+
+// Every control in an answer, under the pointer and by the keyboard: whatever it shows floats, so
+// nothing else in the chat moves (the state badge, chips, source numbers and chips, the read line).
+for (const question of [
+  'How did orders in Spain change in October 2026?',
+  'Do Norway orders include gift-card money?',
+])
+  test(`Hovering or focusing anything in an answer moves nothing in the chat: ${question}`, async ({
+    page,
+  }) => {
+    // A dozen kinds of control, each hovered and focused.
+    test.slow()
+    await go(page, `/ask?n=${Date.now()}`)
+    await ask(page, question)
+    const controls = page
+      .getByRole('log')
+      .locator('[data-turn] :is(button, a[href], [role="button"])')
+    // One of each kind: the first control drawn with each look.
+    const kinds = await controls.evaluateAll((all) =>
+      all.flatMap((el, i) => (all.findIndex((o) => o.className === el.className) === i ? [i] : [])),
+    )
+    expect(kinds.length).toBeGreaterThan(5)
+    for (const i of kinds) {
+      const control = controls.nth(i)
+      if (!(await control.isVisible())) continue
+      for (const how of ['hover', 'focus'] as const) {
+        // Gone, not only closing: a card on its way out still takes the pointer.
+        await expect(page.locator('[role="dialog"]')).toHaveCount(0)
+        await control.scrollIntoViewIfNeeded()
+        const still = await layout(page)
+        if (how === 'hover') await control.hover()
+        else await control.focus()
+        // Past the 120 ms a card waits before it opens.
+        await page.waitForTimeout(300)
+        const name = await control.evaluate((el) => el.getAttribute('aria-label') ?? el.textContent)
+        expect(await layout(page), `${how} on ${name}`).toEqual(still)
+        // Closed as a person closes it: Escape on it, then the pointer and focus away.
+        if (how === 'focus') await page.keyboard.press('Escape')
+        await page.mouse.move(0, 0)
+        await control.blur()
+      }
+    }
+  })
+
+// The cursor says what a press does: a pointer on what opens something (a metric's definition, a
+// source's item), the arrow on a name whose press only keeps its card open, never the text cursor.
+test('A chip in an answer points only where a press opens something', async ({ page }) => {
+  await go(page, `/ask?n=${Date.now()}`)
+  await ask(page, 'How many test accounts does units sold leave out in Norway?')
+  const log = page.getByRole('log')
+  const cursor = (name: RegExp) =>
+    log
+      .getByRole('button', { name })
+      .first()
+      .evaluate((el) => {
+        const r = el.getBoundingClientRect()
+        // As the pointer gets it over the chip's middle: the name's own text, not the chip box.
+        const at = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)!
+        return getComputedStyle(at).cursor
+      })
+  expect(await cursor(/, metric$/)).toBe('pointer')
+  expect(await cursor(/^Source 1: /)).toBe('pointer')
+  for (const kind of [/, value$/, /, domain$/, /, person$/]) {
+    if (await log.getByRole('button', { name: kind }).count())
+      expect(await cursor(kind), String(kind)).toBe('default')
+  }
 })
 
 test.describe('on a phone', () => {
@@ -316,8 +402,9 @@ test.describe('on a phone', () => {
     await badge.tap()
     const card = page.getByRole('dialog', { name: 'What Conflict means' })
     await expect(card).toBeVisible()
-    // No room beside the words on a phone: it opens under the badge and moves the words down.
-    const { badge: b, card: box } = await coversNothing(page, 0, 'Conflict')
+    // No room beside the words on a phone: it floats under the badge, over the words, and moves
+    // nothing.
+    const { badge: b, card: box } = await placed(page, 0, 'Conflict')
     expect(box.y).toBeGreaterThanOrEqual(b.y + b.height)
     expect(box.x).toBeGreaterThanOrEqual(0)
     expect(box.x + box.width).toBeLessThanOrEqual(390)
