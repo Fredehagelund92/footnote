@@ -3,7 +3,7 @@ import {
   mapDefinitions,
   parseSemanticManifest,
 } from '../../../src/connectors/dbt-metricflow/mapping.ts'
-import { columnsOf } from '../../../src/domain/definition-helpers.ts'
+import { arithmeticInputs, columnsOf } from '../../../src/domain/definition-helpers.ts'
 import {
   conversionsOf,
   relationsOf,
@@ -65,6 +65,43 @@ describe('the columns a calculation reads', () => {
       'x',
     ])
     expect(columnsOf('a /* b */ + c')).toEqual(['a', 'c'])
+  })
+})
+
+describe("what a Cube measure's own calculation reads (C2)", () => {
+  it('reads plain column arithmetic: its columns, and the measures it takes as written', () => {
+    expect(arithmeticInputs('{CUBE}.amount_eur * {CUBE}.exchange_rate_usd')).toEqual({
+      measures: [],
+      columns: ['amount_eur', 'exchange_rate_usd'],
+    })
+    expect(arithmeticInputs('${CUBE}.amount_eur')).toEqual({
+      measures: [],
+      columns: ['amount_eur'],
+    })
+    expect(arithmeticInputs('amount_eur')).toEqual({ measures: [], columns: ['amount_eur'] })
+    expect(arithmeticInputs('({revenue} - {CUBE.refunds}) / 100.0')).toEqual({
+      measures: ['revenue', 'refunds'],
+      columns: [],
+    })
+    expect(arithmeticInputs('{orders.revenue} * fx_rate')).toEqual({
+      measures: ['orders.revenue'],
+      columns: ['fx_rate'],
+    })
+  })
+
+  it('reads nothing of any other calculation: a function, a keyword, a literal or a qualified column', () => {
+    for (const sql of [
+      'SUM({CUBE}.amount_eur)',
+      'COALESCE(amount_eur, 0) * fx_rate',
+      "CASE WHEN currency = 'EUR' THEN amount END",
+      'amount_eur * 1.1 + bonus IS NULL',
+      'orders.amount_eur * fx_rate',
+      "{CUBE}.amount || 'x'",
+      'amount_eur, fx_rate',
+      '1',
+      '',
+    ])
+      expect(arithmeticInputs(sql), sql).toBeNull()
   })
 })
 

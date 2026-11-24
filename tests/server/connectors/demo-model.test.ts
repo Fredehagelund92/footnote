@@ -36,8 +36,11 @@ describe('the demo Cube model', () => {
         baseName: null,
       })),
     )
-    // Footnote keeps no calculation and no table (CON-207).
-    expect(JSON.stringify(snapshot)).not.toMatch(/SUM\(|NULLIF|demo\.|_eur\b/)
+    // Footnote keeps no calculation and no table (CON-207): of a calculation, only the names of
+    // the columns it reads.
+    expect(JSON.stringify(snapshot)).not.toMatch(/SUM\(|NULLIF|demo\./)
+    const named = snapshot.definitions.map(({ builtFrom: _built, ...rest }) => rest)
+    expect(JSON.stringify(named)).not.toMatch(/_eur\b/)
   }, 30_000)
 
   it('gives every vocabulary metric and dimension its own definitions, and nothing else', () => {

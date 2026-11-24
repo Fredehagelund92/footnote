@@ -6,6 +6,7 @@ import {
   familyWordings,
   slotted,
   usualVariant,
+  workedOut,
   worksOut,
   type MeaningVariant,
 } from '../../../src/domain/family-meaning.ts'
@@ -176,6 +177,52 @@ describe('a variant worked out from another (T3)', () => {
       { values: ['GBP'], description: 'Fees in GBP, like the EUR ones.' },
     ]
     expect(derivedVariants(variants)).toEqual([variants[1]])
+  })
+})
+
+describe('a variant whose words say it is converted, naming only its own currency (C3)', () => {
+  const variant = (key: string, values: string[], description: string | null) => ({
+    key,
+    values,
+    description,
+  })
+  const eur = variant('payouts_eur', ['EUR'], 'Payouts we send partners in EUR, on the day sent.')
+  const usd = variant(
+    'payouts_usd',
+    ['USD'],
+    'Partner payouts converted to USD at each month’s rate.',
+  )
+  const family = (by: string[], ...variants: ReturnType<typeof variant>[]) => ({
+    by,
+    variants,
+    conversions: [],
+  })
+
+  it('is worked out from another in a family by Currency, the only one whose words name a rate', () => {
+    expect(workedOut(family(['Currency'], eur, usd))).toEqual(new Set(['payouts_usd']))
+    // Its currency by its name counts, as a code does.
+    const dollars = variant('payouts_usd', ['USD'], 'Payouts converted into US dollars monthly.')
+    expect(workedOut(family(['Currency code'], eur, dollars))).toEqual(new Set(['payouts_usd']))
+    // So its words have no say: the EUR ones speak for the family.
+    expect(
+      familyMeaning({ ...family(['Currency'], eur, usd), declared: null, chosen: null }),
+    ).toMatchObject({ source: 'common', base: 'payouts_eur' })
+  })
+
+  it('is none when the family is by something else, two variants name a rate, or its words name no currency of its own', () => {
+    expect(
+      workedOut(family(['Region'], { ...eur, values: ['EU'] }, { ...usd, values: ['US'] })),
+    ).toEqual(new Set())
+    const gbp = variant('payouts_gbp', ['GBP'], 'Payouts converted to GBP at the weekly rate.')
+    expect(workedOut(family(['Currency'], eur, usd, gbp))).toEqual(new Set())
+    const unnamed = variant(
+      'payouts_usd',
+      ['USD'],
+      'Partner payouts converted at each month’s rate.',
+    )
+    expect(workedOut(family(['Currency'], eur, unnamed))).toEqual(new Set())
+    // Alone, it has none to be converted from.
+    expect(workedOut(family(['Currency'], usd))).toEqual(new Set())
   })
 })
 
@@ -397,7 +444,8 @@ describe('a family’s meaning (M1)', () => {
       by: ['Currency'],
       variants: [
         accrued[0]!,
-        { ...accrued[1]!, description: "Contract value converted to USD at each month's rate." },
+        // Written apart, and not converted: words that say it is converted would speak (C3).
+        { ...accrued[1]!, description: 'The value of each contract by the month it was signed.' },
       ],
       conversions: [],
       declared: null,

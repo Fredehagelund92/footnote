@@ -238,9 +238,10 @@ function accruedShare(tool: string): Definition {
 }
 
 /**
- * Two pairs in EUR and USD found by their names alone, as a Cube model writes them (R1): one whose
- * USD words are the EUR ones with a note on the rate, so the family means what both say; and one
- * whose two variants are written apart, so it has no meaning yet.
+ * Three pairs in EUR and USD found by their names alone, as a Cube model writes them (R1): one
+ * whose USD words are the EUR ones with a note on the rate, so the family means what both say; one
+ * whose USD words say only that it is converted to USD, so the EUR words speak for it (C3); and
+ * one whose two variants are written apart, so it has no meaning yet.
  */
 export function partnerPairs(tool: string): Definition[] {
   const pair = (name: string, eur: string, usd: string): Definition => {
@@ -276,6 +277,11 @@ export function partnerPairs(tool: string): Definition[] {
       'Partner payouts',
       'Payouts we send partners in EUR, booked on the day they are sent.',
       'Partner payouts converted to USD at each month’s rate.',
+    ),
+    pair(
+      'Partner forecasts',
+      'Payouts the planning model expects to send partners next month, in EUR.',
+      'What finance plans to pay partners in the coming quarter, in USD.',
     ),
   ]
 }

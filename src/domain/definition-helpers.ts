@@ -188,6 +188,33 @@ export function columnsOf(expression: string): string[] {
   return columns.slice(0, BUILT_FROM_MAX)
 }
 
+/**
+ * What a Cube measure's own calculation reads, when it is plain column arithmetic (C2): the
+ * measures it takes as written (`revenue` of `{revenue}` or `{CUBE.revenue}`, `orders.revenue` of
+ * `{orders.revenue}`), and its cube's columns (`amount_eur` of `{CUBE}.amount_eur` or a bare
+ * `amount_eur`). Plain is names, numbers, `+ - * /` and brackets only: `{CUBE}.amount_eur *
+ * {CUBE}.exchange_rate_usd`. Any other calculation, a function, a keyword, a literal or a
+ * qualified column, is null: what it reads is not told by its names alone. Only names cross,
+ * never the calculation (CON-207).
+ */
+export function arithmeticInputs(sql: string): { measures: string[]; columns: string[] } | null {
+  const measures: string[] = []
+  // A measure is a word of its own here, so the rest is checked as columns and signs alone.
+  const rest = sql
+    .replace(/\$?\{CUBE\}\.([A-Za-z_]\w*)/g, ' $1 ')
+    .replace(/\$?\{(?:CUBE\.)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\}/g, (_all, name: string) => {
+      if (!measures.includes(name)) measures.push(name)
+      return ' 0 '
+    })
+  if (!/^[\w\s.+\-*/()]*$/.test(rest)) return null
+  const words = [...rest.matchAll(/[A-Za-z_]\w*/g)].map((match) => match[0])
+  const columns = columnsOf(rest)
+  // A word that is no column is a keyword or a function's name, or names a column's table.
+  if (words.some((word) => !columns.includes(word)) || /\.\D/.test(rest)) return null
+  if (!measures.length && !columns.length) return null
+  return { measures: measures.slice(0, BUILT_FROM_MAX), columns }
+}
+
 /** The most values one variant is told apart by: currency and channel are two. */
 export const VARIANT_BY_MAX = 5
 /** The longest value a variant is told apart by, in characters. */

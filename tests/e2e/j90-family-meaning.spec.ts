@@ -6,8 +6,8 @@ import { expect, go, test } from './go.ts'
 // words come from and quotes what the three variants that say something else say. An owner writes
 // the family's own words, starting from what its variants say, then writes others, then has them
 // worked out again; each choice shows at once and History keeps it. A pair one rate converts, and
-// a pair whose USD words say they are the EUR ones at a rate, read the words of the EUR variant,
-// its currency as what it stands for. One whose variants are written apart has no meaning, and so
+// a pair whose USD words say they are the EUR ones at a rate, or only that they are converted to
+// USD, read the words of the EUR variant, its currency as what it stands for. One whose variants are written apart has no meaning, and so
 // nothing says something else; writing its words starts from each variant's. A family whose
 // metric's name holds one of its values reads each channel, and nothing says something else. A
 // family's words written in Markdown draw their marks, in the quick view and in its row. The same
@@ -89,7 +89,7 @@ for (const { name, width, height } of widths) {
       await expect(main.getByRole('button', { name: /Jon edited wording/ })).toHaveCount(3)
     })
 
-    test('a pair whose USD words say how it is converted reads the EUR words; one written apart has none', async ({
+    test('a pair whose USD words say how, or that, it is converted reads the EUR words; one written apart has none', async ({
       page,
     }) => {
       await go(page, '/definitions?demo=families&dock=def.Partner%20fees')
@@ -112,18 +112,26 @@ for (const { name, width, height } of widths) {
         await expect(row.locator('code')).toHaveText('commission_eur')
         await expect(row).not.toContainText('`')
       }
+      // A pair whose USD words say only that it is converted to USD reads the EUR words too (C3).
+      await go(page, '/definitions?demo=families&dock=def.Partner%20payouts')
+      await expect(dock).toContainText(
+        'Payouts we send partners in Currency, booked on the day they are sent.',
+      )
+      await expect(dock).toContainText(
+        'Words of Partner payouts (EUR), the variant the others are converted from',
+      )
       // With no meaning its variants say what it is, in their own words; there is nothing to say
       // something else than: no warning.
-      await go(page, '/definitions?demo=families&dock=def.Partner%20payouts')
+      await go(page, '/definitions?demo=families&dock=def.Partner%20forecasts')
       await expect(dock).toContainText('Its 2 variants say what it is in their own words:')
       await expect(dock.getByRole('list', { name: 'In its variants’ own words' })).toContainText(
-        'USD: Partner payouts converted to USD at each month’s rate.',
+        'USD: What finance plans to pay partners in the coming quarter, in USD.',
       )
       await expect(dock.getByRole('note')).toHaveCount(0)
       await expect(dock).not.toContainText('something else')
       expect(await sideways(page)).toBe(0)
-      await dock.getByRole('button', { name: 'Change what Partner payouts means' }).click()
-      const choose = page.getByRole('dialog', { name: 'What Partner payouts means' })
+      await dock.getByRole('button', { name: 'Change what Partner forecasts means' }).click()
+      const choose = page.getByRole('dialog', { name: 'What Partner forecasts means' })
       await expect(choose).toContainText('Nothing yet: no words speak for all its variants.')
       await choose.getByRole('radio', { name: /Written for the family/ }).click()
       const words = choose.getByRole('textbox', { name: 'What it means' })
@@ -131,10 +139,10 @@ for (const { name, width, height } of widths) {
       const wordings = choose.getByRole('list', { name: 'Start from what its variants say' })
       await expect(wordings.getByRole('listitem')).toHaveCount(2)
       await expect(wordings.getByRole('listitem').nth(1)).toContainText(
-        'Partner payouts converted to USD at each month’s rate.',
+        'What finance plans to pay partners in the coming quarter, in USD.',
       )
       await wordings.getByRole('button', { name: 'Use what EUR says' }).click()
-      await expect(words).toHaveValue(/^Payouts we send partners in each currency/)
+      await expect(words).toHaveValue(/^Payouts the planning model expects to send partners/)
       expect(await sideways(page)).toBe(0)
     })
 

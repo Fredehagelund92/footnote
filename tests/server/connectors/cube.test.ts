@@ -72,6 +72,51 @@ describe('offline Cube source', () => {
     )
   }, 60_000)
 
+  it('says what a measure of plain column arithmetic is built from, by name, never its sql (C2)', async () => {
+    const built = await read(
+      await model((text) =>
+        text.replace(
+          '      - name: count\n        type: count\n',
+          [
+            '      - name: revenue_eur',
+            '        type: sum',
+            '        sql: "{CUBE}.amount_eur"',
+            '      - name: revenue_usd',
+            '        type: sum',
+            '        sql: "{CUBE}.amount_eur * {CUBE}.exchange_rate_usd"',
+            '      - name: kept',
+            '        type: number',
+            '        sql: "{revenue} - {CUBE.revenue_eur}"',
+            '      - name: rounded',
+            '        type: sum',
+            '        sql: "ROUND({CUBE}.amount_eur, 2)"',
+            '      - name: count',
+            '        type: count',
+            '',
+          ].join('\n'),
+        ),
+      ),
+    )
+    const builtFrom = (ref: string) =>
+      built.definitions.find((entry) => entry.ref === ref)?.builtFrom ?? null
+    expect(builtFrom('cube:sales.revenue')).toEqual({ refs: [], columns: ['amount'] })
+    expect(builtFrom('cube:sales.revenue_eur')).toEqual({ refs: [], columns: ['amount_eur'] })
+    expect(builtFrom('cube:sales.revenue_usd')).toEqual({
+      refs: [],
+      columns: ['amount_eur', 'exchange_rate_usd'],
+    })
+    // A measure it takes is named by the view's member that stands for it.
+    expect(builtFrom('cube:sales.kept')).toEqual({
+      refs: ['cube:sales.revenue', 'cube:sales.revenue_eur'],
+      columns: [],
+    })
+    // A function says nothing, nor does a measure with no sql; a dimension is built from nothing.
+    expect(builtFrom('cube:sales.rounded')).toBeNull()
+    expect(builtFrom('cube:sales.count')).toBeNull()
+    expect(builtFrom('cube:sales.country')).toBeNull()
+    expect(JSON.stringify(built)).not.toMatch(/ROUND|\{CUBE\}|\*/)
+  }, 60_000)
+
   it("reads a measure's meta.footnote family as written, in each view, and moves no mark for it", async () => {
     // Revenue in EUR and the count as its twin in USD: one family of two in every view with both.
     const declaring = (revenue: string, count = '{family: order_amount, by: {currency: USD}}') =>

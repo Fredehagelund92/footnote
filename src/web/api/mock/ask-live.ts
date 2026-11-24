@@ -158,9 +158,9 @@ type FamilyCard = 'none' | 'base' | 'written'
 
 /**
  * The recorded answer for a definition, for one of the demo's partner families instead
- * (`?demo=families`), as the definitions read gives it: Partner payouts, whose variants are written
- * apart, with no meaning, then with words Jon Abara wrote for it; Partner fees, whose USD variant
- * says it is converted from EUR, with the words of EUR.
+ * (`?demo=families`), as the definitions read gives it: Partner forecasts, whose variants are
+ * written apart, with no meaning, then with words Jon Abara wrote for it; Partner payouts, whose USD
+ * variant says it is converted to USD, with the words of EUR (C3).
  */
 async function familyDefinition(
   example: { question: string; turn: LoopTurn },
@@ -170,7 +170,7 @@ async function familyDefinition(
   const turn = structuredClone(example.turn)
   if (turn.kind !== 'answer' || !turn.defined || !turn.subject)
     throw new Error('loop-definition is not a definition')
-  const name = card === 'base' ? 'Partner fees' : 'Partner payouts'
+  const name = card === 'base' ? 'Partner payouts' : 'Partner forecasts'
   const family = partnerPairs('dbt').find((d) => d.name === name)!.family!
   const own = (variants: typeof family.variants) =>
     variants.map((v) => ({ values: v.values, words: v.description! }))
@@ -179,10 +179,10 @@ async function familyDefinition(
   const asked = name.toLowerCase()
   // The model's sentence: on a family with no meaning, it repeats its variants' words.
   const said = {
-    none: ' is a family of two metrics, one per currency. The EUR one is the payouts we send partners, booked on the day they are sent. The USD one is partner payouts converted to USD at each month’s rate.',
-    base: ' are the fees partners report on referred customers, in each currency. They are not our revenue.',
+    none: ' is a family of two metrics, one per currency. The EUR one is the payouts the planning model expects to send partners next month. The USD one is what finance plans to pay them in the coming quarter.',
+    base: ' are the payouts we send partners, booked on the day they are sent. The USD one is converted at each month’s rate.',
     written:
-      ' are the payouts we send partners, booked on the day they are sent, in EUR and in USD at each month’s rate.',
+      ' are the payouts we expect to send partners. Next month’s are in EUR, from the planning model, and the coming quarter’s in USD.',
   }[card]
   turn.text = `${name}${said}`
   turn.said = `[@${id}]${said}`
@@ -233,13 +233,13 @@ async function familyDefinition(
             : card === 'base'
               ? {
                   meaning:
-                    'Fees partners report on referred customers in each currency. Not our revenue: see `commission_eur`.',
+                    'Payouts we send partners in each currency, booked on the day they are sent.',
                   own: own([usd!]),
                   source: { kind: 'base', values: eur!.values, converted: [usd!.values] },
                 }
               : {
                   meaning:
-                    'Payouts we send partners, booked on the day they are sent: in EUR as sent, and in USD at each month’s rate.',
+                    'Payouts we expect to send partners: next month’s in EUR, from the planning model, and the coming quarter’s in USD, as finance plans them.',
                   own: [],
                   source: { kind: 'written', by: 'Jon Abara', on: '2026-10-20' },
                 }),

@@ -44,15 +44,15 @@ for (const { name, viewport } of [
         await expect(card).toContainText('Its 2 variants say what it is in their own words:')
         const own = card.getByRole('list', { name: 'In its variants’ own words' })
         await expect(own.getByRole('listitem')).toHaveText([
-          'EUR: Payouts we send partners in EUR, booked on the day they are sent.',
-          'USD: Partner payouts converted to USD at each month’s rate.',
+          'EUR: Payouts the planning model expects to send partners next month, in EUR.',
+          'USD: What finance plans to pay partners in the coming quarter, in USD.',
         ])
         // At the answer's size, as a meaning is.
         expect(await own.evaluate((el) => getComputedStyle(el).fontSize)).toBe('16px')
         await expect(card).toContainText(/From dbt\s*Owned by/)
         await card.getByRole('button', { name: 'Write what it means' }).click()
-        await expect(page).toHaveURL(/dock=def\.Partner(%20|\+)payouts.*meaning=write/)
-        const dialog = page.getByRole('dialog', { name: 'What Partner payouts means' })
+        await expect(page).toHaveURL(/dock=def\.Partner(%20|\+)forecasts.*meaning=write/)
+        const dialog = page.getByRole('dialog', { name: 'What Partner forecasts means' })
         await expect(dialog.getByRole('radio', { name: /^Written for the family/ })).toBeChecked()
         await expect(dialog.getByRole('textbox', { name: 'What it means' })).toBeFocused()
         await page.keyboard.press('Escape')
@@ -62,14 +62,18 @@ for (const { name, viewport } of [
         const peek = page.getByRole('region', { name: 'Definition' })
         await expect(peek).toContainText('Its 2 variants say what it is in their own words:')
         await expect(
-          peek.getByRole('button', { name: 'Change what Partner payouts means' }),
+          peek.getByRole('button', { name: 'Change what Partner forecasts means' }),
         ).toBeVisible()
       })
 
       test('with a base: the family’s words, and whose they are', async ({ page }) => {
+        // Its USD words say only that it is converted to USD: the EUR words speak for it (C3).
         const { card } = await open(page, 'base')
         await expect(card.locator('blockquote p').first()).toHaveText(
-          'Fees partners report on referred customers in each currency. Not our revenue: see commission_eur.',
+          'Payouts we send partners in each currency, booked on the day they are sent.',
+        )
+        await expect(card.getByRole('list', { name: 'In its variants’ own words' })).toHaveText(
+          'USD: Partner payouts converted to USD at each month’s rate.',
         )
         await expect(card).toContainText(
           'From dbt: the words of EUR, the variant USD is converted from',
@@ -79,7 +83,7 @@ for (const { name, viewport } of [
 
       test('written: the owner’s words, by whom and when', async ({ page }) => {
         const { log, card } = await open(page, 'written')
-        await expect(log.getByText(/are the payouts we send partners/)).toBeVisible()
+        await expect(log.getByText(/are the payouts we expect to send partners/)).toBeVisible()
         await expect(card).toContainText('Written for the family by Jon Abara on 20 Oct 2026')
         await expect(card).not.toContainText('say something else')
         await expect(card.getByRole('button', { name: 'Write what it means' })).toHaveCount(0)

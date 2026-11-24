@@ -20,9 +20,9 @@ import {
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
 import { actionIds, type ActionId } from '../../../domain/actions.ts'
-import { usualVariant } from '../../../domain/family-meaning.ts'
+import { usualVariant, workedOut } from '../../../domain/family-meaning.ts'
 import { meaningLine } from '../../../domain/family-meaning-line.ts'
-import { derivedVariants, variantWords } from '../../../domain/metric-families.ts'
+import { variantWords } from '../../../domain/metric-families.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
 import { searchHelp } from './help.ts'
@@ -1564,18 +1564,15 @@ type Family = NonNullable<Catalogue['terms'][number]['family']>
 
 /**
  * The variants of a family whose own words go with its meaning: those that say something else
- * than it, and those converted from another or that say how they are worked out from one
- * (`derivedVariants`), whose words the meaning leaves out. With no meaning, every variant.
+ * than it, and those worked out from another (`workedOut`), whose words the meaning leaves out.
+ * With no meaning, every variant.
  */
 function ownWords(family: Family) {
   const { meaning } = family
   if (!meaning.words) return { differing: family.variants, derived: [] }
   const differing = new Set(meaning.differing)
   const rest = family.variants.filter((variant) => !differing.has(variant.key))
-  const worked = new Set([
-    ...family.conversions.map((conversion) => conversion.to),
-    ...derivedVariants(rest).map((variant) => variant.key),
-  ])
+  const worked = workedOut(family)
   return {
     differing: family.variants.filter((variant) => differing.has(variant.key)),
     derived: rest.filter((variant) => worked.has(variant.key)),

@@ -13,7 +13,8 @@
      variants' words differ: a word another variant, holding another value, writes beside the
      same word is a word ("a free trial" beside a plan named Free).
      A variant that says how it is worked out from another (it is converted from one, or its
-     words name a rate and another variant's value) has no say: when one variant is left, the
+     words name a rate and another variant's value, or, by Currency, it is the only one whose words
+     name a rate, and they name its own currency) has no say: when one variant is left, the
      one the others are converted from, its words are the meaning. Words that still name a value
      read as one variant, so they are never the family's ("in euros" of a EUR and USD family).
 
@@ -134,6 +135,39 @@ export function worksOut(
         normalizeName(value) !== normalizeName(variant.values[i] ?? '') && mentions(words, value),
     ),
   )
+}
+
+/**
+ * The variants of a family worked out from another, which have no say in its meaning: those
+ * converted from one (`conversions`), those whose words name a rate and another variant's value
+ * (`worksOut`), and, in a family by Currency, the one variant whose own words name a rate and its
+ * own currency when no other's name a rate ("Payouts converted to USD at each month's rate", C3).
+ * `axes` are each axis's values (`axisValues`).
+ */
+export function workedOut(
+  family: {
+    by: readonly string[]
+    variants: readonly { key: string; values: readonly string[]; description: string | null }[]
+    conversions: readonly { to: string }[]
+  },
+  axes: readonly (readonly string[])[] = axisValues(family.by, family.variants),
+): Set<string> {
+  const converted = new Set(family.conversions.map((c) => c.to))
+  const derived = new Set(
+    family.variants
+      .filter((variant) => converted.has(variant.key) || worksOut(variant, axes))
+      .map((variant) => variant.key),
+  )
+  const currency = family.by.findIndex((axis) =>
+    /^currency( code)?$/.test(normalizeName(axis).trim()),
+  )
+  if (currency < 0) return derived
+  const free = family.variants.filter((variant) => !derived.has(variant.key))
+  const rated = free.filter((variant) => RATE_WORDS.test(variant.description ?? ''))
+  const [own] = rated
+  if (free.length >= 2 && rated.length === 1 && own?.values[currency])
+    if (mentions(own.description!, own.values[currency])) derived.add(own.key)
+  return derived
 }
 
 /** A text's words as runs, each run the words written one after another with only spaces between. */
@@ -299,12 +333,7 @@ export function familyMeaning(family: {
 }): FamilyMeaning {
   const axes = axisValues(family.by, family.variants)
   // A variant converted from another, or whose words say how it is worked out from one, has no say.
-  const converted = new Set(family.conversions.map((c) => c.to))
-  const derived = new Set(
-    family.variants
-      .filter((variant) => converted.has(variant.key) || worksOut(variant, axes))
-      .map((variant) => variant.key),
-  )
+  const derived = workedOut(family, axes)
   const described = saidOf(family, axes).filter((variant) => !derived.has(variant.key))
   // The variants that have a say: all but those worked out from another.
   const pool = family.variants.length - derived.size
