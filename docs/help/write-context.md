@@ -3,7 +3,7 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 5
+minutes: 6
 reviewed: 2026-11-24
 open:
   label: Write context
