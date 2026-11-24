@@ -104,6 +104,8 @@ export default defineConfig({
     // J98 opens answers from the help that carry quick actions by the mock's example address; the
     // service offers them in tests/web/integration/ask-loop-shapes.test.ts.
     /\/j98-ask-quick-actions\.spec\.ts$/,
+    // J114 opens the demo's partner families as Ask's mock examples (?example=loop-family-*).
+    /\/j114-ask-family-card\.spec\.ts$/,
     // J99 opens answers of Ask's loop by the mock's example address; the service writes the word
     // and the card of a metric with no context in tests/web/integration/ask-loop-shapes.test.ts.
     /\/j99-ask-prefills\.spec\.ts$/,

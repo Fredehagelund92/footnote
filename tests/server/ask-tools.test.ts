@@ -467,6 +467,8 @@ describe('a family of metrics in Ask (FR-142)', () => {
       meaning: 'Money taken in each currency via each channel.',
       own: [{ values: ['USD', 'web'], words: 'Money taken in USD (EUR × row fx_usd) via web.' }],
       more: 0,
+      // Where its meaning comes from (C1): the words 3 of its variants share.
+      source: { kind: 'common', agree: 3 },
     })
   })
 
@@ -484,6 +486,64 @@ describe('a family of metrics in Ask (FR-142)', () => {
         },
       ],
       more: 0,
+      source: { kind: 'none' },
+    })
+  })
+
+  it('says where its meaning comes from: the words of its base, or words an owner wrote (C1, C4)', async () => {
+    const shownWith = async (meaning: object, people: { id: string; name: string }[] = []) => {
+      const withMeaning = createAskTools({
+        ...reads,
+        people: () => Promise.resolve(people),
+        catalogue: () =>
+          Promise.resolve({
+            terms: [
+              {
+                ...family,
+                family: { ...family.family, meaning: { ...family.family.meaning, ...meaning } },
+              },
+            ],
+          }),
+      } as unknown as ToolReads)
+      const result = await withMeaning.run('definitions', { names: ['Revenue'] })
+      return (result as { definitions: { family?: { source?: unknown } }[] }).definitions[0]!
+        .family!.source
+    }
+    // The others are converted from EUR web: its words speak for the family.
+    expect(
+      await shownWith({
+        source: 'common',
+        words: 'Money taken in {Currency} via {Channel}.',
+        common: { words: 'Money taken in {Currency} via {Channel}.', agree: 1 },
+        base: 'metric:revenue_eur_web',
+        differing: [],
+      }),
+    ).toEqual({
+      kind: 'base',
+      values: ['EUR', 'web'],
+      converted: [
+        ['AED', 'app'],
+        ['USD', 'web'],
+      ],
+    })
+    expect(
+      await shownWith(
+        {
+          source: 'written',
+          words: 'Money taken for paid orders.',
+          chosen: {
+            choice: 'written',
+            words: 'Money taken for paid orders.',
+            personId: 'p1',
+            at: '2026-10-20T09:00:00Z',
+          },
+          differing: [],
+        },
+        [{ id: 'p1', name: 'Sofia Brandt' }],
+      ),
+    ).toEqual({ kind: 'written', by: 'Sofia Brandt', on: '2026-10-20' })
+    expect(await shownWith({ source: 'declared', words: 'Money taken.', differing: [] })).toEqual({
+      kind: 'declared',
     })
   })
 

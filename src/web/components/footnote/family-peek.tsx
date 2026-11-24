@@ -217,12 +217,32 @@ function MeaningLead({
 }) {
   const P = useParts()
   const [changing, setChanging] = React.useState(false)
+  const [writing, setWriting] = React.useState(false)
+  const change = React.useRef<HTMLButtonElement>(null)
+  // Write what it means, on Ask's card of a family with no meaning, opens the panel writing it.
+  const { query } = P.useRoute()
+  const asked = query.get('meaning') === 'write'
   const meaning = family.meaning
+  const mayChange = !!meaning && canChange && meaning.source !== 'declared'
+  const [handled, setHandled] = React.useState(false)
+  if (asked !== handled && (!asked || meaning)) {
+    setHandled(asked)
+    if (asked && mayChange) {
+      setWriting(true)
+      setChanging(true)
+    }
+  }
+  React.useEffect(() => {
+    if (asked && meaning) void P.changeQuery({ meaning: undefined }, { replace: true })
+  }, [asked, meaning, P])
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
   const Icon =
     meaning.source === 'common' && meaning.base ? P.CircleDotIcon : sourceIcon(P)[meaning.source]
-  const mayChange = canChange && meaning.source !== 'declared'
+  const close = () => {
+    setChanging(false)
+    setWriting(false)
+  }
   // A variant converted from another says how, which the values band shows: it says nothing else.
   const converted = new Set((family.conversions ?? []).map((c) => c.to))
   const others = meaning.differing.filter((name) => !converted.has(name))
@@ -231,9 +251,13 @@ function MeaningLead({
   const page = `/definitions/${encodeURIComponent(d.name)}`
   return (
     <>
-      <p className="mt-3 text-base leading-7 text-pretty">
-        <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
-      </p>
+      {meaning.words ? (
+        <p className="mt-3 text-base leading-7 text-pretty">
+          <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
+        </p>
+      ) : (
+        <P.VariantsOwnWords family={family} code="text-sm" className="mt-3 text-base leading-7" />
+      )}
       {(source || mayChange) && (
         <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
           <Icon aria-hidden className="mt-0.75 size-3.5 shrink-0" />
@@ -243,6 +267,7 @@ function MeaningLead({
               <>
                 {source && ' '}
                 <P.Button
+                  ref={change}
                   variant="link"
                   className="h-auto p-0 text-xs"
                   onClick={() => setChanging(true)}
@@ -278,7 +303,9 @@ function MeaningLead({
             name={d.name}
             family={family}
             parts={P.meaningParts}
-            onClose={() => setChanging(false)}
+            writing={writing}
+            finalFocus={writing ? change : undefined}
+            onClose={close}
           />
         </React.Suspense>
       )}

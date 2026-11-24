@@ -179,9 +179,10 @@ describe('families in a Cube model', () => {
       },
     })
     expect(families.map((name) => [name.name, name.state, name.family])).toEqual([
-      // Cube says nothing of how the USD one is worked out: only its name says it is the same
-      // amount in USD, so the owner says whether the two are one family (D1). Its measure says it
-      // is converted from the EUR one, which then speaks for the family.
+      // Its column converts no other pair, so it is no rate: only its name says it is the same
+      // amount in USD, and the owner says whether the two are one family (D1). Its measure reads
+      // the EUR one's column and the rate, so it is converted from it, which then speaks for the
+      // family.
       [
         'Accrued share front loaded',
         'flagged',
@@ -230,6 +231,7 @@ describe('families in a Cube model', () => {
     expect(terms[0]!.family).toMatchObject({
       found: 'names',
       by: ['Currency'],
+      conversions: [{ by: 'fx_rate' }],
       variants: [{ values: ['EUR'] }, { values: ['USD'] }],
       derivations: [
         "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
@@ -279,5 +281,72 @@ describe('families in a Cube model', () => {
       [people.owner],
     )
     expect(entries.rows).toEqual([{ subject: itemId }])
+  }, 120_000)
+
+  it('keep a family published from its names when a read finds it from a rate (C2)', async () => {
+    // Two pairs whose names look alike, each USD one the EUR column times the row's rate. Read
+    // first as a Cube read did before it said what a measure reads, then as it does now.
+    const pairs = (usd: (eur: string) => string) =>
+      model.replaceAll('currency_code', 'currency').replace(
+        '    measures:\n',
+        `    measures:
+${[
+  ['partner_payouts', 'payout_eur', 'Payouts we send partners'],
+  ['seller_fees', 'fee_eur', 'Fees sellers pay us'],
+]
+  .flatMap(([name, column, words]) => [
+    `      - name: ${name}_eur`,
+    '        type: sum',
+    `        sql: "${column}"`,
+    `        title: "${words} (EUR)"`,
+    `        description: ${words} in EUR, on the day they are booked.`,
+    `      - name: ${name}_usd`,
+    '        type: sum',
+    `        sql: "${usd(column!)}"`,
+    `        title: "${words} (USD)"`,
+    `        description: ${words} converted to USD at each row's rate.`,
+  ])
+  .join('\n')}
+`,
+      )
+    await writeFile(
+      join(folder, 'model.yml'),
+      pairs((eur) => `COALESCE(${eur}, 0) * fx_rate`),
+    )
+    await read()
+    const before = await ok<NamesRead>(call('GET', '/inbox/names', 'admin'))
+    const suggested = (read: NamesRead) =>
+      read.names
+        .filter((name) => name.kind === 'metric_group')
+        .map((name) => [name.name, name.family?.found])
+    expect(suggested(before)).toEqual([
+      ['Fees sellers pay us', 'names'],
+      ['Payouts we send partners', 'names'],
+    ])
+    await ok(
+      call('POST', '/inbox/names/decide', 'admin', {
+        revision: before.revision,
+        accept: before.names
+          .filter((name) => name.kind === 'metric_group')
+          .map(({ key }) => ({ key })),
+        leaveOut: [],
+      }),
+    )
+    await writeFile(
+      join(folder, 'model.yml'),
+      pairs((eur) => `${eur} * fx_rate`),
+    )
+    await read()
+    const { terms } = await ok<Catalogue>(call('GET', '/catalogue', 'admin'))
+    const pair = (name: string) => terms.find((term) => term.name === name)?.family
+    for (const name of ['Payouts we send partners', 'Fees sellers pay us'])
+      expect(pair(name), name).toMatchObject({
+        found: 'rate',
+        variants: [{ values: ['EUR'] }, { values: ['USD'] }],
+        conversions: [{ by: 'fx_rate' }],
+        meaning: { source: 'common', words: `${name} in {Currency}, on the day they are booked.` },
+      })
+    // Never suggested again: the published family stays as it is.
+    expect(suggested(await ok<NamesRead>(call('GET', '/inbox/names', 'admin')))).toEqual([])
   }, 120_000)
 })

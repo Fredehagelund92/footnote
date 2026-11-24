@@ -13,7 +13,8 @@
      variants' words differ: a word another variant, holding another value, writes beside the
      same word is a word ("a free trial" beside a plan named Free).
      A variant that says how it is worked out from another (it is converted from one, or its
-     words name a rate and another variant's value) has no say: when one variant is left, the
+     words name a rate and another variant's value, or, by Currency, it is the only one whose words
+     name a rate, and they name its own currency) has no say: when one variant is left, the
      one the others are converted from, its words are the meaning. Words that still name a value
      read as one variant, so they are never the family's ("in euros" of a EUR and USD family).
 
@@ -23,6 +24,7 @@
 
   Pure: the catalogue and the mock binding work out the same meaning from the same variants.
 */
+import { isCurrencyCode } from './currencies.ts'
 import { meaningLine, type FamilyMeaningSource, type MeaningChosen } from './family-meaning-line.ts'
 import { normalizeName } from './normalize-name.ts'
 
@@ -62,6 +64,9 @@ const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** Words that say a value is worked out from another one at a rate. */
 export const RATE_WORDS =
   /(?<![\p{L}\p{N}])(?:rates?|fx|exchange|convert(?:ed|s)?|conversion)(?![\p{L}\p{N}])/iu
+
+/** Words that say a variant is converted from another, which a bare "rate" does not. */
+const CONVERTED_WORDS = /(?<![\p{L}\p{N}])(?:convert(?:ed|s)?|fx|exchange)(?![\p{L}\p{N}])/iu
 
 /** Words people write for a currency in place of its code: a question that says one names it. */
 const CURRENCY_WORDS: Readonly<Record<string, readonly string[]>> = {
@@ -134,6 +139,37 @@ export function worksOut(
         normalizeName(value) !== normalizeName(variant.values[i] ?? '') && mentions(words, value),
     ),
   )
+}
+
+/**
+ * The variants of a family worked out from another, which have no say in its meaning: those
+ * converted from one (`conversions`), those whose words name a rate and another variant's value
+ * (`worksOut`), and, in a family by Currency (an axis whose values are all currency codes), the one
+ * variant whose own words say it is converted and name its own currency when no other's do ("Payouts converted to USD at each month's rate", C3).
+ * `axes` are each axis's values (`axisValues`).
+ */
+export function workedOut(
+  family: {
+    by: readonly string[]
+    variants: readonly { key: string; values: readonly string[]; description: string | null }[]
+    conversions: readonly { to: string }[]
+  },
+  axes: readonly (readonly string[])[] = axisValues(family.by, family.variants),
+): Set<string> {
+  const converted = new Set(family.conversions.map((c) => c.to))
+  const derived = new Set(
+    family.variants
+      .filter((variant) => converted.has(variant.key) || worksOut(variant, axes))
+      .map((variant) => variant.key),
+  )
+  const currency = axes.findIndex((values) => values.length > 0 && values.every(isCurrencyCode))
+  if (currency < 0) return derived
+  const free = family.variants.filter((variant) => !derived.has(variant.key))
+  const rated = free.filter((variant) => CONVERTED_WORDS.test(variant.description ?? ''))
+  const [own] = rated
+  if (free.length >= 2 && rated.length === 1 && own?.values[currency])
+    if (mentions(own.description!, own.values[currency])) derived.add(own.key)
+  return derived
 }
 
 /** A text's words as runs, each run the words written one after another with only spaces between. */
@@ -299,12 +335,7 @@ export function familyMeaning(family: {
 }): FamilyMeaning {
   const axes = axisValues(family.by, family.variants)
   // A variant converted from another, or whose words say how it is worked out from one, has no say.
-  const converted = new Set(family.conversions.map((c) => c.to))
-  const derived = new Set(
-    family.variants
-      .filter((variant) => converted.has(variant.key) || worksOut(variant, axes))
-      .map((variant) => variant.key),
-  )
+  const derived = workedOut(family, axes)
   const described = saidOf(family, axes).filter((variant) => !derived.has(variant.key))
   // The variants that have a say: all but those worked out from another.
   const pool = family.variants.length - derived.size
@@ -347,12 +378,12 @@ export function familyMeaning(family: {
         ? { source: 'common', words: common.words }
         : { source: 'none', words: null }
   // A variant says something else when its words, values aside, are not those most of them share.
-  // With no meaning, none does.
-  const differing = meaning.words
-    ? described
-        .filter((variant) => !(shared && sameAs(variant, shared.said)))
-        .map((variant) => variant.key)
-    : []
+  // With no meaning, none does; nor with words declared or written for the family when most share
+  // none: those words speak for every variant.
+  const differing =
+    meaning.words && shared
+      ? described.filter((variant) => !sameAs(variant, shared.said)).map((variant) => variant.key)
+      : []
   return {
     ...meaning,
     common,

@@ -45,6 +45,7 @@ export function openDock(kind: DockKind, id?: string, extra?: Record<string, str
     ptab: undefined,
     when: undefined,
     variant: undefined,
+    meaning: undefined,
     ...extra,
   })
 }
@@ -58,6 +59,7 @@ export function closeDock() {
     ptab: undefined,
     when: undefined,
     variant: undefined,
+    meaning: undefined,
   })
 }
 

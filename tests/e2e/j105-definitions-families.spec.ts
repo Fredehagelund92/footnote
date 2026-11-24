@@ -68,7 +68,9 @@ for (const { name, width, height } of widths) {
         await expect(declared).toContainText('3 by Sales line')
         const payouts = page.getByRole('row', { name: /Partner payouts/ })
         await expect(payouts).toContainText('Look alike, published as one')
-        await expect(payouts).toContainText('No meaning yet')
+        await expect(page.getByRole('row', { name: /Partner forecasts/ })).toContainText(
+          'No meaning yet',
+        )
         await expect(page.getByRole('row', { name: /Accrued share front loaded/ })).toContainText(
           'From a rate',
         )

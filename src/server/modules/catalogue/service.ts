@@ -33,7 +33,7 @@ import {
   familyAxes,
 } from '../../../domain/metric-families.ts'
 import { modelFileUrl, viewOf } from '../../../domain/source-views.ts'
-import { memberName } from '../../../domain/term-candidates.ts'
+import { memberName, viewWords } from '../../../domain/term-candidates.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -464,9 +464,8 @@ export function createCatalogueService(
         id: row.key.slice(row.key.indexOf(':') + 1),
         name: row.name,
         aliases: row.aliases,
-        group: view
-          ? { key: `view:${view}`, name: `${view.charAt(0).toUpperCase()}${view.slice(1)}` }
-          : null,
+        // Its view, in words: `booked_revenue` is "Booked revenue".
+        group: view ? { key: `view:${view}`, name: viewWords(view) } : null,
         family: {
           by,
           // A family an owner published from names that look alike was found by its names.

@@ -20,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import type { Definition, Family, FamilyMeaning } from '@/lib/definitions'
 import { useReported } from '@/lib/reported'
+import { cn } from '@/lib/utils'
 import { useMe } from '@/lib/workspace'
 
 // What a family of metrics means (FR-142, M1), in its quick view and on its page: the meaning, with
@@ -72,6 +73,53 @@ export function MeaningWords({
       })}
     </Marks>
   ))
+}
+
+/** The most variants whose own words a family with no meaning shows. */
+const OWN_SHOWN = 4
+
+/**
+ * A family with no meaning yet, as a reader reads it (C1): its variants say what it is, each in
+ * its own words after its values, as large as a meaning; past a few, how many more have words.
+ */
+export function VariantsOwnWords({
+  family,
+  code = 'text-xs',
+  className,
+}: {
+  family: Pick<Family, 'variants'>
+  code?: CodeLook
+  className?: string
+}) {
+  const own = family.variants.filter((variant) => variant.description?.trim())
+  if (!own.length)
+    return (
+      <p className={cn('text-muted-foreground', className)}>
+        Its variants have no words of their own yet.
+      </p>
+    )
+  const more = own.length - OWN_SHOWN
+  return (
+    <div className={className}>
+      <p className="text-sm text-muted-foreground">
+        Its {n(family.variants.length)} variants say what it is in their own words:
+      </p>
+      <ul aria-label="In its variants’ own words" className="mt-1.5 flex flex-col gap-1.5">
+        {own.slice(0, OWN_SHOWN).map((variant) => (
+          <li key={variant.name}>
+            <span className="font-medium">{variant.values.join(', ') || variant.name}</span>
+            {': '}
+            <SourceText text={variant.description!.trim()} code={code} />
+          </li>
+        ))}
+      </ul>
+      {more > 0 && (
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {n(more)} more {more === 1 ? 'has words of its' : 'have words of their'} own.
+        </p>
+      )}
+    </div>
+  )
 }
 
 /** What the owner's dialog uses of the app, handed to it as its parts. */
@@ -150,9 +198,13 @@ export function FamilyMeaningBlock({
   const source = meaningSource(family, meaning, d.tool ?? 'its tool')
   return (
     <div className={className}>
-      <p>
-        <MeaningWords meaning={meaning} by={family.by} />
-      </p>
+      {meaning.words ? (
+        <p>
+          <MeaningWords meaning={meaning} by={family.by} />
+        </p>
+      ) : (
+        <VariantsOwnWords family={family} />
+      )}
       {(source || canChange) && (
         <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
           {source}
