@@ -214,10 +214,11 @@ export const AGENT_TOOLS: {
   },
   {
     name: 'read_context',
-    title: 'Read one context item',
-    what: 'One context item in full.',
-    takes: 'A context item.',
-    returns: "Its text, source, check date and don't conclude line.",
+    title: 'Read one context item or definition',
+    what: 'One context item or one definition in full.',
+    takes: 'A context item, or a definition by its name.',
+    returns:
+      "A context item's text, source, check date and don't conclude line; a definition's words, owner, family and the context items about it.",
   },
   {
     name: 'report',

@@ -3,7 +3,7 @@ title: Agent tools
 line: The eight tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 8
+minutes: 10
 reviewed: 2026-11-23
 ---
 
@@ -29,10 +29,10 @@ A word search over names, titles and summaries.
 
 ### read_context
 
-One context item in full.
+One context item or one definition in full.
 
-- Takes: A context item.
-- Returns: Its text, source, check date and don't conclude line.
+- Takes: A context item, or a definition by its name.
+- Returns: A context item's text, source, check date and don't conclude line; a definition's words, owner, family and the context items about it.
 
 ### report
 
@@ -137,6 +137,23 @@ Dates in `window` include both ends: `window.from` and `window.to`. A question w
 - Gives back: titles and summaries under `context`, and definitions.
 
 `read_context` reads one context item in full. It takes `id`, the item's id, and gives back its text, every source, who checked it and its links.
+
+## Read a definition: read_context
+
+For "what does gross margin mean" or "how is ROAS defined", even when no context item is about it. Not for a question about the data, which `get_context` answers.
+
+When `id` is no context item's id, `read_context` reads it as a definition: its name, another of its names, or its key from the search or a list, such as `metric:orders`. The reply's `definition` has:
+
+- Its words whole, and where they come from: the source's own words, a family's meaning, or what a person wrote for a term. Only the first 500 characters of a source's words are kept, and `shortened` says when the source wrote more.
+- Its kind, domain and other names, and its owner as a role and a team, never a person.
+- The source tool, the definition's own name there, and the day it was last read.
+- For a family, its metrics and the values that tell them apart, how it was found, what it means and where that comes from, and its usual metric.
+- What it is built from and converted from, by name, never the calculation.
+- How many published context items about it the agent may read, with their titles, 20 to a page.
+
+Read from a version an agent is held to, a family comes back with only its metrics as that version has them: its words and values come from the live definitions, and the reply says so.
+
+Words that name several definitions come back with their keys to choose from, and words that name none with the closest names. Only published definitions are read: never a draft, a suggestion or a name waiting in the Inbox.
 
 ## List what there is: list_definitions and list_context
 

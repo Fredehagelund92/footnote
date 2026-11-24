@@ -261,7 +261,7 @@ const heldWords: Record<string, [string, string]> = {
  * the resolver delivers for their own scope (FR-314); the others are held back, counted by why.
  * A search's domain or kind never narrows them: they describe the term.
  */
-function termItems(bundle: ServingBundle, term: ServingTerm, today: string) {
+export function termItems(bundle: ServingBundle, term: ServingTerm, today: string) {
   const given: ServingItem[] = []
   const held = new Map<string, number>()
   let about = 0

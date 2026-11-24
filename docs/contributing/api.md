@@ -151,7 +151,13 @@ of the query a person defined come back in `terms`, as for `get_context`.
 **`read_context`** reads one item in full (`context`): its text, every source, who checked it, its
 Don't conclude line and its outgoing links, with a page of the items that link to it. The
 words of its title, summary and text that a person defined come back in `terms`, as for
-`get_context`.
+`get_context`. An `id` that is no item's id names a definition (FR-353,
+`src/server/mcp/read-definition.ts`): its name, another name, its key or its member name in the
+source. It reads one definition in full (`definition`) from the live edition, with what
+Definitions shows of it (family, meaning, usual metric, read date, relations), read as nobody
+through `ServingReads.definition`, and a page of the titles of the published items about it.
+Words that name several come back as `need_more_detail` with their keys in `options`, and words
+that name none as `no_match` with the closest.
 
 **`report`** takes what the person says, after they say yes: `kind` is `missing`, `wrong`,
 `unclear` or `helped`, with the `reply_id` of a `get_context` reply, a `context_id` when it is about

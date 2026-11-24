@@ -105,7 +105,7 @@ export const tools = {
     title: toolWords.read_context.title,
     description: describe(
       'read_context',
-      'Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. An edition needs a service token with edition scope. A link proves neither that an item applies nor a cause.',
+      'Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. A link proves neither that an item applies nor a cause. Read one definition, by its name, another of its names or its key from find_context or list_definitions, when the person asks what something means or how it is defined: its words whole, as its source or a person wrote them, where they come from, its owner as a role, its other names, its family with what the family means and its usual metric, what it is built from, and the titles of the published items about it, even when there are none; never to answer a question about the data, which get_context does. An edition needs a service token with edition scope.',
     ),
     inputSchema: readInput,
     outputSchema: readContextOutput,
