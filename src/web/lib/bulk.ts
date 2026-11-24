@@ -66,6 +66,12 @@ export function planFacts(
     }
     const why = whyNot(action, f, domains, opts)
     if (why) skip(f, why)
+    // One Publish takes a batch: the drafts past it stay ticked for the next press.
+    else if (action === 'publish' && act.length >= PUBLISH_MAX)
+      skip(f, {
+        why: `over ${PUBLISH_MAX} at once`,
+        reason: `One Publish takes ${PUBLISH_MAX} drafts: press Publish again for the rest.`,
+      })
     else act.push(f)
   }
   return { act, skipped }

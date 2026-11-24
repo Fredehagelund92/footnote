@@ -329,6 +329,16 @@ describe('publishing drafts from the list', () => {
   }
   const byInes: Fact = { ...ready, id: 'd_ines', domain: 'marketing', by: 'Ines Duarte' }
 
+  it('publishes a batch of 50 at a time and keeps the rest ticked, saying why', () => {
+    const many = Array.from({ length: PUBLISH_MAX + 6 }, (_, i) => ({ ...ready, id: `d_${i}` }))
+    const plan = planFacts('publish', [salesLive[0]!, ...many], jon, domains)
+    expect(plan.act.map((f) => f.id)).toEqual(many.slice(0, PUBLISH_MAX).map((f) => f.id))
+    expect(skippedLine(plan.skipped)).toBe('7 skipped: 1 published, 6 over 50 at once')
+    expect(plan.skipped.at(-1)?.reason).toBe(
+      'One Publish takes 50 drafts: press Publish again for the rest.',
+    )
+  })
+
   it('publishes only drafts that pass the editor checks, and says what is missing', () => {
     const noSource = { ...ready, id: 'd_nosource', source: '', quote: '' }
     const noQuote = { ...ready, id: 'd_noquote', quote: '' }
