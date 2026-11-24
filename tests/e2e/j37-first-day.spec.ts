@@ -47,9 +47,10 @@ test("each page's tab and heading say its name alone", async ({ page }) => {
 test('the counts read alike and stay inside the screen', async ({ page }) => {
   await go(page, '/context')
   const foot = page.locator('tfoot')
-  // Every count as a number reads, grouped by thousands where it has them.
+  // Every count as a number reads, grouped by thousands where it has them, one or several in a line.
+  const counts = String.raw`\d{1,3}(,\d{3})* [a-z ]+`
   for (const text of await foot.locator('td').allTextContents())
-    expect(text.trim()).toMatch(/^(|\d{1,3}(,\d{3})* [a-z ]+)$/)
+    expect(text.trim()).toMatch(new RegExp(`^(|${counts}(, ${counts})*)$`))
   const count = page.locator('[aria-live=polite]').filter({ hasText: /context items?$/ })
   await expect(count).toBeVisible()
   expect(await right(count)).toBeLessThanOrEqual(width(page))

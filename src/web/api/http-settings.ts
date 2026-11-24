@@ -218,7 +218,7 @@ const VERBS: Record<string, string> = {
   published: 'Published',
   submitted: 'Suggested',
   accepted: 'Published',
-  rejected: 'Returned',
+  rejected: 'Closed',
   withdrawn: 'Withdrew',
   withdrawal_taken_back: 'Took back the withdrawal of',
   connected: 'Connected',

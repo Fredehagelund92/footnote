@@ -159,7 +159,9 @@ Event (lightning), Warning (triangle), Rule (ruler), Guide (route). Stored as `e
 
 ### Item statuses and freshness
 
-Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives the exact value.
+Draft, Waiting, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives the exact value.
+
+**Waiting** is the chip of a suggestion that was sent and waits for an owner (**Waiting for review** in full, as in the Status filter). Its row and page say who sent it, how long ago and who decides: "Maria Lindqvist sent it 3 days ago. You or Sofia Brandt decide." Never "submitted", "in review" or "not published" for it. **Not published yet** is a draft's. A suggestion an owner chose not to publish is **Closed**, with the reason.
 
 ### Inbox cards and groups
 
@@ -170,6 +172,7 @@ Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives th
 | `look`       | **Saved questions**     | How many need a look                               |
 | mention      | **Mentioned you**       | Who, and where                                     |
 | returned     | **Returned to you**     | Who returned it: "Returned by Jon Abara"           |
+| closed       | **Closed**              | Who closed it: "Closed by Jon Abara", and why      |
 | `check`      | **Due for a check**     | The check date that passed                         |
 | `suggestion` | **Suggestion**          | Size and reach, "2 wording, 1 link - 12 questions" |
 
@@ -177,7 +180,7 @@ Under All: **Waiting on others** and **Done**. Never "Gap" or "Flag" as a card n
 
 ### Review
 
-Change kinds: **Wording**, **Formatting**, **Link**, **Order**, **Added**, **Removed**, **Dates**. Decisions: **Publish**, **Edit**, **Send back with a note**, **Archive**, **Don't archive** (closes it with a reason), **Close the suggestion**. A returned suggestion's sender: **Edit and send again**. Group actions: **Publish the N you've read**, **Mark as read**. Outcomes stay on the page: "Published. Agents now say ...", with Undo. A failed try says "Couldn't publish." with the server's reason when it gave one, then "Nothing changed.", and Try again repeats the same action (a returned note is sent as it reads now, not as it was); offline the button says "Publish is off until you're back". An Undo the service refuses (too late, or the card changed) says "Couldn't undo it." with the service's reason, and the screen stays as it was.
+Change kinds: **Wording**, **Formatting**, **Link**, **Order**, **Added**, **Removed**, **Dates**. Decisions: **Publish**, **Edit**, **Send back with a note**, **Archive**, **Don't archive** (closes it with a reason), **Close the suggestion**, **Don't publish** (closes a new item or a change with a reason its sender reads). A returned suggestion's sender: **Edit and send again**. Group actions: **Publish the N you've read**, **Mark as read**. Outcomes stay on the page: "Published. Agents now say ...", with Undo. A failed try says "Couldn't publish." with the server's reason when it gave one, then "Nothing changed.", and Try again repeats the same action (a returned note is sent as it reads now, not as it was); offline the button says "Publish is off until you're back". An Undo the service refuses (too late, or the card changed) says "Couldn't undo it." with the service's reason, and the screen stays as it was.
 
 ### The quick view's answers
 

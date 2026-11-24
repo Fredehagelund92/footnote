@@ -626,7 +626,7 @@ describe('what the review offers is what the service allows', () => {
       ...inMarket('luxembourg'),
     })
     const open = await sheet(plain.id)
-    expect(offered(open).can).toEqual(['publish', 'return'])
+    expect(offered(open).can).toEqual(['publish', 'return', 'close'])
     expect(mayDo(offered(open), 'publish')).toBe(open.canPublish)
     await ok<Published>(publish(plain.id, plain.revision))
   })
@@ -797,6 +797,102 @@ describe('a suggestion to archive taken back in the comments (P9c)', () => {
     // Archive anyway: the owner disagrees, and archives it after all.
     await ok<Published>(publish(proposal.id, back.proposal.revision))
     expect(await served(itemId)).toBeNull()
+  })
+})
+
+describe("Don't publish: an owner closes a new item or a change with a reason", () => {
+  it('offers it beside Publish and Return, needs a reason, and tells its sender, until Undo', async () => {
+    const p = await submitted({
+      title: 'Payout journal holds partner payouts',
+      ...inMarket('malta'),
+    })
+    const s = await sheet(p.id)
+    expect(
+      reviewActions({
+        mode: s.mode,
+        withdrawn: false,
+        stale: false,
+        clashes: 0,
+        claimsToCheck: 0,
+        drafted: false,
+      }).can,
+    ).toEqual(['publish', 'return', 'close'])
+    const bare = await call('POST', `/review/${p.id}/close`, 'owner', { revision: p.revision })
+    expect(bare.statusCode).toBe(422)
+    expect(bare.json<{ message: string }>().message).toBe(
+      "Write why you don't publish it. Its sender reads the reason.",
+    )
+    // Its sender withdraws it instead; only an owner or an admin closes it.
+    expect(
+      (
+        await call('POST', `/review/${p.id}/close`, 'author', {
+          revision: p.revision,
+          reason: 'Not mine to close',
+        })
+      ).statusCode,
+    ).toBe(403)
+    const closed = await ok<{ proposal: { state: string }; undo: { token: string } }>(
+      call('POST', `/review/${p.id}/close`, 'owner', {
+        revision: p.revision,
+        reason: 'The journal is not used for payouts.',
+      }),
+    )
+    expect(closed.proposal.state).toBe('rejected')
+    expect(await served(p.itemId!)).toBeNull()
+
+    // The sender reads who closed it and why, under All, until they open it.
+    const told = (await feed('author', 'all')).waiting.find((w) => w.proposalId === p.id)
+    expect(told).toMatchObject({
+      title: 'Payout journal holds partner payouts',
+      returned: null,
+      closed: { by: 'owner', reason: 'The journal is not used for payouts.', read: false },
+    })
+    await ok(call('POST', '/inbox/cards/read', 'author', { cards: [`closed:${p.id}`] }))
+    const read = (await feed('author', 'all')).waiting.find((w) => w.proposalId === p.id)
+    expect(read?.closed?.read).toBe(true)
+    // The owner's Done row says Closed.
+    const done = (await feed('owner', 'all')).cards.find((c) => c.id === `proposal:${p.id}`)
+    expect(done?.done?.outcome).toBe('Closed')
+
+    await ok(call('POST', '/decisions/undo', 'owner', { token: closed.undo.token }))
+    const back = await ok<ProposalRecord>(call('GET', `/proposals/${p.id}`, 'author'))
+    expect(back.state).toBe('submitted')
+    expect(back.submittedAt).not.toBeNull()
+    const waits = (await feed('author', 'all')).waiting.find((w) => w.proposalId === p.id)
+    expect(waits?.closed).toBeNull()
+  })
+
+  it('lets an owner edit a waiting suggestion and publish it as itself, keeping its sender', async () => {
+    const p = await submitted({ title: 'Settlement ledger closes late', ...inMarket('cyprus') })
+    const edited = draft({
+      title: 'Settlement ledger closes on the fifth working day',
+      ...inMarket('cyprus'),
+    })
+    // Its sender cannot change it while it waits: they withdraw it first.
+    const own = await call('POST', '/items/publish', 'author', { draft: edited, draftId: p.id })
+    expect(own.statusCode).toBe(409)
+    const published = await ok<{
+      published: boolean
+      itemId: string
+      proposalId: string
+      undo: { token: string }
+    }>(call('POST', '/items/publish', 'owner', { draft: edited, draftId: p.id }))
+    expect(published).toMatchObject({ published: true, proposalId: p.id, itemId: p.itemId })
+    const after = await ok<ProposalRecord>(call('GET', `/proposals/${p.id}`, 'owner'))
+    expect(after).toMatchObject({ state: 'accepted', proposerId: p.proposerId })
+    expect(after.title).toBe('Settlement ledger closes on the fifth working day')
+    // The version agents get names its writer and who edited it.
+    const [version] = (
+      await client.query<{ proposer: string; editor: string }>(
+        `select v.proposer_id::text as proposer, v.edited_by::text as editor
+           from item_version_service s join item_versions v on v.id=s.version_id
+          where s.item_id=$1 and upper_inf(s.editions)`,
+        [p.itemId],
+      )
+    ).rows
+    expect(version).toEqual({ proposer: p.proposerId, editor: people.owner })
+    // Taken back, so the next tests' items do not clash with this one.
+    await ok(call('POST', '/decisions/undo', 'owner', { token: published.undo.token }))
   })
 })
 

@@ -75,6 +75,7 @@ import {
   dayShiftOf,
   draftOf,
   factOfDraft,
+  factOfWaiting,
   factOfReadDraft,
   itemPageOf,
   linksOfRelated,
@@ -313,6 +314,8 @@ const isUuid = (id: string) =>
 const isItemId = (id: string) => /^itm_[a-z0-9]{8,16}$/.test(id)
 /** A suggestion its writer edits in the editor: a draft, or one an owner returned with a note. */
 const editable = (state: string) => state === 'draft' || state === 'changes_requested'
+/** Sent, and waiting for an owner's decision. */
+const waits = (state: string) => state === 'submitted' || state === 'in_review'
 
 /** A change to many items in the service's words, by the bar's action. */
 const bulkActions = {
@@ -726,39 +729,47 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         throw error
       }))
 
-  /** Every draft of a context item the person may read: never published, never sent. */
-  async function readDrafts(): Promise<ProposalRecord[]> {
+  /** Every proposal of a context item in one state that the person may read. */
+  async function readProposals(state: 'draft' | 'submitted' | 'in_review') {
     const rows: ProposalRecord[] = []
     for (let offset = 0; ; offset += 100) {
-      const page = await read(() => client.proposals.list({ state: 'draft', limit: 100, offset }))
+      const page = await read(() => client.proposals.list({ state, limit: 100, offset }))
       rows.push(...page.rows.filter((p) => p.subject === 'item'))
       if (offset + page.rows.length >= page.total || !page.rows.length) return rows
     }
   }
 
-  /** Every context item the person may read, and the drafts, with what the index says of them. */
+  /**
+   * Every context item the person may read, the drafts, and the new items waiting for review that
+   * they may open (sent by them, or in a domain they decide for), with what the index says of them.
+   * A change waiting for review shows on its item's page instead: the item is in the list already.
+   */
   async function contextRows() {
-    const [index, drafts, names, vocabulary] = await Promise.all([
+    const [index, drafts, sent, reviewing, names, vocabulary] = await Promise.all([
       read(() => client.library.index()),
-      readDrafts(),
+      readProposals('draft'),
+      readProposals('submitted'),
+      readProposals('in_review'),
       readNames(),
       readWords(),
     ])
     calendar = { today: index.today, shift: dayShiftOf(index) }
     setToday(index.today)
+    const waiting = [...sent, ...reviewing].filter((p) => p.action === 'create')
     return {
       index,
       names,
       items: [
         ...factsOf(index.items, names),
         ...drafts.map((d) => factOfDraft(d, names, vocabulary)),
+        ...waiting.map((p) => factOfWaiting(p, names, vocabulary, calendar.shift)),
       ],
     }
   }
 
   /**
    * A published item's page, or a draft's, or a suggestion an owner returned to its sender, which
-   * the editor opens to send again; null for anything else. The item is asked for beside the names
+   * the editor opens to send again, or one waiting for review; null for anything else. The item is asked for beside the names
    * and words it is read with, not after them.
    */
   async function itemPage(id: string) {
@@ -776,15 +787,22 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       readNames(),
       readWords(),
     ])
-    return proposal?.subject === 'item' && editable(proposal.state)
-      ? { item: factOfDraft(proposal, names, vocabulary), history: [] as Version[] }
+    if (proposal?.subject !== 'item') return null
+    if (editable(proposal.state))
+      return { item: factOfDraft(proposal, names, vocabulary), history: [] as Version[] }
+    return waits(proposal.state)
+      ? {
+          item: factOfWaiting(proposal, names, vocabulary, calendar.shift),
+          history: [] as Version[],
+        }
       : null
   }
 
   /**
    * What the editor publishes in one step, or sends to the owners: only what it changes from the
    * item as the service has it, or the whole of a new one. A draft is finished and sent as itself,
-   * also one someone else wrote, which an owner publishes as theirs: never a copy beside it. A
+   * also one someone else wrote, which an owner publishes as theirs: never a copy beside it. So is a
+   * suggestion waiting for an owner's review that the owner edited (Edit then publish). A
    * suggestion returned to someone else stays theirs, and what was written from it goes as new.
    */
   async function publishFromEditor(
@@ -796,7 +814,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const [vocabulary, who] = await Promise.all([readWords(), signedIn()])
     const started = !isNew && isUuid(fact.id) ? await readDraft(fact.id) : null
     const itself =
-      started && (started.proposerId === who.id || started.state === 'draft') ? started : null
+      started &&
+      (started.proposerId === who.id || started.state === 'draft' || waits(started.state))
+        ? started
+        : null
     const itemId = isNew ? undefined : started ? (started.itemId ?? undefined) : fact.id
     const before = itemId && !itself ? (await itemPage(itemId))?.item : undefined
     if (!isNew && !started && !before)
@@ -825,12 +846,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /**
-   * A draft of a context item, or a suggestion returned to its sender, by its proposal; not found
-   * once it was sent or deleted.
+   * A draft of a context item, a suggestion returned to its sender, or one waiting for review (an
+   * owner edits it to publish it), by its proposal; not found once it was decided or deleted.
    */
   async function readDraft(id: string) {
     const proposal = await read(() => client.proposals.get({ id }))
-    if (proposal.subject !== 'item' || !editable(proposal.state))
+    if (proposal.subject !== 'item' || !(editable(proposal.state) || waits(proposal.state)))
       throw new ApiError('not-found', 'This draft was sent or deleted.')
     return proposal
   }
@@ -849,8 +870,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const name = new Map(listed.people.map((p) => [p.id, p.name]))
     const shown = inboxOf(feed, who.name, byId, new Date(), (id) => name.get(id) ?? 'Someone')
     // What this visit sent waits as it was sent, until an owner decides; the rest as the feed says.
-    const waits = new Set(feed.waiting.filter((w) => !w.returned).map((w) => w.proposalId))
-    sent = sent.filter((x) => waits.has(x.id))
+    const open = new Set(
+      feed.waiting.filter((w) => !w.returned && !w.closed).map((w) => w.proposalId),
+    )
+    sent = sent.filter((x) => open.has(x.id))
     const mine = new Set(sent.map((x) => `waiting:${x.id}`))
     return { ...shown, waiting: shown.waiting.filter((w) => !mine.has(w.id)), sent }
   }
@@ -1824,7 +1847,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const cards = ids.flatMap((id) =>
         isUuid(id)
           ? [`proposal:${id}`, ...(gaps.has(id) ? [gaps.get(id)!.card] : [])]
-          : /^(proposal|gap|feedback|report|check|mention):/.test(id)
+          : /^(proposal|gap|feedback|report|check|mention|closed):/.test(id)
             ? [id]
             : [],
       )

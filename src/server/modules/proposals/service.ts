@@ -29,8 +29,22 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
  item_version_id::text as "itemVersionId",proposer_id::text as "proposerId",channel,revision,
  case when subject='item' then coalesce(draft,'{}'::jsonb) else '{}'::jsonb end as draft,
  provenance,draft_findings as findings,claimed_by::text as "claimedBy",due_at::text as "dueAt",
- created_at::text as "createdAt",updated_at::text as "updatedAt",
+ submitted_at::text as "submittedAt",created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
+/** The states in which an owner of its domain or an admin may finish someone else's words. */
+const ownersFinish = (state: ProposalRecord['state']) =>
+  state === 'draft' || state === 'submitted' || state === 'in_review'
+
+/**
+ * Whether its words may change now: a draft, or a suggestion sent back for changes, by its writer;
+ * a suggestion waiting for review only by an owner or an admin who edits it to publish it, which
+ * writerOr checked (Edit then publish). Its writer withdraws a waiting suggestion instead.
+ */
+const editableBy = (p: ProposalRecord, personId: string | null) =>
+  p.state === 'draft' ||
+  p.state === 'changes_requested' ||
+  (p.proposerId !== personId && ownersFinish(p.state))
+
 /**
  * Proposals as the API returns them to the reader: a draft that names an item the audience rule
  * hides from them reads without it (`forReader`). Row security leaves out the proposals they may
@@ -187,15 +201,22 @@ function proposalsService(
   }
   /**
    * Its writer changes it, or else, with `byDomainOwners`, an owner of its domain or an admin
-   * finishes a draft someone else wrote, to publish it as itself: the draft stays its writer's.
+   * finishes a draft someone else wrote, or edits a suggestion waiting for their review, to publish
+   * it as itself: it stays its writer's.
    */
   async function writerOr(p: ProposalRecord, byDomainOwners: boolean) {
-    if (p.proposerId === personId || !byDomainOwners || p.state !== 'draft') return proposerOnly(p)
+    if (p.proposerId === personId || !byDomainOwners || !ownersFinish(p.state))
+      return proposerOnly(p)
     const [may] = await tx.query<{ ok: boolean }>(
       'select cl_is_admin_now() or cl_is_owner_now($1) as ok',
       [p.areaId],
     )
     if (!may?.ok) proposerOnly(p)
+    // An edit before publishing is the reviewer's: never past another owner's claim on it.
+    if (p.state !== 'draft' && p.claimedBy && p.claimedBy !== personId)
+      throw new ORPCError('CONFLICT', {
+        message: 'Another owner is already reviewing this suggestion.',
+      })
   }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
     await tx.query(
@@ -525,7 +546,7 @@ function proposalsService(
     ) {
       const p = await current(id, revision)
       await writerOr(p, byDomainOwners)
-      if (!['draft', 'changes_requested'].includes(p.state))
+      if (!editableBy(p, personId))
         throw new ORPCError('CONFLICT', {
           message: 'You can only edit a draft, or a suggestion sent back for changes.',
         })
@@ -557,7 +578,7 @@ function proposalsService(
     ) {
       const p = await current(id, revision)
       await writerOr(p, byDomainOwners)
-      if (!['draft', 'changes_requested'].includes(p.state))
+      if (!editableBy(p, personId))
         throw new ORPCError('CONFLICT', {
           message: 'Only a draft, or a suggestion sent back for changes, can be sent for review.',
         })
@@ -623,16 +644,23 @@ function proposalsService(
         }
         previous = written ?? base?.id ?? previous ?? rescue?.versionId ?? null
       }
-      const version = await insertVersion(tx, item, v, previous)
+      // An owner's or an admin's words in a suggestion that waits for them (Edit then publish)
+      // supersede the version its writer sent, and name who edited it.
+      const edit = p.state === 'submitted' || p.state === 'in_review'
+      const version = edit
+        ? await insertVersion(tx, item, v, p.itemVersionId, { editedBy: personId! })
+        : await insertVersion(tx, item, v, previous)
       const [area] = await tx.query<{ review_days: number }>(
         'select review_days from areas where id=$1',
         [p.areaId],
       )
       const due = addWorkingDays(clock.now().toISOString(), area!.review_days)
       await tx.query(
-        `update proposals set state='submitted',item_id=$2,item_version_id=$3,submitted_at=now(),due_at=$4,
-        claimed_by=null,claimed_at=null,draft_findings=$5 where id=$1`,
-        [id, item, version.id, due, JSON.stringify(checks.findings)],
+        `update proposals set state=case when $6::boolean then state else 'submitted' end,
+        item_id=$2,item_version_id=$3,submitted_at=now(),due_at=$4,
+        claimed_by=case when $6::boolean then claimed_by end,claimed_at=case when $6::boolean then claimed_at end,
+        draft_findings=$5 where id=$1`,
+        [id, item, version.id, due, JSON.stringify(checks.findings), edit],
       )
       await tx.query(
         `insert into check_results(item_version_id,level,outcome,inputs_digest,details) values($1,'format',$2,decode($3,'hex'),$4)`,

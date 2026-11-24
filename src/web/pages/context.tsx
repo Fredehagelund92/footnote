@@ -63,6 +63,8 @@ import {
   type Kind,
   type Status,
 } from '@/model/items'
+import { waitingLine } from '@/model/waiting'
+import { today } from '@/lib/today'
 import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
@@ -74,7 +76,7 @@ import { changeQuery, href, navigate } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import { conflictsQuery, contextPageQuery, useVocabulary } from '@/api/queries'
 import { conflictsByItem } from '@/model/conflicts'
-import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
+import { useDomainList, useDomains, useFacts, useMe } from '@/lib/workspace'
 import { APP_URL } from '@/lib/brand'
 import { TruncatedText } from '@/components/footnote/truncated'
 import { plainText } from '@/lib/mentions'
@@ -96,7 +98,7 @@ import { ContextBulk } from '@/components/footnote/context-bulk'
 // one dot. An item in a conflict carries the Conflict chip after its title (FR-220); Conflicts is a
 // filter of this list, kept in the address (?show=conflicts), not a list of its own.
 
-const STATUSES: Status[] = ['Draft', 'Live', 'Due for a check', 'Archived']
+const STATUSES: Status[] = ['Draft', 'Waiting', 'Live', 'Due for a check', 'Archived']
 const KINDS = Object.keys(kindLabel) as Kind[]
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
@@ -126,6 +128,18 @@ const GROUPS: Record<Group, string> = { none: 'No grouping', domain: 'Domain', m
 const checked = (f: Fact) => (f.checkedOn ? Date.parse(f.checkedOn) : 0)
 const count = (n: number) => n.toLocaleString('en-GB')
 const items = (n: number) => `${count(n)} context ${n === 1 ? 'item' : 'items'}`
+/** The foot's totals: what is published, then what waits for review and what is a draft. */
+const totals = (rows: Fact[]) => {
+  const waiting = rows.filter((f) => f.status === 'Waiting').length
+  const drafts = rows.filter((f) => f.status === 'Draft').length
+  return [
+    `${count(rows.length - waiting - drafts)} published`,
+    waiting > 0 && `${count(waiting)} waiting for review`,
+    drafts > 0 && `${count(drafts)} ${drafts === 1 ? 'draft' : 'drafts'}`,
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
 /** The first metric an item applies to, for grouping by metric. */
 const metricOf = (f: Fact, metrics: Set<string>) =>
   f.where.find((w) => metrics.has(w)) ?? 'No metric'
@@ -135,8 +149,11 @@ const COLS = 8
 /** A line of the list: a group's heading, or an item. */
 type Line = { group: string; rows: number; open: boolean } | Fact
 const keyOfLine = (l: Line) => ('group' in l ? `group:${l.group}` : l.id)
-/** The heights the lines are drawn at (h-8 and h-row), until a phone's taller rows are measured. */
-const heightOfLine = (l: Line) => ('group' in l ? 32 : 36)
+/**
+ * The heights the lines are drawn at (h-8 and h-row, a Waiting row with its second line), until
+ * taller rows are measured.
+ */
+const heightOfLine = (l: Line) => ('group' in l ? 32 : l.status === 'Waiting' ? 56 : 36)
 
 export function ContextPage() {
   // The shell's shared read holds these rows, so a visit draws them at once; the page's read is that
@@ -148,6 +165,7 @@ export function ContextPage() {
   const conflicts = useQuery(conflictsQuery('all'))
   const conflictOf = React.useMemo(() => conflictsByItem(conflicts.data ?? []), [conflicts.data])
   const domains = useDomains()
+  const me = useMe()
   const domainIds = useDomainList().map((d) => d.id)
   const { metrics } = useVocabulary()
   const metricNames = React.useMemo(() => new Set(metrics.map((m) => m.name)), [metrics])
@@ -325,7 +343,12 @@ export function ContextPage() {
           <KindIcon kind={f.kind} className="@max-xl/main:hidden" />
           <StatusIcon status={f.status} className="@xl/main:hidden" />
         </td>
-        <td className="max-w-0 px-1.5 align-middle @max-xl/main:px-3 @max-xl/main:py-2">
+        <td
+          className={cn(
+            'max-w-0 px-1.5 align-middle @max-xl/main:px-3 @max-xl/main:py-2',
+            f.status === 'Waiting' && 'py-2',
+          )}
+        >
           <span className="flex min-w-0 items-center gap-1.5 @max-xl/main:items-start">
             <button
               type="button"
@@ -361,6 +384,12 @@ export function ContextPage() {
               </span>
             )}
           </span>
+          {/* Waiting for review: who sent it, how long ago, and who decides, on every width. */}
+          {f.status === 'Waiting' && (
+            <span className="mt-0.5 block min-w-0 truncate text-xs text-muted-foreground @max-xl/main:whitespace-normal">
+              {waitingLine(f, domains[f.domain]?.owners ?? [], me.name, today())}
+            </span>
+          )}
           {/* On a phone the columns fold into a second line: the time frame in words, then the scope. */}
           <span className="mt-0.5 hidden min-w-0 items-center gap-2 text-xs text-muted-foreground @max-xl/main:flex">
             <span className="shrink-0">{timeShort(time)}</span>
@@ -823,7 +852,7 @@ export function ContextPage() {
                   <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
                     <td className={cn('hidden @xl/main:table-cell', boxes && 'table-cell')} />
                     <td />
-                    <td className="h-bar px-1.5 @max-xl/main:px-3">{items(filtered.length)}</td>
+                    <td className="h-bar px-1.5 @max-xl/main:px-3">{totals(filtered)}</td>
                     <td className="hidden px-1.5 @min-[60rem]/main:table-cell" />
                     <td colSpan={2} className="hidden px-1.5 @xl/main:table-cell">
                       {count(

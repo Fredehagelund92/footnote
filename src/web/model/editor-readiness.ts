@@ -67,6 +67,8 @@ export type Standing = {
   mode: 'new' | 'edit' | 'suggest'
   /** Not published yet: a draft nobody has published. */
   draft: boolean
+  /** Sent and waiting for review: an owner edits it before publishing it. */
+  waiting?: boolean
   /** It is sent to the owners instead of published: the person doesn't own its domain. */
   suggests: boolean
   /** Who wrote the draft, when it is someone else. */
@@ -81,6 +83,8 @@ export type Standing = {
  * where there is nothing to say (a new item, or an owner's edit of a live one).
  */
 export function standingLine(s: Standing) {
+  if (s.waiting)
+    return `${s.writer ?? 'Someone'} sent this for review. Agents don't have it yet. Publish makes it live with your changes, with ${s.writer ?? 'them'} as its writer.`
   if (s.draft) {
     const never = "never published, so agents don't have it yet."
     if (s.suggests)

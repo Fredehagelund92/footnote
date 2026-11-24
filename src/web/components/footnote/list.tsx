@@ -574,6 +574,7 @@ export function SortMenu<K extends string>({
 
 const dot: Record<Status, string> = {
   Draft: 'bg-transparent ring-1 ring-inset ring-off',
+  Waiting: 'bg-transparent ring-1 ring-inset ring-ring',
   Live: 'bg-good',
   'Due for a check': 'bg-caution',
   Archived: 'bg-off',
@@ -581,6 +582,7 @@ const dot: Record<Status, string> = {
 
 const statusHint: Record<Status, string> = {
   Draft: 'Draft: written, not shared with agents yet',
+  Waiting: "Waiting for review: an owner of its domain decides, agents don't get it yet",
   Live: 'Live: agents get it',
   'Due for a check': 'Due for a check: its check date passed or a definition changed',
   Archived: 'Archived: agents no longer get it',
@@ -610,7 +612,9 @@ export function StatusDot({
       )}
     >
       <span aria-hidden className={cn('size-2 shrink-0 rounded-full', dot[status])} />
-      <span className={cn(calm && 'sr-only')}>{status}</span>
+      <span className={cn(calm && 'sr-only')}>
+        {status === 'Waiting' ? 'Waiting for review' : status}
+      </span>
     </span>
   )
 }

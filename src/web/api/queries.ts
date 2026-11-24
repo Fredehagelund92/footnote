@@ -599,8 +599,9 @@ export const invalidations: {
   // A published item may answer a Not found card, and be the setup checklist's first item.
   saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
   applyBulk: () => [...live, queryKeys.advancedPage],
-  sendSuggestion: () => [...inbox, queryKeys.scopeSearches],
-  withdrawSuggestion: () => inbox,
+  // A new item sent waits for review in Context too, until it is decided or withdrawn.
+  sendSuggestion: () => [...inbox, ...items, queryKeys.scopeSearches],
+  withdrawSuggestion: () => [...inbox, ...items],
   undo: () => everything,
   // Settling archives an item, publishes a version or keeps both: the items, the Inbox's alert and
   // the comment that tells the other owners all move.
@@ -648,8 +649,8 @@ export const invalidations: {
   publishReview: () => decision,
   publishReviews: () => decision,
   archiveReview: () => decision,
-  closeReview: () => inbox,
-  returnReview: () => [...inbox, ...comments],
+  closeReview: () => decision,
+  returnReview: () => [...decision, ...comments],
   saveQuestion: () => [queryKeys.savedQuestions],
   removeSavedQuestion: () => [queryKeys.savedQuestions],
   keepNewAnswer: () => [queryKeys.savedQuestions],

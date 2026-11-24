@@ -1,5 +1,5 @@
 import { footnoteApiMethods, readMethods } from '../client'
-import { clockTime } from '@/lib/dates'
+import { clockTime, parseDay } from '@/lib/dates'
 import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
 import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
@@ -10,6 +10,8 @@ import { reviewActions, type ReviewAction } from '@domain/review-actions'
 import type { SavedView } from '@/lib/obs-views'
 import { mentionNotesOf, type Subject } from '@/model/comments'
 import { servedToAgents } from '@/model/items'
+import { draftItem } from '@/model/review-page'
+import { today } from '@/lib/today'
 import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
@@ -247,7 +249,7 @@ export function createMockApi() {
   /** Why a move is not offered for a suggestion, in the service's words. */
   const notOffered = (action: ReviewAction, r: Review) =>
     action === 'close'
-      ? 'Only a suggestion to archive is closed. Decide this one instead.'
+      ? 'Only a suggestion of a context item is closed. Decide this one instead.'
       : action === 'archive'
         ? 'Only a suggestion to archive is archived. Publish or return this one.'
         : r.mode === 'retire'
@@ -276,6 +278,47 @@ export function createMockApi() {
     })
     if (!can.includes(action)) throw new ApiError('conflict', notOffered(action, r))
   }
+
+  /** The words of the new items sent this visit, by their suggestion's id: Context lists them. */
+  const sentFacts = new Map<string, Fact>()
+  /**
+   * The new items waiting for review that the person may open, as Context lists them: a review's
+   * new item while its card waits, in a domain they decide for or sent by them, and a new item they
+   * sent this visit. As the service: a change waits on its item's page instead.
+   */
+  const waitingFacts = (): Fact[] => {
+    if (state.fresh) return []
+    const who = meAsPerson()
+    const domains = workspace.domainMap()
+    const reviewed = reviews.flatMap((r): Fact[] => {
+      const card = cards.find((c) => c.id === r.id)
+      if (r.mode !== 'new' || r.drafted || !card || state.done[r.id]) return []
+      if (!who.admin && !who.owns.includes(card.domain) && r.from !== me()) return []
+      const item = draftItem(r, undefined, domains)
+      const sent = parseDay(r.on)
+      return item
+        ? [
+            {
+              ...item,
+              id: r.id,
+              domain: card.domain,
+              status: 'Waiting',
+              by: r.synced ? '' : r.from,
+              ...(sent ? { sentAt: new Date(sent).toISOString().slice(0, 10) } : {}),
+            },
+          ]
+        : []
+    })
+    const sentNow = state.sent.flatMap((x): Fact[] => {
+      const fact = sentFacts.get(x.id)
+      return fact && x.by === me()
+        ? [{ ...fact, id: x.id, status: 'Waiting', by: x.by, sentAt: today() }]
+        : []
+    })
+    return [...reviewed, ...sentNow]
+  }
+  /** Context's rows: the items, the drafts, and what waits for review that the person may open. */
+  const contextFacts = () => [...factsOf(state), ...waitingFacts()]
 
   /** The threads where `who` may take back what they hang on: a suggestion to archive they sent, while it waits. */
   const withdrawableBy = (who: string) =>
@@ -499,7 +542,7 @@ export function createMockApi() {
     // The library
     getLibrary: () =>
       now(() => ({
-        items: factsOf(state),
+        items: contextFacts(),
         published: state.published,
         viewed: state.viewed,
         log: state.log,
@@ -521,10 +564,12 @@ export function createMockApi() {
           definitions.list().filter((d) => d.family),
         ),
       ),
-    contextPage: () => read('contextPage', '', () => factsOf(state)),
+    contextPage: () => read('contextPage', '', contextFacts),
     itemPage: ({ id }) =>
       read('itemPage', id, () => {
         const item = factsOf(state).find((f) => f.id === id)
+        const waits = item ? undefined : waitingFacts().find((f) => f.id === id)
+        if (waits) return { item: withScope(waits), history: [] }
         if (!item) return null
         // The pair its warning names, as the service's page carries it: no read of the pair.
         const pair = item.disagreesWith ? pairAt(item.id, item.disagreesWith) : undefined
@@ -689,6 +734,23 @@ export function createMockApi() {
     draftFromText: () => now(() => withScope(norwayDraft)),
     saveItem: ({ fact, isNew, relations = {}, gap, setup }) =>
       now(() => {
+        // An owner's words in a new item waiting for their review publish that suggestion as
+        // itself (Edit then publish), as the service does: its card is decided.
+        const waits = isNew ? undefined : waitingFacts().find((f) => f.id === fact.id)
+        if (waits) {
+          if (sentFacts.has(fact.id))
+            throw new ApiError(
+              'conflict',
+              'It is waiting for review. Withdraw it to change it, then send it again.',
+            )
+          mayDecide(fact.id, 'publish')
+          const itemId = `itm_new_${Date.now().toString(36)}`
+          scope.used(fact.scope)
+          dispatch({ type: 'addFact', fact: { ...fact, id: itemId, version: 1, by: waits.by } })
+          dispatch({ type: 'complete', card: fact.id, outcome: 'Published' })
+          dispatch({ type: 'published', id: itemId })
+          return { id: itemId }
+        }
         // As the service: an overlap left alone is unrelated, so none refuses a publish.
         const id = isNew ? `itm_new_${Date.now().toString(36)}` : fact.id
         // As the service: an edit from an older version than the one published now changes nothing.
@@ -768,10 +830,17 @@ export function createMockApi() {
       now(() => {
         scope.used(fact.scope)
         const id = `sent_${Date.now().toString(36)}`
+        if (!sent.factId) sentFacts.set(id, fact)
         dispatch({ type: 'send', sent: { ...sent, id } })
         return { id }
       }),
-    withdrawSuggestion: ({ id }) => now(() => dispatch({ type: 'withdraw', id })),
+    withdrawSuggestion: ({ id }) =>
+      now(() => {
+        dispatch({ type: 'withdraw', id })
+        const r = reviews.find((x) => x.id === id)
+        if (r && r.from === me() && !state.done[id])
+          dispatch({ type: 'complete', card: id, outcome: 'Withdrawn' })
+      }),
     undo: ({ token }) =>
       now(() => {
         const offer = undos.get(token)
@@ -1048,7 +1117,9 @@ export function createMockApi() {
         if (!reviewNow(r).retire?.withdrawn && !reason?.trim())
           throw new ApiError(
             'invalid',
-            'Write why you close it. The reason is kept with the decision.',
+            r.mode === 'retire'
+              ? 'Write why you close it. The reason is kept with the decision.'
+              : "Write why you don't publish it. Its sender reads the reason.",
           )
         return decideReview(id, 'Closed', () => {})
       }),

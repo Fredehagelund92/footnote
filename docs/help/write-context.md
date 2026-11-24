@@ -3,8 +3,8 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 4
-reviewed: 2026-11-22
+minutes: 5
+reviewed: 2026-11-23
 open:
   label: Write context
   href: /context/new
@@ -53,6 +53,12 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 5. Don't conclude: the one line that stops an agent from reading a cause into it.
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
+
+## Waiting for review
+
+A new item you send is Waiting for review until an owner decides. Context lists it with the chip Waiting, who sent it, how long ago and who decides. Only you, the owners of its domain and admins see it, and agents don't get it yet. Filter by Waiting for review to see them all.
+
+While it waits, you can withdraw it from its page. If an owner closes it, your Inbox says Closed by them, with their reason.
 
 ## An example
 

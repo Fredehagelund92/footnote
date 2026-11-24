@@ -270,6 +270,8 @@ test('Mark as checked counts only the items that were opened', async ({ page }) 
 test('After Select all on the page, Select all N matching takes the folded rows too', async ({
   page,
 }) => {
+  // Tall enough to draw every row, as a row waiting for review is taller than the rest.
+  await page.setViewportSize({ ...page.viewportSize()!, height: 2400 })
   await go(page, '/context')
   await page.getByRole('button', { name: 'Group' }).click()
   await page.getByRole('menuitemradio', { name: 'Domain' }).click()

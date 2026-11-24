@@ -5,6 +5,7 @@ import {
   ArchiveIcon,
   CircleCheckIcon,
   CircleDashedIcon,
+  ClockIcon,
   ExternalLinkIcon,
 } from '@/components/icons'
 import { DetailsBody, detailsSummary } from '@/components/footnote/details-body'
@@ -63,6 +64,16 @@ export function ItemDocument({
           {fact.status === 'Archived' ? (
             <PeekFact icon={ArchiveIcon}>
               <b>{domains[fact.domain]?.name}</b> - archived, agents don't get it
+            </PeekFact>
+          ) : fact.status === 'Waiting' ? (
+            <PeekFact icon={ClockIcon}>
+              <b>{domains[fact.domain]?.name}</b> - waiting for review
+              {fact.by && (
+                <>
+                  , sent by <b>{fact.by}</b>
+                </>
+              )}
+              , agents don't get it until it is published
             </PeekFact>
           ) : fact.status === 'Draft' ? (
             <PeekFact icon={CircleDashedIcon}>

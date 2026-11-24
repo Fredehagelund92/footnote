@@ -8,6 +8,7 @@ import {
   CircleCheckIcon,
   CircleDashedIcon,
   CircleMinusIcon,
+  ClockIcon,
   InfinityIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
@@ -90,6 +91,11 @@ const statusLook = {
     tone: 'text-muted-foreground',
     hint: 'Draft: written, not shared with agents yet',
   },
+  Waiting: {
+    icon: ClockIcon,
+    tone: 'text-foreground',
+    hint: "Waiting for review: an owner of its domain decides, agents don't get it yet",
+  },
   Archived: {
     icon: CircleMinusIcon,
     tone: 'text-muted-foreground',
@@ -97,7 +103,7 @@ const statusLook = {
   },
 } as const
 
-/** The status as one of four circle icons: check, alert, dashed, minus. */
+/** The status as one of five icons: check, alert, dashed, clock, minus. */
 export function StatusIcon({
   status,
   plain,

@@ -84,6 +84,7 @@ import {
   type Kind,
   type ScopeTerm,
   type Status,
+  unpublished,
 } from '@/model/items'
 import { homeDomain, ownersOf, type Domain, type Domains } from '@/model/people'
 import { ApiError, toApiError, type Clash } from '@/api/errors'
@@ -177,8 +178,8 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
     kind: f.kind,
     domain: f.domain,
     owners: ownersOf(f, domains),
-    // A draft is published as Live.
-    status: f.status === 'Draft' ? 'Live' : f.status,
+    // A draft, or a suggestion waiting for review, is published as Live.
+    status: unpublished(f) ? 'Live' : f.status,
     where: scopeOf(f, vocabulary),
     when: w.mode,
     from: w.from,
@@ -512,12 +513,14 @@ function Editor({
   const trying = useDock()?.kind === 'try'
   const owner = me.owns.includes(form.domain) || me.admin
   const isSuggest = mode === 'suggest' || !owner
-  // A new item, or a draft nobody has published: it has no status until it is published.
-  const unpublished = mode === 'new' || original?.status === 'Draft'
+  // A new item, a draft nobody has published, or a suggestion waiting for review: it has no status
+  // until it is published.
+  const notLive = mode === 'new' || (!!original && unpublished(original))
   const ownerName = form.owners[0] ?? domains[form.domain]?.owners[0] ?? ''
   const standing = standingLine({
     mode,
     draft: original?.status === 'Draft',
+    waiting: original?.status === 'Waiting',
     suggests: isSuggest,
     writer: original?.by && original.by !== me.name ? original.by : undefined,
     owner: ownerName,
@@ -634,7 +637,7 @@ function Editor({
 
   // Sending, then done; or failed with Retry, the text untouched. Offline, nothing is sent.
   // A draft is published by its button, whoever wrote it: it is not Live yet, so nothing is saved.
-  const verb = isSuggest ? 'Send' : unpublished ? 'Publish' : 'Save'
+  const verb = isSuggest ? 'Send' : notLive ? 'Publish' : 'Save'
   /**
    * A draft as it is, through the Context list's Publish of one row: at once where the person owns
    * its domain or is an admin, as its writer's; their own for another domain goes to its owners.
@@ -1289,7 +1292,7 @@ function Editor({
               />
             </PropertyRow>
             <PropertyRow id={fieldId('status')} label="Status" icon={<CircleDotIcon />}>
-              {unpublished ? (
+              {notLive ? (
                 // Agents get nothing of it until it is published: it is not Live yet (U9).
                 <StaticField>Not published yet</StaticField>
               ) : (

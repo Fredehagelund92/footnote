@@ -114,6 +114,8 @@ export function checkedTip(f: Fact) {
   const trust = trustOf(f)
   if (f.status === 'Draft')
     return `A draft${f.by ? ` by ${f.by}` : ''}: checked when it is published.`
+  if (f.status === 'Waiting')
+    return `Waiting for review${f.by ? `, sent by ${f.by}` : ''}: checked when it is published.`
   const age = ageDays(f.checkedOn)
   const lines = [
     `Checked ${f.checkedOn} by ${f.checkedBy}${age !== undefined ? `, ${age} days ago` : ''}`,
