@@ -219,6 +219,11 @@ export function definitionEntry(
   // A column is named by its source alone; a definition only when agents may read it.
   const relations = (read?.relations ?? []).filter((r) => (r.ref === null ? true : shownKey(r.key)))
   const usual = variants.find((v) => v.key === family?.usual.member)
+  // Without the live catalogue a family is read from the edition alone: its metrics, nothing more.
+  const unread = term.kind === 'metric_group' && !family
+  const editionMembers = unread
+    ? bundle.terms.filter((t) => t.parentKey === term.key && termShown(bundle, t))
+    : []
   return {
     key: term.key,
     name: term.name,
@@ -229,11 +234,13 @@ export function definitionEntry(
     words,
     words_from: family
       ? familyWordsFrom(family.meaning.source, tool)
-      : described
-        ? words
-          ? `${described.tool}'s own words, read through Sources (${described.source}), as ${productName} keeps them: at most ${COPY_MAX} characters, never the calculation, which stays in ${described.tool}.`
-          : `${described.tool} defines it but gives no description.`
-        : 'No definition source describes it.',
+      : unread
+        ? `A family's words and values come from the live definitions, which were not read for this edition: read it without an edition for them. Its metrics in this edition are in family.`
+        : described
+          ? words
+            ? `${described.tool}'s own words, read through Sources (${described.source}), as ${productName} keeps them: at most ${COPY_MAX} characters, never the calculation, which stays in ${described.tool}.`
+            : `${described.tool} defines it but gives no description.`
+          : 'No definition source describes it.',
     ...(words && !family && wasCut(words) ? { shortened: true as const } : {}),
     ...(described
       ? {
@@ -258,6 +265,19 @@ export function definitionEntry(
             },
           }
         : {}),
+    ...(unread
+      ? {
+          family: {
+            members: editionMembers.map((m) => ({
+              key: m.key,
+              name: m.name,
+              ...(m.described?.description?.trim()
+                ? { words: m.described.description.trim() }
+                : {}),
+            })),
+          },
+        }
+      : {}),
     ...(family
       ? {
           family: {

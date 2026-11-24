@@ -74,7 +74,22 @@ function edition(): ServingBundle {
   // A metric in a domain that is paused: agents get nothing of it, not even its name.
   const refunds = { ...share, key: 'metric:refunds', name: 'Refunds', aliases: [], areaId: 'paid' }
   const stopped = { ...data.stopped, areas: ['paid'] }
-  const served = servedWords([...data.terms, share, refunds], written, stopped)
+  const group = {
+    ...share,
+    key: 'group:market',
+    kind: 'metric_group' as const,
+    name: 'Market metrics',
+    aliases: [],
+    described: null,
+  }
+  const inGroup = {
+    ...share,
+    key: 'metric:market_eur',
+    name: 'Market EUR',
+    aliases: [],
+    parentKey: 'group:market',
+  }
+  const served = servedWords([...data.terms, share, refunds, group, inGroup], written, stopped)
   return {
     ...data,
     stopped,
@@ -238,4 +253,21 @@ it('names only what agents may read of what a metric is built from: never a paus
   expect(JSON.stringify(reply)).not.toMatch(/Refunds|unpublished/)
   // A definition in a paused domain is not read at all.
   expect(await call({ id: 'Refunds' })).toMatchObject({ status: 'no_match' })
+})
+
+it('says a family was not read for its words when the live catalogue was not, and lists its metrics from the edition', async () => {
+  const reply = await call({ id: 'Market metrics' })
+  expect(reply).toMatchObject({
+    status: 'matched',
+    definition: {
+      key: 'group:market',
+      kind: 'metric family',
+      words: null,
+      family: { members: [{ key: 'metric:market_eur', name: 'Market EUR', words: cut }] },
+    },
+  })
+  const definition = reply.definition as { words_from: string; family: Record<string, unknown> }
+  expect(definition.words_from).toContain('not read for this edition')
+  expect(definition.words_from).not.toContain('No definition source')
+  expect(Object.keys(definition.family)).toEqual(['members'])
 })

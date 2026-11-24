@@ -668,10 +668,14 @@ const definitionEntry = z
       .describe('For a term: who wrote it, as a role, and when.'),
     family: z
       .object({
-        by: z.array(z.string()).describe('What tells its metrics apart, such as Currency.'),
-        found: z.string().describe('How it was found, in a sentence.'),
+        by: z
+          .array(z.string())
+          .optional()
+          .describe('What tells its metrics apart, such as Currency.'),
+        found: z.string().optional().describe('How it was found, in a sentence.'),
         meaning_from: z
           .enum(['declared', 'written', 'common', 'none'])
+          .optional()
           .describe(
             'Where its meaning comes from: declared in its source, written by an owner, the words most of its metrics share, or none.',
           ),
@@ -685,7 +689,7 @@ const definitionEntry = z
           .array(
             namedDefinition
               .extend({
-                values: z.array(z.string()),
+                values: z.array(z.string()).optional(),
                 words: z
                   .string()
                   .optional()
