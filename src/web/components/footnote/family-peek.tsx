@@ -233,8 +233,8 @@ function MeaningLead({
     }
   }
   React.useEffect(() => {
-    if (asked) void P.changeQuery({ meaning: undefined }, { replace: true })
-  }, [asked, P])
+    if (asked && meaning) void P.changeQuery({ meaning: undefined }, { replace: true })
+  }, [asked, meaning, P])
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
   const Icon =
