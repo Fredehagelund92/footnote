@@ -90,6 +90,11 @@ export type Fact = {
   by?: string
   /** When a suggestion waiting for review was sent (ISO): how long it has waited. */
   sentAt?: string
+  /**
+   * A suggestion an owner returned to its writer with a note: they edit it and send it again. It
+   * is no draft of theirs alone, so it is sent, never saved as a draft.
+   */
+  returned?: boolean
 }
 
 /** A status in the server's words: accepted or retired, with the flags that wait for a look. A draft, or a suggestion waiting for review, is no item yet. */

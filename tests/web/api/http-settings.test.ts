@@ -427,6 +427,20 @@ describe('Settings, Advanced', () => {
     ...over,
   })
 
+  it('says how many drafts of someone who left an admin deleted, never which', () => {
+    const cleared = (drafts: number) =>
+      historyLine(
+        entry({
+          action: 'drafts.cleared',
+          subjectType: 'person',
+          subjectId: '00000000-0000-4000-8000-000000000003',
+          details: { drafts, name: 'Ines Duarte' },
+        }),
+      )
+    expect(cleared(4)).toEqual({ what: 'Deleted 4 drafts of Ines Duarte, who left' })
+    expect(cleared(1)).toEqual({ what: 'Deleted 1 draft of Ines Duarte, who left' })
+  })
+
   it('names the agent: a tool switched for it, a key renamed, and what it did for a person', () => {
     expect(
       historyLine(

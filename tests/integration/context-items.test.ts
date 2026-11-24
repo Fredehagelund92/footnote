@@ -372,45 +372,14 @@ describe('publishing in one step (FR-137)', () => {
     ).toBe(404)
   })
 
-  it("publishes someone else's draft as itself for an owner: one item, the draft gone, its writer kept", async () => {
-    const theirs = await aDraft({}, 'author')
-    const words = draft()
-    const r = await ok<PublishItemResult>(
-      call('POST', '/items/publish', 'owner', { draft: words, draftId: theirs }),
-    )
-    expect(r).toMatchObject({ published: true, proposalId: theirs })
-    if (!r.published) return
-    const p = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
-    expect(p).toMatchObject({ state: 'accepted', itemId: r.itemId, proposerId: people.author })
-    // One item from it: no copy beside the draft, and the version names the person who wrote it.
-    const made = await client.query<{ n: number; proposer: string; title: string }>(
-      `select count(*)::int as n, min(proposer_id::text) as proposer, min(title) as title
-         from item_versions where title = $1`,
-      [words.title],
-    )
-    expect(made.rows[0]).toEqual({ n: 1, proposer: people.author, title: words.title })
-    expect(await served(r.itemId)).toMatchObject({ n: 1, area: 'finance' })
-    const left = await client.query(
-      "select 1 from proposals where proposer_id = $1 and state = 'draft' and id = $2",
-      [people.author, theirs],
-    )
-    expect(left.rowCount).toBe(0)
-  })
-
-  it("never sends someone else's draft on their behalf: a domain the owner doesn't own refuses it", async () => {
+  it("never finds someone else's draft: an owner of its domain or an admin can't publish it", async () => {
     const theirs = await aDraft({}, 'author')
     const before = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
-    const refused = await call('POST', '/items/publish', 'owner', {
-      draft: draft({ areaId: 'marketing' }),
-      draftId: theirs,
-    })
-    expect(refused.statusCode).toBe(403)
-    // A member who may not read it does not find it.
-    const hidden = await call('POST', '/items/publish', 'stranger', {
-      draft: draft(),
-      draftId: theirs,
-    })
-    expect(hidden.statusCode).toBe(404)
+    for (const who of ['owner', 'admin', 'stranger'] as const) {
+      const refused = await call('POST', '/items/publish', who, { draft: draft(), draftId: theirs })
+      expect(refused.statusCode, who).toBe(404)
+      expect((await call('GET', `/proposals/${theirs}`, who)).statusCode, who).toBe(404)
+    }
     const kept = await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))
     expect(kept).toMatchObject({ state: 'draft', revision: before.revision, draft: before.draft })
   })
@@ -570,7 +539,7 @@ describe('a change to many items at once (FR-139)', () => {
   it('acts on the rows it may, and says why it leaves the others alone', async () => {
     const mine = await live()
     const theirs = await live({ areaId: 'marketing' }, 'admin')
-    const draftId = await aDraft()
+    const draftId = await aDraft({}, 'owner')
     const result = await bulk('owner', {
       action: 'archive',
       rows: [mine, theirs, draftId, 'itm_nothere001'],
@@ -608,13 +577,16 @@ describe('a change to many items at once (FR-139)', () => {
     expect((await undo('admin', again.undo!.token)).statusCode).toBe(403)
   })
 
-  it('deletes drafts only, lists them as deleted, and Undo brings them back', async () => {
+  it("deletes the person's own drafts only, lists them as deleted, and Undo brings them back", async () => {
     const mine = await live()
-    const first = await aDraft()
-    const second = await aDraft()
-    const r = await bulk('owner', { action: 'delete', rows: [first, second, mine] })
+    const first = await aDraft({}, 'admin')
+    const second = await aDraft({}, 'admin')
+    const theirs = await aDraft()
+    const r = await bulk('admin', { action: 'delete', rows: [first, second, mine, theirs] })
     expect(r.done).toEqual([first, second])
     expect(r.skipped).toEqual([
+      // A draft is its writer's alone: an admin doesn't see a member's.
+      expect.objectContaining({ id: theirs, code: 'not_found' }),
       expect.objectContaining({
         id: mine,
         code: 'published',
@@ -622,15 +594,18 @@ describe('a change to many items at once (FR-139)', () => {
       }),
     ])
     expect((await served(mine))?.n).toBe(1)
-    expect((await call('GET', `/proposals/${first}`, 'author')).statusCode).toBe(404)
+    expect((await call('GET', `/proposals/${first}`, 'admin')).statusCode).toBe(404)
+    expect((await ok<ProposalRecord>(call('GET', `/proposals/${theirs}`, 'author'))).state).toBe(
+      'draft',
+    )
     const deleted = await ok<DeletedDraft[]>(call('GET', '/context/deleted', 'admin'))
     expect(deleted.find((d) => d.id === first)).toMatchObject({
-      personId: people.owner,
+      personId: people.admin,
       areaId: 'finance',
     })
     expect((await call('GET', '/context/deleted', 'owner')).statusCode).toBe(403)
-    expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
-    expect((await ok<ProposalRecord>(call('GET', `/proposals/${first}`, 'author'))).state).toBe(
+    expect((await undo('admin', r.undo!.token)).statusCode).toBe(200)
+    expect((await ok<ProposalRecord>(call('GET', `/proposals/${first}`, 'admin'))).state).toBe(
       'draft',
     )
     expect(
@@ -640,7 +615,7 @@ describe('a change to many items at once (FR-139)', () => {
           [first],
         )
       ).rows,
-    ).toEqual([{ actor: people.owner }])
+    ).toEqual([{ actor: people.admin }])
   })
 
   it('moves items into a domain the person may move into, and Undo moves them back', async () => {
@@ -761,47 +736,38 @@ describe('publishing many drafts at once (FR-139)', () => {
       )
     ).rows
 
-  it("publishes an owner's drafts and a member's in their domain at once, as each writer's", async () => {
-    const theirs = await aDraft()
+  it("publishes the person's own drafts at once, never someone else's, and Undo makes them drafts again", async () => {
     const own = await aDraft({}, 'owner')
+    const theirs = await aDraft()
     const published = await live()
-    const noSource = await aDraft({ evidence: [] })
-    const elsewhere = await aDraft({ areaId: 'marketing' })
+    const noSource = await aDraft({ evidence: [] }, 'owner')
     const r = await bulk('owner', {
       action: 'publish',
-      rows: [theirs, own, published, noSource, elsewhere],
+      rows: [own, theirs, published, noSource],
     })
-    expect(r).toMatchObject({ done: [theirs, own], sent: [], failed: [] })
+    expect(r).toMatchObject({ done: [own], sent: [], failed: [] })
     expect(r.skipped).toEqual([
-      // A member's draft in another domain is not the owner's to see.
-      expect.objectContaining({ id: elsewhere, code: 'not_found' }),
+      // A member's draft is theirs alone: an owner of its domain doesn't see it.
+      expect.objectContaining({ id: theirs, code: 'not_found' }),
       expect.objectContaining({ id: published, code: 'published' }),
       expect.objectContaining({ id: noSource, code: 'not_ready', why: 'not ready' }),
     ])
-    expect(r.change?.summary).toMatch(/^Published “.*” and 1 more\.$/)
-    const item = (await proposal('owner', theirs)).itemId!
+    expect(r.change?.summary).toMatch(/^Published “.*”\.$/)
+    const item = (await proposal('owner', own)).itemId!
     expect((await served(item))?.n).toBe(1)
-    // The member stays its writer; the draft that failed the checks is still a draft.
-    expect(await proposal('author', theirs)).toMatchObject({
-      state: 'accepted',
-      proposerId: people.author,
-    })
-    expect((await proposal('author', noSource)).state).toBe('draft')
+    // The member's draft and the one that failed the checks are still drafts.
+    expect((await proposal('author', theirs)).state).toBe('draft')
+    expect((await proposal('owner', noSource)).state).toBe('draft')
     const changes = await ok<ItemChange[]>(call('GET', '/context/changes', 'owner'))
     expect(changes[0]).toMatchObject({ action: 'published', personId: people.owner })
 
-    // Undo takes both from agents, and each is a draft again, its writer's.
+    // Undo takes it from agents, and it is a draft again, its writer's.
     expect((await undo('owner', r.undo!.token)).statusCode).toBe(200)
     expect(await served(item)).toBeNull()
-    for (const [who, id] of [
-      ['author', theirs],
-      ['owner', own],
-    ] as const) {
-      const unsent = await proposal(who, id)
-      expect(unsent.state).toBe('withdrawn')
-      const back = (await drafts(who)).find((d) => d.draft?.title === unsent.draft?.title)
-      expect(back).toMatchObject({ state: 'draft', proposerId: people[who] })
-    }
+    const unsent = await proposal('owner', own)
+    expect(unsent.state).toBe('withdrawn')
+    const back = (await drafts('owner')).find((d) => d.draft?.title === unsent.draft?.title)
+    expect(back).toMatchObject({ state: 'draft', proposerId: people.owner })
   })
 
   it("sends a member's own drafts to the domain's owners, and Undo makes them drafts again", async () => {
@@ -817,11 +783,11 @@ describe('publishing many drafts at once (FR-139)', () => {
     expect((await drafts('author')).some((d) => d.draft?.title === sent.draft?.title)).toBe(true)
   })
 
-  it("leaves someone else's draft in another domain alone, and refuses too many at once", async () => {
+  it("never finds someone else's draft, and refuses too many at once", async () => {
     const theirs = await aDraft({}, 'owner')
     const r = await bulk('stranger', { action: 'publish', rows: [theirs] })
     expect(r.done).toEqual([])
-    expect(r.skipped).toEqual([expect.objectContaining({ id: theirs })])
+    expect(r.skipped).toEqual([expect.objectContaining({ id: theirs, code: 'not_found' })])
     const many = Array.from({ length: 51 }, () => randomUUID())
     const refused = await call('POST', '/items/bulk', 'owner', { action: 'publish', rows: many })
     expect(refused.statusCode).toBe(422)
@@ -1064,12 +1030,12 @@ describe('row security of what Context keeps', () => {
       const updated = await q('update item_changes set undone_at=now() where id=$1', [changeId])
       expect(updated.rowCount).toBe(0)
     })
-    const deleted = await bulk('owner', { action: 'delete', rows: [await aDraft()] })
+    // A deleted draft is its writer's alone, as it was: an admin can't bring it back.
+    const deleted = await bulk('owner', { action: 'delete', rows: [await aDraft({}, 'owner')] })
     const draftId = deleted.done[0]!
     await as('admin', async () => {
-      await expect(
-        q('update proposals set discarded_at=null where id=$1', [draftId]),
-      ).rejects.toThrow(/was discarded/)
+      const updated = await q('update proposals set discarded_at=null where id=$1', [draftId])
+      expect(updated.rowCount).toBe(0)
     })
   })
 

@@ -43,6 +43,8 @@ import { VersionHistory } from '@/components/footnote/version-history'
 import { today } from '@/lib/today'
 import { DeleteDialog } from '@/components/footnote/delete-dialog'
 import { useWaitingDecision } from '@/components/footnote/waiting-decision'
+import { usePublishDrafts } from '@/lib/publish-drafts'
+import { toApiError } from '@/api/errors'
 import { waitingLine } from '@/model/waiting'
 import { Loadable, NoSuchItem, PageSkeleton, SideSkeleton } from '@/components/footnote/load-state'
 
@@ -70,6 +72,8 @@ export function FactPage({ id }: { id: string }) {
   const commentActions = useCommentActions()
   const [deleting, setDeleting] = React.useState(false)
   const decision = useWaitingDecision(fact ?? NO_FACT)
+  const publishDrafts = usePublishDrafts()
+  const [sending, setSending] = React.useState(false)
   const [bodyRef, wide] = useWide<HTMLDivElement>()
   // The panel folds to a rail and stays the way the person left it this session.
   const [panelChoice, setPanelOpen] = useSideChoice('page-side')
@@ -128,6 +132,32 @@ export function FactPage({ id }: { id: string }) {
     undo.offer('Deleted 1 draft', deleted.undo, {
       description: (held) => `You can undo it for ${held}; then it is gone for good.`,
     })
+  }
+  // The writer's own draft goes as it is: published where they own its domain, else sent to its
+  // owners, as the Context list's Publish of one row.
+  const sendDraft = async () => {
+    setSending(true)
+    try {
+      const done = await publishDrafts([fact], 'Published from its page.')
+      if (!done.published.length && !done.sent.length) {
+        toast(owner ? "Couldn't publish it" : "Couldn't send it", {
+          description: done.skipped[0]?.reason ?? 'Try again.',
+        })
+        return
+      }
+      navigate('/context')
+      undo.offer(done.sent.length ? `Sent to the owners of ${done.to}` : 'Published', done.undo, {
+        description: done.sent.length
+          ? 'Agents get it once an owner publishes it.'
+          : 'Agents get it from the next question.',
+      })
+    } catch (error) {
+      toast(owner ? "Couldn't publish it" : "Couldn't send it", {
+        description: toApiError(error).message,
+      })
+    } finally {
+      setSending(false)
+    }
   }
   const pending = sent.find((x) => x.factId === fact.id && x.by === me.name)
   const published = publishedNow[fact.id]
@@ -203,7 +233,7 @@ export function FactPage({ id }: { id: string }) {
   const canCheck = owner && fact.status === 'Due for a check'
   const canEdit = !waiting && !(isMobile && (owner || writesDraft || !pending))
   const canArchive = owner && fact.status !== 'Archived' && fact.status !== 'Draft' && !waiting
-  const canDelete = owner && fact.status !== 'Archived' && !waiting
+  const canDelete = (owner || writesDraft) && fact.status !== 'Archived' && !waiting
   const waitingItems = decides ? (
     <DropdownMenuGroup>
       <DropdownMenuItem onClick={() => navigate(`/context/${fact.id}/edit`)}>Edit</DropdownMenuItem>
@@ -342,9 +372,28 @@ export function FactPage({ id }: { id: string }) {
               </>
             )}
             {/* Where the page has a decision of its own (Compare and decide), that is its one solid blue button. */}
+            {writesDraft && (
+              <Button
+                loading={sending}
+                loadingLabel={owner ? 'Publishing…' : 'Sending…'}
+                onClick={() => void sendDraft()}
+              >
+                {owner ? (
+                  'Publish'
+                ) : (
+                  <>
+                    Send
+                    <span className="hidden sm:inline">
+                      {' '}
+                      to the owner of {domains[fact.domain]?.name}
+                    </span>
+                  </>
+                )}
+              </Button>
+            )}
             {owner || writesDraft ? (
               <Button
-                variant={other ? 'outline' : 'default'}
+                variant={other || writesDraft ? 'outline' : 'default'}
                 nativeButton={false}
                 render={<a href={href(editHref)} />}
               >

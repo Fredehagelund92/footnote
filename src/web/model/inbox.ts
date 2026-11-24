@@ -1,4 +1,5 @@
 import type { AlertCardRule } from '@domain/alerts'
+import { DRAFT_OLD_DAYS } from '@domain/inbox'
 import type { DomainId, Fact } from './items'
 
 // The Inbox as the app reads it (src/web/api): cards that need someone, what they sent that waits
@@ -7,7 +8,8 @@ import type { DomainId, Fact } from './items'
 /** A decision taken on a card: its outcome in a word or two, and when. */
 export type Outcome = { label: string; at: string }
 
-export type CardType = 'names' | 'suggestion' | 'gap' | 'flag' | 'check' | 'look' | 'alert'
+export type CardType =
+  'names' | 'suggestion' | 'gap' | 'flag' | 'check' | 'look' | 'alert' | 'drafts'
 
 /** Each card by what happened, so the word explains itself. */
 export const cardTypeLabel: Record<CardType, string> = {
@@ -18,6 +20,7 @@ export const cardTypeLabel: Record<CardType, string> = {
   check: 'Due for a check',
   look: 'Needs a look',
   alert: 'Alert',
+  drafts: 'Your drafts',
 }
 
 /**
@@ -55,6 +58,34 @@ export function namesWords({
           ? 'Ready to publish.'
           : 'All ready to publish.',
   }
+}
+
+/**
+ * The card of the person's own drafts that wait for them (FR-139), in words: how many, and why
+ * they wait. Nobody else is told of them.
+ */
+export function draftsWords({ imported, old }: { imported: number; old: number }) {
+  const drafts = (n: number) => (n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`)
+  return {
+    title: !old
+      ? `${drafts(imported)} from your import`
+      : !imported
+        ? `${drafts(old)} not saved for ${DRAFT_OLD_DAYS} days`
+        : `${drafts(imported + old)} waiting for you`,
+    line: `Only you can see ${imported + old === 1 ? 'it' : 'them'}. Agents get ${imported + old === 1 ? 'it' : 'them'} once ${imported + old === 1 ? 'it is' : 'they are'} published.`,
+  }
+}
+
+/**
+ * What the drafts card's button does with them: publish where the person may, and send the rest
+ * to their domains' owners. "Publish all" or "Send all" when it takes every draft on the card;
+ * otherwise how many: "Publish 19", "Publish 12, send 9".
+ */
+export function draftsVerb(publish: number, send: number, all = true) {
+  const n = (x: number) => x.toLocaleString('en-GB')
+  if (!send) return all ? 'Publish all' : `Publish ${n(publish)}`
+  if (!publish) return all ? 'Send all' : `Send ${n(send)}`
+  return `Publish ${n(publish)}, send ${n(send)}`
 }
 
 export type FieldChange = { label: string; before: string; after: string }
@@ -128,6 +159,11 @@ export type InboxCard = {
    * goes (a topic's answer panel, Overview, Usage, or an integration).
    */
   alert?: { rule: AlertCardRule; name: string; href: string; pair?: string }
+  /**
+   * The person's own drafts that wait for them (FR-139): their ids, oldest first, and how many were
+   * imported or not saved for a while.
+   */
+  drafts?: { ids: string[]; imported: number; old: number }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */
   names?: { ready: number; flagged: number; families: number; tools: string[] }
   /**

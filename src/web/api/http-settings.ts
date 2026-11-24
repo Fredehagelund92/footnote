@@ -267,6 +267,14 @@ export function historyLine(
     return {
       what: `Published ${e.subjectTitle ? `“${e.subjectTitle}”` : 'a suggestion'} with ${policy.setByName}'s permission to publish without review`,
     }
+  // The drafts of someone who left, deleted unread (FR-230): how many, and whose.
+  if (e.action === 'drafts.cleared') {
+    const n = typeof e.details.drafts === 'number' ? e.details.drafts : 0
+    const who = typeof e.details.name === 'string' ? e.details.name : 'someone'
+    return {
+      what: `Deleted ${n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`} of ${who}, who left`,
+    }
+  }
   if (e.action === 'access_key.renamed' && named('from') && named('to'))
     return { what: `Renamed the access key ${named('from')} to ${named('to')}` }
   if (noun === 'access_key' && named('name'))

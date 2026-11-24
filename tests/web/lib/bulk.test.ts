@@ -372,9 +372,11 @@ describe('publishing drafts from the list', () => {
         id: ready.id,
         title: ready.title,
         why: 'owned by Sales',
-        reason: 'Only its writer, owners of Sales and admins can publish it.',
+        reason: 'Only owners of Sales and admins can change it.',
       },
     ])
+    // A writer deletes their own draft too, wherever it is.
+    expect(planFacts('delete', [byInes], ines, domains).act).toEqual([byInes])
   })
 
   it('sends what the bar and a draft page publish alike: patches for its domains, ids for the owners', () => {

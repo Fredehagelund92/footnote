@@ -89,7 +89,7 @@ const statusLook = {
   Draft: {
     icon: CircleDashedIcon,
     tone: 'text-muted-foreground',
-    hint: 'Draft: written, not shared with agents yet',
+    hint: "Draft: only you can see it, agents don't get it",
   },
   Waiting: {
     icon: ClockIcon,

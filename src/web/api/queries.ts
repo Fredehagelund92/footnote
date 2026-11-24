@@ -598,7 +598,11 @@ export const invalidations: {
   restoreAsDraft: () => items,
   // A published item may answer a Not found card, and be the setup checklist's first item.
   saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
-  applyBulk: () => [...live, queryKeys.advancedPage],
+  // A draft saved from a Not found card is that card's draft.
+  saveDraft: () => [...items, ...inbox],
+  // Published or sent from the list or the Inbox's drafts card, drafts leave that card too.
+  applyBulk: () => [...live, ...inbox, queryKeys.advancedPage],
+  clearLeftDrafts: () => [queryKeys.advancedPage],
   // A new item sent waits for review in Context too, until it is decided or withdrawn.
   sendSuggestion: () => [...inbox, ...items, queryKeys.scopeSearches],
   withdrawSuggestion: () => [...inbox, ...items],

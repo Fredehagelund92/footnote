@@ -64,7 +64,7 @@ The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. A
 | Setup checklist on a new install                        | `/inbox`, shown while setup is unfinished               |
 | Connect an agent as a dialog, search, shortcuts, report | `/inbox?open=connect`, `palette`, `shortcuts`, `report` |
 
-The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note) and Due for a check. Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match; its header names whose domains it counts, and the sidebar badge says it counts the checks due with the cards waiting. One quiet sentence under the heading says what agents asked this week, in counts only, the same count as Asked this week in Ask.
+The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note), Due for a check and Your drafts (one card for the drafts you imported or have not saved for 30 days, which publishes each where you may and sends the rest to the owners). Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match; its header names whose domains it counts, and the sidebar badge says it counts the checks due with the cards waiting. One quiet sentence under the heading says what agents asked this week, in counts only, the same count as Asked this week in Ask.
 
 A Not found card shows a gap: a topic agents keep asking about with nothing written down for it. A gap is Open, Covered or Set aside. It is Open while agents keep asking. Publishing context written from its card, or a suggestion written for it, covers it, and the card leaves the Inbox. Not something we write down sets it aside. Undo of either opens it again. When agents ask about a covered topic again and still find nothing, a new gap opens.
 
@@ -207,12 +207,12 @@ The stored values are the earlier names. Screens, help and agents use the labels
 
 A context item has one of four statuses, each a circle icon with a word on hover:
 
-| Status              | Icon          | Meaning                                                                             |
-| ------------------- | ------------- | ----------------------------------------------------------------------------------- |
-| **Draft**           | Dashed circle | Started and never published. Agents never get it. Only drafts can be deleted.       |
-| **Live**            | Check         | Published. Agents get it.                                                           |
-| **Due for a check** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old. |
-| **Archived**        | Minus         | Retired. Agents no longer get it. Its history stays.                                |
+| Status              | Icon          | Meaning                                                                                                    |
+| ------------------- | ------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Draft**           | Dashed circle | Started and never published. Only its writer sees it, and agents never get it. Only drafts can be deleted. |
+| **Live**            | Check         | Published. Agents get it.                                                                                  |
+| **Due for a check** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old.                        |
+| **Archived**        | Minus         | Retired. Agents no longer get it. Its history stays.                                                       |
 
 **Freshness** is one dot in the Checked column: filled up to 30 days since the last check, half full after that, and a hollow ring while the item is Due for a check (its check date passed or its source changed, checked or never). Age alone never makes an item due. A suggestion shows its state in words (waiting, published, returned, withdrawn).
 
@@ -358,7 +358,7 @@ One name for each thing, in every screen, help page, agent reply and demo text. 
 | **Publish**            | An owner makes context available to agents.                                                                                                        | accept                       |
 | **Archive**            | Take a published item out of what agents get, keeping its history.                                                                                 | retire                       |
 | **Inbox**              | What needs the person, ordered by need.                                                                                                            | notifications, queue         |
-| **Card**               | One row in the Inbox: Not found, Reported, Saved questions, Alert, Mentioned you, Due for a check, or a Suggestion.                                | inbox item                   |
+| **Card**               | One row in the Inbox: Not found, Reported, Saved questions, Alert, Mentioned you, Due for a check, a Suggestion, or Your drafts.                   | inbox item                   |
 | **Not found**          | A question agents asked several times and found nothing written for. Its card brings a draft. Also an answer state.                                | gap                          |
 | **Reported**           | Someone said a context item is wrong or unclear.                                                                                                   | flag                         |
 | **Due for a check**    | A context item whose check date has passed.                                                                                                        | review due                   |

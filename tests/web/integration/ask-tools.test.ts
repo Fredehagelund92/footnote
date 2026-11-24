@@ -199,8 +199,14 @@ describe.each(persons)('as %s', (name) => {
     const readable = new Set(
       (await api.getLibrary()).items.filter((f) => !unpublished(f)).map((f) => f.id),
     )
-    // What the person's pages never give them: drafts, by their titles.
-    const drafts = (await (await world.as(ADMIN)).getLibrary()).items
+    // What the person's pages never give them: drafts, by their titles. Each writer alone reads
+    // their own (FR-139), so they are gathered from every writer's list.
+    const drafts = (
+      await Promise.all(
+        [...persons, ADMIN].map(async (writer) => (await world.as(writer)).getLibrary()),
+      )
+    )
+      .flatMap((library) => library.items)
       .filter((f) => f.status === 'Draft')
       .map((f) => f.title)
     expect(drafts.length).toBeGreaterThan(0)

@@ -285,6 +285,11 @@ export type Advanced = {
   settings: SettingGroup[]
   /** Drafts and terms deleted for good, newest first, each with who, when and its domain. */
   deleted: { key: string; title: string; hint: string; domain: DomainId | null }[]
+  /**
+   * The people who left with drafts they never sent, each with how many (FR-139): only their
+   * writer could read them, so an admin deletes them by count, unread.
+   */
+  left: { id: string; name: string; drafts: number }[]
   /** The history log's latest entries, newest first. `href` opens what an entry names. */
   history: { key: string; when: string; who: string; what: string; href?: string }[]
   /** What runs on its own: each job, when it last ran and how it went; null when unread. */
@@ -481,6 +486,15 @@ export interface FootnoteApi {
     gap?: string
     setup?: boolean
   }) => Promise<{ id: string }>
+  /**
+   * Save as draft (FR-139): the words kept as the person's own draft, which only they can see and
+   * agents don't get, to finish later. `fact` is a new item, a change to a published one, or a
+   * draft of theirs saved again; `gap` is the Not found card it was written for. Its id is the
+   * draft's.
+   */
+  saveDraft: (input: { fact: Fact; isNew: boolean; gap?: string }) => Promise<{ id: string }>
+  /** Deletes every draft of someone who left, unread, and says how many (FR-139). */
+  clearLeftDrafts: (input: { id: string }) => Promise<{ deleted: number }>
   /** A draft made from pasted text or a link: every field filled in, for the writer to check. */
   draftFromText: (input: { text: string }) => Promise<Fact>
   /**
@@ -961,6 +975,8 @@ export const footnoteApiMethods = [
   'editItem',
   'draftFromText',
   'saveItem',
+  'saveDraft',
+  'clearLeftDrafts',
   'applyBulk',
   'sendSuggestion',
   'withdrawSuggestion',

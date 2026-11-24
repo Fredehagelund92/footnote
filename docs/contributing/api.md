@@ -495,7 +495,10 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   The decision stays as history, and a person may decide the same version again once they undid
   it.
 - `GET /inbox/feed?tab=needs|all` lists the person's cards by need: Not found (`gap`), Reported
-  (`flag`), Mentioned you (`mention`), Due for a check (`check`), then suggestions. An owner gets
+  (`flag`), Mentioned you (`mention`), Due for a check (`check`), suggestions, then the person's
+  own drafts (`drafts`, named `drafts:yours`): one card for every draft they imported and every
+  other one they have not saved for 30 days, with each draft's id, domain and whether it was
+  imported, oldest first; nobody else hears of them (FR-230). An owner gets
   those of their domains, an administrator every domain, anyone else none; a Mentioned you card
   is the person's own, in any domain: one for each thread with a comment that mentions them and
   that they haven't read, named `mention:<subject>`. Reported cards are the anonymous wrong or unclear
@@ -621,7 +624,9 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   (FR-139), up to 200 rows: published items by id and drafts by their proposal's id. `action` is
   `archive`, `delete` (drafts only), `domain`, `kind`, `owner_add`, `owner_set`, `check` or
   `publish` (drafts only, up to 50; 422 above that). Owners of an item's domain and admins change
-  it, and a domain is moved into only by its owners and admins (403 otherwise). It names the rows
+  it, and a domain is moved into only by its owners and admins (403 otherwise). A draft is its
+  writer's alone (FR-230): row security finds only the person's own, which they publish or delete,
+  and anyone else's is `not_found`. It names the rows
   it acts on and each other row with a code (`not_found`, `not_allowed`, `archived`, `draft`,
   `published`, `same_domain`, `same_kind`, `not_owner_there`, `already_owner`, `only_owner`,
   `not_opened`, `not_ready`), a few words (`why`) and a sentence (`message`). The change does
@@ -637,7 +642,8 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
 - `GET /context/changes` is the History log: each change to many items, newest first, with what
   it did in one sentence. An item the audience rule hides from the reader is counted in
   `withheld`, never named, and then the sentence says only how many items changed. `GET /context/deleted` lists the drafts that were deleted, with who
-  deleted them and when (admins). Published context is archived, never deleted.
+  deleted them and when (admins), of those row security lets them read: their own drafts. Published
+  context is archived, never deleted.
 - `POST /items/{id}/restore-draft` takes `{ version }` (FR-140): an owner of the item's domain or
   an admin gets a draft of a change with that version's words, dates and sources. What agents
   get does not change until the draft is published.
@@ -662,23 +668,30 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   owner answered in the editor: a clash left unanswered reads as `unrelated`, and an answer
   for an item it does not clash with is left out. `draftId` names the person's own draft it
   finishes, or their suggestion an owner returned: it takes the words and is sent as itself,
-  changing the item it was started from, if any. An owner of a draft's domain or an admin may
-  also finish a draft someone else wrote: it is published as itself and keeps its writer, and where
-  they could not publish it (a domain they don't own) it is refused with 403, never sent on the
-  writer's behalf. A suggestion waiting for review may be finished the same way by an owner of its
-  domain or an admin (Edit then publish): their words are a new version that supersedes the one
+  changing the item it was started from, if any. Someone else's draft is 404: only its writer reads
+  it (FR-230). A suggestion waiting for review may be finished by an owner of its domain or an
+  admin (Edit then publish): their words are a new version that supersedes the one
   sent, names them as its editor and keeps its writer; its sender gets 409 and withdraws it
   instead, and another owner's claim on it is 409. A returned suggestion is its writer's alone (403 otherwise). A publish the checks refuse keeps
   nothing. A change to an item (`itemId`) may name the `version` it was written from (else the
   version agents get now): the change stays written from it, and once someone has published other words since, it is refused when it is sent with 409 and
   `data.stale.version`, the version agents get now, so an older view never takes away a newer
   change. A check since then changes no words and does not count.
+- `POST /drafts` is Save as draft (FR-230): it takes `{ draft, itemId?, version?, draftId?,
+reason?, gapId? }` and keeps the words as the person's own draft, which only they read and agents
+  never get: a new item, a change to the published item named (written from `version`), or, with
+  `draftId`, a draft of theirs saved again in place (404 for anything else). `gapId` makes it the
+  draft of that Not found card. It answers `{ proposalId, revision }`.
+- `GET /drafts/left` (admins) lists the people who left with drafts they never sent, each with how
+  many: counted, never read. `POST /drafts/left/{personId}/clear` deletes them all, unread, and
+  answers `{ deleted }`; each draft's history says so, and the History log says how many and whose
+  (`drafts.cleared`). Someone still in the workspace is 409.
 - `POST /drafts/from-text` takes `{ text }`: a draft read from pasted text, or from the page a
   single link points to, with no model. It fills the words, a kind and dates by rule and where
   it applies by the vocabulary's names, and lists in `unsure` what it guessed.
 
 A context item's kind belongs to each version, so Change kind keeps its id,
-history and links. In a change to many items, an owner of a draft's domain may delete it, and
+history and links. In a change to many items, a draft's writer deletes it, and
 Mark as checked records a check even when nothing else moved, for an owner of the domain or an
 admin.
 

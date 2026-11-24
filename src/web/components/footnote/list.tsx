@@ -581,7 +581,7 @@ const dot: Record<Status, string> = {
 }
 
 const statusHint: Record<Status, string> = {
-  Draft: 'Draft: written, not shared with agents yet',
+  Draft: "Draft: only you can see it, agents don't get it",
   Waiting: "Waiting for review: an owner of its domain decides, agents don't get it yet",
   Live: 'Live: agents get it',
   'Due for a check': 'Due for a check: its check date passed or a definition changed',

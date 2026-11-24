@@ -31,9 +31,12 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
  provenance,draft_findings as findings,claimed_by::text as "claimedBy",due_at::text as "dueAt",
  submitted_at::text as "submittedAt",created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
-/** The states in which an owner of its domain or an admin may finish someone else's words. */
+/**
+ * The states in which an owner of its domain or an admin may finish someone else's words: a
+ * suggestion waiting for their review. A draft is its writer's alone (FR-139).
+ */
 const ownersFinish = (state: ProposalRecord['state']) =>
-  state === 'draft' || state === 'submitted' || state === 'in_review'
+  state === 'submitted' || state === 'in_review'
 
 /**
  * Whether its words may change now: a draft, or a suggestion sent back for changes, by its writer;
@@ -201,8 +204,7 @@ function proposalsService(
   }
   /**
    * Its writer changes it, or else, with `byDomainOwners`, an owner of its domain or an admin
-   * finishes a draft someone else wrote, or edits a suggestion waiting for their review, to publish
-   * it as itself: it stays its writer's.
+   * edits a suggestion waiting for their review, to publish it as itself: it stays its writer's.
    */
   async function writerOr(p: ProposalRecord, byDomainOwners: boolean) {
     if (p.proposerId === personId || !byDomainOwners || !ownersFinish(p.state))
@@ -213,7 +215,7 @@ function proposalsService(
     )
     if (!may?.ok) proposerOnly(p)
     // An edit before publishing is the reviewer's: never past another owner's claim on it.
-    if (p.state !== 'draft' && p.claimedBy && p.claimedBy !== personId)
+    if (p.claimedBy && p.claimedBy !== personId)
       throw new ORPCError('CONFLICT', {
         message: 'Another owner is already reviewing this suggestion.',
       })
@@ -702,24 +704,13 @@ function proposalsService(
       return withdrawn
     },
     /**
-     * The author, or an administrator, discards a draft that was never sent (withdraw is for a
-     * sent proposal). The row stays for its timeline and audit entries, and reads as not found.
+     * Its writer discards a draft that was never sent (withdraw is for a sent proposal): a draft is
+     * theirs alone (FR-139). The row stays for its timeline and audit entries, and reads as not
+     * found.
      */
-    async discard(
-      id: string,
-      revision: number,
-      /** Footnote v1's Context list (FR-139): an owner of the draft's domain deletes it too. */
-      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
-    ) {
+    async discard(id: string, revision: number) {
       const p = await current(id, revision)
-      if (p.proposerId !== personId) {
-        const [may] = await tx.query<{ ok: boolean }>(
-          'select cl_is_admin_now() or ($2 and cl_is_owner_now($1)) as ok',
-          [p.areaId, byDomainOwners],
-        )
-        if (!may?.ok)
-          throw new ORPCError('FORBIDDEN', { message: notAllowed('decide this suggestion') })
-      }
+      proposerOnly(p)
       if (p.state !== 'draft')
         throw new ORPCError('CONFLICT', {
           message:

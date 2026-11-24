@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-24
 ---
 
+## Drafts are yours alone
+
+2026-11-24
+
+Only the person who wrote a draft can see it now. Owners and admins see it once it is sent, as Waiting. The editor has Save as draft, and a draft's page sends or publishes it as it is.
+
+Drafts you imported, or haven't saved for 30 days, wait on one card in your Inbox, which publishes or sends them all at once. An admin can delete the drafts of someone who left, without reading them. See [Write context](write-context.md#save-as-draft).
+
 ## Five tools for agents
 
 2026-11-24

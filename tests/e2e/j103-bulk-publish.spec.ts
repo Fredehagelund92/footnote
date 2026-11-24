@@ -1,11 +1,12 @@
 import { expect, go, mode, signInAs, test } from './go.ts'
 import type { Page } from '@playwright/test'
 
-// J103: drafts are published from the Context list's bar, as one is from the editor. An owner of
-// the domain, or an admin, publishes at once; a writer sends their own draft for another domain to
-// its owners; a draft the editor's checks keep back stays ticked with why. More than a handful is
-// asked first, saying agents get them, and Undo takes the publish back. A draft opened as it is
-// publishes from its own page by the same rule, without an edit.
+// J103: drafts are published from the Context list's bar, as one is from the editor. A draft is
+// its writer's alone (FR-230), so the list holds only the person's own. In a domain they own, or for
+// an admin, they publish at once; a writer sends their own draft for another domain to its owners;
+// a draft the editor's checks keep back stays ticked with why. More than a handful is asked first,
+// saying agents get them, and Undo takes the publish back. A draft opened as it is publishes from
+// its own page by the same rule, without an edit.
 
 const bar = (page: Page) => page.getByRole('region', { name: 'Selected context' })
 const titles = (page: Page) => page.locator('tbody [data-row-open]')
@@ -21,21 +22,10 @@ async function allDrafts(page: Page) {
   await page.getByRole('checkbox', { name: 'Select all context shown' }).click()
 }
 
-test('An owner publishes the drafts of their domain at once', async ({ page }) => {
-  await signInAs(page, 'Tomas Eriksen')
-  await go(page, '/context')
-  await allDrafts(page)
-  await publish(page).click()
-  await expect(said(page, '1 published')).toBeVisible()
-  await expect(said(page, 'Agents get them from the next question.')).toBeVisible()
-  // Published, it is no draft any more.
-  await expect(titles(page).filter({ hasText: 'Spring campaign spend' })).toHaveCount(0)
-})
-
-test('An admin publishes in any domain; a draft without a source stays a draft', async ({
+test('An owner publishes their own drafts at once; a draft without a source stays a draft', async ({
   page,
 }) => {
-  await signInAs(page, 'Ravi Kapoor')
+  await signInAs(page, 'Jon Abara')
   await go(page, '/context')
   // A published item has nothing to publish: the button stays in reach and says why.
   await page
@@ -47,19 +37,19 @@ test('An admin publishes in any domain; a draft without a source stays a draft',
   await page.keyboard.press('Escape')
   await allDrafts(page)
   await publish(page).click()
-  await expect(said(page, '2 published')).toBeVisible()
+  await expect(said(page, '1 published')).toBeVisible()
   await expect(said(page, '1 skipped: missing a source')).toBeVisible()
   // What was left alone stays ticked, with why a hover away.
   await expect(titles(page)).toHaveText(['Store returns in Spain count on the day they are booked'])
   await expect(bar(page)).toContainText('1 selected')
   await page.getByRole('button', { name: 'Why they were skipped' }).hover()
   await expect(page.getByText('Add a source first.')).toBeVisible()
-  // Undo takes them from agents, and they are drafts again.
+  // Undo takes it from agents, and it is a draft again.
   await page.getByRole('button', { name: 'Undo' }).click()
-  await expect(titles(page)).toHaveCount(3)
+  await expect(titles(page)).toHaveCount(2)
 })
 
-test("A member sends their own draft to the domain's owners, and can't publish others'", async ({
+test("A member sends their own draft to the domain's owners, and can't publish what is live", async ({
   page,
 }) => {
   await signInAs(page, 'Ines Duarte')
@@ -70,7 +60,7 @@ test("A member sends their own draft to the domain's owners, and can't publish o
     .click()
   await expect(publish(page)).toHaveAttribute('aria-disabled', 'true')
   await expect(publish(page)).toHaveAccessibleDescription(
-    /^Only its writer, owners of .+ and admins can publish it\.$/,
+    /^Only owners of .+ and admins can change it\.$/,
   )
   await page.keyboard.press('Escape')
   await allDrafts(page)
@@ -107,16 +97,17 @@ test('Publishing many asks once, says agents get them, and names what it leaves'
   await go(page, '/context?demo=imported')
   await allDrafts(page)
   await publish(page).click()
-  const confirm = page.getByRole('dialog', { name: 'Publish 21 drafts?' })
+  // Jon's own 2 drafts beside the 21 he imported; 3 of them have no source.
+  const confirm = page.getByRole('dialog', { name: 'Publish 20 drafts?' })
   await expect(confirm).toContainText('Agents get them from the next question.')
   await expect(confirm.getByRole('list', { name: 'To publish' }).getByRole('listitem')).toHaveCount(
-    21,
+    20,
   )
   await expect(confirm).toContainText('3 skipped: missing a source')
   // Cancel has the focus: a slip of Enter publishes nothing.
   await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused()
-  await confirm.getByRole('button', { name: 'Publish 21 drafts' }).click()
-  await expect(said(page, '21 published')).toBeVisible()
+  await confirm.getByRole('button', { name: 'Publish 20 drafts' }).click()
+  await expect(said(page, '20 published')).toBeVisible()
   await expect(said(page, '3 skipped: missing a source')).toBeVisible()
   await expect(titles(page)).toHaveCount(3)
 })

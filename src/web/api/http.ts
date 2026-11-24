@@ -164,6 +164,8 @@ export const wiredMethods = [
   'markViewed',
   'editItem',
   'saveItem',
+  'saveDraft',
+  'clearLeftDrafts',
   'draftFromText',
   'applyBulk',
   'sendSuggestion',
@@ -788,7 +790,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     ])
     if (proposal?.subject !== 'item') return null
     if (editable(proposal.state))
-      return { item: factOfDraft(proposal, names, vocabulary), history: [] as Version[] }
+      return {
+        item: {
+          ...factOfDraft(proposal, names, vocabulary),
+          ...(proposal.state === 'changes_requested' ? { returned: true } : {}),
+        },
+        history: [] as Version[],
+      }
     return waits(proposal.state)
       ? {
           item: factOfWaiting(proposal, names, vocabulary, calendar.shift),
@@ -842,6 +850,33 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
     }
     return write('items.publish', input, (o) => client.items.publish(input, o))
+  }
+
+  /**
+   * Save as draft from the editor (FR-139): a new item, a change to a published one written from
+   * the version the editor opened, or the person's own draft saved again in place. Only a draft is
+   * saved so: a suggestion is sent or published.
+   */
+  async function saveDraftFromEditor(fact: Fact, isNew: boolean, card?: string) {
+    const vocabulary = await readWords()
+    const started = !isNew && isUuid(fact.id) ? await readDraft(fact.id) : null
+    if (started && started.state !== 'draft')
+      throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+    const itemId = isNew || started ? undefined : fact.id
+    const before = itemId ? (await itemPage(itemId))?.item : undefined
+    if (itemId && !before)
+      throw new ApiError('not-found', "This context item isn't in Context any more.")
+    const gap = card ? parseCardKey(card) : null
+    const input = {
+      draft: draftOf(fact, vocabulary, calendar.today, before),
+      ...(started
+        ? { draftId: started.id }
+        : itemId
+          ? { itemId, ...(fact.version !== undefined ? { version: fact.version } : {}) }
+          : {}),
+      ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
+    }
+    return write('drafts.save', input, (o) => client.drafts.save(input, o))
   }
 
   /**
@@ -1560,6 +1595,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       published[done.itemId] = 'just now'
       return { id: done.itemId }
     },
+    saveDraft: async ({ fact, isNew, gap }) => ({
+      id: (await saveDraftFromEditor(fact, isNew, gap)).proposalId,
+    }),
+    clearLeftDrafts: ({ id }) =>
+      write('drafts.clearLeft', { personId: id }, (o) =>
+        client.drafts.clearLeft({ personId: id }, o),
+      ),
     draftFromText: async ({ text }) => {
       const [drafted, names, vocabulary] = await Promise.all([
         write('drafts.fromText', { text }, (o) => client.drafts.fromText({ text }, o)),
@@ -2303,6 +2345,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         areas,
         tests,
         checks,
+        left,
       ] = await Promise.all([
         read(() => client.settings.list()),
         read(() => client.items.deleted()),
@@ -2318,11 +2361,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         read(() => client.evals.automatic()).catch(() => null),
         // What the model check found is a note on each role's model; without it, none.
         read(() => client.models.checks()).catch(() => []),
+        read(() => client.drafts.left()),
       ])
       const domainName = (id: string) => areas.find((a) => a.id === id)?.name ?? id
       return {
         settings: words.settingsOf(settings, (id) => people.name(id), now, checks),
         deleted: words.deletedOf(drafts, terms, (id) => (id ? people.name(id) : 'Someone'), now),
+        left: left.map((l) => ({ id: l.personId, name: l.name, drafts: l.drafts })),
         history: words.historyOf(history.entries, changes, now, {
           domain: domainName,
           person: (id) => people.name(id),

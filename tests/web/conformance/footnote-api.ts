@@ -437,7 +437,7 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'getLibrary', 'contextPage'))(
-      "lists the Context page: the library's items and the drafts, each once, a draft by who started it",
+      "lists the Context page: the library's items and the person's own drafts, each once",
       async () => {
         const live = await signedIn()
         const rows = await live.contextPage()
@@ -446,7 +446,7 @@ export function describeFootnoteApi(
         )
         const drafts = rows.filter((f) => f.status === 'Draft')
         expect(drafts.length).toBeGreaterThan(0)
-        for (const d of drafts) expect(d.by, d.id).toBeTruthy()
+        for (const d of drafts) expect(d.by, d.id).toBe(person)
       },
     )
 
@@ -633,6 +633,27 @@ export function describeFootnoteApi(
         })
       },
     )
+
+    it.skipIf(
+      lacks('signIn', 'getWorkspace', 'getLibrary', 'contextPage', 'itemPage', 'saveDraft'),
+    )('saves a draft that only its writer sees, and saves it again in place (FR-230)', async () => {
+      const live = await signedIn()
+      const { fact } = await newItem(live, 'Conformance: a draft only its writer sees', '05')
+      const { id } = await live.saveDraft({ fact: { ...fact, status: 'Draft' }, isNew: true })
+      expect((await live.contextPage()).find((f) => f.id === id)).toMatchObject({
+        title: fact.title,
+        status: 'Draft',
+        by: person,
+      })
+      const again = { ...(await live.itemPage({ id }))!.item, title: `${fact.title}, again` }
+      expect(await live.saveDraft({ fact: again, isNew: false })).toEqual({ id })
+      expect((await live.itemPage({ id }))!.item.title).toBe(again.title)
+      // Nobody else sees it: not in their list, and its page is not found.
+      await api().signIn({ name: colleague })
+      expect((await api().contextPage()).some((f) => f.id === id)).toBe(false)
+      expect(await api().itemPage({ id })).toBeNull()
+      await api().signIn({ name: person })
+    })
 
     it.skipIf(lacks('signIn', 'searchScope'))(
       'searches what an item applies to without listing every value of a dimension (FR-107)',
