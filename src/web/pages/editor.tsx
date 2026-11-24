@@ -119,6 +119,7 @@ import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '
 import { useWide } from '@/hooks/use-wide'
 import { Kbd } from '@/components/ui/kbd'
 import { usePrimaryKey } from '@/hooks/use-primary-key'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
 
 // The context editor as a document, the way editorcn's Simple Document Editor template shows one: a
@@ -793,6 +794,50 @@ function Editor({
   const held =
     blocked || (!online ? `You're offline. ${verb} once you're back; your text stays here.` : '')
 
+  // Save as draft (FR-139): a new item, the person's own draft, or a change to a published item,
+  // kept where only they can see it, to finish later. A suggestion that waits for review, or one an
+  // owner returned, is sent instead.
+  const savesDraft =
+    !beside &&
+    !query.get('setup') &&
+    (mode === 'new' ||
+      (original?.status === 'Draft' && !original.returned && original.by === me.name) ||
+      (!!original && !unpublished(original)))
+  const [savingDraft, setSavingDraft] = React.useState(false)
+  const draftHeld = !online
+    ? "You're offline. Save it once you're back; your text stays here."
+    : !domains[form.domain]
+      ? 'Choose a domain first.'
+      : !form.title && !form.body.trim()
+        ? 'Write something first.'
+        : mode !== 'new' && !edited
+          ? 'No changes yet.'
+          : ''
+  const saveDraft = async () => {
+    if (draftHeld) {
+      toast("Couldn't save it as a draft", { description: draftHeld })
+      return
+    }
+    setSavingDraft(true)
+    try {
+      const { id } = await write('saveDraft', {
+        fact: draft,
+        isNew: !original,
+        gap: query.get('gap') ?? undefined,
+      })
+      guard.release()
+      toast('Saved as a draft', {
+        description: "Only you can see it. Agents don't get it until it is published.",
+      })
+      navigate(`/context/${id}`)
+    } catch (error) {
+      toast("Couldn't save it as a draft", { description: toApiError(error).message })
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+  const mobile = useIsMobile()
+
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')
 
@@ -978,6 +1023,19 @@ function Editor({
               on="Try it"
               off="Back to writing"
             />
+            {savesDraft && !mobile && (
+              <Button
+                variant="outline"
+                aria-disabled={!!draftHeld}
+                aria-description={draftHeld || undefined}
+                title={draftHeld || undefined}
+                loading={savingDraft}
+                loadingLabel="Saving…"
+                onClick={() => void saveDraft()}
+              >
+                Save as draft
+              </Button>
+            )}
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -1020,6 +1078,12 @@ function Editor({
               {held}
             </span>
             <HeaderMore>
+              {savesDraft && mobile && (
+                <DropdownMenuItem onClick={() => void saveDraft()}>
+                  <FilePenLineIcon />
+                  Save as draft
+                </DropdownMenuItem>
+              )}
               {mode === 'new' && (
                 <DropdownMenuItem onClick={() => setDraftOpen(true)}>
                   <SparklesIcon />

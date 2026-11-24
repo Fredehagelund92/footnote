@@ -38,19 +38,20 @@ test('Delete names the drafts it removes, keeps published items, and Settings re
 }) => {
   await go(page, '/context')
   await onlyDrafts(page)
-  await expect(titles(page)).toHaveCount(3)
+  // A draft is its writer's alone (FR-230): Jon's two.
+  await expect(titles(page)).toHaveCount(2)
   await page.getByRole('checkbox', { name: 'Select all context shown' }).click()
   await bar(page)
     .getByRole('button', { name: /^Delete/ })
     .click()
-  const confirm = page.getByRole('dialog', { name: 'Delete 3 drafts?' })
+  const confirm = page.getByRole('dialog', { name: 'Delete 2 drafts?' })
   await expect(confirm.getByRole('list', { name: 'To delete' }).getByRole('listitem')).toHaveCount(
-    3,
+    2,
   )
   // Cancel has the focus: a slip of Enter deletes nothing.
   await expect(confirm.getByRole('button', { name: 'Cancel' })).toBeFocused()
-  await confirm.getByRole('button', { name: 'Delete 3 drafts' }).click()
-  await expect(page.getByText('3 deleted', { exact: true })).toBeVisible()
+  await confirm.getByRole('button', { name: 'Delete 2 drafts' }).click()
+  await expect(page.getByText('2 deleted', { exact: true })).toBeVisible()
   await expect(page.getByText('No context matches')).toBeVisible()
 
   await go(page, '/settings/advanced')
@@ -59,7 +60,7 @@ test('Delete names the drafts it removes, keeps published items, and Settings re
   ).toBeVisible()
   // The History log has the change too.
   await expect(page.getByRole('table', { name: 'History log' })).toContainText(
-    /Deleted “.*” and 1 more/,
+    /Deleted “.*” and “.*”/,
   )
   await expect(page.getByText(/Deleted by Jon Abara, today/).first()).toBeVisible()
 })
@@ -77,8 +78,8 @@ test('Undo of a deletion is offered for as long as the service takes it, and say
     .getByRole('button', { name: /^Delete/ })
     .click()
   await page
-    .getByRole('dialog', { name: 'Delete 3 drafts?' })
-    .getByRole('button', { name: 'Delete 3 drafts' })
+    .getByRole('dialog', { name: 'Delete 2 drafts?' })
+    .getByRole('button', { name: 'Delete 2 drafts' })
     .click()
   await expect(
     page.getByText('You can undo it for 15 seconds; then they are gone for good.'),
@@ -117,7 +118,7 @@ test('Delete or Backspace on a selection opens the confirmation and deletes noth
   await expect(confirm).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(confirm).toHaveCount(0)
-  await expect(titles(page)).toHaveCount(3)
+  await expect(titles(page)).toHaveCount(2)
 })
 
 test("What someone can't change is skipped and said, and stays ticked with the reasons", async ({

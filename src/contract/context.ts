@@ -271,6 +271,38 @@ export const publishItemResultSchema = z.union([
   }),
 ])
 
+/**
+ * Save as draft (FR-139): the words kept as the person's own draft, which only they read and agents
+ * never get, to finish later. A new item, a change to the published item named, or a draft of theirs
+ * saved again.
+ */
+export const saveDraftInputSchema = z.strictObject({
+  draft: draftSchema,
+  /** The published item it changes; left out for a new item. */
+  itemId: z.optional(itemIdSchema),
+  /** The version of the item the words were written from, sent with `itemId`. */
+  version: z.optional(z.number().check(z.int(), z.minimum(1))),
+  /** The person's own draft these words replace. */
+  draftId: z.optional(z.string().check(z.uuid())),
+  /** What is wrong with the current version, for a change. */
+  reason: z.optional(z.string().check(z.maxLength(500))),
+  /** The gap it was written for, from a Not found card: the card shows the draft as its own. */
+  gapId: z.optional(z.string().check(z.uuid())),
+})
+export const savedDraftSchema = z.object({ proposalId: z.string(), revision: z.number() })
+
+/**
+ * Someone who left with drafts they never sent (FR-139): counted for an admin, who may delete them
+ * without reading them. Their words are theirs alone.
+ */
+export const leftDraftsSchema = z.object({
+  personId: z.string(),
+  name: z.string(),
+  drafts: z.number(),
+})
+export const clearLeftDraftsInputSchema = z.strictObject({ personId: z.string().check(z.uuid()) })
+export const clearedDraftsSchema = z.object({ deleted: z.number() })
+
 /** A draft made from pasted text or a link, with no model: every field it could read filled in. */
 export const draftFromTextInputSchema = z.strictObject({
   text: z.string().check(z.minLength(1), z.maxLength(20_000)),
@@ -291,3 +323,5 @@ export type VersionPair = z.infer<typeof versionPairSchema>
 export type RelatedContext = z.infer<typeof relatedSchema>
 export type PublishItemResult = z.infer<typeof publishItemResultSchema>
 export type DraftFromText = z.infer<typeof draftFromTextSchema>
+export type SavedDraft = z.infer<typeof savedDraftSchema>
+export type LeftDrafts = z.infer<typeof leftDraftsSchema>

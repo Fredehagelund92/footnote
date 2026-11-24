@@ -548,7 +548,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Deleted"
         level={3}
-        description="Drafts and terms that were deleted, by whom and when. Deleting is for good; published context is archived instead, so it keeps its history."
+        description="Your drafts and the terms that were deleted, by whom and when. Deleting is for good; published context is archived instead, so it keeps its history."
         collapsible
         defaultOpen={page.deleted.length > 1}
       >
@@ -571,7 +571,73 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           </p>
         )}
       </FrameSection>
+      <LeftDrafts left={page.left} />
     </>
+  )
+}
+
+/**
+ * The drafts of people who left (FR-139): a draft is its writer's alone, so nobody reads it once
+ * they are gone. An admin deletes them by count, unread, after a confirmation; the History log
+ * says how many, and whose.
+ */
+function LeftDrafts({ left }: { left: AdvancedPage['left'] }) {
+  const write = useWrite()
+  const [asking, setAsking] = React.useState<AdvancedPage['left'][number] | null>(null)
+  const drafts = (n: number) => (n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`)
+  if (!left.length) return null
+  const clear = (person: AdvancedPage['left'][number]) =>
+    void write('clearLeftDrafts', { id: person.id }).then(
+      ({ deleted }) => toast(`Deleted ${drafts(deleted)}`, { description: person.name }),
+      (e: unknown) =>
+        toast(`Couldn't delete the drafts of ${person.name}`, {
+          description: toApiError(e).message,
+        }),
+    )
+  return (
+    <FrameSection
+      title="Drafts of people who left"
+      level={3}
+      description="Only their writer could read a draft, so nobody can now. Delete them when nobody needs them."
+    >
+      <FrameRows
+        rows={left.map((person) => ({
+          id: person.id,
+          label: person.name,
+          hint: `Left ${drafts(person.drafts)} nobody sent or published.`,
+          value: (
+            <Button variant="outline" onClick={() => setAsking(person)}>
+              Delete {drafts(person.drafts)}
+            </Button>
+          ),
+        }))}
+      />
+      <Dialog open={!!asking} onOpenChange={(open) => !open && setAsking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Delete {asking ? drafts(asking.drafts) : ''} of {asking?.name}?
+            </DialogTitle>
+            <DialogDescription>
+              Nobody reads them first, and they are gone for good. What {asking?.name} published or
+              sent stays.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (asking) clear(asking)
+                setAsking(null)
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </FrameSection>
   )
 }
 

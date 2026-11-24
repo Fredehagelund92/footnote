@@ -19,6 +19,11 @@ import {
   definitionRelatedInputSchema,
   deletedDraftSchema,
   draftFromTextInputSchema,
+  clearLeftDraftsInputSchema,
+  clearedDraftsSchema,
+  leftDraftsSchema,
+  saveDraftInputSchema,
+  savedDraftSchema,
   draftFromTextSchema,
   itemBulkInputSchema,
   itemBulkResultSchema,
@@ -1087,6 +1092,36 @@ export const contract = {
       })
       .input(draftFromTextInputSchema)
       .output(draftFromTextSchema),
+    save: proposal
+      .route({
+        method: 'POST',
+        path: '/drafts',
+        tags: ['library'],
+        summary:
+          'Save as draft: the words kept as your own draft, which only you can read and agents never get, to finish later (FR-139)',
+      })
+      .errors(notFound)
+      .input(saveDraftInputSchema)
+      .output(savedDraftSchema),
+    left: admin
+      .route({
+        method: 'GET',
+        path: '/drafts/left',
+        tags: ['library'],
+        summary:
+          'The people who left with drafts they never sent, each with how many: counted, never read (FR-139)',
+      })
+      .output(z.array(leftDraftsSchema)),
+    clearLeft: admin
+      .route({
+        method: 'POST',
+        path: '/drafts/left/{personId}/clear',
+        tags: ['library'],
+        summary:
+          'Delete every draft of someone who left, without reading them: their history says so, and the History log how many (FR-139)',
+      })
+      .input(clearLeftDraftsInputSchema)
+      .output(clearedDraftsSchema),
   },
   library: {
     index: read

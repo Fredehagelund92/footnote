@@ -22,7 +22,7 @@ import type { Inbox, Workspace } from './client'
 import { mentionIdOf, textFromService, type Words } from './http-context'
 import { commentWhen } from './http-map'
 import type { Subject } from '@/model/comments'
-import { namesWords, type InboxCard, type Outcome, type Waiting } from '@/model/inbox'
+import { draftsWords, namesWords, type InboxCard, type Outcome, type Waiting } from '@/model/inbox'
 import { kindLabel, type Fact, type Kind } from '@/model/items'
 import { describe, type Domain, type Domains, type Person } from '@/model/people'
 import type { Block, ChangeKind, FieldSide, Relation, Review } from '@/model/review'
@@ -171,6 +171,22 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           tools: card.tools,
         },
       }
+    case 'drafts': {
+      const imported = card.drafts.filter((d) => d.imported).length
+      return {
+        ...base,
+        type: 'drafts',
+        ...draftsWords({ imported, old: card.drafts.length - imported }),
+        detail: '',
+        primary: 'Publish all',
+        secondary: ['See them in Context'],
+        drafts: {
+          ids: card.drafts.map((d) => d.id),
+          imported,
+          old: card.drafts.length - imported,
+        },
+      }
+    }
     case 'suggestion': {
       const synced = card.synced
       const from = synced ? synced.source.tool : (card.from?.name ?? 'Someone')
