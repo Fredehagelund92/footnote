@@ -60,7 +60,7 @@ export function AboutPage({
   const save = (text: string) => {
     setTyped(text)
     // Too long is never sent; shortening it saves it.
-    if (text.length <= LIMIT) autosave.change(text)
+    if (aboutBusinessLength(normalizeAboutBusiness(text)) <= LIMIT) autosave.change(text)
     else autosave.discard()
   }
 
