@@ -18,6 +18,10 @@ const answers = [
   'loop-overview',
   'loop-overview-due',
   'loop-overview-domain',
+  // Asked again at Last month on the read line: the period with its days, and first in the words.
+  'loop-period',
+  // What a metric means: no period to choose on the read line.
+  'loop-definition',
 ]
 const widths = [
   { name: '1440', viewport: { width: 1440, height: 1200 } },

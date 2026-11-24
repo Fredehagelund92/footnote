@@ -20,6 +20,12 @@ Agents now call five tools. Given no words, find_context lists what is defined a
 
 Only get_context says to call it first, and only for a question about a metric, so an agent looks a name up with find_context. In Claude Code, get_context loads when a session starts. See [Agent tools](tools.md).
 
+## The period you chose, in the answer
+
+2026-11-24
+
+When you choose other dates in Read as, the new answer says so: its Read as names the period with its days, such as last month with its first and last day, and its first sentence names it. The answer above keeps its own dates. An answer about what a metric means offers no dates, since they do not change it. See [Ask a question](ask-a-question.md#ask-again-at-other-dates).
+
 ## Waiting for review, and Don't publish
 
 2026-11-23

@@ -144,6 +144,9 @@ const LoopAnswerBody = React.lazy(() =>
 const LoopReadLine = React.lazy(() =>
   import('@/components/footnote/loop-answer').then((m) => ({ default: m.LoopReadLine })),
 )
+const AskedAtLine = React.lazy(() =>
+  import('@/components/footnote/loop-answer').then((m) => ({ default: m.AskedAtLine })),
+)
 
 export function Question({
   answer,
@@ -172,7 +175,7 @@ export function Question({
             )
           : answer.question}
       </div>
-      {answer.loop && (
+      {answer.loop ? (
         <React.Suspense fallback={null}>
           <LoopReadLine
             parts={loopAnswerParts()}
@@ -181,6 +184,13 @@ export function Question({
             onReperiod={onReperiod}
           />
         </React.Suspense>
+      ) : (
+        // Asked again at a period chosen on the read line: it says so at once.
+        answer.period && (
+          <React.Suspense fallback={null}>
+            <AskedAtLine period={answer.period} />
+          </React.Suspense>
+        )
       )}
       {/* Copy, and Edit to put the question back in the box: under the bubble, so it keeps its width; always there on a touch screen. */}
       <div className="-my-1 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover/q:opacity-100 focus-within:opacity-100 pointer-coarse:gap-2.5 pointer-coarse:opacity-100">
