@@ -47,6 +47,9 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   G01 counts a list itself ("six metrics"); GP10 gives its own advice ("Use Sweden orders from 19
   January 2026"); H06 tells of the answer check in its own voice ("The checker flagged two counts I
   wrote"); F12 and G23 say what they must not.
+  On 25 November 2026 the steps were keyed again with no model, by place, as above, after the
+  answer's state began to come from every item that applies and not only the page shown, and a
+  follow-up began to send each earlier read in the step that made it, with the words before it.
 */
 
 askEvalSuite({
