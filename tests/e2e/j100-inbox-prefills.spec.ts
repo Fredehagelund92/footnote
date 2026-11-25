@@ -28,7 +28,7 @@ for (const { name, viewport } of [
       const p = pane(page)
       const question = 'Why are Germany orders low for yesterday?'
       await expect(p.getByText('Maria Lindqvist asked', { exact: true })).toBeVisible()
-      await expect(p.locator('blockquote')).toHaveText(question)
+      await expect(p.locator('blockquote').first()).toHaveText(question)
       await p.getByRole('button', { name: 'Try this question' }).click()
       const box = page.getByRole('textbox', { name: 'Ask a question' })
       // The dock reads its start while it opens.
