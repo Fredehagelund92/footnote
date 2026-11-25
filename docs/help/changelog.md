@@ -10,6 +10,12 @@ reviewed: 2026-11-25
 
 A metric built from others shows them as a small tree, on its page and in the side panel, with the metrics they are built from in turn. Each line counts the published context about that metric, so you can see where something is written. See [Definitions](definitions-and-synonyms.md#what-a-metric-is-built-from).
 
+## Lists keep their view, and Back goes back
+
+2026-11-25
+
+Context and Definitions keep their filters, search words, sort and grouping in the address, so a reload, or Back from an item's page, gives the same list with the row you came from in focus. Moving through the Inbox with J and K no longer adds a Back step, so leaving the Inbox takes one Back. Esc, or the back arrow, on something opened from a list goes back to that list.
+
 ## Share a chat as a link
 
 2026-11-25
