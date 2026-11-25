@@ -23,6 +23,7 @@ import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { asksWhatItIs } from '@domain/scope'
 import { loopParts } from '@/components/footnote/loop-parts'
+import { reportParts } from '@/components/footnote/report-parts'
 import { today } from '@/lib/today'
 import { dateLabel } from '@/model/validity'
 import { ReadingLine } from '@/components/footnote/reading'
@@ -780,7 +781,7 @@ export function SomethingWrong({
 }) {
   return (
     <React.Suspense fallback={null}>
-      <ReportForm {...props} onSent={() => onSent()} />
+      <ReportForm {...props} parts={reportParts} onSent={() => onSent()} />
     </React.Suspense>
   )
 }

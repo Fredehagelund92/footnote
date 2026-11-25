@@ -1,41 +1,39 @@
 import * as React from 'react'
 import { limits } from '@domain/proposal-rules'
-import { CheckIcon, PencilIcon } from '@/components/icons'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Textarea } from '@/components/ui/textarea'
-import { DockFrame, DockMissing } from '@/components/dock'
-import { useWrite } from '@/api/queries'
-import { useReported } from '@/lib/reported'
-import { closeDock } from '@/lib/dock'
-import { navigate } from '@/lib/router'
-import { markReportSent, useReportSent, useShownAnswer } from '@/lib/shown-answers'
-import { useDomains, useMe } from '@/lib/workspace'
-import { askedOf, type Answer } from '@/model/ask'
+import type { ReportParts } from '@/components/footnote/report-parts'
+import type { Answer } from '@/model/ask'
 import type { Fact } from '@/model/items'
-import { listOf } from '@/model/people'
 
 // Something wrong? on an answer (FR-622): the right panel beside the answer, so the answer stays in
 // view while the person writes. Bad answer opens it, and so does More. It names the owners the
 // report goes to; an owner of the item gets Edit first. The right words for a source wait as a
 // suggestion on it, which only an owner publishes. Where Ask is itself in the right panel, the same
-// form opens under the answer instead.
+// form opens under the answer instead. What it uses of the app comes as its parts
+// (report-parts.ts), so loading it splits nothing.
 
 type Sent = { domain: string; suggested?: string }
 
+const Parts = React.createContext<ReportParts | null>(null)
+
+/** The app's parts the form draws with, from its own provider. */
+function useParts(): ReportParts {
+  const parts = React.useContext(Parts)
+  if (!parts) throw new Error('Something wrong? draws inside its parts provider.')
+  return parts
+}
+
 /** The right panel for one answer on screen, by its key: the form, then what happens next. */
-export function ReportPanel({ id }: { id: string }) {
+export function ReportPanel({ id, parts }: { id: string; parts: ReportParts }) {
+  return (
+    <Parts.Provider value={parts}>
+      <ReportPanelBody id={id} />
+    </Parts.Provider>
+  )
+}
+
+function ReportPanelBody({ id }: { id: string }) {
+  const { Button, DockFrame, DockMissing, askedOf, closeDock, markReportSent } = useParts()
+  const { useReportSent, useShownAnswer } = useParts()
   const shown = useShownAnswer(id)
   const already = useReportSent(id)
   const [sent, setSent] = React.useState<Sent | null>(null)
@@ -73,7 +71,7 @@ export function ReportPanel({ id }: { id: string }) {
       </DockFrame>
     )
   return (
-    <ReportForm
+    <ReportFormBody
       key={id}
       answer={shown.answer}
       facts={shown.facts}
@@ -104,6 +102,7 @@ function SentNote({
   sent: Sent
   heading: React.RefObject<HTMLHeadingElement | null>
 }) {
+  const { CheckIcon, useDomains } = useParts()
   const domains = useDomains()
   const domain = domains[sent.domain]?.name ?? sent.domain
   return (
@@ -137,6 +136,17 @@ function SentNote({
  * the answer, scrolled into view.
  */
 export function ReportForm({
+  parts,
+  ...props
+}: { parts: ReportParts } & React.ComponentProps<typeof ReportFormBody>) {
+  return (
+    <Parts.Provider value={parts}>
+      <ReportFormBody {...props} />
+    </Parts.Provider>
+  )
+}
+
+function ReportFormBody({
   answer,
   facts,
   framed,
@@ -149,6 +159,10 @@ export function ReportForm({
   onClose: () => void
   onSent: (sent: Sent) => void
 }) {
+  const { Button, DockFrame, Field, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } =
+    useParts()
+  const { Input, Label, PencilIcon, RadioGroup, RadioGroupItem, Textarea } = useParts()
+  const { askedOf, cn, listOf, navigate, useDomains, useMe, useReported, useWrite } = useParts()
   const domains = useDomains()
   const me = useMe()
   const write = useWrite()

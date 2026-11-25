@@ -46,6 +46,7 @@ vi.mock('@/lib/router', async (original) => ({
 }))
 
 const { ReportForm, ReportPanel } = await import('@/components/footnote/report-panel')
+const { reportParts } = await import('@/components/footnote/report-parts')
 const { keepShown, markReportSent } = await import('@/lib/shown-answers')
 const { ApiError } = await import('@/api/errors')
 
@@ -108,6 +109,7 @@ function mount(props: { facts?: Fact[] } = {}) {
         QueryClientProvider,
         { client },
         React.createElement(ReportForm, {
+          parts: reportParts,
           answer,
           facts: [fact],
           onClose: () => closed.push(1),
@@ -228,7 +230,7 @@ describe('Something wrong?', () => {
         React.createElement(
           QueryClientProvider,
           { client: new QueryClient() },
-          React.createElement(ReportPanel, { id: 'a1-key' }),
+          React.createElement(ReportPanel, { id: 'a1-key', parts: reportParts }),
         ),
       ),
     )
