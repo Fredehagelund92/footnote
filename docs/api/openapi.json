@@ -92064,8 +92064,7 @@
                   },
                   "required": [
                     "id",
-                    "at",
-                    "suggestion"
+                    "at"
                   ]
                 }
               }
