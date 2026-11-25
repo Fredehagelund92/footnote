@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Definition } from '@/lib/definitions'
-import type { Domain } from '@/model/people'
+import { PLAIN_ROLE, type Domain, type Person } from '@/model/people'
 import { SCOPE_KINDS, mentionablesOf, searchMentions } from '@/lib/mentions'
 
 // Ask's '@' list over a Cube view whose top metric is a family of two currencies (FR-142): typed
@@ -68,5 +68,37 @@ describe("Ask's '@' list and families", () => {
 
   it('keeps one mention for two families of one name', () => {
     expect(all.filter((m) => m.id === 'metric:Forecast Takings')).toHaveLength(1)
+  })
+})
+
+describe("the '@' list's line under a person", () => {
+  const person = (name: string, role: string, extra: Partial<Person> = {}): Person => ({
+    id: name,
+    name,
+    role,
+    owns: [],
+    admin: false,
+    ...extra,
+  })
+  const hints = mentionablesOf({
+    facts: [],
+    definitions: [],
+    domains: [core],
+    people: [
+      person('Ines Duarte', PLAIN_ROLE),
+      person('Lena Park', 'Admin', { admin: true }),
+      person('Jon Abara', 'Owner of Core', { owns: ['core'] }),
+    ],
+    markets: [],
+  })
+    .filter((m) => m.kind === 'person')
+    .map((m) => [m.label, m.hint])
+
+  it('says nothing for someone who is no admin and owns no domain', () => {
+    expect(hints).toEqual([
+      ['Ines Duarte', undefined],
+      ['Lena Park', 'Admin'],
+      ['Jon Abara', 'Owner of Core'],
+    ])
   })
 })

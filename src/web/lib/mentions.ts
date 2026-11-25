@@ -2,7 +2,7 @@ import * as React from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { scopeSearchQuery, useVocabulary, useWorkspace } from '@/api/queries'
 import { servedToAgents, type Fact, type Kind } from '@/model/items'
-import type { Domain, Person } from '@/model/people'
+import { PLAIN_ROLE, type Domain, type Person } from '@/model/people'
 import { useDefinitions, type Definition } from '@/lib/definitions'
 import { useFacts } from '@/lib/workspace'
 import { storageKey } from '@/lib/brand'
@@ -130,7 +130,8 @@ export function mentionablesOf({
       id: mentionId('person', p.name),
       kind: 'person' as const,
       label: p.name,
-      hint: p.role,
+      // Only a line that tells people apart: the plain one sat under nearly every name.
+      hint: p.role === PLAIN_ROLE ? undefined : p.role,
     })),
   ]
   // A mention is its id: two definitions of one name (two families a source named alike) are one.
