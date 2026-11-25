@@ -36,7 +36,7 @@ A real run uses the answering model and the judge of the [test runs' model setti
 - how many notes agents are told, and the size of the plain file;
 - the estimated cost, your cap, and who receives the questions and the published notes.
 
-Then it waits for a yes. It refuses a cap below the estimate, and no answer starts once the cap could be passed. Ctrl+C stops it after the answers in flight.
+Then it waits for a yes. It refuses a cap below the estimate, and a cap that is not a number or is above USD 10,000, and no answer starts once the cap could be passed. Ctrl+C stops it after the answers in flight.
 
 The plain file holds every published note, so on a large workspace it can be longer than the model can read at once. The invented company's file is about 176,000 tokens. When the file is too long, that way's answers fail, and the run says how many answers were not made.
 
