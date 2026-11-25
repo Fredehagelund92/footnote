@@ -136,6 +136,7 @@ const markets = [
   'bulgaria',
   'luxembourg',
   'andorra',
+  'monaco',
 ]
 const inMarket = (market: string) => ({
   scope: {
@@ -1677,8 +1678,8 @@ describe('named reports from Ask (FR-622)', () => {
   })
 
   it('refuses an email address in the right words in words for that field, and files nothing', async () => {
-    const before = (await mine('member')).length
-    const refused = await send('member', {
+    const before = (await mine('stranger')).length
+    const refused = await send('stranger', {
       question: asked,
       itemId: item,
       part: 'item',
@@ -1689,35 +1690,35 @@ describe('named reports from Ask (FR-622)', () => {
     expect(refused.json<{ message: string }>().message).toBe(
       'Take the email address, phone number or secret out of the right words.',
     )
-    expect((await mine('member')).length).toBe(before)
+    expect((await mine('stranger')).length).toBe(before)
   })
 
   it('takes right words for an item whose live version replaced another item', async () => {
-    const old = await live({ title: 'Estonia orders count vouchers', ...inMarket('estonia') })
+    const old = await live({ title: 'Monaco orders count vouchers', ...inMarket('monaco') })
     const replacer = await live({
-      title: 'Estonia orders count credits',
-      ...inMarket('estonia'),
+      title: 'Monaco orders count credits',
+      ...inMarket('monaco'),
       replaces: [old],
     })
     const report = await ok<SentReport>(
-      send('member', {
+      send('stranger', {
         question: asked,
         itemId: replacer,
         part: 'item',
         what: 'Credits are not counted.',
-        correction: 'Estonia orders leave credits out.',
+        correction: 'Monaco orders leave credits out.',
       }),
     )
     expect(report.suggestion).toMatch(/^[0-9a-f-]{36}$/)
     const proposal = await ok<ProposalRecord>(
-      call('GET', `/proposals/${report.suggestion}`, 'member'),
+      call('GET', `/proposals/${report.suggestion}`, 'stranger'),
     )
     expect(proposal.draft.replaces ?? []).toEqual([])
   })
 
   it('refuses a report that names its own suggestion on a different item', async () => {
     const report = await ok<SentReport>(
-      send('member', {
+      send('stranger', {
         question: asked,
         itemId: item,
         part: 'item',
@@ -1728,7 +1729,7 @@ describe('named reports from Ask (FR-622)', () => {
     await client.query('begin')
     try {
       await client.query(`set local role ${identifier(localRoles.api)}`)
-      await client.query("select set_config('cl.person_id', $1, true)", [people.member])
+      await client.query("select set_config('cl.person_id', $1, true)", [people.stranger])
       await expect(
         client.query(
           `insert into reports (person_id,area_id,item_id,part,question,what,correction,proposal_id)
