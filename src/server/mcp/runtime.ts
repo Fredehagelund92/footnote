@@ -85,6 +85,7 @@ export async function createMcpDependencies(config: Config, logger: Logger, logi
     ),
     resource: config.mcpResourceUrl,
     authorizationServers: servers,
+    lab: config.lab,
     close: () => pool.end(),
   }
 }

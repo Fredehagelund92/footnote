@@ -237,13 +237,16 @@ async function compile(
 
   /**
    * What a view's measure is built from (C2), as dbt's reader says it: the measures its own
-   * calculation takes, each by the ref of the view's member that stands for it, and its cube's
+   * calculation takes, each by the ref of the view's member that stands for it, else, when the
+   * view leaves it out, of the one member of another view that shows it (`shown`), and its cube's
    * columns, by name. None when the calculation is not plain column arithmetic
-   * (`arithmeticInputs`), or takes a measure the view leaves out: what it reads is then not told.
+   * (`arithmeticInputs`), or takes a measure the view hides, or that it leaves out and no other
+   * view or several show: what it reads is then not told.
    */
   function builtFromOf(
     name: string,
-    measures: readonly { name: string }[],
+    measures: readonly { name: string; isVisible?: boolean }[],
+    shown: readonly { name: string }[],
   ): RuntimeDefinition['builtFrom'] {
     const source = sourceOf(name)
     const sql = record(rawMembers.get(source)).sql
@@ -253,7 +256,10 @@ async function compile(
     const refs: string[] = []
     for (const measure of inputs.measures) {
       const taken = measure.includes('.') ? measure : `${cube}.${measure}`
-      const member = measures.find((other) => sourceOf(other.name) === taken)
+      const own = measures.find((other) => sourceOf(other.name) === taken)
+      if (own?.isVisible === false) return null
+      const elsewhere = own ? [] : shown.filter((other) => sourceOf(other.name) === taken)
+      const member = own ?? (elsewhere.length === 1 ? elsewhere[0] : undefined)
       if (!member) return null
       if (!refs.includes(`cube:${member.name}`)) refs.push(`cube:${member.name}`)
     }
@@ -276,6 +282,9 @@ async function compile(
   }
 
   const definitions: RuntimeDefinition[] = []
+  const shown = metaTransformer.cubes.flatMap(({ config }) =>
+    config.isVisible ? config.measures.filter((measure) => measure.isVisible !== false) : [],
+  )
   for (const { config } of metaTransformer.cubes) {
     if (!config.isVisible) continue
     const viewDomain = domainHint(record(config.meta).domain, aliases)
@@ -300,12 +309,7 @@ async function compile(
         const family = declaredFamily(member.meta, (name) => dimensions.get(name) ?? null)
         if (family === 'invalid') warnings.push({ code: 'invalid_family', target: member.name })
         const builtFrom =
-          kind === 'metric'
-            ? builtFromOf(
-                member.name,
-                config.measures.filter((other) => other.isVisible !== false),
-              )
-            : null
+          kind === 'metric' ? builtFromOf(member.name, config.measures, shown) : null
         definitions.push({
           ref: `cube:${member.name}`,
           kind,

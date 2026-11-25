@@ -16,7 +16,9 @@ import { MockLanguageModelV4 } from 'ai/test'
  * linked from, once, and adds the linked item it read, so a link-follow question can show the
  * instrument working; one call a turn, as a careful agent follows a link, keeps a run inside the
  * eval client's rate. Given the proof's plain file and no tools, it tells the notes of every place
- * the question names. It never claims what a real model would say.
+ * the question names. A reply with the built-from lab's part (FOOTNOTE_LAB_BUILT_FROM) has its
+ * items told after the answer's, under their own label. It never claims what a real model would
+ * say.
  */
 
 /** The judge's data block. The evaluation judge writes it; the scripted judge reads it. */
@@ -59,6 +61,7 @@ type Delivery = {
   status?: string
   say?: string
   context?: { id: string; title: string; summary: string }[]
+  built_from?: { say: string; context: { id: string; title: string; summary: string }[] }
   options?: { field: string; input: string; options: string[] }[]
 }
 /** read_context's reply as the scripted answer reads it: the item, and what links to and from it. */
@@ -101,7 +104,17 @@ function answerFor(delivery: Delivery, linked: Read[] = []): string {
   const coverage = delivery.say ?? ''
   if (delivery.status === 'check_failed') return `The context checks could not run. ${coverage}`
   const items = delivery.context ?? []
-  if (!items.length) return `No governed context applies to this question. ${coverage}`
+  // What is published about the metrics an asked one is built from, as the reply labels it.
+  const below = delivery.built_from?.context.length
+    ? [
+        `Built from: ${delivery.built_from.say}`,
+        ...delivery.built_from.context.map(
+          (item) => `- [${item.id}] ${item.title}: ${item.summary}`,
+        ),
+      ]
+    : []
+  if (!items.length)
+    return [`No governed context applies to this question. ${coverage}`, ...below].join('\n')
   const lines = items.map((item) => `- [${item.id}] ${item.title}: ${item.summary}`)
   // Only a linked item read in full is cited; a retired one is a marker, never read.
   const shown = new Set(items.map((item) => item.id))
@@ -119,6 +132,7 @@ function answerFor(delivery: Delivery, linked: Read[] = []): string {
       ? ['Linked context, which may not apply to this question:', ...followed]
       : []),
     coverage,
+    ...below,
   ].join('\n')
 }
 

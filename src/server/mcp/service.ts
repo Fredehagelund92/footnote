@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { uncoveredParts } from '../../domain/answer.ts'
 import { replyStatus, stateOfStatus } from '../../domain/answer-state.ts'
+import { builtFromPart, builtFromSaid } from '../../domain/built-from.ts'
 import { canonicalJson } from '../../domain/canonical.ts'
 import { noGroups } from '../../domain/item.ts'
 import { agentKinds, kindFilters } from '../../domain/mcp-text.ts'
@@ -657,6 +658,12 @@ function linkedFrom(
   )
 }
 
+/**
+ * The labs a tool service runs (FOOTNOTE_LAB_BUILT_FROM): `builtFrom` adds to get_context's reply
+ * what is published about the metrics an asked metric is built from (src/domain/built-from.ts).
+ */
+export type ToolLab = { builtFrom: boolean }
+
 export function createToolService(
   source: EditionSource,
   store: AnonymousStore,
@@ -670,6 +677,7 @@ export function createToolService(
    * for every name an item applies to (`checkContextInput`).
    */
   asker: 'agent' | 'check' = 'agent',
+  lab: ToolLab = { builtFrom: false },
 ) {
   const urlOf = (id: string) => itemUrl(web, id)
   /**
@@ -1258,6 +1266,49 @@ export function createToolService(
               : {}),
           }
         })
+        // The lab's built-from part: what is published about the metrics an asked one is built
+        // from, apart from the items and never in the answer state. An item the answer has, even
+        // one a cut takes, is not told again. The first thing a cut takes.
+        const part =
+          lab.builtFrom && resolution.scope
+            ? builtFromPart(
+                bundle,
+                resolution.scope,
+                new Set(resolution.items.map((match) => match.id)),
+                today,
+                (key) => {
+                  const term = bundle.terms.find((t) => t.key === key)
+                  return !!term && termShown(bundle, term)
+                },
+              )
+            : null
+        const partItems = (part?.items ?? []).slice(0, scoped.max_items)
+        const builtFrom = () => {
+          if (!part) return {}
+          const nameOf = (key: string) => bundle.terms.find((t) => t.key === key)?.name ?? key
+          const toolOf = (key: string) =>
+            bundle.terms.find((t) => t.key === key)?.described?.tool ?? null
+          return {
+            built_from: {
+              say: builtFromSaid(part, nameOf, toolOf),
+              metrics: part.metrics.map((m) => ({
+                metric: nameOf(m.metric),
+                from: m.from.map(nameOf),
+              })),
+              context: partItems.map(({ match, on }) => {
+                const item = index.item(match.id) as ServingItem
+                return {
+                  ...contextEntry(item, bundle, today, urlOf(item.id), { disagrees: [] }),
+                  on: on.map(nameOf),
+                  match: match.match,
+                }
+              }),
+              ...(part.items.length > partItems.length
+                ? { more: part.items.length - partItems.length }
+                : {}),
+            },
+          }
+        }
         // A definition question gets the definitions first: the source's words, where they come
         // from and what Footnote adds, as find_context gives them (FR-338). A cut never takes them.
         const defined =
@@ -1425,6 +1476,7 @@ export function createToolService(
             ? resultFor({
                 ...head,
                 context: entries(false),
+                ...builtFrom(),
                 ...(terms.length ? { terms } : {}),
                 ...(definitions.length ? { definitions } : {}),
                 // Which one a word means is the person's to say: the agent needs what to pass back.
@@ -1435,6 +1487,7 @@ export function createToolService(
             : resultFor({
                 ...head,
                 context: entries(true),
+                ...builtFrom(),
                 ...(terms.length ? { terms } : {}),
                 reply_id: delivery,
                 ...common,
@@ -1454,6 +1507,8 @@ export function createToolService(
         }
         // Items past max_items go first, so their links never cost the delivered items theirs.
         while (items.length > scoped.max_items) cutItem()
+        // The built-from part never costs the answer an item, a link or a domain's words.
+        while (partItems.length && byteSize(render()) > limit) partItems.pop()
         // What a domain is, in full, is background: it goes before any link or item; its summary
         // line stays (FR-321).
         if (byteSize(render()) > limit) for (const domain of domains) delete domain.description

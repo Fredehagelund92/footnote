@@ -19,7 +19,7 @@ cubes:
       - name: gross_margin
         title: Gross margin
         type: number
-        sql: SUM(net_revenue_eur - cost_of_goods_eur) / NULLIF(SUM(net_revenue_eur), 0)
+        sql: '({revenue_facts.net_revenue} - {CUBE}.cost_of_goods_eur) / {revenue_facts.net_revenue}'
         description: >-
           Net revenue minus what the goods cost us, as a share of net revenue, for orders shipped.
       - name: online_share

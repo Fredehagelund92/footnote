@@ -212,6 +212,7 @@ export async function loadServingBundle(
     area_id: string | null
     definition_refs: string[]
     definitions: DefinitionState[]
+    built_from_refs: string[]
     described: {
       ref: string
       title: string | null
@@ -230,7 +231,16 @@ export async function loadServingBundle(
        (select case when d.visible_groups is not null then null else json_build_object('ref', d.ref,
            'title', d.title, 'description', d.description_copy, 'type', c.type, 'source', c.name) end
           from unnest(t.definition_refs) with ordinality x(ref, n) join definitions d on d.ref = x.ref
-          join connectors c on c.id = d.connector_id order by x.n limit 1) as described
+          join connectors c on c.id = d.connector_id order by x.n limit 1) as described,
+       -- What its definitions take, as the tool says (FR-143): only definitions every reader may
+       -- see, at both ends.
+       coalesce((select array_agg(distinct b.ref)
+          from unnest(t.definition_refs) x(ref)
+          join definitions d on d.ref = x.ref and d.visible_groups is null
+            and d.missing_since_snapshot is null
+          cross join unnest(d.built_from_refs) b(ref)
+          join definitions i on i.ref = b.ref and i.visible_groups is null
+            and i.missing_since_snapshot is null), '{}') as built_from_refs
      from serving_vocabulary($1) t`,
     [head.seq],
   )
@@ -315,6 +325,7 @@ export async function loadServingBundle(
     areas: metadata.areas,
     retired: metadata.retired,
     refMarks: Object.fromEntries(rows.map((row) => [row.item_id, row.ref_marks])),
+    builtFrom: builtFromOf(vocab),
     // The one domain rule (CON-206, FR-136): the vocabulary's area, else the source's domain that
     // this edition carries. The check report and gap topics read it.
     metricArea: Object.fromEntries(
@@ -379,6 +390,33 @@ export async function loadServingBundle(
     }),
   }
   return bundle
+}
+
+/**
+ * What each metric is built from, by key: the metrics of the vocabulary that name the definitions
+ * its own definitions take, in the order of their keys.
+ */
+function builtFromOf(
+  vocab: readonly {
+    key: string
+    kind: Term['kind']
+    definition_refs: string[]
+    built_from_refs: string[]
+  }[],
+): ServingBundle['builtFrom'] {
+  const metricOf = new Map(
+    vocab.flatMap((v) =>
+      v.kind === 'metric' ? v.definition_refs.map((ref) => [ref, v.key] as const) : [],
+    ),
+  )
+  return Object.fromEntries(
+    vocab.flatMap((v) => {
+      const from = [...new Set(v.built_from_refs.flatMap((ref) => metricOf.get(ref) ?? []))].filter(
+        (key) => key !== v.key,
+      )
+      return from.length ? [[v.key, from.sort()]] : []
+    }),
+  )
 }
 
 /** A version's acceptance as served; null only for a version with no acceptance on record. */

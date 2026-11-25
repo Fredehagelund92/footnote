@@ -1,3 +1,4 @@
+import type { BuiltFromMap } from '../../../domain/built-from.ts'
 import type { ClaimLevel, ItemKind } from '../../../domain/item.ts'
 import type { EditionBundle, ResolverItem } from '../../../domain/resolver.ts'
 import type { LinkTerm, RawLink, RetiredItem } from '../../../domain/links.ts'
@@ -51,6 +52,8 @@ export type ServingBundle = Omit<EditionBundle, 'items'> & {
   areas: { id: string; name: string; team: string | null; summary: string; description: string }[]
   refMarks: Record<string, Record<string, string>>
   retired: RetiredItem[]
+  /** What each metric is built from, as its definitions tool says (FR-143): read for a lab only. */
+  builtFrom: BuiltFromMap
 }
 export type ClientPolicy = {
   client_label: string

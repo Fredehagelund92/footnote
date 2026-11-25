@@ -11,6 +11,7 @@ import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { createDevVerifier, mintDevToken } from '../../mcp/auth.ts'
 import { registerMcpRoutes } from '../../mcp/gateway.ts'
+import type { ToolLab } from '../../mcp/service.ts'
 import { dataToolsOf, serverInstructions } from '../../mcp/tools.ts'
 import { loadServingPolicy, type ServingBundle, type ServingPolicy } from '../editions/index.ts'
 
@@ -77,6 +78,8 @@ export async function openArm(
    * and the calendar its instructions say. The live policy for anything not given.
    */
   fixed: Partial<Pick<ServingPolicy, 'tools' | 'about' | 'calendar'>> = {},
+  /** The labs this side's tools run: the proof's built-from way turns one on. */
+  lab: ToolLab = { builtFrom: false },
 ): Promise<Arm> {
   const { privateKey } = generateKeyPairSync('ed25519')
   const resource = 'http://localhost/mcp'
@@ -94,6 +97,7 @@ export async function openArm(
     resource,
     now: () => new Date(`${clock.today()}T12:00:00Z`),
     wallClock: () => clock.now(),
+    lab,
   })
   const base = await app.listen({ host: '127.0.0.1', port: 0 })
   const client = new Client({ name: 'footnote-eval-runner', version: '1.0.0' })

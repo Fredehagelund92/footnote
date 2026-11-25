@@ -1,0 +1,88 @@
+# The built-from lab's questions for `footnote prove` (docs/prove.md, "The built-from lab"): twelve
+# questions about the demo's invented company, in the format of docs/templates/prove-questions.yaml,
+# kept apart from its sealed 40. With FOOTNOTE_LAB_BUILT_FROM=on and no --questions, the command
+# asks these two ways: Footnote as it is, and Footnote whose get_context also tells what is
+# published about the metrics an asked one is built from (src/domain/built-from.ts).
+#
+# The demo's Cube model builds three metrics from others (db/seed/cube): cost per acquisition from
+# marketing spend and first-time buyers, return on ad spend from net revenue and marketing spend,
+# and gross margin from net revenue. Every question asks about one of the three. In all but one,
+# nothing is written on that metric itself for the period and the market, so Footnote as it is says
+# Not found; in the one about a note that had ended, only a standing note about test accounts is.
+#
+#   - Six where the reason is a note on a metric the asked one is built from, one step down.
+#   - Three where a note on such a metric must not be told: two about another market, and one
+#     that had ended before the period.
+#   - Three where nothing is written on the metric or on what it is built from.
+#
+# Keep them as they are: a question changed until one way wins proves nothing.
+
+questions:
+  # Marketing spend: the payment provider switched in Spain on 16 January 2024.
+  - id: roas-spain-january-2024
+    as_of: '2024-02-05'
+    question: Why did return on ad spend in Spain change from 16 to 31 January 2024?
+    reasons: [itm_m1spwcxz]
+
+  # Net revenue: the regulator paused price promotions in Sweden on 8 July 2024.
+  - id: roas-sweden-july-2024
+    as_of: '2024-08-05'
+    question: Why did return on ad spend in Sweden fall from 8 to 31 July 2024?
+    reasons: [itm_xh8fobqu]
+
+  # Marketing spend: a new VAT rate applied in Germany from 21 April to 13 May 2024.
+  - id: roas-germany-april-2024
+    as_of: '2024-05-06'
+    question: Why did return on ad spend in Germany change from 21 to 30 April 2024?
+    reasons: [itm_x9hg0lz2]
+
+  # Marketing spend: the payment provider switched in the United Kingdom on 23 February 2024.
+  - id: cpa-united-kingdom-february-2024
+    as_of: '2024-03-04'
+    question: Why did cost per acquisition in the United Kingdom change from 23 to 29 February 2024?
+    reasons: [itm_phsumr3c]
+
+  # Marketing spend: the regulator paused price promotions in France on 10 February 2024.
+  - id: cpa-france-february-2024
+    as_of: '2024-03-04'
+    question: Why did cost per acquisition in France change from 10 to 29 February 2024?
+    reasons: [itm_cwhoxhx3]
+
+  # First-time buyers: the Sweden launch campaign started on 2 May 2024.
+  - id: cpa-sweden-may-2024
+    as_of: '2024-06-03'
+    question: Why did cost per acquisition in Sweden drop from 2 to 31 May 2024?
+    reasons: [itm_fhqxc671]
+
+  # Another market: the VAT rate of 21 April 2024 is Germany's, not Poland's.
+  - id: roas-poland-april-2024
+    as_of: '2024-05-06'
+    question: Why did return on ad spend in Poland change from 21 to 30 April 2024?
+    wrong: [itm_x9hg0lz2]
+
+  # Another market: the payment provider of 23 February 2024 switched in the United Kingdom.
+  - id: cpa-netherlands-february-2024
+    as_of: '2024-03-04'
+    question: Why did cost per acquisition in the Netherlands change from 23 to 29 February 2024?
+    wrong: [itm_phsumr3c]
+
+  # Ended: Germany's VAT rate of 21 April 2024 applied until 13 May.
+  - id: roas-germany-may-2024
+    as_of: '2024-06-03'
+    question: Why did return on ad spend in Germany change from 14 to 31 May 2024?
+    wrong: [itm_x9hg0lz2]
+
+  # Nothing written: not on gross margin in Italy, nor on net revenue.
+  - id: gross-margin-italy-march-2024
+    as_of: '2024-04-08'
+    question: Why did gross margin in Italy fall in March 2024?
+
+  # Nothing written: not on return on ad spend in Mexico, nor on what it is built from.
+  - id: roas-mexico-february-2024
+    as_of: '2024-03-04'
+    question: Why did return on ad spend in Mexico drop in February 2024?
+
+  # Nothing written: not on cost per acquisition in Canada, nor on what it is built from.
+  - id: cpa-canada-february-2024
+    as_of: '2024-03-04'
+    question: Why did cost per acquisition in Canada rise in February 2024?

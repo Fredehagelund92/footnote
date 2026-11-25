@@ -26,13 +26,13 @@ cubes:
       - name: cost_per_acquisition
         title: Cost per acquisition
         type: number
-        sql: SUM(spend_eur) / NULLIF(SUM(first_time_buyers), 0)
+        sql: '{marketing_spend} / {customer_facts.first_time_buyers}'
         description: >-
           Marketing spend divided by first-time buyers in the same period, in euros.
       - name: return_on_ad_spend
         title: Return on ad spend
         type: number
-        sql: SUM(attributed_revenue_eur) / NULLIF(SUM(paid_media_spend_eur), 0)
+        sql: '{revenue_facts.net_revenue} / {marketing_spend}'
         description: >-
           Net revenue attributed to paid media divided by paid media spend. Attribution is the
           last click within 30 days.

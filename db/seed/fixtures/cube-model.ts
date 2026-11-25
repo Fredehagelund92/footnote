@@ -10,7 +10,7 @@ import { termDomain } from '../../../src/domain/catalogue.ts'
 
 /** The model version the connector reports for db/seed/cube (a digest of its files). */
 export const DEMO_SOURCE_VERSION =
-  '6251f8c5a4af0f49b8d1298eaa11cd1821a548098d312cb2ba9f982171174fe3'
+  '88853ca82fa69725bfe55c6fc4323c54abf78e3a235c32ad373a854a4118fe7a'
 /** When the seed says the connector first read the model, and read it last (ISO 8601). */
 export const DEMO_FIRST_READ_AT = '2026-09-01T05:00:00.000Z'
 export const DEMO_READ_AT = '2026-10-07T05:00:00.000Z'
@@ -67,7 +67,8 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
-    changeMark: '28e3e5dc75256ae71e33eec77aec57dacaa292a25ee3737247b866af2838c611',
+    builtFrom: { refs: ['cube:revenue.net_revenue'], columns: ['cost_of_goods_eur'] },
+    changeMark: '54549b828e59f0ad4d416cb0184322193aa8afbc79520d1762b165293b8e4b34',
   },
   {
     ref: 'cube:basket.online_share',
@@ -198,7 +199,11 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: 'aac27333a5f70a303c055404b985ad567a81d49d38f2ce57b89c9b2e50be6b5d',
+    builtFrom: {
+      refs: ['cube:marketing.marketing_spend', 'cube:customers.first_time_buyers'],
+      columns: [],
+    },
+    changeMark: '17d1deb4ee86c7d361c5e19471baa731fbb2bdfc92f6e55ce748f9cdce8ba362',
   },
   {
     ref: 'cube:marketing.discount_cost',
@@ -263,7 +268,11 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_paid_media',
     domainSource: 'source',
     modelFile: 'marketing.yml',
-    changeMark: 'a901f5564e9f0204dd1718828995afd9cb8dbecdfa33a1523e6c7ead624841f1',
+    builtFrom: {
+      refs: ['cube:revenue.net_revenue', 'cube:marketing.marketing_spend'],
+      columns: [],
+    },
+    changeMark: '315fe74408c727af484528577c4bd035479b3862ff7d8e681e9059870a18ed56',
   },
   {
     ref: 'cube:operations.on_time_shipping_rate',

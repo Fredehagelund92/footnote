@@ -56,9 +56,11 @@ whole model, and the core keeps the members of the listed views ([the views it r
    change mark.
 7. Gives a measure whose `sql` is plain column arithmetic (`{CUBE}.amount_eur *
 {CUBE}.exchange_rate_usd`, `{revenue} - {refunds}`) what it is built from, as dbt's reader does:
-   the columns it reads and the measures it takes, by the view's members that stand for them
+   the columns it reads and the measures it takes, by the view's members that stand for them, or,
+   for a measure the view leaves out, by the one other view's member that shows it
    (`arithmeticInputs` in `src/domain/definition-helpers.ts`). A function, a keyword or a text literal
-   in it, or a measure the view leaves out or hides (`public: false`) or a dimension, sends nothing. Only the names cross, never the `sql`.
+   in it, a measure the view hides (`public: false`), one it leaves out that no other view or several
+   show, or a dimension, sends nothing. Only the names cross, never the `sql`.
    From these the core says which variant is converted from which.
 
 ## Schedule and limits

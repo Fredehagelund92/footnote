@@ -212,6 +212,11 @@ const envSchema = z
     // `on` lets the service open plain http pages an evidence link names on this machine, where
     // the end-to-end tests serve theirs. Never another private address; refused in production.
     FOOTNOTE_WEB_READ_LOOPBACK: z.enum(['on', 'off']).default('off'),
+    // A lab (slice T0 of the metric trees research): `on` adds to get_context's reply what is
+    // published about the metrics an asked metric is built from, under its own label, and makes
+    // `footnote prove` ask Footnote with it beside Footnote as it is. Off, nothing changes.
+    // Refused in production.
+    FOOTNOTE_LAB_BUILT_FROM: z.enum(['on', 'off']).default('off'),
     // The bearer token a scraper presents at /metrics. Unset turns the endpoint off.
     FOOTNOTE_METRICS_TOKEN: z
       .string()
@@ -286,6 +291,13 @@ const envSchema = z
         code: 'custom',
         path: ['FOOTNOTE_WEB_READ_LOOPBACK'],
         message: 'Reading pages on this machine is refused when NODE_ENV=production',
+      })
+    }
+    if (env.NODE_ENV === 'production' && env.FOOTNOTE_LAB_BUILT_FROM === 'on') {
+      context.addIssue({
+        code: 'custom',
+        path: ['FOOTNOTE_LAB_BUILT_FROM'],
+        message: 'A lab is refused when NODE_ENV=production',
       })
     }
     if (env.NODE_ENV === 'production' && env.FOOTNOTE_FIXED_TODAY !== undefined) {
@@ -403,6 +415,8 @@ export interface Config {
   metricsToken: string | undefined
   /** Evidence links may open http pages on this machine too (tests only). */
   webReadLoopback: boolean
+  /** The labs that are on (FOOTNOTE_LAB_BUILT_FROM): none in production. */
+  lab: { builtFrom: boolean }
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; unset shows none. */
   profileLabel: string | undefined
 }
@@ -490,6 +504,7 @@ export function loadConfig(environment: Record<string, string | undefined>): Con
     secretsDir: env.FOOTNOTE_SECRETS_DIR,
     metricsToken: env.FOOTNOTE_METRICS_TOKEN,
     webReadLoopback: env.FOOTNOTE_WEB_READ_LOOPBACK === 'on',
+    lab: { builtFrom: env.FOOTNOTE_LAB_BUILT_FROM === 'on' },
     profileLabel: env.FOOTNOTE_PROFILE_LABEL,
   }
 }

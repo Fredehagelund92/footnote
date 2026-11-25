@@ -46,6 +46,7 @@ describe('loadConfig', () => {
       domainOverridesFile: undefined,
       cubeCompile: {},
       webReadLoopback: false,
+      lab: { builtFrom: false },
     })
   })
 
@@ -310,6 +311,22 @@ describe('loadConfig', () => {
       loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_TRUSTED_PROXIES: ' vercel ' })
         .trustedProxies,
     ).toEqual(['vercel'])
+  })
+
+  it('turns the built-from lab on outside production only', () => {
+    expect(loadConfig({ DATABASE_URL: databaseUrl, FOOTNOTE_LAB_BUILT_FROM: 'on' }).lab).toEqual({
+      builtFrom: true,
+    })
+    expect(() =>
+      loadConfig({
+        DATABASE_URL: databaseUrl,
+        NODE_ENV: 'production',
+        FOOTNOTE_AUTH: 'oidc',
+        FOOTNOTE_OIDC_ISSUER: 'https://login.example',
+        FOOTNOTE_OIDC_CLIENT_ID: 'footnote',
+        FOOTNOTE_LAB_BUILT_FROM: 'on',
+      }),
+    ).toThrow(/FOOTNOTE_LAB_BUILT_FROM: A lab is refused when NODE_ENV=production/)
   })
 
   it('refuses a fixed day in production', () => {

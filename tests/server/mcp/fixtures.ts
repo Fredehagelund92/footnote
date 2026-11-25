@@ -69,6 +69,7 @@ export function bundle(): ServingBundle {
     ],
     retired: [],
     refMarks: { itm_norway01: { 'cube:finance.orders': '1' } },
+    builtFrom: {},
     links: [
       {
         from_item: 'itm_norway01',

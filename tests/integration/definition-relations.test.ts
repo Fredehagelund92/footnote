@@ -16,12 +16,13 @@ import {
   createWorkspaceSources,
   openLocalSecretStore,
 } from '../../src/server/modules/connectors/index.ts'
+import { createEditionSource } from '../../src/server/modules/editions/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { gitHost, type GitHost } from '../server/connectors/git-server.ts'
 import { partnerManifest } from '../server/connectors/partner-relations-fixture.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { foundation, people } from './fixtures.ts'
-import { apiDatabase, queueReads, testDatabase } from './support.ts'
+import { apiDatabase, queueReads, servingPool, testDatabase } from './support.ts'
 
 /*
   What a metric is built from (FR-143) on the real service and PostgreSQL 18: a read of an
@@ -279,6 +280,22 @@ describe('a metric’s relations', () => {
   it('are refused for a key no live metric has', async () => {
     const response = await call('GET', '/definitions/relations?key=metric:nothing_here', 'member')
     expect(response.statusCode).toBe(404)
+  })
+})
+
+describe('what agents are served', () => {
+  it('holds what each metric is built from, by key, for the built-from lab', async () => {
+    const pool = servingPool(url)
+    try {
+      const { builtFrom } = await createEditionSource(pool).bundle()
+      expect(builtFrom[await keyOf('signup_rate')]).toEqual(
+        [await keyOf('clicks'), await keyOf('signups')].sort(),
+      )
+      // A metric built from columns alone is built from no other metric.
+      expect(builtFrom[await keyOf('signups')]).toBeUndefined()
+    } finally {
+      await pool.end()
+    }
   })
 })
 

@@ -117,6 +117,45 @@ describe('offline Cube source', () => {
     expect(JSON.stringify(built)).not.toMatch(/ROUND|\{CUBE\}|\*/)
   }, 60_000)
 
+  it('names a measure of another cube by the one view that shows it, and by none when several do (C2)', async () => {
+    const built = await read(
+      await model((text) =>
+        text.replace(
+          'views:\n',
+          [
+            '  - name: spend',
+            '    public: false',
+            '    sql: SELECT cost FROM example_spend',
+            '    measures:',
+            '      - name: cost',
+            '        type: sum',
+            '        sql: cost',
+            '      - name: per_order',
+            '        type: number',
+            '        sql: "{cost} / {orders.count}"',
+            '      - name: per_revenue',
+            '        type: number',
+            '        sql: "{cost} / {orders.revenue}"',
+            'views:',
+            '  - name: costs',
+            '    cubes:',
+            '      - join_path: spend',
+            "        includes: '*'",
+            '',
+          ].join('\n'),
+        ),
+      ),
+    )
+    const builtFrom = (ref: string) =>
+      built.definitions.find((entry) => entry.ref === ref)?.builtFrom ?? null
+    // Only sales shows the count; four views show the revenue, so which one is meant is not told.
+    expect(builtFrom('cube:costs.per_order')).toEqual({
+      refs: ['cube:costs.cost', 'cube:sales.count'],
+      columns: [],
+    })
+    expect(builtFrom('cube:costs.per_revenue')).toBeNull()
+  }, 60_000)
+
   it('sends nothing for a measure that takes a hidden measure (C2)', async () => {
     const built = await read(
       await model((text) =>

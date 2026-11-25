@@ -7,10 +7,11 @@ import {
   namedNotes,
   notesFile,
   nothingWritten,
-  proofArms,
   proofChecks,
   proofScore,
+  proofWays,
   servedNotes,
+  waysWords,
   type ProofArm,
   type ProofArmResult,
   type ProofNote,
@@ -53,6 +54,10 @@ import { LEASE } from './worker.ts'
     file in its instructions, as a coding agent reads a notes file in the team's repository.
   - Footnote: the eval client's tools through the real MCP wire, with the server instructions an
     AI client is given, as every area run asks them (arm.ts).
+
+  The built-from lab (FOOTNOTE_LAB_BUILT_FROM) asks two other ways instead: Footnote as it is, and
+  Footnote whose get_context also tells what is published about the metrics an asked one is built
+  from (src/domain/built-from.ts), so the two are told apart on the same questions.
 
   The judge reads each answer, never its tools, so every way is graded alike: for each note the
   question names, whether the answer tells it, and for a question where nothing is written,
@@ -138,13 +143,25 @@ function estimates(models: Models, fileTokens: number, writes: number) {
       cacheWriteTokens: fileTokens,
       outputTokens: 0,
     })
-  const per: Record<ProofArm, number> = { none, file, footnote: cellEstimateMicros(models) }
+  const footnote = cellEstimateMicros(models)
+  const per: Record<ProofArm, number> = { none, file, footnote, built_from: footnote }
   return { per, fileWrites }
 }
+
+/** What `answers` answers of each way cost: the plain file's writes only when it is asked. */
+const waysMicros = (
+  cost: ReturnType<typeof estimates>,
+  ways: readonly ProofArm[],
+  answers: number,
+) =>
+  answers * ways.reduce((n, arm) => n + cost.per[arm], 0) +
+  (ways.includes('file') ? cost.fileWrites : 0)
 
 export type ProofPlan = {
   /** The live edition, or null when there is none yet. */
   edition: string | null
+  /** The ways each question is asked, in the order the table shows them. */
+  ways: readonly ProofArm[]
   questions: number
   /** Questions where nothing is written. */
   nothing: number
@@ -170,6 +187,7 @@ export async function planProof(
   deps: EvalDeps,
   questions: readonly ProofQuestion[],
   tries: number,
+  ways: readonly ProofArm[] = proofWays,
 ): Promise<ProofPlan> {
   const limits = await readCallLimits(database)
   return database.transaction(null, async (tx) => {
@@ -177,20 +195,20 @@ export async function planProof(
     const context = await proofContext(tx)
     const fileTokens = context ? tokensOf(context.file) : 0
     const cost = estimates(models, fileTokens, limits.concurrency * daysOf(questions))
-    const perTry = proofArms.reduce((n, arm) => n + cost.per[arm], 0)
     const [demo] = await tx.query<{ demo: boolean }>(
       'select exists (select 1 from areas where is_demo) as demo',
     )
     return {
       edition: context?.head.label ?? null,
+      ways,
       questions: questions.length,
       nothing: questions.filter(nothingWritten).length,
       tries,
-      answers: questions.length * tries * proofArms.length,
+      answers: questions.length * tries * ways.length,
       notes: context?.notes.size ?? 0,
       fileTokens,
       unserved: namedNotes(questions).filter((id) => !context?.notes.has(id)),
-      costMicros: questions.length * tries * perTry + cost.fileWrites,
+      costMicros: waysMicros(cost, ways, questions.length * tries),
       model: models.answer.id,
       judge: models.judge.id,
       recipients: [...new Set([models.answer.recipients, models.judge.recipients])].join('; '),
@@ -202,6 +220,8 @@ export async function planProof(
 export type ProofOptions = {
   questions: readonly ProofQuestion[]
   tries: number
+  /** The ways each question is asked: the three ways unless the built-from lab says its two. */
+  ways?: readonly ProofArm[]
   /** Whose questions and items, in words without a question in them, kept with the run. */
   about: string
   /** Who the run counts against for the daily limit; null at the command line. */
@@ -250,13 +270,14 @@ async function graded(
   }
 }
 
-/** Asks every question three ways, its tries each, keeping none of their words. */
+/** Asks every question each way, its tries each, keeping none of their words. */
 export async function runProof(
   database: Database,
   deps: EvalDeps,
   options: ProofOptions,
 ): Promise<ProofRun> {
   const { questions, tries, person, signal } = options
+  const ways = options.ways ?? proofWays
   const worker = randomUUID()
   // The models are checked before the run is made: a model that cannot call tools is refused.
   const settings = await database.transaction(person, (tx) => readEvalSettings(tx))
@@ -269,10 +290,8 @@ export async function runProof(
     const tools = await armTools(tx)
     const policy = await plannedPolicy(tx)
     const cost = estimates(models, tokensOf(context.file), limits.concurrency * daysOf(questions))
-    const answers = questions.length * tries * proofArms.length
-    const micros =
-      questions.length * tries * proofArms.reduce((n, arm) => n + cost.per[arm], 0) +
-      cost.fileWrites
+    const answers = questions.length * tries * ways.length
+    const micros = waysMicros(cost, ways, questions.length * tries)
     const run = await insertRun(tx, {
       kind: 'proof',
       state: 'running',
@@ -318,28 +337,31 @@ export async function runProof(
   }
   const footnote = new Map<string, Promise<Arm>>()
   const armOf = (arm: ProofArm, day: string) => {
-    if (arm !== 'footnote') return Promise.resolve(plain[arm])
-    let open = footnote.get(day)
+    if (arm === 'none' || arm === 'file') return Promise.resolve(plain[arm])
+    let open = footnote.get(`${arm} ${day}`)
     if (!open) {
-      open = openArm(context.bundle, database, onDay(deps.clock, day), {
-        tools: tools.baseline,
-        ...policy,
-      })
-      footnote.set(day, open)
+      open = openArm(
+        context.bundle,
+        database,
+        onDay(deps.clock, day),
+        { tools: tools.baseline, ...policy },
+        { builtFrom: arm === 'built_from' },
+      )
+      footnote.set(`${arm} ${day}`, open)
     }
     return open
   }
-  const results: ProofArmResult[] = proofArms.map((arm) => ({
+  const results: ProofArmResult[] = ways.map((arm) => ({
     arm,
     tries: Array.from({ length: tries }, () => ({ right: 0, wrong: 0, nothing: 0 })),
     noAnswer: 0,
   }))
   const judging = { judged: 0, errors: 0 }
-  // Try by try, and each question three ways side by side, so a run that stops early stops every
+  // Try by try, and each question every way side by side, so a run that stops early stops every
   // way at the same place.
   const tasks = Array.from({ length: tries }, (_, attempt) =>
     questions.flatMap((_, question) =>
-      proofArms.map((arm) => ({
+      ways.map((arm) => ({
         task: { attempt, question, arm },
         estimateMicros: cost.per[arm],
       })),
@@ -364,7 +386,7 @@ export async function runProof(
       tasks,
       async ({ attempt, question, arm }, meter) => {
         const q = questions[question]!
-        const result = results[proofArms.indexOf(arm)]!
+        const result = results[ways.indexOf(arm)]!
         const answer = await answerQuestion(
           await armOf(arm, q.as_of),
           meter.wrap(models.answer, { role: 'eval_answer' }),
@@ -405,7 +427,7 @@ export async function runProof(
     { id: run.id, worker },
     {
       state: ended,
-      failure: `${stopped ? `${stopped} ` : ''}Proof of ${questions.length} questions, ${tries} tries each, three ways.`,
+      failure: `${stopped ? `${stopped} ` : ''}Proof of ${questions.length} questions, ${tries} tries each, ${waysWords(ways.length)}.`,
       summary: {
         judging,
         proof: { ...run.summary.proof, result: results },

@@ -12,15 +12,26 @@ import { audienceAllows, noGroups, type Audience, type Scope } from './item.ts'
 import { periodWords } from './dates.ts'
 import { isCalendarDate } from './validity.ts'
 
-/** The three ways a question is asked, in the order the table shows them. */
-export const proofArms = ['none', 'file', 'footnote'] as const
+/**
+ * Every way a question can be asked, in the order the table shows them. The fourth is a lab's:
+ * Footnote with the part of the reply about what an asked metric is built from (built-from.ts).
+ */
+export const proofArms = ['none', 'file', 'footnote', 'built_from'] as const
 export type ProofArm = (typeof proofArms)[number]
+/** The three ways a proof asks. */
+export const proofWays = ['none', 'file', 'footnote'] as const satisfies readonly ProofArm[]
+/** The ways the built-from lab asks (FOOTNOTE_LAB_BUILT_FROM): Footnote as it is, and with it. */
+export const builtFromWays = ['footnote', 'built_from'] as const satisfies readonly ProofArm[]
 /** Each way's row in the table; the third is the product's own name (`productName`). */
 export const proofArmWords = (product: string): Readonly<Record<ProofArm, string>> => ({
   none: 'No context',
   file: 'One plain file',
   footnote: product,
+  built_from: `${product}, built from`,
 })
+/** "three ways", as the command says how many ways it asks. */
+export const waysWords = (n: number) =>
+  `${['one', 'two', 'three', 'four'][n - 1] ?? n} ${n === 1 ? 'way' : 'ways'}`
 
 /** How many tries each question gets unless the command says otherwise. */
 export const PROOF_TRIES = 3

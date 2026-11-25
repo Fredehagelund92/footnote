@@ -3,13 +3,13 @@ import { Writable } from 'node:stream'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
 import type { Draft } from '../../src/domain/draft.ts'
-import type { ProofQuestion } from '../../src/domain/proof.ts'
+import { builtFromWays, type ProofQuestion } from '../../src/domain/proof.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { planProof, proofDigest, runProof } from '../../src/server/modules/evals/index.ts'
 import { createModelPort } from '../../src/server/modules/models/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
-import { fileSource, prove } from '../../src/server/run-prove.ts'
+import { fileSource, prove, type ProofSource } from '../../src/server/run-prove.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { foundation, people } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
@@ -222,6 +222,13 @@ describe('the plan', () => {
     )
     expect(broken.unserved).toEqual(['itm_neverpub01'])
   })
+
+  it("plans the built-from lab's two ways, with no plain file to write", async () => {
+    const lab = await planProof(database, deps, questions, 3, builtFromWays)
+    expect(lab).toMatchObject({ ways: ['footnote', 'built_from'], answers: 12 })
+    const footnote = await planProof(database, deps, questions, 3, ['footnote'])
+    expect(lab.costMicros).toBe(2 * footnote.costMicros)
+  })
 })
 
 describe('a run', () => {
@@ -274,6 +281,25 @@ describe('a run', () => {
     const rows = await everyRow()
     expect(rows).not.toContain(canary)
     expect(logs.join('\n')).not.toContain(canary)
+  })
+
+  it("asks the built-from lab's two ways side by side", async () => {
+    const run = await runProof(database, deps, {
+      questions,
+      tries: 1,
+      ways: builtFromWays,
+      about: 'Items: this workspace. Questions: the test.',
+      person: null,
+      ceilingMicros: null,
+      signal: new AbortController().signal,
+      logger,
+    })
+    expect(run.state).toBe('finished')
+    // No metric here is built from another, so the lab's part adds nothing.
+    expect(run.results).toEqual([
+      { arm: 'footnote', tries: [{ right: 2, wrong: 0, nothing: 1 }], noAnswer: 0 },
+      { arm: 'built_from', tries: [{ right: 2, wrong: 0, nothing: 1 }], noAnswer: 0 },
+    ])
   })
 
   it('stops at its cap before a call, incomplete, saying so in counts', async () => {
@@ -341,6 +367,46 @@ describe('the command', () => {
       /^Model: mock\/scripted-answer, judged by mock\/scripted-judge\. Items: this workspace's published context\. Questions: the test file\. Spent: USD \d+\.\d\d\.$/,
     )
     expect(lines.join('\n')).not.toContain(canary)
+  })
+
+  it('asks Footnote as it is beside the built-from lab when the lab is on', async () => {
+    const { lines, io } = output()
+    const code = await prove(
+      io,
+      { tries: 1, real: false, cap: null },
+      fileSource(questions, 'the test file'),
+      { ...env, FOOTNOTE_LAB_BUILT_FROM: 'on' },
+    )
+    expect(code, lines.join('\n')).toBe(0)
+    expect(lines[0]).toBe(
+      '2 questions about a period and a market, asked two ways, 1 try each: 4 answers.',
+    )
+    expect(lines[1]).toBe(
+      'Lab: built from is on, so Footnote is asked as it is and with what is published about the metrics an asked one is built from.',
+    )
+    expect(lines[2]).toMatch(
+      /^Items: this workspace's published context, edition .+, 3 notes agents are told\.$/,
+    )
+    const table = lines.indexOf('') + 1
+    expect(lines.slice(table + 2, table + 4)).toEqual([
+      'Footnote               2 of 2          0 of 2                   1 of 1',
+      'Footnote, built from   2 of 2          0 of 2                   1 of 1',
+    ])
+    // The invented company's sealed questions are never asked with the lab.
+    const sealed: ProofSource = {
+      ...fileSource(questions, 'sealed'),
+      sealed: true,
+    }
+    const refused = output()
+    expect(
+      await prove(refused.io, { tries: 1, real: false, cap: null }, sealed, {
+        ...env,
+        FOOTNOTE_LAB_BUILT_FROM: 'on',
+      }),
+    ).toBe(1)
+    expect(refused.lines).toEqual([
+      "error: The built-from lab (FOOTNOTE_LAB_BUILT_FROM=on) asks a file's questions only: run the invented company's sealed questions without it.",
+    ])
   })
 
   it('names the notes a plain file of questions names that agents are not told', async () => {

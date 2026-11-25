@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import { run } from '../../src/cli/commands.ts'
 import {
+  builtFromQuestions,
   capRefusal,
   proveFlags,
   proveUsage,
@@ -68,6 +69,16 @@ describe('a real run', () => {
 })
 
 describe('the question file', () => {
+  it("reads the built-from lab's questions: reasons one step down, notes not to tell, nothing written", async () => {
+    const read = await readProofFile(builtFromQuestions)
+    if (!('questions' in read)) throw new Error(read.problems.join('; '))
+    const { questions } = read
+    expect(questions).toHaveLength(12)
+    expect(questions.filter((q) => q.reasons.length)).toHaveLength(6)
+    expect(questions.filter((q) => !q.reasons.length && q.wrong.length)).toHaveLength(3)
+    expect(questions.filter((q) => !q.reasons.length && !q.wrong.length)).toHaveLength(3)
+  })
+
   it('reads the template, and names where a file fails the format', async () => {
     const template = fileURLToPath(
       new URL('../../docs/templates/prove-questions.yaml', import.meta.url),

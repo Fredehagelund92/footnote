@@ -99,6 +99,7 @@ export function logConfiguration(config: Config, logger: Logger): void {
       secretStore: config.secretsDir === undefined ? 'off' : 'local',
       metrics: config.metricsToken === undefined ? 'off' : 'on',
       webReadLoopback: config.webReadLoopback ? 'on' : 'off',
+      labBuiltFrom: config.lab.builtFrom ? 'on' : 'off',
       loginServer: config.loginServer.kind,
       trustedProxies: config.trustedProxies,
     },

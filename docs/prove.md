@@ -76,6 +76,25 @@ The result at the top of the README will be the invented company's, whatever it 
 
 After that run the questions are published with the result. From then on, `npm run footnote -- prove` with no file asks those same 40 questions on the demo. The digest it prints next to the questions is the one under the README's table, so you can check it is the same set.
 
+## The built-from lab
+
+Some metrics are built from others: return on ad spend is net revenue divided by marketing spend. When nothing is written on the metric asked about but a note is on one it is built from, Footnote says nothing is written. The built-from lab tests whether also telling that note, apart from the answer and under its own label, gives better answers.
+
+The lab is off unless `FOOTNOTE_LAB_BUILT_FROM=on`, and refused in production. With it on, the command asks two ways: Footnote as it is, and Footnote with the built-from part. The table has a row for each. With no file, it asks the lab's own 12 questions about the invented company, kept apart from its sealed 40:
+
+```sh
+FOOTNOTE_LAB_BUILT_FROM=on npm run footnote -- prove                  # scripted model, free
+FOOTNOTE_LAB_BUILT_FROM=on npm run footnote -- prove --real --cap 3   # a real agent
+```
+
+The 12 questions are of three kinds:
+
+- six whose reason is a note on a metric the asked one is built from;
+- three where such a note must not be told: two about another market, and one that had ended;
+- three where nothing is written on the metric or on what it is built from.
+
+To add them to the funded run, run the second command after the run of the 40, with the same model settings. That is 12 questions, two ways and three tries: 72 answers. The command prints its estimate before it asks for a yes, and refuses a cap below it. It never asks the sealed questions with the lab on.
+
 ## What it keeps and sends
 
 The run is kept as one record of its model calls, what they cost and the table's counts: no question, answer or note. A real run sends the questions and the published notes to the model provider you chose, and to no one else.

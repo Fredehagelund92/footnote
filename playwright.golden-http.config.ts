@@ -60,8 +60,9 @@ export default defineConfig({
     // J86 asks the mock for twenty families of 250 variants (?demo=families); the service reads
     // and publishes families in tests/integration/metric-families.test.ts.
     /\/j86-families\.spec\.ts$/,
-    // J87 reads what the mock's demo metrics are built from; the demo source on the service says
-    // nothing of it, and a dbt read's is tests/integration/definition-relations.test.ts.
+    // J87 reads what the mock's demo metrics are built from, columns too; the demo source on the
+    // service names only three metrics' inputs, and a dbt read's is
+    // tests/integration/definition-relations.test.ts.
     /\/j87-built-from\.spec\.ts$/,
     // J128 draws the mock's demo metrics' tree, which the demo source on the service has none of;
     // the service's read is in tests/integration/definition-relations.test.ts.

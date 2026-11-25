@@ -34,7 +34,7 @@ import {
 import { createLimiter } from '../http/rate-limit.ts'
 import type { Metrics } from '../observability/metrics.ts'
 import { ROUND_SECONDS, type DraftRound, type DraftTool, type QuestionRound } from './draft-tool.ts'
-import { byteSize, createToolService, failure } from './service.ts'
+import { byteSize, createToolService, failure, type ToolLab } from './service.ts'
 import type { ServingReads } from './reads.ts'
 import { resolverStatusOf } from '../../domain/answer-state.ts'
 import type { PublishPermission } from '../../domain/mcp-text.ts'
@@ -94,6 +94,8 @@ export interface McpDependencies {
    * item's page in Footnote (FR-347). Without it the pages are paths on the web app.
    */
   web?: string | null
+  /** The labs the tools run (FOOTNOTE_LAB_BUILT_FROM); none without it. */
+  lab?: ToolLab
 }
 
 /**
@@ -154,7 +156,15 @@ function canElicitForm(ctx: ServerContext): boolean {
 
 export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, metrics?: Metrics) {
   const now = deps.now ?? (() => new Date())
-  const execute = createToolService(deps.source, deps.store, now, deps.reads, deps.web ?? null)
+  const execute = createToolService(
+    deps.source,
+    deps.store,
+    now,
+    deps.reads,
+    deps.web ?? null,
+    'agent',
+    deps.lab,
+  )
   let droppedRecords = 0
   const queue = createAnonymousQueue(deps.store, (count) => {
     droppedRecords += count

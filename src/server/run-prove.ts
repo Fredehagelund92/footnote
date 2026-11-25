@@ -5,10 +5,14 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { parse } from 'yaml'
 import {
+  builtFromWays,
   PROOF_TRIES,
   proofProblems,
   proofSetSchema,
   proofTable,
+  proofWays,
+  waysWords,
+  type ProofArm,
   type ProofQuestion,
 } from '../domain/proof.ts'
 import { productName } from './brand.ts'
@@ -51,6 +55,10 @@ import { createLogger } from './observability/logger.ts'
   (db/seed/prove-questions.yml). Until then they are sealed, and only their key holder runs them,
   with `npm run held-out -- prove`, which shares this command's flow and prints the same table.
 
+  With FOOTNOTE_LAB_BUILT_FROM=on it asks two ways instead: Footnote as it is, and Footnote with
+  the built-from lab's part of get_context's reply, for a file's questions only. Without a file it
+  then asks the lab's own questions about the invented company (db/seed/prove-built-from.yml).
+
   It uses the scripted mock model unless --real, which needs --cap at or above the estimate and a
   yes typed before any model is called. The cap holds for the whole run: no answer starts once it
   could be passed. Nothing of a question is kept: the run records its model calls, its cost and its
@@ -67,6 +75,11 @@ export const openedQuestions = fileURLToPath(
   new URL('../../db/seed/prove-questions.yml', import.meta.url),
 )
 
+/** The built-from lab's questions about the invented company, apart from its sealed ones. */
+export const builtFromQuestions = fileURLToPath(
+  new URL('../../db/seed/prove-built-from.yml', import.meta.url),
+)
+
 /** Why there is nothing to ask while the invented company's questions are still sealed. */
 export const stillSealed =
   "The invented company's questions are sealed until its first funded run, so only their key holder can run its proof (npm run held-out -- prove). Run your own questions with --questions <file>; docs/templates/prove-questions.yaml shows the format."
@@ -77,7 +90,13 @@ export type ProofSource = {
   sealed: boolean
   /** Whose questions, in words. */
   questions: string
-  plan(database: Database, deps: EvalDeps, tries: number): Promise<ProofPlan & { digest: string }>
+  plan(
+    database: Database,
+    deps: EvalDeps,
+    tries: number,
+    /** The three ways unless the built-from lab is on. */
+    ways?: readonly ProofArm[],
+  ): Promise<ProofPlan & { digest: string }>
   run(
     database: Database,
     deps: EvalDeps,
@@ -90,8 +109,8 @@ export function fileSource(questions: readonly ProofQuestion[], whose: string): 
   return {
     sealed: false,
     questions: whose,
-    plan: async (database, deps, tries) => ({
-      ...(await planProof(database, deps, questions, tries)),
+    plan: async (database, deps, tries, ways) => ({
+      ...(await planProof(database, deps, questions, tries, ways)),
       digest: await proofDigest(questions),
     }),
     run: (database, deps, options) => runProof(database, deps, { ...options, questions }),
@@ -158,6 +177,15 @@ export async function prove(
     io.stderr(error.message)
     return 1
   }
+  // The built-from lab asks Footnote as it is beside Footnote with the lab, on a file's questions:
+  // the invented company's sealed questions are asked the three ways only.
+  if (config.lab.builtFrom && source.sealed) {
+    io.stderr(
+      "The built-from lab (FOOTNOTE_LAB_BUILT_FROM=on) asks a file's questions only: run the invented company's sealed questions without it.",
+    )
+    return 1
+  }
+  const ways = config.lab.builtFrom ? builtFromWays : proofWays
   const logger = createLogger({ level: 'warn' })
   const database = createDatabase(config.databaseUrl, logger)
   // Ctrl-C stops the run after the answers in flight; it ends incomplete.
@@ -180,17 +208,21 @@ export async function prove(
       io.stderr(error.message)
       return 1
     }
-    const plan = await source.plan(database, deps, flags.tries)
+    const plan = await source.plan(database, deps, flags.tries, ways)
     if (!plan.edition) {
       io.stderr('There is no live edition yet: publish context first.')
       return 1
     }
     const items = plan.demo ? 'the invented company' : "this workspace's published context"
     io.stdout(
-      `${plural(plan.questions, 'question')} about a period and a market, asked three ways, ${plural(plan.tries, 'try', 'tries')} each: ${plural(plan.answers, 'answer')}.`,
+      `${plural(plan.questions, 'question')} about a period and a market, asked ${waysWords(plan.ways.length)}, ${plural(plan.tries, 'try', 'tries')} each: ${plural(plan.answers, 'answer')}.`,
     )
+    if (config.lab.builtFrom)
+      io.stdout(
+        `Lab: built from is on, so ${productName} is asked as it is and with what is published about the metrics an asked one is built from.`,
+      )
     io.stdout(
-      `Items: ${items}, edition ${plan.edition}, ${plural(plan.notes, 'note')} agents are told; as one plain file, about ${plural(plan.fileTokens, 'token')}.`,
+      `Items: ${items}, edition ${plan.edition}, ${plural(plan.notes, 'note')} agents are told${plan.ways.includes('file') ? `; as one plain file, about ${plural(plan.fileTokens, 'token')}` : ''}.`,
     )
     io.stdout(`Questions: ${source.questions} (digest ${plan.digest}).`)
     if (plan.unserved.length) {
@@ -238,6 +270,7 @@ export async function prove(
     }
     const run = await source.run(database, deps, {
       tries: flags.tries,
+      ways,
       about: `Items: ${items}. Questions: ${source.questions}.`,
       person: null,
       ceilingMicros: flags.real ? flags.cap : null,
@@ -316,7 +349,12 @@ async function main(): Promise<number> {
     console.error(proveUsage)
     return 2
   }
-  const file = flags.questions ?? (existsSync(openedQuestions) ? openedQuestions : null)
+  // With the built-from lab on, no file means the lab's own questions (the command checks the
+  // variable's value when it reads the configuration).
+  const lab = process.env.FOOTNOTE_LAB_BUILT_FROM === 'on'
+  const file =
+    flags.questions ??
+    (lab ? builtFromQuestions : existsSync(openedQuestions) ? openedQuestions : null)
   if (!file) {
     console.error(stillSealed)
     return 1
@@ -326,7 +364,11 @@ async function main(): Promise<number> {
     console.error(`${file} does not fit the question format:\n  ${read.problems.join('\n  ')}`)
     return 1
   }
-  const whose = flags.questions ? file : "the invented company's"
+  const whose = flags.questions
+    ? file
+    : lab
+      ? "the built-from lab's, about the invented company"
+      : "the invented company's"
   return prove(
     {
       stdout: (line) => console.log(line),

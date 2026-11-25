@@ -89,12 +89,13 @@ A connector that cannot read a folder stops the service at start. A folder that 
 
 ## The product
 
-| Setting                  | Default    | What it does                                                                                                                                               |
-| ------------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `FOOTNOTE_PRODUCT_NAME`  | `Footnote` | The name the app and the help pages say                                                                                                                    |
-| `FOOTNOTE_PROFILE_LABEL` | None       | A name for this install, at most 40 characters, in the header and on the sign-in page: see [Private profiles](use-your-own-data.md#private-profiles)       |
-| `FOOTNOTE_SUPPORT_EMAIL` | None       | Where Contact support and Report a problem write to. Unset, they open the project's GitHub issues. Read when the app and the docs are built                |
-| `FOOTNOTE_METRICS_TOKEN` | None       | Turns on [`/metrics`](watch-the-service.md#metrics). At least 32 characters                                                                                |
-| `FOOTNOTE_FIXED_TODAY`   | None       | Pins the service's day for demos and tests. A day in the past is kept whole: Ask's records read it as ending at the end of that day. Refused in production |
+| Setting                   | Default    | What it does                                                                                                                                                                                                    |
+| ------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOOTNOTE_PRODUCT_NAME`   | `Footnote` | The name the app and the help pages say                                                                                                                                                                         |
+| `FOOTNOTE_PROFILE_LABEL`  | None       | A name for this install, at most 40 characters, in the header and on the sign-in page: see [Private profiles](use-your-own-data.md#private-profiles)                                                            |
+| `FOOTNOTE_SUPPORT_EMAIL`  | None       | Where Contact support and Report a problem write to. Unset, they open the project's GitHub issues. Read when the app and the docs are built                                                                     |
+| `FOOTNOTE_METRICS_TOKEN`  | None       | Turns on [`/metrics`](watch-the-service.md#metrics). At least 32 characters                                                                                                                                     |
+| `FOOTNOTE_FIXED_TODAY`    | None       | Pins the service's day for demos and tests. A day in the past is kept whole: Ask's records read it as ending at the end of that day. Refused in production                                                      |
+| `FOOTNOTE_LAB_BUILT_FROM` | `off`      | A lab: `on` adds to `get_context`'s reply what is published about the metrics an asked one is built from, under its own label, and [the proof](prove.md#the-built-from-lab) asks with it. Refused in production |
 
 Report a problem opens a mail in the person's own mail app, or an issue on GitHub when `FOOTNOTE_SUPPORT_EMAIL` is unset, and sends nothing through the service. An issue leaves out the install's address.
