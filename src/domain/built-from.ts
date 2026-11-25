@@ -34,10 +34,10 @@ export type BuiltFromPart = {
 
 /**
  * The built-from part of the answer to `scope`: the metrics each asked metric is built from that
- * the reader may see (`shown`) and that were not asked themselves, and the published items that
- * apply to them for the same dates and values, as the resolver gives them to an agent with no
- * group, leaving out the items the answer already holds (`given`). Null when no asked metric is
- * built from another.
+ * were not asked themselves, and the published items that apply to them for the same dates and
+ * values, as the resolver gives them to an agent with no group, leaving out the items the answer
+ * already holds (`given`). An asked metric is left out whole when any of those it is built from
+ * is not shown to the reader (`shown`), never named by half. Null when no asked metric is left.
  */
 export function builtFromPart(
   bundle: BuiltFromBundle,
@@ -49,8 +49,8 @@ export function builtFromPart(
   const asked = askedMetrics(bundle, scope)
   const opened = new Set(asked.flatMap((key) => [key, ...metricsOf(bundle, key)]))
   const metrics = asked.flatMap((metric) => {
-    const from = (bundle.builtFrom[metric] ?? []).filter((key) => !opened.has(key) && shown(key))
-    return from.length ? [{ metric, from: [...from] }] : []
+    const from = (bundle.builtFrom[metric] ?? []).filter((key) => !opened.has(key))
+    return from.length && from.every(shown) ? [{ metric, from: [...from] }] : []
   })
   if (!metrics.length) return null
   const inputs = [...new Set(metrics.flatMap((m) => m.from))]

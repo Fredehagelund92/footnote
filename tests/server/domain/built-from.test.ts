@@ -199,11 +199,7 @@ describe('the built-from part of an answer', () => {
 
   it('names no metric the reader may not see, and none that was asked too', () => {
     const asked = scope('return_on_ad_spend', 'norway', '2026-03-01', '2026-04-01')
-    const { part } = partOf(asked, (key) => key !== 'metric:marketing_spend')
-    expect(part?.metrics).toEqual([
-      { metric: 'metric:return_on_ad_spend', from: ['metric:net_revenue'] },
-    ])
-    expect(part?.items).toEqual([])
+    expect(partOf(asked, (key) => key !== 'metric:marketing_spend').part).toBeNull()
     const both = { ...asked, metrics: ['metric:return_on_ad_spend', 'metric:marketing_spend'] }
     expect(partOf(both).part?.metrics).toEqual([
       { metric: 'metric:return_on_ad_spend', from: ['metric:net_revenue'] },
