@@ -70,13 +70,11 @@ function GoItem({
   // Outlined, the keys stay drawn on the row the menu has selected.
   const key = 'border bg-transparent'
   return (
-    <CommandItem
-      value={place}
-      aria-label={`${place}, G then ${letter}`}
-      onSelect={onGo(() => navigate(placeHref(place, me)))}
-    >
+    <CommandItem value={place} onSelect={onGo(() => navigate(placeHref(place, me)))}>
       {icon}
       {place}
+      {/* Its name is its words, so a screen reader hears the keys as part of them. */}
+      <span className="sr-only">(G then {letter})</span>
       <CommandShortcut aria-hidden className="flex gap-1 tracking-normal max-sm:hidden">
         <Kbd className={key}>G</Kbd>
         <Kbd className={key}>{letter}</Kbd>

@@ -163,7 +163,7 @@ test('G then a letter goes to the Inbox, Ask, Context, Definitions or Settings',
   await page.keyboard.press('Escape')
   await page.keyboard.press('ControlOrMeta+k')
   const menu = page.getByRole('dialog', { name: 'Search' })
-  await expect(menu.getByRole('option', { name: 'Context, G then C', exact: true })).toBeVisible()
+  await expect(menu.getByRole('option', { name: 'Context (G then C)', exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
 
