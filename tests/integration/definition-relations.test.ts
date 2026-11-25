@@ -121,6 +121,11 @@ async function treeOf(metric: string) {
   const last = (ref: string) => ref.split('.').at(-1)
   return metrics.map((m) => [last(m.ref), m.key !== null, m.from.map(last)])
 }
+/** Each metric of a tree as the name a reader sees. */
+async function treeNames(metric: string) {
+  const response = await call('GET', `/definitions/built-from?key=${await keyOf(metric)}`, 'member')
+  return (await ok<DefinitionBuiltFrom>(Promise.resolve(response))).metrics.map((m) => m.name)
+}
 /** Each relation as `kind name`, with its column for a conversion. */
 const said = (relations: DefinitionRelations['relations']) =>
   relations.map((r) => [r.kind, r.ref ? r.ref.split('.').at(-1) : `column ${r.name}`, r.by])
@@ -351,5 +356,16 @@ describe('a later read', () => {
       'sign_ups',
       null,
     ])
+  }, 120_000)
+
+  it('names an input no definition has by its name in the source, without the connector prefix', async () => {
+    const file = small()
+    const rate = file.metrics.find((m) => m.name === 'signup_rate')!
+    ;(rate.type_params as { numerator: { name: string } }).numerator.name = 'ghost_signups'
+    await commit(file)
+    await read()
+    const names = await treeNames('signup_rate')
+    expect(names).toContain('partner_results.ghost_signups')
+    expect(names.some((name) => name.startsWith('dbt:'))).toBe(false)
   }, 120_000)
 })

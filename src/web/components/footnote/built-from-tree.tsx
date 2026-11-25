@@ -72,7 +72,8 @@ function Tree({ metrics, tool, parts }: Props & { metrics: readonly BuiltFromMet
       if (!nextSet.delete(id)) nextSet.add(id)
       return nextSet
     })
-  const opens = (row: BuiltFromRow) => row.depth > 0 && !!lineOf(row.metric).d
+  const opens = (row: BuiltFromRow) =>
+    row.depth > 0 && !row.metric.missing && !!lineOf(row.metric).d
   const open = (row: BuiltFromRow) => {
     if (opens(row)) parts.openMetric(lineOf(row.metric).d!.name)
   }
@@ -87,10 +88,11 @@ function Tree({ metrics, tool, parts }: Props & { metrics: readonly BuiltFromMet
     const row = shown[at]
     if (!row) return
     if (e.key === 'Enter' || e.key === ' ') {
-      if (!opens(row)) return
+      if (e.key === 'Enter' && !opens(row)) return
       e.preventDefault()
       e.stopPropagation()
-      return open(row)
+      if (opens(row)) open(row)
+      return
     }
     if (!KEYS.has(e.key)) return
     e.preventDefault()
@@ -142,6 +144,7 @@ function Tree({ metrics, tool, parts }: Props & { metrics: readonly BuiltFromMet
                   className="grid w-6 shrink-0 cursor-pointer place-items-center text-muted-foreground hover:text-foreground"
                   onClick={(e) => {
                     e.stopPropagation()
+                    setCursor(row.id)
                     toggle(row.id)
                   }}
                 >
@@ -165,7 +168,7 @@ function Tree({ metrics, tool, parts }: Props & { metrics: readonly BuiltFromMet
                   className={cn(
                     'min-w-0 truncate',
                     row.depth ? 'font-medium' : 'font-semibold',
-                    !d && 'text-muted-foreground',
+                    (!d || row.metric.missing) && 'text-muted-foreground',
                   )}
                 >
                   {row.metric.name}
