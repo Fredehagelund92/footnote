@@ -93,7 +93,7 @@ import { ChoiceMenu, TextSwitch, ViewToggle } from '@/components/footnote/switch
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DRAFT_LABEL } from '@/model/ask'
 import { itemPageQuery, useInbox, useReviews, useSavedQuestions, useWrite } from '@/api/queries'
-import { rememberSending, useHeld, useUndo } from '@/lib/undo'
+import { rememberSending, useHeld, useUndo, type Sending } from '@/lib/undo'
 import { publishing, refusedWords, usePublishing } from '@/lib/publishing'
 import { checkDraft, itemOfReview, savesQuestion } from '@/lib/saved-check'
 import { SavedLine } from '@/components/obs/saved-line'
@@ -1872,10 +1872,12 @@ export function ReviewPage({ id }: { id: string }) {
     x.id !== r.id && !state.done[x.id] && ahead[x.id]?.state !== 'publishing'
   const nextWaiting = reviews.find((x, i) => i > at && waits(x)) ?? reviews.find(waits)
   // What a decision did, in a toast with Undo while the service takes it, as Command and Z does
-  // from any screen. Undo opens the suggestion again, wherever the person is by then.
-  const said = (f: Finished, of: string) =>
+  // from any screen, unless a decision made after it holds the key (`sent`). Undo opens the
+  // suggestion again, wherever the person is by then.
+  const said = (f: Finished, of: string, sent: Sending) =>
     undo.offer(f.message, f.undo, {
       description: f.description,
+      sent,
       onUndone: () => {
         f.afterUndo?.()
         setAllDone((d) => (d?.undo.token === f.undo.token ? null : d))
@@ -1885,8 +1887,8 @@ export function ReviewPage({ id }: { id: string }) {
     })
   // A decision sent here: the review moves on once the service said yes, to the next suggestion,
   // or says everything is handled after the last one.
-  const onDone = (f: Finished) => {
-    said(f, r.id)
+  const onDone = (f: Finished, sent: Sending) => {
+    said(f, r.id, sent)
     // The person moved on while it was sending: the write stands, and its toast says so.
     if (openId.current !== r.id) return
     step({ type: 'ok', id: r.id })
@@ -1969,7 +1971,7 @@ export function ReviewPage({ id }: { id: string }) {
     commits.publish().then(
       (f) => {
         publishing.answered(of)
-        said(f, of)
+        said(f, of, waiting)
       },
       (error: unknown) => {
         waiting.failed()
@@ -1996,11 +1998,14 @@ export function ReviewPage({ id }: { id: string }) {
     if (again) publishing.clear(r.id)
     step(again ? { type: 'press', action: next.action, actions } : event)
     const waiting = rememberSending(`${stillWords[next.action]} “${r.title}”`)
-    commits[next.action](next.note, next.reason).then(onDone, (error: unknown) => {
-      waiting.failed()
-      const { kind } = toApiError(error)
-      step({ type: 'error', id: r.id, failure: kind, reason: reasonOf(toApiError(error)) })
-    })
+    commits[next.action](next.note, next.reason).then(
+      (f) => onDone(f, waiting),
+      (error: unknown) => {
+        waiting.failed()
+        const { kind } = toApiError(error)
+        step({ type: 'error', id: r.id, failure: kind, reason: reasonOf(toApiError(error)) })
+      },
+    )
   }
   const undoAllDone = () => {
     if (!allDone) return

@@ -1747,9 +1747,13 @@ export function InboxPage() {
             waiting.undone()
             await undo.takeBack(decided.undo)
           } else if (!gone)
-            undo.offer(d.message, decided.undo, { id: said, description: d.description })
+            undo.offer(d.message, decided.undo, {
+              id: said,
+              description: d.description,
+              sent: waiting,
+            })
           // Its toast was closed: Command and Z still takes it back while the service holds it.
-          else undo.remember(d.message, decided.undo)
+          else undo.remember(d.message, decided.undo, { sent: waiting })
         } catch {
           waiting.failed()
           toast.dismiss(said)

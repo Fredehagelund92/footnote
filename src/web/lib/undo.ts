@@ -11,9 +11,10 @@ import { isTyping } from '@/lib/keys'
 // long. The service may still refuse one in time (its card changed since), so a refusal is said,
 // whichever screen offered it.
 //
-// The last offer is also Command and Z's, from any screen, for as long as the service holds it:
-// one last action, never a history of them. A decision still being sent holds the key, so it
-// never takes back the one before by mistake.
+// The newest decision is also Command and Z's, from any screen, for as long as the service holds
+// it: one last action, never a history of them. Newest is by when it was made, not when it
+// answered: a decision still being sent holds the key, so an older one answering meanwhile is
+// never taken back by mistake.
 
 /** How long an offer still holds, in milliseconds: none once it ended, Infinity when it never ends. */
 export function heldFor(offer: UndoOffer, now = Date.now()): number {
@@ -64,13 +65,19 @@ type Remembered = {
 }
 
 type OfferOptions = Omit<ToastOptions, 'action' | 'description' | 'duration' | 'firm'> &
-  Omit<Remembered, 'message'> & {
+  Omit<Remembered, 'message'> &
+  Placed & {
     /** What else to say; given how long Undo holds ("6 seconds"), when it ends. */
     description?: string | ((held: string) => string | undefined) | undefined
   }
 
-/** The last thing done that can be taken back, or the decision still being sent. */
-type Last =
+type Placed = {
+  /** The send this offer answers: it takes that decision's place, never the place of a newer one. */
+  sent?: Sending | undefined
+}
+
+/** A thing done that can be taken back, or a decision still being sent. */
+type Held =
   | (Remembered & {
       kind: 'offer'
       undo: UndoOffer
@@ -80,56 +87,83 @@ type Last =
     })
   | { kind: 'sending'; said: string; early?: (() => void) | undefined }
 
-let last: Last | null = null
+/** A decision being sent, as `rememberSending` gives it back. */
+export type Sending = ReturnType<typeof rememberSending>
 
-/** Command and Z takes this back now: an offer made after it replaces it. */
+// What Command and Z may take back, in the order the decisions were made: the newest is the key's.
+// One made before it is kept only while a newer one is still being sent, to be the key's again
+// should that send fail; once a newer one can be taken back, the ones before it are gone.
+let held: Held[] = []
+const top = () => held.at(-1) ?? null
+/** Drops `at` and everything made before it. */
+const dropThrough = (at: Held) => {
+  const i = held.indexOf(at)
+  if (i >= 0) held = held.slice(i + 1)
+}
+
+/**
+ * Command and Z takes this back once it is the newest decision: an offer made after it replaces it.
+ * Given the send it answers (`sent`), it takes that send's place, so a decision made after that one
+ * keeps the key; when that send is no longer held, a newer offer already took the key, and this
+ * one is not the key's.
+ */
 export function rememberOffer(
   message: string,
   undo: UndoOffer,
   takeBack: (undo: UndoOffer) => Promise<boolean>,
-  options: Omit<Remembered, 'message'> & { toast?: string | number } = {},
+  options: Omit<Remembered, 'message'> & Placed & { toast?: string | number } = {},
 ) {
-  last = { kind: 'offer', message, undo, takeBack, ...options }
+  const { sent, ...rest } = options
+  const offer: Held = { kind: 'offer', message, undo, takeBack, ...rest }
+  if (!sent) return void (held = [offer])
+  sent.answered(offer)
 }
 
 /**
  * A decision is being sent: until it answers, Command and Z says so (`said`, "Still publishing
  * “Sales targets”") instead of taking back the one before; or, given `early` (a screen whose Undo
- * already takes it back once it is in), does what its Undo does. What it gives back ends the wait
- * without an offer: `failed` when the send failed (what was last before it is last again),
- * `undone` when it was taken back as soon as it was in (nothing is last).
+ * already takes it back once it is in), does what its Undo does. What it gives back ends the wait:
+ * pass it to the offer the answer makes (`sent`); or `failed` when the send failed, or answered
+ * with nothing left to take back (what was the key's before it is again), and `undone` when it was
+ * taken back as soon as it was in (nothing made before it is the key's).
  */
 export function rememberSending(said: string, early?: () => void) {
-  const before = last
-  const sending: Last = { kind: 'sending', said, early }
-  last = sending
-  const end = (to: Last | null) => {
-    if (last === sending) last = to
+  const sending: Held = { kind: 'sending', said, early }
+  held = [...held, sending]
+  return {
+    answered: (offer: Held) => {
+      const i = held.indexOf(sending)
+      if (i >= 0) held = [offer, ...held.slice(i + 1)]
+    },
+    failed: () => {
+      held = held.filter((h) => h !== sending)
+    },
+    undone: () => dropThrough(sending),
   }
-  return { failed: () => end(before), undone: () => end(null) }
 }
 
 /**
  * Taken back by any way (its toast, the page's own Undo, the key): its toast goes, and Command and
- * Z has nothing left to take back.
+ * Z has nothing made before it left to take back.
  */
 export function forget(undo: UndoOffer) {
-  if (last?.kind !== 'offer' || last.undo.token !== undo.token) return
-  if (last.toast !== undefined) toast.dismiss(last.toast)
-  last = null
+  const at = held.find((h) => h.kind === 'offer' && h.undo.token === undo.token)
+  if (!at || at.kind !== 'offer') return
+  if (at.toast !== undefined) toast.dismiss(at.toast)
+  dropThrough(at)
 }
 
-/** Nothing is last: a new session starts with nothing to take back. */
+/** Nothing is held: a new session starts with nothing to take back. */
 export function forgetAll() {
-  last = null
+  held = []
 }
 
 /**
- * Command and Z: takes back the last offer while the service holds it, and says what it did; or
- * says why there is nothing to take back. Resolves to whether something was taken back.
+ * Command and Z: takes back the newest decision while the service holds it, and says what it did;
+ * or says why there is nothing to take back. Resolves to whether something was taken back.
  */
 export async function undoLast(now = Date.now()): Promise<boolean> {
-  const at = last
+  const at = top()
   if (!at) {
     toast('Nothing to undo')
     return false
@@ -139,13 +173,13 @@ export async function undoLast(now = Date.now()): Promise<boolean> {
       toast(at.said, { description: 'Undo it once it is done.' })
       return false
     }
-    last = null
+    dropThrough(at)
     at.early()
     toast('Undone')
     return true
   }
   if (heldFor(at.undo, now) === 0) {
-    last = null
+    dropThrough(at)
     toast("It's too late to undo that", { description: at.message })
     return false
   }
@@ -161,7 +195,7 @@ export async function undoLast(now = Date.now()): Promise<boolean> {
 /**
  * Says what was done in a toast with Undo, which goes when the offer ends: at its end, or after
  * LASTING_TOAST_MS when it has none. Given an id it updates that toast, whatever it was made with.
- * The offer is then the last one, for Command and Z.
+ * The offer is then Command and Z's, in the place of the send it answers (`sent`), if any.
  */
 export function showOffer(
   message: string,
@@ -170,7 +204,7 @@ export function showOffer(
   options: OfferOptions = {},
   now = Date.now(),
 ) {
-  const { description, onUndone, undone, ...rest } = options
+  const { description, onUndone, undone, sent, ...rest } = options
   const ms = heldFor(undo, now)
   const held = heldWords(undo, now)
   const said =
@@ -178,7 +212,10 @@ export function showOffer(
   const words = said ? { description: said } : {}
   // Too late already: say what was done, with nothing to take back. When it updates a toast that
   // had Undo and no end (id), that toast's duration and button go with it.
-  if (ms === 0) return toast(message, { ...rest, ...words, duration: SAID_MS, action: undefined })
+  if (ms === 0) {
+    sent?.failed()
+    return toast(message, { ...rest, ...words, duration: SAID_MS, action: undefined })
+  }
   // An offer that never ends has a toast that does. A toast waits while it is pointed at, focused
   // or in a hidden tab; the end of an offer does not, so that toast's time is firm.
   const id = toast(message, {
@@ -198,7 +235,7 @@ export function showOffer(
         }),
     },
   })
-  rememberOffer(message, undo, takeBack, { undone, onUndone, toast: id })
+  rememberOffer(message, undo, takeBack, { undone, onUndone, sent, toast: id })
   return id
 }
 
@@ -220,7 +257,7 @@ export function useUndo() {
     const remember = (
       message: string,
       undo: UndoOffer,
-      options: Omit<Remembered, 'message'> = {},
+      options: Omit<Remembered, 'message'> & Placed = {},
     ) => rememberOffer(message, undo, takeBack, options)
     return { takeBack, offer, remember }
   }, [write])

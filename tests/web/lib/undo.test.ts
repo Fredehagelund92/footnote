@@ -185,11 +185,11 @@ describe('Command and Z: the last decision, from any screen', () => {
     expect(said()).toEqual([['Undone']])
   })
 
-  it('an offer that arrives replaces the wait; one taken back as it arrived leaves nothing', async () => {
+  it('an offer that answers a send takes its place; one taken back as it arrived leaves nothing', async () => {
     const waiting = rememberSending('Still publishing “B”')
     const takeBack = vi.fn(() => Promise.resolve(true))
-    rememberOffer('Published “B”', held, takeBack)
-    // Too late to end the wait: the offer is the last now.
+    rememberOffer('Published “B”', held, takeBack, { sent: waiting })
+    // Answered already: a late failure has no wait left to end.
     waiting.failed()
     await undoLast(at)
     expect(takeBack).toHaveBeenCalledOnce()
@@ -198,5 +198,61 @@ describe('Command and Z: the last decision, from any screen', () => {
     toast.say.mockClear()
     expect(await undoLast(at)).toBe(false)
     expect(said()).toEqual([['Nothing to undo']])
+  })
+
+  describe('a decision made while an earlier one is still being sent', () => {
+    const a = { token: 'review:1', until: held.until }
+    const b = { token: 'review:2', until: held.until }
+
+    it('keeps the key when the earlier one answers, and the earlier one is never taken back', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      const backB = vi.fn(() => Promise.resolve(true))
+      const publishing = rememberSending('Still publishing “A”')
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Published “A”', a, backA, { sent: publishing }, at)
+      toast.say.mockClear()
+      expect(await undoLast(at)).toBe(false)
+      expect(said()).toEqual([['Still archiving “B”', { description: 'Undo it once it is done.' }]])
+      expect(backA).not.toHaveBeenCalled()
+      showOffer('Archived “B”', b, backB, { sent: archiving }, at)
+      expect(await undoLast(at)).toBe(true)
+      expect(backB).toHaveBeenCalledOnce()
+      // One last action: taking back B leaves nothing made before it to take back.
+      toast.say.mockClear()
+      expect(await undoLast(at)).toBe(false)
+      expect(said()).toEqual([['Nothing to undo']])
+      expect(backA).not.toHaveBeenCalled()
+    })
+
+    it('gives the key back to the earlier one when the later one fails', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      const publishing = rememberSending('Still publishing “A”')
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Published “A”', a, backA, { sent: publishing }, at)
+      archiving.failed()
+      expect(await undoLast(at)).toBe(true)
+      expect(backA).toHaveBeenCalledOnce()
+    })
+
+    it('leaves the earlier one out once the later one can be taken back first', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      const backB = vi.fn(() => Promise.resolve(true))
+      const publishing = rememberSending('Still publishing “A”')
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Archived “B”', b, backB, { sent: archiving }, at)
+      showOffer('Published “A”', a, backA, { sent: publishing }, at)
+      expect(await undoLast(at)).toBe(true)
+      expect(backB).toHaveBeenCalledOnce()
+      expect(backA).not.toHaveBeenCalled()
+    })
+
+    it('ends its wait when it answers too late to take back', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      rememberOffer('Published “A”', a, backA)
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Archived “B”', b, () => Promise.resolve(true), { sent: archiving }, at + 20_000)
+      expect(await undoLast(at)).toBe(true)
+      expect(backA).toHaveBeenCalledOnce()
+    })
   })
 })
