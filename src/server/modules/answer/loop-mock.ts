@@ -177,7 +177,10 @@ const firstSentence = (text: string) => text.split(/(?<=[.!?])\s/)[0]!.replace(/
 const list = (names: readonly string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
-/** What the chat asked before its last message, newest first. */
+/**
+ * What the chat asked before its last message, newest first: each message's first part, the
+ * person's words, as for the last one; the note on its language follows them.
+ */
 const askedBefore = (prompt: LanguageModelV4Prompt) =>
   prompt
     .slice(
@@ -185,9 +188,7 @@ const askedBefore = (prompt: LanguageModelV4Prompt) =>
       prompt.findLastIndex((m) => m.role === 'user'),
     )
     .flatMap((m) =>
-      m.role === 'user'
-        ? [m.content.flatMap((p) => (p.type === 'text' ? [p.text] : [])).join('\n')]
-        : [],
+      m.role === 'user' ? [m.content.find((p) => p.type === 'text')?.text ?? ''] : [],
     )
     .reverse()
 

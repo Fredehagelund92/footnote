@@ -316,10 +316,12 @@ Ask page does (`tests/web/integration/ask-answerers.ts`).
   lowers from (`from`, the base's) and to (`to`, the change's), a reason in one sentence
   (`reason`), who approved it (`approvedBy`) and the date (`date`, as YYYY-MM-DD). The step passes
   only a record that names that exact lowering.
-  The harness holds 29 held-back cases. The loop's steps in use are the recording made on 19
-  November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later re-keyed one step for a
-  date fix. Today Ask's loop passes 14 of the 29, and 28 of the 29 keep every promise; the rest fail on what they must say, which the answer
-  check does not change.
+  The harness holds 30 held-back cases. The loop's steps in use are the recording made on 24
+  November 2026 (Haiku 5.5, one try, after the reads were ordered by the question). Today Ask's
+  loop passes 11 of the 30, and 27 of the 30 keep every promise; the rest fail on what they must
+  say, which the answer check does not change. Main's code run once live the same day passed 9
+  where that recording's run passed 8: the 15 of the run before was that run's, not the code's,
+  and the owner's approval of that lowering is recorded.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                                                                           |

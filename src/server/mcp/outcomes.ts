@@ -1,4 +1,4 @@
-import { rankItems, readQuery, stem, type ReadQuery } from '../../domain/context-search.ts'
+import { rankItems, readQuery, type ReadQuery } from '../../domain/context-search.ts'
 import {
   domainReadAs,
   domainReadAsInstruction,
@@ -22,6 +22,7 @@ import { assumedDate, extractScope, unknownName } from '../../domain/scope.ts'
 import { UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
 import { acceptedByRole, ownerRole } from '../../domain/served-review.ts'
 import { shiftDate } from '../../domain/validity.ts'
+import { questionWords } from '../../domain/question-order.ts'
 import {
   memberNames,
   memberTokens,
@@ -504,22 +505,6 @@ export function definitionOf(
 }
 
 const definedKinds = new Set(['metric', 'metric_group', 'dimension'])
-/**
- * Metrics and dimensions a query names by part of their name: a word that is in the name of one
- * of them only ("retention" for Retention rate, "active customer" for Active customers). A word in
- * several names ("rate") names none of them.
- */
-function partlyNamed(bundle: ServingBundle, read: ReadQuery): string[] {
-  const terms = bundle.terms.filter((term) => definedKinds.has(term.kind))
-  const stems = (name: string) => normalizeName(name).split(/\s+/).map(stem)
-  return read.used.words.flatMap((word) => {
-    const wanted = stem(normalizeName(word))
-    const hits = terms.filter((term) =>
-      [term.name, ...term.aliases].some((name) => stems(name).includes(wanted)),
-    )
-    return hits.length === 1 ? [hits[0]!.key] : []
-  })
-}
 
 /** The terms a query names, as Footnote reads them: "Net revenue (metric), Spain (Market)". */
 function readAs(bundle: ServingBundle, read: ReadQuery) {
@@ -685,9 +670,12 @@ export function findContext(
   const pool = bundle.items.filter(fits)
   const readable = pool.filter((item) => canRead(bundle, item, today))
   const read = readQuery(args.query, bundle.terms, bundle.areas)
-  let found: { item: ServingItem; match: string }[] = rankItems(read, readable, bundle.terms).map(
-    ({ item, all }) => ({ item, match: all ? 'all' : 'some' }),
-  )
+  let found: { item: ServingItem; match: string }[] = rankItems(
+    read,
+    readable,
+    bundle.terms,
+    today,
+  ).map(({ item, all }) => ({ item, match: all ? 'all' : 'some' }))
   let scoped: Record<string, unknown> | null = null
   let assumed: ReturnType<typeof assumedDate> | null = null
   if (!found.length) {
@@ -696,6 +684,7 @@ export function findContext(
     const scope = extractScope(args.query, bundle.terms, today, {
       ...(window ? { window } : {}),
       calendar,
+      domains: bundle.areas.map((area) => area.name),
     })
     if (scope.status === 'resolved') {
       assumed = scope.assumed ? assumedDate(scope.assumed) : null
@@ -706,6 +695,7 @@ export function findContext(
         hiddenMetrics: [],
         sizeLimit: Number.MAX_SAFE_INTEGER,
         dependenciesAvailable: true,
+        words: questionWords(args.query, bundle.terms, bundle.areas),
       })
       const byId = new Map(pool.map((item) => [item.id, item]))
       found = resolution.items.flatMap((match) => {
@@ -725,10 +715,11 @@ export function findContext(
       }
     }
   }
-  const exact = new Set(read.used.terms)
+  // A name read by a word of it names it only in part ("retention" for Retention rate).
+  const inPart = new Set(read.loose.filter((hit) => hit.by === 'part').map((hit) => hit.key))
   const shownDefined = (term: ServingTerm | undefined): term is ServingTerm =>
     !!term && definedKinds.has(term.kind) && termShown(bundle, term)
-  const nameDefined = [...new Set([...read.used.terms, ...partlyNamed(bundle, read)])]
+  const nameDefined = [...new Set(read.used.terms)]
     .map((key) => bundle.terms.find((term) => term.key === key))
     .filter(shownDefined)
   // Words that name nothing an agent may see, a domain, a term or a word written in Definitions,
@@ -755,7 +746,7 @@ export function findContext(
     ...nameDefined
       .slice(0, 5)
       .map((term) =>
-        definitionOf(bundle, term, today, { by: exact.has(term.key) ? 'exactly' : 'in part' }),
+        definitionOf(bundle, term, today, { by: inPart.has(term.key) ? 'in part' : 'exactly' }),
       ),
     ...inText
       .slice(0, 5)

@@ -125,7 +125,7 @@ describe('the steps', () => {
           ],
           notToConclude: 'Fewer orders do not mean fewer customers.',
         } as Partial<ResolverItem>),
-        orders('itm_00000002', { notToConclude: 'cause not proven' } as Partial<ResolverItem>),
+        orders('itm_00000002', { notToConclude: 'cause not proven' }),
       ]),
       ask,
       { today },
