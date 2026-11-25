@@ -97,9 +97,7 @@ Settings, Integrations, lists every source with how it is:
 
 Beside its status, a source that is waiting to be read says **Queued**: it was just added or changed, you asked for a read, or its time has come, and the job has not taken it yet. The job runs every five minutes. **Reading** means the job is reading it now. A failed read stays shown while its retry is queued.
 
-Pausing a source also switches off its figures in Ask, whatever the Show figures in Ask switch says: an answer links into the tool instead. Its figures settings stay on its page, and an admin can still change them. What is published stays. Resume it and it is queued for a read.
-
-Figures that are switched on also go off in Ask when the data contact leaves the workspace or the token is gone. The tool's page says which, so you can name another contact or set the token again.
+Pausing a source stops its reads. What is published stays. Resume it and it is queued for a read.
 
 A source whose key was refused is not paused: it is tried again at its usual time, so a key fixed in the tool works again by itself. Until then Integrations says it needs a new key and when it was last tried, its page says when it is tried again, and both offer **Replace key**.
 

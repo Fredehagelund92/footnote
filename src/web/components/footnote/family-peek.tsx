@@ -639,14 +639,12 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
   const P = useParts()
   const me = P.useMe()
   const domains = P.useDomains()
-  const figures = P.useFigures()
   const related = P.useRelated(P.mentionId(d.type, d.name))
   const { query } = P.useRoute()
   const page = `/definitions/${encodeURIComponent(d.name)}`
   const tool = d.tool ?? 'its tool'
   const domain = d.domain ? domains[d.domain] : undefined
   const owners = domain?.owners ?? []
-  const source = figures.sourceOf(d.tool)
   // An owner of its domain or an admin changes what it means and picks its usual variant.
   const canChange = me.admin || (!!d.domain && me.owns.includes(d.domain))
   const found = foundSaid(family.found, tool)
@@ -698,20 +696,9 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
                 </>
               )}
             </P.PeekFact>
-            {(owners.length > 0 || source) && (
+            {owners.length > 0 && (
               <P.PeekFact icon={P.UserIcon}>
-                {owners.length > 0 && (
-                  <>
-                    Owned by <BoldNames names={owners} />
-                    {source && '.'}
-                  </>
-                )}
-                {source && (
-                  <>
-                    {owners.length > 0 && ' '}
-                    Data contact <b>{figures.contact(source)}</b>
-                  </>
-                )}
+                Owned by <BoldNames names={owners} />
               </P.PeekFact>
             )}
           </P.PeekFacts>

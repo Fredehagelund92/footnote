@@ -192,6 +192,7 @@ import {
   sourceRowSchema,
   sourceSettingsSchema,
   testSourceSchema,
+  checkSourceSchema,
   updateSourceSchema,
 } from './sources.ts'
 import {
@@ -244,15 +245,6 @@ import {
   takeBackRatingSchema,
   takenBackSchema,
 } from './reports.ts'
-import {
-  figureReadSchema,
-  figureSourceSchema,
-  figureSourcesSchema,
-  figureTrySchema,
-  readFigureInputSchema,
-  setFiguresInputSchema,
-  tryFigureInputSchema,
-} from './figures.ts'
 import { connectInfoSchema, tryItReadInputSchema, tryItReadingSchema } from './connect.ts'
 import {
   adminDisconnectedSchema,
@@ -1551,6 +1543,21 @@ export const contract = {
       })
       .input(testSourceSchema)
       .output(sourceCheckSchema),
+    // Test connection on a definitions source's page (T2): the settings as saved, for every way a
+    // source is set up, the server's own folder included.
+    check: admin
+      .errors({
+        NOT_FOUND: { message: "We couldn't find this source among the definitions sources." },
+      })
+      .route({
+        method: 'POST',
+        path: '/sources/{id}/check',
+        tags: ['sources'],
+        summary:
+          "Test a definitions source as it is saved: the connector's check, then one read of every group it has, with the groups it reads found or not in it and the families the read would find; keeping nothing and changing nothing",
+      })
+      .input(checkSourceSchema)
+      .output(sourceCheckSchema),
     // What a change of the groups a definitions source reads would stop reading, and the live
     // items that rely on it: shown before the change is saved, which then needs acceptLeftOut.
     leftOut: admin
@@ -2187,60 +2194,6 @@ export const contract = {
       })
       .input(tryItReadInputSchema)
       .output(tryItReadingSchema),
-  },
-  figures: {
-    list: read
-      .route({
-        method: 'GET',
-        path: '/figures',
-        tags: ['sources'],
-        summary:
-          'The integrations that can read a figure for Ask (FR-716, CON-612): whether Show figures in Ask is on (off by default) and the data contact; for administrators also the data endpoint, its declared host and whether its token is set, never the token',
-      })
-      .output(figureSourcesSchema),
-    set: sourceSettings
-      .errors({
-        NOT_FOUND: { message: "We couldn't find this integration, or it doesn't read figures." },
-      })
-      .route({
-        method: 'PUT',
-        path: '/figures/{id}',
-        tags: ['sources'],
-        summary:
-          "Change an integration's figures settings: Show figures in Ask, the data endpoint, its token (kept in the secret store, sent only to the endpoint's origin, and forgotten when the scheme, host or port changes) and the data contact; switching figures on needs all three. Recorded in the history log, never the token",
-      })
-      .input(setFiguresInputSchema)
-      .output(figureSourceSchema),
-    read: read
-      .errors({
-        UNPROCESSABLE_CONTENT: {
-          status: 422,
-          message: 'Check the days: the last one comes after the first.',
-          data: z.optional(z.object({ findings: z.array(findingSchema) })),
-        },
-      })
-      .route({
-        method: 'POST',
-        path: '/figures/read',
-        tags: ['sources'],
-        summary:
-          "One figure for an answer in Ask, from the integration the metric's definition comes from, for the days and values asked, compared with the days just before, within 4 seconds; a link into the tool while figures are off; or why there is none. Kept nowhere, and no person's identity is passed on",
-      })
-      .input(readFigureInputSchema)
-      .output(figureReadSchema),
-    try: admin
-      .errors({
-        NOT_FOUND: { message: "We couldn't find this integration, or it doesn't read figures." },
-      })
-      .route({
-        method: 'POST',
-        path: '/figures/{id}/try',
-        tags: ['sources'],
-        summary:
-          "Try a figure: one measure of the integration's first view with a single date, for the last 7 days, read with the figures settings as they are saved and the same 4 second limit as Ask, whether Show figures in Ask is on or off. The value and when the data is from, or a failure code; kept nowhere, and no person's identity is passed on",
-      })
-      .input(tryFigureInputSchema)
-      .output(figureTrySchema),
   },
   reports: {
     create: read

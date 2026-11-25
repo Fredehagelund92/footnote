@@ -12,7 +12,7 @@ import { servingAgentCheck } from '../../../src/server/modules/access-keys/index
 import { idleJobs } from '../../server/idle-jobs.ts'
 import { devPeople, TODAY } from '../../web/http/demo-week.ts'
 import { demoLoginServer } from '../../web/http/login.ts'
-import { demoSecrets } from '../../web/http/demo-figures.ts'
+import { memorySecrets } from '../../web/http/secrets.ts'
 import {
   ConnectorRegistry,
   createWorkspaceSources,
@@ -36,7 +36,6 @@ export const harness = () => {
   return {
     admin: env('GOLDEN_ADMIN_URL'),
     template: env('GOLDEN_TEMPLATE'),
-    cubeToken: env('GOLDEN_CUBE_TOKEN'),
     apiPort: Number(env('GOLDEN_API_PORT')),
     webOrigin: env('GOLDEN_WEB_ORIGIN'),
   }
@@ -66,7 +65,7 @@ export async function freshService(
   workspace: 'week' | 'empty' = 'week',
 ): Promise<{ close: () => Promise<void> }> {
   await stopService()
-  const { admin: adminUrl, template: week, apiPort, webOrigin, cubeToken } = harness()
+  const { admin: adminUrl, template: week, apiPort, webOrigin } = harness()
   const template = workspace === 'empty' ? emptyName(week) : week
   const work = workName(week)
   const admin = new pg.Client({ connectionString: adminUrl })
@@ -109,9 +108,8 @@ export async function freshService(
     clock: systemClock(TODAY),
     devPeople: devPeople(),
     origins: [webOrigin],
-    // Figures in Ask read the stand-in Cube the global setup started, with the token it invented.
     workspaceSources: createWorkspaceSources({
-      secrets: demoSecrets(cubeToken),
+      secrets: memorySecrets(),
       registry: new ConnectorRegistry([]),
     }),
     login,

@@ -1136,6 +1136,9 @@ export function createRouter({
       test: authorized.sources.test.handler(({ context, input }) =>
         workspaceSources.test(context.tx, input),
       ),
+      check: authorized.sources.check.handler(({ context, input }) =>
+        workspaceSources.check(context.tx, input.id),
+      ),
       leftOut: authorized.sources.leftOut.handler(({ context, input }) =>
         workspaceSources.leftOut(context.tx, input),
       ),
@@ -1481,29 +1484,6 @@ export function createRouter({
     tryIt: {
       read: authorized.tryIt.read.handler(({ context, input }) =>
         readTryItQuestion(context.tx, clock, input),
-      ),
-    },
-    figures: {
-      list: authorized.figures.list.handler(({ context }) =>
-        workspaceSources.figures.list(
-          context.tx,
-          context.session!.person.permissions.roles.includes('administrator'),
-        ),
-      ),
-      set: authorized.figures.set.handler(({ context, input }) =>
-        retryWrite(context.tx, idempotencyKey(context), 'figures.set', input, () =>
-          workspaceSources.figures.set(context.tx, input, context.hooks),
-        ),
-      ),
-      read: authorized.figures.read.handler(({ context, input }) =>
-        workspaceSources.figures.read(
-          context.tx,
-          input,
-          context.session!.person.permissions.roles.includes('administrator'),
-        ),
-      ),
-      try: authorized.figures.try.handler(({ context, input }) =>
-        workspaceSources.figures.try(context.tx, input, clock.today()),
       ),
     },
     reports: {

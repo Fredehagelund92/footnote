@@ -35,7 +35,7 @@ The data team that runs Footnote is the first reader of this page. The people it
 2. **Every item has a source and a check date.** An item whose check date has passed is marked, and agents are told it may be old.
 3. **Nothing written down is said as nothing written down.** An agent never fills a gap with a guess that sounds sure.
 4. **People decide, software proposes.** An agent or an integration can suggest. Only a person publishes. An owner may decide in advance for one named agent's low-risk new items in their domain ([Publish without review](help/publish-without-review.md)); each is still their decision, under their name, and can be undone.
-5. **Footnote stores no numbers.** It reads a figure when someone asks, only if an admin switched figures on for that integration, and keeps it nowhere.
+5. **Footnote stores no numbers.** It reads what a metric means, never its data, and says so when a question needs a figure.
 6. **Footnote keeps no record of what people asked an agent.** It keeps only what a question was about and how often (section 9).
 
 ## 4. How it works
@@ -48,7 +48,7 @@ The data team that runs Footnote is the first reader of this page. The people it
 
 ## 5. The screens and their addresses
 
-The mockup writes an address after `#` (`#/inbox?demo=week`). The app uses the same paths and the same search names without the `#`. The mapping is one to one. Scenario flags such as `demo`, `state`, `example`, `figures`, `links`, `connect`, `quality`, `bulk`, `decide` and `slow` only set up a demo or a fault for tests. They are not part of the product and never reach a production build.
+The mockup writes an address after `#` (`#/inbox?demo=week`). The app uses the same paths and the same search names without the `#`. The mapping is one to one. Scenario flags such as `demo`, `state`, `example`, `links`, `connect`, `quality`, `bulk`, `decide` and `slow` only set up a demo or a fault for tests. They are not part of the product and never reach a production build.
 
 The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. At its foot: **Help**, **Observability** (admins and owners) and **Settings** (admins; owners see Domains and People). A search field sits at the top of the sidebar. The account button shows your avatar and name; the user menu it opens shows your role and every domain you own, and holds Connect an agent and Sign out. The theme menu is at the right end of every header.
 
@@ -226,9 +226,8 @@ One rule everywhere: **from agents, Footnote keeps only what a question was abou
 4. **Ask chats are the person's own.** They stay in the person's browser and are seen only by them. Ask says so, and its empty state says what is kept.
 5. **Agents never read comments, reports or saved questions.** An agent's answer is built from published context only.
 6. **Report a problem** opens a mail with the page's address when `FOOTNOTE_SUPPORT_EMAIL` is set; unset, it opens a GitHub issue with the page's path only. A person's name goes with neither, and never an agent's words.
-7. **Figures are read when asked and kept nowhere.** No person's identity is passed to the data source.
-8. **No tracking.** Footnote sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
-9. **No promise of anonymity.** Copy says what is kept, not that nobody can see.
+7. **No tracking.** Footnote sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
+8. **No promise of anonymity.** Copy says what is kept, not that nobody can see.
 
 ## 10. What agents get
 
@@ -263,15 +262,15 @@ Every item uses the same three checks, whatever its risk.
 
 Integrations connect Footnote to where metrics are defined and where documents live. Connect one in five steps: Pick, Connect, Choose, Map, Schedule.
 
-| Integration     | For                  | Notes                                                                                         |
-| --------------- | -------------------- | --------------------------------------------------------------------------------------------- |
-| Cube            | Definitions, figures | Metrics and dimensions are a read-only copy. A figure is read on request when figures are on. |
-| Cube Cloud      | Definitions          | Read-only, from a deployment's metadata. It sees no calculations.                             |
-| Google Drive    | Context              | Through a service account an admin shares folders with. Documents become suggestions.         |
-| Markdown in Git | Context              | Documents become suggestions.                                                                 |
-| dbt             | Definitions          | Metrics and dimensions are a read-only copy, read from its semantic manifest.                 |
+| Integration     | For         | Notes                                                                                 |
+| --------------- | ----------- | ------------------------------------------------------------------------------------- |
+| Cube            | Definitions | Metrics and dimensions are a read-only copy.                                          |
+| Cube Cloud      | Definitions | Read-only, from a deployment's metadata. It sees no calculations.                     |
+| Google Drive    | Context     | Through a service account an admin shares folders with. Documents become suggestions. |
+| Markdown in Git | Context     | Documents become suggestions.                                                         |
+| dbt             | Definitions | Metrics and dimensions are a read-only copy, read from its semantic manifest.         |
 
-**A sync never publishes.** Definitions are a read-only copy that flags the context relying on them. Documents become suggestions in the owners' Inbox, one per document, grouped under the read that made them. Figures are not an integration of their own: a definitions tool that can read them has a second, labelled connection for them, with its own data endpoint and token, because the metric's definition decides which integration answers, and a tool no definition comes from could answer nothing. **Try a figure** reads one figure with the saved settings before anyone asks. Every figures connection names a data contact. "Show figures in Ask" is off by default.
+**A sync never publishes.** Definitions are a read-only copy that flags the context relying on them. Documents become suggestions in the owners' Inbox, one per document, grouped under the read that made them.
 
 ## 13. The first day
 
@@ -313,7 +312,7 @@ The job specs, one line each:
 | J8  | Loading, a failed load, offline, and a Publish that fails and works on Retry.                                                                                                                                                                             |
 | J9  | Domains are documents; an empty one can be deleted, one with context cannot.                                                                                                                                                                              |
 | J10 | People: invites with roles and domains; the last owner cannot leave; owners add owners to their own domain.                                                                                                                                               |
-| J11 | Figures in Ask: off by default, one figure with source and freshness when on, the definition decides.                                                                                                                                                     |
+| J11 | Removed on 24 Nov 2026, with figures in Ask.                                                                                                                                                                                                              |
 | J12 | Connect an agent: prompt, live line, hint after 2 minutes, stop at 10, Keep waiting.                                                                                                                                                                      |
 | J13 | The review's keys never act while you type; Esc order; the key hint shows only where the key acts.                                                                                                                                                        |
 | J14 | Deciding with no connection: Publish waits and says why; a failed try changes nothing; a returned note is kept.                                                                                                                                           |
@@ -369,7 +368,7 @@ One name for each thing, in every screen, help page, agent reply and demo text. 
 | **Topic**              | The exact scope agents asked about: domain, metric, market and the month. Grouped for reading only.                                                | topic                        |
 | **Edition**            | A sealed snapshot of what agents get. Shown only in Settings, Advanced, and in the agent reply. Never in success copy.                             | edition                      |
 | **Don't conclude**     | A line on an item that stops an agent from reading a cause into it.                                                                                | caveat, what not to conclude |
-| **Integration**        | A connected tool: where definitions live, where documents live, where figures come from.                                                           | source, connector            |
+| **Integration**        | A connected tool: where definitions live, or where documents live.                                                                                 | source, connector            |
 | **Agent**              | Software outside Footnote that reads context over MCP. Never a person.                                                                             | AI app, client               |
 | **What agents get**    | The text an agent receives for an item or a question.                                                                                              | served, delivered            |
 

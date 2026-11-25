@@ -235,12 +235,6 @@ grant update (enabled, threshold, changed_by, changed_at) on alert_rules to :api
 grant insert, delete on alert_mutes to :api;
 grant execute on function cl_alert_raise(text, text, text[], text, jsonb), cl_alert_reached(uuid[]),
   cl_saved_looks(), cl_connector_domains(text) to :api;
--- Figures in Ask (FR-716, CON-612): an administrator keeps a source's figures settings and its data contact
--- on the source (the connectors grant above); a figure report's data contact reads it and closes it; anyone
--- signed in asks whether an open figure report puts a figure beside a context item, and hears the item only.
--- No figure is ever stored, and nothing here is granted to the serving or the analytics role.
-grant execute on function cl_is_figure_contact(text), cl_closes_figure_report(text),
-  cl_figure_disputes(text, text, text[], date, date) to :api;
 -- Access keys (FR-403, FR-410): an administrator creates a key, kept only as its digest, and revokes it. The MCP
 -- server reads no key: one function that runs as the owner says whether a digest is an open key.
 grant select, insert, update (revoked_at, revoked_by) on auth.access_keys to :api;

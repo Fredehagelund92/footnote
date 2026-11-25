@@ -5,7 +5,6 @@ import { dimensionHue, nounKindOf } from '@domain/ask-nouns'
 import type { Domain } from '@/model/people'
 import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/footnote/answer'
-import type { AnswerFigure } from '@/components/footnote/answer-figure'
 import type { LoopPartsOfAsk } from '@/components/footnote/loop-parts'
 import { Marks, answerCode } from '@/components/footnote/source-text'
 import { safeHref } from '@/lib/host'
@@ -15,7 +14,6 @@ export type LoopParts = LoopPartsOfAsk & {
   AnswerActions: typeof AnswerActions
   ReportLine: typeof ReportLine
   SomethingWrong: typeof SomethingWrong
-  AnswerFigure: typeof AnswerFigure
 }
 export const PartsContext = React.createContext<LoopParts | null>(null)
 /** Ask's parts, as the answer was given them. */

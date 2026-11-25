@@ -4,6 +4,18 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-24
 ---
 
+## Test a tool from its page
+
+2026-11-24
+
+Test connection is on every definitions tool's page now, under Connection, a tool set up on the server included. It tests the tool as it is saved, names each file a read skips, and says what to do when something fails. Families are always on the page too, with how to make one in your tool.
+
+## Figures leave Ask, for now
+
+2026-11-24
+
+Ask no longer shows a number read from your definitions tool, and its page in Integrations has one connection again. Your workspace keeps no figures: an answer says what is written about a number, and the number itself is in the tool that holds your data.
+
 ## Drafts are yours alone
 
 2026-11-24

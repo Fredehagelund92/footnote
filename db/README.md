@@ -522,17 +522,6 @@ who may read both items reads a decision; a person writes only their own. `cl_co
 which runs as the owner, gives the alert job the pairs kept as both with the versions the decision
 saw, ids and numbers only. The serving and analytics roles have no grant on the table.
 
-Figures in Ask. A definitions source keeps its figures settings in
-`connectors.capabilities.figures`: whether Ask shows figures from it (off by default), the data
-endpoint an administrator set and the name of the endpoint's token in the secret store, never the
-token; `connectors.data_contact_id` is its data contact. No figure is ever stored. A named report
-can be about a figure (`part = 'figure'`): it names the source, the metric, the values and the days
-(`figure_*`), never the figure, and goes to the item's owners, the data contact or both
-(`figure_route`). The data contact reads it and closes it as not a problem
-(`cl_is_figure_contact()`, `cl_closes_figure_report()`), and `cl_figure_disputes()` names, for
-anyone signed in, the items an open figure report says a figure doesn't fit, and nothing else of
-it; each runs as the owner. The serving and analytics roles have no grant on any of it.
-
 Serving terms. Agents read the live terms through `serving_terms()`, a security
 definer function the API and serving roles may run: each word with its own meaning or what it
 means, its domain, the day it was last written and the role it was written in (`owner` or

@@ -28,8 +28,7 @@ What a Cube project needs for Footnote to read it:
 6. Optional: `access_policy` with groups (used once CON-508 lands) and `meta.ai_context` (read
    later as a baseline, CON-513).
 7. Never needed for a read: a running Cube server, a database, warehouse credentials or SQL
-   access. A read never queries data and never stores SQL or a calculation. Figures in Ask are
-   apart from it and off by default ([figures in Ask](#figures-in-ask)).
+   access. A read never queries data and never stores SQL or a calculation.
 
 ## A Cube model in a Git repository
 
@@ -210,50 +209,6 @@ status, and changes no flag or link status (CON-213, CON-214). Accepted vocabula
 are never changed by a refresh.
 `changesSince` reports changes after a successful snapshot and current missing definitions;
 it is not a historical replay API.
-
-## Figures in Ask
-
-Off by default (FR-716, CON-612). An admin sets it up on Cube's page in Integrations: **Set up
-figures** takes the data endpoint, the address of Cube's REST API `/v1/load`
-(`https://cube.example.com/cubejs-api/v1/load`), and a read-only token for it, kept in the secret
-store and sent only to that address's origin. This is Cube's second connection, apart from the Git
-repository its definitions are read from, and the page shows it as such. No MCP server is needed.
-**Try a figure** then reads one figure with the settings as saved, whether figures are on or off:
-the first measure, by name, of the first view, by name, that has exactly one time dimension, for
-the last 7 days up to today, the same way Ask reads one and kept nowhere. It answers the value (or
-none, when Cube has nothing for those days) and Cube's `lastRefreshTime`, or a failure code. Then
-**Show figures in Ask** switches it on, once a data contact is named. On the API these are
-`PUT /api/v1/figures/{id}` and `POST /api/v1/figures/{id}/try`, for administrators.
-
-When someone asks in Ask, Footnote reads one figure from Cube, apart from the answer and within 4
-seconds, and keeps it nowhere:
-
-1. The metric's definition decides which integration answers: the source that holds its ref under
-   `cube:`. A metric no integration defines, or more than one does, gets no figure.
-2. The query is a fixed template, never words a person or a model wrote: the view's measure, one
-   of the view's time dimensions with the question's days, and an `equals` filter on the view's
-   member each market term names, with the market's name and its other names as the values. The
-   core passes every date of the view; with several, Cube's reader takes the one
-   `meta.default_time_dimension` names (the measure's, then its view's), else the server's figure
-   settings (`FOOTNOTE_FIGURE_OVERRIDES`), and with none named fails with `several_dates`, which Ask
-   shows as no figure with the view's dates listed. Two GETs of `/v1/load`, the days and the days
-   just before, after, once in ten minutes, `/v1/meta` for what the model says of the measure: how
-   it is worked out (`aggType`), so the query in words can say "added up", and its `meta`.
-3. A measure marked with `meta.non_additive_dimension`, or `additive: false` in the settings, is a
-   snapshot: both reads take the last of their days only, and Ask says so. When `/v1/meta` fails
-   and the settings do not set `additive`, the read fails with that error: whether the measure adds
-   up is unknown, so no figure is loaded.
-4. The value is written as the model says: its `format` (`currency`, `percent`, `number`, or a
-   named form such as `percent_1`) and its currency (Cube's `currency`, or `meta.currency`), from
-   the answer or `/v1/meta`, else the settings' `format` and `currency`. A percent is the share
-   Cube gives (0.175 for 17.5%). "Data as of" is Cube's `lastRefreshTime`.
-
-No person's identity is passed to Cube: the token is the integration's own. A wrong or expired
-token, a measure an access policy hides from it (Cube's 500 "hidden member", `not_allowed`), a host
-that can't be reached and a query past its time say so in Ask, never what Cube said.
-The demo model gives Orders a day (`orders.order_day`) and Marketing a market and a day for this,
-and the tests read figures from a stand-in Cube over a seeded demo warehouse
-(`tests/server/connectors/cube-server.ts`, `demo-warehouse.ts`).
 
 ## Validation
 

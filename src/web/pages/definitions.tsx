@@ -13,7 +13,6 @@ import {
   LayersIcon,
   TriangleAlertIcon,
   EqualIcon,
-  InfoIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { ToolLogo } from '@/components/footnote/tool-logo'
@@ -52,7 +51,6 @@ import { useSelection } from '@/hooks/use-selection'
 import { DefinitionsBulk } from '@/components/footnote/definitions-bulk'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -100,7 +98,6 @@ import { plainText } from '@/lib/mentions'
 import { LoadError, RefreshError, useLoadPhase } from '@/components/footnote/load-state'
 import { TableBodySkeleton } from '@/components/footnote/list-skeleton'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
-import { useFigures } from '@/lib/figures'
 import { useLeavingRows } from '@/lib/presence'
 
 // Definitions: the data glossary, laid out like the Footnote app's catalogue. Views with counts (All,
@@ -286,7 +283,6 @@ export function DefinitionsPage() {
   React.useEffect(() => {
     if (setup) navigate(definitionsConnectHref(), { setup: '1' })
   }, [setup])
-  const figures = useFigures()
   // A split from a family's page lands on the Families tab (?show=families).
   const [view, setView] = React.useState<View>(() =>
     query.get('show') === 'families' ? 'family' : 'all',
@@ -979,8 +975,7 @@ export function DefinitionsPage() {
                 />
               )}
             </FilterRow>
-            {/* Where the definitions come from, in one line under the toolbar. Who hears about a
-                figure that looks wrong is an info button at its end, when the source has a contact. */}
+            {/* Where the definitions come from, in one line under the toolbar. */}
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
               <span className="min-w-0">
@@ -1001,26 +996,6 @@ export function DefinitionsPage() {
                       {tool && ' in Integrations'}
                     </a>
                   </>
-                )}
-                {reader?.figures && (
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="-my-1 ms-1 inline-flex size-6 align-middle text-muted-foreground"
-                          aria-label="Who hears about a wrong figure"
-                        />
-                      }
-                    >
-                      <InfoIcon />
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="text-pretty">
-                      A figure that looks wrong goes to {figures.contact(reader.id)}, the data
-                      contact.
-                    </PopoverContent>
-                  </Popover>
                 )}
               </span>
             </p>

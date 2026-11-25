@@ -69,21 +69,12 @@ import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
 import { href, useRoute } from '@/lib/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
-import { conflictQuery, figureQuery, myReportsQuery, useWrite } from '@/api/queries'
+import { conflictQuery, myReportsQuery, useWrite } from '@/api/queries'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { listOf } from '@/model/people'
 import { SaveQuestion } from '@/components/obs/save-question'
 import { agentReply } from '@/lib/agent-reply'
 import { parseMentionId, plainText } from '@/lib/mentions'
-import { figureAskOf, type FigureView } from '@/model/figures'
-import { useFigures } from '@/lib/figures'
-import {
-  AnswerFigure,
-  FigureAgainst,
-  FigureLine,
-  FigureLink,
-  NoFigure,
-} from '@/components/footnote/answer-figure'
 import { useRelated } from '@/hooks/use-related'
 
 // One turn of Ask, drawn the way the chat apps people know draw a thread: the question as a quiet
@@ -134,7 +125,6 @@ const loopAnswerParts = () => ({
   AnswerActions,
   ReportLine,
   SomethingWrong,
-  AnswerFigure,
 })
 
 /** Ask's loop draws its own answer, loaded with the first one: most chats never need it. */
@@ -769,29 +759,22 @@ export function ReportLine({ report }: { report: NonNullable<Answer['report']> }
 export function SomethingWrong({
   answer,
   facts,
-  figure,
   onClose,
   onSent,
 }: {
   answer: Answer
   facts: Fact[]
-  /** The integration of the figure the answer shows, when it shows one. */
-  figure?: string
   onClose: () => void
   onSent: () => void
 }) {
   const domains = useDomains()
   const write = useWrite()
-  const figures = useFigures()
   const [part, setPart] = React.useState(facts[0]?.id ?? 'answer')
   const [sending, setSending] = React.useState(false)
-  // The answer itself, and its figure, are filed on its first source, so they reach that
-  // domain's owners; a figure reaches the integration's data contact too.
+  // The answer itself is filed on its first source, so it reaches that domain's owners.
   const fact = facts.find((f) => f.id === part) ?? facts[0]
   const domain = fact?.domain ?? 'sales'
-  const aboutFigure = part === 'figure' && figure !== undefined
-  const owners = `the owner of ${domains[domain]?.name}`
-  const to = aboutFigure ? `${owners} and to ${figures.contact(figure)}, the data contact,` : owners
+  const to = `the owner of ${domains[domain]?.name}`
 
   return (
     <form
@@ -811,17 +794,6 @@ export function SomethingWrong({
           what: text('what'),
           correction: text('correction') || undefined,
           link: text('link') || undefined,
-          ...(aboutFigure
-            ? {
-                figure: {
-                  source: figure,
-                  to: 'both' as const,
-                  metric: answer.metric,
-                  markets: answer.markets,
-                  ...(answer.dates ? { dates: answer.dates } : {}),
-                },
-              }
-            : {}),
         })
           .then(onSent)
           .catch(() =>
@@ -850,14 +822,6 @@ export function SomethingWrong({
                 </Label>
               </Field>
             ))}
-            {figure && (
-              <Field orientation="horizontal">
-                <RadioGroupItem value="figure" id={`part-${answer.id}-figure`} />
-                <Label htmlFor={`part-${answer.id}-figure`} className="font-normal">
-                  The figure: it doesn&apos;t fit the context
-                </Label>
-              </Field>
-            )}
             <Field orientation="horizontal">
               <RadioGroupItem value="answer" id={`part-${answer.id}-answer`} />
               <Label htmlFor={`part-${answer.id}-answer`} className="font-normal">
@@ -884,9 +848,7 @@ export function SomethingWrong({
           Cancel
         </Button>
         <Button type="submit" disabled={sending}>
-          {aboutFigure
-            ? 'Send to the owner and the data contact'
-            : `Send to the owner of ${domains[domain]?.name}`}
+          Send to {to}
         </Button>
       </div>
     </form>
@@ -1053,20 +1015,6 @@ export function Related({ ids }: { ids: string[] }) {
       ) : null}
     </div>
   )
-}
-
-/** The note says what the answer shows of the numbers: shown, a link to them, or not shown here. */
-function noteFor(note: string | undefined, view: FigureView | null) {
-  if (!note) return note
-  const numbers = /The numbers aren't shown here, so the (drop|change) itself isn't confirmed\./
-  if (view?.kind === 'line' || view?.kind === 'against')
-    return note.replace(numbers, '').trim() || undefined
-  if (view?.kind === 'link')
-    return note.replace(
-      numbers,
-      (_, w) => `This answer shows no figure, so the ${w} itself isn't confirmed here.`,
-    )
-  return note
 }
 
 type AnswerBodyProps = {
@@ -1256,12 +1204,7 @@ function ContextAnswerBody({
   const finished = turn.stage === 'done' && answered && !revealing && !stopped
   const writing = answered && isLive(turn) && !revealed
   const where = !draft && !docked && facts.length > 0
-  // The data, when an answer asks about a figure: one line, a link into the tool, or why there is none.
-  const asked = figureAskOf(answer)
-  const figure = useQuery({ ...figureQuery(asked), enabled: !draft && answer.state !== null })
-  const figures = useFigures()
-  const view = draft ? null : (figure.data ?? null)
-  const note = noteFor(answer.note, view)
+  const note = answer.note
   // A finished answer is kept by its key, so the right panel can share it or show where it says that.
   const key = answerKey(answer)
   React.useEffect(() => {
@@ -1426,12 +1369,6 @@ function ContextAnswerBody({
               <AnswerFooter footer={answer.footer} />
             </div>
           )}
-          {view?.kind === 'line' && <FigureLine view={view} metric={answer.metric} />}
-          {view?.kind === 'against' && (
-            <FigureAgainst view={view} answer={answer} contact={figures.contact(view.source)} />
-          )}
-          {view?.kind === 'none' && <NoFigure view={view} />}
-          {view?.kind === 'link' && <FigureLink view={view} />}
           {answer.related?.length ? <Related ids={answer.related} /> : null}
           {answer.state !== null && !draft && <NextStep answer={answer} facts={facts} />}
           {!draft && report && <ReportLine report={report} />}
@@ -1439,7 +1376,6 @@ function ContextAnswerBody({
             <SomethingWrong
               answer={answer}
               facts={facts}
-              figure={view?.kind === 'line' || view?.kind === 'against' ? view.source : undefined}
               onClose={() => setWrong(false)}
               onSent={() => {
                 setWrong(false)

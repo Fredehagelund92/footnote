@@ -21,7 +21,6 @@ import {
 import { ApiError } from '@/api/errors'
 import { reportSignedOut } from '@/api/query-client'
 import type { AskInput } from '@/model/ask'
-import type { FigureAsk } from '@/model/figures'
 import type { Source } from '@/model/integrations'
 
 // Reads and writes as the screens use them: one query factory per read, keyed in one place, and
@@ -74,7 +73,6 @@ export const queryKeys = {
   savedViews: ['getSavedViews'] as const,
   settings: ['getSettings'] as const,
   advancedPage: ['advancedPage'] as const,
-  integrations: ['getIntegrations'] as const,
   integrationsPage: ['integrationsPage'] as const,
   integrationPage: (id: string) => ['integrationPage', id] as const,
   integrationPages: ['integrationPage'] as const,
@@ -82,8 +80,6 @@ export const queryKeys = {
   integrationLeftOut: (id: string, readsAll: boolean, views: readonly string[]) =>
     ['integrationLeftOut', id, readsAll, [...views].sort()] as const,
   connectForms: ['connectForm'] as const,
-  figure: (asked: FigureAsk) => ['readFigure', asked] as const,
-  figures: ['readFigure'] as const,
   agentConnections: ['listAgentConnections'] as const,
   autoPublish: ['getAutoPublish'] as const,
   domainPolicies: (domain: string) => ['getDomainPolicies', domain] as const,
@@ -267,9 +263,6 @@ export const settingsQuery = () =>
 export const advancedPageQuery = () =>
   queryOptions({ queryKey: queryKeys.advancedPage, queryFn: () => api.advancedPage() })
 
-export const integrationsQuery = () =>
-  queryOptions({ queryKey: queryKeys.integrations, queryFn: () => api.getIntegrations() })
-
 /**
  * While a tool waits for its read (queued, or being read), its row and its page ask again every
  * few seconds, so Queued and Reading end when the read does. A first read is queued and done
@@ -309,9 +302,6 @@ export const integrationLeftOutQuery = (id: string, readsAll: boolean, views: re
     queryKey: queryKeys.integrationLeftOut(id, readsAll, views),
     queryFn: () => api.integrationLeftOut({ id, readsAll, views: [...views] }),
   })
-
-export const figureQuery = (asked: FigureAsk) =>
-  queryOptions({ queryKey: queryKeys.figure(asked), queryFn: () => api.readFigure(asked) })
 
 export const agentConnectionsQuery = () =>
   queryOptions({
@@ -459,7 +449,6 @@ export const sharedQueries = () => [
   askExamplesQuery(),
   chatsQuery(),
   settingsQuery(),
-  integrationsQuery(),
   agentConnectionsQuery(),
   connectReviewQuery(),
 ]
@@ -503,7 +492,6 @@ export const useSavedViews = () => useSuspenseQuery(useSharedRead(savedViewsQuer
 export const useAskExamples = () => useSuspenseQuery(useSharedRead(askExamplesQuery())).data
 export const useChats = () => useSuspenseQuery(useSharedRead(chatsQuery())).data
 export const useSettings = () => useSuspenseQuery(useSharedRead(settingsQuery())).data
-export const useIntegrations = () => useSuspenseQuery(useSharedRead(integrationsQuery())).data
 export const useAgentConnections = () =>
   useSuspenseQuery(useSharedRead(agentConnectionsQuery())).data
 
@@ -687,22 +675,13 @@ export const invalidations: {
   checkHistory: () => [],
   exportHistory: () => [],
   exportContext: () => [],
-  setFigures: () => [queryKeys.settings, queryKeys.figures, queryKeys.integrations],
-  setDataContact: () => [queryKeys.settings, queryKeys.figures, queryKeys.integrations],
-  setFigureConnection: () => [queryKeys.settings, queryKeys.figures, queryKeys.integrations],
   // Connecting the definitions tool can be the setup checklist's last step.
   connectIntegration: () => [queryKeys.settings, ...integrations, ...workspace, queryKeys.session],
   changeIntegration: () => integrations,
   // A content tool's open suggestions leave the Inbox with it.
   disconnectIntegration: () => [queryKeys.settings, ...integrations, ...inbox],
   readIntegration: () => integrations,
-  // A paused tool's figures are held in Ask, and back once it is resumed.
-  pauseIntegration: () => [
-    ...integrations,
-    queryKeys.integrations,
-    queryKeys.figures,
-    queryKeys.advancedPage,
-  ],
+  pauseIntegration: () => [...integrations, queryKeys.advancedPage],
   // A revoked app's policies end with it.
   revokeAgent: () => [
     queryKeys.agentConnections,

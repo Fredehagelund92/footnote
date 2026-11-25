@@ -429,6 +429,40 @@ describe('the views an admin chooses, and Disconnect (CON-118)', () => {
       )
     ).rows[0]!.details
 
+  it('tests the source as it is saved, naming a chosen view the model lacks, and keeps nothing', async () => {
+    const before = await published()
+    const snapshots = async () =>
+      (
+        await client.query<{ n: number }>(
+          'select count(*)::int as n from connector_snapshots where connector_id = $1',
+          [sourceId],
+        )
+      ).rows[0]!.n
+    const reads = await snapshots()
+    expect((await list(false, ['sales', 'warehouse'])).statusCode).toBe(200)
+    const check = await ok<SourceCheck>(call('POST', `/sources/${sourceId}/check`, 'admin', {}))
+    expect(check).toMatchObject({
+      ok: true,
+      views: 4,
+      chosen: { all: false, groups: 2, missing: ['warehouse'] },
+    })
+    expect(check.steps.map((step) => [step.id, step.status])).toEqual([
+      ['reach', 'ok'],
+      ['files', 'ok'],
+    ])
+    expect(JSON.stringify(check)).not.toContain(TOKEN)
+    // Every view again: it reads them all, and says how many the model has.
+    expect((await list(true, [])).statusCode).toBe(200)
+    expect(
+      (await ok<SourceCheck>(call('POST', `/sources/${sourceId}/check`, 'admin', {}))).chosen,
+    ).toEqual({ all: true, groups: 4, missing: [] })
+    // Only an admin tests a source, and a test keeps no read and publishes nothing.
+    expect((await call('POST', `/sources/${sourceId}/check`, 'owner', {})).statusCode).toBe(403)
+    expect((await call('POST', '/sources/nowhere/check', 'admin', {})).statusCode).toBe(404)
+    expect(await snapshots()).toBe(reads)
+    expect(await published()).toEqual(before)
+  }, 240_000)
+
   it('keeps an allow list: a view the model lacks is named, and a list of none reads nothing', async () => {
     const before = await published()
     const listed = await list(false, ['sales', 'warehouse'])

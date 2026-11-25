@@ -27,7 +27,6 @@ import { plainReason, recordAudit } from '../admin/index.ts'
 import { createSourceOverview } from './overview.ts'
 import { groupOf, type RegisteredConnector, type StoredScope } from './platform.ts'
 import type { ConnectorRegistry } from './registry.ts'
-import { createFigureSources, type FigureOverrides } from './figures.ts'
 import { SecretStoreError, type SecretStore } from './secrets.ts'
 import {
   snapshotSchema,
@@ -213,20 +212,11 @@ const failed = (warnings: SourceWarning[], steps: SourceCheck['steps'] = []): So
 export function createWorkspaceSources({
   secrets,
   registry,
-  figureOverrides,
 }: {
   secrets: SecretStore
   /** The connectors, and the sources the server's own configuration selects (their ids). */
   registry: Pick<ConnectorRegistry, 'connectors' | 'list'>
-  /** The server's figure settings (`FOOTNOTE_FIGURE_OVERRIDES`), by source. */
-  figureOverrides?: FigureOverrides
 }) {
-  /** Figures in Ask, on the sources whose connector reads them (figures.ts). */
-  const figures = createFigureSources({
-    secrets,
-    connectors: () => registry.connectors(),
-    ...(figureOverrides ? { overrides: figureOverrides } : {}),
-  })
   // An admin adds a source of any connector: definitions, or content with its pipeline.
   const addable = () => registry.connectors()
   const typeOf = (type: string) => addable().find((candidate) => candidate.manifest.id === type)
@@ -502,11 +492,15 @@ export function createWorkspaceSources({
     }
   }
 
-  /** One read of a source with these settings, kept nowhere; with the members others read. */
+  /**
+   * One read of a definitions source, kept nowhere: what it would hold. Given the groups the
+   * source reads (null: every group), it also says which of them the model no longer has.
+   */
   async function testRead(
     tx: Queryable,
     source: DefinitionSource,
     steps: SourceCheck['steps'],
+    reads?: { groups: readonly string[] | null },
   ): Promise<SourceCheck> {
     let snapshot: SourceSnapshot
     try {
@@ -526,7 +520,22 @@ export function createWorkspaceSources({
       [...snapshot.warnings, ...taken.map(({ ref }) => ({ code: 'taken' as const, target: ref }))],
       steps,
     )
-    return { ...check, scopes: await suggestingDomains(tx, check.scopes ?? []) }
+    const inModel = new Set(groupsOf(snapshot).map((group) => group.id))
+    return {
+      ...check,
+      scopes: await suggestingDomains(tx, check.scopes ?? []),
+      ...(reads
+        ? {
+            chosen: reads.groups
+              ? {
+                  all: false,
+                  groups: reads.groups.length,
+                  missing: reads.groups.filter((group) => !inModel.has(group)),
+                }
+              : { all: true, groups: inModel.size, missing: [] },
+          }
+        : {}),
+    }
   }
 
   /** What may be chosen, each suggesting a domain only when it is one of this workspace's. */
@@ -553,7 +562,6 @@ export function createWorkspaceSources({
     list: (tx: Queryable) => overview.list(tx),
     activity: (tx: Queryable, id: string) => overview.activity(tx, id),
     pause: (tx: Queryable, input: PauseSourceInput) => overview.pause(tx, input),
-    figures,
     /** The connectors an admin may add a source of: each manifest, with its access and form. */
     types(): ConnectorListing[] {
       return addable().map(({ manifest, writtenTo }) => ({
@@ -810,7 +818,7 @@ export function createWorkspaceSources({
 
     /**
      * Disconnect (CON-118): the source is read no more and leaves the integrations' list. Its
-     * secrets, its own and its figures' token, leave the store once this commits; what it read
+     * secret leaves the store once this commits; what it read
      * stays, and so does its row, which its reads, suggestions and definitions name. The caller
      * withdraws a content source's open suggestions after the commit, as the source.
      */
@@ -825,23 +833,18 @@ export function createWorkspaceSources({
         throw new ORPCError('NOT_FOUND', {
           message: "We couldn't find this source among the ones an admin added.",
         })
-      const [before] = await tx.query<{ kind: string; figures_ref: string | null }>(
-        `select kind::text as kind, capabilities #>> '{figures,secretRef}' as figures_ref
-           from connectors where id = $1`,
+      const [before] = await tx.query<{ kind: string }>(
+        `select kind::text as kind from connectors where id = $1`,
         [row.id],
       )
       await tx.query(
         `update connectors set enabled = false, secret_ref = null,
-           removed_at = now(), removed_by = cl_person(),
-           -- Figures in Ask stop with it, and forget their token.
-           capabilities = case when capabilities ? 'figures'
-             then jsonb_set(capabilities #- '{figures,secretRef}', '{figures,enabled}', 'false')
-             else capabilities end
+           removed_at = now(), removed_by = cl_person()
          where id = $1`,
         [row.id],
       )
-      for (const ref of [row.secret_ref, before?.figures_ref ?? null])
-        if (ref) hooks.onCommit(() => secrets.remove(ref))
+      const ref = row.secret_ref
+      if (ref) hooks.onCommit(() => secrets.remove(ref))
       const connector = typeOf(row.type)
       await recordAudit(tx, {
         action: 'source.removed',
@@ -852,10 +855,10 @@ export function createWorkspaceSources({
           ...(connector ? { version: connector.manifest.version } : {}),
           name: row.name,
           secrets: Object.fromEntries(
-            [
-              ...(row.secret_ref && connector ? secretKeys(connector) : []),
-              ...(before?.figures_ref ? ['figuresToken'] : []),
-            ].map((key) => [key, 'removed']),
+            (row.secret_ref && connector ? secretKeys(connector) : []).map((key) => [
+              key,
+              'removed',
+            ]),
           ),
           reason: input.reason,
         },
@@ -931,6 +934,60 @@ export function createWorkspaceSources({
         }
       }
       return testRead(tx, connector!.source(settings), steps)
+    },
+
+    /**
+     * Test connection on a definitions source's page (T2): its check and one read with the
+     * settings as saved, keeping nothing and changing nothing. The read takes every group, so the
+     * groups the source reads are looked for in it. The server's own source is read as its
+     * configuration says, from its folder.
+     */
+    async check(tx: Queryable, id: string): Promise<SourceCheck> {
+      const row = await definitionsRow(tx, id)
+      if (!row) throw notDefinitions()
+      const server = registry.list().find((source) => source.id === row.id)
+      // The groups it reads: chosen in the app, else for the server's own those its configuration
+      // lists, else every group.
+      const listed =
+        row.changed_at === null && server ? ((await server.listedGroups?.()) ?? null) : null
+      const reads = {
+        groups: listed ?? (row.all_groups ? null : row.scopes.map((scope) => scope.id)),
+      }
+      if (server) {
+        const folder = server.serverSettings.find((setting) => setting.key === 'model_folder')
+        const found = await testRead(tx, server, [], reads)
+        // Its folder is the server's setting: a read that worked reached it.
+        return !found.ok
+          ? found
+          : {
+              ...found,
+              steps: [
+                {
+                  id: 'reach',
+                  title: 'Reach the folder on the server',
+                  status: 'ok',
+                  ...(folder?.value
+                    ? { detail: `${folder.value}, set in ${folder.variable}.` }
+                    : {}),
+                },
+              ],
+            }
+      }
+      const connector = typeOf(row.type)!
+      const settings = {
+        id: row.id,
+        name: row.name,
+        config: row.config,
+        secrets: await held(row.secret_ref),
+      }
+      let steps: SourceCheck['steps']
+      try {
+        steps = (await connector.check(settings)).steps
+      } catch (error) {
+        return failed(error instanceof SourceReadError ? error.warnings : [])
+      }
+      if (steps.some((step) => step.status === 'failed')) return failed([], steps)
+      return testRead(tx, connector.source(settings), steps, reads)
     },
   }
 }
