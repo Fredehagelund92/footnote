@@ -1,5 +1,5 @@
 import { kindLabel } from '@/model/items'
-import type { InboxCard, Waiting } from '@/model/inbox'
+import { ASK_SOMEONE, type InboxCard, type Waiting } from '@/model/inbox'
 import { factById, facts } from './world'
 import { spainDraft } from './drafts'
 import { reviews } from './review'
@@ -153,7 +153,7 @@ export const cards: InboxCard[] = [
     detail:
       'Each month alone stayed under 5, so no card came until the two were counted together. Nothing is drafted yet: write what agents should know about orders in Germany across the two months.',
     primary: 'Write context',
-    secondary: ['Not something we write down'],
+    secondary: ['Not something we write down', ASK_SOMEONE],
     gap: {
       scope: ['Orders', 'Germany', '30 Oct to 1 Nov 2026'],
       times: 6,
@@ -224,7 +224,7 @@ export const cards: InboxCard[] = [
     line: 'Its check date passed on 2 Oct. Agents are told it may be out of date.',
     detail: 'Last checked by you, 2 Jul 2026.',
     primary: 'Still true',
-    secondary: ['Edit', 'Archive'],
+    secondary: ['Edit', 'Archive', ASK_SOMEONE],
     factId: 'itm_ra39ow6c',
   },
   {
@@ -239,7 +239,7 @@ export const cards: InboxCard[] = [
     line: `${demoTool(DEMO_DEFINITIONS)} changed the definition of Gross margin on 7 Oct, after this context item was checked.`,
     detail: 'Last checked by Sofia Brandt, 30 Sep 2026.',
     primary: 'Still true',
-    secondary: ['Edit', 'Archive'],
+    secondary: ['Edit', 'Archive', ASK_SOMEONE],
     factId: 'itm_kcy22j54',
   },
   {
@@ -292,7 +292,7 @@ export const cards: InboxCard[] = [
     line: 'Its check date passed on 18 Sep. Agents are told it may be out of date.',
     detail: 'Last checked by you, 20 Jun 2026.',
     primary: 'Still true',
-    secondary: ['Edit', 'Archive'],
+    secondary: ['Edit', 'Archive', ASK_SOMEONE],
     factId: 'itm_pfet8zj3',
   },
 ]
@@ -412,3 +412,21 @@ export const waiting: Waiting[] = [
     card: 'sug-ines',
   },
 ]
+
+/**
+ * The days a Nothing written yet card's question is about, as the service gives them (end
+ * exclusive): what the page a question link opens sets its dates to.
+ */
+export const questionDays: Record<string, { start: string; end: string }> = {
+  'gap-germany': { start: '2026-10-30', end: '2026-11-02' },
+  'gap-spain': { start: '2026-10-01', end: '2026-11-01' },
+}
+
+/**
+ * Question links the demo opens on a fresh load, by the card each asks about: a copied link lives
+ * only as long as the page, and these let an address show the page a link opens.
+ */
+export const demoQuestions: Record<string, string> = {
+  'demo-question-orders-in-germany': 'gap-germany',
+  'demo-question-returns-check': 'check-returns',
+}

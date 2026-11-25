@@ -94,6 +94,11 @@ export function assembleDraft(
   const { summaryMarkup, bodyMarkup } = draft
   return {
     ...draft,
+    // A link its sender gave on the question page, without a sentence from it, stays in the draft
+    // for the owner to confirm: the version goes out with the sources that are complete.
+    ...(createdVia === 'question' && draft.evidence
+      ? { evidence: draft.evidence.filter((entry) => evidenceEntrySchema.safeParse(entry).success) }
+      : {}),
     ...(summaryMarkup === undefined ? {} : { summary: parseMentions(summaryMarkup).text }),
     ...(bodyMarkup === undefined ? {} : { body: parseMentions(bodyMarkup).text }),
     proposerId,

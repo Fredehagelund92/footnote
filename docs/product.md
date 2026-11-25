@@ -68,6 +68,8 @@ The Inbox is a list in the middle and a detail pane on the right. The dock takes
 
 A Not found card shows a gap: a topic agents keep asking about with nothing written down for it. A gap is Open, Covered or Set aside. It is Open while agents keep asking. Publishing context written from its card, or a suggestion written for it, covers it, and the card leaves the Inbox. Not something we write down sets it aside. Undo of either opens it again. When agents ask about a covered topic again and still find nothing, a new gap opens.
 
+Ask someone who knows, on a Nothing written yet card without a draft and on a Due for a check card, copies a link to one question for the owner to paste where the company talks. Nothing is sent, and the card keeps only the day the link was copied. The link opens `/question/<id>`, outside the app's shell, for anyone signed in: the topic in large letters (metric, market, dates, never the words of a question), one answer, and one button that sends it to the owners under the person's name. On a Nothing written yet card the answer is a suggestion for the gap, which may come without a source; its owner adds or confirms one before it can be published. On a Due for a check card it is Yes, still true; It ended on a day; or I don't know, shown on the card, and the owner still does the check. Agents get none of it before a publish.
+
 ### Review
 
 | Screen                           | Address                   |

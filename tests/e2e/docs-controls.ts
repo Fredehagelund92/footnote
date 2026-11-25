@@ -49,6 +49,18 @@ export const docControls: DocControl[] = [
     drawn: 'button',
   },
   {
+    phrase: 'Ask someone who knows',
+    page: 'keep-context-up-to-date',
+    at: '/inbox?card=check-returns',
+    drawn: 'button',
+  },
+  {
+    phrase: 'Ask someone who knows',
+    page: 'when-nothing-is-written-yet',
+    at: '/inbox?card=gap-germany',
+    drawn: 'button',
+  },
+  {
     phrase: 'Not a problem',
     page: 'keep-context-up-to-date',
     at: '/inbox?card=flag-germany',

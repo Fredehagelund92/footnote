@@ -1448,6 +1448,16 @@ function Decision({
             Archive<span className="max-sm:hidden"> the context item</span>
           </span>
         </Button>
+      ) : r.sourceless ? (
+        // Sent from a question link without a source: the editor is where the owner adds one.
+        <Button
+          size="lg"
+          className="ml-auto"
+          disabled={blockedBySend}
+          onClick={() => navigate(`/context/${r.id}/edit`)}
+        >
+          {r.sourceless === 'add' ? 'Add a source' : 'Confirm the source'}
+        </Button>
       ) : (
         <Button
           size="lg"

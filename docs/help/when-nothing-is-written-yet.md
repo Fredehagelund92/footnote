@@ -3,8 +3,8 @@ title: When nothing is written yet
 line: The Inbox card a question with no answer raises, and how to write the context, check a draft or close it.
 group: Write and review
 order: 4
-minutes: 3
-reviewed: 2026-11-21
+minutes: 4
+reviewed: 2026-11-25
 open:
   label: Open the Inbox
   href: /inbox
@@ -34,10 +34,21 @@ The owners of the topic's domain get it, and admins. A topic that spans domains 
 | The card               | Press                              | What happens                                                                                           |
 | ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Has no draft           | **Write context**                  | The editor opens on the topic. When you publish, the card closes, and agents get the item from then on |
+| You don't know         | **Ask someone who knows**          | A link to one question is copied, for you to paste to the person who knows                             |
 | Has a draft            | Check the first version, or Review | The review opens on the draft. Compare each detail with its source, then publish it                    |
 | Is not for the context | **Not something we write down**    | The card closes, and agents keep saying honestly that nothing is written down                          |
 
 Write the item as [Write context](write-context.md) says, and [review a draft](review-a-suggestion.md) as any suggestion.
+
+## Ask someone who knows
+
+Often the person who knows what happened is not you. Press **Ask someone who knows** and paste the link wherever your company talks. Nothing is sent for you: the card only says the day you copied the link, never who opened it.
+
+The link opens one page with one question. It shows the topic and its dates, never the words anyone asked. The person writes what happened in a sentence or two, changes the dates if needed, and adds a link to where it is written if they have one. What they send is a suggestion under their name, and it waits for you like any other.
+
+They may send it without a link. Then you add a source before you publish, or confirm the link they gave by copying a sentence from it: the review says Add a source first, or Confirm the source first, until you do. Nothing they wrote reaches an agent before you publish.
+
+Only people who can sign in can answer. With company sign-in, an admin can map a company group so that colleagues sign in without an invite. Anyone else is told to ask the person who sent the link.
 
 ## Undo
 

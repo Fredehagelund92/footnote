@@ -247,6 +247,14 @@ import {
 } from './reports.ts'
 import { connectInfoSchema, tryItReadInputSchema, tryItReadingSchema } from './connect.ts'
 import {
+  answeredSchema,
+  answerQuestionSchema,
+  copyQuestionLinkSchema,
+  questionIdSchema,
+  questionLinkSchema,
+  questionSchema,
+} from './questions.ts'
+import {
   adminDisconnectedSchema,
   adminDisconnectSchema,
   agentConnectionSchema,
@@ -1809,6 +1817,38 @@ export const contract = {
       })
       .input(decideCardSchema)
       .output(decideCardResultSchema),
+  },
+  questions: {
+    copy: review
+      .route({
+        method: 'POST',
+        path: '/questions/links',
+        tags: ['inbox'],
+        summary:
+          "Ask someone who knows: the link of a Nothing written yet or a Due for a check card, for its domain's owners and the admins to paste where the company talks. Made once and copied again on a new day; it keeps that day, never who opens it, and nothing is sent to anyone",
+      })
+      .input(copyQuestionLinkSchema)
+      .output(questionLinkSchema),
+    read: read
+      .route({
+        method: 'GET',
+        path: '/questions/{id}',
+        tags: ['inbox'],
+        summary:
+          'The one question a link asks, for anyone signed in who has it: the topic in words (metric, market and dates, never the words of a question), how often agents found nothing (hidden under the minimum, FR-614), and the owners who get the answer',
+      })
+      .input(questionIdSchema)
+      .output(questionSchema),
+    answer: proposal
+      .route({
+        method: 'POST',
+        path: '/questions/answer',
+        tags: ['inbox'],
+        summary:
+          "An answer to a link's question, as the person: for a Nothing written yet card, a suggestion under their name that may come without a source, which its owner adds or confirms before publishing; for a Due for a check card, still true, it ended on a day, or I don't know, which the owner reads on the card. Agents get nothing of it before a publish",
+      })
+      .input(answerQuestionSchema)
+      .output(answeredSchema),
   },
   comments: {
     list: read

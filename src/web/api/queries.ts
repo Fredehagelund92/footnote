@@ -86,6 +86,7 @@ export const queryKeys = {
   allDomainPolicies: ['getDomainPolicies'] as const,
   connectReview: ['getConnectReview'] as const,
   connectRequest: ['getConnectRequest'] as const,
+  question: (id: string) => ['getQuestion', id] as const,
   observabilityPage: (input: ObsPageInput) => ['observabilityPage', input] as const,
   observabilityPages: ['observabilityPage'] as const,
   obsDimensions: (input: ObsFilterView) => ['obsDimensions', input] as const,
@@ -333,6 +334,15 @@ export const connectRequestQuery = (id: string) =>
     queryFn: () => api.getConnectRequest({ id }),
     staleTime: Infinity,
     gcTime: 0,
+    retry: false,
+  })
+
+/** The one question a link asks, for its page: read once while it is open. */
+export const questionQuery = (id: string) =>
+  queryOptions({
+    queryKey: queryKeys.question(id),
+    queryFn: () => api.getQuestion({ id }),
+    staleTime: Infinity,
     retry: false,
   })
 
@@ -710,6 +720,10 @@ export const invalidations: {
   ],
   // A yes adds a connected agent; the page then leaves for the agent.
   answerConnectRequest: () => [queryKeys.agentConnections],
+  // The card says the day its link was copied.
+  copyQuestionLink: () => inbox,
+  // An answer to a gap is a suggestion in its owners' Inbox; one to a check lands on its card.
+  answerQuestion: () => [...inbox, ...items],
   renameChat: () => [queryKeys.chats],
   deleteChat: () => [queryKeys.chats],
   removeView: () => [queryKeys.savedViews],

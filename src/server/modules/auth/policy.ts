@@ -131,6 +131,11 @@ export const policies = {
   'inbox.decideNames': 'propose',
   'cards.markRead': 'read',
   'cards.decide': 'propose',
+  // Ask someone who knows: the service keeps copying a link to the owners of the card's domain and
+  // the admins; anyone signed in who has a link reads its question and answers as themselves.
+  'questions.copy': 'propose',
+  'questions.read': 'read',
+  'questions.answer': 'propose',
   // Comments (FR-817): anyone signed in, on what they may read; the service and row security keep
   // edits and deletes to the author, and taking a suggestion to archive back to its sender. Anyone
   // who may read a suggestion resolves a thread on one of its lines or fields.

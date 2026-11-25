@@ -218,6 +218,9 @@ export const wiredMethods = [
   'getConnectReview',
   'getConnectRequest',
   'answerConnectRequest',
+  'copyQuestionLink',
+  'getQuestion',
+  'answerQuestion',
   'getSettings',
   'integrationsPage',
   'integrationPage',
@@ -1946,6 +1949,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     },
     answerConnectRequest: (input) =>
       write('connections.decide', input, (o) => client.connections.decide(input, o)),
+
+    // Ask someone who knows: the card's link, the question it opens, and the person's answer.
+    copyQuestionLink: (input) =>
+      write('questions.copy', input, (o) => client.questions.copy(input, o)),
+    getQuestion: ({ id }) => read(() => client.questions.read({ id })),
+    answerQuestion: (input) =>
+      write('questions.answer', input, (o) => client.questions.answer(input, o)),
 
     // Settings, agents and access. The switches are what everyone signed in may read: the tools on
     // and what is paused.

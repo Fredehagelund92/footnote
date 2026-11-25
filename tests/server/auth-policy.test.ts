@@ -205,6 +205,10 @@ const readOperations = [
   'inbox.decideNames',
   'cards.markRead',
   'cards.decide',
+  // Ask someone who knows: owners copy a card's link; anyone signed in reads and answers it.
+  'questions.copy',
+  'questions.read',
+  'questions.answer',
   'comments.list',
   'comments.create',
   'comments.edit',
