@@ -56,4 +56,6 @@ It says, step by step, that it reached the tool and signed in, what a read would
 
 ## Families on a tool's page
 
-A definitions tool's page always has Families: metrics that are one metric with variants, such as Revenue in each currency. With none, it says how a read finds one, and shows the lines to add to your tool's model to make one. With some, it lists each one: how it was found, its variants, and whether it is published or waits in the Inbox. Owners decide them in the Inbox and in Definitions, as [Metric variants](metric-variants.md) explains.
+A definitions tool's page always has Families: metrics that are one metric with variants, such as Revenue in each currency. With none, it says how a read finds one, and shows the lines to add to your tool's model to make one.
+
+With some, it lists each one: how it was found, its variants, and whether it is published or waits in the Inbox. Owners decide them in the Inbox and in Definitions, as [Metric variants](metric-variants.md) explains.
