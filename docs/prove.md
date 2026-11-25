@@ -80,6 +80,8 @@ After that run the questions are published with the result. From then on, `npm r
 
 Some metrics are built from others: return on ad spend is net revenue divided by marketing spend. When nothing is written on the metric asked about but a note is on one it is built from, Footnote says nothing is written. The built-from lab tests whether also telling that note, apart from the answer and under its own label, gives better answers.
 
+The part leaves out a metric whenever one it is built from is not shown to the reader, rather than name only some of them.
+
 The lab is off unless `FOOTNOTE_LAB_BUILT_FROM=on`, and refused in production. With it on, the command asks two ways: Footnote as it is, and Footnote with the built-from part. The table has a row for each. With no file, it asks the lab's own 12 questions about the invented company, kept apart from its sealed 40:
 
 ```sh
