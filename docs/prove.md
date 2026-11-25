@@ -1,6 +1,6 @@
 ---
 title: Run the proof
-line: One command asks the same questions three ways, with no context, with one plain file and with Footnote, and prints what each got right and what it cost.
+line: One command asks the same questions three ways and prints what each got right and what it cost.
 group: How it works
 order: 2
 reviewed: 2026-11-25
