@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { cardIn, expect, go, moveTo, onMockOnly, settle, test } from './go.ts'
+import { card as cardId, cardIn, expect, go, moveTo, onMockOnly, settle, test } from './go.ts'
 
 // J124, Command and Z (owner call Q4, 25 Nov 2026): it takes back the last decision from any
 // screen for as long as the service holds it, and opens that suggestion again. It waits for a
@@ -81,8 +81,8 @@ test('in a field it is the field’s own undo, and takes back no decision', asyn
 })
 
 test('an Inbox decision is taken back by the key too', async ({ page }) => {
-  await go(page, '/inbox?demo=week&card=check-returns')
-  const card = page.locator('[data-row="check-returns"]')
+  await go(page, `/inbox?demo=week&card=${cardId('check-returns')}`)
+  const card = page.locator(`[data-row="${cardId('check-returns')}"]`)
   await expect(card).toBeVisible()
   await page.getByRole('button', { name: 'Still true', exact: true }).click()
   await expect(card).toHaveCount(0)

@@ -81,6 +81,7 @@ test('an owner closes a suggestion to archive that its sender did not take back,
       .getByRole('textbox', { name: 'Why you close it' })
       .fill('The January data is still being reloaded')
     await close.click()
-    await expect(decide.getByText('Nothing changes for agents.', { exact: true })).toBeVisible()
+    const said = page.locator('[data-sonner-toast]').filter({ hasText: /^Closed “/ })
+    await expect(said).toContainText('Nothing changes for agents.')
   })
 })
