@@ -107,6 +107,7 @@ import {
   checkContextInput,
   getContextInput,
   itemIdPattern,
+  MOST_ITEMS,
   readInput,
   reportInput,
   type FindContextInput,
@@ -456,9 +457,18 @@ function safeNote(note: string | undefined, question?: string) {
 function cursorFor(key: string, offset: number) {
   return Buffer.from(JSON.stringify({ key, offset })).toString('base64url')
 }
+/** A cursor from another call, or from before what agents read changed: never worth a retry. */
+class StaleCursor extends Error {}
+const staleCursor =
+  'The cursor is from another call, or what agents read has changed since: call again without cursor.'
 function cursorOffset(cursor: string | undefined, key: string) {
   if (!cursor) return 0
-  const parsed: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+  } catch {
+    throw new StaleCursor()
+  }
   if (
     !parsed ||
     typeof parsed !== 'object' ||
@@ -468,7 +478,7 @@ function cursorOffset(cursor: string | undefined, key: string) {
     !Number.isSafeInteger(parsed.offset) ||
     Number(parsed.offset) < 0
   )
-    throw new Error('Invalid or stale cursor')
+    throw new StaleCursor()
   return Number(parsed.offset)
 }
 const pageKey = (bundle: ServingBundle, filter: unknown) =>
@@ -1173,7 +1183,12 @@ export function createToolService(
           words,
         })
         // A later page of the same question starts where the reply before it ended (next_cursor).
-        const pages = pageKey(bundle, { scope: resolution.scope, words, asker }).slice(0, 16)
+        const pages = pageKey(bundle, {
+          scope: resolution.scope,
+          words,
+          asker,
+          day: today,
+        }).slice(0, 16)
         const offset = cursorOffset(scoped.cursor, pages)
         // The words read as a name they are not exactly, and how: said, never silent.
         const readAs = (scope.loose ?? []).flatMap((hit) => {
@@ -1298,27 +1313,36 @@ export function createToolService(
         }
         // The domains the question is about, with what their owners wrote about them (FR-813).
         const domains = askedDomains(bundle, resolution.scope, concise)
-        // The reply's status, which carries the answer state (FR-349), as the items stand after
-        // any cut.
-        const statusNow = () =>
-          replyStatus({
+        // The reply's status, which carries the answer state (FR-349): what is written decides it,
+        // so every page of a question says the same; out of date as the items stand after any cut.
+        const statusNow = () => {
+          const shown = new Set(items.map((item) => item.id))
+          return replyStatus({
             status: resolution.status,
-            items: items.map((item) => ({
-              match: item.match,
-              unverified: item.freshness === 'unverified',
-            })),
+            items: items.length
+              ? [
+                  ...items.map((item) => ({
+                    match: item.match,
+                    unverified: item.freshness === 'unverified',
+                  })),
+                  ...resolution.items
+                    .filter((match) => !shown.has(match.id))
+                    .map((match) => ({ match: match.match, unverified: false })),
+                ]
+              : [],
             uncovered: resolution.scope
               ? uncoveredParts(
                   bundle,
                   resolution.scope,
-                  items.map((item) => ({
-                    item: index.item(item.id) as ServingItem,
-                    match: item.match,
+                  resolution.items.map((match) => ({
+                    item: index.item(match.id) as ServingItem,
+                    match: match.match,
                   })),
                 )
               : { metrics: [], values: [] },
             assumed: !!assumed,
           })
+        }
         // How the agent reaches what the reply left out: the next page by cursor, or a larger one,
         // by the limit that cut it.
         let bySize = false
@@ -1327,7 +1351,9 @@ export function createToolService(
             ? 'Call again with a higher max_bytes.'
             : bySize
               ? 'Call again with cursor set to next_cursor for the rest, or with a higher max_bytes.'
-              : contextVoice.cuts
+              : scoped.max_items < MOST_ITEMS
+                ? contextVoice.cuts
+                : 'Call again with cursor set to next_cursor for the rest.'
         // FR-344: what the reply read and did not, as it stands after any cut.
         const said = () => {
           const out = withTermsNext(
@@ -1545,8 +1571,8 @@ export function createToolService(
       return byteSize(rendered) <= limit
         ? rendered
         : failure('The item cannot fit this size limit. Increase max_bytes.')
-    } catch {
-      return failure()
+    } catch (error) {
+      return failure(error instanceof StaleCursor ? staleCursor : undefined)
     }
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createToolService, failure, type ToolResult } from '../../../src/server/mcp/service.ts'
 import { periodWords, windowWords } from '../../../src/domain/dates.ts'
-import { findSaid, notLookedUp, notProof } from '../../../src/domain/say.ts'
+import { findSaid, notLookedUp, notProof, unreadSaid } from '../../../src/domain/say.ts'
 import { wordsToChange } from '../../../src/domain/words.ts'
 import { DEFAULT_PRODUCT_NAME } from '../../../src/domain/brand.ts'
 import { stateOfStatus, stateWords } from '../../../src/domain/answer-state.ts'
@@ -519,5 +519,37 @@ describe('get_context says, with the answer line first', () => {
     expect(contextSaidOf(await call('get_context', { question: 'What happened?' }))).toMatch(
       /^Nothing was looked up yet\. /,
     )
+  })
+})
+
+describe('a question whose words name no metric', () => {
+  const names = { terms: [{ key: 'dim:sales_channel', name: 'Sales channel' }] }
+  const nothingNamed = { field: 'scope', input: 'what about channel?', options: [] }
+
+  it('says the word and its names, and asks for the name in the question, whatever its kind', () => {
+    const said = unreadSaid(names, [nothingNamed], 'what about channel?', [
+      { word: 'channel', closest: ['Sales channel'] },
+    ])
+    expect(said.say).toBe(
+      `${notLookedUp} "channel" names no metric here: Sales channel has the word.`,
+    )
+    // Sales channel is a dimension: never "in metrics", which takes metrics only.
+    expect(said.next).toContain(
+      'If the person meant Sales channel, call again with that name in the question',
+    )
+  })
+
+  it('keeps an issue about a name the question did give, such as an unknown member', () => {
+    const member = {
+      field: 'scope',
+      input: 'traffic.sessions',
+      options: [],
+      message: 'No metric or dimension has the member traffic.sessions as its definition.',
+    }
+    const said = unreadSaid(names, [member, nothingNamed], 'traffic.sessions for EBITDA', [
+      { word: 'EBITDA', closest: [] },
+    ])
+    expect(`${said.say} ${said.next}`).toContain('traffic.sessions')
+    expect(said.say).toContain('"EBITDA" is not a name here.')
   })
 })

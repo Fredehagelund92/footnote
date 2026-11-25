@@ -347,10 +347,17 @@ it('pages the items that link to it and rejects a cursor after the overlay chang
   expect((next.structuredContent.links_in as { items: unknown[] }).items).toHaveLength(5)
   expect(next.structuredContent.next_cursor).toBeNull()
   s.data.overlay = '2'
-  expect(
-    (await s.call('read_context', { id: item.id, cursor: read.structuredContent.next_cursor }))
-      .isError,
-  ).toBe(true)
+  const stale = await s.call('read_context', {
+    id: item.id,
+    cursor: read.structuredContent.next_cursor,
+  })
+  expect(stale.isError).toBe(true)
+  // Said as what to do, never as a retry: the same cursor fails again whenever it is sent.
+  expect(stale.structuredContent.next).toBe(
+    'The cursor is from another call, or what agents read has changed since: call again without cursor.',
+  )
+  const malformed = await s.call('read_context', { id: item.id, cursor: 'not a cursor' })
+  expect(malformed.structuredContent.next).toBe(stale.structuredContent.next)
 })
 
 it('restricts historical edition selection and rejects sensitive notes before storing them', async () => {

@@ -88,6 +88,8 @@ export const contextFormat = z
   .describe(
     "concise (the default): the answer line, say, what was asked, and each item that applies with its source and who checked it. full: also each item's body, every source, its links, and how the question was read (scope_used, dates_read, definitions, check_report). Ask for full when you will quote an item's text or follow its links.",
   )
+/** The most context items one get_context reply gives. */
+export const MOST_ITEMS = 50
 export const getContextInput = z.strictObject({
   ...scopeFields,
   edition,
@@ -95,7 +97,7 @@ export const getContextInput = z.strictObject({
     .number()
     .int()
     .min(1)
-    .max(50)
+    .max(MOST_ITEMS)
     .default(AGENT_MAX_ITEMS)
     .describe(
       'How many context items a reply gives at most: the ones the question turns on come first. next_cursor gives the rest.',

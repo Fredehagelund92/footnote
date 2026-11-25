@@ -734,3 +734,25 @@ describe('a question that names no metric, on a metric per currency', () => {
     ])
   })
 })
+
+describe('a name as written, inside a longer question', () => {
+  const metric = (key: string, name: string): Term => ({
+    key: `metric:${key}`,
+    kind: 'metric',
+    name,
+    aliases: [],
+    parentKey: null,
+    areaId: null,
+    definitionRefs: [],
+  })
+  const shop = [
+    metric('net_revenue', 'Net revenue'),
+    metric('refunds_net', 'Revenue net of refunds'),
+  ]
+
+  it('is read whole: no other name is read in another order from its words', () => {
+    const read = extractScope('revenue net of refunds last week', shop, '2026-10-08')
+    expect(read.status === 'resolved' && read.scope.metrics).toEqual(['metric:refunds_net'])
+    expect(read.loose ?? []).toEqual([])
+  })
+})

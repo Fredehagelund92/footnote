@@ -114,6 +114,13 @@ describe('what applies, in the order of the question', () => {
       expect.stringMatching(notReliable),
       expect.stringMatching(notReliable),
     ])
+    // One order for both: the agent's first items are Ask's, item for item.
+    await asTools(administrator, async (tools) => {
+      const read = await ask(tools, 'get_context', { about: 'gross margin' }, question)
+      expect(first.out.context!.map((i) => i.id)).toEqual(
+        read.items.slice(0, first.out.context!.length).map((i) => i.id),
+      )
+    })
     expect(first.bytes).toBeLessThanOrEqual(REPLY_BUDGET)
     // What the reply says to do about the cut works: following it reaches every item once.
     expect(first.out.next).toContain('cursor set to next_cursor')
@@ -123,6 +130,8 @@ describe('what applies, in the order of the question', () => {
     while (cursor) {
       const page = await agent({ question, cursor })
       expect(page.out.context!.map((i) => i.id).filter((id) => seen.includes(id))).toEqual([])
+      // What is written decides the state, so every page of the question says the same.
+      expect(page.out.status).toBe(first.out.status)
       seen.push(...page.out.context!.map((i) => i.id))
       cursor = page.out.next_cursor
     }

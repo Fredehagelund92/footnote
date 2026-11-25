@@ -485,16 +485,20 @@ export function* lookUp(
   yield step({ step: 'left_out', ms: lap(), leftOut, more, forAnotherGroup })
   mark = now()
 
+  // What is written decides the state, the items past the limit too (answer-state.ts).
   const uncovered = scope
     ? uncoveredParts(
         bundle,
         scope,
-        given.map((g) => ({ item: g.item, match: g.match.match })),
+        matched.map((g) => ({ item: g.item, match: g.match.match })),
       )
     : { metrics: [], values: [] }
   const state = answerStateOf({
     status: resolution.status,
-    items,
+    items: [
+      ...items,
+      ...matched.slice(given.length).map((g) => ({ match: g.match.match, unverified: false })),
+    ],
     uncovered,
     assumed: assumed !== null,
   })

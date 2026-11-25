@@ -24,7 +24,7 @@ import {
 import { aboutBusinessBlock } from '../../../domain/about-business.ts'
 import { ACTIONS_SHOWN, isActionId, type ActionOffer } from '../../../domain/actions.ts'
 import type { AnswerState } from '../../../domain/answer-state.ts'
-import { LOOP_READS } from '../../../domain/ask-chat.ts'
+import { LOOP_READS, LOOP_REPLY } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
 import { dateNote, periodWords, windowWords, type ChosenPeriod } from '../../../domain/dates.ts'
 import { personInstead, personSaid, refusalOffers } from '../../../domain/say.ts'
@@ -299,6 +299,11 @@ export type MadeRead = {
   result: unknown
   ref?: string
   call?: string
+  /**
+   * Where the turn's last prompt sent its call: the place of that step among the prompt's own
+   * steps, and the words the model wrote in it before its calls. A follow-up sends it again so.
+   */
+  sentIn?: { step: number; words: string }
 }
 
 const isToolName = (name: string): name is AskToolName =>
@@ -522,17 +527,22 @@ const questionMessage = (question: string): ModelMessage => ({
 /** The id a turn's read is sent by in the chat's later turns: `chat<turn>_<n>`, its place. */
 const chatCallId = (turn: number, n: number) => `chat${turn}_${n}`
 
+/** The reads the next turn sends back: those that read something, the latest. */
+const keptOf = (made: readonly MadeRead[]) =>
+  made.filter((m) => !isError(m.result)).slice(-LOOP_READS)
+
 /**
  * This turn's reads under the ids the next turn sends them by (`chatCallId`), so the next turn's
  * messages start with the same bytes as this turn's last step and its prompt cache holds. A read
- * that came back an error is not sent again, so it keeps the model's own id.
+ * the next turn does not send again, one that came back an error or an older one past
+ * `LOOP_READS`, keeps the model's own id.
  */
 function asSentLater(
   messages: readonly ModelMessage[],
   made: readonly MadeRead[],
   turn: number,
 ): ModelMessage[] {
-  const sent = made.filter((m) => !isError(m.result))
+  const sent = keptOf(made)
   const idOf = (call: string) => {
     const n = sent.findIndex((m) => m.call === call)
     return n >= 0 ? chatCallId(turn, n) : call
@@ -558,31 +568,41 @@ function chatMessages(
   return turns.flatMap((t, turn): ModelMessage[] => {
     const reads = earlier.filter((e) => e.turn === turn)
     const call = (e: (typeof reads)[number]) => chatCallId(turn, e.n)
+    // The turn's reads step by step, each with the words its model wrote before it, as sent.
+    const steps = [...new Set(reads.map((e) => e.read.step))].map((step) =>
+      reads.filter((e) => e.read.step === step),
+    )
     return [
       questionMessage(t.question),
-      ...(reads.length
-        ? ([
+      ...steps.flatMap(
+        (step) =>
+          [
             {
               role: 'assistant',
-              content: reads.map((e) => ({
-                type: 'tool-call' as const,
-                toolCallId: call(e),
-                toolName: e.read.tool,
-                // The period the person chose is the service's, never the model's input (R12).
-                input: withoutChosen(e.read.input),
-              })),
+              content: [
+                ...(step[0]!.read.before
+                  ? [{ type: 'text' as const, text: step[0]!.read.before }]
+                  : []),
+                ...step.map((e) => ({
+                  type: 'tool-call' as const,
+                  toolCallId: call(e),
+                  toolName: e.read.tool,
+                  // The period the person chose is the service's, never the model's input (R12).
+                  input: withoutChosen(e.read.input),
+                })),
+              ],
             },
             {
               role: 'tool',
-              content: reads.map((e) => ({
+              content: step.map((e) => ({
                 type: 'tool-result' as const,
                 toolCallId: call(e),
                 toolName: e.read.tool,
                 output: { type: 'json' as const, value: withRef(e.ref, e.result) as never },
               })),
             },
-          ] satisfies ModelMessage[])
-        : []),
+          ] satisfies ModelMessage[],
+      ),
       { role: 'assistant', content: earlierReply(t, known) || '(No reply.)' },
     ]
   })
@@ -901,6 +921,7 @@ export async function* askLoop(
       const given = { ...asked, period: input.period }
       const result = await reads.one('get_context', given, {
         lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+        question: input.question,
       })
       const read: MadeRead = {
         tool: 'get_context',
@@ -948,6 +969,8 @@ export async function* askLoop(
         ] satisfies ModelMessage[])
       : []),
   ]
+  // The last prompt the model was sent, as the next turn will send it again (markSent).
+  let lastSent: readonly ModelMessage[] = messages
   const meter = deps.limits
     ? createCallMeter({
         database: deps.database,
@@ -1058,8 +1081,9 @@ export async function* askLoop(
         const stop = await spendStop(now)
         if (stop) throw new SpendLimitStop(stop)
         // The last step reads nothing: it answers from what was read.
+        lastSent = asSentLater(now, made, turns.length)
         return {
-          messages: cachedThrough(asSentLater(now, made, turns.length), choice.cacheBreakpoint),
+          messages: cachedThrough(lastSent, choice.cacheBreakpoint),
           ...(stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}),
         }
       },
@@ -1115,6 +1139,7 @@ export async function* askLoop(
       } else if (part.type === 'error') throw part.error
     }
     const modelSteps = await result.steps
+    markSent(made, lastSent, turns.length)
     const last = modelSteps.at(-1)
     const again = earlier.map(readOf)
     deps.onTurn?.(made, again)
@@ -1225,12 +1250,42 @@ const stoppedTurn = (
   ...noBody,
 })
 
-/** What the next turn sends back of this one's reads: those that read something, the latest. */
-const readsBack = (made: readonly MadeRead[]): LoopRead[] =>
-  made
-    .filter((m) => !isError(m.result))
-    .slice(-LOOP_READS)
-    .map(({ tool: t, input }) => ({ tool: t, input }))
+/**
+ * What the next turn sends back of this one's reads: those that read something, the latest, each
+ * with its step among them and, on a step's first, the words the model wrote before it.
+ */
+function readsBack(made: readonly MadeRead[]): LoopRead[] {
+  let step = -1
+  let at: number | undefined = Number.NaN
+  return keptOf(made).map(({ tool: t, input, sentIn }) => {
+    const first = sentIn?.step !== at
+    if (first) {
+      step += 1
+      at = sentIn?.step
+    }
+    const words = first && sentIn && sentIn.words.length <= LOOP_REPLY ? sentIn.words : ''
+    return { tool: t, input, step, ...(words ? { before: words } : {}) }
+  })
+}
+
+/**
+ * Where the turn's last prompt sent each kept read (`sentIn`): its step among the prompt's own,
+ * found by the id the read went under, and that step's words before its calls.
+ */
+function markSent(made: readonly MadeRead[], sent: readonly ModelMessage[], turn: number) {
+  const steps = sent.flatMap((m) =>
+    m.role === 'assistant' && Array.isArray(m.content) ? [m.content] : [],
+  )
+  keptOf(made).forEach((read, n) => {
+    const id = chatCallId(turn, n)
+    const step = steps.findIndex((parts) =>
+      parts.some((part) => part.type === 'tool-call' && part.toolCallId === id),
+    )
+    if (step < 0) return
+    const words = steps[step]!.flatMap((part) => (part.type === 'text' ? [part.text] : [])).join('')
+    read.sentIn = { step, words }
+  })
+}
 
 const questionTurn = (
   asked: z.infer<typeof askBackInput>,

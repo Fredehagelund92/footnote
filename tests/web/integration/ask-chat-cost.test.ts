@@ -102,14 +102,24 @@ describe('a long chat in Ask', () => {
   2026): the earlier question with its language note, and its reads under the ids the follow-up
   sends them by. So the provider reads them from its prompt cache instead of writing them again:
   a follow-up that read nothing cost USD 0.022 with them written again, USD 0.0048 with them read.
+  Each read goes back with its step and the words the model wrote before it, as models mostly do
+  ("I'll look up ..."), so a turn that read in two steps is sent again in two.
 */
 describe('a follow-up in Ask', () => {
   const prompts: LanguageModelV4Prompt[] = []
   const capture = scriptedLoopChoice('chat-prefix', ({ question, results, prompt }) => {
     prompts.push(structuredClone(prompt))
-    return results.length || question === 'Who owns it?'
-      ? { text: 'What is written is listed under the answer, with who checked it and when.' }
-      : { calls: [{ toolName: 'get_context', input: { about: question } }] }
+    if (question === 'Who owns it?' || results.length > 1)
+      return { text: 'What is written is listed under the answer, with who checked it and when.' }
+    return results.length
+      ? {
+          text: 'And what else is written about it.',
+          calls: [{ toolName: 'find_context', input: { words: question } }],
+        }
+      : {
+          text: 'Looking up what is written.',
+          calls: [{ toolName: 'get_context', input: { about: question } }],
+        }
   })
   const captured: ModelChoice = { ...capture, prices: sonnet.prices }
   const port: ModelPort = { ...live, choose: () => captured, otherLine: () => captured }
@@ -131,8 +141,8 @@ describe('a follow-up in Ask', () => {
     const followUp = await api.ask({ question: 'Who owns it?', turns })
     expect(followUp.stopped).toBeUndefined()
     const next = sent(prompts[from]!)
-    // The read the first turn made, then its words: the follow-up adds to what was sent.
-    expect(last.length).toBeGreaterThan(2)
+    // The two steps the first turn read in, then its words: the follow-up adds to what was sent.
+    expect(last.length).toBeGreaterThan(4)
     expect(next.slice(0, last.length)).toEqual(last)
   }, 120_000)
 })

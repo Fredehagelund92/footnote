@@ -109,7 +109,7 @@ Dates in `window` include both ends: `window.from` and `window.to`. A question w
 
 The items come in one order, the one Ask reads too: first those whose title, summary or `not_to_conclude` line hold the question's own words (the words that name no metric, value or domain), a rarer word weighing more; then whole matches, higher risk and newer start.
 
-`max_items` is 10 by default and 50 at most. When more apply, `next_cursor` passed back as `cursor` with the same question gives the next ones. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. Cursors end when what agents read changes.
+`max_items` is 10 by default and 50 at most. When more apply, `next_cursor` passed back as `cursor` with the same question gives the next ones. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. A cursor ends when what agents read changes, and on the next day: start again without a cursor.
 
 A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). `read_as` says which words were read so.
 

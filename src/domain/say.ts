@@ -430,7 +430,7 @@ function unreadNext(unread: readonly UnreadSaid[], voice: Voice) {
           `If the person meant ${list(
             [...new Set(named.flatMap((w) => w.closest.slice(0, 3)))],
             'or',
-          )}, call again with it in metrics; ask them when it is unclear, and never read it as one yourself.`,
+          )}, call again with that name in the question; ask them when it is unclear, and never read it as one yourself.`,
         ]
       : []),
     ...(none.length
@@ -458,8 +458,10 @@ export function unreadSaid(
     return { say: `${notLookedUp} ${contestedQuestion(ask, bundle)}`, next: contestedNext(ask) }
   }
   // A question that names nothing says its words that could have, one by one, not a metric it
-  // never named.
-  const named = unread.length ? issues.filter((issue) => issue.field !== 'scope') : issues
+  // never named: that issue alone goes, never one about a name it did give, such as a member.
+  const named = unread.length
+    ? issues.filter((issue) => !(issue.field === 'scope' && issue.message === undefined))
+    : issues
   if (unread.length)
     return {
       say: [

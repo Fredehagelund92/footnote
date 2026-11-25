@@ -157,7 +157,7 @@ const apart = (text: string, run: readonly { start: number; end: number }[]) =>
  * The names of two words or more a normalised text holds in another form or order ("customers
  * active" for Active customers, "margins gross"), read before whole names, as a longer phrase is:
  * so "customers" alone is not read as the Customers group there. A run that is a name as written is
- * left to the reader of whole names.
+ * left to the reader of whole names, with every word of it.
  */
 export function looseForms(
   text: string,
@@ -179,7 +179,12 @@ export function looseForms(
           .sort()
           .join(' '),
       )
-      if (v.exact.has(words) || keys?.size !== 1) continue
+      // A name as written is the whole-name reader's, words and all: no form is read inside it.
+      if (v.exact.has(words)) {
+        for (let k = i; k < i + size; k++) used.add(k)
+        continue
+      }
+      if (keys?.size !== 1) continue
       for (let k = i; k < i + size; k++) used.add(k)
       found.push({
         start: run[0]!.start,
