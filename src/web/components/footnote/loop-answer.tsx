@@ -1728,7 +1728,7 @@ function Overview({
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
                 <span>{g.name}</span>
-                <span className="rounded-md bg-muted px-1.5 text-xs font-medium tabular-nums">
+                <span className="cursor-default rounded-md bg-muted px-1.5 text-xs font-medium tabular-nums">
                   {g.count.toLocaleString('en-GB')}
                 </span>
               </h3>
@@ -1845,7 +1845,7 @@ function StateRow({
   const shown = (() => {
     if (loop.kind === 'stopped')
       return (
-        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+        <p className="flex w-fit cursor-default items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
           <P.CircleStopIcon aria-hidden className="size-4" />
           Stopped
         </p>
@@ -1861,7 +1861,7 @@ function StateRow({
       )
     if (!loop.state && loop.help?.length)
       return (
-        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+        <p className="flex w-fit cursor-default items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
           <P.BookOpenIcon aria-hidden className="size-4" />
           From {P.PRODUCT}&apos;s help
         </p>
@@ -1870,7 +1870,7 @@ function StateRow({
       return loop.reads.some((r) =>
         ['records', 'agent_questions', 'inbox', 'conflicts'].includes(r.tool),
       ) && !loop.overview ? (
-        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+        <p className="flex w-fit cursor-default items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
           <P.TableIcon aria-hidden className="size-4" />
           From {P.PRODUCT}&apos;s records
         </p>
