@@ -3,8 +3,8 @@ title: Ask a question
 line: Ask about a number, read how the answer was made, ask again at other dates, and tell the owner what is missing.
 group: Ask
 order: 1
-minutes: 6
-reviewed: 2026-11-24
+minutes: 7
+reviewed: 2026-11-25
 open:
   label: Open Ask
   href: /ask
@@ -75,3 +75,14 @@ The owners of a domain and admins can save a question, so it is answered again a
 ## Your chats
 
 **History** lists your chats, newest first, with a search. Each new chat is a row of its own, even when it asks a question you asked before. Only you see them. They are kept in this browser and go when you sign out: [Privacy](privacy.md).
+
+## Share a chat
+
+1. Open the chat, and press Share chat at the top of Ask.
+2. The panel beside it makes the link. Press Copy link, and paste it where you like.
+
+The link keeps a copy of the whole chat as it is now, under your name: each question, what Ask read, the answer line, the words and the sources. An answer that rests on a draft is left out, and no figure is kept. Later answers are not added, so share the chat again for a new link.
+
+Only people signed in to your workspace can open it. Each source opens as it is today, and only for people who may read it. Where someone may not read a source, they see only the question and its answer line, not the words or what Ask read.
+
+A link lasts 90 days. In History, a shared chat says until when. Press Stop sharing there, and the link opens nothing. A link whose chat is no longer in this browser is listed under Shared links. An admin can turn sharing off for everyone.

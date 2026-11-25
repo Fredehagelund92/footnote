@@ -63,7 +63,6 @@ function mount(draft: boolean) {
         answer: answer as never,
         copyText: 'text',
         facts: [],
-        answerId: 'a',
         draft,
         wrong: false,
         onWrong: () => {},

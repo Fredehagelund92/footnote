@@ -47,6 +47,12 @@ Draft from text opens the public page a pasted link points to. Three settings go
 
 The limits are counted in the database, so every service process keeps the same ones. The count keeps who and when, never an address, for two days. What the reader refuses, and why it never uses a proxy, is in [Links people paste](run-in-production.md#links-people-paste).
 
+## Shared chats
+
+A person can share an Ask chat as a link: a copy of each turn's question, what Ask read, its answer line, its words and its sources, under their name. Only people signed in open it, and each source shows only to those who may read it. A link lasts 90 days, and its sender stops it from History.
+
+`ask.share_chats` is on as installed, and Settings, Advanced, Shared chats turns it off. Off, no link is made and none opens, the ones already made too. A link pasted into another tool shows only "A chat from Footnote".
+
 ## Switch a tool off for every agent
 
 `POST /tools/{tool}` takes `{ enabled, reason }`. To do it for one agent, use [its Details](help/connect-an-agent.md#the-tools-each-agent-may-call).

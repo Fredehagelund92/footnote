@@ -142,7 +142,6 @@ export {
   PlusIcon,
   PrinterIcon,
   QuoteIcon,
-  ReceiptTextIcon,
   Redo2,
   RefreshCwIcon,
   RemoveFormatting,

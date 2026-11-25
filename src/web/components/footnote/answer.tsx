@@ -11,7 +11,6 @@ import {
   FlagIcon,
   PencilIcon,
   RefreshCwIcon,
-  ShareIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from '@/components/icons'
@@ -23,7 +22,6 @@ import type { RatingChain, Verdict } from '@/components/footnote/answer-rating'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { asksWhatItIs } from '@domain/scope'
-import { SharePopover } from '@/components/footnote/share-answer'
 import { loopParts } from '@/components/footnote/loop-parts'
 import { today } from '@/lib/today'
 import { dateLabel } from '@/model/validity'
@@ -1387,9 +1385,7 @@ function ContextAnswerBody({
             answer={answer}
             copyText={copyText}
             facts={facts}
-            answerId={key}
             draft={!!draft}
-            docked={docked}
             latest={latest}
             onRetry={onRetry}
             wrong={wrong}
@@ -1424,16 +1420,15 @@ function useRating(answer: Answer) {
 
 /**
  * One row of icons under a finished answer: Copy, Good, Bad, Ask again on the chat's last answer,
- * and More with the rest (Something wrong?, Save question, Share). The last answer always shows
- * them; an earlier one on hover or focus, and always on a touch screen.
+ * and More with the rest (Something wrong?, Save question). The last answer always shows them; an
+ * earlier one on hover or focus, and always on a touch screen. A chat is shared whole, from the
+ * chat's header (FR-721), never one answer.
  */
 export function AnswerActions({
   answer,
   copyText,
   facts,
-  answerId,
   draft,
-  docked,
   latest,
   onRetry,
   wrong,
@@ -1444,9 +1439,7 @@ export function AnswerActions({
   /** What Copy copies: the words on screen, the definition first when it leads. */
   copyText: string
   facts: Fact[]
-  answerId: string
   draft: boolean
-  docked?: boolean
   latest?: boolean
   onRetry?: () => void
   wrong: boolean
@@ -1462,10 +1455,9 @@ export function AnswerActions({
   const canSave = me.admin || me.owns.includes(saveDomain)
   // What More opened that needs a card of its own, beside the More button.
   const more = React.useRef<HTMLButtonElement>(null)
-  const [opened, setOpened] = React.useState<'save' | 'share' | null>(null)
-  const stated = !draft && !!answer.state && answer.state !== 'failed'
-  const save = stated && canSave
-  const hasMore = canReport || save || stated
+  const [opened, setOpened] = React.useState<'save' | null>(null)
+  const save = !draft && !!answer.state && answer.state !== 'failed' && canSave
+  const hasMore = canReport || save
   // A check that did not run has its own Ask again above, and nothing to rate, copy or report.
   if (answer.state === 'failed' && !copyText && !hasMore) return null
   return (
@@ -1553,15 +1545,6 @@ export function AnswerActions({
                 Save question
               </DropdownMenuItem>
             )}
-            {/* The answer travels with its state and its sources: beside it in the right panel. */}
-            {stated && (
-              <DropdownMenuItem
-                onClick={() => (docked ? setOpened('share') : openDock('share', answerId))}
-              >
-                <ShareIcon />
-                Share
-              </DropdownMenuItem>
-            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -1573,9 +1556,6 @@ export function AnswerActions({
           from={more}
           onClose={() => setOpened(null)}
         />
-      )}
-      {opened === 'share' && (
-        <SharePopover answer={answer} facts={facts} from={more} onClose={() => setOpened(null)} />
       )}
     </div>
   )

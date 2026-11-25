@@ -69,6 +69,18 @@ server {
         try_files $uri =404;
     }
 
+    # A shared chat's link (FR-721) is a page of the app whose title says only what it is: a tool
+    # that unfurls a pasted link reads it without signing in, and learns nothing of the chat. The
+    # title is filled in as the page goes out, so it is never served from its gzipped copy.
+    location /shared/ {
+        include /etc/nginx/footnote/security-headers.conf;
+        add_header Cache-Control "no-cache" always;
+        gzip_static off;
+        sub_filter_once on;
+        sub_filter '<title>' '<title>A chat from ';
+        try_files /index.html =404;
+    }
+
     # Every other address is a page of the app, which says itself when it does not know one.
     location / {
         include /etc/nginx/footnote/security-headers.conf;

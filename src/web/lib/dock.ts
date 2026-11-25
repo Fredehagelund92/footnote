@@ -16,7 +16,7 @@ export const DOCK_TITLE: Record<DockKind, string> = {
   ask: 'Ask',
   try: 'Try it',
   topic: 'Answer',
-  share: 'Share this answer',
+  share: 'Share chat',
   where: 'Where it says that',
   conflict: 'Conflict',
 }

@@ -417,7 +417,7 @@ test.describe('on a phone', () => {
   })
 })
 
-test('More holds Something wrong?, Save question and Share; an earlier answer shows its row on hover', async ({
+test('More holds Something wrong? and Save question; an earlier answer shows its row on hover', async ({
   page,
 }) => {
   await go(page, `/ask?n=${Date.now()}`)
@@ -434,11 +434,8 @@ test('More holds Something wrong?, Save question and Share; an earlier answer sh
   const more = last.getByRole('button', { name: 'More' })
   await more.click()
   const menu = page.getByRole('menu')
-  await expect(menu.getByRole('menuitem')).toHaveText([
-    'Something wrong?',
-    'Save question',
-    'Share',
-  ])
+  // A chat is shared whole, from Ask's header (J121): no answer has a Share of its own.
+  await expect(menu.getByRole('menuitem')).toHaveText(['Something wrong?', 'Save question'])
   await menu.getByRole('menuitem', { name: 'Save question' }).click()
   const save = page.getByRole('dialog').filter({ hasText: 'Should answer from' })
   await expect(save).toBeVisible()

@@ -168,6 +168,12 @@ export function linkReadingOf(settings: readonly Setting[]): Advanced['links'] {
   }
 }
 
+/** Whether people may share an Ask chat as a link, from the settings as read. */
+export function chatSharingOf(settings: readonly Setting[]): Advanced['sharing'] {
+  const on = settings.find((s) => s.key === 'ask.share_chats')
+  return on ? { on: on.value !== false, version: on.version } : null
+}
+
 /** Drafts and terms deleted for good, newest first, each with who deleted it and when. */
 export function deletedOf(
   drafts: readonly DeletedDraft[],

@@ -101,6 +101,9 @@ export const queryKeys = {
   askedWeek: ['askedThisWeek'] as const,
   chats: ['listChats'] as const,
   myReports: ['getMyReports'] as const,
+  chatShares: ['getChatShares'] as const,
+  sharedChat: (id: string) => ['getSharedChat', id] as const,
+  sharedChats: ['getSharedChat'] as const,
 }
 
 export const sessionQuery = () =>
@@ -365,6 +368,14 @@ export const chatsQuery = () =>
 /** The person's own reports from Ask, with what the owners did after each. */
 export const myReportsQuery = () =>
   queryOptions({ queryKey: queryKeys.myReports, queryFn: () => api.getMyReports() })
+
+/** Whether chats may be shared now, and the person's own live links (FR-721). */
+export const chatSharesQuery = () =>
+  queryOptions({ queryKey: queryKeys.chatShares, queryFn: () => api.getChatShares() })
+
+/** A shared chat as the person signed in opens it. */
+export const sharedChatQuery = (id: string) =>
+  queryOptions({ queryKey: queryKeys.sharedChat(id), queryFn: () => api.getSharedChat({ id }) })
 
 /** What a question is read as: the same words always read the same, so it is kept. */
 export const readQuestionQuery = (question: string) =>
@@ -653,6 +664,8 @@ export const invalidations: {
   saveView: () => [queryKeys.savedViews],
   saveChat: () => [queryKeys.chats],
   reportAnswer: () => [queryKeys.myReports, ...inbox],
+  shareChat: () => [queryKeys.chatShares],
+  stopSharing: () => [queryKeys.chatShares, queryKeys.sharedChats],
   // Feedback counts the ratings.
   rateAnswer: () => [queryKeys.observabilityPages],
   takeBackRating: () => [queryKeys.observabilityPages],
@@ -661,6 +674,12 @@ export const invalidations: {
   setPause: () => [queryKeys.settings, queryKeys.advancedPage],
   setAutomaticRuns: () => [queryKeys.settings, queryKeys.advancedPage],
   setLinkReading: () => [queryKeys.settings, queryKeys.advancedPage],
+  setChatSharing: () => [
+    queryKeys.settings,
+    queryKeys.advancedPage,
+    queryKeys.chatShares,
+    queryKeys.sharedChats,
+  ],
   setNeverReadHosts: () => [queryKeys.settings, queryKeys.advancedPage],
   // A new key is listed on Connected agents; the history log notes it.
   createAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],

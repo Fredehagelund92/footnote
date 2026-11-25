@@ -257,11 +257,11 @@ Avatars are a soft pastel tint picked from the person's name (dark initials, 6.4
 
 One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `ask`, `try`, `topic`, `share`, `where`.
 
-| Dock                                                    | Width |
-| ------------------------------------------------------- | ----- |
-| Ask, a context or definition peek, Try it, Share, Where | 480   |
-| The answer panel of a topic                             | 560   |
-| A review's quick view                                   | 720   |
+| Dock                                                         | Width |
+| ------------------------------------------------------------ | ----- |
+| Ask, a context or definition peek, Try it, Share chat, Where | 480   |
+| The answer panel of a topic                                  | 560   |
+| A review's quick view                                        | 720   |
 
 Resizable from 400 to 960 px, and the page keeps at least 360 px. The width is kept for the browser session. On a phone it is full screen. The review itself is a full-screen page with the sidebar folded to its rail.
 
@@ -298,7 +298,7 @@ One density. Rows are 36 px, the table header band is 36 px and sticky. There is
 1. **Frame.** An 80rem square frame with a 24 px gutter, a header row per section divided by hairlines, and tables edge to edge with the thin header band. Settings, Integrations, the Inbox list and Observability use it (`components/footnote/frame.tsx`).
 2. **Document editor shell.** The page header, the formatting toolbar as a fixed 40 px row, the tinted canvas with the 56rem sheet as the only scroller, an optional side panel, and one footer bar. The context editor, the term editor, About our business and a domain all use it (`document-shell.tsx`).
 3. **Inbox mail layout.** A list in the middle and a detail pane at the right, resizable. The dock takes the pane's place.
-4. **Ask thread.** A 44rem thread with history on the left (a sheet on a phone) and the composer docked under a hairline, on the empty thread too. The composer is one surface: the words, then a 44 px row with @ on the left and a 28 px Send on the right, with no hairline between and no keys written in it (they are in Send's tooltip). Stop takes Send's place until the last word of an answer shows. Under each answer, its sources are numbered chips with what was looked up beside them, then one row of icons (Copy, Good, Bad, Ask again on the last answer, and More with Something wrong?, Save question and Share), always on the last answer and on hover or focus for the earlier ones. Suggestion chips show only on the empty thread, before the first message; once a message is sent, nothing in the thread suggests a question to ask.
+4. **Ask thread.** A 44rem thread with history on the left (a sheet on a phone) and the composer docked under a hairline, on the empty thread too. The composer is one surface: the words, then a 44 px row with @ on the left and a 28 px Send on the right, with no hairline between and no keys written in it (they are in Send's tooltip). Stop takes Send's place until the last word of an answer shows. Under each answer, its sources are numbered chips with what was looked up beside them, then one row of icons (Copy, Good, Bad, Ask again on the last answer, and More with Something wrong? and Save question), always on the last answer and on hover or focus for the earlier ones. Share chat, in the header once the chat has an answer, shares the whole chat as one link. Suggestion chips show only on the empty thread, before the first message; once a message is sent, nothing in the thread suggests a question to ask.
 5. **Full-screen review.** The queue, the change, and the decision and Try it on the right, inside the app with the sidebar folded.
 
 ## 4. Components

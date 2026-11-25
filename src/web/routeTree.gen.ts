@@ -26,6 +26,7 @@ import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox.index'
 import { Route as AppObservabilityIndexRouteImport } from './routes/_app/observability.index'
 import { Route as AppObservabilitySectionRouteImport } from './routes/_app/observability.$section'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
+import { Route as AppSharedIdRouteImport } from './routes/_app/shared.$id'
 import { Route as AppContextIdIndexRouteImport } from './routes/_app/context.$id.index'
 import { Route as AppContextIdEditRouteImport } from './routes/_app/context.$id.edit'
 import { Route as AppContextIdSuggestRouteImport } from './routes/_app/context.$id.suggest'
@@ -135,6 +136,13 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_app/settings.index.lazy').then((d) => d.Route),
 )
+const AppSharedIdRoute = AppSharedIdRouteImport.update({
+  id: '/shared/$id',
+  path: '/shared/$id',
+  getParentRoute: () => AppRoute,
+} as any).lazy(() =>
+  import('./routes/_app/shared.$id.lazy').then((d) => d.Route),
+)
 const AppContextIdIndexRoute = AppContextIdIndexRouteImport.update({
   id: '/context/$id/',
   path: '/context/$id/',
@@ -224,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/context/new': typeof AppContextNewRoute
   '/definitions/new': typeof AppDefinitionsNewRoute
   '/observability/$section': typeof AppObservabilitySectionRoute
+  '/shared/$id': typeof AppSharedIdRoute
   '/context/': typeof AppContextIndexRoute
   '/definitions/': typeof AppDefinitionsIndexRoute
   '/inbox/': typeof AppInboxIndexRoute
@@ -252,6 +261,7 @@ export interface FileRoutesByTo {
   '/context/new': typeof AppContextNewRoute
   '/definitions/new': typeof AppDefinitionsNewRoute
   '/observability/$section': typeof AppObservabilitySectionRoute
+  '/shared/$id': typeof AppSharedIdRoute
   '/context': typeof AppContextIndexRoute
   '/definitions': typeof AppDefinitionsIndexRoute
   '/inbox': typeof AppInboxIndexRoute
@@ -282,6 +292,7 @@ export interface FileRoutesById {
   '/_app/context/new': typeof AppContextNewRoute
   '/_app/definitions/new': typeof AppDefinitionsNewRoute
   '/_app/observability/$section': typeof AppObservabilitySectionRoute
+  '/_app/shared/$id': typeof AppSharedIdRoute
   '/_app/context/': typeof AppContextIndexRoute
   '/_app/definitions/': typeof AppDefinitionsIndexRoute
   '/_app/inbox/': typeof AppInboxIndexRoute
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/context/new'
     | '/definitions/new'
     | '/observability/$section'
+    | '/shared/$id'
     | '/context/'
     | '/definitions/'
     | '/inbox/'
@@ -340,6 +352,7 @@ export interface FileRouteTypes {
     | '/context/new'
     | '/definitions/new'
     | '/observability/$section'
+    | '/shared/$id'
     | '/context'
     | '/definitions'
     | '/inbox'
@@ -369,6 +382,7 @@ export interface FileRouteTypes {
     | '/_app/context/new'
     | '/_app/definitions/new'
     | '/_app/observability/$section'
+    | '/_app/shared/$id'
     | '/_app/context/'
     | '/_app/definitions/'
     | '/_app/inbox/'
@@ -516,6 +530,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/shared/$id': {
+      id: '/_app/shared/$id'
+      path: '/shared/$id'
+      fullPath: '/shared/$id'
+      preLoaderRoute: typeof AppSharedIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/context/$id/': {
       id: '/_app/context/$id/'
       path: '/context/$id'
@@ -596,6 +617,7 @@ interface AppRouteChildren {
   AppContextNewRoute: typeof AppContextNewRoute
   AppDefinitionsNewRoute: typeof AppDefinitionsNewRoute
   AppObservabilitySectionRoute: typeof AppObservabilitySectionRoute
+  AppSharedIdRoute: typeof AppSharedIdRoute
   AppContextIndexRoute: typeof AppContextIndexRoute
   AppDefinitionsIndexRoute: typeof AppDefinitionsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
@@ -620,6 +642,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContextNewRoute: AppContextNewRoute,
   AppDefinitionsNewRoute: AppDefinitionsNewRoute,
   AppObservabilitySectionRoute: AppObservabilitySectionRoute,
+  AppSharedIdRoute: AppSharedIdRoute,
   AppContextIndexRoute: AppContextIndexRoute,
   AppDefinitionsIndexRoute: AppDefinitionsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
