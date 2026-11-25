@@ -46,6 +46,7 @@ import {
   checkDraft,
   proposalEvent,
   readVersions,
+  rejectSensitive,
   type ProposalsService,
 } from '../proposals/index.ts'
 import { draftOf, type ReviewPath, type ReviewService } from '../review/index.ts'
@@ -869,6 +870,16 @@ export function createContextService(
       throw new ORPCError('BAD_REQUEST', {
         message: `The right words fit in ${limits.summary} characters, as a summary does.`,
       })
+    try {
+      rejectSensitive(summary)
+    } catch (error) {
+      if (error instanceof ORPCError && error.code === 'UNPROCESSABLE_CONTENT')
+        throw new ORPCError('UNPROCESSABLE_CONTENT', {
+          message: 'Take the email address, phone number or secret out of the right words.',
+          data: error.data,
+        })
+      throw error
+    }
     const [version] = await tx.query<{ id: string }>(
       `select v.id::text from item_versions v
         where v.item_id = $1 and v.version_no = $2

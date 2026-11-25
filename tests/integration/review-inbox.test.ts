@@ -1676,6 +1676,22 @@ describe('named reports from Ask (FR-622)', () => {
     expect(named.suggestion).toMatch(/^[0-9a-f-]{36}$/)
   })
 
+  it('refuses an email address in the right words in words for that field, and files nothing', async () => {
+    const before = (await mine('member')).length
+    const refused = await send('member', {
+      question: asked,
+      itemId: item,
+      part: 'item',
+      what: 'Gift cards are left out.',
+      correction: 'Latvia orders leave gift cards out, ask someone@example.com.',
+    })
+    expect(refused.statusCode).toBe(422)
+    expect(refused.json<{ message: string }>().message).toBe(
+      'Take the email address, phone number or secret out of the right words.',
+    )
+    expect((await mine('member')).length).toBe(before)
+  })
+
   it('takes right words for an item whose live version replaced another item', async () => {
     const old = await live({ title: 'Estonia orders count vouchers', ...inMarket('estonia') })
     const replacer = await live({
