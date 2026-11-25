@@ -359,11 +359,10 @@ describe('a later read', () => {
   }, 120_000)
 
   it('names an input no definition has by its name in the source, without the connector prefix', async () => {
-    const file = small()
-    const rate = file.metrics.find((m) => m.name === 'signup_rate')!
-    ;(rate.type_params as { numerator: { name: string } }).numerator.name = 'ghost_signups'
-    await commit(file)
-    await read()
+    await client.query(
+      `update definitions set built_from_refs = built_from_refs || array['dbt:partner_results.ghost_signups']
+        where ref = 'dbt:partner_results.signup_rate'`,
+    )
     const names = await treeNames('signup_rate')
     expect(names).toContain('partner_results.ghost_signups')
     expect(names.some((name) => name.startsWith('dbt:'))).toBe(false)
