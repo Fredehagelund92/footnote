@@ -101,6 +101,7 @@ export const policies = {
   'terms.history': 'read',
   'definitions.related': 'read',
   'definitions.relations': 'read',
+  'definitions.builtFrom': 'read',
   // What a family means: the service checks who owns its domain.
   'definitions.setFamilyMeaning': 'propose',
   'definitions.setFamilyUsual': 'propose',

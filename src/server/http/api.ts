@@ -1029,6 +1029,9 @@ export function createRouter({
       relations: authorized.definitions.relations.handler(async ({ input, context }) =>
         found(await context.catalogue.relations(input.key)),
       ),
+      builtFrom: authorized.definitions.builtFrom.handler(async ({ input, context }) =>
+        found(await context.catalogue.builtFrom(input.key)),
+      ),
       setFamilyMeaning: authorized.definitions.setFamilyMeaning.handler(({ input, context }) =>
         retryWrite(context.tx, idempotencyKey(context), 'definitions.setFamilyMeaning', input, () =>
           context.familyMeaning.set(input),
