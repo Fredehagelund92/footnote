@@ -2298,6 +2298,40 @@ export function describeFootnoteApi(
           link: 'https://wiki.example/norway-orders',
         })
         expect((await a.getMyReports())[0]?.id).toBe(itself.id)
+        // Only the right words for a source are a suggestion; the answer's wording keeps its words.
+        expect(id).toBeTypeOf('string')
+        expect(itself.suggestion).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'ask', 'reportAnswer', 'getInbox'))(
+      'sends the right words for a source as a suggestion on it, which waits for an owner',
+      async () => {
+        const a = await signedIn()
+        const answer = await a.ask({ question: 'Do Norway orders include gift-card money?' })
+        const item = answer.sources[0]!
+        const sent = await a.reportAnswer({
+          question: answer.question,
+          part: item,
+          sources: answer.sources,
+          what: 'Gift cards are paid out separately since October.',
+          correction: 'Norway orders leave gift cards out since 1 October 2026.',
+        })
+        expect(sent.suggestion).toBeTypeOf('string')
+        const inbox = await a.getInbox()
+        expect([...inbox.waiting.map((w) => w.card), ...inbox.sent.map((x) => x.id)]).toContain(
+          sent.suggestion,
+        )
+        // Words longer than a summary are refused, and nothing is sent.
+        await expect(
+          a.reportAnswer({
+            question: answer.question,
+            part: item,
+            sources: answer.sources,
+            what: 'Too long.',
+            correction: 'word '.repeat(80),
+          }),
+        ).rejects.toMatchObject({ kind: 'invalid' })
       },
     )
 

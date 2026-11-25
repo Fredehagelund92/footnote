@@ -56,10 +56,19 @@ vi.mock('@/api/queries', () => ({
     return Promise.resolve({ id: 'g1' })
   },
 }))
-vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
+vi.mock('@/lib/dock', () => ({
+  openDock: vi.fn(),
+  openFromButton: vi.fn(),
+  closeDock: vi.fn(),
+  useDock: () => null,
+}))
 // Reading items ahead needs the app's query cache, which a static drawing has not.
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
+vi.mock('@/lib/shown-answers', () => ({
+  answerKey: () => 'k',
+  keepShown: () => {},
+  useReportSent: () => false,
+}))
 vi.mock('@/lib/router', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   useRoute: () => ({ path: '/ask', query: new URLSearchParams() }),

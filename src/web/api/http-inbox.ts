@@ -278,6 +278,9 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           by: card.by ? person(card.by) : '',
           via: card.source === 'ask' ? 'Ask' : 'an agent',
           ...(card.question ? { question: card.question } : {}),
+          ...(card.correction ? { correction: card.correction } : {}),
+          ...(card.link ? { link: card.link } : {}),
+          ...(card.suggestion ? { suggestion: cardKey.proposal(card.suggestion) } : {}),
         },
       }
     }

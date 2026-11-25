@@ -151,6 +151,12 @@ export type InboxCard = {
     by: string
     via: string
     question?: string
+    /** The words it should say, as the sender wrote them. */
+    correction?: string
+    /** A link the sender gave, an http or https address. */
+    link?: string
+    /** The card of the suggestion the words became, while it waits for an owner. */
+    suggestion?: string
   }
   /** Raised by the saved-question alert: the questions that answer worse now, from Quality's one list. */
   look?: { questions: string[] }

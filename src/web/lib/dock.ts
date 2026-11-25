@@ -4,7 +4,17 @@ import { setQuery, useRoute } from '@/lib/router'
 // The dock's content lives in the address (?dock=kind.id), so Back closes it and every state has a link.
 
 export type DockKind =
-  'review' | 'context' | 'def' | 'family' | 'ask' | 'try' | 'topic' | 'share' | 'where' | 'conflict'
+  | 'review'
+  | 'context'
+  | 'def'
+  | 'family'
+  | 'ask'
+  | 'try'
+  | 'topic'
+  | 'share'
+  | 'report'
+  | 'where'
+  | 'conflict'
 export type DockState = { kind: DockKind; id?: string; width: number }
 
 /** Each dock's title, for its frame before its own content draws: while its code loads, or after it fails. */
@@ -17,6 +27,7 @@ export const DOCK_TITLE: Record<DockKind, string> = {
   try: 'Try it',
   topic: 'Answer',
   share: 'Share chat',
+  report: 'Something wrong?',
   where: 'Where it says that',
   conflict: 'Conflict',
 }
@@ -68,6 +79,7 @@ export function closeDock() {
   title, and closing it gives focus back to that row, unless the person has moved on to something else.
 */
 let fromRow: string | undefined
+let fromButton: HTMLElement | null = null
 let intoPanel = false
 
 /** Opens a list row's peek and takes focus into it. */
@@ -78,8 +90,16 @@ export function openFromRow(
 ) {
   const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
   fromRow = id
+  fromButton = null
   intoPanel = !already
   openDock(kind, id, extra)
+}
+
+/** Opens a panel from a button, which gets focus back when the panel closes. */
+export function openFromButton(kind: DockKind, id: string, from: HTMLElement | null) {
+  fromRow = undefined
+  fromButton = from
+  openDock(kind, id)
 }
 
 /** A panel that has just drawn asks once whether focus should go into it. */
@@ -89,12 +109,19 @@ export function takeDockFocus() {
   return take
 }
 
-/** After the dock has closed: focus is back on the row it opened from, if it was left with nothing. */
+/**
+ * After the dock has closed: focus is back on the row or the button it opened from, if it was left
+ * with nothing.
+ */
 export function returnFromDock() {
   const id = fromRow
+  const button = fromButton
   fromRow = undefined
+  fromButton = null
   intoPanel = false
-  if (!id || (document.activeElement && document.activeElement !== document.body)) return
+  if (document.activeElement && document.activeElement !== document.body) return
+  if (button?.isConnected) return button.focus({ preventScroll: true })
+  if (!id) return
   const rows = document.querySelectorAll<HTMLElement>('[data-row-open]')
   ;[...rows].find((r) => r.dataset.rowOpen === id)?.focus({ preventScroll: true })
 }

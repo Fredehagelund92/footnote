@@ -300,6 +300,7 @@ describe('the Inbox', () => {
       question: null,
       correction: null,
       link: null,
+      suggestion: null,
       items: [],
     }
     expect(inboxOf(feed([flag]), 'Jon Abara', domains, now).cards[0]).toMatchObject({
@@ -325,6 +326,7 @@ describe('the Inbox', () => {
       question: null,
       correction: null,
       link: null,
+      suggestion: null,
       items: [
         { id: 'itm_lag0001', title: 'Orders lags by one day in the source tool' },
         { id: 'itm_other01', title: 'Another item' },
@@ -355,6 +357,7 @@ describe('the Inbox', () => {
       question: 'Do Norway orders include gift-card money?',
       correction: null,
       link: null,
+      suggestion: null,
       items: [{ id: 'itm_gift0001', title: 'Norway orders count store credit' }],
     }
     const name = (id: string) => (id === 'per_maria' ? 'Maria Lindqvist' : 'Someone')
@@ -369,6 +372,32 @@ describe('the Inbox', () => {
         via: 'Ask',
         question: 'Do Norway orders include gift-card money?',
       },
+    })
+    expect(
+      inboxOf(feed([flag]), 'Jon Abara', domains, now, name).cards[0]?.flag,
+    ).not.toHaveProperty('correction')
+  })
+
+  it('gives the owners the right words and the link a report was sent with, and its suggestion', () => {
+    const flag: Card = {
+      ...base,
+      id: 'report:r2',
+      group: 'flag',
+      source: 'ask',
+      feedbackId: 'r2',
+      verdict: 'wrong',
+      note: 'Gift cards are paid out separately since October.',
+      by: 'per_maria',
+      question: 'Do Norway orders include gift-card money?',
+      correction: 'Norway orders leave gift cards out since October.',
+      link: 'https://wiki.example/norway-orders',
+      suggestion: 'b1c2d3e4-0000-4000-8000-000000000001',
+      items: [{ id: 'itm_gift0001', title: 'Norway orders count store credit' }],
+    }
+    expect(inboxOf(feed([flag]), 'Jon Abara', domains, now).cards[0]?.flag).toMatchObject({
+      correction: 'Norway orders leave gift cards out since October.',
+      link: 'https://wiki.example/norway-orders',
+      suggestion: 'proposal:b1c2d3e4-0000-4000-8000-000000000001',
     })
   })
   it('says since when a check is due, and who checked it last', () => {

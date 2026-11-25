@@ -3,8 +3,8 @@ import * as z from 'zod/mini'
 /**
  * Named reports (FR-622): a person tells the owner from Ask that an answer is wrong. It keeps what
  * they sent on purpose, with their name: the question, the part that is wrong (one context item of
- * the answer, or the answer itself, filed on its first item), what is wrong and, optionally, the
- * correct version and a link. Nothing else of the chat is kept. It reaches the owners of the item's
+ * the answer, or the answer's wording, filed on its first item), what is wrong and, optionally, the
+ * right words and a link. Nothing else of the chat is kept. It reaches the owners of the item's
  * domain as a Reported card, and its sender sees what they did with it back in the chat. Agents
  * never read reports.
  */
@@ -21,16 +21,26 @@ export const createReportSchema = z.strictObject({
   itemId: itemRef,
   part: z.enum(reportParts),
   what: words,
+  /**
+   * The right words. About one context item (`part: 'item'`), they are its summary as the person
+   * would write it, and go to its owners as a suggestion on the item too, which waits for an
+   * owner like any other: up to the summary's limit then.
+   */
   correction: z.optional(words),
   link: z.optional(z.string().check(z.trim(), z.maxLength(2000), z.regex(/^https?:\/\/\S+$/))),
 })
 export type CreateReport = z.infer<typeof createReportSchema>
 
 /**
- * A report as sent: its id and when. It does not say the words back, so a retry's stored answer
- * never keeps them: the words are only in the report.
+ * A report as sent: its id and when, and the suggestion its right words became, if they became
+ * one. It does not say the words back, so a retry's stored answer never keeps them: the words are
+ * only in the report and the suggestion.
  */
-export const sentReportSchema = z.object({ id: z.string(), at: z.string() })
+export const sentReportSchema = z.object({
+  id: z.string(),
+  at: z.string(),
+  suggestion: z.nullable(z.string()),
+})
 export type SentReport = z.infer<typeof sentReportSchema>
 
 /** What the owners did after a report, the first of them, and when. */
