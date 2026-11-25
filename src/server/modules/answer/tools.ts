@@ -297,14 +297,16 @@ async function viewOf(reads: ToolReads): Promise<View> {
 /** A term the person may see named: a metric or dimension Definitions shows them, and its values. */
 const isShown = (view: View, key: string) => {
   const term = view.bundle.terms.find((t) => t.key === key)
-  if (!term) return false
+  return term ? termShown(view, term) : false
+}
+const termShown = (view: View, term: ServingBundle['terms'][number]) => {
   if (term.kind === 'metric' || term.kind === 'dimension') return view.shown.has(term.key)
   if (term.kind === 'dimension_value') return !term.parentKey || view.shown.has(term.parentKey)
   return true
 }
 /** The terms a person may name: those shown, never a variant of a family, which only its family names. */
 const speakable = (view: View) => {
-  return view.bundle.terms.filter((t) => isShown(view, t.key) && !view.familyOf.has(t.key))
+  return view.bundle.terms.filter((t) => termShown(view, t) && !view.familyOf.has(t.key))
 }
 /**
  * What the names card lists (FR-718.8): only what the person may name. A family when Definitions
@@ -331,11 +333,11 @@ function namesCardInput(view: View): NamesCardInput {
     }
   const values = new Map<string, { name: string; uses: number }[]>()
   for (const t of terms)
-    if (t.kind === 'dimension_value' && t.parentKey)
-      values.set(t.parentKey, [
-        ...(values.get(t.parentKey) ?? []),
-        { name: t.name, uses: usesOf(t.key) },
-      ])
+    if (t.kind === 'dimension_value' && t.parentKey) {
+      const list = values.get(t.parentKey) ?? []
+      list.push({ name: t.name, uses: usesOf(t.key) })
+      values.set(t.parentKey, list)
+    }
   const groups = terms.filter((t) => t.kind === 'metric_group')
   return {
     metrics: metrics.map((t) => ({ name: t.name, aliases: t.aliases, uses: usesOf(t.key) })),

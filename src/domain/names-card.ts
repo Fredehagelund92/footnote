@@ -24,6 +24,22 @@ export type NamesCardInput = {
   domains: readonly Used[]
 }
 
+/** A name a person or a source tool wrote. */
+const NAME_MAX = 80
+
+/**
+ * A name as the card gives it: on one line, with no control character and no square bracket,
+ * which would pass for a mark of the answer's ([itm_...], [@metric:...]), and at most `NAME_MAX`
+ * characters. The card sits in the prompt beside the rules, so a name can never add a line there.
+ */
+const clean = (name: string) => {
+  const line = name
+    .replace(/[\p{Cc}\p{Zl}\p{Zp}\s]+/gu, ' ')
+    .replace(/[[\]]/g, '')
+    .trim()
+  return line.length > NAME_MAX ? `${line.slice(0, NAME_MAX - 1).trimEnd()}…` : line
+}
+
 const mostUsed = <T extends Used>(list: readonly T[]) =>
   [...list].sort((a, b) => b.uses - a.uses || a.name.localeCompare(b.name, 'en'))
 const count = (n: number) => n.toLocaleString('en-GB')
@@ -51,7 +67,19 @@ const sectionLine = (s: Section, shown: number) =>
  * domains, and then as many metrics as still fit. Each list cut says how many it holds, and the
  * card says it is cut.
  */
-export function namesCard(input: NamesCardInput, max = NAMES_CARD_MAX): string | null {
+export function namesCard(given: NamesCardInput, max = NAMES_CARD_MAX): string | null {
+  const named = <T extends Used>(list: readonly T[]) =>
+    list.map((x) => ({ ...x, name: clean(x.name) })).filter((x) => x.name)
+  const input: NamesCardInput = {
+    metrics: named(given.metrics).map((m) => ({
+      ...m,
+      aliases: m.aliases.map(clean).filter(Boolean),
+    })),
+    families: named(given.families).map((f) => ({ ...f, by: f.by.map(clean).filter(Boolean) })),
+    groups: named(given.groups),
+    dimensions: named(given.dimensions).map((d) => ({ ...d, values: named(d.values) })),
+    domains: named(given.domains),
+  }
   const metric = (aliases: boolean) => (m: NamesCardInput['metrics'][number]) =>
     aliases && m.aliases.length
       ? `${m.name} (also: ${m.aliases.slice(0, ALIASES_SHOWN).join(', ')})`
