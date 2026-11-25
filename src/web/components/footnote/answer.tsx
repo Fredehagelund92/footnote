@@ -1154,7 +1154,6 @@ function ContextAnswerBody({
   // A finished answer is kept by its key, so the right panel can share it, report it or show where
   // it says that.
   const note = answer.note
-  const key = answerKey(answer)
   React.useEffect(() => {
     if (finished && !draft) keepShown(key, { answer, facts })
   }, [finished, draft, key, answer, facts])
