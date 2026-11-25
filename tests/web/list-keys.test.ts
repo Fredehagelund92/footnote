@@ -106,6 +106,17 @@ describe('the list keys', () => {
     expect(onMove).toHaveBeenLastCalledWith('c', { panel: false })
   })
 
+  it('step through the order of a list that is not on screen', () => {
+    const onMove = vi.fn()
+    const NoList = () => {
+      useListKeys({ order: ['a', 'b', 'c'], current: 'a', onMove })
+      return null
+    }
+    draw(h(NoList))
+    expect(press('j', document.body)).toBe(true)
+    expect(onMove).toHaveBeenLastCalledWith('b', { panel: false })
+  })
+
   it('leave keys in a dock that shows something else to it', () => {
     const onMove = vi.fn()
     const host = draw([rows({ onMove, onEscape: () => true }), dock('A conflict')])

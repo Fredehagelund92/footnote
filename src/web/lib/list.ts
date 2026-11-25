@@ -64,7 +64,7 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
     !inList && !nowhere && (!!t.closest('[data-slot=dock]') || !!k.panel?.current?.contains(t))
   const go = (i: number, dir: 1 | -1) => {
     let n = Math.max(0, Math.min(ids.length - 1, i))
-    if (!inPanel && !k.reveal)
+    if (!inPanel && !k.reveal && stops.length > 0)
       while (ids[n] !== undefined && !stops.some((s) => s.dataset.rowOpen === ids[n])) n += dir
     const id = ids[n]
     if (id === undefined) return ids.length > 0 && !inPanel && !k.reveal
