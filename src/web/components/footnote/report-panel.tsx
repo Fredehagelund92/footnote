@@ -193,7 +193,10 @@ export function ReportForm({
   // Opened, focus goes to what is wrong, and an inline form scrolls into view.
   React.useEffect(() => {
     whatRef.current?.focus({ preventScroll: true })
-    if (!framed) form.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    if (!framed) form.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      })
   }, [framed])
 
   // Escape closes it while nothing is typed; typed words are never lost to a key.

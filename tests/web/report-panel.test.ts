@@ -53,6 +53,14 @@ const { ApiError } = await import('@/api/errors')
 beforeAll(() => {
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
   Element.prototype.scrollIntoView = () => {}
+  window.matchMedia ??= ((q: string) => ({
+    matches: false,
+    media: q,
+    addEventListener() {},
+    removeEventListener() {},
+    addListener() {},
+    removeListener() {},
+  })) as never
 })
 let root: Root | undefined
 let host: HTMLElement | undefined
@@ -211,14 +219,6 @@ describe('Something wrong?', () => {
   })
 
   it('shows a note instead of a fresh form for an answer already reported', async () => {
-    window.matchMedia ??= ((q: string) => ({
-      matches: false,
-      media: q,
-      addEventListener() {},
-      removeEventListener() {},
-      addListener() {},
-      removeListener() {},
-    })) as never
     keepShown('a1-key', { answer, facts: [fact] })
     markReportSent('a1-key')
     host = document.body.appendChild(document.createElement('div'))
