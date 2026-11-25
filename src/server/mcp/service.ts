@@ -1319,17 +1319,15 @@ export function createToolService(
           const shown = new Set(items.map((item) => item.id))
           return replyStatus({
             status: resolution.status,
-            items: items.length
-              ? [
-                  ...items.map((item) => ({
-                    match: item.match,
-                    unverified: item.freshness === 'unverified',
-                  })),
-                  ...resolution.items
-                    .filter((match) => !shown.has(match.id))
-                    .map((match) => ({ match: match.match, unverified: false })),
-                ]
-              : [],
+            items: [
+              ...items.map((item) => ({
+                match: item.match,
+                unverified: item.freshness === 'unverified',
+              })),
+              ...resolution.items
+                .filter((match) => !shown.has(match.id))
+                .map((match) => ({ match: match.match, unverified: false })),
+            ],
             uncovered: resolution.scope
               ? uncoveredParts(
                   bundle,

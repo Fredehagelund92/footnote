@@ -1293,6 +1293,24 @@ describe('get_context', () => {
     expect(checked.status).toBe('matched')
   })
 
+  it('says Partial on a reply that no item fits, as on the one it fits (every page the same)', async () => {
+    const s = setup()
+    s.data.terms.push({ ...s.data.terms[2]!, key: 'val:market/sweden', name: 'Sweden' })
+    s.data.items[0]!.summary = 'x'.repeat(3000)
+    const both = {
+      question: 'Orders in Norway and Sweden in August 2026',
+      metrics: ['Orders'],
+      dimension_filters: [{ dimension: 'Market', values: ['Norway', 'Sweden'] }],
+      window: { from: '2026-08-01', to: '2026-08-31' },
+    }
+    const fits = await s.call('get_context', both)
+    expect(fits.structuredContent.status).toBe('partial')
+    const none = (await s.call('get_context', { ...both, max_bytes: byteSize(fits) - 2000 }))
+      .structuredContent as { status: string; context: unknown[] }
+    expect(none.context).toHaveLength(0)
+    expect(none.status).toBe('partial')
+  })
+
   it('says Conflict and names the item each one disagrees with (FR-350)', async () => {
     const s = setup()
     s.data.items[0]!.conflicts = ['itm_norway02']

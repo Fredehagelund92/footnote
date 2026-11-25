@@ -527,22 +527,24 @@ const questionMessage = (question: string): ModelMessage => ({
 /** The id a turn's read is sent by in the chat's later turns: `chat<turn>_<n>`, its place. */
 const chatCallId = (turn: number, n: number) => `chat${turn}_${n}`
 
-/** The reads the next turn sends back: those that read something, the latest. */
-const keptOf = (made: readonly MadeRead[]) =>
-  made.filter((m) => !isError(m.result)).slice(-LOOP_READS)
+/** This turn's reads that read something, in the order made: `chatCallId` numbers them so. */
+const readOk = (made: readonly MadeRead[]) => made.filter((m) => !isError(m.result))
+
+/** The reads the next turn sends back: the latest of those that read something. */
+const keptOf = (made: readonly MadeRead[]) => readOk(made).slice(-LOOP_READS)
 
 /**
  * This turn's reads under the ids the next turn sends them by (`chatCallId`), so the next turn's
  * messages start with the same bytes as this turn's last step and its prompt cache holds. A read
- * the next turn does not send again, one that came back an error or an older one past
- * `LOOP_READS`, keeps the model's own id.
+ * that came back an error keeps the model's own id. A read keeps its number as the turn goes on,
+ * so each step's prompt starts with the last one's.
  */
 function asSentLater(
   messages: readonly ModelMessage[],
   made: readonly MadeRead[],
   turn: number,
 ): ModelMessage[] {
-  const sent = keptOf(made)
+  const sent = readOk(made)
   const idOf = (call: string) => {
     const n = sent.findIndex((m) => m.call === call)
     return n >= 0 ? chatCallId(turn, n) : call
@@ -1269,14 +1271,14 @@ function readsBack(made: readonly MadeRead[]): LoopRead[] {
 }
 
 /**
- * Where the turn's last prompt sent each kept read (`sentIn`): its step among the prompt's own,
+ * Where the turn's last prompt sent each read that read something (`sentIn`): its step there,
  * found by the id the read went under, and that step's words before its calls.
  */
 function markSent(made: readonly MadeRead[], sent: readonly ModelMessage[], turn: number) {
   const steps = sent.flatMap((m) =>
     m.role === 'assistant' && Array.isArray(m.content) ? [m.content] : [],
   )
-  keptOf(made).forEach((read, n) => {
+  readOk(made).forEach((read, n) => {
     const id = chatCallId(turn, n)
     const step = steps.findIndex((parts) =>
       parts.some((part) => part.type === 'tool-call' && part.toolCallId === id),
