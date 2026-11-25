@@ -27,7 +27,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Toaster, useSonner } from '@/components/ui/sonner'
 import { allFloors, floorUnder, useFloorsVersion } from '@/lib/toast-floor'
-import { SharePanel } from '@/components/footnote/share-answer'
+import { ShareChatPanel } from '@/components/footnote/share-chat'
 import { WherePanel } from '@/components/footnote/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -201,7 +201,7 @@ function DockContent() {
         </React.Suspense>
       )
     case 'share':
-      return <SharePanel id={dock.id!} />
+      return <ShareChatPanel chat={dock.id ?? ''} />
     case 'where':
       return <WherePanel id={dock.id!} />
     case 'conflict':

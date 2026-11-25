@@ -5,7 +5,7 @@
   <img alt="Footnote" src="docs/images/footnote-lockup-light.svg" height="56">
 </picture>
 
-[Docs][docs] &nbsp;·&nbsp; [Try it](#try-it) &nbsp;·&nbsp; [What is true today](#what-is-true-today) &nbsp;·&nbsp; [Contributing](#contributing)
+[Docs][docs] &nbsp;·&nbsp; [The proof](#the-proof) &nbsp;·&nbsp; [Try it](#try-it) &nbsp;·&nbsp; [What is true today](#what-is-true-today) &nbsp;·&nbsp; [Contributing](#contributing)
 
 </div>
 
@@ -16,6 +16,20 @@ footnote that says who checked it and when.
 <p align="center">
   <img alt="Footnote's Ask on the demo data. Asked why orders in Norway dropped in August, it answers Checked: online sales to Norway stopped on 4 August 2026 under a new customs rule. The panel beside it shows where that sentence comes from: the context item, checked by Jon Abara on 3 Oct 2026, and the customs notice it quotes." src="docs/images/answer.png" width="880">
 </p>
+
+## The proof
+
+<!-- PROOF RESULT, a placeholder. After the first funded run of the invented company's proof
+     (`npm run held-out -- prove --real --cap 25`), the owner replaces everything between this
+     comment and the closing one with that run's table, as the command printed it, whatever it
+     shows: the model and the judge, the questions' digest, and what it spent. -->
+
+**Not run yet.** The same 40 questions about a period and a market will be asked three ways
+through a real agent: with no context, with the same facts as one plain file, and with Footnote.
+The table goes here after the first funded run, whatever it shows. [Run the proof][prove] says
+what the command asks, how to read the table, and how to run it on your own context.
+
+<!-- END OF PROOF RESULT -->
 
 ## Why
 
@@ -108,3 +122,4 @@ Footnote is under the [Apache License 2.0](LICENSE). You keep the copyright in y
 [backups]: https://getfootnote.vercel.app/docs/back-up-restore-and-upgrade/
 [where-to-run]: https://getfootnote.vercel.app/docs/where-to-run/
 [configuration]: https://getfootnote.vercel.app/docs/configuration/
+[prove]: https://getfootnote.vercel.app/docs/prove/

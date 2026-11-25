@@ -2,11 +2,13 @@ import * as React from 'react'
 import {
   EllipsisIcon,
   HistoryIcon,
+  Link2Off,
   MessageSquareIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   PencilIcon,
   SearchIcon,
+  ShareIcon,
   SquarePenIcon,
   Trash2Icon,
   XIcon,
@@ -36,6 +38,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   askedWeekQuery,
   askQuery,
+  chatSharesQuery,
   useAskExamples,
   useInbox,
   useSession,
@@ -80,7 +83,9 @@ import { useOpeningRead } from '@/lib/opening-read'
 import { useIsMobile, useMedia } from '@/hooks/use-mobile'
 import { useWide } from '@/hooks/use-wide'
 import { readWidth, saveWidth } from '@/lib/pane-width'
-import { useTyped } from '@/lib/dock'
+import { openDock, useDock, useTyped } from '@/lib/dock'
+import { dayMonth } from '@/lib/dates'
+import { linksByChat, sharedChatPath, type ChatLinks } from '@/model/shared-chat'
 import { navigate, setQuery, useRoute } from '@/lib/router'
 import { composerSurface } from '@/lib/surfaces'
 import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threads'
@@ -704,16 +709,21 @@ function ThreadRow({
   active,
   tabbable,
   snippet,
+  shared,
   onOpen,
   onDelete,
+  onStopSharing,
 }: {
   thread: Thread
   active: boolean
   tabbable: boolean
   /** While searching: the line where the words matched, the match marked. */
   snippet?: Snippet
+  /** Its live links, when it is shared (FR-721). */
+  shared?: ChatLinks
   onOpen: () => void
   onDelete: () => void
+  onStopSharing: () => void
 }) {
   const threadActions = useThreadActions()
   const [renaming, setRenaming] = React.useState(false)
@@ -821,9 +831,33 @@ function ThreadRow({
                   {snippet.after}
                 </span>
               )}
+              {shared && (
+                <span className="basis-full truncate text-xs text-muted-foreground">
+                  Shared until {dayMonth(shared.until)}
+                </span>
+              )}
             </button>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-0.5 bg-linear-to-l from-(--row) from-65% to-transparent pr-1 pl-7 opacity-0 transition-opacity duration-(--dur-2) group-focus-within/row:pointer-events-auto group-focus-within/row:opacity-100 group-hover/row:pointer-events-auto group-hover/row:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100">
               <div className="flex items-center gap-0.5 [@media(hover:none)]:hidden">
+                {shared && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          tabIndex={-1}
+                          aria-label={`Stop sharing ${thread.title}`}
+                          className="hover:bg-foreground/8"
+                          onClick={onStopSharing}
+                        />
+                      }
+                    >
+                      <Link2Off />
+                    </TooltipTrigger>
+                    <TooltipContent>Stop sharing</TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger
                     render={
@@ -873,11 +907,17 @@ function ThreadRow({
                 >
                   <EllipsisIcon />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36" finalFocus={false}>
+                <DropdownMenuContent align="end" className="w-auto" finalFocus={false}>
                   <DropdownMenuItem onClick={() => setRenaming(true)}>
                     <PencilIcon />
                     Rename
                   </DropdownMenuItem>
+                  {shared && (
+                    <DropdownMenuItem onClick={onStopSharing}>
+                      <Link2Off />
+                      Stop sharing
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem variant="destructive" onClick={remove}>
                     <Trash2Icon />
                     Delete
@@ -978,6 +1018,16 @@ function ThreadList({
   const { fresh } = useSession()
   const threadActions = useThreadActions()
   const [search, setSearch] = React.useState('')
+  // The person's shared links by chat (FR-721): a chat here says until when, and one whose chat
+  // is not in this browser (deleted here, or shared from another) is listed on its own to stop.
+  const shares = useQuery(chatSharesQuery()).data
+  const byChat = React.useMemo(() => linksByChat(shares?.links ?? []), [shares])
+  const write = useWrite()
+  const stopSharing = (links: ChatLinks) =>
+    void write('stopSharing', { ids: links.ids }).then(
+      () => toast('Stopped sharing', { description: links.title }),
+      (e: unknown) => toast.error("Couldn't stop sharing", { description: toApiError(e).message }),
+    )
   const visible = fresh ? all.filter((t) => !t.seed) : all
   const q = search.trim().toLowerCase()
   // Search reads what was asked and what the answers said, the open chat's latest turns too, not only the title.
@@ -987,6 +1037,10 @@ function ThreadList({
   // The line that matched, unless the title already shows it.
   const snippet = (t: Thread) =>
     q && !t.title.toLowerCase().includes(q) ? snippetOf(body(t), q) : undefined
+  const here = new Set(all.map((t) => t.id))
+  const away = [...byChat].flatMap(([chat, links]) =>
+    !here.has(chat) && links.title.toLowerCase().includes(q) ? [links] : [],
+  )
 
   const startNew = () => {
     if (onNewChat) onNewChat()
@@ -1113,14 +1167,64 @@ function ThreadList({
                           : t.id === shown[0]?.id
                       }
                       snippet={snippet(t)}
+                      shared={byChat.get(t.id)}
                       onOpen={() => open(t)}
                       onDelete={() => void remove(t)}
+                      onStopSharing={() => {
+                        const links = byChat.get(t.id)
+                        if (links) stopSharing(links)
+                      }}
                     />
                   ))}
                 </ul>
               </section>
             )
           })
+        )}
+        {away.length > 0 && (
+          <section aria-labelledby="chats-shared" className="pt-3">
+            <h2
+              id="chats-shared"
+              className="px-2.5 pb-1.5 text-xs font-medium text-muted-foreground"
+            >
+              Shared links
+            </h2>
+            <ul className="flex flex-col gap-px">
+              {away.map((links) => (
+                <li
+                  key={links.ids[0]}
+                  className="flex items-center gap-0.5 rounded-md pr-1 hover:bg-muted"
+                >
+                  <a
+                    href={sharedChatPath(links.ids[0]!)}
+                    onClick={() => onPick?.()}
+                    className="flex min-h-9 min-w-0 flex-1 flex-col rounded-md py-1.5 pl-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <TruncatedText text={links.title} />
+                    <span className="truncate text-xs text-muted-foreground">
+                      Shared until {dayMonth(links.until)}
+                    </span>
+                  </a>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Stop sharing ${links.title}`}
+                          className="hover:bg-foreground/8"
+                          onClick={() => stopSharing(links)}
+                        />
+                      }
+                    >
+                      <Link2Off />
+                    </TooltipTrigger>
+                    <TooltipContent>Stop sharing</TooltipContent>
+                  </Tooltip>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </nav>
       {/* What is kept, said once where the chats are; while a chat has keyboard focus, the keys instead. */}
@@ -1289,6 +1393,11 @@ export function AskPage() {
     setQuery({ example, chat: undefined, n: undefined })
     return true
   }
+  // Share chat (FR-721): once the chat on show has an answer, while sharing is on.
+  const shares = useQuery(chatSharesQuery()).data
+  const dock = useDock()
+  const shown = chat && !example ? threads.find((t) => t.id === chat) : undefined
+  const shareable = !!shares?.on && !!shown && !shown.example && !!shown.answers?.length
   const setup = query.get('setup')
   const onJoined = (id: string) => {
     setQuery({ chat: id, setup: undefined, q: undefined })
@@ -1305,6 +1414,25 @@ export function AskPage() {
   return (
     <div data-touch-targets className="flex h-full min-h-0 flex-col">
       <SiteHeader title="Ask" icon={<MessageSquareIcon />} fold>
+        {shareable && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  aria-label="Share chat"
+                  aria-pressed={dock?.kind === 'share' && dock.id === shown.id}
+                  className="max-lg:w-7 max-lg:px-0"
+                  onClick={() => openDock('share', shown.id)}
+                />
+              }
+            >
+              <ShareIcon />
+              <span className="max-lg:hidden">Share chat</span>
+            </TooltipTrigger>
+            <TooltipContent>Share chat as a link</TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger
             render={

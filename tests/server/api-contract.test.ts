@@ -422,6 +422,8 @@ describe('the API over HTTP', () => {
       '/settings',
       '/settings/{key}',
       '/setup',
+      '/shared-chats',
+      '/shared-chats/{id}',
       '/sources',
       '/sources/test',
       '/sources/types',

@@ -13,6 +13,7 @@
 import type { JSONContent } from '@tiptap/core'
 import type { ConnectRequest } from '@contract/connections'
 import type { AnswerQuestion, Question, QuestionLink } from '@contract/questions'
+import type { MyShare, MyShares, ShareChatInput, SharedChat } from '@contract/shared-chats'
 import type { AgentToolName } from '@domain/agents'
 import type { FamilyMeaningChoice } from '@domain/family-meaning-line'
 import type { ObsFilter, TopicSum, ValueGroup, ValueSort } from '@domain/obs-filters'
@@ -287,7 +288,12 @@ export type Advanced = {
   answerTests: AnswerTestRuns | null
   /** Whether links people paste are read, and the hosts never read; null when unread. */
   links: LinkReading | null
+  /** Whether people may share an Ask chat as a link; null when unread. */
+  sharing: ChatSharing | null
 }
+
+/** Sharing an Ask chat as a link (FR-721): on as installed, and the setting's version. */
+export type ChatSharing = { on: boolean; version: number }
 
 /**
  * Reading the links people paste (FR-144): on as installed, and the hosts an admin listed never
@@ -686,6 +692,17 @@ export interface FootnoteApi {
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
   /**
+   * Shares a chat as a link (FR-721): a copy of each turn's question, what Ask read, its state, its
+   * words and its sources by id, under the person's name, for 90 days. No figure is ever sent.
+   */
+  shareChat: (input: ShareChatInput) => Promise<MyShare>
+  /** Whether chats may be shared now, and the person's own live links, newest first. */
+  getChatShares: () => Promise<MyShares>
+  /** A shared chat as the person signed in opens it, each source as they may read it. */
+  getSharedChat: (input: { id: string }) => Promise<SharedChat>
+  /** Stops the person's own links: each copy is deleted. */
+  stopSharing: (input: { ids: string[] }) => Promise<void>
+  /**
    * Marks an answer of Ask good or wrong (FR-712), with the metrics it read, for its domain: only
    * the verdict, the domain and the hour are kept, never who rated. The id it gives back is the
    * only way to that rating: the page holds it, in memory, to take the rating back.
@@ -771,6 +788,8 @@ export interface FootnoteApi {
   setAutomaticRuns: (input: { on: boolean; version: number }) => Promise<void>
   /** Turns reading the links people paste on or off, at the version read. Admins only. */
   setLinkReading: (input: { on: boolean; version: number }) => Promise<void>
+  /** Turns sharing Ask chats as links on or off, at the version read. Admins only. */
+  setChatSharing: (input: { on: boolean; version: number }) => Promise<void>
   /** Sets the hosts links are never read on, at the version read. Admins only. */
   setNeverReadHosts: (input: { hosts: string[]; version: number }) => Promise<void>
   /**
@@ -1035,6 +1054,10 @@ export const footnoteApiMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'shareChat',
+  'getChatShares',
+  'getSharedChat',
+  'stopSharing',
   'rateAnswer',
   'takeBackRating',
   'tellOwner',
@@ -1059,6 +1082,7 @@ export const footnoteApiMethods = [
   'advancedPage',
   'setAutomaticRuns',
   'setLinkReading',
+  'setChatSharing',
   'setNeverReadHosts',
   'checkHistory',
   'exportHistory',
@@ -1146,6 +1170,8 @@ export const readMethods = [
   'askedThisWeek',
   'listChats',
   'getMyReports',
+  'getChatShares',
+  'getSharedChat',
   'getSettings',
   'advancedPage',
   'integrationsPage',

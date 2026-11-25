@@ -15,7 +15,8 @@ import { MockLanguageModelV4 } from 'ai/test'
  * is offered, it reads the first item delivered and then the first item that one links to or is
  * linked from, once, and adds the linked item it read, so a link-follow question can show the
  * instrument working; one call a turn, as a careful agent follows a link, keeps a run inside the
- * eval client's rate. It never claims what a real model would say.
+ * eval client's rate. Given the proof's plain file and no tools, it tells the notes of every place
+ * the question names. It never claims what a real model would say.
  */
 
 /** The judge's data block. The evaluation judge writes it; the scripted judge reads it. */
@@ -121,10 +122,46 @@ function answerFor(delivery: Delivery, linked: Read[] = []): string {
   ].join('\n')
 }
 
+/** The heading of the proof's plain file (src/domain/proof.ts, `notesFile`). */
+const notesHeading = '# Notes about our data'
+
+/**
+ * The proof's plain file, read as a careless reader does: every note whose place the question
+ * names, whatever its dates. So the scripted run tells a note that had ended, as a file can make
+ * an agent do, and the proof's counts have something to count.
+ */
+function fromNotes(prompt: LanguageModelV4Prompt): string | null {
+  const system = prompt
+    .flatMap((message) => (message.role === 'system' ? [message.content] : []))
+    .join('\n')
+  const start = system.indexOf(notesHeading)
+  if (start < 0) return null
+  const question = lastUserText(prompt).toLowerCase()
+  const told = system
+    .slice(start)
+    .split('\n## ')
+    .slice(1)
+    .flatMap((section) => {
+      const [title = '', , about = '', , summary = ''] = section.split('\n')
+      // "About: Orders, for Market Norway, Product Tents. Applies ...": the values after "for".
+      const where = /, for (.*?)\. Applies /.exec(about)?.[1] ?? ''
+      const values = where.split(', ').map((part) => part.split(' ').slice(1).join(' '))
+      return values.some((value) => value && question.includes(value.toLowerCase()))
+        ? [`- ${title}: ${summary}`]
+        : []
+    })
+  return told.length
+    ? ['From notes.md:', ...told].join('\n')
+    : 'Nothing is written in notes.md about this.'
+}
+
 function answer(options: LanguageModelV4CallOptions): Promise<LanguageModelV4GenerateResult> {
   const prompt = options.prompt
   const delivery = lastDelivery(prompt)
   const canAsk = options.tools?.some((t) => t.name === 'get_context') ?? false
+  const notes = canAsk ? null : fromNotes(prompt)
+  if (notes !== null)
+    return Promise.resolve(result([{ type: 'text', text: notes }], prompt, 'stop'))
   if (!delivery && canAsk)
     return Promise.resolve(
       result(

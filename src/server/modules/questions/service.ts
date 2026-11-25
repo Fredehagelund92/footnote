@@ -87,7 +87,10 @@ export function createQuestionsService(
     )
     return row ?? null
   }
-  /** The live item a check is about, as agents get it now; null once it was archived. */
+  /**
+   * The live item a check is about, as agents get it now and as the reader may read it: null once
+   * it was archived, or for a reader its audience leaves out, as everywhere else.
+   */
   async function liveItem(itemId: string) {
     const [row] = await tx.query<{
       title: string
@@ -99,7 +102,8 @@ export function createQuestionsService(
     }>(
       `select title, summary, area_id as "areaId", owner_id::text as "ownerId",
               valid_from::text as start, valid_until::text as "end"
-         from serving_items((select seq from live_edition)) where item_id=$1`,
+         from serving_items((select seq from live_edition))
+        where item_id=$1 and cl_audience_allows(audience_groups)`,
       [itemId],
     )
     return row ?? null

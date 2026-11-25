@@ -124,6 +124,7 @@ import {
   ratingsPerMinute,
   takeBackRating,
 } from '../modules/reports/index.ts'
+import { createSharedChatsService } from '../modules/shared-chats/index.ts'
 import {
   can,
   checkMutation,
@@ -286,6 +287,7 @@ export function requestServices(
     comments,
     reports: createReportsService(tx),
     questions: createQuestionsService(tx, clock, answerBundles, { proposals, review }),
+    sharedChats: createSharedChatsService(tx),
     gaps,
     evals: createEvalsService(tx, { port: models, clock }),
     observability: createObservabilityService(tx, clock),
@@ -1523,6 +1525,20 @@ export function createRouter({
         )
       }),
       mine: authorized.reports.mine.handler(({ context }) => context.reports.mine()),
+    },
+    sharedChats: {
+      // No retry record: it would keep the chat's title beside the person after its link stops. A
+      // retried share makes a second link, which its sender stops like the first.
+      create: authorized.sharedChats.create.handler(({ context, input }) =>
+        context.sharedChats.create(input),
+      ),
+      mine: authorized.sharedChats.mine.handler(({ context }) => context.sharedChats.mine()),
+      read: authorized.sharedChats.read.handler(({ context, input }) =>
+        context.sharedChats.read(input.id),
+      ),
+      stop: authorized.sharedChats.stop.handler(({ context, input }) =>
+        context.sharedChats.stop(input.id),
+      ),
     },
     ask: {
       // FR-712: a rating names no one, so it has no retry record either (it would keep the person

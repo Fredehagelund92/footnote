@@ -249,6 +249,7 @@ export const wiredMethods = [
   'advancedPage',
   'setAutomaticRuns',
   'setLinkReading',
+  'setChatSharing',
   'setNeverReadHosts',
   'checkHistory',
   'exportHistory',
@@ -268,6 +269,10 @@ export const wiredMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'shareChat',
+  'getChatShares',
+  'getSharedChat',
+  'stopSharing',
   'rateAnswer',
   'takeBackRating',
   'tellOwner',
@@ -2286,7 +2291,17 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           judge: tests.judgeModelId,
         },
         links: words.linkReadingOf(settings),
+        sharing: words.chatSharingOf(settings),
       }
+    },
+    setChatSharing: async ({ on, version }) => {
+      const input = {
+        key: 'ask.share_chats',
+        version,
+        value: on,
+        reason: on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     setLinkReading: async ({ on, version }) => {
       const input = {
@@ -2423,6 +2438,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           ? { outcome: reportOutcomeWords(r.outcome.kind, new Date(r.outcome.at)) }
           : {}),
       }))
+    },
+
+    // A shared chat (FR-721): a copy the person sends on purpose, under their name.
+    shareChat: (input) =>
+      write('sharedChats.create', input, (o) => client.sharedChats.create(input, o)),
+    getChatShares: () => read(() => client.sharedChats.mine()),
+    getSharedChat: ({ id }) => read(() => client.sharedChats.read({ id })),
+    stopSharing: async ({ ids }) => {
+      for (const id of ids)
+        await write('sharedChats.stop', { id }, (o) => client.sharedChats.stop({ id }, o))
     },
 
     // A rating names no one (FR-712): the service keeps no retry record of it.

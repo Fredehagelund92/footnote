@@ -61,7 +61,7 @@ From agents, Footnote keeps only what a question was about and how often, never 
 A count under five reads "Fewer than 5", and no total gives a hidden part away.
 Words are kept only when a person sends them on purpose, under their name.
 Footnote does not mine what people ask or tell their agents for new context, though that is the cheapest source of it; a person or their agent may send a suggestion on purpose, and a question that finds nothing comes back only as a gap.
-Ask chats stay in the person's browser, and a draft is read only by its writer.
+Ask chats stay in the person's browser unless they share one as a link, and a draft is read only by its writer.
 There is no tracking of people, no history of questions per person and no analytics per person, and Ask declines questions about one person's work.
 Footnote sends nothing about how it is used unless an admin turns on usage counts for the project: off by default, fixed names and counts only, never words, names or company data.
 

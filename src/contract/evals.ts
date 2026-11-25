@@ -36,6 +36,8 @@ export const runSchema = z.object({
     'scheduled',
     // The sealed held-out questions of an area, run with none of their words kept (FR-525).
     'held_out',
+    // The questions of `footnote prove`, asked three ways, with none of their words kept.
+    'proof',
   ]),
   state: z.enum(runStates),
   areaId: z.nullable(z.string()),

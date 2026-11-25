@@ -245,6 +245,13 @@ import {
   takeBackRatingSchema,
   takenBackSchema,
 } from './reports.ts'
+import {
+  myShareSchema,
+  mySharesSchema,
+  shareChatInputSchema,
+  sharedChatIdSchema,
+  sharedChatSchema,
+} from './shared-chats.ts'
 import { connectInfoSchema, tryItReadInputSchema, tryItReadingSchema } from './connect.ts'
 import {
   answeredSchema,
@@ -2262,6 +2269,52 @@ export const contract = {
           "The person's own named reports of the last 90 days, newest first, each with what the owners did after it, for Ask to show in the chat",
       })
       .output(myReportsSchema),
+  },
+  sharedChats: {
+    create: read
+      .errors({
+        PRECONDITION_FAILED: { message: 'An admin has turned off sharing chats.' },
+      })
+      .route({
+        method: 'POST',
+        path: '/shared-chats',
+        tags: ['assistant'],
+        summary:
+          "Share an Ask chat as a link (FR-721): a copy of each turn's question, what Ask read, its state, its words and its sources by id, under the sender's name, for 90 days; a turn that rests on a draft is kept as left out, with no words, and no figure is kept",
+      })
+      .input(shareChatInputSchema)
+      .output(myShareSchema),
+    mine: read
+      .route({
+        method: 'GET',
+        path: '/shared-chats',
+        tags: ['assistant'],
+        summary:
+          "Whether chats may be shared now, and the person's own live links, newest first, each with the chat it copies and until when it lasts",
+      })
+      .output(mySharesSchema),
+    read: read
+      .errors({
+        NOT_FOUND: { message: "This link has stopped, or it isn't one of this workspace's." },
+      })
+      .route({
+        method: 'GET',
+        path: '/shared-chats/{id}',
+        tags: ['assistant'],
+        summary:
+          'Open a shared chat, as the person signed in: each source is read as them, and a turn that rests on a source they may not read keeps its question and state without its words',
+      })
+      .input(sharedChatIdSchema)
+      .output(sharedChatSchema),
+    stop: read
+      .route({
+        method: 'DELETE',
+        path: '/shared-chats/{id}',
+        tags: ['assistant'],
+        summary: 'Stop a link the person shared: the copy is deleted, and the link opens nothing',
+      })
+      .input(sharedChatIdSchema)
+      .output(z.object({ stopped: z.boolean() })),
   },
   ask: {
     lookup: read

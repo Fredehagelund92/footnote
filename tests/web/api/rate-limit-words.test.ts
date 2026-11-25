@@ -31,10 +31,14 @@ afterEach(async () => {
 
 describe('the request limit in the app', () => {
   it('says the service sentence, with when to try again', async () => {
+    // Time stands still, so the wait the service names is its whole minute however slowly a
+    // busy machine sends the second read.
+    const now = new Date('2026-11-25T12:00:00Z')
     const app = buildApp({
       database: limitDatabase({ person: 1, ip: 1 }),
       jobs: idleJobs(),
       logger: createLogger({ level: 'silent' }),
+      clock: { now: () => now, today: () => '2026-11-25' },
     })
     close = () => app.close()
     // The binding's requests, answered by the service itself.

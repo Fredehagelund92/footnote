@@ -1,3 +1,4 @@
+import type { ProofArmResult } from '../../../domain/proof.ts'
 import type {
   Agreement,
   CellScore,
@@ -50,8 +51,11 @@ import { readEvalSettings, type EvalSettings } from './settings.ts'
  * model that calls tools, and its judge asks for JSON text when it cannot keep to a JSON schema.
  */
 export type EvalDeps = { port: ModelPort; clock: Clock; checks?: ModelChecks }
-/** `held_out`: the sealed held-out questions of an area, run with nothing of them kept. */
-export type RunKind = 'full' | 'scheduled' | 'held_out'
+/**
+ * `held_out`: the sealed held-out questions of an area, run with nothing of them kept. `proof`:
+ * the questions of `footnote prove`, asked three ways, also with nothing of them kept (proof.ts).
+ */
+export type RunKind = 'full' | 'scheduled' | 'held_out' | 'proof'
 export type RunState =
   'awaiting_approval' | 'queued' | 'running' | 'finished' | 'failed' | 'cancelled' | 'incomplete'
 /** Why a full run was queued without a person: a change that bypasses the review gate. */
@@ -80,7 +84,22 @@ export type RunSummary = {
   resumes?: number
   /** A held-out run (withheld.ts): the area and how many questions, never which. */
   heldOut?: { area: string; questions: number }
+  /** A proof run (proof.ts): whose questions, their digest and how many, never which. */
+  proof?: ProofSummary
   result?: RunResult
+}
+/** What a proof run keeps: counts and digests, never a question's words. */
+export type ProofSummary = {
+  /** Whose questions and items, in words without a question in them. */
+  about: string
+  /** The question set's digest (`proofDigest`), so a result can be matched to its questions. */
+  digest: string
+  questions: number
+  /** Questions where nothing is written. */
+  nothing: number
+  tries: number
+  /** Each way's counts by try, once the run ended. */
+  result?: ProofArmResult[]
 }
 /**
  * Why a run ended incomplete: answers the provider or the tool server kept from being made
@@ -556,9 +575,9 @@ export async function stopRun(
  * The kinds the worker never takes: the held-out questions are worked by the command that runs
  * them. Queued again, such a run would wait for nobody.
  */
-export const commandKinds: readonly string[] = ['held_out']
+export const commandKinds: readonly string[] = ['held_out', 'proof']
 const commandRunNotResumed =
-  'This test run is worked only by the command that started it, so it is not resumed. Run that command again (for held-out cases, npm run held-out -- eval --area <domain id>).'
+  'This test run is worked only by the command that started it, so it is not resumed. Run that command again (for held-out cases, npm run held-out -- eval --area <domain id>; for a proof, npm run footnote -- prove).'
 
 /**
  * Whether a run may be queued again, and why not (#194): only a run that stopped before it

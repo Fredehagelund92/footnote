@@ -240,6 +240,12 @@ const readOperations = [
   // A person's rating of an answer, and taking it back (FR-712).
   'ask.rate',
   'ask.takeBack',
+  // A chat shared as a link (FR-721): anyone signed in shares, opens and stops their own; row
+  // security keeps the rest (who opens, while sharing is on, for how long).
+  'sharedChats.create',
+  'sharedChats.mine',
+  'sharedChats.read',
+  'sharedChats.stop',
   // Saved questions and how far a check got: anyone signed in reads, and someone who manages no
   // domain gets none (row security).
   'savedQuestions.list',

@@ -409,7 +409,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Tuning settings"
         level={3}
-        description={`All ${count} settings and their values now. Answer tests and links people paste can be changed here; the rest change through the API.`}
+        description={`All ${count} settings and their values now. Answer tests, links people paste and shared chats can be changed here; the rest change through the API.`}
         collapsible
       >
         <div className="space-y-2 border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
@@ -510,6 +510,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
         />
       </FrameSection>
       {page.links && <LinkReading links={page.links} />}
+      {page.sharing && <ChatSharing sharing={page.sharing} />}
       <FrameSection
         title="Answer tests"
         level={3}
@@ -658,6 +659,46 @@ function LeftDrafts({ left }: { left: AdvancedPage['left'] }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </FrameSection>
+  )
+}
+
+/**
+ * Sharing an Ask chat as a link (FR-721): on as installed. Off, no chat is shared and no link
+ * opens, those already made too, until it is on again.
+ */
+function ChatSharing({ sharing }: { sharing: NonNullable<AdvancedPage['sharing']> }) {
+  const write = useWrite()
+  const setOn = (on: boolean) =>
+    void write('setChatSharing', { on, version: sharing.version }).then(
+      () => toast(on ? 'People can share chats' : 'Sharing chats is off'),
+      (e: unknown) =>
+        toast(on ? "Couldn't turn it on" : "Couldn't turn it off", {
+          description: toApiError(e).message,
+        }),
+    )
+  return (
+    <FrameSection
+      title="Shared chats"
+      level={3}
+      description={
+        sharing.on
+          ? 'On. People can share an Ask chat as a link, which lasts 90 days.'
+          : 'Off. No chat is shared, and no link opens.'
+      }
+      collapsible
+      defaultOpen={false}
+    >
+      <FrameRows
+        rows={[
+          {
+            id: 'share-chats',
+            label: <label htmlFor="share-chats">Share chats as links</label>,
+            hint: 'A link keeps a copy of the chat under its sender’s name, never a figure. Only people signed in open it, each source only if they may read it.',
+            value: <Switch id="share-chats" checked={sharing.on} onCheckedChange={setOn} />,
+          },
+        ]}
+      />
     </FrameSection>
   )
 }

@@ -105,20 +105,21 @@ Unused primitives in the mockup (about seven) are not imported.
 
 ### The state line and Ask
 
-| Part            | File                                                                              | Job                                                                                                                              |
-| --------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Answer          | `components/footnote/answer.tsx`                                                  | One turn: the state badge and its card, the words with citation markers, source chips, What agents get, the action row with More |
-| State help      | `components/footnote/state-help.tsx`                                              | The answer line's card: what it means and what to do                                                                             |
-| Answer lines    | `lib/help-content.ts` (`ANSWER_LINES`)                                            | The six labels, sentences and long forms, from one list                                                                          |
-| Reading         | `components/footnote/reading.tsx`, `lib/stages.ts`                                | The staged look-up where an agent works                                                                                          |
-| Asked this week | `components/footnote/asked-week.tsx`, `asked-week-list.tsx`, `data/asked-week.ts` | A bar of the topics by state, then each topic with its state now and a count                                                     |
-| Suggestions     | `components/footnote/suggestions.tsx`                                             | Questions to ask as soft chips: the empty page's starters only, never in the thread                                              |
-| Records answer  | `components/footnote/records-answer.tsx`, `domain/records.ts`                     | A question about the records: the Records chip, one sentence, five rows or a table of counts                                     |
-| Where           | `components/footnote/where-panel.tsx`, `lib/where.ts`                             | "Show me where it says that"                                                                                                     |
-| Share           | `components/footnote/share-answer.tsx`, `lib/share.ts`                            | A Slack message or a card, with state and sources                                                                                |
-| Composer        | `pages/ask-composer.tsx`, `lib/surfaces.ts`                                       | The soft input surface shared with the comment box                                                                               |
-| Ask page        | `pages/ask.tsx`, `lib/threads.ts`                                                 | The thread, history, search, the empty page                                                                                      |
-| Agent reply     | `lib/agent-reply.ts`                                                              | The reply an agent gets, built from published context only                                                                       |
+| Part            | File                                                                                  | Job                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Answer          | `components/footnote/answer.tsx`                                                      | One turn: the state badge and its card, the words with citation markers, source chips, What agents get, the action row with More |
+| State help      | `components/footnote/state-help.tsx`                                                  | The answer line's card: what it means and what to do                                                                             |
+| Answer lines    | `lib/help-content.ts` (`ANSWER_LINES`)                                                | The six labels, sentences and long forms, from one list                                                                          |
+| Reading         | `components/footnote/reading.tsx`, `lib/stages.ts`                                    | The staged look-up where an agent works                                                                                          |
+| Figure          | `components/footnote/answer-figure.tsx`                                               | One figure, apart from the context, never changing the state                                                                     |
+| Asked this week | `components/footnote/asked-week.tsx`, `asked-week-list.tsx`, `data/asked-week.ts`     | A bar of the topics by state, then each topic with its state now and a count                                                     |
+| Suggestions     | `components/footnote/suggestions.tsx`                                                 | Questions to ask as soft chips: the empty page's starters only, never in the thread                                              |
+| Records answer  | `components/footnote/records-answer.tsx`, `domain/records.ts`                         | A question about the records: the Records chip, one sentence, five rows or a table of counts                                     |
+| Where           | `components/footnote/where-panel.tsx`, `lib/where.ts`                                 | "Show me where it says that"                                                                                                     |
+| Share chat      | `components/footnote/share-chat.tsx`, `pages/shared-chat.tsx`, `model/shared-chat.ts` | One link to a copy of the whole chat, and the page it opens                                                                      |
+| Composer        | `pages/ask-composer.tsx`, `lib/surfaces.ts`                                           | The soft input surface shared with the comment box                                                                               |
+| Ask page        | `pages/ask.tsx`, `lib/threads.ts`                                                     | The thread, history, search, the empty page                                                                                      |
+| Agent reply     | `lib/agent-reply.ts`                                                                  | The reply an agent gets, built from published context only                                                                       |
 
 ### Editor, properties and documents
 
