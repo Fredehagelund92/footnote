@@ -297,6 +297,22 @@ describe('what agents are served', () => {
       await pool.end()
     }
   })
+
+  it('holds nothing for a metric with an input only some readers may see', async () => {
+    const pool = servingPool(url)
+    try {
+      await client.query(
+        `update definitions set visible_groups = array['nobody'] where name = 'partner_results.clicks'`,
+      )
+      const { builtFrom } = await createEditionSource(pool).bundle()
+      expect(builtFrom[await keyOf('signup_rate')]).toBeUndefined()
+    } finally {
+      await client.query(
+        `update definitions set visible_groups = null where name = 'partner_results.clicks'`,
+      )
+      await pool.end()
+    }
+  })
 })
 
 describe('a later read', () => {

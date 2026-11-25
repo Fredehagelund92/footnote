@@ -136,10 +136,23 @@ describe('offline Cube source', () => {
             '      - name: per_revenue',
             '        type: number',
             '        sql: "{cost} / {orders.revenue}"',
+            '      - name: per_fee',
+            '        type: number',
+            '        sql: "{cost} / {ledger.fee}"',
+            '  - name: ledger',
+            '    sql: SELECT fee FROM example_fees',
+            '    measures:',
+            '      - name: fee',
+            '        type: sum',
+            '        sql: fee',
             'views:',
             '  - name: costs',
             '    cubes:',
             '      - join_path: spend',
+            "        includes: '*'",
+            '  - name: fees',
+            '    cubes:',
+            '      - join_path: ledger',
             "        includes: '*'",
             '',
           ].join('\n'),
@@ -154,6 +167,11 @@ describe('offline Cube source', () => {
       columns: [],
     })
     expect(builtFrom('cube:costs.per_revenue')).toBeNull()
+    // A public cube shows its fee too, but the one view that shows it names it.
+    expect(builtFrom('cube:costs.per_fee')).toEqual({
+      refs: ['cube:costs.cost', 'cube:fees.fee'],
+      columns: [],
+    })
   }, 60_000)
 
   it('sends nothing for a measure that takes a hidden measure (C2)', async () => {

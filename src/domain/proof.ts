@@ -13,8 +13,9 @@ import { periodWords } from './dates.ts'
 import { isCalendarDate } from './validity.ts'
 
 /**
- * Every way a question can be asked, in the order the table shows them. The fourth is a lab's:
- * Footnote with the part of the reply about what an asked metric is built from (built-from.ts).
+ * Every way a question can be asked. The fourth is a lab's: Footnote with the part of the reply
+ * about what an asked metric is built from (built-from.ts). A run asks `proofWays` or
+ * `builtFromWays`, and its table shows them in the order that list gives.
  */
 export const proofArms = ['none', 'file', 'footnote', 'built_from'] as const
 export type ProofArm = (typeof proofArms)[number]

@@ -1242,6 +1242,16 @@ export function createToolService(
             .filter((key) => !own.size || own.has(key))
             .map((key) => bundle.terms.find((t) => t.key === key)?.name ?? key)
         }
+        const appliesNote = (match: {
+          restrictions: readonly { dimension: string; values: readonly string[] }[]
+        }) =>
+          match.restrictions.length
+            ? {
+                applies_note: match.restrictions
+                  .map((r) => `Applies to ${r.dimension}: ${r.values.join(', ')} only.`)
+                  .join(' '),
+              }
+            : {}
         const items = resolution.items.slice(offset).map((match) => {
           const item = index.item(match.id) as ServingItem
           const linked = outgoing(bundle, item, today, resolution.scope?.window, index)
@@ -1257,20 +1267,14 @@ export function createToolService(
             ),
             match: match.match,
             ...(metrics.length > 1 ? { about: aboutOf(item) } : {}),
-            ...(match.restrictions.length
-              ? {
-                  applies_note: match.restrictions
-                    .map((r) => `Applies to ${r.dimension}: ${r.values.join(', ')} only.`)
-                    .join(' '),
-                }
-              : {}),
+            ...appliesNote(match),
           }
         })
         // The lab's built-from part: what is published about the metrics an asked one is built
         // from, apart from the items and never in the answer state. An item the answer has, even
         // one a cut takes, is not told again. The first thing a cut takes.
         const part =
-          lab.builtFrom && resolution.scope
+          lab.builtFrom && resolution.scope && offset === 0
             ? builtFromPart(
                 bundle,
                 resolution.scope,
@@ -1283,8 +1287,9 @@ export function createToolService(
               )
             : null
         const partItems = (part?.items ?? []).slice(0, scoped.max_items)
+        let partKept = true
         const builtFrom = () => {
-          if (!part) return {}
+          if (!part || !partKept) return {}
           const nameOf = (key: string) => bundle.terms.find((t) => t.key === key)?.name ?? key
           const toolOf = (key: string) =>
             bundle.terms.find((t) => t.key === key)?.described?.tool ?? null
@@ -1301,6 +1306,7 @@ export function createToolService(
                   ...contextEntry(item, bundle, today, urlOf(item.id), { disagrees: [] }),
                   on: on.map(nameOf),
                   match: match.match,
+                  ...appliesNote(match),
                 }
               }),
               ...(part.items.length > partItems.length
@@ -1509,6 +1515,7 @@ export function createToolService(
         while (items.length > scoped.max_items) cutItem()
         // The built-from part never costs the answer an item, a link or a domain's words.
         while (partItems.length && byteSize(render()) > limit) partItems.pop()
+        if (byteSize(render()) > limit) partKept = false
         // What a domain is, in full, is background: it goes before any link or item; its summary
         // line stays (FR-321).
         if (byteSize(render()) > limit) for (const domain of domains) delete domain.description

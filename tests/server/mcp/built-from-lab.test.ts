@@ -2,39 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { byteSize, createToolService } from '../../../src/server/mcp/service.ts'
 import type { EditionSource, ServingBundle } from '../../../src/server/modules/editions/index.ts'
 import { UTC_CALENDAR } from '../../../src/domain/dates.ts'
-import { bundle, memoryStore } from './fixtures.ts'
+import { memoryStore, withOrderShare as withShare } from './fixtures.ts'
 
 /*
   The built-from lab in get_context (FOOTNOTE_LAB_BUILT_FROM): on, the reply also tells what is
   published about the metrics an asked one is built from, as built_from; the rest of the reply,
   its answer state and its sentence included, is the reply the lab off gives.
 */
-
-/** The fixture with Order share, built from Orders as Cube says, and with an item of its own. */
-function withShare(own = false): ServingBundle {
-  const data = bundle()
-  const orders = data.terms[0]!
-  data.terms.push({
-    ...orders,
-    key: 'metric:order_share',
-    name: 'Order share',
-    definitionRefs: ['cube:finance.order_share'],
-    definitions: [],
-    described: { ...orders.described!, ref: 'cube:finance.order_share', title: 'Order share' },
-  })
-  data.metricArea = { ...data.metricArea, 'metric:order_share': 'finance' }
-  data.builtFrom = { 'metric:order_share': ['metric:orders'] }
-  if (own)
-    data.items.push({
-      ...data.items[0]!,
-      id: 'itm_share001',
-      title: 'Order share counts the webshop only',
-      summary: 'Stores are left out of the order share.',
-      kind: 'note',
-      scope: { ...data.items[0]!.scope, metrics: ['metric:order_share'] },
-    })
-  return data
-}
 
 const principal = {
   client: 'claude-code',
@@ -117,5 +91,32 @@ describe('the built-from lab in get_context', () => {
     const tight = await service(shared, true)(question, byteSize(whole.reply) - 1)
     expect((tight.body.context as { id: string }[]).map((c) => c.id)).toEqual(['itm_share001'])
     expect(tight.body.built_from).toMatchObject({ context: [], more: 1 })
+  })
+
+  it('never costs the answer anything: at the limit the lab off fits, the reply is the same', async () => {
+    const shared = withShare(true)
+    const question = { question: 'Order share Norway August 2026' }
+    const off = await service(shared, false)(question)
+    const on = await service(shared, true)(question, byteSize(off.reply))
+    expect(on.reply.isError).toBeFalsy()
+    expect(on.body.context).toEqual(off.body.context)
+    expect(on.body).not.toHaveProperty('built_from')
+  })
+
+  it('says where an item of the part applies to some values only, concise or full', async () => {
+    for (const response_format of ['concise', 'full'] as const) {
+      const { body } = await service(
+        data,
+        true,
+      )({
+        question: 'Order share August 2026',
+        response_format,
+      })
+      expect(body.built_from).toMatchObject({
+        context: [{ id: 'itm_norway01', match: 'partial' }],
+      })
+      const [entry] = (body.built_from as { context: { applies_note?: string }[] }).context
+      expect(entry?.applies_note).toMatch(/^Applies to .*only\.$/)
+    }
   })
 })

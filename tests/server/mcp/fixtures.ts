@@ -206,3 +206,32 @@ export function fakeReads(
     },
   }
 }
+
+/**
+ * The fixture with Order share, built from Orders as Cube says, for the built-from lab; with `own`,
+ * an item of its own too.
+ */
+export function withOrderShare(own = false): ServingBundle {
+  const data = bundle()
+  const orders = data.terms[0]!
+  data.terms.push({
+    ...orders,
+    key: 'metric:order_share',
+    name: 'Order share',
+    definitionRefs: ['cube:finance.order_share'],
+    definitions: [],
+    described: { ...orders.described!, ref: 'cube:finance.order_share', title: 'Order share' },
+  })
+  data.metricArea = { ...data.metricArea, 'metric:order_share': 'finance' }
+  data.builtFrom = { 'metric:order_share': ['metric:orders'] }
+  if (own)
+    data.items.push({
+      ...data.items[0]!,
+      id: 'itm_share001',
+      title: 'Order share counts the webshop only',
+      summary: 'Stores are left out of the order share.',
+      kind: 'note',
+      scope: { ...data.items[0]!.scope, metrics: ['metric:order_share'] },
+    })
+  return data
+}

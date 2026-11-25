@@ -213,6 +213,7 @@ export async function loadServingBundle(
     definition_refs: string[]
     definitions: DefinitionState[]
     built_from_refs: string[]
+    built_from_readable: string[]
     described: {
       ref: string
       title: string | null
@@ -232,15 +233,19 @@ export async function loadServingBundle(
            'title', d.title, 'description', d.description_copy, 'type', c.type, 'source', c.name) end
           from unnest(t.definition_refs) with ordinality x(ref, n) join definitions d on d.ref = x.ref
           join connectors c on c.id = d.connector_id order by x.n limit 1) as described,
-       -- What its definitions take, as the tool says (FR-143): only definitions every reader may
-       -- see, at both ends.
+       -- What its definitions take, as the tool says (FR-143): all of it, and which of it every
+       -- reader may see at both ends, so a metric built partly from what is hidden is not told.
+       coalesce((select array_agg(distinct b.ref)
+          from unnest(t.definition_refs) x(ref)
+          join definitions d on d.ref = x.ref
+          cross join unnest(d.built_from_refs) b(ref)), '{}') as built_from_refs,
        coalesce((select array_agg(distinct b.ref)
           from unnest(t.definition_refs) x(ref)
           join definitions d on d.ref = x.ref and d.visible_groups is null
             and d.missing_since_snapshot is null
           cross join unnest(d.built_from_refs) b(ref)
           join definitions i on i.ref = b.ref and i.visible_groups is null
-            and i.missing_since_snapshot is null), '{}') as built_from_refs
+            and i.missing_since_snapshot is null), '{}') as built_from_readable
      from serving_vocabulary($1) t`,
     [head.seq],
   )
@@ -394,7 +399,8 @@ export async function loadServingBundle(
 
 /**
  * What each metric is built from, by key: the metrics of the vocabulary that name the definitions
- * its own definitions take, in the order of their keys.
+ * its own definitions take, in the order of their keys. A metric with an input that cannot be told
+ * (hidden, missing, or no metric of the vocabulary) is built from nothing here: never half of it.
  */
 function builtFromOf(
   vocab: readonly {
@@ -402,6 +408,7 @@ function builtFromOf(
     kind: Term['kind']
     definition_refs: string[]
     built_from_refs: string[]
+    built_from_readable: string[]
   }[],
 ): ServingBundle['builtFrom'] {
   const metricOf = new Map(
@@ -411,9 +418,12 @@ function builtFromOf(
   )
   return Object.fromEntries(
     vocab.flatMap((v) => {
-      const from = [...new Set(v.built_from_refs.flatMap((ref) => metricOf.get(ref) ?? []))].filter(
-        (key) => key !== v.key,
+      const readable = new Set(v.built_from_readable)
+      const keys = v.built_from_refs.map((ref) =>
+        readable.has(ref) ? metricOf.get(ref) : undefined,
       )
+      if (keys.some((key) => key === undefined)) return []
+      const from = [...new Set(keys as string[])].filter((key) => key !== v.key)
       return from.length ? [[v.key, from.sort()]] : []
     }),
   )

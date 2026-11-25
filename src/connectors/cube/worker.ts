@@ -238,15 +238,16 @@ async function compile(
   /**
    * What a view's measure is built from (C2), as dbt's reader says it: the measures its own
    * calculation takes, each by the ref of the view's member that stands for it, else, when the
-   * view leaves it out, of the one member of another view that shows it (`shown`), and its cube's
-   * columns, by name. None when the calculation is not plain column arithmetic
-   * (`arithmeticInputs`), or takes a measure the view hides, or that it leaves out and no other
-   * view or several show: what it reads is then not told.
+   * view leaves it out, of the one member of another view that shows it (`shown`; a public cube
+   * counts only when no view shows it), and its cube's columns, by name. None when the
+   * calculation is not plain column arithmetic (`arithmeticInputs`), or takes a measure the view
+   * hides, or that it leaves out and no other view or several show: what it reads is then not
+   * told.
    */
   function builtFromOf(
     name: string,
     measures: readonly { name: string; isVisible?: boolean }[],
-    shown: readonly { name: string }[],
+    shown: readonly { name: string; view: boolean }[],
   ): RuntimeDefinition['builtFrom'] {
     const source = sourceOf(name)
     const sql = record(rawMembers.get(source)).sql
@@ -258,7 +259,9 @@ async function compile(
       const taken = measure.includes('.') ? measure : `${cube}.${measure}`
       const own = measures.find((other) => sourceOf(other.name) === taken)
       if (own?.isVisible === false) return null
-      const elsewhere = own ? [] : shown.filter((other) => sourceOf(other.name) === taken)
+      const showing = own ? [] : shown.filter((other) => sourceOf(other.name) === taken)
+      const views = showing.filter((other) => other.view)
+      const elsewhere = views.length ? views : showing
       const member = own ?? (elsewhere.length === 1 ? elsewhere[0] : undefined)
       if (!member) return null
       if (!refs.includes(`cube:${member.name}`)) refs.push(`cube:${member.name}`)
@@ -283,7 +286,11 @@ async function compile(
 
   const definitions: RuntimeDefinition[] = []
   const shown = metaTransformer.cubes.flatMap(({ config }) =>
-    config.isVisible ? config.measures.filter((measure) => measure.isVisible !== false) : [],
+    config.isVisible
+      ? config.measures
+          .filter((measure) => measure.isVisible !== false)
+          .map((measure) => ({ name: measure.name, view: config.type === 'view' }))
+      : [],
   )
   for (const { config } of metaTransformer.cubes) {
     if (!config.isVisible) continue
