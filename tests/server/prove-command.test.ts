@@ -72,7 +72,7 @@ describe('the question file', () => {
     const read = await readProofFile(template)
     if (!('questions' in read)) throw new Error(read.problems.join('; '))
     expect(read.questions.map((q) => q.id)).toEqual([
-      'orders-norway-october',
+      'orders-netherlands-july',
       'orders-united-kingdom-october',
       'orders-france-may',
       'orders-spain-october',
