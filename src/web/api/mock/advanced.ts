@@ -28,6 +28,7 @@ function settingsOf(
   pins: Pins,
   automatic: Automatic,
   links: Links,
+  sharing: Sharing,
 ) {
   const values: [key: string, value: unknown, changed?: SettingChange][] = [
     ['workspace.name', name, { who: 'Jon Abara', when: '1 Oct', why: 'Name the workspace' }],
@@ -49,6 +50,10 @@ function settingsOf(
     ['retention.note_days', 180],
     ['retention.request_log_days', 90],
     ['retention.outbox_days', 30],
+    // Sharing an Ask chat as a link: on as installed, until an admin turns it off in the demo.
+    sharing.changed
+      ? ['ask.share_chats', sharing.on, sharing.changed]
+      : ['ask.share_chats', sharing.on],
     // Publishing without review: off as installed, until an admin switches it on in the demo.
     autoPublish
       ? [
@@ -101,6 +106,8 @@ const toolHref = `/settings/integrations/${DEMO_DEFINITIONS}`
 export type Pins = { keys: string[]; changed?: SettingChange }
 /** Whether answer tests run on their own in this visit, and who changed it last. */
 export type Automatic = { on: boolean; version: number; changed?: SettingChange }
+/** Sharing Ask chats as links in this visit, and who changed it last. */
+export type Sharing = NonNullable<Advanced['sharing']> & { changed?: SettingChange }
 /** Reading the links people paste in this visit, and who changed each setting last. */
 export type Links = NonNullable<Advanced['links']> & {
   changed?: SettingChange
@@ -121,10 +128,11 @@ export function advancedOf(
   automatic: Automatic = { on: false, version: 1 },
   left: Advanced['left'] = [],
   links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 },
+  sharing: Sharing = { on: true, version: 1 },
 ): Advanced {
   return {
     left,
-    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic, links),
+    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic, links, sharing),
     // Newest first: drafts and terms. Published context is archived, never deleted.
     deleted: [
       ...log
@@ -245,6 +253,7 @@ export function advancedOf(
       hosts: links.hosts,
       hostsVersion: links.hostsVersion,
     },
+    sharing: { on: sharing.on, version: sharing.version },
   }
 }
 

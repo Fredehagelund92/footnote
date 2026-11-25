@@ -27,6 +27,7 @@ import { readiness } from '@/model/review'
 import { findDefinition, meaningOf, type Definition } from '@/lib/definitions'
 import { emailOf } from '@/model/people'
 import { connectorById } from '@/model/catalogue'
+import { shareTurnsOf } from '@/model/shared-chat'
 
 /** Two names for the same word: case aside. */
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -2297,6 +2298,35 @@ export function describeFootnoteApi(
           link: 'https://wiki.example/norway-orders',
         })
         expect((await a.getMyReports())[0]?.id).toBe(itself.id)
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'ask', 'shareChat', 'getChatShares', 'getSharedChat', 'stopSharing'))(
+      'shares a chat as one link that a colleague opens, and only its sender stops it',
+      async () => {
+        const a = await signedIn()
+        const answer = await a.ask({ question: 'Do Norway orders include gift-card money?' })
+        const turns = shareTurnsOf([answer])
+        expect(turns).toHaveLength(1)
+        const chat = `chat-${Date.now()}`
+        const link = await a.shareChat({ chat, title: answer.question, turns })
+        expect(link).toMatchObject({ chat, title: answer.question, turns: 1, left: 0 })
+        const mine = await a.getChatShares()
+        expect(mine.on).toBe(true)
+        expect(mine.links[0]).toEqual(link)
+
+        await a.signIn({ name: colleague })
+        const shared = await a.getSharedChat({ id: link.id })
+        expect(shared).toMatchObject({ id: link.id, mine: false, by: { name: person } })
+        expect(shared.turns).toEqual([{ kind: 'turn', ...turns[0] }])
+        expect((await a.getChatShares()).links.some((l) => l.id === link.id)).toBe(false)
+        // Not theirs to stop: the link stays.
+        await a.stopSharing({ ids: [link.id] })
+        await a.signIn({ name: person })
+        expect((await a.getChatShares()).links.some((l) => l.id === link.id)).toBe(true)
+        await a.stopSharing({ ids: [link.id] })
+        expect((await a.getChatShares()).links.some((l) => l.id === link.id)).toBe(false)
+        await expect(a.getSharedChat({ id: link.id })).rejects.toMatchObject({ kind: 'not-found' })
       },
     )
 

@@ -167,6 +167,11 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         what: 'How long a change waiting to reach the Inbox is kept after it went',
         value: days,
       },
+      {
+        key: 'ask.share_chats',
+        what: 'Whether people can share an Ask chat as a link, which lasts 90 days',
+        value: (v) => (v === false ? 'Off: no chat is shared, and no link opens' : 'On'),
+      },
     ],
   },
   {

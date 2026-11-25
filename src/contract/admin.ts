@@ -115,6 +115,8 @@ export const settingSchemas = {
   // and the longest it may take. A turn that reaches either says so in a fixed sentence.
   'ask.max_steps': int(2, 12),
   'ask.time_limit_seconds': int(5, 120),
+  // Whether people may share an Ask chat as a link (FR-721). Off, no link is made and none opens.
+  'ask.share_chats': z.boolean(),
   'evals.tries': int(1, 20),
   // The majority of the repeats decides a flip, so the count is odd.
   'evals.flip_repeats': int(1, 15).check(z.refine((n) => n % 2 === 1, 'Expected an odd number')),

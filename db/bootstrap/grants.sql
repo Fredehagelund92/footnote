@@ -180,6 +180,10 @@ grant execute on function cl_owns_all(text[]), auth.accept_invite(text, text), i
 -- serving or the analytics role.
 grant insert on reports to :api;
 grant execute on function cl_report_outcome(uuid) to :api;
+-- A chat a person shares as a link (FR-721): its sender makes and stops it, anyone signed in opens a live
+-- one while sharing is on. Agents never read it: nothing here is granted to the serving or the analytics role.
+grant insert, delete on shared_chats to :api;
+grant execute on function cl_share_chats_on() to :api;
 -- Company sign-in (FR-416): a sign-in in progress, tied to its browser and used once; the link from a person's
 -- account at the identity provider to the person; and, as nobody is signed in yet, joining by a mapped group and
 -- keeping the admin group's Admin role in step run as the owner.

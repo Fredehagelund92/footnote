@@ -1962,6 +1962,56 @@
       }
     }
   },
+  "sharedChats": {
+    "create": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/shared-chats"
+        }
+      }
+    },
+    "mine": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/shared-chats"
+        }
+      }
+    },
+    "read": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/shared-chats/{id}"
+        }
+      }
+    },
+    "stop": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "DELETE",
+          "path": "/shared-chats/{id}"
+        }
+      }
+    }
+  },
   "ask": {
     "lookup": {
       "~orpc": {

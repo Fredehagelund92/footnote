@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-24
+reviewed: 2026-11-25
 ---
+
+## Share a chat as a link
+
+2026-11-25
+
+Share chat, at the top of Ask, makes one link to a copy of the whole chat, under your name. Only people signed in can open it, each source only if they may read it, and it lasts 90 days. Stop sharing is in History. An answer no longer has a Share of its own. See [Share a chat](ask-a-question.md#share-a-chat).
 
 ## Test a tool from its page
 

@@ -7,6 +7,7 @@ import { agentNameProblem } from '@domain/agents'
 import { ABOUT_BUSINESS_STARTER, aboutByRule } from '@domain/about-business'
 import { ApiError } from '../errors'
 import { missing } from '@contract/refusals'
+import { SHARED_CHAT_DAYS, type ShareTurn } from '@contract/shared-chats'
 import { reviewActions, type ReviewAction } from '@domain/review-actions'
 import type { SavedView } from '@/lib/obs-views'
 import { mentionNotesOf, type Subject } from '@/model/comments'
@@ -47,6 +48,7 @@ import {
   type Automatic,
   type Links,
   type Pins,
+  type Sharing,
 } from './advanced'
 import { loopExample, playAnswer, recordedAnswer } from './ask-live'
 import { createChats } from './chats'
@@ -109,6 +111,8 @@ export function createMockApi() {
   let automatic: Automatic = { on: false, version: 1 }
   /** Reading the links people paste in this visit: on as installed, no host listed. */
   let links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 }
+  /** Sharing Ask chats as links in this visit: on as installed. */
+  let sharing: Sharing = { on: true, version: 1 }
   /** An Observability page as the person signed in may read it, for a view. */
   const obsPageFor = ({ range, domain, agent }: Omit<ObsPageInput, 'section'>) => {
     const person = workspace.people().find((p) => p.name === me())
@@ -426,6 +430,36 @@ export function createMockApi() {
 
   /** The reports the person sent from Ask this visit, newest first. */
   const reports: { id: string; question: string; at: Date }[] = []
+  /**
+   * The chats shared as links this visit (FR-721), newest first: a copy of each turn, or left out
+   * when it rests on a draft, as the service keeps them.
+   */
+  const shares: {
+    id: string
+    chat: string
+    title: string
+    by: string
+    at: Date
+    until: Date
+    turns: (ShareTurn | { left: 'draft' })[]
+  }[] = []
+  /** The context items a person reads as published: never a draft, nor what waits for review. */
+  const publishedIds = () =>
+    new Set(
+      factsOf(state)
+        .filter((f) => f.status !== 'Draft' && f.status !== 'Waiting')
+        .map((f) => f.id),
+    )
+  const shareOf = (s: (typeof shares)[number]) => ({
+    id: s.id,
+    chat: s.chat,
+    title: s.title,
+    at: s.at.toISOString(),
+    until: s.until.toISOString(),
+    turns: s.turns.length,
+    left: s.turns.filter((t) => 'left' in t).length,
+  })
+  const liveShares = () => shares.filter((s) => s.until.getTime() > Date.now())
   const ratings = new Map<string, 'helpful' | 'wrong'>()
 
   /** Who sets and turns off a policy to publish without review, by name; the review flag first. */
@@ -1275,6 +1309,75 @@ export function createMockApi() {
       now(() =>
         reports.map((r) => ({ id: r.id, question: r.question, on: reportedOn(r.at, new Date()) })),
       ),
+    // A shared chat waits in this visit's memory, as the service keeps it (FR-721).
+    shareChat: ({ chat, title, turns }) =>
+      now(() => {
+        if (!sharing.on) throw new ApiError('forbidden', 'An admin has turned off sharing chats.')
+        const published = publishedIds()
+        const at = new Date()
+        const share = {
+          id: globalThis.crypto.randomUUID(),
+          chat,
+          title,
+          by: me(),
+          at,
+          until: new Date(at.getTime() + SHARED_CHAT_DAYS * 86_400_000),
+          turns: turns.map((t) =>
+            t.sources.every((id) => published.has(id)) ? t : { left: 'draft' as const },
+          ),
+        }
+        shares.unshift(share)
+        return shareOf(share)
+      }),
+    getChatShares: () =>
+      now(() => ({
+        on: sharing.on,
+        links: liveShares()
+          .filter((s) => s.by === me())
+          .map(shareOf),
+      })),
+    getSharedChat: ({ id }) =>
+      now(() => {
+        const share = sharing.on ? liveShares().find((s) => s.id === id) : undefined
+        if (!share)
+          throw new ApiError(
+            'not-found',
+            "This link has stopped, or it isn't one of this workspace's.",
+          )
+        // Each source is read as the person signed in: the context they may open now.
+        const open = new Set(
+          shownFacts()
+            .filter((f) => f.status !== 'Draft')
+            .map((f) => f.id),
+        )
+        return {
+          id: share.id,
+          title: share.title,
+          by: { personId: share.by, name: share.by },
+          at: share.at.toISOString(),
+          until: share.until.toISOString(),
+          mine: share.by === me(),
+          turns: share.turns.map((t) => {
+            if ('left' in t) return { kind: 'left' as const, why: t.left }
+            const sources = t.sources.map((s) => (open.has(s) ? s : null))
+            return {
+              kind: 'turn' as const,
+              question: t.question,
+              read: t.read,
+              state: t.state,
+              words: sources.every((s) => s !== null) ? t.words : null,
+              sources,
+            }
+          }),
+        }
+      }),
+    stopSharing: ({ ids }) =>
+      now(() => {
+        for (const id of ids) {
+          const at = shares.findIndex((s) => s.id === id && s.by === me())
+          if (at >= 0) shares.splice(at, 1)
+        }
+      }),
     // A rating waits in this visit's memory with only its verdict, as the service keeps it.
     rateAnswer: ({ verdict }) =>
       now(() => {
@@ -1362,7 +1465,16 @@ export function createMockApi() {
       }),
     advancedPage: () =>
       read('advancedPage', '', () =>
-        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic, leftDrafts(), links),
+        advancedOf(
+          state.log,
+          state.about,
+          autoPublishOn(),
+          pins,
+          automatic,
+          leftDrafts(),
+          links,
+          sharing,
+        ),
       ),
     setAutomaticRuns: ({ on, version }) =>
       now(() => {
@@ -1387,6 +1499,18 @@ export function createMockApi() {
               : 'Turned off in Settings, Advanced.',
           },
         }
+      }),
+    setChatSharing: ({ on, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin turns sharing chats on or off.')
+        if (version !== sharing.version)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        const why = on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.'
+        sharing = { on, version: version + 1, changed: { who: me(), when: 'Today', why } }
       }),
     setLinkReading: ({ on, version }) =>
       now(() => {

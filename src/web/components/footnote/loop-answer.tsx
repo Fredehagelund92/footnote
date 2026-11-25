@@ -51,7 +51,6 @@ const GROUP_SHOWN = 4
 
 type Props = {
   turn: Turn
-  docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
@@ -2125,7 +2124,7 @@ const cardsStandIn = (loop: LoopTurn) =>
   !!loop.defined?.cards.length &&
   loop.defined.cards.every((c) => c.inWords && !(c.family && !c.family.meaning))
 
-function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
+function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
   const P = useParts()
   const { answer, stopped } = turn
   const loop = answer.loop
@@ -2188,7 +2187,6 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
         // Stopped while the model wrote: the sentences checked so far, and nothing from the reads.
         unfinished: !done && stopped,
         busy: P.isLive(turn),
-        docked,
         onRetry,
         onAsk,
         latest,
@@ -2198,7 +2196,6 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
         sent,
         setSent,
         cited,
-        answerId: key,
       }}
     />
   )
@@ -2207,7 +2204,6 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
 function Finished({
   loop,
   answer,
-  docked,
   onRetry,
   onAsk,
   latest,
@@ -2217,7 +2213,6 @@ function Finished({
   sent,
   setSent,
   cited,
-  answerId,
   typed,
   upTo,
   unfinished,
@@ -2233,7 +2228,6 @@ function Finished({
   unfinished: boolean
   /** The turn is still on its way. */
   busy: boolean
-  docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
@@ -2243,7 +2237,6 @@ function Finished({
   sent: Answer['report']
   setSent: (s: Answer['report']) => void
   cited: Fact[]
-  answerId: string
 }) {
   const P = useParts()
   const maps = useMaps(loop)
@@ -2403,9 +2396,7 @@ function Finished({
               answer={answer}
               copyText={loop.kind === 'stopped' ? '' : copyOf(answer)}
               facts={cited}
-              answerId={answerId}
               draft={false}
-              docked={docked}
               latest={latest}
               onRetry={bare ? undefined : onRetry}
               wrong={wrong}
