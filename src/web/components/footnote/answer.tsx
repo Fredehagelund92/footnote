@@ -733,8 +733,11 @@ function SourceChip({
 export function ReportLine({
   report,
   focus,
+  answerKey,
 }: {
   report: NonNullable<Answer['report']>
+  /** The answer it is about: the report panel's close puts focus here when its opener is gone. */
+  answerKey?: string
   /** Sent from the form under the answer: focus comes here, where the form was. */
   focus?: boolean
 }) {
@@ -746,7 +749,8 @@ export function ReportLine({
     <p
       ref={line}
       role="status"
-      tabIndex={focus ? -1 : undefined}
+      tabIndex={focus || answerKey ? -1 : undefined}
+      data-report-line={answerKey}
       className="flex animate-in items-start gap-2 text-sm text-muted-foreground duration-(--dur-4) fade-in-0 outline-none"
     >
       <FlagIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -1319,7 +1323,9 @@ function ContextAnswerBody({
           )}
           {answer.related?.length ? <Related ids={answer.related} /> : null}
           {answer.state !== null && !draft && <NextStep answer={answer} facts={facts} />}
-          {!draft && report && <ReportLine report={report} focus={!!sentNow && !answer.report} />}
+          {!draft && report && (
+            <ReportLine report={report} focus={!!sentNow && !answer.report} answerKey={key} />
+          )}
           {docked && wrong && canReport && (
             <SomethingWrong
               answer={answer}

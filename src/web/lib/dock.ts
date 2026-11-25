@@ -51,6 +51,7 @@ export function openDock(kind: DockKind, id?: string, extra?: Record<string, str
   setTyped(null)
   fromRow = undefined
   fromButton = null
+  fromButtonId = undefined
   setQuery({
     dock: id ? `${kind}.${id}` : kind,
     tab: undefined,
@@ -82,6 +83,7 @@ export function closeDock() {
 */
 let fromRow: string | undefined
 let fromButton: HTMLElement | null = null
+let fromButtonId: string | undefined
 let intoPanel = false
 
 /** Opens a list row's peek and takes focus into it. */
@@ -96,10 +98,14 @@ export function openFromRow(
   intoPanel = !already
 }
 
-/** Opens a panel from a button, which gets focus back when the panel closes. */
+/**
+ * Opens a panel from a button, which gets focus back when the panel closes. If the button is gone by
+ * then (a reported answer hides its More), focus goes to the answer's report line instead.
+ */
 export function openFromButton(kind: DockKind, id: string, from: HTMLElement | null) {
   openDock(kind, id)
   fromButton = from
+  fromButtonId = id
 }
 
 /** A panel that has just drawn asks once whether focus should go into it. */
@@ -116,11 +122,18 @@ export function takeDockFocus() {
 export function returnFromDock() {
   const id = fromRow
   const button = fromButton
+  const buttonId = fromButtonId
   fromRow = undefined
   fromButton = null
+  fromButtonId = undefined
   intoPanel = false
   if (document.activeElement && document.activeElement !== document.body) return
   if (button?.isConnected) return button.focus({ preventScroll: true })
+  if (buttonId) {
+    const lines = document.querySelectorAll<HTMLElement>('[data-report-line]')
+    const line = [...lines].find((l) => l.dataset.reportLine === buttonId)
+    if (line) return line.focus({ preventScroll: true })
+  }
   if (!id) return
   const rows = document.querySelectorAll<HTMLElement>('[data-row-open]')
   ;[...rows].find((r) => r.dataset.rowOpen === id)?.focus({ preventScroll: true })

@@ -86,8 +86,11 @@ test('someone who owns nothing suggests the right words, and the owners read the
   ).toBeVisible()
   await form.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(form).toBeHidden()
-  // A reported answer offers no More to report from, so there is no opener to return to.
+  // A reported answer offers no More to report from: focus goes to its report line instead.
   await expect(more).toBeHidden()
+  await expect(
+    log(page).getByRole('status').filter({ hasText: 'You reported this just now' }),
+  ).toBeFocused()
 
   // The demo's owners hear of a report only from the service.
   await inHttpOnly('Reported card with the right words', async () => {
