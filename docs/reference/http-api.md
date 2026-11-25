@@ -71,7 +71,7 @@ Each person may send 600 requests a minute, and each address 120 before sign-in.
 | Reports         | `/reports`                                                               | Named reports from Ask                               |
 | Conflicts       | `/conflicts`                                                             | Read and settle pairs that disagree                  |
 | Definitions     | `/catalogue`, `/terms`, `/definitions`                                   | Metrics, dimensions, terms and synonyms              |
-| Ask             | `/ask`, `/figures`, `/try-it`                                            | Answers, Asked this week and figures                 |
+| Ask             | `/ask`, `/try-it`                                                        | Answers and Asked this week                          |
 | Saved questions | `/saved-questions`                                                       | Keep and check questions for a domain                |
 | Alerts          | `/alerts`                                                                | Alert rules, mutes and what they raised              |
 | Observability   | `/observability`                                                         | What agents asked and what they got, as counts       |

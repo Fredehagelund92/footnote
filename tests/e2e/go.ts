@@ -200,9 +200,8 @@ export const test = base.extend<{ demoWeek: void }>({
   the first try of a decision, and of adding or removing a synonym, fail, `?bulk=fail` makes the
   last row of the first change to many rows fail, `?quality=failed` makes the last check of the
   saved questions one that stopped after 8 of them, `?demo=last` decides every suggestion but the one opened, through the service,
-  `?demo=setup` starts on an empty workspace, `?figures=on|off` switches
-  Cube's figures, and Ask's `?example=` asks the example's question in the composer (`figconflict`
-  after someone reported that its figure doesn't fit).
+  `?demo=setup` starts on an empty workspace, and Ask's `?example=` asks the example's question in
+  the composer.
 */
 export async function go(page: Page, route: string) {
   const was = workspace
@@ -288,14 +287,12 @@ async function httpRoute(
   const bulk = query.get('bulk')
   const connect = query.get('connect')
   const quality = query.get('quality')
-  const figures = query.get('figures')
   const example = path === '/ask' ? query.get('example') : null
   query.delete('demo')
   query.delete('state')
   query.delete('bulk')
   query.delete('connect')
   query.delete('quality')
-  query.delete('figures')
   if (example) {
     // An example is the mock's own answer: on the service the journey asks its question, in a
     // chat of its own.
@@ -315,10 +312,6 @@ async function httpRoute(
   else if (bulk) throw new Error(`?bulk=${bulk} has no http meaning yet`)
   if (quality === 'failed') await failedCheck(8)
   else if (quality) throw new Error(`?quality=${quality} has no http meaning yet`)
-  // Figures on or off for Cube, as an admin switches them.
-  if (figures === 'on' || figures === 'off') await figuresOn(page, figures === 'on')
-  else if (figures) throw new Error(`?figures=${figures} has no http meaning yet`)
-  if (example === 'figconflict') await figureDoesNotFit(page)
   const search = query.toString()
   return {
     route: `${path}${search ? `?${search}` : ''}`,
@@ -470,30 +463,12 @@ async function publishedItem(page: Page, part: string) {
   return item.id
 }
 
-/** A change through the service's API as Jon, with his session's token. */
-async function asJon(page: Page, method: 'POST' | 'PUT', path: string, data: object) {
-  const session = await page.request.get('/api/v1/auth/session')
-  const { csrfToken } = (await session.json()) as { csrfToken: string }
-  const response = await page.request.fetch(`/api/v1${path}`, {
-    method,
-    headers: { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
-    data,
-  })
-  if (!response.ok()) throw new Error(`${method} ${path} was refused: ${await response.text()}`)
-}
-
-/** Show figures in Ask for Cube, on or off, as an admin switches it on Cube's page. */
-const figuresOn = (page: Page, on: boolean) =>
-  asJon(page, 'PUT', '/figures/cube', { enabled: on, reason: 'Show figures in Ask, in a journey.' })
-
 /**
  * The questions of the mock's examples a journey asks on the service (src/web/api/mock/data/ask.ts),
- * as someone would type them. The service reads no dates in the mock's "after 9 May", and the
- * mock's answer to it is about 9 to 31 May, so that one asks for those days.
+ * as someone would type them.
  */
 const exampleQuestions: Record<string, string> = {
   grounded: 'Why did orders in Norway drop in August?',
-  figconflict: 'Did discount cost in Norway fall from 9 to 31 May?',
 }
 
 /** Asks a mock example's question in Ask's composer, as someone types it. */
@@ -505,27 +480,6 @@ async function askExample(page: Page, id: string) {
   await box.pressSequentially(question)
   await box.press('Enter')
 }
-
-/**
- * Someone said the figure for discount cost in Norway after 9 May doesn't fit the context item
- * about the regulator's pause, as the mock's `figconflict` example has it: a figure report through
- * the service, to the owners of Marketing and the data contact.
- */
-const figureDoesNotFit = (page: Page) =>
-  asJon(page, 'POST', '/reports', {
-    question: 'Did discount cost in Norway fall from 9 to 31 May?',
-    itemId: card('itm_za26xpzv'),
-    part: 'figure',
-    what: "The figure doesn't fit this context item.",
-    figure: {
-      source: 'cube',
-      metric: 'metric:discount_cost',
-      values: ['val:market/norway'],
-      from: '2026-05-09',
-      to: '2026-05-31',
-      route: 'both',
-    },
-  })
 
 /** The check job's last run over the saved questions stopped after `checked` of them. */
 async function failedCheck(checked: number) {

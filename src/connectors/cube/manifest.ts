@@ -4,9 +4,7 @@ import { defineManifest } from '../../domain/define-manifest.ts'
  * Cube model files (CON-501, CON-502): the YAML model of a Cube project, read from a Git
  * repository an admin names, or from the folder whoever runs the server names. Its public members
  * become the definitions Footnote checks context against. A read is read only and offline: never a
- * Cube server, a warehouse or data, and never a calculation kept. Figures in Ask (CON-612) are
- * apart from it: only when an admin sets Cube's data endpoint and switches figures on, one
- * figure is read from Cube's REST API when someone asks, and kept nowhere.
+ * Cube server, a warehouse or data, and never a calculation kept.
  */
 export const manifest = defineManifest({
   id: 'cube',
@@ -87,7 +85,6 @@ export const manifest = defineManifest({
   access: [
     'Read access to this one repository. We never write to it.',
     'A read takes only the model files, never a Cube server, a warehouse or data.',
-    'Figures in Ask are off until an admin sets a data endpoint and switches them on. Then one figure is read from that endpoint when someone asks, and kept nowhere.',
   ],
   egress: { hosts: [{ fromField: 'repository' }], git: true },
   capabilities: {
@@ -101,7 +98,6 @@ export const manifest = defineManifest({
     serverFolder: true,
     // Each definition links to its view's model file under the folder address.
     modelLinks: 'modelUrl',
-    figures: true,
   },
   schedule: { default: 'PT1H', minimum: 'PT15M' },
   staleAfter: 'PT6H',

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/components/icons'
+import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon } from '@/components/icons'
 import { termWord } from '@domain/terms'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -25,7 +25,6 @@ import { SourcePassages } from '@/components/footnote/source-text'
 import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
 import { PeekFact, PeekFacts } from '@/components/footnote/peek'
-import { useFigures } from '@/lib/figures'
 import { MoreProperties, Property } from '@/components/footnote/doc'
 import { VersionHistory } from '@/components/footnote/version-history'
 import { useQuery } from '@tanstack/react-query'
@@ -511,9 +510,6 @@ export function DefinitionDetails({
   const about = glossary.contextAbout(d, facts)
   const subject = target ? glossary.meaningOf(d) : d
   const related = useRelated(mentionId(d.type, d.name))
-  const figures = useFigures()
-  // The figure-capable integration a synced definition comes from: its data contact answers for its figures.
-  const source = figures.sourceOf(d.tool)
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
   const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
   const mentioned = related.links.length > 0
@@ -592,13 +588,6 @@ export function DefinitionDetails({
           ) : (
             <PeekFact icon={PencilIcon}>
               <b>{domain}</b> - written by <b>{d.by}</b> - {d.updated}
-            </PeekFact>
-          )}
-          {/* A metric's figures have a person to ask, named in its integration's settings. */}
-          {d.synced && d.type === 'metric' && source && (
-            <PeekFact icon={UserIcon}>
-              Data contact <b>{figures.contact(source)}</b>, who hears about a figure that looks
-              wrong
             </PeekFact>
           )}
         </PeekFacts>

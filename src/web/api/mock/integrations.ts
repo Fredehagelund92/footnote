@@ -22,7 +22,13 @@ import {
   type SourcePage,
 } from '@/model/integrations'
 import { ApiError } from '../errors'
-import { connectFormOf, connectionOf, formTakes, minutesOf } from '../http-integrations'
+import {
+  connectFormOf,
+  connectionOf,
+  connectTestOf,
+  formTakes,
+  minutesOf,
+} from '../http-integrations'
 import {
   cubeCloudCheck,
   demoPageOf,
@@ -539,10 +545,21 @@ export function createIntegrations(
     return demo ? readingOnly(demoPageOf(stateAt(address), demo), kept(id)) : keptAt(id)
   }
 
-  /** A tool as it is now: paused, reading, or as the address's state has it. */
+  /**
+   * A tool as it is now: paused, reading, or as the address's state has it. With ?origin=server,
+   * the definitions tool is one the person who hosts the app set up from a folder on the server.
+   */
   const pageOf = (id: string, address: Address): SourcePage | null => {
-    const page = shownPage(id, address)
-    if (!page) return null
+    const shown = shownPage(id, address)
+    if (!shown) return null
+    const page =
+      address.query.origin === 'server' && connectorById(id)?.serverSetting
+        ? {
+            ...shown,
+            source: { ...shown.source, added: null },
+            connection: [{ label: 'Settings', value: 'Set by the person who hosts this app' }],
+          }
+        : shown
     const until = reading.get(id)
     if (until !== undefined && until <= Date.now()) reading.delete(id)
     const { state } = page.source
@@ -607,5 +624,111 @@ export function createIntegrations(
 
     /** Whether an admin paused reading a tool. */
     paused: (id: string) => paused.has(id),
+
+    /**
+     * Test connection on a definitions tool's page, as the service says it: the demo world's
+     * checks with the settings as saved, then what a read of every view finds, a file it skipped
+     * among it. ?check=failed has the repository refuse the token, or, for a tool set up on the
+     * server (?origin=server), its folder gone.
+     */
+    check(id: string, address: Address): ConnectTest {
+      const tool = connectorById(id)
+      const page = pageOf(id, address)
+      if (!tool || tool.kind !== 'definitions' || !page)
+        throw new ApiError(
+          'not-found',
+          "We couldn't find this source among the definitions sources.",
+        )
+      const server = page.source.added === null
+      const failed = address.query.check === 'failed'
+      const demo = demoTools[id]
+      const model = demo?.scopes.map((scope) => scope.id) ?? page.views.map((v) => v.view)
+      const chosen = kept(id)
+      const read = {
+        version: 'a1b2c3d',
+        complete: true,
+        views: model.length,
+        metrics: demo?.source.definitions?.metrics ?? page.source.definitions?.metrics ?? 0,
+        dimensions:
+          demo?.source.definitions?.dimensions ?? page.source.definitions?.dimensions ?? 0,
+      }
+      if (server)
+        return connectTestOf(
+          failed
+            ? {
+                ...read,
+                ok: false,
+                steps: [],
+                version: null,
+                complete: false,
+                views: 0,
+                metrics: 0,
+                dimensions: 0,
+                warnings: [{ code: 'folder_missing', target: 'folder' }],
+              }
+            : {
+                ...read,
+                ok: true,
+                steps: [
+                  {
+                    id: 'reach',
+                    title: 'Reach the folder on the server',
+                    status: 'ok',
+                    detail: `/srv/${SLUG}/cube, set in ${tool.serverSetting}.`,
+                  },
+                ],
+                warnings: [],
+                chosen: { all: true, groups: model.length, missing: [] },
+              },
+          id,
+        )
+      const steps = (demo?.steps ?? ['Checked the settings']).map((title, i) => ({
+        id: `step-${i}`,
+        title,
+        status: 'ok' as const,
+      }))
+      if (failed)
+        return connectTestOf(
+          {
+            ...read,
+            ok: false,
+            version: null,
+            complete: false,
+            views: 0,
+            metrics: 0,
+            dimensions: 0,
+            warnings: [],
+            steps: [
+              steps[0]!,
+              {
+                id: 'sign-in',
+                title: 'Sign in with the token',
+                status: 'failed',
+                detail: 'The repository refused the token.',
+                fix: 'Check that the token can read the repository, then replace it under Change settings.',
+              },
+              { id: 'read', title: 'Read the model', status: 'skipped' },
+            ],
+          },
+          id,
+        )
+      return connectTestOf(
+        {
+          ...read,
+          ok: true,
+          steps,
+          warnings: [{ code: 'unsupported_file', target: 'cube/model/currencies.yml.jinja' }],
+          chosen:
+            chosen && !chosen.readsAll
+              ? {
+                  all: false,
+                  groups: chosen.chosen.length,
+                  missing: chosen.chosen.flatMap((c) => (model.includes(c.id) ? [] : [c.id])),
+                }
+              : { all: true, groups: model.length, missing: [] },
+        },
+        id,
+      )
+    },
   }
 }

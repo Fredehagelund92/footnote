@@ -15,10 +15,15 @@ import {
   identityFrom,
   keyVariables,
   noSealedCases,
+  noSealedProof,
   parseHeldOut,
+  parseSealedProof,
+  proofSealedFile,
+  proofSetProblems,
   readHeldOutKey,
   seal,
   sealedFile,
+  sealProof,
   unseal,
 } from '../db/seed/held-out.ts'
 
@@ -38,26 +43,61 @@ import {
                               runs the area's held-out agent cases through the eval area runner,
                               in memory, and prints counts by type only: no case, answer or
                               transcript is shown or kept (the run records its calls and cost)
+    prove [--tries <n>] [--real --cap <dollars>]
+                              runs the invented company's sealed proof questions as
+                              `footnote prove` does, and prints the same table: counts only
+
+  `edit`, `rotate` and `count` take `--set prove` for the invented company's proof questions
+  (db/seed/prove-questions.age, the format of src/domain/proof.ts) in place of the held-out cases.
 
   `edit`, `rotate`, `count` and `eval` take the current key from FOOTNOTE_HELDOUT_KEY_FILE (or
   FOOTNOTE_HELDOUT_KEY), set for that command only. `--file` names another sealed file (for tests).
   `eval` reads the database and the model keys as `npm run eval` does (.env.local, then the
   environment), but never the held-out key from .env.local: that comes from the command only. It
   uses the scripted mock model unless `--real`, which needs a cost ceiling at or above the
-  estimate, shown first. While no sealed file exists, `eval` says that the held-out cases did not
+  estimate, shown first; `prove --real` also waits for a yes. While no sealed file exists, `eval` says that the held-out cases did not
   run and fails nothing; `edit` starts the first one.
 */
 
 const usage =
-  'Usage: npm run held-out -- keygen [--out <file>] | edit | rotate --new-key <file> | count | eval --area <id> [--real --max-cost-usd <dollars>] [--pass-rule majority|all]  [--file <sealed file>]'
+  'Usage: npm run held-out -- keygen [--out <file>] | edit | rotate --new-key <file> | count | eval --area <id> [--real --max-cost-usd <dollars>] [--pass-rule majority|all] | prove [--tries <n>] [--real --cap <dollars>]  [--set prove] [--file <sealed file>]'
 
 /** Where keygen saves a key unless told otherwise: outside every repository. */
 export const defaultKeyFile = () => join(homedir(), '.footnote', 'held-out.key')
 
-const emptySet = `# The held-out cases: agent cases under cases, each with split: held_out. The format is the
+/** What `edit`, `rotate` and `count` work on: the held-out cases, or the proof questions. */
+export type SealedSet = {
+  /** The text a new sealed file starts from. */
+  empty: string
+  problems(text: string): string[]
+  seal(text: string, identity: string): Promise<string>
+  count(text: string): string
+}
+
+export const heldOutSet: SealedSet = {
+  empty: `# The held-out cases: agent cases under cases, each with split: held_out. The format is the
 # golden set's (src/domain/golden-set.ts).
 cases: []
-`
+`,
+  problems: heldOutProblems,
+  seal,
+  count: (text) => countLine(text),
+}
+
+export const proofSet: SealedSet = {
+  empty: `# The invented company's proof questions (footnote prove), under questions. The format is
+# docs/templates/prove-questions.yaml's (src/domain/proof.ts). 40 questions is the planned size,
+# about 10 of them where nothing is written (no reasons). Write them before the first run.
+questions: []
+`,
+  problems: proofSetProblems,
+  seal: sealProof,
+  count: (text) => {
+    const { questions } = parseSealedProof(text)
+    const nothing = questions.filter((q) => q.reasons.length === 0).length
+    return `${questions.length} proof questions (${nothing} where nothing is written) are sealed.`
+  },
+}
 
 /** Whether git could commit the file: it is in a work tree and not ignored there. */
 const committable = (file: string) =>
@@ -113,10 +153,12 @@ export async function editSealed(options: {
   file: string
   editor: string
   retry: (problems: string[]) => Promise<boolean>
+  set?: SealedSet
 }): Promise<EditOutcome> {
+  const set = options.set ?? heldOutSet
   const before = existsSync(options.file)
     ? await unseal(readFileSync(options.file, 'utf8'), options.identity)
-    : emptySet
+    : set.empty
   const dir = await mkdtemp(join(tmpdir(), 'footnote-held-out-'))
   const buffer = join(dir, 'held-out.yml')
   // Stopped from the terminal, it still removes the decrypted file, then stops as asked.
@@ -141,9 +183,9 @@ export async function editSealed(options: {
       if (opened.status !== 0) throw new HeldOutError(`The editor (${options.editor}) failed`)
       const after = await readFile(buffer, 'utf8')
       if (after === before) return 'unchanged'
-      const problems = heldOutProblems(after)
+      const problems = set.problems(after)
       if (!problems.length) {
-        await writeFile(options.file, await seal(after, options.identity))
+        await writeFile(options.file, await set.seal(after, options.identity))
         return 'sealed'
       }
       if (!(await options.retry(problems))) return 'abandoned'
@@ -159,12 +201,13 @@ export async function rotateSealed(options: {
   identity: string
   newIdentity: string
   file: string
+  set?: SealedSet
 }): Promise<void> {
   if (options.identity === options.newIdentity)
     throw new HeldOutError('The new key is the current key')
   if (!existsSync(options.file)) throw new HeldOutError('There is no sealed file to seal again')
   const text = await unseal(readFileSync(options.file, 'utf8'), options.identity)
-  await writeFile(options.file, await seal(text, options.newIdentity))
+  await writeFile(options.file, await (options.set ?? heldOutSet).seal(text, options.newIdentity))
 }
 
 async function ask(question: string): Promise<boolean> {
@@ -321,6 +364,42 @@ async function evalArea(options: {
   }
 }
 
+/** `prove`: the invented company's sealed proof questions, through the proof's own flow. */
+async function proveSealed(
+  flags: { tries: number; real: boolean; cap: number | null },
+  file: string,
+): Promise<number> {
+  // Loaded here only, as for `eval`.
+  const [{ sealedProofSource }, { prove }] = await Promise.all([
+    import('../db/seed/held-out-runs.ts'),
+    import('../src/server/run-prove.ts'),
+  ])
+  const opened = await sealedProofSource(process.env, file)
+  if (!opened.ran) {
+    console.log(`The invented company's proof: not run. ${opened.reason}`)
+    // No sealed file is a state, not a failure; a missing key is the key holder's mistake.
+    return opened.reason === noSealedProof ? 0 : 1
+  }
+  return prove(
+    {
+      stdout: (line) => console.log(line),
+      stderr: (line) => console.error(line),
+      ask: async (question) => {
+        if (!process.stdin.isTTY) return ''
+        const rl = createInterface({ input: process.stdin, output: process.stdout })
+        try {
+          return await rl.question(question)
+        } finally {
+          rl.close()
+        }
+      },
+    },
+    flags,
+    opened.source,
+    evalEnvironment(flags.real),
+  )
+}
+
 async function main(): Promise<number> {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -332,10 +411,23 @@ async function main(): Promise<number> {
       real: { type: 'boolean', default: false },
       'max-cost-usd': { type: 'string' },
       'pass-rule': { type: 'string' },
+      set: { type: 'string' },
+      tries: { type: 'string' },
+      cap: { type: 'string' },
     },
   })
-  const file = values.file ? resolve(values.file) : fileURLToPath(sealedFile)
-  const shown = values.file ?? 'db/seed/golden-held-out.age'
+  if (values.set !== undefined && values.set !== 'prove') {
+    console.error(usage)
+    return 2
+  }
+  // The proof questions for `--set prove` and for `prove`; the held-out cases otherwise.
+  const proof = values.set === 'prove' || positionals[0] === 'prove'
+  const set = proof ? proofSet : heldOutSet
+  const file = values.file
+    ? resolve(values.file)
+    : fileURLToPath(proof ? proofSealedFile : sealedFile)
+  const shown =
+    values.file ?? (proof ? 'db/seed/prove-questions.age' : 'db/seed/golden-held-out.age')
   const commit = `Commit only ${shown}, in a pull request that changes nothing under src/.`
   switch (positionals.length === 1 ? positionals[0] : undefined) {
     case 'keygen': {
@@ -354,22 +446,23 @@ async function main(): Promise<number> {
         file,
         editor: process.env.VISUAL || process.env.EDITOR || 'vi',
         retry: async (problems) => {
-          console.error(`The cases do not fit the format:\n  ${problems.join('\n  ')}`)
+          console.error(`They do not fit the format:\n  ${problems.join('\n  ')}`)
           return ask('Open them again to fix this? [Y/n] ')
         },
+        set,
       })
       if (outcome === 'unchanged') console.log('No change: the sealed file is as it was.')
       else if (outcome === 'abandoned') {
         console.error('Nothing was sealed: the sealed file is as it was.')
         return 1
       } else
-        console.log(`${countLine(await unseal(readFileSync(file, 'utf8'), identity))}\n${commit}`)
+        console.log(`${set.count(await unseal(readFileSync(file, 'utf8'), identity))}\n${commit}`)
       return 0
     }
     case 'rotate': {
       if (!values['new-key']) break
       const newIdentity = identityFrom(await readFile(values['new-key'], 'utf8'))
-      await rotateSealed({ identity: await currentKey(), newIdentity, file })
+      await rotateSealed({ identity: await currentKey(), newIdentity, file, set })
       console.log(
         `Sealed ${shown} with the key in ${values['new-key']}: the old key no longer opens it.\n` +
           `Use FOOTNOTE_HELDOUT_KEY_FILE=${values['new-key']} from now on. ${commit}\n` +
@@ -380,10 +473,20 @@ async function main(): Promise<number> {
     case 'count':
       console.log(
         existsSync(file)
-          ? countLine(await unseal(readFileSync(file, 'utf8'), await currentKey()))
-          : `No held-out cases are sealed: ${shown} is absent.`,
+          ? set.count(await unseal(readFileSync(file, 'utf8'), await currentKey()))
+          : `No ${proof ? 'proof questions' : 'held-out cases'} are sealed: ${shown} is absent.`,
       )
       return 0
+    case 'prove': {
+      const { proveFlags } = await import('../src/server/run-prove.ts')
+      const flags = proveFlags([
+        ...(values.tries !== undefined ? ['--tries', values.tries] : []),
+        ...(values.real ? ['--real'] : []),
+        ...(values.cap !== undefined ? ['--cap', values.cap] : []),
+      ])
+      if (!flags) break
+      return proveSealed(flags, file)
+    }
     case 'eval': {
       const rule = values['pass-rule'] ?? 'majority'
       if (!values.area || !passRules.includes(rule as PassRule)) break

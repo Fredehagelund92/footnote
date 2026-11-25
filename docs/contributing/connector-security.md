@@ -44,7 +44,7 @@ this machine.
 Whoever runs the server may let `ctx.fetch` reach hosts on a private network by name
 (`FOOTNOTE_EGRESS_PRIVATE_HOSTS`, [Service settings](../configuration.md#connectors)), for an internal artifact server. It
 is a list in the server's own settings, not in the app: an administrator in the app cannot
-open the private network, and Git and figures do not take it. An allowed host is still https only,
+open the private network, and Git does not take it. An allowed host is still https only,
 and still has to be one the manifest declares. A settings address on such a host passes when the
 settings are saved, as a private repository does for Git, and Git then refuses it when it reads.
 
@@ -107,20 +107,6 @@ what a host says in `Retry-After` through `SourceError.retryAfter`; the schedule
 999999 seconds. An answer with a status outside 200 to 599 is treated as a 502, not a crash.
 
 A connector never calls the platform's `fetch`, opens a socket or starts a program itself.
-
-### Figures (CON-612)
-
-A definitions connector that declares the figures capability reads one figure for Ask through its
-own fetch, apart from `ctx.fetch`: GET only, to the data endpoint's origin alone (its scheme, host
-and port: the declared host), https to a public host in production, the host's name looked up
-once and the connection pinned to an answer that is public, so the name cannot be looked up again
-and rebound (built, `pinned-fetch.ts`). It never follows a redirect, has 4 seconds and caps what it
-reads. The endpoint's token is kept in the secret store as the source's secrets are, sent only to
-that origin, and forgotten when the scheme, host or port changes. No person's identity goes with
-the request, and nothing it returns is kept. Try a figure (`POST /api/v1/figures/{id}/try`,
-administrators only) goes through the same fetch with the saved endpoint and token, never ones
-typed in for the try, skips the figures cache and keeps nothing; its answer is the value or a
-failure code, never what the tool said.
 
 ## Secrets
 

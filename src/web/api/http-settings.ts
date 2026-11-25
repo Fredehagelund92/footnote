@@ -215,6 +215,7 @@ const SUBJECTS: Record<string, string> = {
   comment: 'a comment',
   report: 'a report',
   source: 'an integration',
+  // Figures in Ask left the app, but the history log keeps what was done to them before.
   figures: 'figures in Ask',
   access_key: 'an access key',
   agent: 'an agent',

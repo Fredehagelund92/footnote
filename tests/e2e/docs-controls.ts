@@ -245,30 +245,6 @@ export const docControls: DocControl[] = [
     at: '/settings/integrations/cube',
     drawn: 'button',
   },
-  {
-    phrase: 'Replace token',
-    page: 'integrations',
-    at: '/settings/integrations/cube',
-    drawn: 'button',
-  },
-  {
-    phrase: 'Try a figure',
-    page: 'integrations',
-    at: '/settings/integrations/cube',
-    drawn: 'button',
-  },
-  {
-    phrase: 'Data contact',
-    page: 'integrations',
-    at: '/settings/integrations/cube',
-    drawn: 'text',
-  },
-  {
-    phrase: 'Show figures in Ask',
-    page: 'integrations',
-    at: '/settings/integrations/cube',
-    drawn: 'text',
-  },
   { phrase: 'Conflict', page: 'decide-a-conflict', at: '/context?show=conflicts', drawn: 'text' },
   {
     phrase: 'Keep this one',

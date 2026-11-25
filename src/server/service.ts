@@ -21,8 +21,6 @@ import {
   createWorkspaceSources,
   noSecretStore,
   openLocalSecretStore,
-  readFigureOverrides,
-  type FigureOverrides,
   type SecretStore,
 } from './modules/connectors/index.ts'
 import { readyHelp } from './modules/answer/index.ts'
@@ -262,19 +260,7 @@ async function compose(
     secrets,
     worker: config.cubeCompile,
   })
-  let figureOverrides: FigureOverrides | undefined
-  if (config.figureOverridesFile !== undefined) {
-    try {
-      figureOverrides = await readFigureOverrides(config.figureOverridesFile)
-    } catch (error) {
-      throw new ServiceError(error instanceof Error ? error.message : 'FOOTNOTE_FIGURE_OVERRIDES')
-    }
-  }
-  const workspaceSources = createWorkspaceSources({
-    secrets,
-    registry: sources,
-    ...(figureOverrides ? { figureOverrides } : {}),
-  })
+  const workspaceSources = createWorkspaceSources({ secrets, registry: sources })
   // With real models, each model is checked once for what its roles need (models:check).
   const checks = models.mode === 'live' ? createModelChecks({ database }) : undefined
   const jobs = createJobRunner({

@@ -8,15 +8,13 @@ import {
   type DefinitionsView,
   type DriveDocument,
   type DriveFolder,
-  type FigureSetup,
   type IntegrationState,
   type Source,
   type SourcePage,
 } from '@/model/integrations'
 
 // The demo world's integrations: the tools it connects, by their connector's id, and for each what
-// it reads, its activity, how it is connected and what its test finds; and how the figure-capable
-// ones are reached. The demo world names its tools here, and only here: every word on a screen
+// it reads, its activity, how it is connected and what its test finds. The demo world names its tools here, and only here: every word on a screen
 // that names one comes from its connector's manifest.
 
 /** The demo world's definitions tool and its context tool, by their connector's id. */
@@ -30,11 +28,6 @@ export const demoConnected = [DEMO_DEFINITIONS, DEMO_CONTEXT]
 
 /** A tool of the demo world, as people say it: its manifest's name for it. */
 export const demoTool = (id: string) => builtInManifests.find((m) => m.id === id)?.tool ?? id
-
-/** Where the demo's definitions tool is, for a figure read there while figures are off. */
-export const demoToolHome: Record<string, string> = {
-  [DEMO_DEFINITIONS]: 'https://cube.larchwood.example/',
-}
 
 /** What the definitions tool reads: each view, what it holds and the domain it maps to. */
 const cubeViews: DefinitionsView[] = [
@@ -168,17 +161,6 @@ export const integrationState = (flag: string | null): IntegrationState =>
   flag === 'suggestions'
     ? flag
     : 'normal'
-
-/** How each figure-capable integration is reached. The secret is never shown in full. */
-export const figureConnections: Record<string, FigureSetup> = {
-  [DEMO_DEFINITIONS]: {
-    endpoint: 'https://cube.larchwood.example/cubejs-api/v1/load',
-    host: 'cube.larchwood.example',
-    secretSet: true,
-    contact: 'Ravi Kapoor',
-    asOf: 'today at 06:00',
-  },
-}
 
 /** The folders of the handbook in Git, once it is connected: its first read is still to come. */
 const handbookFolders: DriveFolder[] = [

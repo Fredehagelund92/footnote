@@ -192,6 +192,20 @@ describe("the approved set of the server's own source", () => {
     })
     expect(test.ok).toBe(true)
     expect(test.scopes?.map((scope) => scope.id)).toEqual(['_shared', 'customers', 'orders'])
+    // Test connection on its page: the folder the server names, read as it is saved.
+    const check = await ok<SourceCheck>('POST', `/sources/${id}/check`, {})
+    expect(check).toMatchObject({
+      ok: true,
+      steps: [
+        {
+          id: 'reach',
+          title: 'Reach the folder on the server',
+          status: 'ok',
+          detail: `${folder}, set in FOOTNOTE_SERVER_FOLDERS.`,
+        },
+      ],
+      chosen: { all: true, groups: 3, missing: [] },
+    })
   }, 120_000)
 
   it('reads only the models chosen, each in its domain, with one line in the history log', async () => {
@@ -226,6 +240,12 @@ describe("the approved set of the server's own source", () => {
     expect((await settings()).scopes).toEqual([
       { id: 'orders', title: 'orders', domain: 'finance' },
     ])
+    // Its test reads every model, and finds the one chosen there.
+    expect((await ok<SourceCheck>('POST', `/sources/${id}/check`, {})).chosen).toEqual({
+      all: false,
+      groups: 1,
+      missing: [],
+    })
   }, 120_000)
 
   it('keeps the domain of a model left out, for when it is chosen again', async () => {

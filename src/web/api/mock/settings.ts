@@ -3,32 +3,20 @@ import { AGENT_TOOLS } from '@/lib/agents'
 import { MCP_URL } from '@/lib/brand'
 import { toolsFor, type AgentToolName } from '@domain/agents'
 import { LIVE_PHASES, MOCK_SIGN_IN_MS, type Connected, type LivePhase } from '@/lib/connect'
-import { connectorById, connectors } from '@/model/catalogue'
-import { figuresState } from '@domain/figures-state'
-import type { FigureConnection, FigureSetup } from '@/model/integrations'
 import type { ConnectRequest } from '@contract/connections'
 import { MOCK_CONNECT_REQUEST, mockConnectRequest, seedAgents, toolRows } from './data/agents'
-import { demoConnected, demoTool, figureConnections } from './data/integrations'
+import { demoConnected } from './data/integrations'
 import type { Address } from './scenario'
 
 // The mock's switches and connections, kept until the page reloads: the tools agents call, Pause
-// sharing, figures in Ask per integration and their data contacts, the tools connected, and the
-// agents signed in. The review flag ?figures=on|off|<integration> sets the switches from the
-// address, and ?connect= shows the live line in any state.
-
-/** The tools that can read figures for Ask, as their manifests say. */
-export const FIGURE_SOURCES = connectors.flatMap((c) => (c.figures ? [c.id] : []))
+// sharing, the tools connected, and the agents signed in. The review flag ?connect= shows the live
+// line in any state.
 
 export function createSettings() {
   /** The tools an admin switched off; every other is on. */
   let off: string[] = []
   let pause: Settings['pause'] = { all: false, domain: null }
-  let figures: Record<string, boolean> = Object.fromEntries(FIGURE_SOURCES.map((id) => [id, false]))
-  let contacts: Record<string, string> = Object.fromEntries(
-    Object.entries(figureConnections).map(([k, v]) => [k, v.contact]),
-  )
   let connected: string[] = [...demoConnected]
-  let connections: Record<string, FigureSetup> = { ...figureConnections }
   let agents: Connected[] = [...seedAgents]
   let made = 0
   /** Whether the demo's waiting agent sign-in was answered on the consent page. */
@@ -62,29 +50,12 @@ export function createSettings() {
   }
 
   return {
-    /** The switches as the address shows them: a review flag first. */
-    read(address: Address): Settings {
-      const flag = address.query.figures
-      const only = flag?.replace(/^source[:=]/, '')
-      const shown = Object.fromEntries(
-        FIGURE_SOURCES.map((id) => [
-          id,
-          flag === 'on'
-            ? true
-            : flag === 'off'
-              ? false
-              : only && connectorById(only)
-                ? id === only
-                : (figures[id] ?? false),
-        ]),
-      )
+    /** The switches as they stand. */
+    read(): Settings {
       return {
         mcpAddress: MCP_URL,
         tools: Object.fromEntries(AGENT_TOOLS.map((t) => [t.name, !off.includes(t.name)])),
         pause,
-        figures: shown,
-        contacts,
-        figureTools: Object.fromEntries(FIGURE_SOURCES.map((id) => [id, demoTool(id)])),
         connected,
       }
     },
@@ -93,51 +64,6 @@ export function createSettings() {
     },
     setPause(change: { all: boolean } | { domain: string | null }) {
       pause = { ...pause, ...change }
-    },
-    setFigures(id: string, on: boolean) {
-      figures = { ...figures, [id]: on }
-    },
-    setContact(id: string, name: string) {
-      contacts = { ...contacts, [id]: name }
-    },
-    /**
-     * How each figure-capable integration is reached, with its data contact as it stands, and how
-     * its figures in Ask are, as the service works it out: a paused tool's are held.
-     */
-    connections(
-      address: Address,
-      paused: (id: string) => boolean,
-    ): Record<string, FigureConnection> {
-      const on = this.read(address).figures
-      return Object.fromEntries(
-        Object.entries(connections).map(([id, c]) => {
-          const contact = contacts[id] ?? c.contact
-          const state = figuresState({
-            capable: FIGURE_SOURCES.includes(id),
-            removed: false,
-            paused: paused(id),
-            switchOn: on[id] ?? false,
-            endpoint: c.endpoint !== null,
-            token: c.secretSet,
-            contactActive: contact !== '',
-          })
-          return [id, { ...c, contact, state }]
-        }),
-      )
-    },
-    /** A new data endpoint and token: the token is set, and shown nowhere. */
-    setConnection(id: string, endpoint: string) {
-      const was = connections[id]
-      connections = {
-        ...connections,
-        [id]: {
-          ...was,
-          endpoint,
-          host: URL.parse(endpoint)?.hostname ?? null,
-          secretSet: true,
-          contact: was?.contact ?? '',
-        },
-      }
     },
     connect(id: string) {
       if (!connected.includes(id)) connected = [...connected, id]

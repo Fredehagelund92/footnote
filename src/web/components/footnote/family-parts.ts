@@ -59,7 +59,6 @@ import { useRelated } from '@/hooks/use-related'
 import { differingWords } from '@/lib/differing-words'
 import { conversionLines, familyBy, useGlossary } from '@/lib/definitions'
 import { closeDock, openDock } from '@/lib/dock'
-import { useFigures } from '@/lib/figures'
 import { mentionId } from '@/lib/mentions'
 import { useReported } from '@/lib/reported'
 import { changeQuery, href, navigate, setQuery, useRoute } from '@/lib/router'
@@ -131,7 +130,6 @@ export const familyParts = {
   useGlossary,
   closeDock,
   openDock,
-  useFigures,
   mentionId,
   useReported,
   href,

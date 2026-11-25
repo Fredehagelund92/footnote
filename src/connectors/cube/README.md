@@ -61,16 +61,6 @@ whole model, and the core keeps the members of the listed views ([the views it r
    in it, or a measure the view leaves out or hides (`public: false`) or a dimension, sends nothing. Only the names cross, never the `sql`.
    From these the core says which variant is converted from which.
 
-## Figures in Ask
-
-The manifest declares the figures capability. Off by default; once an admin sets the data endpoint
-(Cube's REST API `/v1/load`) and its token and switches it on, `figure` reads one figure when
-someone asks in Ask: a GET of `/v1/load` with the core's fixed query, and once in ten minutes
-`/v1/meta` for how the measure is worked out (`figures.ts`). It reaches only the endpoint's origin,
-pinned to a public address, within 4 seconds, and Cube's own words about a failure never cross:
-only a code. What it does and how to set it up is in
-[The Cube connector](../../../docs/connectors/cube.md#figures-in-ask).
-
 ## Schedule and limits
 
 Read every hour by default, at most every 15 minutes. A source not read for six hours is out of

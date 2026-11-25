@@ -198,6 +198,44 @@ saved questions follows each publish instead (FR-526).
   gateway, `GET /v1/credits`, read-only): another use of the same key in the meantime moves the
   counter too. Cache writes bill at the provider's cache write price (Claude: 1.25 times input).
 
+## The proof
+
+`npm run footnote -- prove` ([Run the proof](prove.md) is the reader's page) asks the same
+questions about a period and a market three ways through one agent loop, and prints a table. It
+is built on the area runner, not beside it (`src/server/modules/evals/proof.ts`):
+
+- **The three ways.** No context: no tools, no notes. One plain file: no tools, and every note
+  the live edition serves to an agent with no group, written out by `notesFile`
+  (`src/domain/proof.ts`) as one Markdown file in the instructions, after the test's own prompt.
+  Footnote: the eval client's tools through the real MCP wire (`openArm`), with the server
+  instructions, as every area run asks them. The prompt (`proofSystemPrompt`), the model, the day
+  (each question's `as_of`, told in the prompt and used as the server's day) and the judge are
+  the same for all three.
+- **The judge.** `judgeAnswer`, the area runs' judge, reads each answer, never its tools, with
+  one rubric for each note the question names and one for "nothing is written" where nothing is.
+  Code turns the grades into the three counts (`proofScore`): the right reason and no wrong one,
+  a wrong note told, and nothing is written said. A refusal or an unreadable verdict counts in no
+  column. The scripted judge passes a rubric when the answer holds its quoted title, and the
+  scripted answer model reads the plain file by place alone, whatever the dates.
+- **The questions** are a file in the format of `docs/templates/prove-questions.yaml` (`--questions`),
+  checked before anything runs, and refused when a named note is not served. The run prints their
+  digest (`proofDigest`).
+- **Size and cost.** Three tries by default (`--tries`). The estimate counts each way apart: a
+  Footnote answer as an area run's cell, the plain file read from the prompt cache after one write
+  for each day and each answer that can start at once, and a judge call for every answer. `--real`
+  needs `--cap` at or above it and a typed yes; the cap is the run's ceiling (command-run.ts).
+- **What is kept.** One run of kind `proof` (migration 0018), worked only by its command under a
+  lease, as a held-out run is: its model calls, its cost and, in its summary, whose questions,
+  their digest and the counts by way and try. No cell, transcript, question or answer.
+
+The invented company's questions are sealed with the held-out key in
+`db/seed/prove-questions.age` until its first funded run, guarded by the held-out seal. The key
+holder writes them (`npm run held-out -- edit --set prove`), counts them (`count --set prove`) and
+runs them (`npm run held-out -- prove [--real --cap <dollars>]`), which prints the same table and
+nothing of a question. With the published result the key holder commits them opened, as
+`db/seed/prove-questions.yml`, which `npm run footnote -- prove` asks when it is given no file;
+until then it says the questions are sealed and asks nothing.
+
 ## Ask's promises and the burned cases
 
 Ask's promises (FR-720) are held by cases, not by reading answers. `gate-cases.ts` holds what the
@@ -518,7 +556,8 @@ failed; ...)`: never a question, an expectation or a transcript. The code that r
 ...`. It counts nothing and fails nothing: `npm run held-out -- eval` exits 0, and `count` says
   that no cases are sealed.
 - **The guard** (`scripts/check-held-out-seal.ts`, the "Held-out seal" job of CI) fails a pull
-  request that changes the sealed file or the seal's own code together with anything under
+  request that changes a sealed file (the held-out cases, or the proof questions in
+  `db/seed/prove-questions.age`) or the seal's own code together with anything under
   `src/`, that deletes or moves the sealed file, that commits held-out cases in plain text or in
   the visible file, or whose code outside the seal names the sealed file, the key's variables, the
   age library or a function that hands out the cases. The rules on the sealed file hold once it

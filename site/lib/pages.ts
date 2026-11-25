@@ -49,6 +49,7 @@ export const publishedPages = [
   'help/see-what-agents-asked',
   'help/metric-variants',
   'help/how-agents-use-it',
+  'prove',
   'help/tools',
   'reference/connect-by-hand',
   'reference/http-api',

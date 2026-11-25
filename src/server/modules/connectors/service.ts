@@ -236,7 +236,7 @@ export class ConnectorService {
       }
       // Until an administrator chooses its groups in the app, the server's own source keeps the
       // groups its configuration lists where an added source keeps those an administrator chose,
-      // so figures, its page and Choose see what it reads.
+      // so its page and Choose see what it reads.
       if (origin === 'server' && snapshot)
         await tx.query(
           `update connectors set all_groups = $2, scopes = $3 where id = $1 and changed_at is null`,

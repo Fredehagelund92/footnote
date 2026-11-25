@@ -129,6 +129,10 @@ export default defineConfig({
     // J117 opens a dimension's definition answer by the mock's example address; the service writes
     // it in tests/web/integration/ask-loop-shapes.test.ts, and the chip is the same component there.
     /\/j117-ask-dimension-chip\.spec\.ts$/,
+    // J118 asks the mock for a failed test and a Cube set up on the server (?check=, ?origin=);
+    // the service tests a saved source in tests/integration/cube-sources.test.ts and its own
+    // folder in tests/integration/approved-groups.test.ts.
+    /\/j118-cube-page\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

@@ -9,7 +9,7 @@ import { idleJobs } from '../../server/idle-jobs.ts'
 import { apiDatabase, testDatabase } from '../../integration/support.ts'
 import { devPeople, OWNER, seedDemoWeek, TODAY } from '../http/demo-week.ts'
 import { demoLoginServer } from '../http/login.ts'
-import { demoCube, demoSecrets, inventedToken, seedDemoFigures } from '../http/demo-figures.ts'
+import { inventedToken, memorySecrets } from '../http/secrets.ts'
 import { gitHost, type GitHost } from '../../server/connectors/git-server.ts'
 import {
   ConnectorRegistry,
@@ -25,16 +25,13 @@ import {
 // Someone else the demo week signs in, the comments' second voice.
 const colleague = { name: 'Tomas Eriksen' }
 const { client, url } = testDatabase()
-// Cube's figures in the demo week: a stand-in Cube over the demo warehouse, its token invented here.
-const cubeToken = inventedToken()
-let cube: Awaited<ReturnType<typeof demoCube>> | undefined
 // The handbook the connect flow's cases connect: Markdown in Git on this machine, behind a token
 // invented here.
 const handbookToken = inventedToken()
 let handbook: GitHost | undefined
 const app = buildApp({
   workspaceSources: createWorkspaceSources({
-    secrets: demoSecrets(cubeToken),
+    secrets: memorySecrets(),
     registry: new ConnectorRegistry([]),
   }),
   database: apiDatabase(url),
@@ -66,10 +63,6 @@ const jar: typeof fetch = async (request, init) => {
 beforeAll(async () => {
   await client.query('reset role')
   await seedDemoWeek(url)
-  const admin = new URL(url)
-  admin.pathname = '/postgres'
-  cube = await demoCube(admin.href, cubeToken)
-  await seedDemoFigures(url, cube.endpoint)
   handbook = await gitHost({ token: handbookToken })
   await handbook.repository('handbook', {
     'docs/sales/orders.md':
@@ -89,7 +82,6 @@ beforeAll(async () => {
 }, 120_000)
 afterAll(async () => {
   await app.close()
-  await cube?.drop()
   await handbook?.close()
 })
 
