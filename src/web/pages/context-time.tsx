@@ -906,8 +906,8 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
                 <>
                   <EmptyTitle>No item has dates to show</EmptyTitle>
                   <EmptyDescription>
-                    By time draws items that start or end on a day. The list shows the items
-                    without dates.
+                    By time draws items that start or end on a day. The list shows the items without
+                    dates.
                   </EmptyDescription>
                 </>
               )}

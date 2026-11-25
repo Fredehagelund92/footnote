@@ -234,9 +234,7 @@ function ContextByTime() {
         <LoadError what="the context" className="border-b" onRetry={() => void load.refetch()} />
       ) : (
         <>
-          {refreshFailed && (
-            <RefreshError what="the context" onRetry={() => void load.refetch()} />
-          )}
+          {refreshFailed && <RefreshError what="the context" onRetry={() => void load.refetch()} />}
           <React.Suspense fallback={null}>
             <ContextTime facts={load.data ?? NO_FACTS} ready={phase === 'content'} />
           </React.Suspense>
