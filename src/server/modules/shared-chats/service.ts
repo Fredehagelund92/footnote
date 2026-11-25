@@ -17,7 +17,7 @@ import type { Queryable } from '../../db/database.ts'
 
   Anyone signed in opens a live link, while the admin switch `ask.share_chats` is on. Each source
   is read as the reader when the link opens: one they may not read is left out in its place, and a
-  turn that rests on one keeps its question and state without its words. A link lasts 90 days; its
+  turn that rests on one keeps its question and state without its words or what Ask read. A link lasts 90 days; its
   sender stops it, which deletes the copy, and cl_retention_run deletes it once it ends. Row
   security keeps every rule in the database too (db/migrations/0020_shared_chats.sql); the MCP read
   path has no grant on it.
@@ -118,12 +118,13 @@ export function createSharedChatsService(tx: Queryable) {
       const turns = row.turns.map((t): SharedTurn => {
         if ('left' in t) return { kind: 'left', why: t.left }
         const sources = t.sources.map((s) => (open.has(s) ? s : null))
+        const whole = sources.every((s) => s !== null)
         return {
           kind: 'turn',
           question: t.question,
-          read: t.read,
+          read: whole ? t.read : [],
           state: t.state,
-          words: sources.every((s) => s !== null) ? t.words : null,
+          words: whole ? t.words : null,
           sources,
         }
       })

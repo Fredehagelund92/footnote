@@ -88,7 +88,7 @@ const chat = () => ({
     },
     {
       question: 'And what about returns?',
-      read: [],
+      read: ['Context about Returns, hidden from some'],
       state: 'partial',
       words: 'Returns are counted on the refund day.[1] Stores reopened.[2]',
       sources: [ids.open, ids.hidden],
@@ -157,7 +157,7 @@ describe('a shared chat', () => {
     })
   })
 
-  it('reads each source as the reader: a turn on one they may not read loses its words', async () => {
+  it('reads each source as the reader: a turn on one they may not read loses its words and what it read', async () => {
     const link = (await call('author', 'POST', '/shared-chats', chat())).json<MyShare>()
     // The item is narrowed to an audience after the chat was shared.
     const narrowed = await published({

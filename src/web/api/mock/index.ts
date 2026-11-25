@@ -1360,12 +1360,13 @@ export function createMockApi() {
           turns: share.turns.map((t) => {
             if ('left' in t) return { kind: 'left' as const, why: t.left }
             const sources = t.sources.map((s) => (open.has(s) ? s : null))
+            const whole = sources.every((s) => s !== null)
             return {
               kind: 'turn' as const,
               question: t.question,
-              read: t.read,
+              read: whole ? t.read : [],
               state: t.state,
-              words: sources.every((s) => s !== null) ? t.words : null,
+              words: whole ? t.words : null,
               sources,
             }
           }),

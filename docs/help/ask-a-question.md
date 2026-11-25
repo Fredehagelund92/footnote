@@ -83,6 +83,6 @@ The owners of a domain and admins can save a question, so it is answered again a
 
 The link keeps a copy of the whole chat as it is now, under your name: each question, what Ask read, the answer line, the words and the sources. An answer that rests on a draft is left out, and no figure is kept. Later answers are not added, so share the chat again for a new link.
 
-Only people signed in to your workspace can open it. Each source opens as it is today, and only for people who may read it. Where someone may not read a source, they see the question and its answer line, but not its words.
+Only people signed in to your workspace can open it. Each source opens as it is today, and only for people who may read it. Where someone may not read a source, they see only the question and its answer line, not the words or what Ask read.
 
 A link lasts 90 days. In History, a shared chat says until when. Press Stop sharing there, and the link opens nothing. A link whose chat is no longer in this browser is listed under Shared links. An admin can turn sharing off for everyone.
