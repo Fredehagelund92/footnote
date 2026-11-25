@@ -96,7 +96,11 @@ export function DefinitionPeek({ name }: { name: string }) {
       quietTitle
       actions={
         <PeekBar onExpand={() => navigate(page)}>
-          <DockStepper list="definitions" id={d.name} onGo={(n) => openDock('def', n)} />
+          <DockStepper
+            list="definitions"
+            id={d.name}
+            onGo={(n) => openDock('def', n, undefined, { replace: true })}
+          />
         </PeekBar>
       }
       footer={

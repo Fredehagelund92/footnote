@@ -656,7 +656,11 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
       quietTitle
       actions={
         <P.PeekBar onExpand={() => P.navigate(page)}>
-          <P.DockStepper list="definitions" id={d.name} onGo={(x) => P.openDock('def', x)} />
+          <P.DockStepper
+            list="definitions"
+            id={d.name}
+            onGo={(x) => P.openDock('def', x, undefined, { replace: true })}
+          />
         </P.PeekBar>
       }
       footer={

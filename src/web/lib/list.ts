@@ -1,6 +1,95 @@
 import * as React from 'react'
+import { cameFrom, changeQuery, useRoute } from '@/lib/router'
 
 // The state and keys the Context and Definitions lists share.
+
+/*
+  A list's view lives in the address: its filters, search words, sort and group. A reload, a link
+  and Back from an item page give the same list. A filter, sort or group chosen is a step in
+  history, so Back undoes it; a search is one step however many keys it takes.
+*/
+
+/** A filter's values in the address, such as `domain=sales,finance`: those the list knows, in order. */
+export function listOf<T extends string>(raw: string | null, known: readonly T[]): T[] {
+  const asked = new Set(raw?.split(','))
+  return known.filter((v) => asked.has(v))
+}
+
+/** A filter's values for the address: none leaves the key out. */
+export const listTo = (values: readonly string[]) => (values.length ? values.join(',') : undefined)
+
+/**
+ * The search words (`q`), as typed. The box shows each key at once and the address follows; the
+ * first word starts a step in history and the keys after it change that step, so Back leaves the
+ * search in one press. A change of the address from elsewhere (Back, a link) wins.
+ */
+export function useSearchWords(): [string, (next: string) => void] {
+  const { query } = useRoute()
+  const inAddress = query.get('q') ?? ''
+  // What was typed and is not in the address yet, oldest first.
+  const [typed, setTyped] = React.useState({ seen: inAddress, waiting: [] as string[] })
+  let waiting = typed.waiting
+  if (typed.seen !== inAddress) {
+    const at = waiting.indexOf(inAddress)
+    waiting = at < 0 ? [] : waiting.slice(at + 1)
+    setTyped({ seen: inAddress, waiting })
+  }
+  const text = waiting.at(-1) ?? inAddress
+  const type = (next: string) => {
+    if (next === text) return
+    setTyped((t) => ({ ...t, waiting: [...t.waiting, next] }))
+    void changeQuery({ q: next || undefined }, { replace: !!text })
+  }
+  return [text, type]
+}
+
+/** The list's address, kept for the way back to it from its items (their breadcrumb and back arrow). */
+const listAddresses = new Map<string, string>()
+
+/** Keeps the list's address while it is on screen. */
+export function useListAddress(path: string) {
+  const { query } = useRoute()
+  const search = query.toString()
+  React.useEffect(() => {
+    listAddresses.set(path, search ? `${path}?${search}` : path)
+  }, [path, search])
+}
+
+/** The list at `path` as it was last left in this tab, else the whole list. */
+export const listHref = (path: string) => listAddresses.get(path) ?? path
+
+/**
+ * The row to focus once the rows are drawn: the item Back has just come back from (its page was
+ * `${itemPath}<id>`), else the one open in the side panel, as after a reload. Once per visit.
+ */
+export function useArrivalRow({
+  itemPath,
+  idOf,
+  peeked,
+  ready,
+  focus,
+}: {
+  itemPath: string
+  idOf: (part: string) => string | undefined
+  peeked: string | undefined
+  ready: boolean
+  focus: (id: string) => void
+}) {
+  const [from] = React.useState(() => {
+    const left = cameFrom()
+    return left.startsWith(itemPath) ? idOf(left.slice(itemPath.length).split('/')[0]!) : undefined
+  })
+  const done = React.useRef(false)
+  const focusRow = React.useEffectEvent(focus)
+  React.useEffect(() => {
+    if (!ready || done.current) return
+    done.current = true
+    const id = from ?? peeked
+    if (id) focusRow(id)
+    // Once, when the rows first draw.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready])
+}
 
 /**
  * Arrow keys (or J and K) move between rows, Home and End jump. The rows' open buttons are the

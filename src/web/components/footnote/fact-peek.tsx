@@ -216,7 +216,11 @@ export function FactPeek({ id }: { id: string }) {
       quietTitle
       actions={
         <PeekBar onExpand={() => navigate(page)}>
-          <DockStepper list="context" id={fact.id} onGo={(next) => openDock('context', next)} />
+          <DockStepper
+            list="context"
+            id={fact.id}
+            onGo={(next) => openDock('context', next, undefined, { replace: true })}
+          />
         </PeekBar>
       }
       footer={

@@ -1650,7 +1650,7 @@ const groupIcons = (P: LoopParts): Record<string, LucideIcon> => ({
 function groupPage(P: LoopParts, o: LoopOverview, key: string | null) {
   if (!key) return null
   if ((o.from === 'inbox' && key === 'check') || (o.from === 'records' && key === 'due'))
-    return { href: '/context?due=1', label: 'Open in Context' }
+    return { href: '/context?status=due', label: 'Open in Context' }
   if (o.from === 'records' && key.startsWith('domain:'))
     return {
       href: P.href('/context', { domain: key.slice('domain:'.length) }),
