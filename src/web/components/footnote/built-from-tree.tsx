@@ -39,7 +39,7 @@ export default function BuiltFromBand(props: Props) {
   const metrics = useBuiltFrom(props.name)
   if (!metrics) return null
   return (
-    <PeekBand label="How it is built">
+    <PeekBand label="What it is built from">
       <PeekLabel>Built from</PeekLabel>
       <Tree key={props.name} metrics={metrics} {...props} />
     </PeekBand>
