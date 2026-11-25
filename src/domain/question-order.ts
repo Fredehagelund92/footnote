@@ -49,7 +49,7 @@ export function questionWords(
   const text = normalizeName(question)
   if (!text) return []
   const { occupied } = phrasesIn(text, [
-    ...terms.flatMap(namesOf),
+    ...vocabularyNames(terms),
     ...areas.map((area) => normalizeName(area.name)),
   ])
   const named = vocabularyStems(terms)
@@ -64,6 +64,19 @@ export function questionWords(
         .filter((word) => !named.has(word)),
     ),
   ]
+}
+
+/** Every name of every term, as words are read by (namesOf), longest first: once per edition. */
+const termNames = new WeakMap<readonly Term[], string[]>()
+function vocabularyNames(terms: readonly Term[]) {
+  let names = termNames.get(terms)
+  if (!names) {
+    names = [...new Set(terms.flatMap(namesOf))].sort(
+      (a, b) => b.length - a.length || (a < b ? -1 : 1),
+    )
+    termNames.set(terms, names)
+  }
+  return names
 }
 
 /** The stems of the words of every metric's, group's and dimension's name: vocabulary words. */
