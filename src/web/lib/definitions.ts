@@ -164,6 +164,22 @@ export type DefinitionRelation = {
   by: string | null
 }
 
+/**
+ * A metric in what another is built from, as its source's structure says (FR-143): its name in
+ * Definitions, or else in its tool, and the metrics it is built from, by ref. Never a calculation.
+ */
+export type BuiltFromMetric = {
+  /** Its id in its tool: one metric under two others is the same ref. */
+  ref: string
+  name: string
+  /** Definitions lists it, so its name opens it. */
+  linked: boolean
+  /** No longer in its tool. */
+  missing: boolean
+  /** What it is built from, by ref, in its tool's order. */
+  from: string[]
+}
+
 export const typeLabel: Record<DefinitionType, string> = {
   metric: 'Metric',
   dimension: 'Dimension',

@@ -5,6 +5,7 @@ import type {
   CatalogueSource,
   CatalogueSplit,
   CatalogueTerm,
+  DefinitionBuiltFrom,
   DefinitionRelations,
 } from '../../../contract/index.ts'
 import type { SourceConfig } from '../../../contract/sources.ts'
@@ -21,6 +22,7 @@ import type { DeclaredFamily, VariantValue } from '../../../domain/definition-he
 import {
   conversionsOf,
   relationsOf,
+  treeOf,
   type BuiltFrom,
   type RelationMember,
 } from '../../../domain/definition-relations.ts'
@@ -70,6 +72,11 @@ export interface CatalogueService {
    * definition is hidden from the person (CON-509).
    */
   relations(key: string): Promise<DefinitionRelations | null>
+  /**
+   * What the metric a live term names is built from, at every depth (FR-143): refs and names
+   * only, each metric once; null as for `relations`. It changes nothing an agent is given.
+   */
+  builtFrom(key: string): Promise<DefinitionBuiltFrom | null>
 }
 
 type VocabularyRow = {
@@ -628,7 +635,69 @@ export function createCatalogueService(
     return row!
   }
 
+  /**
+   * The metric's definition and every metric below it, walked through what each is built from:
+   * one a person may not see, or that left its source, is read but not walked through. With the
+   * live terms that name any of them, in one statement.
+   */
+  async function readTree(key: string) {
+    type Row = RelationMember & { known: boolean; missing: boolean; visible: boolean }
+    const [row] = await database.query<{
+      own: string | null
+      metrics: Row[]
+      terms: { key: string; name: string; refs: string[] }[]
+    }>(
+      `with recursive vocabulary as materialized (
+         select t.key, t.name, t.definition_refs as refs
+           from serving_vocabulary((select seq from live_edition)) t where t.kind = 'metric'),
+       own as (
+         select d.ref from definitions d
+          where d.ref = (select v.refs[1] from vocabulary v where v.key = $2)
+            and d.kind = 'metric' and ${visibleTo}),
+       walk(ref) as (
+         select ref from own
+         union
+         select input from walk w
+           join definitions d on d.ref = w.ref
+                and d.missing_since_snapshot is null and ${visibleTo}
+           cross join unnest(d.built_from_refs) as input)
+       select
+         (select ref from own) as own,
+         (select coalesce(json_agg(json_build_object(
+                   'ref', w.ref, 'name', coalesce(d.name, w.ref), 'known', d.ref is not null,
+                   'missing', coalesce(d.missing_since_snapshot is not null, false),
+                   'visible', d.ref is null or ${visibleTo},
+                   'builtFrom', case when d.built_from_refs is null then null
+                                     else json_build_object('refs', d.built_from_refs, 'columns', '[]'::json)
+                                end)), '[]')
+            from walk w left join definitions d on d.ref = w.ref) as metrics,
+         (select coalesce(json_agg(json_build_object('key', v.key, 'name', v.name, 'refs', v.refs)), '[]')
+            from vocabulary v where v.refs && array(select ref from walk)) as terms`,
+      [groups, key],
+    )
+    return row!
+  }
+
   return {
+    async builtFrom(key) {
+      const { own, metrics, terms } = await readTree(key)
+      const root = metrics.find((metric) => metric.ref === own)
+      if (!root) return null
+      const termOf = new Map(terms.flatMap((term) => term.refs.map((ref) => [ref, term] as const)))
+      const stored = new Map(metrics.map((metric) => [metric.ref, metric]))
+      const targetOf = (ref: string) => {
+        const definition = stored.get(ref)
+        if (!definition?.known) return undefined
+        if (!definition.visible) return null
+        const term = termOf.get(ref)
+        return {
+          name: term?.name ?? definition.name,
+          key: term?.key ?? null,
+          missing: definition.missing,
+        }
+      }
+      return { metrics: treeOf(root, metrics, targetOf) }
+    },
     async relations(key) {
       const { own, peers, targets, terms } = await readRelations(key)
       if (!own) return null

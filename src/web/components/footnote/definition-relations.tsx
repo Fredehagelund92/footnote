@@ -1,6 +1,8 @@
 import type * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { definitionRelationsQuery } from '@/api/queries'
+import { builtFromParts } from '@/components/footnote/definition'
+import { BuiltFromTree } from '@/components/footnote/built-from-tree'
 import { ShowMoreButton } from '@/components/footnote/show-more'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { useShowMore } from '@/hooks/use-show-more'
@@ -11,28 +13,49 @@ import { foundSaid } from '@domain/family-found'
  * What a synced metric is built from and what is built from it (FR-143), as its tool's structure
  * says, never words in its description: Converted from and to (D2), Built from (definitions, then
  * the columns its calculation reads) and Used by. Definitions open their pages; columns are names
- * in the tool. On the metric's own page, under its description, and nowhere in the first load.
+ * in the tool. The metrics it is built from are a tree, each with the context about it. On the
+ * metric's own page, under its description, and nowhere in the first load.
  */
 export function DefinitionRelations({ d }: { d: Definition }) {
   const relations = useQuery(definitionRelationsQuery(d.name)).data ?? []
-  return <RelationList relations={relations} tool={d.tool ?? 'its tool'} />
+  const tool = d.tool ?? 'its tool'
+  return (
+    <RelationList
+      relations={relations}
+      tool={tool}
+      tree={
+        <BuiltFromTree
+          name={d.name}
+          tool={tool}
+          parts={builtFromParts}
+          label={<h3 className="text-muted-foreground">Built from</h3>}
+          className="mb-3"
+        />
+      }
+    />
+  )
 }
 
 export function RelationList({
   relations,
   tool,
+  tree,
 }: {
   relations: readonly DefinitionRelation[]
   tool: string
+  /** What it is built from at every depth: in place of the metrics' names. */
+  tree?: React.ReactNode
 }) {
   const of = (kind: DefinitionRelation['kind']) => relations.filter((r) => r.kind === kind)
   const convertedFrom = of('converted_from')
   const convertedTo = of('converted_to')
-  const builtFrom = of('built_from')
+  const builtFrom = of('built_from').filter((r) => !tree || r.column)
+  const inputs = !!tree && relations.some((r) => r.kind === 'built_from' && !r.column)
   const usedBy = of('used_by')
   if (!relations.length) return null
   return (
-    <section aria-label="How it is built" className="max-w-reading text-sm">
+    <section aria-label="How it is built" className="flex max-w-reading flex-col gap-1 text-sm">
+      {inputs && tree}
       <dl className="flex flex-col">
         {convertedFrom.length > 0 && (
           <Row label="Converted from">
@@ -45,7 +68,7 @@ export function RelationList({
           </Row>
         )}
         {builtFrom.length > 0 && (
-          <Row label="Built from">
+          <Row label={inputs ? 'Columns' : 'Built from'}>
             <Names relations={builtFrom} tool={tool} />
           </Row>
         )}

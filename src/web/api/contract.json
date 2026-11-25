@@ -914,6 +914,18 @@
         }
       }
     },
+    "builtFrom": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/definitions/built-from"
+        }
+      }
+    },
     "setFamilyMeaning": {
       "~orpc": {
         "errorMap": {},

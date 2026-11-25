@@ -199,6 +199,7 @@ import {
   catalogueSchema,
   definitionRelationsInputSchema,
   definitionRelationsSchema,
+  definitionBuiltFromSchema,
   familyJoinedSchema,
   familyKeyInputSchema,
   familyMeaningInputSchema,
@@ -380,6 +381,7 @@ export type {
   CatalogueVariant,
   DefinitionRelation,
   DefinitionRelations,
+  DefinitionBuiltFrom,
   FamilyJoined,
   FamilyMeaningData,
   FamilyMeaningInput,
@@ -1272,6 +1274,17 @@ export const contract = {
       .errors(notFound)
       .input(definitionRelationsInputSchema)
       .output(definitionRelationsSchema),
+    builtFrom: read
+      .route({
+        method: 'GET',
+        path: '/definitions/built-from',
+        tags: ['library'],
+        summary:
+          "What a metric is built from at every depth, from its source's structure: refs and names, never a calculation (FR-143)",
+      })
+      .errors(notFound)
+      .input(definitionRelationsInputSchema)
+      .output(definitionBuiltFromSchema),
     setFamilyMeaning: read
       .meta({ scope: 'propose' })
       .route({

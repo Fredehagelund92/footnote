@@ -46,6 +46,9 @@ const places = [
   '/definitions',
   '/definitions?dock=def.Orders',
   '/definitions/Orders',
+  // What a metric is built from, as a tree on its page and in its quick view.
+  '/definitions/Return%20on%20ad%20spend',
+  '/definitions?dock=def.Gross%20margin',
   '/definitions/Webshop/edit',
   '/definitions/new',
   '/ask',
