@@ -45,6 +45,23 @@ const edit = (patch: Partial<DocSide>) => docDiff(side(), side(patch))
 const words = (i: ReadinessInput) => readinessWords(readiness(i), { diff: i.diff })
 
 describe('the Ready line', () => {
+  it('holds Publish without a source, sent from a question link, before anything else', () => {
+    const add = input({ diff: docDiff(null, side({ sources: [] })), needsSource: 'add' })
+    expect(readiness(add)).toMatchObject({
+      state: 'no_source',
+      ok: false,
+      bulk: false,
+      publishable: false,
+    })
+    expect(readinessWords(readiness(add), { from: 'Katrin Vogel' })).toEqual({
+      title: 'Add a source first',
+      text: 'Katrin Vogel sent what they know without a link to where it is written. Edit it to add one, then publish.',
+    })
+    const confirm = { ...add, needsSource: 'confirm' as const, drafted: true }
+    expect(readiness(confirm)).toMatchObject({ state: 'confirm_source', publishable: false })
+    expect(readinessWords(readiness(confirm)).title).toBe('Confirm the source first')
+  })
+
   it('says a new number or date is not checked only when no source came with it', () => {
     const dates = input({ diff: edit({ validUntil: '2026-08-27' }) })
     expect(readiness(dates)).toMatchObject({ state: 'unsourced', ok: false, bulk: false })

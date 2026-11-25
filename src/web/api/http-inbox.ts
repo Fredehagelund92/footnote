@@ -22,7 +22,14 @@ import type { Inbox, Workspace } from './client'
 import { mentionIdOf, textFromService, type Words } from './http-context'
 import { commentWhen } from './http-map'
 import type { Subject } from '@/model/comments'
-import { draftsWords, namesWords, type InboxCard, type Outcome, type Waiting } from '@/model/inbox'
+import {
+  ASK_SOMEONE,
+  draftsWords,
+  namesWords,
+  type InboxCard,
+  type Outcome,
+  type Waiting,
+} from '@/model/inbox'
 import { kindLabel, type Fact, type Kind } from '@/model/items'
 import { describe, type Domain, type Domains, type Person } from '@/model/people'
 import type { Block, ChangeKind, FieldSide, Relation, Review } from '@/model/review'
@@ -233,6 +240,9 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
       }
     }
     case 'gap': {
+      // A topic of words Ask could not find has no question to pass on: its words stay here.
+      const topic =
+        card.scope.metrics.length + card.scope.values.length + card.scope.dimensions.length
       return {
         ...base,
         type: 'gap',
@@ -242,7 +252,11 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           ? 'A draft is ready. Check every part before you publish.'
           : `Nothing is drafted yet: write what agents should know about ${card.title}.`,
         primary: card.draft ? 'Review' : 'Write context',
-        secondary: ['Not something we write down'],
+        secondary:
+          topic && !card.draft
+            ? ['Not something we write down', ASK_SOMEONE]
+            : ['Not something we write down'],
+        ...(card.asked ? { asked: { on: dayMonth(card.asked.copiedOn), answers: [] } } : {}),
         gap: {
           scope: [card.title],
           times: card.times,
@@ -355,8 +369,21 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
             ? `Last checked by ${by === me ? 'you' : by}, ${dayWords(on)}.`
             : 'Not checked yet.',
         primary: split ? keepLabel(split.metrics.length) : 'Still true',
-        secondary: ['Edit', 'Archive'],
+        secondary: ['Edit', 'Archive', ASK_SOMEONE],
         factId: card.itemId,
+        ...(card.asked
+          ? {
+              asked: {
+                on: dayMonth(card.asked.copiedOn),
+                answers: card.answers.map((a) => ({
+                  ...a,
+                  by: a.by ?? 'Someone',
+                  endedOn: a.endedOn && dayWords(a.endedOn),
+                  when: whenWords(a.at, now),
+                })),
+              },
+            }
+          : {}),
       }
     }
   }
@@ -962,6 +989,11 @@ export function reviewOf(
             title: sheet.readiness.title,
             text: sheet.readiness.text,
           },
+    ...(sheet.readiness.state === 'no_source'
+      ? { sourceless: 'add' as const }
+      : sheet.readiness.state === 'confirm_source'
+        ? { sourceless: 'confirm' as const }
+        : {}),
     readMs: sheet.readMs,
     saved: sheet.saved.map((x) => ({
       id: x.id,

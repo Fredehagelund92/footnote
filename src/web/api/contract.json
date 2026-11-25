@@ -1463,6 +1463,44 @@
       }
     }
   },
+  "questions": {
+    "copy": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/questions/links"
+        }
+      }
+    },
+    "read": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/questions/{id}"
+        }
+      }
+    },
+    "answer": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/questions/answer"
+        }
+      }
+    }
+  },
   "comments": {
     "list": {
       "~orpc": {

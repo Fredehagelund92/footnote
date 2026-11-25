@@ -13,11 +13,18 @@ import { familyMeaningSources } from '../domain/family-meaning-line.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
 import { proposalActions } from '../domain/proposal.ts'
+import { checkAnswers } from '../domain/questions.ts'
 import { syncedSchema } from './review-path.ts'
 import { undoOfferSchema } from './undo.ts'
 
 /** A count from agents: null when it is above zero and under the minimum (FR-614). */
 const shownCount = z.nullable(z.number())
+
+/**
+ * Ask someone who knows: the day the card's link was last copied, never who opened it; null until
+ * an owner copies one.
+ */
+const askedSchema = z.nullable(z.object({ copiedOn: z.string() }))
 
 const cardBase = {
   /** The card's own name, stable across reads: "proposal:<id>", "gap:<id>", "feedback:<id>", "check:<item>", "look:<domain>", "alert:<raise>", "drafts:yours". */
@@ -88,6 +95,7 @@ export const cardSchema = z.union([
     told: z.number(),
     /** The draft started from it, if any. */
     draft: z.nullable(z.string()),
+    asked: askedSchema,
   }),
   z.object({
     ...cardBase,
@@ -165,6 +173,21 @@ export const cardSchema = z.union([
      */
     families: z.array(z.object({ name: z.string(), metrics: z.array(z.string()) })),
     lastChecked: z.object({ on: z.nullable(z.string()), by: z.nullable(z.string()) }),
+    asked: askedSchema,
+    /**
+     * What people answered on its link since it was last checked, newest first, each under their
+     * name: the owner reads it and still does the check.
+     */
+    answers: z.array(
+      z.object({
+        by: z.nullable(z.string()),
+        answer: z.enum(checkAnswers),
+        endedOn: z.nullable(z.string()),
+        words: z.nullable(z.string()),
+        link: z.nullable(z.string()),
+        at: z.string(),
+      }),
+    ),
   }),
 ])
 export type Card = z.infer<typeof cardSchema>

@@ -10,8 +10,9 @@
     publish);
   - a suggestion written against an earlier version of its item (`standingOf`) is not published
     or archived as it is: a change is returned, a suggestion to archive is closed;
-  - Publish waits while a live item it clashes with has no answer (FR-225); a claim to check or a
-    withdrawn retirement does not hold it back;
+  - Publish waits while a live item it clashes with has no answer (FR-225), or while a suggestion
+    sent from a question link has no source; a claim to check or a withdrawn retirement does not
+    hold it back;
   - a draft for a Not found card is published or edited: nobody wrote a note to answer.
 
   Pure: no clock, no input or output.
@@ -21,7 +22,7 @@ export const reviewActionNames = ['publish', 'archive', 'close', 'return'] as co
 export type ReviewAction = (typeof reviewActionNames)[number]
 
 /** Why an offered action is held. */
-export type ReviewBlock = 'clash' | 'stale'
+export type ReviewBlock = 'clash' | 'stale' | 'source'
 
 export type ReviewActionsInput = {
   mode: 'new' | 'edit' | 'retire'
@@ -35,6 +36,8 @@ export type ReviewActionsInput = {
   claimsToCheck: number
   /** Drafted for a Not found card: nobody wrote it. */
   drafted: boolean
+  /** Sent from a question link without a source: its owner adds or confirms one first. */
+  sourceless?: boolean
 }
 
 export type ReviewActions = {
@@ -49,7 +52,7 @@ export type ReviewActions = {
 }
 
 export function reviewActions(input: ReviewActionsInput): ReviewActions {
-  const { mode, withdrawn, stale, clashes, claimsToCheck, drafted } = input
+  const { mode, withdrawn, stale, clashes, claimsToCheck, drafted, sourceless } = input
   const can: ReviewAction[] =
     mode === 'retire'
       ? ['archive', 'close']
@@ -71,9 +74,11 @@ export function reviewActions(input: ReviewActionsInput): ReviewActions {
         : {}
       : stale
         ? { publish: 'stale' }
-        : clashes > 0
-          ? { publish: 'clash' }
-          : {}
+        : sourceless
+          ? { publish: 'source' }
+          : clashes > 0
+            ? { publish: 'clash' }
+            : {}
   return { can, primary, blockedBy, ready: primary !== 'return' && !blockedBy[primary] }
 }
 

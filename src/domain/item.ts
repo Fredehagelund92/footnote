@@ -47,10 +47,25 @@ export const defaultRiskFor = (kind: ItemKind | undefined): RiskLevel =>
 export const claimLevels = ['fact_only', 'effect_stated'] as const
 export type ClaimLevel = (typeof claimLevels)[number]
 
-/** How an item version was created (FR-103). `source`: a content source's read, not a person (CON-603). */
-export const creationChannels = ['form', 'chat', 'command_line', 'mcp', 'import', 'source'] as const
+/**
+ * How an item version was created (FR-103). `source`: a content source's read, not a person
+ * (CON-603). `question`: a person's answer on the page a question link opens, which may come
+ * without a source (item-version.ts).
+ */
+export const creationChannels = [
+  'form',
+  'chat',
+  'command_line',
+  'mcp',
+  'import',
+  'source',
+  'question',
+] as const
 export type CreationChannel = (typeof creationChannels)[number]
-/** The channels a person writes through: every one but a content source's read. */
+/**
+ * The channels a person names when they write: every one but a content source's read and the
+ * question page, which the service sets itself.
+ */
 export const personChannels = [
   'form',
   'chat',

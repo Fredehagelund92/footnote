@@ -1,7 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import type * as z from 'zod/mini'
 import type { decideSchema, Edition, Gate, ReviewProposal } from '../../../contract/review.ts'
-import type { ItemVersion } from '../../../domain/item-version.ts'
+import { publishable, type ItemVersion } from '../../../domain/item-version.ts'
 import { addWorkingDays } from '../../../domain/review.ts'
 import { reviewQuestion } from '../../../domain/item.ts'
 import { standingOf } from '../../../domain/suggestion-standing.ts'
@@ -50,6 +50,15 @@ type Capacity = Role | 'administrator'
  */
 const byProposer = (p: Pick<LoadedProposal, 'proposerId'>, decider: string) =>
   p.proposerId === decider ? { byProposer: true } : {}
+
+/** Sent from a question link without a source: its owner adds or confirms one before publishing. */
+export function refuseWithoutSource(version: Pick<ItemVersion, 'evidence'>) {
+  if (!publishable(version))
+    throw new ORPCError('UNPROCESSABLE_CONTENT', {
+      message:
+        'Add a source before you publish it: a link to where this is written, and a sentence from it.',
+    })
+}
 
 function plainReason(reason: string) {
   rejectSensitive(reason)
@@ -187,6 +196,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
         edition: null,
       }
     }
+    refuseWithoutSource(version.version)
     version = await startReview(p, version)
     decision = { ...decision, itemVersionId: version.id }
     // A rescue (FR-814) changes a retired item: it is accepted while the item is still retired and
