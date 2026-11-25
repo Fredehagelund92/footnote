@@ -2510,7 +2510,8 @@
           "id": "group:payments",
           "name": "Payments",
           "of": null,
-          "type": null
+          "type": null,
+          "plainGroup": true
         },
         {
           "id": "domain:area_sales",
@@ -3050,6 +3051,224 @@
           ]
         }
       ],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-definition-dimension": {
+    "question": "What is market?",
+    "turn": {
+      "kind": "answer",
+      "text": "Market is The country or region the cost was booked for.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "0 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up “market”, any date: 0 items apply.",
+        "Read Definitions for market: 1 found."
+      ],
+      "subject": {
+        "names": [],
+        "about": [],
+        "period": "any date",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [
+        {
+          "name": "Market",
+          "words": "The country or region the cost was booked for.",
+          "tool": "Cube",
+          "id": "dimension:market"
+        }
+      ],
+      "defined": {
+        "names": ["Market"],
+        "tool": "Cube",
+        "cards": [
+          {
+            "id": "dimension:market",
+            "name": "Market",
+            "kind": "dimension",
+            "words": "The country or region the cost was booked for.",
+            "tool": "Cube",
+            "member": "marketing.market",
+            "group": null,
+            "domain": {
+              "id": null,
+              "name": "no domain"
+            },
+            "owners": [],
+            "context": {
+              "count": 20,
+              "items": []
+            },
+            "inWords": false
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "market",
+            "no_period": true
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["market"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "noun",
+              "id": "dimension:market"
+            },
+            {
+              "t": "text",
+              "text": " is The country or region the cost was booked for."
+            }
+          ]
+        }
+      ],
+      "said": "[@dimension:market] is The country or region the cost was booked for.",
+      "nouns": [
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/canada",
+          "name": "Canada",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/italy",
+          "name": "Italy",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/mexico",
+          "name": "Mexico",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/netherlands",
+          "name": "Netherlands",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/united_kingdom",
+          "name": "United Kingdom",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/united_states",
+          "name": "United States",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
       "overview": null,
       "checks": []
     }

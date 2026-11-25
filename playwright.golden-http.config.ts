@@ -126,6 +126,9 @@ export default defineConfig({
     // J110 mentions a family of the mock's ?demo=families in Ask; the service's catalogue gives the
     // app the same family, which tests/web/lib/mentions.test.ts finds in Ask's '@' list.
     /\/j110-ask-mention-family\.spec\.ts$/,
+    // J117 opens a dimension's definition answer by the mock's example address; the service writes
+    // it in tests/web/integration/ask-loop-shapes.test.ts, and the chip is the same component there.
+    /\/j117-ask-dimension-chip\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',
