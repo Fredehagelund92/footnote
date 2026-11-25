@@ -13,7 +13,7 @@ import {
 import { Logo, LogoSymbol } from '@/components/footnote/logo'
 import { NavUser } from '@/components/nav-user'
 import { SettingsNav } from '@/components/settings-nav'
-import { landingOf } from '@/lib/settings-access'
+import { landingOf, settingsHref } from '@/lib/settings-access'
 import { ObservabilityNav } from '@/components/obs/obs-nav'
 import { seesObservability } from '@/lib/obs'
 import { Kbd } from '@/components/ui/kbd'
@@ -285,14 +285,7 @@ export function AppSidebar({
                     <SidebarMenuButton
                       tooltip="Settings"
                       {...answers('settings')}
-                      render={
-                        <a
-                          href={
-                            me.admin ? '/settings' : `/settings/${landingOf(me.owns.length > 0)}`
-                          }
-                          onClick={close}
-                        />
-                      }
+                      render={<a href={settingsHref(me)} onClick={close} />}
                     >
                       <SettingsIcon />
                       <span>Settings</span>

@@ -129,7 +129,7 @@ import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
 import { useOnline } from '@/lib/send'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
-import { pageKey } from '@/lib/keys'
+import { useListKeys } from '@/lib/list'
 import { ResultIcon } from '@/components/obs/result'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
 
@@ -424,7 +424,10 @@ function InboxList({
                     type="button"
                     data-row-open={id}
                     aria-current={isSelected || undefined}
-                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)}
+                    onClick={(e) => {
+                      e.currentTarget.focus({ preventScroll: true })
+                      return sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)
+                    }}
                     className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                   >
                     <span
@@ -1666,7 +1669,11 @@ export function InboxPage() {
     fade: false,
   })
   const frameRef = React.useRef<HTMLDivElement>(null)
+  const paneRef = React.useRef<HTMLDivElement>(null)
+  const listRef = React.useRef<HTMLUListElement>(null)
   const primary = () => frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
+  const rowButton = (id: string) =>
+    listRef.current?.querySelector<HTMLElement>(`[data-row-open="${CSS.escape(id)}"]`)
   // The card on show, in the address. On a wide screen the pane follows the cursor, so a pick takes
   // the place of the address and Back leaves the Inbox in one press. On a phone a card opens over
   // the list as a page of its own: Back, or the card's back arrow, returns to the list.
@@ -1677,17 +1684,26 @@ export function InboxPage() {
     else if (isMobile && !card && selectedId) backToList('/inbox', all, { replace: true })
     else void changeQuery(changes, { replace: true })
   }
-  // Enter on a row opens the card and moves the focus to the pane's one decision.
+  // Enter on a row opens the card and moves the focus to the pane's one decision, or with none
+  // there keeps it on the row.
   const select = (id?: string, pointer = false, key = false) => {
     // On a phone the whole card slides in; its body does not fade on top of that.
     setPicked({ id, fade: pointer && !isMobile, key })
     show(id ?? (isMobile ? undefined : 'none'))
   }
   React.useEffect(() => {
-    if (picked.key && picked.id === selectedId) primary()?.focus()
+    if (picked.key && picked.id && picked.id === selectedId)
+      (primary() ?? rowButton(picked.id))?.focus()
   }, [picked, selectedId])
+  // The card Esc put away: its row takes the focus once the list shows, so the place is kept.
+  const putAway = React.useRef<string | undefined>(undefined)
+  React.useEffect(() => {
+    const id = putAway.current
+    if (!id || selectedId) return
+    putAway.current = undefined
+    rowButton(id)?.focus({ preventScroll: true })
+  }, [selectedId])
   const ids = shown.map(rowId)
-  const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
   const sel = useSelection(ids, { scope: listRef })
   // Ticked rows, read: the dot goes, and a mention or a new reply is marked seen.
@@ -1717,22 +1733,26 @@ export function InboxPage() {
     show(rest[0] && rowId(rest[0]), { dock: undefined })
   }
 
-  // J and K step through the list, Enter opens the selected card's primary action.
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (!pageKey(e)) return
-      // A draft open in its card's place takes J and K for its own drafts.
-      if (e.key === 'j' && !e.defaultPrevented) step(1)
-      if (e.key === 'k' && !e.defaultPrevented) step(-1)
-      // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
-      // Ticked rows clear first, in the selection's own Esc. A panel open in the card's place (a
-      // family opened from the Names card) takes its own Esc and closes: the card comes back.
-      if (e.key === 'Escape' && !e.defaultPrevented && selected && !sel.count) select(undefined)
-      if (e.key === 'Enter' && t === document.body) primary()?.click()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+  // The page's list keys (lib/list.ts): J and K step through the cards, Enter on the card on show
+  // presses its primary action. A draft open in its card's place takes J and K for its own drafts.
+  useListKeys({
+    list: listRef,
+    order: ids,
+    current: selectedId,
+    panel: paneRef,
+    // Stepped from inside the pane, the next card's one decision takes the focus.
+    onMove: (id, from) => select(id, false, from.panel),
+    onOpen: sel.count ? undefined : () => primary()?.click(),
+    // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties,
+    // and the card's row keeps the focus. Ticked rows clear first, in the selection's own Esc. A
+    // panel open in the card's place (a family opened from the Names card) takes its own Esc and
+    // closes: the card comes back.
+    onEscape: () => {
+      if (!selected || sel.count) return false
+      putAway.current = selectedId
+      select(undefined)
+      return true
+    },
   })
 
   /**
@@ -1846,6 +1866,11 @@ export function InboxPage() {
     </Cell>
   )
 
+  const pane = (
+    <div ref={paneRef} className="h-full min-h-0">
+      {detail}
+    </div>
+  )
   const list = (
     <div className="flex h-full min-h-0 flex-col gap-0">
       <Cell className="h-full min-h-0 gap-0 py-0">
@@ -1930,7 +1955,7 @@ export function InboxPage() {
       key={selected ? 'card' : 'list'}
       className={cn('h-full min-h-0', selected ? 'dock-enter' : !allDone && 'dock-swap')}
     >
-      {selected ? detail : list}
+      {selected ? pane : list}
     </div>
   ) : allDone || dock ? (
     <div className="h-full min-h-0">{list}</div>
@@ -1941,7 +1966,7 @@ export function InboxPage() {
       </ResizablePanel>
       <ResizableHandle className="w-px bg-border" />
       <ResizablePanel id="inbox-detail" defaultSize="58" minSize={360}>
-        {detail}
+        {pane}
       </ResizablePanel>
     </ResizablePanelGroup>
   )

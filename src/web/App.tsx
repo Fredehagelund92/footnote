@@ -150,6 +150,7 @@ function SafeDock() {
     >
       <InDock.Provider value>
         <div
+          data-slot="dock"
           className="h-full dock-swap"
           onKeyDown={(e) => {
             // A list row's peek closes on Escape from inside; a field, menu or dialog in it keeps its own Escape.

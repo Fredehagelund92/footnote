@@ -88,23 +88,29 @@ export function closeDock() {
 
 /*
   The keyboard's hand-off for a list row's peek: opening it from a row sends focus into the panel's
-  title, and closing it gives focus back to that row, unless the person has moved on to something else.
+  title, and closing it gives focus back to the row last open in it, unless the person has moved on
+  to something else.
 */
 let fromRow: string | undefined
 let fromButton: HTMLElement | null = null
 let fromButtonId: string | undefined
 let intoPanel = false
 
-/** Opens a list row's peek and takes focus into it. */
+/**
+ * Opens a list row's peek and takes focus into it; with `focus` false (the cursor moved on in the
+ * list) the focus stays on the row. With `replace`, as a cursor stepping through the list does, the
+ * peek takes the place of the address now.
+ */
 export function openFromRow(
   kind: DockKind,
   id: string,
   extra?: Record<string, string | undefined>,
+  { focus = true, replace = false } = {},
 ) {
   const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
-  openDock(kind, id, extra)
+  openDock(kind, id, extra, { replace })
   fromRow = id
-  intoPanel = !already
+  intoPanel = focus && !already
 }
 
 /**
