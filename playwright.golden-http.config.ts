@@ -57,6 +57,9 @@ export default defineConfig({
     // J84 asks the mock for 5,000 definitions with a metric per currency (?demo=variants); the
     // service reads such a model in tests/integration/metric-variants.test.ts.
     /\/j84-definitions-at-scale\.spec\.ts$/,
+    // J124 asks the mock for 5,000 items over 40 markets (?demo=many); By time draws the service's
+    // library as J123 shows.
+    /\/j124-context-by-time-at-scale\.spec\.ts$/,
     // J86 asks the mock for twenty families of 250 variants (?demo=families); the service reads
     // and publishes families in tests/integration/metric-families.test.ts.
     /\/j86-families\.spec\.ts$/,

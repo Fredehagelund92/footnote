@@ -45441,6 +45441,24 @@
                               "type": "string"
                             }
                           },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "dimension": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "dimension",
+                                "name"
+                              ]
+                            }
+                          },
                           "owners": {
                             "type": "array",
                             "items": {
@@ -45476,6 +45494,7 @@
                           "trust",
                           "check",
                           "chips",
+                          "values",
                           "owners",
                           "opened",
                           "conflicts"

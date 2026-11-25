@@ -78,10 +78,11 @@ import { SAVED_TREND } from './data/saved-questions'
 import { createSaved } from './saved'
 import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
-import { createScopeSearch, withScope } from './scope'
+import { createScopeSearch, withScope, withValues } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
 import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
+import { manyFacts } from './data/many'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -356,8 +357,11 @@ export function createMockApi() {
   }
   /** What the person may read: every item, and of the drafts only their own (FR-139). */
   const shownFacts = () => factsOf(state).filter((f) => f.status !== 'Draft' || f.by === me())
-  /** Context's rows: the items, their drafts, and what waits for review that they may open. */
-  const contextFacts = () => [...shownFacts(), ...waitingFacts()]
+  /**
+   * Context's rows: the items, their drafts, and what waits for review that they may open, each
+   * with its dimension values as the library index names them.
+   */
+  const contextFacts = () => [...shownFacts(), ...waitingFacts()].map(withValues)
   /**
    * Who left with drafts they never sent, by name, with how many: an admin deletes them unread.
    * The demo names a person by their name here, as they are gone from People.
@@ -1899,6 +1903,8 @@ export function createMockApi() {
         if (demo === 'imported')
           for (const fact of importedDrafts())
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
+        // 5,000 published items over 40 markets, for Context by time at the size of a large library.
+        if (demo === 'many') dispatch({ type: 'addFacts', facts: manyFacts() })
         // 60 more, past what one Publish takes.
         if (demo === 'backlog')
           for (const fact of backlogDrafts())
