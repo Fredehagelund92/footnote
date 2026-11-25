@@ -29,7 +29,9 @@ vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCite
 vi.mock('@/lib/shown-answers', () => ({
   answerKey: () => 'k',
   keepShown: () => {},
+  markReportSent: () => {},
   useReportSent: () => false,
+  useShownAnswer: () => undefined,
 }))
 
 const { AnswerBody, AnswerActions, ReportLine, SomethingWrong } =

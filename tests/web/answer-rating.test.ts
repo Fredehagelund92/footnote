@@ -33,7 +33,9 @@ vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCite
 vi.mock('@/lib/shown-answers', () => ({
   answerKey: () => 'k',
   keepShown: () => {},
+  markReportSent: () => {},
   useReportSent: () => false,
+  useShownAnswer: () => undefined,
 }))
 vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: Record<string, unknown>) =>

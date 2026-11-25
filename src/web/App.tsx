@@ -20,6 +20,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { familyParts } from '@/components/footnote/family-parts'
+import { reportParts } from '@/components/footnote/report-parts'
 import { DockLeaving, pictureOf, setLeavingDock, useLeavingDock } from '@/components/dock-leaving'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/footnote/definition-peek'
@@ -210,7 +211,7 @@ function DockContent() {
     case 'report':
       return (
         <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.report} />}>
-          <ReportPanel id={dock.id!} />
+          <ReportPanel id={dock.id!} parts={reportParts} />
         </React.Suspense>
       )
     case 'where':
