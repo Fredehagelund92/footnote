@@ -569,6 +569,8 @@ export const invalidations: {
   // 401 requests from a signed-out browser, and they count against the service's per-address limit.
   signOut: () => [queryKeys.session],
   setAbout: () => workspace,
+  // A first version is only shown: nothing changes until it is kept.
+  draftAbout: () => [],
   // A finished checklist ends the new install.
   completeSetupStep: () => [...workspace, queryKeys.session],
   updateDomain: () => workspace,

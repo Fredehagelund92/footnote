@@ -1749,6 +1749,20 @@
       }
     }
   },
+  "about": {
+    "draft": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/about/draft"
+        }
+      }
+    }
+  },
   "models": {
     "checks": {
       "~orpc": {

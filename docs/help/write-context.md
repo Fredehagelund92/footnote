@@ -111,4 +111,8 @@ Your own draft for a domain you don't own goes to its owners as a suggestion, so
 
 One or two sentences on what the company does: what you sell, to whom, where and through which channels. Ask reads it with every question, and an agent when it connects, as background, never as a source. An agent connected now gets a change when it next connects. An admin writes it in **Settings**, then **General**, under About our business, in up to 500 characters.
 
-The words people use and what they mean go in Definitions, as terms with an owner, not here: Ask and agents get a term with each question that uses its word. Under the text, a line that defines a word Definitions already has says so. Figures, deals, dates and what happened in a market are context items.
+Leave out numbers, dates, deals, legal conclusions, secrets and personal data. Figures, deals, dates and what happened in a market are context items, and the rest stays out.
+
+The words people use and what they mean go in Definitions, as terms with an owner, not here: Ask and agents get a term with each question that uses its word. Under the text, a line that defines a word Definitions already has says so.
+
+Once there are domains or definitions, **Write a first version for me** drafts the text from your domains, metrics and definitions, with the model Ask uses. The draft is not saved: change what is wrong, then **Keep it**, or **Discard** it. Ask and agents read nothing of it until you keep it.

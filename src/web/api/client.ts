@@ -400,6 +400,11 @@ export interface FootnoteApi {
   /** What someone did lately: the context they checked. */
   getActivity: (input: { name: string }) => Promise<Activity[]>
   setAbout: (input: { text: string }) => Promise<void>
+  /**
+   * Write a first version for me: About our business drafted from the domains, metrics and
+   * definitions, for the editor to show. Nothing is saved.
+   */
+  draftAbout: () => Promise<{ text: string }>
   completeSetupStep: (input: { step: string }) => Promise<void>
 
   // Domains and people
@@ -935,6 +940,7 @@ export const footnoteApiMethods = [
   'getVocabulary',
   'getActivity',
   'setAbout',
+  'draftAbout',
   'completeSetupStep',
   'updateDomain',
   'addDomain',

@@ -77,6 +77,8 @@ const adminOperations = [
   'evals.runs.approve',
   'settings.list',
   'settings.set',
+  // Write a first version for me: About our business is an administrator's setting.
+  'about.draft',
   'models.checks',
   'tools.set',
   'clients.list',

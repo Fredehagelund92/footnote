@@ -34,6 +34,7 @@ import {
 import { createEvalsService } from '../modules/evals/index.ts'
 import {
   clearLeftDrafts,
+  draftAbout,
   exportAudit,
   exportEdition,
   importItems,
@@ -42,9 +43,11 @@ import {
   listClients,
   listSettings,
   plainReason,
+  readAboutFacts,
   readCalendar,
   readWorkspace,
   saveClient,
+  scriptedAboutModel,
   searchAudit,
   setSetting,
   setTool,
@@ -1354,6 +1357,29 @@ export function createRouter({
         )
         checkAfterChange(context, input.key)
         return saved
+      }),
+    },
+    about: {
+      // The facts and the limits are read in a short transaction; the model is asked with none open.
+      draft: signedIn.about.draft.handler(async ({ context }) => {
+        const db = forRequest(database, context.request.id)
+        const live = models.mode === 'live'
+        const { facts, model, limits } = await db.transaction(context.person, async (tx) => ({
+          facts: await readAboutFacts(tx),
+          model: live ? await readAssistantModel(tx, models) : scriptedAboutModel(),
+          limits: live ? await readSpendLimits(tx, 'assistant') : null,
+        }))
+        const log = context.request.log
+        const text = await draftAbout({
+          database: db,
+          person: context.person,
+          facts,
+          model,
+          limits,
+          // Names the failure only, never what was sent or written.
+          onError: (error) => log.warn({ error: errorCode(error) }, 'about draft'),
+        })
+        return { text }
       }),
     },
     models: {
