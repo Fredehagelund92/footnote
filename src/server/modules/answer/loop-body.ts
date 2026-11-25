@@ -50,7 +50,13 @@ export function nounsRead(results: readonly unknown[]): Map<string, Noun> {
       const dimension = dimensionOf(id)
       const of = dimension && str(n.of) ? { id: dimension, name: str(n.of) } : null
       const type = typeof n.type === 'string' ? n.type : null
-      nouns.set(id, { id, name: str(n.name) || id, of, type })
+      nouns.set(id, {
+        id,
+        name: str(n.name) || id,
+        of,
+        type,
+        ...(n.plainGroup === true ? { plainGroup: true as const } : {}),
+      })
       if (of && !nouns.has(of.id)) nouns.set(of.id, { id: of.id, name: of.name, of: null, type })
     }
   return nouns

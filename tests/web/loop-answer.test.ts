@@ -23,6 +23,7 @@ const world = vi.hoisted(() => ({
   me: { name: 'Jon Abara', role: 'Owner of Sales, admin', owns: ['area_sales'], admin: true },
   writes: [] as { op: string; input: unknown }[],
   failing: new Set<string>(),
+  definitions: [] as { name: string; type: string; group?: string; tool?: string }[],
 }))
 vi.mock('@/lib/workspace', () => ({
   useFacts: () => [],
@@ -46,7 +47,7 @@ vi.mock('@/lib/workspace', () => ({
   }),
   usePeople: () => [world.me, { name: 'Ravi Kapoor', role: 'Admin', owns: [], admin: true }],
 }))
-vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
+vi.mock('@/lib/definitions', () => ({ useDefinitions: () => world.definitions }))
 vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: unknown) => {
     world.writes.push({ op, input })
@@ -114,6 +115,15 @@ const nameOf = (el: Element) => {
   const said = el.cloneNode(true) as Element
   for (const hidden of said.querySelectorAll('[aria-hidden="true"]')) hidden.remove()
   return said.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+}
+/** A chip's card, opened as a pointer rests on the chip: a press may open the pane instead. */
+async function cardOf(chip: HTMLElement, name: string) {
+  await act(async () => {
+    chip.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }))
+    chip.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }))
+    await new Promise((r) => setTimeout(r, 200))
+  })
+  return [...document.querySelectorAll(`[aria-label="${name}"]`)].find((e) => e !== chip)
 }
 const buttons = (el: Element, name: RegExp) =>
   [...el.querySelectorAll('[role="button"], button')].filter((b) =>
@@ -1473,10 +1483,109 @@ describe('the nouns of an answer on any workspace', () => {
     expect(dot.className).not.toMatch(/\bbg-chip-dot\b/)
   })
 
-  it("opens a value's card on a press, which says what it is a value of", () => {
+  it("opens a value's dimension in the pane on a press; its card says what it is a value of", async () => {
     const el = render(invented, 'Tickets closed by billing?')
-    act(() => (buttons(el, /^Billing, value$/)[0] as HTMLElement).click())
-    expect(document.body.textContent).toContain('A value of Team')
+    const billing = buttons(el, /^Billing, value$/)[0] as HTMLElement
+    expect(billing.className).toMatch(/\bcursor-pointer\b/)
+    vi.mocked(openDock).mockClear()
+    act(() => billing.click())
+    // A value has no page of its own: its dimension's definition lists it.
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+    const card = (await cardOf(billing, 'Billing'))!
+    expect(text(card)).toContain('A value of Team')
+    const open = buttons(card, /^Open Team$/)[0] as HTMLElement
+    vi.mocked(openDock).mockClear()
+    act(() => open.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+  })
+
+  it("opens a dimension's definition in the pane on a press, as a metric's, and from its card", async () => {
+    const named: LoopTurn = {
+      ...invented,
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'Split by ' },
+            { t: 'noun', id: 'dimension:team' },
+            { t: 'text', text: '.' },
+          ],
+        },
+      ],
+    }
+    const el = render(named, 'What is team?')
+    const team = buttons(el, /^Team, dimension$/)[0] as HTMLElement
+    expect(team.className).toMatch(/\bcursor-pointer\b/)
+    vi.mocked(openDock).mockClear()
+    act(() => team.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+    const card = (await cardOf(team, 'Team'))!
+    expect(text(card)).toContain('A dimension')
+    const open = buttons(card, /^Open the definition$/)[0] as HTMLElement
+    vi.mocked(openDock).mockClear()
+    act(() => open.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+  })
+})
+
+describe('a metric group an answer names', () => {
+  const grouped = (plainGroup: boolean): LoopTurn => ({
+    ...example('loop-checked'),
+    sources: [],
+    items: [],
+    body: [
+      {
+        t: 'p',
+        runs: [
+          { t: 'text', text: 'It is in ' },
+          { t: 'noun', id: 'group:payments' },
+          { t: 'text', text: '.' },
+        ],
+      },
+    ],
+    nouns: [
+      {
+        id: 'group:payments',
+        name: 'Payments',
+        of: null,
+        type: null,
+        ...(plainGroup ? { plainGroup: true as const } : {}),
+      },
+    ],
+  })
+  afterEach(() => {
+    world.definitions = []
+  })
+
+  it('draws a plain group as a group whose card names its metrics, opening no definition', () => {
+    world.definitions = [
+      { name: 'Payment fees', type: 'metric', group: 'Payments', tool: 'Cube' },
+      { name: 'Refunds', type: 'metric', group: 'Payments', tool: 'Cube' },
+      { name: 'Orders', type: 'metric', group: 'Revenue', tool: 'Cube' },
+    ]
+    const el = render(grouped(true), 'What is in payments?')
+    expect(buttons(el, /^Payments, metric$/)).toHaveLength(0)
+    const chip = buttons(el, /^Payments, metric group$/)[0] as HTMLElement
+    expect(chip.querySelector('svg')?.getAttribute('class')).toMatch(/folder/)
+    expect(chip.className).not.toMatch(/\bcursor-pointer\b/)
+    vi.mocked(openDock).mockClear()
+    act(() => chip.click())
+    expect(vi.mocked(openDock)).not.toHaveBeenCalled()
+    // The press keeps its card open: what the group is, and its metrics by name.
+    const card = text(document.querySelector('[aria-label="Payments"]')!)
+    expect(card).toContain('Metric group · in Cube')
+    expect(card).toContain('A group Cube puts metrics under, with no definition of its own.')
+    expect(card).toContain('Its metrics: Payment fees and Refunds.')
+    expect(card).not.toContain('Open the definition')
+  })
+
+  it('draws a family as a metric, whose press opens its definition in the pane', () => {
+    const el = render(grouped(false), 'What is payments?')
+    expect(buttons(el, /^Payments, metric group$/)).toHaveLength(0)
+    const chip = buttons(el, /^Payments, metric$/)[0] as HTMLElement
+    vi.mocked(openDock).mockClear()
+    act(() => chip.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Payments')
   })
 })
 

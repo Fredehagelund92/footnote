@@ -162,6 +162,11 @@ const loopNounSchema = z.object({
   of: z.nullable(z.object({ id: z.string(), name: z.string() })),
   /** A dimension's value type, as its source gives it ("time"): what picks its icon. */
   type: z.nullable(z.string()),
+  /**
+   * A metric group that is no family (FR-142): a name its tool puts metrics under, with no
+   * definition of its own, so its chip opens no definition.
+   */
+  plainGroup: z.optional(z.literal(true)),
 })
 /** Where words of an answer link: a web or mail address, or a help page at one of its parts. */
 const loopLinkSchema = z.union([

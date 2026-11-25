@@ -31,7 +31,10 @@ export function useParts(): LoopParts {
   a day words with a dotted underline; a count bold with what it is out of; a context item a
   number where it is cited. Every hue comes from an id, never a name: no dimension, domain or
   person is special. Each opens its own card on hover, on keyboard focus and on a press; Escape
-  closes it and focus comes back.
+  closes it and focus comes back. A metric's, a dimension's and a value's press opens the
+  definition in the pane instead (a value's, its dimension's): a value has no page of its own. A
+  metric group that is no family has no definition, so it is drawn as a group, whose card names
+  its metrics.
 */
 
 type Noun = LoopTurn['nouns'][number]
@@ -187,8 +190,13 @@ export function NounChip({
   const domain = useDomainOf(kind === 'domain' ? id : null)
   const name = noun?.name ?? (kind === 'domain' ? domain?.name : undefined) ?? key(id)
   // Its name as shown, then what it is, said to a screen reader: "Orders, metric".
-  const said = told ? null : <span className="sr-only">, {kind ? kindWords[kind] : 'name'}</span>
-  const button = (className: string, style?: React.CSSProperties, body?: React.ReactNode) => (
+  const said = told ? null : ((kind && kindWords[kind]) ?? 'name')
+  const button = (
+    className: string,
+    style?: React.CSSProperties,
+    body?: React.ReactNode,
+    what: string | null = said,
+  ) => (
     <span
       role={still ? undefined : 'button'}
       tabIndex={still ? undefined : 0}
@@ -196,12 +204,30 @@ export function NounChip({
       className={P.cn(chip, className, snug && 'pr-0.5')}
     >
       {body}
-      {said}
+      {what && <span className="sr-only">, {what}</span>}
     </span>
   )
   switch (kind) {
     case 'metric': {
       const tone = P.chipTone('metric')
+      if (noun?.plainGroup)
+        return (
+          <HoverCard
+            label={name}
+            still={still}
+            trigger={button(
+              tone.className,
+              tone.style,
+              <>
+                <P.FolderIcon aria-hidden className="size-3 shrink-0" />
+                <span className="min-w-0 truncate">{name}</span>
+              </>,
+              told ? null : 'metric group',
+            )}
+          >
+            <GroupCard name={name} />
+          </HoverCard>
+        )
       return (
         <HoverCard
           label={name}
@@ -228,6 +254,8 @@ export function NounChip({
         '--chip-h': dimensionHue(dimension?.id ?? id),
         borderColor: 'oklch(0.62 0.14 var(--chip-h))',
       } as React.CSSProperties
+      // A value has no page of its own: its dimension's definition lists it.
+      const defined = kind === 'value' ? dimension?.name : name
       return (
         <HoverCard
           label={name}
@@ -236,6 +264,7 @@ export function NounChip({
             P.cn(
               'border bg-transparent text-chip-foreground',
               kind === 'dimension' && 'border-dashed',
+              defined && 'cursor-pointer',
             ),
             style,
             <>
@@ -243,6 +272,7 @@ export function NounChip({
               <span className="min-w-0 truncate">{name}</span>
             </>,
           )}
+          onOpen={defined ? () => P.openDock('def', defined) : undefined}
         >
           <p className="text-xs text-muted-foreground">
             {kind === 'value' ? `A value of ${dimension?.name ?? 'a dimension'}` : 'A dimension'}
@@ -253,6 +283,11 @@ export function NounChip({
               ? `What context items apply to when they name ${name}.`
               : `Every value of ${name}.`}
           </p>
+          {defined && (
+            <OpenDefinition name={defined}>
+              {kind === 'value' ? `Open ${defined}` : 'Open the definition'}
+            </OpenDefinition>
+          )}
         </HoverCard>
       )
     }
@@ -351,13 +386,50 @@ function MetricCard({ name }: { name: string }) {
           {d?.sourceNames.length ? ` · also called ${d.sourceNames.join(', ')}` : ''}
         </p>
       )}
-      <button
-        type="button"
-        onClick={() => P.openDock('def', name)}
-        className="w-fit rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        Open the definition
-      </button>
+      <OpenDefinition name={name}>Open the definition</OpenDefinition>
+    </>
+  )
+}
+
+/** A card's way to a definition: it opens in the pane. */
+function OpenDefinition({ name, children }: { name: string; children: React.ReactNode }) {
+  const P = useParts()
+  return (
+    <button
+      type="button"
+      onClick={() => P.openDock('def', name)}
+      className="w-fit rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * A metric group's card, for one that is no family: what it is and the metrics its tool puts in
+ * it, by name. It has no definition of its own, so nothing opens one.
+ */
+function GroupCard({ name }: { name: string }) {
+  const P = useParts()
+  const metrics = P.useDefinitions().filter((d) => d.type === 'metric' && d.group === name)
+  const tool = metrics.find((d) => d.tool)?.tool
+  // Six by name at most, then how many more: "A, B and 3 more".
+  const named = metrics.slice(0, 6).map((d) => d.name)
+  if (metrics.length > named.length)
+    named.push(`${(metrics.length - named.length).toLocaleString('en-GB')} more`)
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">Metric group{tool ? ` · in ${tool}` : ''}</p>
+      <p className="text-sm font-medium">{name}</p>
+      <p className="text-sm text-muted-foreground">
+        A group {tool ?? 'its tool'} puts metrics under, with no definition of its own.
+      </p>
+      {named.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Its metrics:{' '}
+          {named.length < 2 ? named[0] : `${named.slice(0, -1).join(', ')} and ${named.at(-1)}`}.
+        </p>
+      )}
     </>
   )
 }

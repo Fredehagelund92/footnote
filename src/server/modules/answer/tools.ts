@@ -23,6 +23,7 @@ import { actionIds, type ActionId } from '../../../domain/actions.ts'
 import { usualVariant, workedOut } from '../../../domain/family-meaning.ts'
 import { meaningLine } from '../../../domain/family-meaning-line.ts'
 import { variantWords } from '../../../domain/metric-families.ts'
+import { isFamily } from '../../../domain/say.ts'
 import { TERMS_SHOWN, termsIn } from '../../../domain/served-terms.ts'
 import { anyDate, isAnyDate, isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { initialsOf, namesOf, normalizeName, phrasesIn } from '../../../domain/vocabulary.ts'
@@ -117,6 +118,11 @@ const nameSchema = z.object({
   name: z.string(),
   of: z.nullable(z.string()),
   type: z.nullable(z.string()),
+  /**
+   * A metric group that is no family (FR-142): a name its tool puts metrics under, with no
+   * definition of its own. The page's alone, never sent to the model (`forModel`).
+   */
+  plainGroup: z.optional(z.literal(true)),
 })
 const namesSchema = z
   .array(nameSchema)
@@ -326,6 +332,7 @@ function namesFor(
           : dimension
             ? view.valueType(dimension)
             : null,
+      ...(key.startsWith('group:') && !isFamily(view.bundle, key) ? { plainGroup: true } : {}),
     })
   }
   for (const id of parts.areas ?? []) {

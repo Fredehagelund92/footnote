@@ -572,18 +572,25 @@ const withRef = (ref: string, result: unknown) =>
 
 /**
  * A result without what only the page shows: a family's definition as the page draws it
- * (`family`), whose words the model reads in the definition's own.
+ * (`family`), whose words the model reads in the definition's own, and which names are plain
+ * metric groups (`plainGroup`), which only picks their chip.
  */
 function forModel(result: object): object {
-  if (!isObj(result) || !Array.isArray(result.definitions)) return result
-  return {
-    ...result,
-    definitions: result.definitions.map((d: unknown) => {
+  if (!isObj(result)) return result
+  const out: Record<string, unknown> = { ...result }
+  if (Array.isArray(result.definitions))
+    out.definitions = result.definitions.map((d: unknown) => {
       if (!isObj(d)) return d
       const { family: _, ...rest } = d
       return rest
-    }),
-  }
+    })
+  if (Array.isArray(result.names))
+    out.names = result.names.map((n: unknown) => {
+      if (!isObj(n)) return n
+      const { plainGroup: _, ...rest } = n
+      return rest
+    })
+  return out
 }
 
 /** The line that says what a read is doing while it runs, written by code from its input. */
