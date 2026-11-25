@@ -7,6 +7,8 @@ import { arithmeticInputs, columnsOf } from '../../../src/domain/definition-help
 import {
   conversionsOf,
   relationsOf,
+  TREE_CAP,
+  treeOf,
   type RelationMember,
 } from '../../../src/domain/definition-relations.ts'
 import {
@@ -341,5 +343,104 @@ describe('the relations of a metric', () => {
       ['converted_to', 'commission_usd'],
       ['built_from', 'commission_eur'],
     ])
+  })
+})
+
+describe('what a metric is built from, at every depth', () => {
+  const net = member('orders.net_revenue', {
+    refs: ['dbt:orders.gross_sales', 'dbt:orders.returns'],
+  })
+  const gross = member('orders.gross_sales', { columns: ['gross_amount'] })
+  const returns = member('orders.returns', { columns: ['refund_amount'] })
+  const spend = member('ads.spend', { columns: ['spend'] })
+  const roas = member('ads.roas', { refs: ['dbt:orders.net_revenue', 'dbt:ads.spend'] })
+  const seen = (ref: string) => ({
+    name: ref.split('.').at(-1)!,
+    key: `metric:${ref.split('.').at(-1)}`,
+    missing: false,
+  })
+  const said = (tree: ReturnType<typeof treeOf>) =>
+    tree.map((m) => [m.name, m.from.map((ref) => ref.split('.').at(-1))])
+
+  it('lists the metric, then each metric below it once, as first reached', () => {
+    expect(said(treeOf(roas, [net, gross, returns, spend], seen))).toEqual([
+      ['roas', ['net_revenue', 'spend']],
+      ['net_revenue', ['gross_sales', 'returns']],
+      ['spend', []],
+      ['gross_sales', []],
+      ['returns', []],
+    ])
+  })
+
+  it('lists a metric two others are built from once, and ends a loop', () => {
+    const margin = member('orders.margin', { refs: ['dbt:orders.net_revenue', 'dbt:ads.roas'] })
+    const loop = member('orders.gross_sales', { refs: ['dbt:orders.net_revenue'] })
+    expect(said(treeOf(margin, [net, loop, returns, roas, spend], seen))).toEqual([
+      ['margin', ['net_revenue', 'roas']],
+      ['net_revenue', ['gross_sales', 'returns']],
+      ['roas', ['net_revenue', 'spend']],
+      ['gross_sales', ['net_revenue']],
+      ['returns', []],
+      ['spend', []],
+    ])
+  })
+
+  it('leaves out a metric the reader may not see with all below it, and walks nothing below one gone', () => {
+    const hidden = (ref: string) =>
+      ref === 'dbt:orders.net_revenue'
+        ? null
+        : ref === 'dbt:ads.spend'
+          ? { name: 'Spend', key: 'metric:spend', missing: true }
+          : seen(ref)
+    const gone = member('ads.spend', { refs: ['dbt:ads.clicks'] })
+    expect(treeOf(roas, [net, gross, returns, gone], hidden)).toEqual([
+      {
+        ref: 'dbt:ads.roas',
+        name: 'roas',
+        key: 'metric:roas',
+        missing: false,
+        from: ['dbt:ads.spend'],
+      },
+      { ref: 'dbt:ads.spend', name: 'Spend', key: 'metric:spend', missing: true, from: [] },
+    ])
+  })
+
+  it('names an input the source never listed by its ref, with nothing below it', () => {
+    expect(treeOf(net, [], () => undefined)).toEqual([
+      {
+        ref: 'dbt:orders.net_revenue',
+        name: 'orders.net_revenue',
+        key: null,
+        missing: false,
+        from: ['dbt:orders.gross_sales', 'dbt:orders.returns'],
+      },
+      {
+        ref: 'dbt:orders.gross_sales',
+        name: 'orders.gross_sales',
+        key: null,
+        missing: false,
+        from: [],
+      },
+      { ref: 'dbt:orders.returns', name: 'orders.returns', key: null, missing: false, from: [] },
+    ])
+  })
+
+  it('reads 500 metrics below one at once, and stops at the cap with no line to a metric past it', () => {
+    const wide = (n: number) => {
+      const inputs = Array.from({ length: n }, (_, i) =>
+        member(`orders.part_${i}`, { refs: [`dbt:orders.leaf_${i}`] }),
+      )
+      const top = member('orders.total', { refs: inputs.map((m) => m.ref) })
+      return { top, inputs }
+    }
+    const small = wide(250)
+    const started = performance.now()
+    expect(treeOf(small.top, small.inputs, seen)).toHaveLength(501)
+    expect(performance.now() - started).toBeLessThan(500)
+    const large = wide(TREE_CAP)
+    const capped = treeOf(large.top, large.inputs, seen)
+    expect(capped).toHaveLength(TREE_CAP)
+    const listed = new Set(capped.map((m) => m.ref))
+    expect(capped.every((m) => m.from.every((ref) => listed.has(ref)))).toBe(true)
   })
 })

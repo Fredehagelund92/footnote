@@ -1,5 +1,12 @@
 import * as React from 'react'
-import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon } from '@/components/icons'
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  EqualIcon,
+  LockIcon,
+  PencilIcon,
+  TriangleAlertIcon,
+} from '@/components/icons'
 import { termWord } from '@domain/terms'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -10,13 +17,15 @@ import { Separator } from '@/components/ui/separator'
 import type { Fact } from '@/model/items'
 import {
   familyMeaning,
+  listIndex,
   parseTags,
   kindName,
+  type BuiltFromMetric,
   type Conflict,
   type Definition,
   useGlossary,
 } from '@/lib/definitions'
-import { openDock } from '@/lib/dock'
+import { openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { mentionId, plainText } from '@/lib/mentions'
@@ -24,11 +33,11 @@ import { MentionText } from '@/components/footnote/mention-chip'
 import { SourcePassages } from '@/components/footnote/source-text'
 import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
-import { PeekFact, PeekFacts } from '@/components/footnote/peek'
+import { PeekBand, PeekFact, PeekFacts, PeekLabel } from '@/components/footnote/peek'
 import { MoreProperties, Property } from '@/components/footnote/doc'
 import { VersionHistory } from '@/components/footnote/version-history'
 import { useQuery } from '@tanstack/react-query'
-import { definitionHistoryQuery, useWrite } from '@/api/queries'
+import { builtFromQuery, definitionHistoryQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -658,3 +667,43 @@ export function DefinitionDetails({
     </div>
   )
 }
+
+/**
+ * What the tree of what a metric is built from (built-from-tree.tsx) takes from the first load,
+ * handed to it rather than imported, so its own code loads apart without splitting the first load
+ * into more files (as family-parts.ts does for a family's quick view). Here, since this module
+ * already imports all of it: a module of its own split the first load into twice the files.
+ */
+export const builtFromParts = {
+  /** What a metric is built from, once read; null while it is read, or when it is built from no metric. */
+  useBuiltFrom: (name: string) => {
+    const metrics = useQuery(builtFromQuery(name)).data
+    return metrics?.[0]?.from.length ? metrics : null
+  },
+  /** For each line: the definition it names, and how many published items about it the person may read. */
+  useLines: () => {
+    const glossary = useGlossary()
+    const facts = useFacts()
+    const index = React.useMemo(() => listIndex(glossary.all, facts), [glossary, facts])
+    return (m: BuiltFromMetric) => {
+      const d = m.linked ? glossary.find(m.name) : undefined
+      return { d, count: d ? index.contextAbout(d).length : 0 }
+    }
+  },
+  /** The definition the side panel shows, by name. */
+  usePeeked: () => {
+    const dock = useDock()
+    return dock?.kind === 'def' ? dock.id : undefined
+  },
+  openMetric: (name: string) => openDock('def', name),
+  useShowMore,
+  cn,
+  TypeTile,
+  ShowMoreButton,
+  PeekBand,
+  PeekLabel,
+  ChevronDownIcon,
+  ChevronRightIcon,
+}
+
+export type BuiltFromParts = typeof builtFromParts

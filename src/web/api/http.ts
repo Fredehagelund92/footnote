@@ -173,6 +173,7 @@ export const wiredMethods = [
   'definitionsPage',
   'definitionPage',
   'getDefinitionRelations',
+  'getBuiltFrom',
   'getDefinitionHistory',
   'setFamilyMeaning',
   'setFamilyUsual',
@@ -1632,6 +1633,18 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         linked: relation.key !== null,
         missing: relation.missing,
         by: relation.by,
+      }))
+    },
+    getBuiltFrom: async ({ name }) => {
+      const key = (await readGlossary()).keyOf(name)
+      if (!key?.startsWith('metric:')) return []
+      const found = await orNull(() => read(() => client.definitions.builtFrom({ key })))
+      return (found?.metrics ?? []).map((metric) => ({
+        ref: metric.ref,
+        name: metric.name,
+        linked: metric.key !== null,
+        missing: metric.missing,
+        from: metric.from,
       }))
     },
     getDefinitionHistory: async ({ name }) => {

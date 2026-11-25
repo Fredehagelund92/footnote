@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { DefinitionRelations } from '../../src/contract/catalogue.ts'
+import type { DefinitionBuiltFrom, DefinitionRelations } from '../../src/contract/catalogue.ts'
 import type { NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
 import type { ReviewProposal } from '../../src/contract/review.ts'
@@ -112,6 +112,19 @@ async function relationsOf(metric: string) {
   const response = await call('GET', `/definitions/relations?key=${await keyOf(metric)}`, 'member')
   answers.push(response.body)
   return (await ok<DefinitionRelations>(Promise.resolve(response))).relations
+}
+/** What a metric is built from at every depth, each as its name in the source and its inputs. */
+async function treeOf(metric: string) {
+  const response = await call('GET', `/definitions/built-from?key=${await keyOf(metric)}`, 'member')
+  answers.push(response.body)
+  const { metrics } = await ok<DefinitionBuiltFrom>(Promise.resolve(response))
+  const last = (ref: string) => ref.split('.').at(-1)
+  return metrics.map((m) => [last(m.ref), m.key !== null, m.from.map(last)])
+}
+/** Each metric of a tree as the name a reader sees. */
+async function treeNames(metric: string) {
+  const response = await call('GET', `/definitions/built-from?key=${await keyOf(metric)}`, 'member')
+  return (await ok<DefinitionBuiltFrom>(Promise.resolve(response))).metrics.map((m) => m.name)
 }
 /** Each relation as `kind name`, with its column for a conversion. */
 const said = (relations: DefinitionRelations['relations']) =>
@@ -247,6 +260,17 @@ describe('a metric’s relations', () => {
     ])
   })
 
+  it('say what a derived metric is built from at every depth, each metric once, with its term', async () => {
+    expect(await treeOf('net_revenue_per_signup')).toEqual([
+      ['net_revenue_per_signup', true, ['net_revenue_eur', 'signups']],
+      ['net_revenue_eur', true, []],
+      ['signups', true, []],
+    ])
+    expect(await treeOf('signups')).toEqual([['signups', true, []]])
+    const response = await call('GET', '/definitions/built-from?key=metric:nothing_here', 'member')
+    expect(response.statusCode).toBe(404)
+  })
+
   it('never hold an expression, an operator or a literal', () => {
     expect(answers.length).toBeGreaterThanOrEqual(5)
     for (const body of answers) expect(body).not.toMatch(/SUM\(|CASE|\*|'/i)
@@ -332,5 +356,15 @@ describe('a later read', () => {
       'sign_ups',
       null,
     ])
+  }, 120_000)
+
+  it('names an input no definition has by its name in the source, without the connector prefix', async () => {
+    await client.query(
+      `update definitions set built_from_refs = built_from_refs || array['dbt:partner_results.ghost_signups']
+        where ref = 'dbt:partner_results.signup_rate'`,
+    )
+    const names = await treeNames('signup_rate')
+    expect(names).toContain('partner_results.ghost_signups')
+    expect(names.some((name) => name.startsWith('dbt:'))).toBe(false)
   }, 120_000)
 })
