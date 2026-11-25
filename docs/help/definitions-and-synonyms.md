@@ -4,7 +4,7 @@ line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
 minutes: 6
-reviewed: 2026-11-24
+reviewed: 2026-11-25
 open:
   label: Open Definitions
   href: /definitions
@@ -29,11 +29,14 @@ A read makes a name for each new one, and it reaches Definitions once its owner 
 
 A metric's page says what it is built from, as its source's structure says it, under its description:
 
-- Built from: the metrics it takes, such as a ratio's two, each a link to its page, and the columns its calculation reads, by name.
+- Built from: a tree of the metrics it takes, such as a ratio's two, and the metrics those take in turn, each a level in. Each line counts the published context about that metric you may read. Press a line to open that metric beside the page. A metric built from another shows the same tree in its quick view.
+- Columns: the columns its calculation reads, by name. A metric built from no other metric lists them as Built from.
 - Used by: the metrics built from it.
 - Converted from and Converted to: a metric in another currency, worked out from the other with one more column, such as `exchange_rate_usd`.
 
-These come from the source at each read and are never edited here. They never show the calculation, and never mark context as due for a check. An input the source no longer has says so.
+These come from the source at each read and are never edited here. They never show the calculation or a figure, never mark context as due for a check, and change nothing an agent is told. An input the source no longer has says so.
+
+In the tree, Up and Down (or J and K) move between lines, Right opens a level and Left folds it, and Enter opens the line's metric. A large tree opens its first level only; a metric in two places shows under each, saying where else it is.
 
 ## Families
 

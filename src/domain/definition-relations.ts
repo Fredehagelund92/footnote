@@ -181,3 +181,60 @@ export function relationsOf(
     ...usedBy,
   ]
 }
+
+/** A metric in what another is built from: its inputs by ref, as its source names them. */
+export type TreeMetric = {
+  ref: string
+  /** Its live term's name, else its name in the source. */
+  name: string
+  /** The live term that names it; null when none does. */
+  key: string | null
+  /** No longer in the source: what it was built from is not read. */
+  missing: boolean
+  /** The metrics it is built from, by ref, in the source's order: only those the reader may see. */
+  from: string[]
+}
+
+/** The most metrics one tree holds: a source's arithmetic is a forest of small trees. */
+export const TREE_CAP = 5_000
+
+/**
+ * What `own` is built from, at every depth, each metric once (D3): `own` first, then the rest in
+ * the order they are first reached. `members` holds the metrics below it as their source sent
+ * them; `targetOf` says how the reader sees one (null: hidden, so neither it nor what is below it
+ * is listed). An input the source never listed is named by its ref alone, with nothing below.
+ */
+export function treeOf(
+  own: RelationMember,
+  members: readonly RelationMember[],
+  targetOf: (ref: string) => RelationTarget | undefined,
+): TreeMetric[] {
+  const byRef = new Map(members.map((member) => [member.ref, member]))
+  byRef.set(own.ref, own)
+  const nameOf = (ref: string) => byRef.get(ref)?.name ?? ref.slice(ref.indexOf(':') + 1)
+  const seen = new Map<string, TreeMetric>()
+  const queue = [own.ref]
+  for (let at = 0; at < queue.length && seen.size < TREE_CAP; at++) {
+    const ref = queue[at]!
+    if (seen.has(ref)) continue
+    const target = targetOf(ref)
+    if (target === null && ref !== own.ref) continue
+    const metric: TreeMetric = {
+      ref,
+      name: target?.name ?? nameOf(ref),
+      key: target?.key ?? null,
+      missing: target?.missing ?? false,
+      from: [],
+    }
+    seen.set(ref, metric)
+    if (metric.missing) continue
+    for (const input of byRef.get(ref)?.builtFrom?.refs ?? []) {
+      if (input === ref || targetOf(input) === null || metric.from.includes(input)) continue
+      metric.from.push(input)
+      queue.push(input)
+    }
+  }
+  // An input past the cap is not listed, so no line points at it.
+  for (const metric of seen.values()) metric.from = metric.from.filter((ref) => seen.has(ref))
+  return [...seen.values()]
+}

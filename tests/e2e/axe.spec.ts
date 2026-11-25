@@ -48,6 +48,10 @@ const places = [
   '/definitions',
   '/definitions?dock=def.Orders',
   '/definitions/Orders',
+  // What a metric is built from, as a tree on its page and in its quick view.
+  '/definitions/Return%20on%20ad%20spend',
+  '/definitions?dock=def.Gross%20margin',
+  '/definitions/Gross%20margin?dock=def.Net%20revenue',
   '/definitions/Webshop/edit',
   '/definitions/new',
   '/ask',
@@ -125,6 +129,13 @@ const places = [
   '/settings/agents?open=connect',
 ]
 
+// The places whose trees draw lazily, with how many each shows: axe waits for them.
+const trees = new Map([
+  ['/definitions/Return%20on%20ad%20spend', 1],
+  ['/definitions?dock=def.Gross%20margin', 1],
+  ['/definitions/Gross%20margin?dock=def.Net%20revenue', 2],
+])
+
 const widths = [
   { name: '390', width: 390, height: 844 },
   { name: '1440', width: 1440, height: 900 },
@@ -200,6 +211,7 @@ for (const { name, width, height } of widths) {
           // The demo starts signed in, and someone signed in goes from sign-in to the Inbox.
           if (place === '/signin') await signOut(page, width)
           await expect(page.locator('main, [role=main], h1').first()).toBeVisible()
+          if (trees.has(place)) await expect(page.getByRole('tree')).toHaveCount(trees.get(place)!)
           expect(await violations(page)).toEqual([])
         })
       }

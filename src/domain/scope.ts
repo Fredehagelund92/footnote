@@ -23,6 +23,13 @@ import {
   type WordMeaning,
 } from './vocabulary.ts'
 import { DEFAULT_PRODUCT_NAME } from './brand.ts'
+import {
+  looseForms,
+  looseNames,
+  unreadWords,
+  type LooseName,
+  type UnreadWord,
+} from './names-read.ts'
 import { everydayWords, isEverydayWord, saysHow } from './everyday-words.ts'
 
 /**
@@ -43,6 +50,8 @@ export type ScopeInput = {
   loose?: boolean
   /** The workspace's calendar the dates are read on: its fiscal year and time zone. */
   calendar?: Calendar
+  /** The domains' names: a word that names one is never read as a word of a metric's name. */
+  domains?: readonly string[]
 }
 /**
  * A part of the scope Footnote could not read. `message`, for a name it does not know, says so and
@@ -70,9 +79,19 @@ export type AssumedDate = { date: string; time_zone: string; reason: 'no date gi
 export type DatesRead = { words: string; reads_as: string }
 /** The rest of a question that stopped at a word: its names and dates, null when it gave none. */
 export type HeldScope = Omit<ResolvedScope, 'window'> & { window: DateWindow | null }
+/**
+ * How the words were read beyond whole names (names-read.ts): the names read in a loose form, and,
+ * when they name no metric, the words that could have named one. Only when there are some.
+ */
+export type NamesRead = { loose?: LooseName[]; unread?: UnreadWord[] }
 export type ScopeResult =
-  | { status: 'resolved'; scope: ResolvedScope; assumed?: AssumedDate; dates?: DatesRead }
-  | { status: 'need_more_detail'; issues: ScopeIssue[]; held?: HeldScope }
+  | ({
+      status: 'resolved'
+      scope: ResolvedScope
+      assumed?: AssumedDate
+      dates?: DatesRead
+    } & NamesRead)
+  | ({ status: 'need_more_detail'; issues: ScopeIssue[]; held?: HeldScope } & NamesRead)
 const unique = (values: string[]) => [...new Set(values)].sort()
 
 /** The words of a term as a person writes them, the one that reads as `name` first. */
@@ -327,6 +346,8 @@ export function termsInText(
   use: { metrics: boolean; dimensions: boolean } = { metrics: true, dimensions: true },
   given: readonly string[] = [],
   loose = false,
+  /** Read names in a loose form too, as a question's readers do (names-read.ts); never a draft's. */
+  readLoosely?: { domains: readonly string[] },
 ) {
   const metrics: string[] = []
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
@@ -347,6 +368,7 @@ export function termsInText(
     }
   }
   const occupied = new Set<number>()
+  const byKey = new Map(terms.map((term) => [term.key, term]))
   // A source member name no term points at ("traffic.sessions") is not read as the names in it
   // ("sessions"): that would answer for another metric without saying so. It asks instead.
   const kinds = (term: Term) =>
@@ -365,12 +387,34 @@ export function termsInText(
       message: unknownName(member.name, ['metric', 'dimension'], options, terms),
     })
   }
-  const byKey = new Map(terms.map((term) => [term.key, term]))
   const isDimension = (keys: readonly Term[], key: string) =>
     keys.length === 1 && keys[0]!.kind === 'dimension' && keys[0]!.key === key
+  // A name of two words or more in another form or order is read first, as a longer phrase is
+  // ("customers active" is Active customers); then whole names; then single words in a loose form:
+  // another form, initials, a word of one metric's name (names-read.ts).
+  const formed = readLoosely
+    ? looseForms(text, terms, occupied).filter((hit) => kinds(byKey.get(hit.key)!))
+    : []
+  for (const hit of formed) for (let i = hit.start; i < hit.end; i++) occupied.add(i)
   const read = phrasesIn(text, names.keys(), occupied)
     .found.map((phrase) => ({ ...phrase, relevant: names.get(phrase.name)!.filter(kinds) }))
     .filter((phrase) => phrase.relevant.length)
+  const metricsOf = (hits: readonly { key: string }[]) =>
+    hits.flatMap((hit) => (byKey.get(hit.key)?.kind === 'metric' ? [hit.key] : []))
+  const loosely = readLoosely
+    ? [
+        ...formed,
+        ...looseNames(text, terms, occupied, readLoosely.domains, [
+          ...read.flatMap((p) => (p.relevant.length === 1 ? metricsOf([p.relevant[0]!]) : [])),
+          ...metricsOf(formed),
+        ]).filter((hit) => kinds(byKey.get(hit.key)!)),
+      ]
+    : []
+  for (const hit of loosely) {
+    for (let i = hit.start; i < hit.end; i++) occupied.add(i)
+    read.push({ name: hit.words, start: hit.start, end: hit.end, relevant: [byKey.get(hit.key)!] })
+  }
+  read.sort((a, b) => a.start - b.start)
   // Short codes written as everyday words, with the values they would be: "uk" for UK.
   const codes: (DateSpan & { keys: string[] })[] = []
   for (const phrase of read) {
@@ -457,6 +501,7 @@ export function termsInText(
       keys: relevant.map((term) => term.key),
     })),
     codes,
+    loosely: loosely.sort((a, b) => a.start - b.start),
   }
 }
 
@@ -473,8 +518,9 @@ function readWords(
   loose = false,
   given: readonly string[] = [],
   calendar: Calendar = UTC_CALENDAR,
+  domains: readonly string[] = [],
 ) {
-  const found = termsInText(question, terms, use, given, loose)
+  const found = termsInText(question, terms, use, given, loose, { domains })
   let dates: ReturnType<typeof readDates>
   try {
     dates = readDates(found.text, today, {
@@ -512,10 +558,10 @@ const kindWords: Record<Term['kind'], string> = {
   dimension_value: 'value',
 }
 /**
- * Every metric, for a question that names none, those whose names share its words first: "What
- * should I know about revenue?" offers Revenue (EUR) before Chargebacks (AED), so the examples an
- * agent is given are the ones it most likely meant. Among as close, the shorter name first (the
- * metric itself before Net revenue), then A to Z by name.
+ * The metrics whose names share a word with a question that names none, the most shared first:
+ * "What should I know about revenue?" offers Revenue (EUR) before Chargebacks (AED), and none that
+ * shares no word, so an agent is never offered a metric the person did not name. Among as close,
+ * the shorter name first (the metric itself before Net revenue), then A to Z by name.
  */
 function closestMetrics(question: string, terms: readonly Term[]): string[] {
   // Words of three letters or more: "of" and "in" match too many names to say which is meant.
@@ -524,23 +570,27 @@ function closestMetrics(question: string, terms: readonly Term[]): string[] {
       .split(/[^\p{L}\p{N}]+/u)
       .filter((word) => word.length > 2)
   const asked = new Set(wordsOf(question))
-  return terms
-    .filter((term) => term.kind === 'metric')
-    .map((term) => {
-      const names = [term.name, ...term.aliases]
-      const shared = Math.max(
-        ...names.map((name) => wordsOf(name).filter((word) => asked.has(word)).length),
+  return (
+    terms
+      .filter((term) => term.kind === 'metric')
+      .map((term) => {
+        const names = [term.name, ...term.aliases]
+        const shared = Math.max(
+          ...names.map((name) => wordsOf(name).filter((word) => asked.has(word)).length),
+        )
+        return { key: term.key, name: term.name, shared }
+      })
+      // A metric that shares no word with the question is no closest name of it.
+      .filter((term) => term.shared > 0)
+      .sort(
+        (a, b) =>
+          b.shared - a.shared ||
+          (b.shared ? a.name.length - b.name.length : 0) ||
+          a.name.localeCompare(b.name, 'en') ||
+          (a.key < b.key ? -1 : 1),
       )
-      return { key: term.key, name: term.name, shared }
-    })
-    .sort(
-      (a, b) =>
-        b.shared - a.shared ||
-        (b.shared ? a.name.length - b.name.length : 0) ||
-        a.name.localeCompare(b.name, 'en') ||
-        (a.key < b.key ? -1 : 1),
-    )
-    .map((term) => term.key)
+      .map((term) => term.key)
+  )
 }
 
 /**
@@ -656,6 +706,7 @@ export function extractScope(
     structured.loose,
     metrics,
     structured.calendar,
+    structured.domains,
   )
   const { text, occupied, dated } = found
   issues.push(...found.ambiguous)
@@ -743,17 +794,36 @@ export function extractScope(
         .map(([key, values]) => [key, unique(values)]),
     ),
   }
+  // How the words were read beyond whole names, and, when they name no metric, the words that
+  // could have named one: said, never dropped (names-read.ts).
+  // Each in the words as written: "EBITDA", not "ebitda".
+  const asWritten = <T extends { start: number; end: number }>(hit: T) => {
+    const at = found.written(hit)
+    return { ...hit, words: question.slice(at.start, at.end) }
+  }
+  const unread = metrics.length
+    ? []
+    : unreadWords(text, terms, new Set([...occupied, ...dated]), structured.domains).map((w) => ({
+        ...w,
+        word: asWritten(w).words,
+      }))
+  const namesRead: NamesRead = {
+    ...(found.loosely.length ? { loose: found.loosely.map(asWritten) } : {}),
+    ...(unread.length ? { unread } : {}),
+  }
   if (issues.length)
     return {
       status: 'need_more_detail',
       issues,
       ...(contested ? { held: { ...read, window: assumed ? null : window } } : {}),
+      ...namesRead,
     }
   return {
     status: 'resolved',
     scope: { ...read, window: window! },
     ...(assumed ? { assumed } : {}),
     ...(dates ? { dates } : {}),
+    ...namesRead,
   }
 }
 
@@ -769,7 +839,11 @@ export function readQuestion(
   question: string,
   terms: readonly Term[],
   today: string,
-  { loose = false, calendar = UTC_CALENDAR }: { loose?: boolean; calendar?: Calendar } = {},
+  {
+    loose = false,
+    calendar = UTC_CALENDAR,
+    domains = [],
+  }: { loose?: boolean; calendar?: Calendar; domains?: readonly string[] } = {},
 ): {
   terms: Term[]
   window: DateWindow | null
@@ -780,7 +854,7 @@ export function readQuestion(
   spans: Span[]
 } {
   calendarDateSchema.parse(today)
-  const found = readWords(question, terms, today, undefined, loose, [], calendar)
+  const found = readWords(question, terms, today, undefined, loose, [], calendar, domains)
   const keys = [
     ...unique(found.metrics),
     ...Object.entries(found.filters)

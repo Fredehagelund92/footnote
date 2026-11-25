@@ -1,4 +1,5 @@
 import * as z from 'zod'
+import { AGENT_MAX_ITEMS } from '../../domain/answer.ts'
 import { replyStatuses } from '../../domain/answer-state.ts'
 import { kindFilters } from '../../domain/mcp-text.ts'
 import { isCalendarDate } from '../../domain/validity.ts'
@@ -87,11 +88,28 @@ export const contextFormat = z
   .describe(
     "concise (the default): the answer line, say, what was asked, and each item that applies with its source and who checked it. full: also each item's body, every source, its links, and how the question was read (scope_used, dates_read, definitions, check_report). Ask for full when you will quote an item's text or follow its links.",
   )
+/** The most context items one get_context reply gives. */
+export const MOST_ITEMS = 50
 export const getContextInput = z.strictObject({
   ...scopeFields,
   edition,
-  max_items: z.number().int().min(1).max(50).default(20),
+  max_items: z
+    .number()
+    .int()
+    .min(1)
+    .max(MOST_ITEMS)
+    .default(AGENT_MAX_ITEMS)
+    .describe(
+      'How many context items a reply gives at most: the ones the question turns on come first. next_cursor gives the rest.',
+    ),
   max_bytes: z.number().int().min(1000).max(100000).default(100000),
+  cursor: z
+    .string()
+    .max(2000)
+    .optional()
+    .describe(
+      "The next_cursor of a reply to the same question: the context items after that reply's, in the same order.",
+    ),
   response_format: contextFormat.default('concise'),
 })
 export type GetContextInput = z.infer<typeof getContextInput>
@@ -558,6 +576,36 @@ export const contextOutput = z
       ),
     context: z.array(contextEntry).optional(),
     terms,
+    next_cursor: z
+      .string()
+      .optional()
+      .describe(
+        'Where the rest of the context items that apply start, when more apply than the reply gives: pass it as cursor with the same question for the next ones.',
+      ),
+    read_as: z
+      .array(
+        z.object({
+          words: z.string(),
+          name: z.string(),
+          by: z.enum(['form', 'initials', 'part']),
+        }),
+      )
+      .optional()
+      .describe(
+        "The question's words read as a name they are not exactly: another form or order of it (form), its initials (initials), or a word only its name holds (part). Say a part reading to the person, since the word may mean something else.",
+      ),
+    unread: z
+      .array(
+        z.object({
+          word: z.string(),
+          closest: z.array(z.string()),
+          domain: z.string().optional(),
+        }),
+      )
+      .optional()
+      .describe(
+        "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+      ),
     reply_id: z
       .string()
       .optional()
