@@ -1099,6 +1099,7 @@ function ContextAnswerBody({
   // Something wrong? opens beside the answer, or under it where Ask is itself in the right panel.
   const dock = useDock()
   const [wrong, setWrong] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
   const [sentNow, setSentNow] = React.useState(answer.report)
   const sentBeside = useReportSent(key)
   // A report the person sent about this answer, here or before: what the owners did comes back.
@@ -1112,7 +1113,10 @@ function ContextAnswerBody({
   const reporting = docked ? wrong : dock?.kind === 'report' && dock.id === key
   const onWrong = (open: boolean, from?: HTMLElement | null) => {
     if (!canReport) return
-    if (docked) setWrong(open)
+    if (docked) {
+      if (open) opener.current = from ?? null
+      setWrong(open)
+    }
     else if (open) openFromButton('report', key, from ?? null)
     else if (reporting) closeDock()
   }
@@ -1321,7 +1325,10 @@ function ContextAnswerBody({
             <SomethingWrong
               answer={answer}
               facts={facts}
-              onClose={() => setWrong(false)}
+              onClose={() => {
+                  setWrong(false)
+                  opener.current?.focus()
+                }}
               onSent={() => {
                 setWrong(false)
                 setSentNow({ on: 'just now' })

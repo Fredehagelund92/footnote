@@ -20,7 +20,7 @@ import { useWrite } from '@/api/queries'
 import { useReported } from '@/lib/reported'
 import { closeDock } from '@/lib/dock'
 import { navigate } from '@/lib/router'
-import { markReportSent, useShownAnswer } from '@/lib/shown-answers'
+import { markReportSent, useReportSent, useShownAnswer } from '@/lib/shown-answers'
 import { useFigures } from '@/lib/figures'
 import { useDomains, useMe } from '@/lib/workspace'
 import { askedOf, type Answer } from '@/model/ask'
@@ -38,6 +38,7 @@ type Sent = { domain: string; suggested?: string }
 /** The right panel for one answer on screen, by its key: the form, then what happens next. */
 export function ReportPanel({ id }: { id: string }) {
   const shown = useShownAnswer(id)
+  const already = useReportSent(id)
   const [sent, setSent] = React.useState<Sent | null>(null)
   const done = React.useRef<HTMLHeadingElement>(null)
   // Sent, focus moves to what happens next, so it is read out, and Close is one Tab away.
@@ -50,6 +51,15 @@ export function ReportPanel({ id }: { id: string }) {
         <DockMissing>
           This answer is not on screen any more. Ask the question again to report it.
         </DockMissing>
+      </DockFrame>
+    )
+  if (already && !sent)
+    return (
+      <DockFrame title="Something wrong?" footer={<Button onClick={closeDock}>Close</Button>}>
+        <div className="flex flex-col gap-4 p-4 @md:p-5">
+          <YouAsked question={askedOf(shown.answer)} />
+          <p className="text-sm">You reported this answer. Under it, you see what the owners did.</p>
+        </div>
       </DockFrame>
     )
   if (sent)
@@ -188,14 +198,6 @@ export function ReportForm({
 
   // Escape closes it while nothing is typed; typed words are never lost to a key.
   const typed = !!(what.trim() || link.trim() || (suggesting && words.trim()))
-  React.useEffect(() => {
-    if (!framed) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !e.defaultPrevented && !typed) onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [framed, typed, onClose])
 
   const send = () => {
     const found: typeof problems = {}
@@ -268,6 +270,10 @@ export function ReportForm({
         send()
       }}
       onKeyDown={(e) => {
+        if (framed && e.key === 'Escape' && !e.defaultPrevented && !typed) {
+          e.preventDefault()
+          onClose()
+        }
         if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
           e.preventDefault()
           send()
@@ -302,7 +308,14 @@ export function ReportForm({
       <FieldGroup className="gap-5">
         <FieldSet>
           <FieldLegend variant="label">Which part is wrong?</FieldLegend>
-          <RadioGroup value={part} onValueChange={(v) => setPart(v as string)}>
+          <RadioGroup
+            value={part}
+            onValueChange={(v) => {
+              setPart(v as string)
+              setSuggesting(false)
+              setWords('')
+            }}
+          >
             {facts.map((f, i) => (
               <Field key={f.id} orientation="horizontal">
                 <RadioGroupItem value={f.id} id={`${formId}-part-${f.id}`} />

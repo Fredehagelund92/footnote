@@ -2134,6 +2134,7 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
   const words = React.useRef<HTMLDivElement>(null)
   const facts = P.useFacts()
   const [wrong, setWrong] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
   const [sent, setSent] = React.useState<Answer['report']>(undefined)
   const key = P.answerKey(answer)
   // Something wrong? opens beside the answer, or under it where Ask is itself in the right panel.
@@ -2148,7 +2149,10 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
   const reporting = docked ? wrong : dock?.kind === 'report' && dock.id === key
   const onWrong = (open: boolean, from?: HTMLElement | null) => {
     if (!canReport) return
-    if (docked) setWrong(open)
+    if (docked) {
+      if (open) opener.current = from ?? null
+      setWrong(open)
+    }
     else if (open) P.openFromButton('report', key, from ?? null)
     else if (reporting) P.closeDock()
   }
@@ -2412,7 +2416,10 @@ function Finished({
               <P.SomethingWrong
                 answer={answer}
                 facts={cited}
-                onClose={() => setWrong(false)}
+                onClose={() => {
+                  setWrong(false)
+                  opener.current?.focus()
+                }}
                 onSent={() => {
                   setWrong(false)
                   setSent({ on: 'just now' })

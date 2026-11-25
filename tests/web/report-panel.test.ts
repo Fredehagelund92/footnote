@@ -46,7 +46,8 @@ vi.mock('@/lib/router', async (original) => ({
   navigate: (path: string) => world.navigated.push(path),
 }))
 
-const { ReportForm } = await import('@/components/footnote/report-panel')
+const { ReportForm, ReportPanel } = await import('@/components/footnote/report-panel')
+const { keepShown, markReportSent } = await import('@/lib/shown-answers')
 const { ApiError } = await import('@/api/errors')
 
 beforeAll(() => {
@@ -61,6 +62,7 @@ afterEach(() => {
   world.writes.length = 0
   world.navigated.length = 0
   world.fail = null
+  closed.length = 0
   world.me = { id: 'p1', name: 'Ines Duarte', role: '', owns: [], admin: false }
 })
 
@@ -68,6 +70,13 @@ const fact = {
   id: 'itm_units0001',
   title: 'Units sold excludes test accounts',
   summary: 'Units sold in Norway leaves out the 312 accounts our teams use to test the webshop.',
+  domain: 'sales',
+} as Fact
+const closed: number[] = []
+const second = {
+  id: 'itm_units0002',
+  title: 'Orders exclude refunds',
+  summary: 'Orders leave out refunded orders.',
   domain: 'sales',
 } as Fact
 const answer = {
@@ -80,7 +89,7 @@ const answer = {
   text: '',
 } as unknown as Answer
 
-function mount(props: { figure?: string } = {}) {
+function mount(props: { figure?: string; facts?: Fact[] } = {}) {
   const sent: unknown[] = []
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)
@@ -93,7 +102,7 @@ function mount(props: { figure?: string } = {}) {
         React.createElement(ReportForm, {
           answer,
           facts: [fact],
-          onClose: () => {},
+          onClose: () => closed.push(1),
           onSent: (s: unknown) => sent.push(s),
           ...props,
         }),
@@ -188,6 +197,44 @@ describe('Something wrong?', () => {
     await submit()
     expect(world.writes[0]?.input).toMatchObject({ part: 'answer' })
     expect(world.writes[0]?.input).not.toHaveProperty('correction')
+  })
+
+  it('drops the right words when another part is chosen, so they are never filed on it', async () => {
+    mount({ facts: [fact, second] })
+    type(field("What's wrong?"), 'Wrong.')
+    act(() => button('Suggest the right words')!.click())
+    type(field('The right words (a suggestion)'), 'Something new for the first source.')
+    radio('2. Orders exclude refunds')
+    await submit()
+    expect(world.writes[0]?.input).toMatchObject({ part: second.id })
+    expect(world.writes[0]?.input).not.toHaveProperty('correction')
+  })
+
+  it('shows a note instead of a fresh form for an answer already reported', async () => {
+    window.matchMedia ??= ((q: string) => ({
+      matches: false,
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+    })) as never
+    keepShown('a1-key', { answer, facts: [fact] })
+    markReportSent('a1-key')
+    host = document.body.appendChild(document.createElement('div'))
+    root = createRoot(host)
+    act(() =>
+      root!.render(
+        React.createElement(
+          QueryClientProvider,
+          { client: new QueryClient() },
+          React.createElement(ReportPanel, { id: 'a1-key' }),
+        ),
+      ),
+    )
+    expect(host.textContent).toContain('You reported this answer')
+    expect(host.querySelector('form')).toBeNull()
+    expect(button('Close')).toBeDefined()
   })
 
   it('names the data contact for the figure', () => {
