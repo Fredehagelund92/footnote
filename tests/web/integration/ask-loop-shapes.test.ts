@@ -161,7 +161,7 @@ const cases: Case[] = [
   {
     id: 'loop-question',
     question: 'When did the payment provider switch?',
-    calls: [{ toolName: 'find_context', input: { words: 'payment provider switch' } }],
+    calls: [{ toolName: 'find_context', input: { words: 'payments provider switch' } }],
     write: (p) => {
       modelRead = JSON.stringify(p.results)
       return {

@@ -43,7 +43,7 @@ export function vagueMetricWord(
   // A question about someone is not about a metric: who it is about is the model's to read.
   const asked = new Set(wordsIn(question))
   if (people.some((name) => wordsIn(name).some((w) => asked.has(w)))) return null
-  const read = readQuestion(question, terms, today, { loose: true })
+  const read = readQuestion(question, terms, today, { loose: true, domains })
   const byKey = new Map(terms.map((term) => [term.key, term]))
   const named = read.spans.flatMap((span) => {
     const found = span.dates

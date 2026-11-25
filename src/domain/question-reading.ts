@@ -60,8 +60,10 @@ export function questionReading(
   question: string,
   terms: readonly Term[],
   today: string,
+  /** The domains' names: a word that names one is never read as part of a metric's name. */
+  domains: readonly string[],
 ): QuestionReading {
-  const reading = readQuestion(question, terms, today)
+  const reading = readQuestion(question, terms, today, { domains })
   const byKey = new Map(terms.map((term) => [term.key, term]))
   const view = (term: Term): ReadTerm => ({
     key: term.key,
