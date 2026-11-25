@@ -6,7 +6,7 @@ const group = (key: string, size: number, domain?: string) =>
   ({
     key,
     name: key,
-    domain: domain as DomainId | undefined,
+    domain: domain,
     rows: [{ id: key }],
     counts: {},
     visible: size,
