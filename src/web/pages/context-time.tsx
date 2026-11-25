@@ -218,7 +218,7 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
           wordsIn(
             `${f.title} ${plainText(f.summary)} ${f.where.join(' ')} ${domains[f.domain]?.name ?? ''} ${ownersOf(f, domains).join(' ')}`,
           ),
-      }),
+      }).filter((i) => !i.always),
     [facts, metricNames, domains],
   )
   // The dimensions of the definitions, then any other an item names.
@@ -996,7 +996,7 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
                 const row = layout.rows[i]!
                 const g = row.group
                 if (row.kind === 'group') {
-                  const n = g.timed.length + g.always.length
+                  const n = g.timed.length
                   return (
                     <div
                       key={groupKey(g.key)}
