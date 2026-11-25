@@ -72,7 +72,7 @@ describe('offline Cube source', () => {
     )
   }, 60_000)
 
-  it('says what a measure of plain column arithmetic is built from, by name, never its sql (C2)', async () => {
+  it('says what a measure of column arithmetic is built from, by name, never its sql (C2)', async () => {
     const built = await read(
       await model((text) =>
         text.replace(
@@ -90,6 +90,12 @@ describe('offline Cube source', () => {
             '      - name: rounded',
             '        type: sum',
             '        sql: "ROUND({CUBE}.amount_eur, 2)"',
+            '      - name: revenue_per_order',
+            '        type: number',
+            '        sql: "ROUND(COALESCE({revenue}, 0) / NULLIF({count}, 0), 2)"',
+            '      - name: absolute',
+            '        type: number',
+            '        sql: "ABS({revenue})"',
             '      - name: count',
             '        type: count',
             '',
@@ -110,11 +116,17 @@ describe('offline Cube source', () => {
       refs: ['cube:sales.revenue', 'cube:sales.revenue_eur'],
       columns: [],
     })
-    // A function says nothing, nor does a measure with no sql; a dimension is built from nothing.
-    expect(builtFrom('cube:sales.rounded')).toBeNull()
+    // NULLIF, COALESCE, ROUND and CAST are read through: a guarded ratio is built from both.
+    expect(builtFrom('cube:sales.rounded')).toEqual({ refs: [], columns: ['amount_eur'] })
+    expect(builtFrom('cube:sales.revenue_per_order')).toEqual({
+      refs: ['cube:sales.revenue', 'cube:sales.count'],
+      columns: [],
+    })
+    // Another function says nothing, nor does a measure with no sql; a dimension is built from nothing.
+    expect(builtFrom('cube:sales.absolute')).toBeNull()
     expect(builtFrom('cube:sales.count')).toBeNull()
     expect(builtFrom('cube:sales.country')).toBeNull()
-    expect(JSON.stringify(built)).not.toMatch(/ROUND|\{CUBE\}|\*/)
+    expect(JSON.stringify(built)).not.toMatch(/ROUND|NULLIF|COALESCE|ABS|\{CUBE\}|\*/)
   }, 60_000)
 
   it('sends nothing for a measure that takes a hidden measure (C2)', async () => {
