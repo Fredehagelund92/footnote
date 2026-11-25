@@ -155,6 +155,7 @@ export const SHORTCUTS: { group: string; rows: Keys[] }[] = [
     rows: [
       { keys: ['⌘', 'K'], label: 'Search, or go anywhere' },
       { keys: ['⌘', 'B'], label: 'Show or hide the sidebar' },
+      { keys: ['⌘', 'Z'], label: 'Undo the last decision, while it can be undone' },
       { keys: ['?'], label: 'Show these shortcuts' },
       { keys: ['Esc'], label: 'Close, or go back; in a review, close the note, keeping it' },
     ],

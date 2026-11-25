@@ -18,7 +18,9 @@ test('a returned suggestion waits on its sender, who edits it and sends it again
       .getByRole('textbox', { name: 'A note for Ines Duarte' })
       .pressSequentially('Which page says 340?')
     await decide.getByRole('button', { name: 'Return to Ines' }).click()
-    await expect(decide.getByText('Returned to Ines Duarte')).toBeVisible()
+    await expect(
+      page.locator('[data-sonner-toast]').filter({ hasText: `Returned “${title}” to Ines` }),
+    ).toBeVisible()
 
     await signInAs(page, 'Ines Duarte')
     await go(page, '/inbox')

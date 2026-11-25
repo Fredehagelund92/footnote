@@ -66,6 +66,7 @@ export const shellSearch = lenient(
     done: digits,
     connect: text,
     bulk: oneOf(['fail']),
+    publish: oneOf(['fail']),
   }),
 )
 

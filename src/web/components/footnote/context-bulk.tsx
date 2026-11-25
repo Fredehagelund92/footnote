@@ -205,7 +205,7 @@ export function ContextBulk({
             : action === 'publish'
               ? publishedWhen(ok.length - sent.length, sent.length)
               : undefined,
-      onUndone: () => toast(`Undone: ${count(ok.length, 'item')} as before`),
+      undone: { title: `Undone: ${count(ok.length, 'item')} as before` },
     })
   }
 
