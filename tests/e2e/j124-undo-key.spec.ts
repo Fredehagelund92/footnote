@@ -35,7 +35,8 @@ test('while the publish is being sent it says so, then takes it back once it is 
 }) => {
   await page.clock.install()
   await go(page, '/inbox/sug-ines-link/review')
-  await expect(decide(page).getByRole('button', { name: 'Publish', exact: true })).toBeVisible()
+  // The first load runs on the installed clock: wait for it as long as the test may.
+  await decide(page).getByRole('button', { name: 'Publish', exact: true }).waitFor()
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
   await decide(page).getByRole('button', { name: 'Publish', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
@@ -56,7 +57,8 @@ test('once the service no longer holds it, it says it is too late', async ({ pag
   await onMockOnly('Undo window on the stopped clock', async () => {
     await page.clock.install()
     await go(page, '/inbox/sug-ines-link/review')
-    await expect(decide(page).getByRole('button', { name: 'Publish', exact: true })).toBeVisible()
+    // The first load runs on the installed clock: wait for it as long as the test may.
+    await decide(page).getByRole('button', { name: 'Publish', exact: true }).waitFor()
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
     await decide(page).getByRole('button', { name: 'Publish', exact: true }).click()
     await settle(page, 700)

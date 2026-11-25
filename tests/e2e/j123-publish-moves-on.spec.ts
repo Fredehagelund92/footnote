@@ -22,7 +22,8 @@ test.describe('on a wide screen, where the queue is a column', () => {
   }) => {
     await page.clock.install()
     await go(page, '/inbox/sug-ines-link/review')
-    await expect(decide(page).getByRole('button', { name: 'Publish', exact: true })).toBeVisible()
+    // The first load runs on the installed clock: wait for it as long as the test may.
+    await decide(page).getByRole('button', { name: 'Publish', exact: true }).waitFor()
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
     await decide(page).getByRole('button', { name: 'Publish', exact: true }).click()
     // The next suggestion is open while the service has not answered (time is stopped).
@@ -72,7 +73,8 @@ test.describe('on a phone', () => {
   test("Publish in the bar moves on, and the queue's sheet says Published", async ({ page }) => {
     await go(page, '/inbox/sug-ines-link/review')
     const publish = page.getByRole('button', { name: 'Publish', exact: true }).last()
-    await expect(publish).toBeVisible()
+    // A first load: wait for it as long as the test may.
+    await publish.waitFor()
     await publish.tap()
     await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
     await expect(toasts(page).filter({ hasText: `Published “${LINK}”` })).toBeVisible()
