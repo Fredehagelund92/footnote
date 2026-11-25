@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { settingKeys } from '@contract/admin'
+import { ABOUT_BUSINESS_MAX } from '@domain/about-business'
 import { agentToolNames } from '@domain/agents'
 import { toolsOn } from '@/lib/connect'
 import { ApiError } from '@/api/errors'
@@ -1686,6 +1687,20 @@ export function describeFootnoteApi(
         expect(workspace.about).toBe(text)
         expect(workspace.setup.done.about).toBe(true)
         expect(workspace.aboutTemplate).toMatch(/outdoor-gear retailer/)
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'getWorkspace', 'getVocabulary', 'draftAbout'))(
+      'writes a first version of what the business is about from its names, and saves nothing',
+      async () => {
+        const live = await signedIn()
+        const before = (await live.getWorkspace()).about
+        const { text } = await live.draftAbout()
+        expect([...text].length).toBeGreaterThan(0)
+        expect([...text].length).toBeLessThanOrEqual(ABOUT_BUSINESS_MAX)
+        const { metrics } = await live.getVocabulary()
+        expect(metrics.some((m) => text.includes(m.name))).toBe(true)
+        expect((await live.getWorkspace()).about).toBe(before)
       },
     )
 

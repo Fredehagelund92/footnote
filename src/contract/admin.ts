@@ -421,4 +421,11 @@ export const editionExportSchema = z.object({
   domains: z.array(z.object({ key: z.string(), areaId: z.string() })),
 })
 
+/**
+ * Write a first version for me (domain/about-business.ts): a first text of About our business,
+ * written from the install's domains, metrics and definitions. Nothing is saved.
+ */
+export const aboutDraftSchema = z.object({ text: z.string() })
+export type AboutDraft = z.infer<typeof aboutDraftSchema>
+
 export const jsonSchemaDocument = z.record(z.string(), z.unknown())

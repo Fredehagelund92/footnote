@@ -247,7 +247,12 @@ function AboutHelp() {
           agents get a term with each question that uses its word.
         </li>
         <li>
-          No figures, deals, dates or names of customers: those are context items, or stay out.
+          Leave out numbers, dates, deals, legal conclusions, secrets and personal data. What
+          happened goes in context items, and the rest stays out.
+        </li>
+        <li>
+          Once there are domains or definitions, Write a first version for me drafts it from them.
+          Nothing is saved until you keep it.
         </li>
         <li>
           Ask reads it with every question, and an agent when it connects. An agent connected now

@@ -259,6 +259,7 @@ export const wiredMethods = [
   'addDomain',
   'removeDomain',
   'setAbout',
+  'draftAbout',
   'completeSetupStep',
   'readQuestion',
   'ask',
@@ -1448,6 +1449,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       await write('settings.set', input, (o) => client.settings.set(input, o))
     },
+    draftAbout: () => write('about.draft', undefined, (o) => client.about.draft(undefined, o)),
     // The service reads each step from what exists (setup.state): nothing to mark by hand.
     completeSetupStep: () => Promise.resolve(),
     getVocabulary: async () => {

@@ -1,3 +1,4 @@
+export { draftAbout, readAboutFacts, scriptedAboutModel } from './about-draft.ts'
 export { exportAudit, plainReason, recordAudit, searchAudit, verifyAudit } from './audit.ts'
 export { exportEdition } from './edition-export.ts'
 export { importItems, type ImportServices } from './imports.ts'
