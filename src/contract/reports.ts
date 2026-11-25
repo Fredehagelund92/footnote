@@ -39,7 +39,7 @@ export type CreateReport = z.infer<typeof createReportSchema>
 export const sentReportSchema = z.object({
   id: z.string(),
   at: z.string(),
-  suggestion: z.nullable(z.string()),
+  suggestion: z.optional(z.nullable(z.string())),
 })
 export type SentReport = z.infer<typeof sentReportSchema>
 

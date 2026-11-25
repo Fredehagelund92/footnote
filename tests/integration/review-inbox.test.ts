@@ -1649,6 +1649,82 @@ describe('named reports from Ask (FR-622)', () => {
     expect(await card(report.id, 'owner', 'all')).toMatchObject({ suggestion: null })
   })
 
+  it('files the report with its right words when what is wrong is too long or names a person', async () => {
+    const words = 'Latvia orders leave gift cards out, as of 1 October 2026.'
+    const long = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what: 'x'.repeat(900),
+        correction: words,
+      }),
+    )
+    expect(long.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+    const proposal = await ok<ProposalRecord>(call('GET', `/proposals/${long.suggestion}`, 'member'))
+    expect(proposal.reason).toBeNull()
+    expect(proposal.draft.summary).toBe(words)
+    const named = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what: 'Ask someone@example.com, they know.',
+        correction: 'Latvia orders leave gift cards out, from October.',
+      }),
+    )
+    expect(named.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
+  it('takes right words for an item whose live version replaced another item', async () => {
+    const old = await live({ title: 'Estonia orders count vouchers', ...inMarket('estonia') })
+    const replacer = await live({
+      title: 'Estonia orders count credits',
+      ...inMarket('estonia'),
+      replaces: [old],
+    })
+    const report = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: replacer,
+        part: 'item',
+        what: 'Credits are not counted.',
+        correction: 'Estonia orders leave credits out.',
+      }),
+    )
+    expect(report.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+    const proposal = await ok<ProposalRecord>(
+      call('GET', `/proposals/${report.suggestion}`, 'member'),
+    )
+    expect(proposal.draft.replaces ?? []).toEqual([])
+  })
+
+  it('refuses a report that names its own suggestion on a different item', async () => {
+    const report = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what: 'Gift cards are left out.',
+        correction: 'Latvia orders leave gift cards out entirely.',
+      }),
+    )
+    await client.query('begin')
+    try {
+      await client.query(`set local role ${identifier(localRoles.api)}`)
+      await client.query("select set_config('cl.person_id', $1, true)", [people.member])
+      await expect(
+        client.query(
+          `insert into reports (person_id,area_id,item_id,part,question,what,correction,proposal_id)
+           values (cl_person(),'finance',$1,'item','Q','W','C',$2)`,
+          [due, report.suggestion],
+        ),
+      ).rejects.toThrow(/row-level security/)
+    } finally {
+      await client.query('rollback')
+    }
+  })
+
   it('tells its sender what the owners did: closed as not a problem, undone, then the item checked again', async () => {
     const report = await ok<SentReport>(
       send('author', {
