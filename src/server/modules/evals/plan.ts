@@ -171,7 +171,10 @@ const typicalAnswer = {
   outputTokens: 1_200,
 }
 export const cellEstimateMicros = (models: Models) =>
-  costMicros(models.answer.prices, typicalAnswer) +
+  costMicros(models.answer.prices, typicalAnswer) + judgeEstimateMicros(models)
+
+/** A typical judge call's cost. */
+export const judgeEstimateMicros = (models: Models) =>
   costMicros(models.judge.prices, typicalJudgeCall)
 
 /** FR-516: the estimate counts every cell without a cached result, at the first tries only. */

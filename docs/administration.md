@@ -129,3 +129,10 @@ npm run footnote -- audit --format csv --as per_ravi@example.test
 | `--origin` | `FOOTNOTE_ORIGIN` | The first of `FOOTNOTE_WEB_ORIGINS`, else the service's default |
 
 `--json` prints the result as JSON, for scripts and coding agents. The exit status is 0 when done, 1 when the file has problems or the service refused, and 2 for wrong usage.
+
+`footnote prove` is the one command that runs the service's own code on its database (`DATABASE_URL`) and model keys, rather than calling the service. It asks the same questions three ways and prints a table, as [Run the proof](prove.md) explains:
+
+```sh
+npm run footnote -- prove --questions my-questions.yaml                  # the scripted model, free
+npm run footnote -- prove --questions my-questions.yaml --real --cap 5   # a real agent, after a yes
+```

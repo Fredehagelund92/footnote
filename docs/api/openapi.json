@@ -80213,7 +80213,8 @@
                         "enum": [
                           "full",
                           "scheduled",
-                          "held_out"
+                          "held_out",
+                          "proof"
                         ],
                         "type": "string"
                       },
@@ -80861,7 +80862,8 @@
                           "enum": [
                             "full",
                             "scheduled",
-                            "held_out"
+                            "held_out",
+                            "proof"
                           ],
                           "type": "string"
                         },
@@ -82194,7 +82196,8 @@
                       "enum": [
                         "full",
                         "scheduled",
-                        "held_out"
+                        "held_out",
+                        "proof"
                       ],
                       "type": "string"
                     },
@@ -82837,7 +82840,8 @@
                       "enum": [
                         "full",
                         "scheduled",
-                        "held_out"
+                        "held_out",
+                        "proof"
                       ],
                       "type": "string"
                     },
@@ -83481,7 +83485,8 @@
                       "enum": [
                         "full",
                         "scheduled",
-                        "held_out"
+                        "held_out",
+                        "proof"
                       ],
                       "type": "string"
                     },
