@@ -88,13 +88,23 @@ export const askSearch = lenient(
   z.object({ example: text, chat: text, n: text, setup: text, q: text }),
 )
 
-/** The Context list, filtered from a link: a domain, what is due, archived, or what is in a conflict. */
+/** A list's sort: its key and, against the key's own way, the direction. */
+const sorting = { sort: text, dir: oneOf(['asc', 'desc']) }
+
+/**
+ * The Context list as it is shown, so a link, a reload and Back give the same list: its filters
+ * (comma lists, as `domain=sales,finance`), search words, sort, group and archived items shown.
+ */
 export const contextSearch = lenient(
   z.object({
     domain: text,
-    due: text,
-    status: oneOf(['archived']),
+    status: text,
+    kind: text,
     show: oneOf(['conflicts']),
+    q: text,
+    ...sorting,
+    group: oneOf(['domain', 'metric']),
+    archived: oneOf(['shown']),
   }),
 )
 
@@ -114,9 +124,18 @@ export const contextEditorSearch = lenient(
   }),
 )
 
+/** The Definitions list as it is shown: its view (?show=families, where a split lands), filters, search words, sort and group. */
 export const definitionsSearch = lenient(
-  // The Families tab (?show=families), where a family split from its page lands.
-  z.object({ domain: text, setup: text, show: oneOf(['families']) }),
+  z.object({
+    show: oneOf(['metrics', 'families', 'dimensions', 'terms']),
+    domain: text,
+    status: text,
+    synonyms: oneOf(['rows']),
+    q: text,
+    ...sorting,
+    group: oneOf(['type', 'group', 'none']),
+    setup: text,
+  }),
 )
 
 /** A new term may start from its word (`name`, from Ask's gap card) or as another name for a definition. */

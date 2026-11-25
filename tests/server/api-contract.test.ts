@@ -328,6 +328,7 @@ describe('the API over HTTP', () => {
       '/context/changes',
       '/context/deleted',
       '/decisions/undo',
+      '/definitions/built-from',
       '/definitions/families/{key}/join',
       '/definitions/families/{key}/meaning',
       '/definitions/families/{key}/meaning/history',

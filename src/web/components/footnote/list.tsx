@@ -356,7 +356,7 @@ export function DockStepper({ list, kind, id }: { list: string; kind: DockKind; 
   const order = useListOrder(list)
   const at = order?.indexOf(id) ?? -1
   // The next row opens in the peek, which keeps the focus.
-  const onGo = (next: string) => openFromRow(kind, next)
+  const onGo = (next: string) => openFromRow(kind, next, undefined, { replace: true })
   if (!order || at < 0) return null
   return (
     <span className="flex items-center gap-0.5">

@@ -237,7 +237,9 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
     order: topicOrder,
     current: peeked,
     docked: !!peeked,
-    onMove: (id, from) => peeked && openFromRow('topic', id, undefined, { focus: from.panel }),
+    // A cursor move takes the place of the address, so Back leaves the list in one press.
+    onMove: (id, from) =>
+      peeked && openFromRow('topic', id, undefined, { focus: from.panel, replace: true }),
     onEscape: () => {
       if (!peeked) return false
       closeDock()

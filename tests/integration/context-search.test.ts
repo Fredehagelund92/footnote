@@ -79,12 +79,12 @@ describe('find_context on the demo library', () => {
     expect(found.check_report.matched).toBeGreaterThan(20)
     expect(found.context.length).toBe(10)
     expect(found.context.every((i) => i.match === 'all')).toBe(true)
-    // Every hit is about net revenue: in its scope or its words.
+    // Every hit is about net revenue: in its scope or its words, the body's too.
     for (const hit of found.context) {
       const item = bundle.items.find((i) => i.id === hit.id)!
       expect(
         item.scope.metrics.includes('metric:net_revenue') ||
-          `${item.title} ${item.summary}`.toLowerCase().includes('net revenue'),
+          `${item.title} ${item.summary} ${item.body ?? ''}`.toLowerCase().includes('net revenue'),
         hit.id,
       ).toBe(true)
     }

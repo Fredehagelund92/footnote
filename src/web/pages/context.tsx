@@ -66,8 +66,18 @@ import {
 import { waitingLine } from '@/model/waiting'
 import { today } from '@/lib/today'
 import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
-import { matches, useListKeys, usePublishOrder, words } from '@/lib/list'
-import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
+import {
+  listOf,
+  listTo,
+  matches,
+  useArrivalRow,
+  useListAddress,
+  useListKeys,
+  usePublishOrder,
+  useSearchWords,
+  words,
+} from '@/lib/list'
+import { clicked, flipped, sortingFrom, type SortKey, type Sorting } from '@/lib/sort'
 import { inForce, parseWhen, timeShort, trustOf } from '@/lib/timeframe'
 import { FreshDot, KindIcon, StatusIcon, TimeGlyph } from '@/components/footnote/columns'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -99,6 +109,15 @@ import { ContextBulk } from '@/components/footnote/context-bulk'
 // filter of this list, kept in the address (?show=conflicts), not a list of its own.
 
 const STATUSES: Status[] = ['Draft', 'Waiting', 'Live', 'Due for a check', 'Archived']
+/** Each status as the address says it: `status=due,draft`. */
+const STATUS_OF = {
+  draft: 'Draft',
+  waiting: 'Waiting',
+  live: 'Live',
+  due: 'Due for a check',
+  archived: 'Archived',
+} as const satisfies Record<string, Status>
+const STATUS_KEYS = Object.keys(STATUS_OF) as (keyof typeof STATUS_OF)[]
 const KINDS = Object.keys(kindLabel) as Kind[]
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
@@ -123,6 +142,8 @@ const HEADS = {
 } satisfies Record<Sort, SortKey>
 type Group = 'none' | 'domain' | 'metric'
 const GROUPS: Record<Group, string> = { none: 'No grouping', domain: 'Domain', metric: 'Metric' }
+/** The groupings the address names; no grouping is the list without one. */
+const GROUP_KEYS = ['domain', 'metric'] as const
 
 /** When it was last checked; a draft was never checked, so it sorts last. */
 const checked = (f: Fact) => (f.checkedOn ? Date.parse(f.checkedOn) : 0)
@@ -170,25 +191,20 @@ export function ContextPage() {
   const { metrics } = useVocabulary()
   const metricNames = React.useMemo(() => new Set(metrics.map((m) => m.name)), [metrics])
   const dock = useDock()
-  const [text, setText] = React.useState('')
-  // A domain page links here filtered to its domain (and to what is due for a check); a records
-  // answer in Ask to what is due or archived; the Inbox's drafts card to the person's drafts.
+  // The list's view is in the address (lib/list.ts), so a reload, a link and Back from an item
+  // keep it: a domain page links here filtered to its domain (and to what is due for a check), a
+  // records answer in Ask to what is due, the Inbox's drafts card to the person's drafts.
+  useListAddress('/context')
+  const [text, setText] = useSearchWords()
   const { query } = useRoute()
-  const [domain, setDomain] = React.useState<DomainId[]>(() =>
-    query.get('domain') ? [query.get('domain') as DomainId] : [],
-  )
-  const [status, setStatus] = React.useState<Status[]>(() =>
-    query.get('due')
-      ? ['Due for a check']
-      : query.get('status') === 'archived'
-        ? ['Archived']
-        : query.get('status') === 'draft'
-          ? ['Draft']
-          : [],
-  )
-  const [kind, setKind] = React.useState<Kind[]>([])
-  // In the address, so a link (the old Conflicts list, a help page) lands on it and a reload keeps it.
+  const domain: DomainId[] = query.get('domain')?.split(',').filter(Boolean) ?? []
+  const status = listOf(query.get('status'), STATUS_KEYS).map((s) => STATUS_OF[s])
+  const kind = listOf(query.get('kind'), KINDS)
   const onlyConflicts = query.get('show') === 'conflicts'
+  const setDomain = (next: DomainId[]) => changeQuery({ domain: listTo(next) })
+  const setStatus = (next: Status[]) =>
+    changeQuery({ status: listTo(STATUS_KEYS.filter((s) => next.includes(STATUS_OF[s]))) })
+  const setKind = (next: Kind[]) => changeQuery({ kind: listTo(next) })
   const setOnlyConflicts = (on: boolean) => changeQuery({ show: on ? 'conflicts' : undefined })
   // The page's frame (header, bar, table head) is drawn at once; only the rows wait. Filtered to
   // conflicts, the rows wait for the pairs too, so the list never says "No conflicts" before it
@@ -203,13 +219,18 @@ export function ContextPage() {
   // changes it at once too, as a search must keep up with the hand.
   const move = (press: Press, change: () => void | Promise<unknown>) =>
     moveRows(change, reduced || !byPointer(press))
-  const [chosenSort, setSort] = React.useState<Sorting<Sort> | null>(null)
-  const [group, setGroup] = React.useState<Group>('none')
-  const [folded, setFolded] = React.useState<string[]>([])
-  const [showArchived, setShowArchived] = React.useState(false)
-
   // While a search runs and no sort was chosen, the closest matches come first.
-  const sorting = chosenSort ?? startOf(SORTS, text.trim() ? 'best' : 'checked')
+  const firstSort: Sort = text.trim() ? 'best' : 'checked'
+  const sorting = sortingFrom<Sort>(SORTS, query, firstSort)
+  // A sort chosen stays when a search starts, so it is in the address even when it is the first.
+  const setSort = (next: Sorting<Sort>) =>
+    changeQuery({ sort: next.key, dir: flipped(SORTS, next) ? next.dir : undefined })
+  const group: Group = listOf(query.get('group'), GROUP_KEYS)[0] ?? 'none'
+  const setGroup = (next: Group) => changeQuery({ group: next === 'none' ? undefined : next })
+  // The groups folded by hand, in the grouping they were folded in.
+  const [foldedIn, setFoldedIn] = React.useState({ group, keys: [] as string[] })
+  const folded = foldedIn.group === group ? foldedIn.keys : []
+  const showArchived = query.get('archived') === 'shown'
   const sort = sorting.key
   const way = flipped(SORTS, sorting) ? -1 : 1
   const archived = facts.filter((f) => f.status === 'Archived').length
@@ -275,8 +296,10 @@ export function ContextPage() {
     current: peeked,
     docked: !!peeked,
     reveal: (id, then) => drawn.current?.reveal(id, then),
-    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the focus.
-    onMove: (id, from) => peeked && openFromRow('context', id, undefined, { focus: from.panel }),
+    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the
+    // focus. A cursor move takes the place of the address, so Back leaves the list in one press.
+    onMove: (id, from) =>
+      peeked && openFromRow('context', id, undefined, { focus: from.panel, replace: true }),
     // Escape closes the peek first, then clears the selection, as in the Footnote app.
     onEscape: () => {
       if (peeked) closeDock()
@@ -286,16 +309,22 @@ export function ContextPage() {
     },
   })
 
-  const clearFilters = () => {
-    setDomain([])
-    setStatus([])
-    setKind([])
-    if (onlyConflicts) void setOnlyConflicts(false)
-  }
-  const clearAll = () => {
-    clearFilters()
-    setText('')
-  }
+  const noFilters = { domain: undefined, status: undefined, kind: undefined, show: undefined }
+  // Back from an item's page, or a reload with its panel open: its row takes the focus, in view.
+  useArrivalRow({
+    itemPath: '/context/',
+    idOf: (part) => part,
+    peeked,
+    ready: rowsShown,
+    focus: (id) =>
+      drawn.current?.reveal(id, (row) => {
+        row.querySelector<HTMLElement>('[data-row-open]')?.focus({ preventScroll: true })
+        row.scrollIntoView({ block: 'nearest' })
+      }),
+  })
+
+  const clearFilters = () => void changeQuery(noFilters)
+  const clearAll = () => void changeQuery({ ...noFilters, q: undefined })
   const on = [
     domain.length && `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
     status.length && `Status is ${status.join(' or ')}`,
@@ -558,7 +587,7 @@ export function ContextPage() {
                         key={d}
                         checked={domain.includes(d)}
                         onCheckedChange={(_, e) =>
-                          move(e.event, () => setDomain((x) => toggle(x, d)))
+                          move(e.event, () => setDomain(toggle(domain, d)))
                         }
                       >
                         <FilterValue
@@ -577,7 +606,7 @@ export function ContextPage() {
                         key={st}
                         checked={status.includes(st)}
                         onCheckedChange={(_, e) =>
-                          move(e.event, () => setStatus((x) => toggle(x, st)))
+                          move(e.event, () => setStatus(toggle(status, st)))
                         }
                       >
                         <FilterValue
@@ -595,9 +624,7 @@ export function ContextPage() {
                       <DropdownMenuCheckboxItem
                         key={k}
                         checked={kind.includes(k)}
-                        onCheckedChange={(_, e) =>
-                          move(e.event, () => setKind((x) => toggle(x, k)))
-                        }
+                        onCheckedChange={(_, e) => move(e.event, () => setKind(toggle(kind, k)))}
                       >
                         <FilterValue
                           count={facts.filter((f) => f.kind === k && pass(f, 'kind')).length}
@@ -654,12 +681,7 @@ export function ContextPage() {
                     <DropdownMenuLabel>Group by</DropdownMenuLabel>
                     <DropdownMenuRadioGroup
                       value={group}
-                      onValueChange={(v, e) =>
-                        move(e.event, () => {
-                          setGroup(v as Group)
-                          setFolded([])
-                        })
-                      }
+                      onValueChange={(v, e) => move(e.event, () => setGroup(v as Group))}
                     >
                       {(Object.keys(GROUPS) as Group[]).map((g) => (
                         <DropdownMenuRadioItem key={g} value={g}>
@@ -687,7 +709,9 @@ export function ContextPage() {
                     <button
                       type="button"
                       className="font-medium text-foreground underline underline-offset-4"
-                      onClick={(e) => move(e, () => setShowArchived((s) => !s))}
+                      onClick={(e) =>
+                        move(e, () => changeQuery({ archived: showArchived ? undefined : 'shown' }))
+                      }
                     >
                       {showArchived ? 'Hide' : 'Show'}
                     </button>
@@ -714,18 +738,18 @@ export function ContextPage() {
               {domain.length > 0 && (
                 <FilterChip
                   field="Domain"
-                  values={domain.map((d) => domains[d]!.name)}
-                  onRemove={() => setDomain([])}
+                  values={domain.map((d) => domains[d]?.name ?? d)}
+                  onRemove={() => void setDomain([])}
                 />
               )}
               {status.length > 0 && (
-                <FilterChip field="Status" values={status} onRemove={() => setStatus([])} />
+                <FilterChip field="Status" values={status} onRemove={() => void setStatus([])} />
               )}
               {kind.length > 0 && (
                 <FilterChip
                   field="Kind"
                   values={kind.map((k) => kindLabel[k])}
-                  onRemove={() => setKind([])}
+                  onRemove={() => void setKind([])}
                 />
               )}
               {onlyConflicts && (
@@ -833,7 +857,7 @@ export function ContextPage() {
                         detail={String(l.rows)}
                         open={l.open}
                         colSpan={COLS}
-                        onToggle={() => setFolded((x) => toggle(x, l.group))}
+                        onToggle={() => setFoldedIn({ group, keys: toggle(folded, l.group) })}
                       />
                     ) : (
                       row(l, measure)

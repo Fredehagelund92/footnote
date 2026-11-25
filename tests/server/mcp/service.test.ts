@@ -347,10 +347,17 @@ it('pages the items that link to it and rejects a cursor after the overlay chang
   expect((next.structuredContent.links_in as { items: unknown[] }).items).toHaveLength(5)
   expect(next.structuredContent.next_cursor).toBeNull()
   s.data.overlay = '2'
-  expect(
-    (await s.call('read_context', { id: item.id, cursor: read.structuredContent.next_cursor }))
-      .isError,
-  ).toBe(true)
+  const stale = await s.call('read_context', {
+    id: item.id,
+    cursor: read.structuredContent.next_cursor,
+  })
+  expect(stale.isError).toBe(true)
+  // Said as what to do, never as a retry: the same cursor fails again whenever it is sent.
+  expect(stale.structuredContent.next).toBe(
+    'The cursor is from another call, or what agents read has changed since: call again without cursor.',
+  )
+  const malformed = await s.call('read_context', { id: item.id, cursor: 'not a cursor' })
+  expect(malformed.structuredContent.next).toBe(stale.structuredContent.next)
 })
 
 it('restricts historical edition selection and rejects sensitive notes before storing them', async () => {
@@ -1286,6 +1293,24 @@ describe('get_context', () => {
     expect(checked.status).toBe('matched')
   })
 
+  it('says Partial on a reply that no item fits, as on the one it fits (every page the same)', async () => {
+    const s = setup()
+    s.data.terms.push({ ...s.data.terms[2]!, key: 'val:market/sweden', name: 'Sweden' })
+    s.data.items[0]!.summary = 'x'.repeat(3000)
+    const both = {
+      question: 'Orders in Norway and Sweden in August 2026',
+      metrics: ['Orders'],
+      dimension_filters: [{ dimension: 'Market', values: ['Norway', 'Sweden'] }],
+      window: { from: '2026-08-01', to: '2026-08-31' },
+    }
+    const fits = await s.call('get_context', both)
+    expect(fits.structuredContent.status).toBe('partial')
+    const none = (await s.call('get_context', { ...both, max_bytes: byteSize(fits) - 2000 }))
+      .structuredContent as { status: string; context: unknown[] }
+    expect(none.context).toHaveLength(0)
+    expect(none.status).toBe('partial')
+  })
+
   it('says Conflict and names the item each one disagrees with (FR-350)', async () => {
     const s = setup()
     s.data.items[0]!.conflicts = ['itm_norway02']
@@ -1358,14 +1383,16 @@ describe('get_context', () => {
     const s = setup()
     s.data.items[0]!.summary = 'x'.repeat(900)
     second(s, { summary: 'y'.repeat(900) })
-    const out = (await s.call('get_context', { question, max_bytes: 4600 })).structuredContent as {
+    const out = (await s.call('get_context', { question, max_bytes: 4800 })).structuredContent as {
       say: string
       next: string
       context: unknown[]
     }
     expect(out.context).toHaveLength(1)
     expect(out.say).toContain("1 more context item applies but didn't fit in this reply.")
-    expect(out.next).toContain('Call again with a higher max_bytes to get them.')
+    expect(out.next).toContain(
+      'Call again with cursor set to next_cursor for the rest, or with a higher max_bytes.',
+    )
   })
 })
 

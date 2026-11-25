@@ -83,9 +83,21 @@ import {
 } from '@/lib/definitions'
 import { WindowRows, type WindowRowsHandle } from '@/components/footnote/window-rows'
 import { closeDock, openFromRow, useDock } from '@/lib/dock'
-import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
-import { matches, matchesWords, useListKeys, usePublishOrder, words, wordsIn } from '@/lib/list'
-import { href, navigate, useRoute } from '@/lib/router'
+import { clicked, flipped, sortingFrom, type SortKey, type Sorting } from '@/lib/sort'
+import {
+  listOf,
+  listTo,
+  matches,
+  matchesWords,
+  useArrivalRow,
+  useListAddress,
+  useListKeys,
+  usePublishOrder,
+  useSearchWords,
+  words,
+  wordsIn,
+} from '@/lib/list'
+import { changeQuery, href, navigate, useRoute } from '@/lib/router'
 import { useDomainList, useDomains, useFacts, useMe } from '@/lib/workspace'
 import { mayOpenSettings } from '@/lib/settings-access'
 import { APP_URL } from '@/lib/brand'
@@ -142,6 +154,27 @@ const CUES: Record<Cue, string> = {
   changed: 'Definition changed',
   none: 'No context yet',
 }
+/** Each status as the address says it: `status=no-context`. */
+const CUE_OF = {
+  'two-meanings': 'conflict',
+  changed: 'changed',
+  'no-context': 'none',
+} as const satisfies Record<string, Cue>
+const CUE_KEYS = Object.keys(CUE_OF) as (keyof typeof CUE_OF)[]
+/** Each view as the address says it: `show=metrics`; All is the list without one. */
+const VIEW_OF = {
+  all: 'all',
+  metrics: 'metric',
+  families: 'family',
+  dimensions: 'dimension',
+  terms: 'term',
+} as const satisfies Record<string, View>
+const VIEW_KEYS = Object.keys(VIEW_OF) as (keyof typeof VIEW_OF)[]
+const VIEW_KEY = Object.fromEntries(
+  Object.entries(VIEW_OF).map(([k, v]) => [v, k === 'all' ? undefined : k]),
+) as Record<View, string | undefined>
+/** The groupings the address names; by domain is the list without one. */
+const GROUP_KEYS = ['type', 'group', 'none'] as const
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 const plural = (n: number, one: string) =>
@@ -283,33 +316,45 @@ export function DefinitionsPage() {
   React.useEffect(() => {
     if (setup) navigate(definitionsConnectHref(), { setup: '1' })
   }, [setup])
-  // A split from a family's page lands on the Families tab (?show=families).
-  const [view, setView] = React.useState<View>(() =>
-    query.get('show') === 'families' ? 'family' : 'all',
-  )
+  // The list's view is in the address (lib/list.ts), so a reload, a link and Back from a
+  // definition keep it: a split from a family's page lands on Families (?show=families), a domain
+  // page links here filtered to its domain.
+  useListAddress('/definitions')
+  const view = VIEW_OF[listOf(query.get('show'), VIEW_KEYS)[0] ?? 'all']
+  const setView = (next: View) => changeQuery({ show: VIEW_KEY[next] })
   const splits = useQuery(familySplitsQuery()).data ?? NO_SPLITS
-  const [text, setText] = React.useState('')
-  // A domain page links here filtered to its domain.
-  const [domain, setDomain] = React.useState<DomainId[]>(() =>
-    query.get('domain') ? [query.get('domain') as DomainId] : [],
-  )
-  const [cues, setCues] = React.useState<Cue[]>([])
+  const [text, setText] = useSearchWords()
+  const domain: DomainId[] = query.get('domain')?.split(',').filter(Boolean) ?? []
+  const setDomain = (next: DomainId[]) => changeQuery({ domain: listTo(next) })
+  const cues = listOf(query.get('status'), CUE_KEYS).map((c) => CUE_OF[c])
+  const setCues = (next: Cue[]) =>
+    changeQuery({ status: listTo(CUE_KEYS.filter((c) => next.includes(CUE_OF[c]))) })
   // Synonyms fold into their definition's row as tags; this shows them as rows of their own, to audit them.
-  const [synonymRows, setSynonymRows] = React.useState(false)
-  const [group, setGroup] = React.useState<Group>('domain')
-  const [folded, setFolded] = React.useState<string[]>([])
-  const [chosenSort, setSort] = React.useState<Sorting<Sort> | null>(null)
+  const synonymRows = query.get('synonyms') === 'rows'
+  const setSynonymRows = (on: boolean) => changeQuery({ synonyms: on ? 'rows' : undefined })
+  const group: Group = listOf(query.get('group'), GROUP_KEYS)[0] ?? 'domain'
+  const setGroup = (next: Group) => changeQuery({ group: next === 'domain' ? undefined : next })
+  // The groups folded by hand, in the grouping they were folded in.
+  const [foldedIn, setFoldedIn] = React.useState({ group, keys: [] as string[] })
+  const folded = foldedIn.group === group ? foldedIn.keys : []
   const reduced = useReducedMotion()
   // A pointer change of what the list shows (the view, a filter, the sort, the grouping) moves the
   // rows on screen to their new places in one view transition; the keyboard and reduced motion
   // change the list at once (lib/list-motion.ts). Typing in Search changes it at once too, as a
   // search must keep up with the hand.
-  const move = (press: Press, change: () => void) => moveRows(change, reduced || !byPointer(press))
+  const move = (press: Press, change: () => void | Promise<unknown>) =>
+    moveRows(change, reduced || !byPointer(press))
 
   // Led by coverage: what agents would hear Not found for comes first.
   // Families are read by name: coverage is a metric's question.
-  const sorting =
-    chosenSort ?? startOf(SORTS, text.trim() ? 'best' : view === 'family' ? 'name' : 'coverage')
+  const sorting = sortingFrom<Sort>(
+    SORTS,
+    query,
+    text.trim() ? 'best' : view === 'family' ? 'name' : 'coverage',
+  )
+  // A sort chosen stays when a search starts, so it is in the address even when it is the first.
+  const setSort = (next: Sorting<Sort>) =>
+    changeQuery({ sort: next.key, dir: flipped(SORTS, next) ? next.dir : undefined })
   const sort = sorting.key
   const way = flipped(SORTS, sorting) ? -1 : 1
   // The tool the metrics and dimensions come from, when one; neutral words when none or several.
@@ -481,8 +526,10 @@ export function DefinitionsPage() {
     current: peeked,
     docked: !!peeked,
     reveal: (name, then) => drawn.current?.reveal(name, then),
-    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the focus.
-    onMove: (name, from) => peeked && openFromRow('def', name, undefined, { focus: from.panel }),
+    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the
+    // focus. A cursor move takes the place of the address.
+    onMove: (name, from) =>
+      peeked && openFromRow('def', name, undefined, { focus: from.panel, replace: true }),
     // Escape closes the peek first, then clears the selection.
     onEscape: () => {
       if (peeked) closeDock()
@@ -491,13 +538,20 @@ export function DefinitionsPage() {
       return true
     },
   })
-  const clearAll = () => {
-    setSynonymRows(false)
-    setDomain([])
-    setCues([])
-    setText('')
-    setView('all')
-  }
+  // Back from a definition's page, or a reload with its panel open: its row takes the focus, in view.
+  useArrivalRow({
+    itemPath: '/definitions/',
+    idOf: (part) => decodeURIComponent(part),
+    peeked,
+    ready: rowsShown,
+    focus: (name) =>
+      drawn.current?.reveal(name, (row) => {
+        row.querySelector<HTMLElement>('[data-row-open]')?.focus({ preventScroll: true })
+        row.scrollIntoView({ block: 'nearest' })
+      }),
+  })
+  const noFilters = { domain: undefined, status: undefined, synonyms: undefined }
+  const clearAll = () => void changeQuery({ ...noFilters, q: undefined, show: undefined })
 
   /** A flag only when something needs a look: a conflict, a definition its tool changed, or no description in it. */
   const foldedConflict = (d: Definition) =>
@@ -848,9 +902,7 @@ export function DefinitionsPage() {
                       <DropdownMenuCheckboxItem
                         key={c}
                         checked={cues.includes(c)}
-                        onCheckedChange={(_, e) =>
-                          move(e.event, () => setCues((x) => toggle(x, c)))
-                        }
+                        onCheckedChange={(_, e) => move(e.event, () => setCues(toggle(cues, c)))}
                       >
                         <FilterValue
                           count={all.filter((d) => cueOfRow(d) === c && pass(d, 'cue')).length}
@@ -883,7 +935,7 @@ export function DefinitionsPage() {
                         key={d}
                         checked={domain.includes(d)}
                         onCheckedChange={(_, e) =>
-                          move(e.event, () => setDomain((x) => toggle(x, d)))
+                          move(e.event, () => setDomain(toggle(domain, d)))
                         }
                       >
                         <FilterValue
@@ -917,12 +969,7 @@ export function DefinitionsPage() {
                       <DropdownMenuLabel>Group by</DropdownMenuLabel>
                       <DropdownMenuRadioGroup
                         value={group}
-                        onValueChange={(v, e) =>
-                          move(e.event, () => {
-                            setGroup(v as Group)
-                            setFolded([])
-                          })
-                        }
+                        onValueChange={(v, e) => move(e.event, () => setGroup(v as Group))}
                       >
                         {(Object.keys(GROUPS) as Group[]).map((g) => (
                           <DropdownMenuRadioItem key={g} value={g}>
@@ -954,29 +1001,26 @@ export function DefinitionsPage() {
                 )}
               </Count>
             </ListBar>
-            <FilterRow
-              count={filters}
-              onClear={() => (setDomain([]), setCues([]), setSynonymRows(false))}
-            >
+            <FilterRow count={filters} onClear={() => void changeQuery(noFilters)}>
               {cues.length > 0 && (
                 <FilterChip
                   field="Status"
                   values={cues.map((c) => CUES[c])}
-                  onRemove={() => setCues([])}
+                  onRemove={() => void setCues([])}
                 />
               )}
               {synonymRows && (
                 <FilterChip
                   field="Another name"
                   values={['shown as rows']}
-                  onRemove={() => setSynonymRows(false)}
+                  onRemove={() => void setSynonymRows(false)}
                 />
               )}
               {domain.length > 0 && (
                 <FilterChip
                   field="Domain"
-                  values={domain.map((d) => domains[d]!.name)}
-                  onRemove={() => setDomain([])}
+                  values={domain.map((d) => domains[d]?.name ?? d)}
+                  onRemove={() => void setDomain([])}
                 />
               )}
             </FilterRow>
@@ -1018,11 +1062,7 @@ export function DefinitionsPage() {
                   </span>
                 </span>
                 {!cues.includes('none') && (
-                  <Button
-                    variant="outline"
-
-                    onClick={() => setCues(['none'])}
-                  >
+                  <Button variant="outline" onClick={() => void setCues(['none'])}>
                     Show only these
                   </Button>
                 )}
@@ -1140,7 +1180,7 @@ export function DefinitionsPage() {
                           detail={definitionCounts(l.rows)}
                           open={l.open}
                           colSpan={cols}
-                          onToggle={() => setFolded((x) => toggle(x, l.heading))}
+                          onToggle={() => setFoldedIn({ group, keys: toggle(folded, l.heading) })}
                         />
                       ) : (
                         row(l, measure)

@@ -7,6 +7,19 @@
   being taken for a value Footnote does not have.
 */
 
+/**
+  Nouns that name what a business has, sells or measures ("customer", "margin", "shipping"): never a
+  value, and often a word of a metric's name, so a word of only one metric's name is read as it
+  (names-read.ts).
+*/
+const business = `
+customer customers team teams campaigns markets countries brands stores channels regions
+products segments categories platforms discount discounts margin margins delivery deliveries
+shipping payment payments provider providers plan plans goal goals forecast target targets spend
+revenue sales sale traffic volume volumes subscription subscriptions gift gifts card cards credit
+debit invoice invoices refund refunds voucher vouchers coupon coupons
+`
+
 const words = `
 a about above across after again against all almost alone along already also although always am
 among an and another any anybody anyone anything anyway anywhere are around as at away back be
@@ -68,17 +81,13 @@ questions rate rates reason reasons reference regard regards respect result resu
 scale share short side size sort sorts source sources stage state status stock sum summary
 term terms theory thing things time times total totals turn type types update value values view
 way ways whole word words work world advance addition contrast common progress regulator
-regulators report reports people person customer customers team teams campaigns markets
-countries brands stores channels regions products segments categories platforms discount
-discounts margin margins delivery deliveries shipping payment payments provider providers trust
-plan plans goal goals forecast target targets spend revenue sales sale traffic volume volumes
+regulators report reports people person ${business}trust
 performance result outcome outcomes overview split splits share shares launch launches release
 releases promo promos promotion promotions offer offers event events incident incidents outage
 outages week's month's year's day's quarter's comparison comparisons benchmark benchmarks
 baseline average averages median medians mean peak peaks low lows high highs record records
-subscription subscriptions gift gifts card cards credit debit invoice invoices refund refunds
-voucher vouchers coupon coupons pending duplicate duplicates guest guests recurring missing fake
-test tests trial trials draft drafts
+pending duplicate duplicates guest guests recurring missing fake test tests trial trials draft
+drafts
 moment moments checkout review reviews pickup pick-up abroad finance owns own owned owner owners
 drive drives driving drove read reads reading recover recovering bounce bouncing clear clearing
 ship ships shipped stand standing hold
@@ -104,6 +113,10 @@ language languages translation
 /** Everyday words, lowercase. */
 export const everydayWords: ReadonlySet<string> = /* @__PURE__ */ (() =>
   new Set(words.split(/\s+/).filter(Boolean)))()
+
+/** The nouns of a business among them, lowercase: words of metrics' names too. */
+export const businessNouns: ReadonlySet<string> = /* @__PURE__ */ (() =>
+  new Set(business.split(/\s+/).filter(Boolean)))()
 
 /** Whether a word, lowercase as normalizeName gives it, is in the list of everyday words. */
 export const isEverydayWord = (word: string) => everydayWords.has(word.replace(/'s$/, ''))

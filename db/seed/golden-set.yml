@@ -33,7 +33,10 @@
 # answer engine), and its cases with it. The agent cases are the same.
 # Version 19 (18 November 2026): a demo item whose title names a metric applies to that metric only,
 # so four cases are given the same items they were, but none of them is out of date: they are Checked.
-version: 19
+# Version 20 (23 November 2026): what applies comes first by the question's own words, and an agent
+# gets 10 items by default, the rest by next_cursor. The broad question on Revenue in Norway now has
+# more items than one reply gives, so it is cut; every other delivery, rank and phrase is the same.
+version: 20
 library:
   seed: 20261007
   items: 1500
@@ -447,6 +450,7 @@ cases:
       status: stale
       must_deliver: [itm_mx99qgeu, itm_qh1p1apw, itm_3z56e2jy]
       rank_max: 10
+      cut: true
       text:
         - 'Revenue is a group of 3 metrics: Gross sales, Net revenue and Units sold'
         - '"about":["Gross sales"]'
@@ -455,7 +459,7 @@ cases:
     rubrics:
       - 'Asks whether gross sales, net revenue or units sold is meant, or answers each one separately and says so'
     source: 'Library: the metric group Revenue, which holds three metrics'
-    notes: 'Version 3: get_facts reads a metric group (group:revenue) as its three metrics, so it delivers the items of gross sales, net revenue and units sold (one of each named here) instead of no_match. Version 10: Haiku gave revenue as one figure in round 6 (0 of 6), so say names the three metrics of the group and each item names the ones it is about (about).'
+    notes: 'Version 3: get_facts reads a metric group (group:revenue) as its three metrics, so it delivers the items of gross sales, net revenue and units sold (one of each named here) instead of no_match. Version 10: Haiku gave revenue as one figure in round 6 (0 of 6), so say names the three metrics of the group and each item names the ones it is about (about). Version 20: the group holds more items than the 10 a reply gives by default, so the reply is cut and next_cursor gives the rest.'
 
   - id: gs-ambiguous-net-revenue-canada-quarter
     area: area_marketing
