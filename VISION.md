@@ -49,7 +49,7 @@ The semantic layer, such as Cube or dbt, defines the figures and returns them.
 A definition says what a metric is; a context item says what happened to it, when and where.
 Footnote reads definitions as a read-only copy and pushes nothing into any other tool, not even its own context; another tool may read published items the way an agent does.
 Footnote reads no figure and keeps none, and Ask says so plainly when a question needs one.
-Figures come back to Ask only when they can be read as the person asking, with the access the semantic layer gives that person.
+Figures come only from the person's own agent, through its figures tool, and Footnote holds the context.
 Footnote does not watch the numbers: spotting a move nobody explained is the work of the agent that holds the figures, at the moment someone asks it.
 One agent call that returns a figure together with its context is welcome only once it proves to give agents better output than two separate reads.
 Footnote does not enforce data access or replace the semantic layer's access rules.
