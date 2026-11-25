@@ -1304,6 +1304,11 @@ export function createMockApi() {
         const id = `report-${reports.length + 1}`
         const item = factsOf(state).find((f) => f.id === part)
         const words = correction?.trim()
+        if (item && words && item.status === 'Archived')
+          throw new ApiError(
+            'conflict',
+            'It is archived, so it takes no suggestion. Send the report without new words.',
+          )
         if (item && words && [...words].length > limits.summary)
           throw new ApiError(
             'invalid',
