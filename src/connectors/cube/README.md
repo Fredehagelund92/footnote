@@ -54,11 +54,12 @@ whole model, and the core keeps the members of the listed views ([the views it r
    (D9). A measure is in each view that takes it, so each view's copies are a family of their
    own. One that cannot be kept is none, warned as `invalid_family`; `footnote` stays out of the
    change mark.
-7. Gives a measure whose `sql` is plain column arithmetic (`{CUBE}.amount_eur *
-{CUBE}.exchange_rate_usd`, `{revenue} - {refunds}`) what it is built from, as dbt's reader does:
-   the columns it reads and the measures it takes, by the view's members that stand for them
-   (`arithmeticInputs` in `src/domain/definition-helpers.ts`). A function, a keyword or a text literal
-   in it, or a measure the view leaves out or hides (`public: false`) or a dimension, sends nothing. Only the names cross, never the `sql`.
+7. Gives a measure whose `sql` is column arithmetic (`{CUBE}.amount_eur *
+{CUBE}.exchange_rate_usd`, `{revenue} - {refunds}`, `{orders} / NULLIF({sessions}, 0)`) what it is
+   built from, as dbt's reader does: the columns it reads and the measures it takes, by the view's
+   members that stand for them (`arithmeticInputs` in `src/domain/definition-helpers.ts`). It reads
+   through `NULLIF`, `COALESCE`, `ROUND` and `CAST`, nested or not. Any other function, a keyword or
+   a text literal in it, or a measure the view leaves out or hides (`public: false`) or a dimension, sends nothing. Only the names cross, never the `sql`.
    From these the core says which variant is converted from which.
 
 ## Schedule and limits
