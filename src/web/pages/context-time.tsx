@@ -59,7 +59,7 @@ import { kindLabel, type Fact, type Kind } from '@/model/items'
 import { ownersOf } from '@/model/people'
 import { useDomainList, useDomains } from '@/lib/workspace'
 import { closeDock, openFromRow, useDock } from '@/lib/dock'
-import { usePublishOrder, words, wordsIn } from '@/lib/list'
+import { useListKeys, usePublishOrder, words, wordsIn } from '@/lib/list'
 import { plainText } from '@/lib/mentions'
 import { pageKey } from '@/lib/keys'
 import { today, todayMs } from '@/lib/today'
@@ -293,6 +293,15 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
     return [...seen]
   }, [layout])
   usePublishOrder('context', order)
+  // J and K step the open side panel along the bars, and the panel keeps the focus when the step
+  // was made from inside it; the cursor follows to the bar below.
+  useListKeys({
+    order,
+    current: peeked,
+    docked: !!peeked,
+    onMove: (id, from) =>
+      peeked && openFromRow('context', id, undefined, { focus: from.panel, replace: true }),
+  })
 
   /* ---------- the scroller, and what of it is drawn ---------- */
 

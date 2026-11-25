@@ -66,6 +66,7 @@ for (const list of lists) {
       const panel = page.getByRole('region', { name: list.panel, exact: true })
       const shown = () => new URL(page.url()).searchParams.get('dock')
       await expect(panel).toBeVisible()
+      await expect.poll(() => panel.evaluate((el) => el.contains(document.activeElement))).toBe(true)
       const opened = shown()
       for (const _ of [1, 2]) {
         const before = shown()

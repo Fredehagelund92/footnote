@@ -43,6 +43,7 @@ test('Context by time shows, finds and opens the items along their dates', async
   const panel = page.getByRole('region', { name: 'Context', exact: true })
   await expect(panel.getByRole('heading', { name: norway })).toBeVisible()
   // J steps the panel to the next item, and the view's cursor follows it to that bar.
+  await expect.poll(() => panel.evaluate((el) => el.contains(document.activeElement))).toBe(true)
   await page.keyboard.press('j')
   await expect(page).not.toHaveURL(/dock=context\.itm_za26xpzv/)
   const next = new URL(page.url()).searchParams.get('dock')!.replace(/^context\./, '')
@@ -52,12 +53,13 @@ test('Context by time shows, finds and opens the items along their dates', async
   await expect(page).not.toHaveURL(/dock=/)
   await expect(page.locator(':focus')).toHaveAttribute('data-item', next)
 
-  // Group by a dimension of the definitions: Every value first, then each market an item names.
+  // Group by a dimension of the definitions: Every value first, each market an item names.
   await page.getByRole('button', { name: 'Domain', exact: true }).click()
   const menu = page.getByRole('menu')
   await expect(menu.getByText('Dimensions from your definitions')).toBeVisible()
   await menu.getByRole('menuitemradio', { name: 'Market' }).click()
-  await expect(time.getByRole('button', { name: /^Every value \d+$/ })).toBeVisible()
+  // Items with no dates have no bar, so a group of only those is not shown.
+  await expect(time.getByRole('button', { name: /^Every value \d+$/ })).toHaveCount(0)
   await expect(time.getByRole('button', { name: /^Norway \d+$/ })).toBeVisible()
   await expect(time.getByText('Market', { exact: true })).toBeVisible()
 
