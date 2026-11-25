@@ -26,12 +26,13 @@
 # A question is never a real one someone asked: no names, figures or partner details.
 
 questions:
-  # A note that fits: online sales to Norway stopped on 4 August 2026, and still are.
-  - id: orders-norway-october
-    as_of: '2026-10-23'
-    question: Why are orders in Norway close to nothing from 1 to 21 October 2026?
-    reasons: [itm_ae954c78b6]
-    wrong: [itm_inptukz0]
+  # A note that fits: online sales to the Netherlands stopped on 13 February 2026 and started
+  # again on 25 September.
+  - id: orders-netherlands-july
+    as_of: '2026-07-23'
+    question: Why are orders in the Netherlands close to nothing from 1 to 21 July 2026?
+    reasons: [itm_inptukz0]
+    wrong: [itm_spe2w9kh]
 
   # A note that had ended: the campaign of 17 February 2026 ran until 6 March; the one of
   # 5 January 2026 still runs.
@@ -49,9 +50,9 @@ questions:
     reasons: [itm_spe2w9kh]
     wrong: [itm_v54xt0c3]
 
-  # Nothing written: no note explains Spain in October 2026. The Norway note is about another
-  # market and must not be told.
+  # Nothing written: no note explains Spain in October 2026. The Netherlands note is about
+  # another market and must not be told.
   - id: orders-spain-october
     as_of: '2026-10-23'
     question: Why did orders in Spain drop from 1 to 7 October 2026?
-    wrong: [itm_ae954c78b6]
+    wrong: [itm_inptukz0]
