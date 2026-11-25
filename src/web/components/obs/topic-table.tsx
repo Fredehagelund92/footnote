@@ -21,13 +21,13 @@ import {
   type Topic,
   type TopicGroup,
   type View,
+  sectionsOf,
   sortGroups,
   TOPIC_SORTS,
   type Sort,
 } from '@/model/observability'
 import type { Sorting } from '@/lib/sort'
-import type { DomainId } from '@/model/items'
-import { openDock } from '@/lib/dock'
+import { openFromRow } from '@/lib/dock'
 
 // The topics as rows, in one of three groupings. A topic is an exact scope (domain, metric, market
 // and the month its dates start in), and that key never changes; grouping only joins rows for
@@ -43,7 +43,7 @@ export function TopicTable({
   view,
   peeked,
   unread,
-  onKeyDown,
+  list,
   empty,
 }: {
   rows: Topic[]
@@ -55,7 +55,8 @@ export function TopicTable({
   peeked?: string
   /** Calls that could not be read in this range, to say under the topics. */
   unread: Count
-  onKeyDown?: React.KeyboardEventHandler
+  /** Holds the rows, for the page's list keys (lib/list.ts). */
+  list?: React.Ref<HTMLTableSectionElement>
   empty?: React.ReactNode
 }) {
   const domains = useDomains()
@@ -70,12 +71,7 @@ export function TopicTable({
     list.includes(k) ? list.filter((x) => x !== k) : [...list, k]
   const groups = sortGroups(grouping === 'none' ? rows.map(obs.single) : obs.rollUp(rows), sorting)
   // Domain only: a section per domain, with the topics that have none last.
-  const sections =
-    grouping === 'domain'
-      ? [...domainIds, undefined]
-          .map((d) => ({ domain: d, groups: groups.filter((g) => g.domain === d) }))
-          .filter((s) => s.groups.length)
-      : [{ domain: null as DomainId | undefined | null, groups }]
+  const sections = sectionsOf(groups, grouping, domainIds)
 
   const row = (g: TopicGroup) => {
     const many = grouping !== 'none' && g.rows.length > 1
@@ -141,7 +137,7 @@ export function TopicTable({
           <Th className="hidden w-44 pr-4 pl-2 md:pr-5 @3xl/main:table-cell">Status</Th>
         </tr>
       </thead>
-      <tbody onKeyDown={onKeyDown}>
+      <tbody ref={list}>
         {groups.length === 0 && empty && (
           <tr>
             <td colSpan={cols} className="px-6 py-10 text-center text-sm">
@@ -223,7 +219,7 @@ function TopicLine({
   // A call whose agent and words disagreed: a hidden count still says there were some.
   const disagree = g.rows.some((r) => r.disagree !== undefined && r.disagree !== 0)
   const disagreeCount = g.rows.length === 1 ? (g.rows[0]!.disagree ?? null) : null
-  const open = () => (expand ? expand.onToggle() : openDock('topic', id))
+  const open = () => (expand ? expand.onToggle() : openFromRow('topic', id))
   const note = hidden ? undefined : answeredLine(n, g.counts.missing)
   return (
     <tr

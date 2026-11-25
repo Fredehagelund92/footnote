@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { setQuery, useRoute } from '@/lib/router'
+import { changeQuery, setQuery, useRoute } from '@/lib/router'
 
 // The dock's content lives in the address (?dock=kind.id), so Back closes it and every state has a link.
 
@@ -36,18 +36,27 @@ export function useDock(): DockState | null {
   }
 }
 
-export function openDock(kind: DockKind, id?: string, extra?: Record<string, string | undefined>) {
+/** Opens a panel; with `replace`, as a cursor moving through a list does, in the place of the address now. */
+export function openDock(
+  kind: DockKind,
+  id?: string,
+  extra?: Record<string, string | undefined>,
+  opts?: { replace?: boolean },
+) {
   setTyped(null)
-  setQuery({
-    dock: id ? `${kind}.${id}` : kind,
-    tab: undefined,
-    flag: undefined,
-    ptab: undefined,
-    when: undefined,
-    variant: undefined,
-    meaning: undefined,
-    ...extra,
-  })
+  void changeQuery(
+    {
+      dock: id ? `${kind}.${id}` : kind,
+      tab: undefined,
+      flag: undefined,
+      ptab: undefined,
+      when: undefined,
+      variant: undefined,
+      meaning: undefined,
+      ...extra,
+    },
+    opts,
+  )
 }
 
 export function closeDock() {
@@ -65,21 +74,27 @@ export function closeDock() {
 
 /*
   The keyboard's hand-off for a list row's peek: opening it from a row sends focus into the panel's
-  title, and closing it gives focus back to that row, unless the person has moved on to something else.
+  title, and closing it gives focus back to the row last open in it, unless the person has moved on
+  to something else.
 */
 let fromRow: string | undefined
 let intoPanel = false
 
-/** Opens a list row's peek and takes focus into it. */
+/**
+ * Opens a list row's peek and takes focus into it; with `focus` false (the cursor moved on in the
+ * list) the focus stays on the row. With `replace`, as a cursor stepping through the list does, the
+ * peek takes the place of the address now.
+ */
 export function openFromRow(
   kind: DockKind,
   id: string,
   extra?: Record<string, string | undefined>,
+  { focus = true, replace = false } = {},
 ) {
   const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
   fromRow = id
-  intoPanel = !already
-  openDock(kind, id, extra)
+  intoPanel = focus && !already
+  openDock(kind, id, extra, { replace })
 }
 
 /** A panel that has just drawn asks once whether focus should go into it. */

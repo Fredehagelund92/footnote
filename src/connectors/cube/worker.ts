@@ -240,7 +240,7 @@ async function compile(
    * calculation takes, each by the ref of the view's member that stands for it, else, when the
    * view leaves it out, of the one member of another view that shows it (`shown`; a public cube
    * counts only when no view shows it), and its cube's columns, by name. None when the
-   * calculation is not plain column arithmetic (`arithmeticInputs`), or takes a measure the view
+   * calculation is not column arithmetic (`arithmeticInputs`), or takes a measure the view
    * hides, or that it leaves out and no other view or several show: what it reads is then not
    * told.
    */

@@ -162,11 +162,13 @@ measures:
           currency: EUR
 ```
 
-A measure whose `sql` is plain column arithmetic says what it is built from: the columns it reads and the measures it takes. A USD measure that reads the EUR one's column and a rate, such as `{CUBE}.amount_eur * {CUBE}.exchange_rate_usd`, is converted from it, and the EUR words then speak for the family.
+A measure whose `sql` is column arithmetic says what it is built from: the columns it reads and the measures it takes. A USD measure that reads the EUR one's column and a rate, such as `{CUBE}.amount_eur * {CUBE}.exchange_rate_usd`, is converted from it, and the EUR words then speak for the family.
 
 A measure of another cube, such as `{revenue_facts.net_revenue} / {marketing_spend}`, is named by the one view that shows it, when its own view leaves it out.
 
-A function, a keyword or a text literal in the `sql` says nothing, nor does a measure that takes a dimension, a member the view hides, or a member it leaves out that no other view or several show. Only the names are kept, never the `sql`.
+The names inside `NULLIF`, `COALESCE`, `ROUND` and `CAST` count, so a ratio guarded against dividing by zero is built from both of its measures.
+
+Any other function, a keyword or a text literal in the `sql` says nothing, nor does a measure that takes a dimension, a member the view hides, or a member it leaves out that no other view or several show. Only the names are kept, never the `sql`.
 
 ## Links to model files
 
