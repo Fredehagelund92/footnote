@@ -21,7 +21,6 @@ import { useReported } from '@/lib/reported'
 import { closeDock } from '@/lib/dock'
 import { navigate } from '@/lib/router'
 import { markReportSent, useReportSent, useShownAnswer } from '@/lib/shown-answers'
-import { useFigures } from '@/lib/figures'
 import { useDomains, useMe } from '@/lib/workspace'
 import { askedOf, type Answer } from '@/model/ask'
 import type { Fact } from '@/model/items'
@@ -78,7 +77,6 @@ export function ReportPanel({ id }: { id: string }) {
       key={id}
       answer={shown.answer}
       facts={shown.facts}
-      figure={shown.figure}
       framed
       onClose={closeDock}
       onSent={(s) => {
@@ -141,15 +139,12 @@ function SentNote({
 export function ReportForm({
   answer,
   facts,
-  figure,
   framed,
   onClose,
   onSent,
 }: {
   answer: Answer
   facts: Fact[]
-  /** The integration of the figure the answer shows, when it shows one. */
-  figure?: string
   framed?: boolean
   onClose: () => void
   onSent: (sent: Sent) => void
@@ -157,7 +152,6 @@ export function ReportForm({
   const domains = useDomains()
   const me = useMe()
   const write = useWrite()
-  const figures = useFigures()
   const formId = React.useId()
   const [part, setPart] = React.useState(facts[0]?.id ?? 'answer')
   const [what, setWhat] = React.useState('')
@@ -168,12 +162,10 @@ export function ReportForm({
   const whatRef = React.useRef<HTMLTextAreaElement>(null)
   const linkRef = React.useRef<HTMLInputElement>(null)
   const form = React.useRef<HTMLFormElement>(null)
-  // The answer's wording, and its figure, are filed on its first source, so they reach that
-  // domain's owners; a figure reaches the integration's data contact too.
+  // The answer's wording is filed on its first source, so it reaches that domain's owners.
   const fact = facts.find((f) => f.id === part) ?? facts[0]
   const domainId = fact?.domain ?? 'sales'
   const domain = domains[domainId]?.name ?? domainId
-  const aboutFigure = part === 'figure' && figure !== undefined
   const owners = domains[domainId]?.owners ?? []
   const others = owners.filter((name) => name !== me.name)
   const canEdit = !!fact && (me.admin || me.owns.includes(domainId))
@@ -181,7 +173,6 @@ export function ReportForm({
   const forItem = !!fact && part === fact.id && !canEdit
   const suggested =
     forItem && suggesting && words.trim() && words.trim() !== fact.summary.trim() ? fact : null
-  const contact = aboutFigure ? figures.contact(figure) : null
   const to = others.length ? listOf(others) : `the owners of ${domain}`
   const sending = useReported<{ id: string; suggestion?: string }>({
     wasnt: "The report wasn't sent.",
@@ -221,28 +212,15 @@ export function ReportForm({
         what: what.trim(),
         ...(suggested ? { correction: words.trim() } : {}),
         ...(link.trim() ? { link: link.trim() } : {}),
-        ...(aboutFigure
-          ? {
-              figure: {
-                source: figure,
-                to: 'both' as const,
-                metric: answer.metric,
-                markets: answer.markets,
-                ...(answer.dates ? { dates: answer.dates } : {}),
-              },
-            }
-          : {}),
       }),
     )
   }
 
   const label = suggested
     ? 'Send the report and suggestion'
-    : aboutFigure
-      ? 'Send to the owners and the data contact'
-      : others.length === 1
-        ? `Send to ${others[0]}`
-        : 'Send to the owners'
+    : others.length === 1
+      ? `Send to ${others[0]}`
+      : 'Send to the owners'
   const buttons = (
     <>
       <Button type="button" variant="ghost" onClick={onClose}>
@@ -330,14 +308,6 @@ export function ReportForm({
                 </Label>
               </Field>
             ))}
-            {figure && (
-              <Field orientation="horizontal">
-                <RadioGroupItem value="figure" id={`${formId}-part-figure`} />
-                <Label htmlFor={`${formId}-part-figure`} className="font-normal">
-                  The figure: it doesn&apos;t fit the context
-                </Label>
-              </Field>
-            )}
             <Field orientation="horizontal">
               <RadioGroupItem value="answer" id={`${formId}-part-answer`} />
               <Label htmlFor={`${formId}-part-answer`} className="font-normal">
@@ -416,9 +386,8 @@ export function ReportForm({
         </Field>
       </FieldGroup>
       <p className="text-xs text-muted-foreground">
-        Goes to {to}
-        {contact ? `, and to ${contact}, the data contact,` : ','} with your name, your words and
-        this question. Nothing else from this chat is kept.
+        Goes to {to}, with your name, your words and this question. Nothing else from this chat is
+        kept.
       </p>
       {sending.problem && (
         <p role="alert" className="text-sm text-destructive">

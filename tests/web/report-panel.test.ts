@@ -10,7 +10,7 @@ import type { Fact } from '@/model/items'
 /*
   Something wrong? (FR-622) as a person fills it in: the app's own words when What's wrong? is
   empty or the link is not one, the right words for a source sent as a suggestion on it, the
-  answer's wording and the figure with no suggestion, an owner offered Edit and the other owner
+  answer's wording with no suggestion, an owner offered Edit and the other owner
   named, and a send that fails keeping what was typed, with the service's reason.
 */
 
@@ -32,7 +32,6 @@ vi.mock('@/lib/workspace', () => ({
     },
   }),
 }))
-vi.mock('@/lib/figures', () => ({ useFigures: () => ({ contact: () => 'Lars Dahl' }) }))
 vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: Record<string, unknown>) => {
     world.writes.push({ op, input })
@@ -98,7 +97,7 @@ const answer = {
   text: '',
 } as unknown as Answer
 
-function mount(props: { figure?: string; facts?: Fact[] } = {}) {
+function mount(props: { facts?: Fact[] } = {}) {
   const sent: unknown[] = []
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)
@@ -236,13 +235,6 @@ describe('Something wrong?', () => {
     expect(host.textContent).toContain('You reported this answer')
     expect(host.querySelector('form')).toBeNull()
     expect(button('Close')).toBeDefined()
-  })
-
-  it('names the data contact for the figure', () => {
-    mount({ figure: 'cube' })
-    radio("The figure: it doesn't fit the context")
-    expect(host!.textContent).toContain('and to Lars Dahl, the data contact,')
-    expect(button('Send to the owners and the data contact')).toBeDefined()
   })
 
   it('gives an owner Edit first, and tells only the other owner', () => {
