@@ -1528,7 +1528,7 @@ describe('named reports from Ask (FR-622)', () => {
         link: 'https://wiki.example/latvia',
       }),
     )
-    expect(Object.keys(report).sort()).toEqual(['at', 'id'])
+    expect(Object.keys(report).sort()).toEqual(['at', 'id', 'suggestion'])
     expect((await mine('author')).find((r) => r.id === report.id)).toMatchObject({
       question: asked,
       itemId: item,
@@ -1545,6 +1545,7 @@ describe('named reports from Ask (FR-622)', () => {
       question: asked,
       correction: 'Latvia orders leave gift cards out.',
       link: 'https://wiki.example/latvia',
+      suggestion: report.suggestion,
       items: [{ id: item, title: 'Latvia orders count gift cards' }],
       done: null,
     })
@@ -1578,6 +1579,74 @@ describe('named reports from Ask (FR-622)', () => {
     await expect(
       client.query("update reports set what='changed' where id=$1", [report.id]),
     ).rejects.toThrow()
+  })
+
+  it('sends the right words for an item to its owners as a suggestion, which its card leads to while it waits', async () => {
+    const words = 'Latvia orders leave gift cards out since 1 October 2026.'
+    const what = 'They stopped counting gift cards in October.'
+    const before = await served(item)
+    const report = await ok<SentReport>(
+      send('member', { question: asked, itemId: item, part: 'item', what, correction: words }),
+    )
+    expect(report.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+    const proposal = await ok<ProposalRecord>(
+      call('GET', `/proposals/${report.suggestion}`, 'member'),
+    )
+    expect(proposal).toMatchObject({
+      itemId: item,
+      action: 'change',
+      state: 'submitted',
+      reason: what,
+    })
+    expect(proposal.draft).toMatchObject({
+      summary: words,
+      title: 'Latvia orders count gift cards',
+    })
+    // It waits like any other suggestion: in the owner's Inbox, and under the sender's own.
+    expect((await feed('owner')).cards.map((c) => c.id)).toContain(`proposal:${proposal.id}`)
+    expect((await feed('member', 'all')).waiting.map((w) => w.proposalId)).toContain(proposal.id)
+    expect(await card(report.id)).toMatchObject({ correction: words, suggestion: proposal.id })
+    // Agents keep the item as it is until an owner publishes it.
+    expect(await served(item)).toBe(before)
+    // Nobody names a suggestion of someone else's on their report.
+    await client.query('begin')
+    try {
+      await client.query(`set local role ${identifier(localRoles.api)}`)
+      await client.query("select set_config('cl.person_id', $1, true)", [people.stranger])
+      await expect(
+        client.query(
+          `insert into reports (person_id,area_id,item_id,part,question,what,correction,proposal_id)
+           values (cl_person(),'finance',$1,'item','Q','W','C',$2)`,
+          [item, proposal.id],
+        ),
+      ).rejects.toThrow(/row-level security/)
+    } finally {
+      await client.query('rollback')
+    }
+    // Words that are the item's already, or longer than a summary, make no suggestion.
+    const same = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what,
+        correction: draft().summary,
+      }),
+    )
+    expect(same.suggestion).toBeNull()
+    const reports = (await mine('member')).length
+    const long = await send('member', {
+      question: asked,
+      itemId: item,
+      part: 'item',
+      what,
+      correction: 'word '.repeat(80),
+    })
+    expect(long.statusCode).toBe(400)
+    expect((await mine('member')).length).toBe(reports)
+    // Once an owner decides it, the card no longer leads to it.
+    await ok<Published>(publish(proposal.id, (await sheet(proposal.id)).proposal.revision))
+    expect(await card(report.id, 'owner', 'all')).toMatchObject({ suggestion: null })
   })
 
   it('tells its sender what the owners did: closed as not a problem, undone, then the item checked again', async () => {

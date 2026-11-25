@@ -66,7 +66,9 @@ When Ask finds no metric or context item that uses a word at all, Tell an admin 
 
 ## When an answer is wrong
 
-Under each answer, Good answer and Bad answer say how it went. When the answer cites a context item, Bad answer also opens a form: which part is wrong, what is wrong, and the correct version if you know it. Send it, and the owner sees it in their Inbox as a report: [Keep context up to date](keep-context-up-to-date.md).
+Under each answer, Good answer and Bad answer say how it went. When the answer cites a context item, Bad answer also opens Something wrong? beside the answer, and so does More. Say which part is wrong and what is wrong, and add a link if you have one. The owners see it in their Inbox as a report: [Keep context up to date](keep-context-up-to-date.md).
+
+Suggest the right words starts from the item's own words, for you to change. They wait as a suggestion on the item, and agents keep the item as it is until an owner publishes it. If you own the item, Edit opens it, so you can change it yourself.
 
 ## Save a question
 

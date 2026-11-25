@@ -677,8 +677,10 @@ export interface FootnoteApi {
   deleteChat: (input: { id: string }) => Promise<Undoable>
   /**
    * Tells the owners what is wrong with an answer, with the person's name (FR-622): the question,
-   * the part (a source's item id, or `answer` for the answer itself, filed on its first source),
-   * what is wrong and, optionally, the correct version and a link. Nothing else of the chat is sent.
+   * the part (a source's item id, or `answer` for the answer's wording, filed on its first source),
+   * what is wrong and, optionally, the right words and a link. Nothing else of the chat is sent.
+   * The right words for a source are its summary as the person would write it: they wait as a
+   * suggestion on it too, whose id comes back as `suggestion`.
    */
   reportAnswer: (input: {
     question: string
@@ -687,7 +689,7 @@ export interface FootnoteApi {
     what: string
     correction?: string
     link?: string
-  }) => Promise<{ id: string }>
+  }) => Promise<{ id: string; suggestion?: string }>
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
   /**

@@ -1,1 +1,1 @@
-0020_shared_chats.sql
+0021_report_suggestions.sql

@@ -507,8 +507,9 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   reports of the last 90 days, with no person; each names the context the reported answer gave
   (`items`), the version agents got and only one the person may read. Beside them come the named
   reports from Ask of the last 90 days (`source: ask`, named `report:<id>`), with who sent each
-  (`by`), the question, what is wrong (`note`), the correct version and the link they gave, and
-  the item they are about; one waits until an owner closes it or checks, changes or archives its
+  (`by`), the question, what is wrong (`note`), the right words (`correction`) and the link they
+  gave, the suggestion the words became while it waits (`suggestion`, its id), and the item they
+  are about; one waits until an owner closes it or checks, changes or archives its
   item, and is then done with that outcome. A Not found card's title
   names what agents asked about and the month: "Orders in Spain, October 2026". Under All come what the person sent that waits
   on an owner, what an owner returned to them with a note (`returned`, who and when), what an
@@ -533,15 +534,19 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
 A person tells the owners from Ask that an answer is wrong, with their name (FR-622; docs/product.md,
 section 9), through these operations, typed in `src/contract/reports.ts`. A report keeps only what
 the person sent on purpose: the question, the part that is wrong (one context item of the answer,
-or the answer itself, filed on its first item), what is wrong and, optionally, the correct version
-and a web address. It is filed in the item's domain and reaches that domain's owners as a Reported
+or the answer's wording, filed on its first item), what is wrong and, optionally, the right words
+and a web address. The right words for one item (`part: item`) are its summary as the person
+would write it, and go to its owners as a suggestion on the item too, made in the same write. It
+waits like any other suggestion, so agents keep the item as it is until an owner publishes it. It is filed in the item's domain and reaches that domain's owners as a Reported
 card. Its sender, the owners of its domain and administrators read it; nobody else does, and
 agents never read it: the serving role has no grant on it, and nothing an edition holds is built
 from it.
 
 - `POST /reports` takes `{ question, itemId, part, what, correction?, link? }` (`part` is `item`
-  or `answer`; texts up to 2,000 characters) and answers `{ id, at }` only, so the answer a retry
-  replays never holds the words. An item the person may not read is not found. A person's reports
+  or `answer`; texts up to 2,000 characters, the right words for an item up to a summary's 280)
+  and answers `{ id, at, suggestion }` only, so the answer a retry replays never holds the words.
+  `suggestion` is the id of the suggestion the right words became, or null when there were none
+  or they are the item's words already. An item the person may not read is not found. A person's reports
   share the per-minute limit of their gap reports (FR-408). Writes need the session cookie,
   `Origin`, `x-footnote-csrf` and an `Idempotency-Key`.
 - `GET /reports/mine` lists the person's own reports of the last 90 days, newest first, each with

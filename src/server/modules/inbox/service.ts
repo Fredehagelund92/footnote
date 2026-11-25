@@ -312,6 +312,7 @@ export function createInboxFeedService(
       question: null,
       correction: null,
       link: null,
+      suggestion: null,
       items: row.items,
     }))
   }
@@ -330,6 +331,7 @@ export function createInboxFeedService(
       question: string
       correction: string | null
       link: string | null
+      suggestion: string | null
       by: string
       item: string
       title: string | null
@@ -338,6 +340,8 @@ export function createInboxFeedService(
     }>(
       `select r.id::text, r.created_at::text as at, r.area_id as area, r.what, r.question, r.correction,
               r.link, r.person_id::text as by, r.item_id as item,
+              (select p.id::text from proposals p where p.id = r.proposal_id
+                  and p.state in ('submitted', 'in_review')) as suggestion,
               (select v.title from item_version_service s join item_versions v on v.id = s.version_id
                 where s.item_id = r.item_id and cl_audience_allows(v.audience_groups)
                 order by lower(s.editions) desc limit 1) as title,
@@ -365,6 +369,7 @@ export function createInboxFeedService(
       question: row.question,
       correction: row.correction,
       link: row.link,
+      suggestion: row.suggestion,
       items: row.title ? [{ id: row.item, title: row.title }] : [],
     }))
   }
@@ -554,6 +559,7 @@ export function createInboxFeedService(
         question: null,
         correction: null,
         link: null,
+        suggestion: null,
         items: row.items,
       })
     cards.push(...(await reports(areas, 'done')))

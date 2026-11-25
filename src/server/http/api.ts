@@ -1505,8 +1505,18 @@ export function createRouter({
             data: { retryAfterSeconds: retry },
           })
         }
-        return retryWrite(context.tx, idempotencyKey(context), 'reports.create', input, () =>
-          context.reports.create(input),
+        // The right words for an item are a suggestion on it too, made first: a report never changes.
+        return retryWrite(context.tx, idempotencyKey(context), 'reports.create', input, async () =>
+          context.reports.create(
+            input,
+            input.part === 'item' && input.correction
+              ? await context.context.suggestWords({
+                  itemId: input.itemId,
+                  summary: input.correction,
+                  reason: input.what,
+                })
+              : null,
+          ),
         )
       }),
       mine: authorized.reports.mine.handler(({ context }) => context.reports.mine()),

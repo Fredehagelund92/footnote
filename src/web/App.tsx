@@ -97,6 +97,11 @@ const ConflictDock = React.lazy(() =>
   import('@/pages/conflicts').then((m) => ({ default: m.ConflictDock })),
 )
 
+// Something wrong? opens from Bad answer or More under an answer; its form comes with its own code.
+const ReportPanel = React.lazy(() =>
+  import('@/components/footnote/report-panel').then((m) => ({ default: m.ReportPanel })),
+)
+
 // A context item's quick view opens from a click, so its code is not on the first load: it is
 // fetched once the browser is idle after the first page (main.tsx), before anything is clicked.
 const FactPeek = React.lazy(() =>
@@ -202,6 +207,12 @@ function DockContent() {
       )
     case 'share':
       return <ShareChatPanel chat={dock.id ?? ''} />
+    case 'report':
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.report} />}>
+          <ReportPanel id={dock.id!} />
+        </React.Suspense>
+      )
     case 'where':
       return <WherePanel id={dock.id!} />
     case 'conflict':
