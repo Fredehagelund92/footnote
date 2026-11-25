@@ -19,6 +19,7 @@ import {
   type Calendar,
 } from '../../../domain/dates.ts'
 import { kindFilters } from '../../../domain/mcp-text.ts'
+import { namesCard, type NamesCardInput } from '../../../domain/names-card.ts'
 import { actionIds, type ActionId } from '../../../domain/actions.ts'
 import { usualVariant, workedOut } from '../../../domain/family-meaning.ts'
 import { meaningLine } from '../../../domain/family-meaning-line.ts'
@@ -305,6 +306,54 @@ const isShown = (view: View, key: string) => {
 const speakable = (view: View) => {
   return view.bundle.terms.filter((t) => isShown(view, t.key) && !view.familyOf.has(t.key))
 }
+/**
+ * What the names card lists (FR-718.8): only what the person may name. A family when Definitions
+ * shows it to them, a group only for its metrics they may see, a dimension's values only when
+ * they may see the dimension. Each is counted by the items they may read that are about it.
+ */
+function namesCardInput(view: View): NamesCardInput {
+  const uses = new Map<string, number>()
+  const use = (key: string) => uses.set(key, (uses.get(key) ?? 0) + 1)
+  for (const item of view.bundle.items) {
+    for (const m of new Set(item.scope.metrics.map((k) => view.familyOf.get(k) ?? k))) use(m)
+    for (const v of item.scope.dimensionValues) use(v.value)
+    for (const d of new Set(item.scope.dimensionValues.map((v) => v.dimension))) use(d)
+    use(item.areaId)
+  }
+  const usesOf = (key: string) => uses.get(key) ?? 0
+  const terms = speakable(view)
+  const metrics = terms.filter((t) => t.kind === 'metric')
+  const inGroup = new Map<string, { metrics: number; uses: number }>()
+  for (const m of metrics)
+    if (m.parentKey) {
+      const g = inGroup.get(m.parentKey) ?? { metrics: 0, uses: 0 }
+      inGroup.set(m.parentKey, { metrics: g.metrics + 1, uses: g.uses + usesOf(m.key) })
+    }
+  const values = new Map<string, { name: string; uses: number }[]>()
+  for (const t of terms)
+    if (t.kind === 'dimension_value' && t.parentKey)
+      values.set(t.parentKey, [
+        ...(values.get(t.parentKey) ?? []),
+        { name: t.name, uses: usesOf(t.key) },
+      ])
+  const groups = terms.filter((t) => t.kind === 'metric_group')
+  return {
+    metrics: metrics.map((t) => ({ name: t.name, aliases: t.aliases, uses: usesOf(t.key) })),
+    families: groups.flatMap((t) => {
+      const family = view.families.get(t.key)
+      return family ? [{ name: t.name, by: family.family.by, uses: usesOf(t.key) }] : []
+    }),
+    groups: groups.flatMap((t) => {
+      const shown = inGroup.get(t.key)
+      return shown && !view.families.has(t.key) ? [{ name: t.name, ...shown }] : []
+    }),
+    dimensions: terms
+      .filter((t) => t.kind === 'dimension')
+      .map((t) => ({ name: t.name, values: values.get(t.key) ?? [], uses: usesOf(t.key) })),
+    domains: view.areas.map((a) => ({ name: a.name, uses: usesOf(a.id) })),
+  }
+}
+
 const termName = (view: View, key: string) =>
   view.bundle.terms.find((t) => t.key === key)?.name ?? key
 
@@ -2701,6 +2750,13 @@ export function createAskTools(reads: ToolReads) {
             alone: found.alone,
           }
         : null
+    },
+    /**
+     * The names card of Ask's prompt (FR-718.8): the names Definitions shows the person, each
+     * with how many items they may read are about it; null when they may see no name.
+     */
+    async card(): Promise<string | null> {
+      return namesCard(namesCardInput(await viewNow()))
     },
     /** The tools in the AI SDK's shape: a description, the input schema and the read. */
     ai(): Record<AskToolName, Tool> {

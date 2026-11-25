@@ -229,6 +229,7 @@ const tools = {
       name === 'agent_questions' ? asked : name === 'find_context' ? found : { ids: [] },
     ),
   vague: () => Promise.resolve(null),
+  card: () => Promise.resolve(null),
   ai: () => ({}),
 } as unknown as AskTools
 
