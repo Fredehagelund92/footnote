@@ -21,12 +21,12 @@ import {
   type Topic,
   type TopicGroup,
   type View,
+  sectionsOf,
   sortGroups,
   TOPIC_SORTS,
   type Sort,
 } from '@/model/observability'
 import type { Sorting } from '@/lib/sort'
-import type { DomainId } from '@/model/items'
 import { openFromRow } from '@/lib/dock'
 
 // The topics as rows, in one of three groupings. A topic is an exact scope (domain, metric, market
@@ -71,12 +71,7 @@ export function TopicTable({
     list.includes(k) ? list.filter((x) => x !== k) : [...list, k]
   const groups = sortGroups(grouping === 'none' ? rows.map(obs.single) : obs.rollUp(rows), sorting)
   // Domain only: a section per domain, with the topics that have none last.
-  const sections =
-    grouping === 'domain'
-      ? [...domainIds, undefined]
-          .map((d) => ({ domain: d, groups: groups.filter((g) => g.domain === d) }))
-          .filter((s) => s.groups.length)
-      : [{ domain: null as DomainId | undefined | null, groups }]
+  const sections = sectionsOf(groups, grouping, domainIds)
 
   const row = (g: TopicGroup) => {
     const many = grouping !== 'none' && g.rows.length > 1
