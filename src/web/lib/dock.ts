@@ -49,6 +49,8 @@ export function useDock(): DockState | null {
 
 export function openDock(kind: DockKind, id?: string, extra?: Record<string, string | undefined>) {
   setTyped(null)
+  fromRow = undefined
+  fromButton = null
   setQuery({
     dock: id ? `${kind}.${id}` : kind,
     tab: undefined,
@@ -89,17 +91,15 @@ export function openFromRow(
   extra?: Record<string, string | undefined>,
 ) {
   const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
-  fromRow = id
-  fromButton = null
-  intoPanel = !already
   openDock(kind, id, extra)
+  fromRow = id
+  intoPanel = !already
 }
 
 /** Opens a panel from a button, which gets focus back when the panel closes. */
 export function openFromButton(kind: DockKind, id: string, from: HTMLElement | null) {
-  fromRow = undefined
-  fromButton = from
   openDock(kind, id)
+  fromButton = from
 }
 
 /** A panel that has just drawn asks once whether focus should go into it. */
