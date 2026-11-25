@@ -97,6 +97,15 @@ describe('the list keys', () => {
     expect(onMove).not.toHaveBeenCalled()
   })
 
+  it('skip an id in the order that is not drawn', () => {
+    const onMove = vi.fn()
+    draw(rows({ order: IDS, onMove }, ['a', 'c', 'd']))
+    document.querySelector<HTMLElement>('[data-row-open=a]')!.focus()
+    expect(press('j')).toBe(true)
+    expect(focused()).toBe('c')
+    expect(onMove).toHaveBeenLastCalledWith('c', { panel: false })
+  })
+
   it('leave keys in a dock that shows something else to it', () => {
     const onMove = vi.fn()
     const host = draw([rows({ onMove, onEscape: () => true }), dock('A conflict')])

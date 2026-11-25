@@ -415,7 +415,10 @@ function InboxList({
                     type="button"
                     data-row-open={id}
                     aria-current={isSelected || undefined}
-                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)}
+                    onClick={(e) => {
+                      e.currentTarget.focus({ preventScroll: true })
+                      return sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)
+                    }}
                     className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                   >
                     <span
@@ -1669,7 +1672,7 @@ export function InboxPage() {
     panel: paneRef,
     // Stepped from inside the pane, the next card's one decision takes the focus.
     onMove: (id, from) => select(id, false, from.panel),
-    onOpen: () => primary()?.click(),
+    onOpen: sel.count ? undefined : () => primary()?.click(),
     // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties,
     // and the card's row keeps the focus. Ticked rows clear first, in the selection's own Esc. A
     // panel open in the card's place (a family opened from the Names card) takes its own Esc and

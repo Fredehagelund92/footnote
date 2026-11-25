@@ -62,9 +62,12 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
   const at = ids.indexOf(on?.dataset.rowOpen ?? k.current ?? '')
   const inPanel =
     !inList && !nowhere && (!!t.closest('[data-slot=dock]') || !!k.panel?.current?.contains(t))
-  const go = (i: number) => {
-    const id = ids[Math.max(0, Math.min(ids.length - 1, i))]
-    if (id === undefined) return false
+  const go = (i: number, dir: 1 | -1) => {
+    let n = Math.max(0, Math.min(ids.length - 1, i))
+    if (!inPanel && !k.reveal)
+      while (ids[n] !== undefined && !stops.some((s) => s.dataset.rowOpen === ids[n])) n += dir
+    const id = ids[n]
+    if (id === undefined) return ids.length > 0 && !inPanel && !k.reveal
     const show = (row: HTMLElement) => {
       if (!inPanel) row.focus()
       row.scrollIntoView({ block: 'nearest' })
@@ -82,10 +85,10 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
     return true
   }
   const arrows = inList || (nowhere && !!list)
-  if (e.key === 'j' || (e.key === 'ArrowDown' && arrows)) return go(at + 1)
-  if (e.key === 'k' || (e.key === 'ArrowUp' && arrows)) return go(at - 1)
-  if (e.key === 'Home' && arrows) return go(0)
-  if (e.key === 'End' && arrows) return go(ids.length - 1)
+  if (e.key === 'j' || (e.key === 'ArrowDown' && arrows)) return go(at + 1, 1)
+  if (e.key === 'k' || (e.key === 'ArrowUp' && arrows)) return go(at - 1, -1)
+  if (e.key === 'Home' && arrows) return go(0, 1)
+  if (e.key === 'End' && arrows) return go(ids.length - 1, -1)
   if (
     e.key === 'Enter' &&
     k.onOpen &&
