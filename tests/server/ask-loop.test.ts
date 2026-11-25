@@ -1173,7 +1173,10 @@ describe("Ask's loop on a scripted model", () => {
       },
     ])
     expect(turn).toMatchObject({ kind: 'answer', sources: ['itm_germany01'], state: 'grounded' })
-    expect(turn.reads).toEqual([{ tool: 'find_context', input: { words: 'germany', limit: 10 } }])
+    // Sent back with the step it went in: the first, with no words before it.
+    expect(turn.reads).toEqual([
+      { tool: 'find_context', input: { words: 'germany', limit: 10 }, step: 0 },
+    ])
   })
 
   it('makes the reads of one step one after the other: one connection at a time', async () => {

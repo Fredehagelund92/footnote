@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createToolService, failure, type ToolResult } from '../../../src/server/mcp/service.ts'
 import { periodWords, windowWords } from '../../../src/domain/dates.ts'
-import { findSaid, notLookedUp, notProof } from '../../../src/domain/say.ts'
+import { findSaid, notLookedUp, notProof, unreadSaid } from '../../../src/domain/say.ts'
 import { wordsToChange } from '../../../src/domain/words.ts'
 import { DEFAULT_PRODUCT_NAME } from '../../../src/domain/brand.ts'
 import { stateOfStatus, stateWords } from '../../../src/domain/answer-state.ts'
@@ -217,7 +217,9 @@ describe('get_context says, for each status', () => {
     expect(sayOf(reply)).toBe(
       "1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. 1 more context item applies but didn't fit in this reply. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check.",
     )
-    expect(nextOf(reply)).toBe('Call again with a higher max_bytes to get them.')
+    expect(nextOf(reply)).toBe(
+      'Call again with cursor set to next_cursor for the rest, or with a higher max_items (at most 50).',
+    )
   })
 
   it('need_more_detail: what to fix, the choices, and that it read nothing', async () => {
@@ -243,7 +245,8 @@ describe('get_context says, for each status', () => {
   it('need_more_detail with no name in the question: never an absence', async () => {
     const reply = await setup()('get_context', { question: 'Anything written down this week?' })
     const say = sayOf(reply)
-    expect(say).toBe(`${notLookedUp} The question needs a metric, such as Orders.`)
+    // No metric shares a word with the question, so none is offered as if it were meant.
+    expect(say).toBe(`${notLookedUp} The question needs a metric.`)
     expect(say).not.toContain('Nothing is written down')
   })
 
@@ -516,5 +519,37 @@ describe('get_context says, with the answer line first', () => {
     expect(contextSaidOf(await call('get_context', { question: 'What happened?' }))).toMatch(
       /^Nothing was looked up yet\. /,
     )
+  })
+})
+
+describe('a question whose words name no metric', () => {
+  const names = { terms: [{ key: 'dim:sales_channel', name: 'Sales channel' }] }
+  const nothingNamed = { field: 'scope', input: 'what about channel?', options: [] }
+
+  it('says the word and its names, and asks for the name in the question, whatever its kind', () => {
+    const said = unreadSaid(names, [nothingNamed], 'what about channel?', [
+      { word: 'channel', closest: ['Sales channel'] },
+    ])
+    expect(said.say).toBe(
+      `${notLookedUp} "channel" names no metric here: Sales channel has the word.`,
+    )
+    // Sales channel is a dimension: never "in metrics", which takes metrics only.
+    expect(said.next).toContain(
+      'If the person meant Sales channel, call again with that name in the question',
+    )
+  })
+
+  it('keeps an issue about a name the question did give, such as an unknown member', () => {
+    const member = {
+      field: 'scope',
+      input: 'traffic.sessions',
+      options: [],
+      message: 'No metric or dimension has the member traffic.sessions as its definition.',
+    }
+    const said = unreadSaid(names, [member, nothingNamed], 'traffic.sessions for EBITDA', [
+      { word: 'EBITDA', closest: [] },
+    ])
+    expect(`${said.say} ${said.next}`).toContain('traffic.sessions')
+    expect(said.say).toContain('"EBITDA" is not a name here.')
   })
 })

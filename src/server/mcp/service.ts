@@ -15,6 +15,7 @@ import {
 } from '../../domain/resolver.ts'
 import { findArea, readQuery } from '../../domain/context-search.ts'
 import { normalizeName } from '../../domain/vocabulary.ts'
+import { questionWords } from '../../domain/question-order.ts'
 import { noteFindings, topicFor } from '../../domain/gap-reports.ts'
 import {
   assumedDate,
@@ -106,6 +107,7 @@ import {
   checkContextInput,
   getContextInput,
   itemIdPattern,
+  MOST_ITEMS,
   readInput,
   reportInput,
   type FindContextInput,
@@ -286,6 +288,7 @@ export function scopeOf(
     ...(input.dimension_filters === undefined ? {} : { filters }),
     ...(window === undefined ? {} : { window }),
     calendar,
+    domains: bundle.areas.map((area) => area.name),
   })
   if (words !== undefined && !placed) {
     const issue: ScopeIssue = {
@@ -334,7 +337,11 @@ export function scopeOf(
  * could not: a choice for the agent to confirm, never taken for it.
  */
 function looseReading(question: string, bundle: ServingBundle, today: string, calendar: Calendar) {
-  const read = readQuestion(question, bundle.terms, today, { loose: true, calendar })
+  const read = readQuestion(question, bundle.terms, today, {
+    loose: true,
+    calendar,
+    domains: bundle.areas.map((area) => area.name),
+  })
   if (!read.window || !read.dates || isAnyDate(read.window) || !read.window.end) return null
   return {
     from: read.window.start,
@@ -450,9 +457,18 @@ function safeNote(note: string | undefined, question?: string) {
 function cursorFor(key: string, offset: number) {
   return Buffer.from(JSON.stringify({ key, offset })).toString('base64url')
 }
+/** A cursor from another call, or from before what agents read changed: never worth a retry. */
+class StaleCursor extends Error {}
+const staleCursor =
+  'The cursor is from another call, or what agents read has changed since: call again without cursor.'
 function cursorOffset(cursor: string | undefined, key: string) {
   if (!cursor) return 0
-  const parsed: unknown = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'))
+  } catch {
+    throw new StaleCursor()
+  }
   if (
     !parsed ||
     typeof parsed !== 'object' ||
@@ -462,7 +478,7 @@ function cursorOffset(cursor: string | undefined, key: string) {
     !Number.isSafeInteger(parsed.offset) ||
     Number(parsed.offset) < 0
   )
-    throw new Error('Invalid or stale cursor')
+    throw new StaleCursor()
   return Number(parsed.offset)
 }
 const pageKey = (bundle: ServingBundle, filter: unknown) =>
@@ -1155,6 +1171,8 @@ export function createToolService(
           (period?.provenance === 'period'
             ? { words: period.words!, reads_as: period.reads_as }
             : null)
+        // What applies, ordered by the question's own words, as Ask's reads order it.
+        const words = questionWords(scoped.question, bundle.terms, bundle.areas)
         const resolution = resolve(bundle, {
           scope,
           today,
@@ -1162,7 +1180,32 @@ export function createToolService(
           hiddenMetrics: [],
           sizeLimit: Number.MAX_SAFE_INTEGER,
           dependenciesAvailable: true,
+          words,
         })
+        // A later page of the same question starts where the reply before it ended (next_cursor).
+        const pages = pageKey(bundle, {
+          scope: resolution.scope,
+          words,
+          asker,
+          day: today,
+        }).slice(0, 16)
+        const offset = cursorOffset(scoped.cursor, pages)
+        // The words read as a name they are not exactly, and how: said, never silent.
+        const readAs = (scope.loose ?? []).flatMap((hit) => {
+          const term = bundle.terms.find((t) => t.key === hit.key)
+          return term && termShown(bundle, term)
+            ? [{ words: hit.words, name: term.name, by: hit.by }]
+            : []
+        })
+        // The words that could have named a metric and named none, said, never dropped.
+        const unread = (scope.unread ?? []).map((w) => ({
+          word: w.word,
+          closest: w.closest.flatMap((key) => {
+            const term = bundle.terms.find((t) => t.key === key)
+            return term && termShown(bundle, term) ? [term.name] : []
+          }),
+          ...(w.domain ? { domain: w.domain } : {}),
+        }))
         const base = report(
           resolution.status,
           resolution.report.matched,
@@ -1191,7 +1234,7 @@ export function createToolService(
             .filter((key) => !own.size || own.has(key))
             .map((key) => bundle.terms.find((t) => t.key === key)?.name ?? key)
         }
-        const items = resolution.items.map((match) => {
+        const items = resolution.items.slice(offset).map((match) => {
           const item = index.item(match.id) as ServingItem
           const linked = outgoing(bundle, item, today, resolution.scope?.window, index)
           check.links_withheld += linked.withheld
@@ -1270,27 +1313,45 @@ export function createToolService(
         }
         // The domains the question is about, with what their owners wrote about them (FR-813).
         const domains = askedDomains(bundle, resolution.scope, concise)
-        // The reply's status, which carries the answer state (FR-349), as the items stand after
-        // any cut.
-        const statusNow = () =>
-          replyStatus({
+        // The reply's status, which carries the answer state (FR-349): what is written decides it,
+        // so every page of a question says the same; out of date as the items stand after any cut.
+        const statusNow = () => {
+          const shown = new Set(items.map((item) => item.id))
+          return replyStatus({
             status: resolution.status,
-            items: items.map((item) => ({
-              match: item.match,
-              unverified: item.freshness === 'unverified',
-            })),
+            items: [
+              ...items.map((item) => ({
+                match: item.match,
+                unverified: item.freshness === 'unverified',
+              })),
+              ...resolution.items
+                .filter((match) => !shown.has(match.id))
+                .map((match) => ({ match: match.match, unverified: false })),
+            ],
             uncovered: resolution.scope
               ? uncoveredParts(
                   bundle,
                   resolution.scope,
-                  items.map((item) => ({
-                    item: index.item(item.id) as ServingItem,
-                    match: item.match,
+                  resolution.items.map((match) => ({
+                    item: index.item(match.id) as ServingItem,
+                    match: match.match,
                   })),
                 )
               : { metrics: [], values: [] },
             assumed: !!assumed,
           })
+        }
+        // How the agent reaches what the reply left out: the next page by cursor, or a larger one,
+        // by the limit that cut it.
+        let bySize = false
+        const cutNext = () =>
+          !items.length
+            ? 'Call again with a higher max_bytes.'
+            : bySize
+              ? 'Call again with cursor set to next_cursor for the rest, or with a higher max_bytes.'
+              : scoped.max_items < MOST_ITEMS
+                ? contextVoice.cuts
+                : 'Call again with cursor set to next_cursor for the rest.'
         // FR-344: what the reply read and did not, as it stands after any cut.
         const said = () => {
           const out = withTermsNext(
@@ -1305,11 +1366,15 @@ export function createToolService(
                 partial: items.filter((item) => item.match === 'partial').length,
                 unverified: items.filter((item) => item.freshness === 'unverified').length,
                 cut: check.cut_ids.length,
+                // A cut by count is reached by the cursor; a cut by size too, or by more bytes.
+                ...(check.cut_ids.length ? { cutNext: cutNext() } : {}),
                 withheld: resolution.withheld.map((w) => w.reason),
                 assumed: assumed?.note.sentence ?? null,
                 readsAs: read?.reads_as ?? null,
                 groups,
                 about: metrics.length > 1,
+                unread,
+                readAs,
               },
               contextVoice,
             ),
@@ -1340,6 +1405,8 @@ export function createToolService(
             return { ...entry, ...rest }
           })
         }
+        // Where the rest of what applies starts, after the items this reply gives.
+        const nextCursor = () => cursorFor(pages, offset + items.length)
         const render = () => {
           const head = {
             status: statusNow(),
@@ -1347,6 +1414,12 @@ export function createToolService(
             asked: askedWords,
             ...(period ? { period_read: period } : {}),
             ...(meant.length ? { defined: meant } : {}),
+            ...(readAs.length ? { read_as: readAs } : {}),
+            ...(unread.length ? { unread } : {}),
+            // A reply that fits no item has no next page: only more bytes give it.
+            ...(items.length && offset + items.length < resolution.items.length
+              ? { next_cursor: nextCursor() }
+              : {}),
           }
           return concise
             ? resultFor({
@@ -1396,7 +1469,10 @@ export function createToolService(
             if (item.links.length) check.cut = true
             item.links = []
           }
-        while (items.length && byteSize(render()) > limit) cutItem()
+        while (items.length && byteSize(render()) > limit) {
+          bySize = true
+          cutItem()
+        }
         const output = render()
         if (byteSize(output) > limit)
           return failure('The required report cannot fit this size limit. Increase max_bytes.')
@@ -1420,7 +1496,7 @@ export function createToolService(
             delivered: items.map((i, rank) => ({
               id: i.id,
               v: i.version,
-              rank,
+              rank: offset + rank,
               label: i.freshness,
             })),
             withheld: resolution.withheld,
@@ -1493,8 +1569,8 @@ export function createToolService(
       return byteSize(rendered) <= limit
         ? rendered
         : failure('The item cannot fit this size limit. Increase max_bytes.')
-    } catch {
-      return failure()
+    } catch (error) {
+      return failure(error instanceof StaleCursor ? staleCursor : undefined)
     }
   }
 }

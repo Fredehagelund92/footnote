@@ -96648,6 +96648,15 @@
                                   "maxLength": 40
                                 },
                                 "additionalProperties": {}
+                              },
+                              "step": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 8
+                              },
+                              "before": {
+                                "type": "string",
+                                "maxLength": 4000
                               }
                             },
                             "required": [
@@ -97690,6 +97699,15 @@
                                               "maxLength": 40
                                             },
                                             "additionalProperties": {}
+                                          },
+                                          "step": {
+                                            "type": "integer",
+                                            "minimum": 0,
+                                            "maximum": 8
+                                          },
+                                          "before": {
+                                            "type": "string",
+                                            "maxLength": 4000
                                           }
                                         },
                                         "required": [
@@ -99540,6 +99558,15 @@
                                                   "maxLength": 40
                                                 },
                                                 "additionalProperties": {}
+                                              },
+                                              "step": {
+                                                "type": "integer",
+                                                "minimum": 0,
+                                                "maximum": 8
+                                              },
+                                              "before": {
+                                                "type": "string",
+                                                "maxLength": 4000
                                               }
                                             },
                                             "required": [

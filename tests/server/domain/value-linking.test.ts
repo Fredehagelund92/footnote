@@ -353,7 +353,7 @@ describe('golden questions: asking which', () => {
 
 describe('golden questions: as an agent asks', () => {
   const agent = (question: string) =>
-    short(scopeOf({ question }, { terms } as unknown as ServingBundle, today).scope)
+    short(scopeOf({ question }, { terms, areas: [] } as unknown as ServingBundle, today).scope)
 
   it.each<[string, Reading]>([
     // Read as before V1: an agent passes structured fields, and a word in no list is dropped.

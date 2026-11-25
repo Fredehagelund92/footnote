@@ -24,7 +24,7 @@ import {
 import { aboutBusinessBlock } from '../../../domain/about-business.ts'
 import { ACTIONS_SHOWN, isActionId, type ActionOffer } from '../../../domain/actions.ts'
 import type { AnswerState } from '../../../domain/answer-state.ts'
-import { LOOP_READS } from '../../../domain/ask-chat.ts'
+import { LOOP_READS, LOOP_REPLY } from '../../../domain/ask-chat.ts'
 import { dimensionOf, nounId } from '../../../domain/ask-nouns.ts'
 import { dateNote, periodWords, windowWords, type ChosenPeriod } from '../../../domain/dates.ts'
 import { personInstead, personSaid, refusalOffers } from '../../../domain/say.ts'
@@ -299,6 +299,11 @@ export type MadeRead = {
   result: unknown
   ref?: string
   call?: string
+  /**
+   * Where the turn's last prompt sent its call: the place of that step among the prompt's own
+   * steps, and the words the model wrote in it before its calls. A follow-up sends it again so.
+   */
+  sentIn?: { step: number; words: string }
 }
 
 const isToolName = (name: string): name is AskToolName =>
@@ -507,6 +512,55 @@ function earlierReply(turn: ChatTurnInput, known: ReadonlySet<string>) {
   return kept.replace(marks, (_all, m: string) => `[${idOf(m)}]`)
 }
 
+/**
+ * A question as the model was sent it in its own turn: with the language note. A follow-up sends
+ * the earlier questions so again, byte for byte, so the provider's prompt cache holds.
+ */
+const questionMessage = (question: string): ModelMessage => ({
+  role: 'user',
+  content: [
+    { type: 'text', text: question },
+    { type: 'text', text: LANGUAGE_NOTE },
+  ],
+})
+
+/** The id a turn's read is sent by in the chat's later turns: `chat<turn>_<n>`, its place. */
+const chatCallId = (turn: number, n: number) => `chat${turn}_${n}`
+
+/** This turn's reads that read something, in the order made: `chatCallId` numbers them so. */
+const readOk = (made: readonly MadeRead[]) => made.filter((m) => !isError(m.result))
+
+/** The reads the next turn sends back: the latest of those that read something. */
+const keptOf = (made: readonly MadeRead[]) => readOk(made).slice(-LOOP_READS)
+
+/**
+ * This turn's reads under the ids the next turn sends them by (`chatCallId`), so the next turn's
+ * messages start with the same bytes as this turn's last step and its prompt cache holds. A read
+ * that came back an error keeps the model's own id. A read keeps its number as the turn goes on,
+ * so each step's prompt starts with the last one's.
+ */
+function asSentLater(
+  messages: readonly ModelMessage[],
+  made: readonly MadeRead[],
+  turn: number,
+): ModelMessage[] {
+  const sent = readOk(made)
+  const idOf = (call: string) => {
+    const n = sent.findIndex((m) => m.call === call)
+    return n >= 0 ? chatCallId(turn, n) : call
+  }
+  return messages.map((m) =>
+    (m.role === 'assistant' || m.role === 'tool') && Array.isArray(m.content)
+      ? ({
+          ...m,
+          content: m.content.map((part) =>
+            'toolCallId' in part ? { ...part, toolCallId: idOf(part.toolCallId) } : part,
+          ),
+        } as ModelMessage)
+      : m,
+  )
+}
+
 /** The chat as model messages: each turn's question, its reads made again, and what Ask said. */
 function chatMessages(
   turns: readonly ChatTurnInput[],
@@ -515,32 +569,42 @@ function chatMessages(
   const known = new Set(earlier.flatMap((e) => idsOf(e.result)))
   return turns.flatMap((t, turn): ModelMessage[] => {
     const reads = earlier.filter((e) => e.turn === turn)
-    const call = (e: (typeof reads)[number]) => `chat${turn}_${e.n}`
+    const call = (e: (typeof reads)[number]) => chatCallId(turn, e.n)
+    // The turn's reads step by step, each with the words its model wrote before it, as sent.
+    const steps = [...new Set(reads.map((e) => e.read.step))].map((step) =>
+      reads.filter((e) => e.read.step === step),
+    )
     return [
-      { role: 'user', content: t.question },
-      ...(reads.length
-        ? ([
+      questionMessage(t.question),
+      ...steps.flatMap(
+        (step) =>
+          [
             {
               role: 'assistant',
-              content: reads.map((e) => ({
-                type: 'tool-call' as const,
-                toolCallId: call(e),
-                toolName: e.read.tool,
-                // The period the person chose is the service's, never the model's input (R12).
-                input: withoutChosen(e.read.input),
-              })),
+              content: [
+                ...(step[0]!.read.before
+                  ? [{ type: 'text' as const, text: step[0]!.read.before }]
+                  : []),
+                ...step.map((e) => ({
+                  type: 'tool-call' as const,
+                  toolCallId: call(e),
+                  toolName: e.read.tool,
+                  // The period the person chose is the service's, never the model's input (R12).
+                  input: withoutChosen(e.read.input),
+                })),
+              ],
             },
             {
               role: 'tool',
-              content: reads.map((e) => ({
+              content: step.map((e) => ({
                 type: 'tool-result' as const,
                 toolCallId: call(e),
                 toolName: e.read.tool,
                 output: { type: 'json' as const, value: withRef(e.ref, e.result) as never },
               })),
             },
-          ] satisfies ModelMessage[])
-        : []),
+          ] satisfies ModelMessage[],
+      ),
       { role: 'assistant', content: earlierReply(t, known) || '(No reply.)' },
     ]
   })
@@ -707,6 +771,7 @@ export async function* askLoop(
             : call.input
         const result = await reads.one(call.toolName, given, {
           lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+          question: input.question,
         })
         if (isError(result)) return null
         const ref = `r${earlier.length + made.length + plain.length + 1}`
@@ -756,6 +821,8 @@ export async function* askLoop(
             turns,
             done.map((result, k) => ({ ...wanted[k]!, result })),
           ),
+          // Its own turn's question, so it reads as it read then.
+          question: turns[wanted[i]!.turn]!.question,
         }),
       )
       earlier = wanted.map((w, i) => ({ ...w, result: made[i], ref: `r${i + 1}` }))
@@ -802,6 +869,7 @@ export async function* askLoop(
           const read = (async () => {
             const result = await reads.one(name, given, {
               lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+              question: input.question,
             })
             // Numbered as it comes back, after the chat's earlier reads: what the words cite it by.
             const ref = `r${earlier.length + made.length + 1}`
@@ -855,6 +923,7 @@ export async function* askLoop(
       const given = { ...asked, period: input.period }
       const result = await reads.one('get_context', given, {
         lastPeriod: lastPeriodOf(turns.length, turns, earlier),
+        question: input.question,
       })
       const read: MadeRead = {
         tool: 'get_context',
@@ -876,13 +945,7 @@ export async function* askLoop(
   const system = loopSystem(deps.today, deps.asker, deps.timeZone, deps.about)
   const messages: ModelMessage[] = [
     ...chatMessages(turns, earlier),
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: input.question },
-        { type: 'text', text: LANGUAGE_NOTE },
-      ],
-    },
+    questionMessage(input.question),
     // The reads code made at the period chosen, as the model's own first step: its input as the
     // model would write it, never the period (R12).
     ...(made.length
@@ -908,6 +971,8 @@ export async function* askLoop(
         ] satisfies ModelMessage[])
       : []),
   ]
+  // The last prompt the model was sent, as the next turn will send it again (markSent).
+  let lastSent: readonly ModelMessage[] = messages
   const meter = deps.limits
     ? createCallMeter({
         database: deps.database,
@@ -1018,8 +1083,9 @@ export async function* askLoop(
         const stop = await spendStop(now)
         if (stop) throw new SpendLimitStop(stop)
         // The last step reads nothing: it answers from what was read.
+        lastSent = asSentLater(now, made, turns.length)
         return {
-          messages: cachedThrough(now, choice.cacheBreakpoint),
+          messages: cachedThrough(lastSent, choice.cacheBreakpoint),
           ...(stepNumber >= deps.steps - 1 ? { toolChoice: 'none' as const } : {}),
         }
       },
@@ -1075,6 +1141,7 @@ export async function* askLoop(
       } else if (part.type === 'error') throw part.error
     }
     const modelSteps = await result.steps
+    markSent(made, lastSent, turns.length)
     const last = modelSteps.at(-1)
     const again = earlier.map(readOf)
     deps.onTurn?.(made, again)
@@ -1185,12 +1252,42 @@ const stoppedTurn = (
   ...noBody,
 })
 
-/** What the next turn sends back of this one's reads: those that read something, the latest. */
-const readsBack = (made: readonly MadeRead[]): LoopRead[] =>
-  made
-    .filter((m) => !isError(m.result))
-    .slice(-LOOP_READS)
-    .map(({ tool: t, input }) => ({ tool: t, input }))
+/**
+ * What the next turn sends back of this one's reads: those that read something, the latest, each
+ * with its step among them and, on a step's first, the words the model wrote before it.
+ */
+function readsBack(made: readonly MadeRead[]): LoopRead[] {
+  let step = -1
+  let at: number | undefined = Number.NaN
+  return keptOf(made).map(({ tool: t, input, sentIn }) => {
+    const first = sentIn?.step !== at
+    if (first) {
+      step += 1
+      at = sentIn?.step
+    }
+    const words = first && sentIn && sentIn.words.length <= LOOP_REPLY ? sentIn.words : ''
+    return { tool: t, input, step, ...(words ? { before: words } : {}) }
+  })
+}
+
+/**
+ * Where the turn's last prompt sent each read that read something (`sentIn`): its step there,
+ * found by the id the read went under, and that step's words before its calls.
+ */
+function markSent(made: readonly MadeRead[], sent: readonly ModelMessage[], turn: number) {
+  const steps = sent.flatMap((m) =>
+    m.role === 'assistant' && Array.isArray(m.content) ? [m.content] : [],
+  )
+  readOk(made).forEach((read, n) => {
+    const id = chatCallId(turn, n)
+    const step = steps.findIndex((parts) =>
+      parts.some((part) => part.type === 'tool-call' && part.toolCallId === id),
+    )
+    if (step < 0) return
+    const words = steps[step]!.flatMap((part) => (part.type === 'text' ? [part.text] : [])).join('')
+    read.sentIn = { step, words }
+  })
+}
 
 const questionTurn = (
   asked: z.infer<typeof askBackInput>,
@@ -1410,6 +1507,10 @@ export function stateOf(
     : state
 }
 
+/** Why the value words a get_context read could not read were not read: "There is no value of ...". */
+const unreadWhy = (result: Record<string, unknown>) =>
+  arr(result.unread).flatMap((w) => (typeof w.why === 'string' ? [w.why] : []))
+
 function readsState(
   made: readonly MadeRead[],
   cited: readonly string[],
@@ -1422,7 +1523,7 @@ function readsState(
       ? []
       : typeof m.result.state === 'string'
         ? [m.result.state as AnswerState]
-        : isObj(m.result.unread) && Array.isArray(m.result.unread.why) && m.result.unread.why.length
+        : unreadWhy(m.result).length
           ? ['missing' as const]
           : [],
   )
@@ -1573,7 +1674,7 @@ export function readLines(made: readonly MadeRead[]): string[] {
         const items = arr(r.items).length
         const nearby = arr(r.nearby).length
         if (!read) {
-          const why = isObj(r.unread) && Array.isArray(r.unread.why) ? r.unread.why.map(str) : []
+          const why = unreadWhy(r)
           return [
             why.length
               ? `Looked up “${str(m.input.about)}”: nothing applies. ${why.join(' ')}`
@@ -1586,12 +1687,20 @@ export function readLines(made: readonly MadeRead[]): string[] {
           (x) =>
             ` “${str(x.word)}” was read as ${str(x.name)}, by a synonym written in Definitions.`,
         )
+        // A word read as the one metric whose name holds it, and a word that named no metric.
+        const part = arr(read.loose)
+          .filter((x) => x.by === 'part')
+          .map(
+            (x) =>
+              ` “${str(x.words)}” was read as ${str(x.name)}, the one metric whose name holds the word.`,
+          )
+        const unread = arr(r.unread).map((w) => ` “${str(w.word)}” names no metric here.`)
         const usual = arr(read.usual).map(
           (u) =>
             ` ${str(u.name)} was read as its usual variant, ${(Array.isArray(u.values) ? u.values.map(str) : []).join(', ')}, which its owners picked for a question that names none of its values.`,
         )
         return [
-          `Looked up ${names.length ? listWords(names) : `“${str(read.words)}”`}, ${str(read.period)}: ${counted(items, 'item applies', 'items apply')}${nearby ? `, ${counted(nearby, 'nearby item does', 'nearby items do')} not` : ''}${wider.length ? `; then, wider, ${wider.map(searchedLine).join('; ')}` : ''}.${synonyms.join('')}${usual.join('')}`,
+          `Looked up ${names.length ? listWords(names) : `“${str(read.words)}”`}, ${str(read.period)}: ${counted(items, 'item applies', 'items apply')}${nearby ? `, ${counted(nearby, 'nearby item does', 'nearby items do')} not` : ''}${wider.length ? `; then, wider, ${wider.map(searchedLine).join('; ')}` : ''}.${synonyms.join('')}${part.join('')}${unread.join('')}${usual.join('')}`,
         ]
       }
       case 'read_context':

@@ -147,10 +147,16 @@ export type AnswerResult = z.infer<typeof answerSchema>
 
 /** A word Ask asks about, and its meanings in the order the question says them. */
 
-/** One read of Ask's loop: the tool, by its name, and its input, as the model gave it. */
+/**
+ * One read of Ask's loop: the tool, by its name, and its input, as the model gave it; then the step
+ * of its turn it was sent in, counted among the reads sent back, and the words the model wrote in that step before it, on the step's
+ * first read. A follow-up sends the turn again so, step by step, and its prompt cache holds.
+ */
 export const loopReadSchema = z.strictObject({
   tool: z.string().check(z.minLength(1), z.maxLength(40)),
   input: z.record(z.string().check(z.maxLength(40)), z.unknown()),
+  step: z.optional(z.number().check(z.int(), z.minimum(0), z.maximum(LOOP_READS))),
+  before: z.optional(z.string().check(z.maxLength(LOOP_REPLY))),
 })
 export type LoopRead = z.infer<typeof loopReadSchema>
 
