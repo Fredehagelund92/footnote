@@ -492,7 +492,6 @@ export function createWorkspaceSources({
     }
   }
 
-  /** One read of a source with these settings, kept nowhere; with the members others read. */
   /**
    * One read of a definitions source, kept nowhere: what it would hold. Given the groups the
    * source reads (null: every group), it also says which of them the model no longer has.
