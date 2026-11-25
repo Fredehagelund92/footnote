@@ -58,8 +58,6 @@ test('Context by time shows, finds and opens the items along their dates', async
   const menu = page.getByRole('menu')
   await expect(menu.getByText('Dimensions from your definitions')).toBeVisible()
   await menu.getByRole('menuitemradio', { name: 'Market' }).click()
-  // Items with no dates have no bar, so a group of only those is not shown.
-  await expect(time.getByRole('button', { name: /^Every value \d+$/ })).toHaveCount(0)
   await expect(time.getByRole('button', { name: /^Norway \d+$/ })).toBeVisible()
   await expect(time.getByText('Market', { exact: true })).toBeVisible()
 

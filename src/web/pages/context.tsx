@@ -199,12 +199,20 @@ function ContextHeader({ view }: { view: 'list' | 'time' }) {
       views={
         <TextSwitch
           label="View"
-          className="ml-1"
+          className="ml-1 shrink-0"
           value={view}
           onChange={(v) => void changeQuery({ view: v === 'time' ? 'time' : undefined })}
           options={[
-            { value: 'list', label: 'List', icon: <ListIcon /> },
-            { value: 'time', label: 'By time', icon: <CalendarIcon /> },
+            {
+              value: 'list',
+              label: <span className="max-md:sr-only">List</span>,
+              icon: <ListIcon />,
+            },
+            {
+              value: 'time',
+              label: <span className="max-md:sr-only">By time</span>,
+              icon: <CalendarIcon />,
+            },
           ]}
         />
       }
