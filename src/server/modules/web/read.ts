@@ -179,9 +179,24 @@ const hostOf = (url: URL) =>
     .replace(/\.$/, '')
     .toLowerCase()
 
+/** An IPv4-mapped IPv6 address (`::ffff:a.b.c.d`, or its hex form) as the IPv4 address it reaches. */
+function unmapped(host: string): string {
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(host)
+  if (hex) {
+    const [high, low] = [parseInt(hex[1]!, 16), parseInt(hex[2]!, 16)]
+    return `${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`
+  }
+  return host.replace(/^::ffff:(?=\d+\.\d+\.\d+\.\d+$)/i, '')
+}
+
 /** Whether an admin listed the host, or a name it is under. */
-const listed = (host: string, blockedHosts: readonly string[]) =>
-  blockedHosts.some((entry) => host === entry || host.endsWith(`.${entry}`))
+const listed = (host: string, blockedHosts: readonly string[]) => {
+  const name = unmapped(host)
+  return blockedHosts.some((entry) => {
+    const listedName = unmapped(entry)
+    return name === listedName || name.endsWith(`.${listedName}`)
+  })
+}
 
 /**
  * An address Footnote may open, as a URL without its fragment, or the reason it may not. Plain http
@@ -242,12 +257,12 @@ function isSignIn(html: string, otherHost: boolean): boolean {
  * that leads to a listed address is never read, whatever the name.
  */
 function withoutListed(lookup: LookupFunction, blockedHosts: readonly string[]): LookupFunction {
-  const listedAddresses = new Set(blockedHosts.filter((host) => isIP(host) !== 0))
+  const listedAddresses = new Set(blockedHosts.filter((host) => isIP(host) !== 0).map(unmapped))
   if (!listedAddresses.size) return lookup
   return (hostname, options, callback) =>
     lookup(hostname, options, (error, address, family) => {
       const answers = Array.isArray(address) ? address.map((a) => a.address) : [address]
-      if (!error && answers.some((a) => listedAddresses.has(a.replace(/^::ffff:/i, ''))))
+      if (!error && answers.some((a) => listedAddresses.has(unmapped(a))))
         return callback(
           Object.assign(new Error('The address is listed'), { code: 'ELISTED' }),
           '',

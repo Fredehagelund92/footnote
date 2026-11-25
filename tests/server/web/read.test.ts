@@ -106,6 +106,8 @@ beforeAll(async () => {
         )
       case '/private':
         return send(302, { location: '/login' })
+      case '/to-mapped':
+        return send(302, { location: 'https://[::ffff:1.2.3.4]/page' })
       case '/to-sso':
         // Another host (localhost, where the link named 127.0.0.1) that answers with a sign-in form.
         return send(302, { location: `${other}/sso` })
@@ -267,6 +269,14 @@ describe('what it refuses', () => {
     expect(hits.slice(before)).toEqual(['/to-sso'])
   })
 
+  it('refuses a listed address written as an IPv4-mapped IPv6 literal, also after a redirect', async () => {
+    const before = hits.length
+    const listed = { blockedHosts: ['1.2.3.4'] }
+    expect(await refusal(read('https://[::ffff:1.2.3.4]/', listed))).toBe('blocked_host')
+    expect(await refusal(read(`${base}/to-mapped`, listed))).toBe('blocked_host')
+    expect(hits.slice(before)).toEqual(['/to-mapped'])
+  })
+
   it('looks for a sign-in form in bounded time, on a page made to be slow', async () => {
     const started = performance.now()
     await read(`${base}/unclosed`)
@@ -343,6 +353,12 @@ describe('the addresses Footnote may open', () => {
       'https://[100:0:0:1::1]/',
     ])
       expect(rule(address), address).toBe('not_public')
+  })
+
+  it('refuses a listed address written as an IPv4-mapped IPv6 literal', () => {
+    for (const address of ['https://[::ffff:1.2.3.4]/', 'https://[::ffff:102:304]/'])
+      expect(rule(address, false, ['1.2.3.4']), address).toBe('blocked_host')
+    expect(rule('https://1.2.3.4/', false, ['::ffff:102:304'])).toBe('blocked_host')
   })
 
   it('refuses a link with a key in it, and a listed host with its subdomains', () => {
