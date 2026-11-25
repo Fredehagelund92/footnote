@@ -57,6 +57,8 @@ import { createLogger } from './observability/logger.ts'
   counts (src/server/modules/evals/proof.ts).
 */
 
+const MAX_CAP_MICROS = 10_000 * 1_000_000
+
 export const proveUsage =
   'Usage: npm run footnote -- prove [--questions <file>] [--tries <n>] [--real --cap <dollars>]'
 
@@ -286,7 +288,7 @@ export function proveFlags(
   const tries = values.tries === undefined ? PROOF_TRIES : Number(values.tries)
   const cap = values.cap === undefined ? null : Math.round(Number(values.cap) * 1_000_000)
   if (!Number.isInteger(tries) || tries < 1 || tries > 10) return null
-  if (cap !== null && !(cap >= 0)) return null
+  if (cap !== null && !(cap >= 0 && cap <= MAX_CAP_MICROS)) return null
   return {
     tries,
     real: values.real,

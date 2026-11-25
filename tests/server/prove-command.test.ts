@@ -38,6 +38,9 @@ describe('the options', () => {
       ['--tries', '11'],
       ['--cap', '-1'],
       ['--cap', 'lots'],
+      ['--cap', 'Infinity'],
+      ['--cap', '1e30'],
+      ['--cap', '10001'],
       ['--yes'],
       ['extra'],
     ])
