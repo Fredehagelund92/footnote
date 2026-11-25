@@ -94577,6 +94577,9 @@
                                             "type": "null"
                                           }
                                         ]
+                                      },
+                                      "plainGroup": {
+                                        "const": true
                                       }
                                     },
                                     "required": [
@@ -95785,6 +95788,9 @@
                                                 "type": "null"
                                               }
                                             ]
+                                          },
+                                          "plainGroup": {
+                                            "const": true
                                           }
                                         },
                                         "required": [
@@ -97632,6 +97638,9 @@
                                                     "type": "null"
                                                   }
                                                 ]
+                                              },
+                                              "plainGroup": {
+                                                "const": true
                                               }
                                             },
                                             "required": [
