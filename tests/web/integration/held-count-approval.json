@@ -1,0 +1,8 @@
+{
+  "suite": "tests/web/integration/ask-eval-loop.test.ts",
+  "from": 15,
+  "to": 11,
+  "reason": "Main's own code run live scores the same as this change, so the 15 was a stale count from an older recording run and not what today's code passes.",
+  "approvedBy": "the owner",
+  "date": "2026-11-25"
+}
