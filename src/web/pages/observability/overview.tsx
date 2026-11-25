@@ -227,7 +227,7 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
   )
   const peeked = dock?.kind === 'topic' ? dock.id : undefined
   const onKeyDown = useRowKeys({
-    onMove: (id) => peeked && openDock('topic', id),
+    onMove: (id) => peeked && openDock('topic', id, undefined, { replace: true }),
     onEscape: () => !!peeked,
   })
   const said = sentence(shown, domains)

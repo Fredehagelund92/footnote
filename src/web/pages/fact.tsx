@@ -31,6 +31,7 @@ import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
 import { openDock } from '@/lib/dock'
 import { useSidebar } from '@/components/ui/sidebar'
+import { listHref } from '@/lib/list'
 import { href, navigate } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import { itemPageQuery, useInbox, useLibrary, useWrite } from '@/api/queries'
@@ -290,7 +291,7 @@ export function FactPage({ id }: { id: string }) {
   return (
     <Page
       bodyRef={bodyRef}
-      deep={{ href: href('/context'), label: 'Back to Context' }}
+      deep={{ href: listHref('/context'), label: 'Back to Context' }}
       ask={() => openDock('ask')}
       more={moreItems}
       className="flex overflow-hidden"
@@ -298,7 +299,7 @@ export function FactPage({ id }: { id: string }) {
         <Breadcrumb className="min-w-0">
           <BreadcrumbList className="flex-nowrap">
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/context">Context</BreadcrumbLink>
+              <BreadcrumbLink href={listHref('/context')}>Context</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem className="min-w-0">

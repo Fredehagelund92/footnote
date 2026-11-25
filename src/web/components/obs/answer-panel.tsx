@@ -99,7 +99,13 @@ export function AnswerPanel({ id }: { id: string }) {
     <DockFrame
       title="Answer"
       quietTitle
-      actions={<DockStepper list="obs-topics" id={t.id} onGo={(next) => openDock('topic', next)} />}
+      actions={
+        <DockStepper
+          list="obs-topics"
+          id={t.id}
+          onGo={(next) => openDock('topic', next, undefined, { replace: true })}
+        />
+      }
       footer={
         <>
           <a href={write} className={cn(buttonVariants())}>
