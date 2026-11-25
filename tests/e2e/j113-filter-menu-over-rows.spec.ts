@@ -12,6 +12,9 @@ test('the Filter menu stays over the rows while a pick moves them', async ({ pag
   await go(page, '/context')
   const count = page.getByText(/ of \d+ context items$/)
   await expect(count).toBeVisible()
+  // The count is drawn with the page's frame; the rows come a frame later (a deferred value). A pick
+  // made before them has no row to move, and no transition of rows to look at.
+  await expect(page.locator('[data-vt-move]').first()).toBeVisible()
   const before = await count.innerText()
   await page.getByRole('button', { name: /^Filter/ }).click()
   const draft = page.getByRole('menuitemcheckbox', { name: /^Draft/ })
