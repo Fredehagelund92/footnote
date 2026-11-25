@@ -67,7 +67,7 @@ SAML providers work through an OIDC broker, such as Keycloak, Dex or the provide
 
 - **Someone already linked.** The first sign-in links the account at the provider to the person. A changed address at the provider still signs in the same person.
 - **An active person, or an address with an open invite.** The provider must say the address is verified. An invite is accepted at that sign-in, with its role and domains.
-- **A member of a mapped group.** They join as a Member, or as an Admin for the admin group. An Admin role the group gave ends when they sign in outside the group, unless no other admin would be left.
+- **A member of a mapped group.** They join as a Member, or as an Admin for the admin group. An Admin role the group gave ends when they sign in outside the group, unless no other admin would be left. A mapped group is also what makes an owner's Ask someone who knows link work for colleagues who have never signed in: without one, each needs an invite first.
 
 Anyone else goes back to the sign-in screen with one plain answer, the same whether the address is unknown, removed or linked to another account.
 

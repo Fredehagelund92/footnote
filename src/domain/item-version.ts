@@ -50,7 +50,8 @@ export const itemVersionSchema = z
     }),
     validity: dateWindowSchema,
     reviewDate: z.nullable(calendarDateSchema),
-    evidence: z.array(evidenceEntrySchema).check(z.minLength(1)),
+    /** At least one, but on a suggestion sent from a question link (below). */
+    evidence: z.array(evidenceEntrySchema),
     references: z.array(text(limits.reference)),
     changeMarks: z.record(z.string(), text(limits.reference)),
     claimLevel: itemSchema.shape.claimLevel,
@@ -84,6 +85,13 @@ export const itemVersionSchema = z
       (value) => (value.createdVia === 'source') === (value.proposerId === null),
       'A version has a proposer unless a content source made it',
     ),
+    // The person who knows what happened often has no link to where it is written: a suggestion
+    // from the question page may come without a source, and its owner adds or confirms one before
+    // it is published (publishable, below).
+    z.refine((value) => value.evidence.length > 0 || value.createdVia === 'question', {
+      message: 'An item needs at least one source',
+      path: ['evidence'],
+    }),
     z.refine(
       (value) => value.validity.end !== null || value.reviewDate !== null,
       'An open-ended item needs a review date',
@@ -151,6 +159,12 @@ export const itemVersionSchema = z
     ),
   )
 export type ItemVersion = z.infer<typeof itemVersionSchema>
+
+/**
+ * Whether a version may be published: only with a source. A version without one, sent from a
+ * question link, waits until its owner adds or confirms one.
+ */
+export const publishable = (version: Pick<ItemVersion, 'evidence'>) => version.evidence.length > 0
 
 /**
  * What a version's two digests are taken over: `content` is all of it, with its lists in a

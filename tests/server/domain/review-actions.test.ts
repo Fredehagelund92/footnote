@@ -60,6 +60,16 @@ describe('what may be done with a suggestion', () => {
       },
     ],
     [
+      'sent from a question link without a source: Publish waits, even over a clash',
+      { mode: 'new', sourceless: true, clashes: 1 },
+      {
+        can: ['publish', 'return', 'close'],
+        primary: 'publish',
+        blockedBy: { publish: 'source' },
+        ready: false,
+      },
+    ],
+    [
       'claims and a clash: Return leads, Publish anyway waits',
       { clashes: 1, claimsToCheck: 1 },
       {

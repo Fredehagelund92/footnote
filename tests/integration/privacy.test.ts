@@ -219,7 +219,8 @@ it('lets anonymous tables reference only non-person tables, in every schema', as
     [anonymous],
   )
   // Outbound: editions, areas and each other. Inbound: each other, plus the remedy side, where a
-  // proposal names the gap it answers (it names its writer, never who asked).
+  // proposal names the gap it answers (it names its writer, never who asked) and a question link
+  // names the gap it passes on (it names nobody: not who copied it, nor who opened it).
   expect(references.rows).toEqual([
     { source: 'assistant_ratings', target: 'areas' },
     { source: 'deliveries', target: 'editions' },
@@ -236,6 +237,7 @@ it('lets anonymous tables reference only non-person tables, in every schema', as
     { source: 'obs_snapshots', target: 'areas' },
     { source: 'obs_weekly', target: 'areas' },
     { source: 'proposals', target: 'gaps' },
+    { source: 'question_links', target: 'gaps' },
     { source: 'topic_week_counts', target: 'topics' },
     { source: 'topics', target: 'areas' },
   ])

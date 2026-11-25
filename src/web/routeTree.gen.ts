@@ -18,6 +18,7 @@ import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as ConnectApproveRouteImport } from './routes/connect.approve'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as QuestionIdRouteImport } from './routes/question.$id'
 import { Route as AppContextIndexRouteImport } from './routes/_app/context.index'
 import { Route as AppContextNewRouteImport } from './routes/_app/context.new'
 import { Route as AppDefinitionsIndexRouteImport } from './routes/_app/definitions.index'
@@ -82,6 +83,11 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/docs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/docs/$slug.lazy').then((d) => d.Route))
+const QuestionIdRoute = QuestionIdRouteImport.update({
+  id: '/question/$id',
+  path: '/question/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppContextIndexRoute = AppContextIndexRouteImport.update({
   id: '/context/',
   path: '/context/',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/help': typeof AppHelpRoute
   '/connect/approve': typeof ConnectApproveRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/question/$id': typeof QuestionIdRoute
   '/docs/': typeof DocsIndexRoute
   '/context/new': typeof AppContextNewRoute
   '/definitions/new': typeof AppDefinitionsNewRoute
@@ -257,6 +264,7 @@ export interface FileRoutesByTo {
   '/help': typeof AppHelpRoute
   '/connect/approve': typeof ConnectApproveRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/question/$id': typeof QuestionIdRoute
   '/docs': typeof DocsIndexRoute
   '/context/new': typeof AppContextNewRoute
   '/definitions/new': typeof AppDefinitionsNewRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/_app/help': typeof AppHelpRoute
   '/connect/approve': typeof ConnectApproveRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/question/$id': typeof QuestionIdRoute
   '/docs/': typeof DocsIndexRoute
   '/_app/context/new': typeof AppContextNewRoute
   '/_app/definitions/new': typeof AppDefinitionsNewRoute
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/connect/approve'
     | '/docs/$slug'
+    | '/question/$id'
     | '/docs/'
     | '/context/new'
     | '/definitions/new'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/help'
     | '/connect/approve'
     | '/docs/$slug'
+    | '/question/$id'
     | '/docs'
     | '/context/new'
     | '/definitions/new'
@@ -378,6 +389,7 @@ export interface FileRouteTypes {
     | '/_app/help'
     | '/connect/approve'
     | '/docs/$slug'
+    | '/question/$id'
     | '/docs/'
     | '/_app/context/new'
     | '/_app/definitions/new'
@@ -406,6 +418,7 @@ export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   ConnectApproveRoute: typeof ConnectApproveRoute
   DocsSlugRoute: typeof DocsSlugRoute
+  QuestionIdRoute: typeof QuestionIdRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
@@ -472,6 +485,13 @@ declare module '@tanstack/react-router' {
       path: '/docs/$slug'
       fullPath: '/docs/$slug'
       preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/question/$id': {
+      id: '/question/$id'
+      path: '/question/$id'
+      fullPath: '/question/$id'
+      preLoaderRoute: typeof QuestionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/context/': {
@@ -668,6 +688,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   ConnectApproveRoute: ConnectApproveRoute,
   DocsSlugRoute: DocsSlugRoute,
+  QuestionIdRoute: QuestionIdRoute,
   DocsIndexRoute: DocsIndexRoute,
 }
 export const routeTree = rootRouteImport

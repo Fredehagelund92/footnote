@@ -1,5 +1,6 @@
 import { footnoteApiMethods, readMethods } from '../client'
-import { clockTime, parseDay } from '@/lib/dates'
+import { clockTime, dayMonth, dayMonthYear, parseDay } from '@/lib/dates'
+import { shiftDate } from '@domain/validity'
 import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
 import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
@@ -21,13 +22,15 @@ import { familyMeaningHistoryOf } from '../http-family-meaning'
 import { connectorById } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
-import { cards, waiting, week } from './data/inbox'
+import { cards, demoQuestions, questionDays, waiting, week } from './data/inbox'
 import { norwayDraft } from './data/drafts'
 import { obsData } from './data/observability'
 import { obsPage } from './obs-page'
 import { BEFORE, changedSteps, replay } from './replay'
 import { reviews } from './data/review'
-import { draftsWords, type InboxCard } from '@/model/inbox'
+import { ASK_SOMEONE, draftsWords, type CheckAnswerRow, type InboxCard } from '@/model/inbox'
+import type { Question } from '@contract/questions'
+import { titleOfWords } from '@domain/questions'
 import type { Relation, Review } from '@/model/review'
 import { plainOf } from '@/components/templates/comment-box/utils'
 import {
@@ -205,6 +208,29 @@ export function createMockApi() {
       patch: Partial<Fact>
     }
   >()
+  /**
+   * Ask someone who knows: each card's link, by the card, and what people answered on a Due for a
+   * check card's link. As the service: a link keeps the day it was copied, never who opened it.
+   */
+  const questionLinks = new Map<string, { id: string; copiedOn: string }>()
+  const checkAnswers = new Map<string, CheckAnswerRow[]>()
+  const withAsked = (card: InboxCard): InboxCard => {
+    const link = questionLinks.get(card.id)
+    return link
+      ? {
+          ...card,
+          asked: { on: dayMonth(link.copiedOn), answers: checkAnswers.get(card.id) ?? [] },
+        }
+      : card
+  }
+  /** The card a link is for, as the person may read it, and the link. */
+  const questionOf = (id: string) => {
+    const cardId = [...questionLinks].find(([, link]) => link.id === id)?.[0] ?? demoQuestions[id]
+    const card = cardId && inbox().cards.find((c) => c.id === cardId)
+    if (!card) throw new ApiError('not-found', missing('this question'))
+    return card
+  }
+
   /** The Inbox as the person sees it: none of the demo's cards on a new install. */
   const inbox = (): Inbox => {
     const titleOf = (subject: Subject) => {
@@ -222,7 +248,7 @@ export function createMockApi() {
         ...splitCards,
         ...(state.fresh ? [] : cards),
         ...draftsCard(),
-      ],
+      ].map(withAsked),
       waiting: state.fresh ? [] : waiting,
       sent: state.sent,
       done: state.done,
@@ -965,6 +991,92 @@ export function createMockApi() {
         if (!sent.factId) sentFacts.set(id, fact)
         dispatch({ type: 'send', sent: { ...sent, id } })
         return { id }
+      }),
+    // Ask someone who knows: a card's link, the one question it opens, and the answer.
+    copyQuestionLink: ({ card: id }) =>
+      now(() => {
+        const card = inbox().cards.find((c) => c.id === id)
+        const who = meAsPerson()
+        if (!card?.secondary.includes(ASK_SOMEONE) || state.done[id])
+          throw new ApiError('not-found', missing('this card'))
+        if (!who.admin && !who.owns.includes(card.domain))
+          throw new ApiError('not-found', missing('this card'))
+        const link = { id: questionLinks.get(id)?.id ?? crypto.randomUUID(), copiedOn: today() }
+        questionLinks.set(id, link)
+        return link
+      }),
+    getQuestion: ({ id }) =>
+      now((): Question => {
+        const card = questionOf(id)
+        const domain = domainOf(card.domain)
+        const base = {
+          id,
+          domain: domain?.name ?? card.domain,
+          owners: domain?.owners ?? [],
+          open: !state.done[card.id],
+        }
+        if (card.type === 'gap')
+          return {
+            ...base,
+            kind: 'gap',
+            topic: card.title.split(', ')[0]!,
+            dates: questionDays[card.id] ?? { start: '2026-10-01', end: '2026-11-01' },
+            times: card.gap?.times ?? null,
+            minimum: 5,
+            item: null,
+          }
+        const fact = factsOf(state).find((f) => f.id === card.factId)
+        return {
+          ...base,
+          kind: 'check',
+          topic: fact?.title ?? card.title,
+          dates: {
+            start: fact?.valid.from ?? '2026-01-01',
+            end: fact?.valid.until ? shiftDate(fact.valid.until, 1) : null,
+          },
+          times: null,
+          minimum: 5,
+          item: { summary: fact?.summary ?? '' },
+          open: base.open && !!fact && fact.status !== 'Archived',
+        }
+      }),
+    answerQuestion: (input) =>
+      now(() => {
+        const card = questionOf(input.id)
+        if (state.done[card.id])
+          throw new ApiError(
+            'conflict',
+            'Someone answered this already, or its owner closed it. Nothing was sent. Thanks for looking.',
+          )
+        const owner = domainOf(card.domain)?.owners[0] ?? 'the admins'
+        if (input.kind === 'gap') {
+          // It waits for the owner, as the sender's own suggestion, under All in their Inbox.
+          const id = `sent_${Date.now().toString(36)}`
+          dispatch({
+            type: 'send',
+            sent: {
+              id,
+              title: titleOfWords(input.words),
+              by: me(),
+              to: owner,
+              domain: card.domain,
+              at: 'just now',
+            },
+          })
+          return { proposalId: id }
+        }
+        if ((input.answer === 'ended') !== (input.endedOn !== undefined))
+          throw new ApiError('invalid', 'Say the day it ended, or choose another answer.')
+        const row: CheckAnswerRow = {
+          by: me() ?? 'Someone',
+          answer: input.answer,
+          ...(input.endedOn ? { endedOn: dayMonthYear(input.endedOn) } : {}),
+          ...(input.words ? { words: input.words } : {}),
+          ...(input.link ? { link: input.link } : {}),
+          when: 'Just now',
+        }
+        checkAnswers.set(card.id, [row, ...(checkAnswers.get(card.id) ?? [])])
+        return { proposalId: null }
       }),
     withdrawSuggestion: ({ id }) =>
       now(() => {

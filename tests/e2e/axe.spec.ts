@@ -10,6 +10,10 @@ const places = [
   '/signin',
   // An agent's consent page, with the demo's waiting sign-in (src/web/api/mock/data/agents.ts).
   '/connect/approve?request=demo-agent-sign-in-waiting-for-your-answer0',
+  // The page a question link opens, for a Nothing written yet card and a Due for a check card
+  // (src/web/api/mock/data/inbox.ts).
+  '/question/demo-question-orders-in-germany',
+  '/question/demo-question-returns-check',
   '/inbox',
   '/inbox?card=sug-ines',
   // The pane's answers in each state it draws: a conflict on the soft caution fill, a Not found
