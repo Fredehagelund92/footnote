@@ -1662,7 +1662,9 @@ describe('named reports from Ask (FR-622)', () => {
       }),
     )
     expect(long.suggestion).toMatch(/^[0-9a-f-]{36}$/)
-    const proposal = await ok<ProposalRecord>(call('GET', `/proposals/${long.suggestion}`, 'member'))
+    const proposal = await ok<ProposalRecord>(
+      call('GET', `/proposals/${long.suggestion}`, 'member'),
+    )
     expect(proposal.reason).toBeNull()
     expect(proposal.draft.summary).toBe(words)
     const named = await ok<SentReport>(

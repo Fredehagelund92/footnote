@@ -58,7 +58,9 @@ export function ReportPanel({ id }: { id: string }) {
       <DockFrame title="Something wrong?" footer={<Button onClick={closeDock}>Close</Button>}>
         <div className="flex flex-col gap-4 p-4 @md:p-5">
           <YouAsked question={askedOf(shown.answer)} />
-          <p className="text-sm">You reported this answer. Under it, you see what the owners did.</p>
+          <p className="text-sm">
+            You reported this answer. Under it, you see what the owners did.
+          </p>
         </div>
       </DockFrame>
     )
@@ -193,7 +195,8 @@ export function ReportForm({
   // Opened, focus goes to what is wrong, and an inline form scrolls into view.
   React.useEffect(() => {
     whatRef.current?.focus({ preventScroll: true })
-    if (!framed) form.current?.scrollIntoView({
+    if (!framed)
+      form.current?.scrollIntoView({
         block: 'nearest',
         behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       })

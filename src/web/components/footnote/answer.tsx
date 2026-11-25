@@ -1116,8 +1116,7 @@ function ContextAnswerBody({
     if (docked) {
       if (open) opener.current = from ?? null
       setWrong(open)
-    }
-    else if (open) openFromButton('report', key, from ?? null)
+    } else if (open) openFromButton('report', key, from ?? null)
     else if (reporting) closeDock()
   }
 
@@ -1326,9 +1325,9 @@ function ContextAnswerBody({
               answer={answer}
               facts={facts}
               onClose={() => {
-                  setWrong(false)
-                  opener.current?.focus()
-                }}
+                setWrong(false)
+                opener.current?.focus()
+              }}
               onSent={() => {
                 setWrong(false)
                 setSentNow({ on: 'just now' })
