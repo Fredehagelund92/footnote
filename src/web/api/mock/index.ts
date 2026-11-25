@@ -1022,6 +1022,7 @@ export function createMockApi() {
             topic: card.title.split(', ')[0]!,
             dates: questionDays[card.id] ?? { start: '2026-10-01', end: '2026-11-01' },
             times: card.gap?.times ?? null,
+            minimum: 5,
             item: null,
           }
         const fact = factsOf(state).find((f) => f.id === card.factId)
@@ -1034,6 +1035,7 @@ export function createMockApi() {
             end: fact?.valid.until ? shiftDate(fact.valid.until, 1) : null,
           },
           times: null,
+          minimum: 5,
           item: { summary: fact?.summary ?? '' },
           open: base.open && !!fact && fact.status !== 'Archived',
         }

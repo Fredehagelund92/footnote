@@ -146,6 +146,7 @@ describe('the page a link opens', () => {
       topic: 'Orders',
       dates: { start: thisMonth(), end: next.toISOString().slice(0, 10) },
       times: null,
+      minimum: 5,
       item: null,
       domain: 'Finance',
       owners: ['owner'],

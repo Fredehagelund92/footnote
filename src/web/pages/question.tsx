@@ -299,7 +299,7 @@ function Answer({
           <p className="text-base text-pretty text-muted-foreground">
             People asked about this
             {q.times === null
-              ? ' fewer than 5 times this week'
+              ? ` fewer than ${q.minimum} times this week`
               : q.times > 0
                 ? ` ${q.times.toLocaleString('en-GB')} times this week`
                 : ''}

@@ -42,6 +42,8 @@ export const questionSchema = z.object({
   dates: z.object({ start: z.string(), end: z.nullable(z.string()) }),
   /** How often agents found nothing for it this week: null under the minimum (FR-614); null for a check. */
   times: z.nullable(z.number()),
+  /** The privacy minimum a count is hidden under: the page says "fewer than" this. */
+  minimum: z.number(),
   /** For a check: what the item says. */
   item: z.nullable(z.object({ summary: z.string() })),
   /** The domain, and the owners who get the answer, by name. */

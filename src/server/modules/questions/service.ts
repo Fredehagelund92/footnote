@@ -180,6 +180,7 @@ export function createQuestionsService(
     /** The one question a link asks, for anyone signed in who has the link. */
     async read(id: string): Promise<Question> {
       const row = await link(id)
+      const min = await minimum()
       const [domain] = await tx.query<{ name: string }>('select name from areas where id=$1', [
         row.areaId,
       ])
@@ -192,7 +193,8 @@ export function createQuestionsService(
           kind: 'gap',
           topic: topic ?? domain?.name ?? '',
           dates: monthWindow(gap.month),
-          times: visibleCount(gap.calls, await minimum()),
+          times: visibleCount(gap.calls, min),
+          minimum: min,
           item: null,
           domain: domain?.name ?? '',
           owners: (await owners(row.areaId, null)).map((o) => o.name),
@@ -207,6 +209,7 @@ export function createQuestionsService(
           topic: '',
           dates: { start: '', end: null },
           times: null,
+          minimum: min,
           item: null,
           domain: domain?.name ?? '',
           owners: (await owners(row.areaId, null)).map((o) => o.name),
@@ -218,6 +221,7 @@ export function createQuestionsService(
         topic: item.title,
         dates: { start: item.start, end: item.end },
         times: null,
+        minimum: min,
         item: { summary: item.summary },
         domain: domain?.name ?? '',
         owners: (await owners(item.areaId, item.ownerId)).map((o) => o.name),

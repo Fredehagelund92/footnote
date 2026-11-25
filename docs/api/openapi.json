@@ -73746,6 +73746,9 @@
                         }
                       ]
                     },
+                    "minimum": {
+                      "type": "number"
+                    },
                     "item": {
                       "anyOf": [
                         {
@@ -73783,6 +73786,7 @@
                     "topic",
                     "dates",
                     "times",
+                    "minimum",
                     "item",
                     "domain",
                     "owners",
