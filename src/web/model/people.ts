@@ -90,11 +90,14 @@ export const toServerPermissions = (p: Person): Permissions => ({
 export const emailOf = (p: Person) =>
   p.email ?? `${p.name.toLowerCase().replace(/[^a-z]+/g, '.')}@larchwood.example`
 
+/** The line for someone who is no admin and owns no domain: true of most people, so it tells none apart. */
+export const PLAIN_ROLE = 'Suggests context, owns no domain'
+
 /** One line on what a person does here: what they own (the sandbox aside) and whether they are an admin. */
 export function describe(p: Person, domains: Domains) {
   const owned = p.owns.filter((d) => domains[d] && !domains[d].sandbox).map((d) => domains[d]?.name)
   if (owned.length) return `Owner of ${listOf(owned as string[])}${p.admin ? ', admin' : ''}`
-  return p.admin ? 'Admin' : 'Suggests context, owns no domain'
+  return p.admin ? 'Admin' : PLAIN_ROLE
 }
 
 /**
