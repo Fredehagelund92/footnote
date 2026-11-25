@@ -8,7 +8,7 @@ reviewed: 2026-11-25
 
 2026-11-25
 
-A metric built from others shows them as a small tree, on its page and in its quick view, with the metrics they are built from in turn. Each line counts the published context about that metric, so you can see where something is written. See [Definitions](definitions-and-synonyms.md#what-a-metric-is-built-from).
+A metric built from others shows them as a small tree, on its page and in the side panel, with the metrics they are built from in turn. Each line counts the published context about that metric, so you can see where something is written. See [Definitions](definitions-and-synonyms.md#what-a-metric-is-built-from).
 
 ## Share a chat as a link
 
