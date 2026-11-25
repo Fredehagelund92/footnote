@@ -222,6 +222,27 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
     ],
   },
   {
+    group: 'Links people paste',
+    settings: [
+      {
+        key: 'links.read_pages',
+        what: 'Whether Draft from text opens a public page someone links, to fill in from it',
+        value: (v) => (v === false ? 'Off: people paste the page’s text' : 'On'),
+      },
+      {
+        key: 'links.never_read_hosts',
+        what: 'Sites a link is never read on, each with its subdomains',
+        value: (v) => (Array.isArray(v) && v.length ? v.join(', ') : 'None'),
+      },
+      {
+        key: 'limits.link_reads',
+        what: 'Links that can be read, a failed read counting too',
+        value: (v) =>
+          `${count(field(v, 'person_per_hour'), 'link')} an hour and ${n(field(v, 'person_per_day')).toLocaleString('en-GB')} a day for one person, ${n(field(v, 'workspace_per_day')).toLocaleString('en-GB')} a day for the workspace`,
+      },
+    ],
+  },
+  {
     group: 'AI cost this month',
     settings: [
       {

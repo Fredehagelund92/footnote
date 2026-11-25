@@ -251,6 +251,8 @@ export const wiredMethods = [
   'checkConnect',
   'advancedPage',
   'setAutomaticRuns',
+  'setLinkReading',
+  'setNeverReadHosts',
   'checkHistory',
   'exportHistory',
   'exportContext',
@@ -2385,7 +2387,26 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           model: tests.modelId,
           judge: tests.judgeModelId,
         },
+        links: words.linkReadingOf(settings),
       }
+    },
+    setLinkReading: async ({ on, version }) => {
+      const input = {
+        key: 'links.read_pages',
+        version,
+        value: on,
+        reason: on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
+    },
+    setNeverReadHosts: async ({ hosts, version }) => {
+      const input = {
+        key: 'links.never_read_hosts',
+        version,
+        value: hosts,
+        reason: 'Changed in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     setAutomaticRuns: async ({ on, version }) => {
       const input = {

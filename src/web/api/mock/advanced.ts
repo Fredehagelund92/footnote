@@ -27,6 +27,7 @@ function settingsOf(
   autoPublish: boolean,
   pins: Pins,
   automatic: Automatic,
+  links: Links,
 ) {
   const values: [key: string, value: unknown, changed?: SettingChange][] = [
     ['workspace.name', name, { who: 'Jon Abara', when: '1 Oct', why: 'Name the workspace' }],
@@ -57,6 +58,13 @@ function settingsOf(
         ]
       : ['agents.auto_publish', false],
     ['limits.agent_drafts', { per_day: 10, open: 20 }],
+    // Reading the links people paste: on as installed, with no host listed, until an admin
+    // changes them in the demo.
+    links.changed ? ['links.read_pages', links.on, links.changed] : ['links.read_pages', links.on],
+    links.hostsChanged
+      ? ['links.never_read_hosts', links.hosts, links.hostsChanged]
+      : ['links.never_read_hosts', links.hosts],
+    ['limits.link_reads', { person_per_hour: 20, person_per_day: 60, workspace_per_day: 300 }],
     ['limits.mcp_requests_per_minute', { person: 30, client: 120 }],
     ['limits.mcp_rate_per_minute', { get_context: 120, report: 20 }],
     ['limits.api_rate_per_minute', { person: 600, ip: 120 }],
@@ -93,6 +101,11 @@ const toolHref = `/settings/integrations/${DEMO_DEFINITIONS}`
 export type Pins = { keys: string[]; changed?: SettingChange }
 /** Whether answer tests run on their own in this visit, and who changed it last. */
 export type Automatic = { on: boolean; version: number; changed?: SettingChange }
+/** Reading the links people paste in this visit, and who changed each setting last. */
+export type Links = NonNullable<Advanced['links']> & {
+  changed?: SettingChange
+  hostsChanged?: SettingChange
+}
 
 /**
  * One run of every domain's answer tests, as the demo's week would be estimated on Claude: its
@@ -107,10 +120,11 @@ export function advancedOf(
   pins: Pins = { keys: [] },
   automatic: Automatic = { on: false, version: 1 },
   left: Advanced['left'] = [],
+  links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 },
 ): Advanced {
   return {
     left,
-    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic),
+    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic, links),
     // Newest first: drafts and terms. Published context is archived, never deleted.
     deleted: [
       ...log
@@ -224,6 +238,12 @@ export function advancedOf(
       budgetMicros: 2_000_000,
       model: 'anthropic/claude-sonnet-5-5',
       judge: 'anthropic/claude-opus-5-5',
+    },
+    links: {
+      on: links.on,
+      version: links.version,
+      hosts: links.hosts,
+      hostsVersion: links.hostsVersion,
     },
   }
 }

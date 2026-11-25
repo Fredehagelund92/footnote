@@ -166,7 +166,12 @@ import {
 } from '../modules/saved-questions/index.ts'
 import { createVocabularyService } from '../modules/vocabulary/index.ts'
 import type { LoginServer } from '../modules/oauth/index.ts'
-import type { PageReader } from '../modules/web/index.ts'
+import {
+  createPageReader,
+  linkReaderFor,
+  pastedLink,
+  type PageReader,
+} from '../modules/web/index.ts'
 import { productName } from '../brand.ts'
 import { footnoteVersion } from '../version.ts'
 
@@ -191,12 +196,14 @@ export interface ApiServices {
   sources?: Pick<ConnectorRegistry, 'list'>
   /** The sources administrators add, with the secret store that keeps their tokens. */
   workspaceSources?: WorkspaceSources
-  /** Opens a web page a link in a draft points at; the public web only by default. */
+  /** Opens a web page a person links, to draft from it; the public web only by default. */
   readPage?: PageReader
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; none by default. */
   profileLabel?: string | null
 }
 type RequestContext = { request: FastifyRequest; reply: FastifyReply }
+/** For work in a transaction of its own, which keeps nothing outside the database. */
+const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
 /** A retry key of 128 random bits: 32 hex digits or a version 4 UUID (the web binding's). */
 const randomRetryKey =
   /^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i
@@ -215,13 +222,11 @@ export function requestServices(
     clock,
     answerBundles,
     models,
-    readPage,
     hooks,
   }: {
     clock: Clock
     answerBundles: BundleCache
     models: ModelPort
-    readPage?: PageReader | undefined
     hooks: TransactionHooks
   },
 ) {
@@ -244,7 +249,6 @@ export function requestServices(
     proposals,
     review,
     path: reviewPath,
-    readPage,
   })
   return {
     library,
@@ -324,7 +328,7 @@ export function createRouter({
     secrets: noSecretStore,
     registry: new ConnectorRegistry([...(sources?.list() ?? [])]),
   }),
-  readPage,
+  readPage = createPageReader(),
   askTrace,
   modelChecks,
   profileLabel = null,
@@ -337,6 +341,36 @@ export function createRouter({
   // Whether Ask answers with an AI model, or with the scripted reader (MODELS=mock), for the page.
   const modelConnected = models.mode === 'live'
   const os = implement(contract).$context<RequestContext>()
+  /**
+   * Who is asking, and whether they may: their session, the operation's permission and, for a
+   * change, its origin and CSRF token. Names the person in the transaction (`cl.person_id`).
+   */
+  const admit = async (tx: Queryable, context: RequestContext, path: readonly string[]) => {
+    const session = await signIn.currentSession(tx, context.request.headers.cookie)
+    const operation = path.join('.')
+    labelOperation(context.request, operation)
+    if (!can(session?.person ?? null, operation))
+      throw new ORPCError(session ? 'FORBIDDEN' : 'UNAUTHORIZED', {
+        message: session ? refusals.forbidden : refusals.signedOut,
+      })
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(context.request.method)) {
+      checkMutation(context.request, session, origins, operation === 'auth.signIn')
+    }
+    await tx.query("select set_config('cl.person_id',$1,true)", [session?.person.id ?? ''])
+    return session
+  }
+  /**
+   * A signed-in operation that waits on the network, outside any transaction: it is admitted in a
+   * short one, and opens its own, so no connection is held while it waits and it never asks the
+   * pool for a second connection while holding one.
+   */
+  const signedIn = os.use(async ({ context, next, path }) => {
+    const session = await database.transaction(null, (tx) => admit(tx, context, path), {
+      requestId: context.request.id,
+    })
+    if (!session) throw new ORPCError('UNAUTHORIZED', { message: refusals.signedOut })
+    return next({ context: { person: session.person.id } })
+  })
   const authorized = os.use(async ({ context, next, path }) => {
     // Work outside the database that must follow the transaction's outcome, such as a secret
     // file written for a source: kept on commit, removed on rollback.
@@ -361,17 +395,7 @@ export function createRouter({
       result = await database.transaction(
         null,
         async (tx) => {
-          const session = await signIn.currentSession(tx, context.request.headers.cookie)
-          const operation = path.join('.')
-          labelOperation(context.request, operation)
-          if (!can(session?.person ?? null, operation))
-            throw new ORPCError(session ? 'FORBIDDEN' : 'UNAUTHORIZED', {
-              message: session ? refusals.forbidden : refusals.signedOut,
-            })
-          if (!['GET', 'HEAD', 'OPTIONS'].includes(context.request.method)) {
-            checkMutation(context.request, session, origins, operation === 'auth.signIn')
-          }
-          await tx.query("select set_config('cl.person_id',$1,true)", [session?.person.id ?? ''])
+          const session = await admit(tx, context, path)
           return next({
             context: {
               tx,
@@ -380,7 +404,6 @@ export function createRouter({
                 clock,
                 answerBundles,
                 models,
-                readPage,
                 hooks,
               }),
             },
@@ -480,7 +503,6 @@ export function createRouter({
     // The workspace's calendar, read once a turn: every read of the turn counts on the same today.
     const calendar = await readCalendar(context.tx)
     const log = context.request.log
-    const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
     // What the turn reads of the person's workspace, read once for all its transactions, and
     // what their last turn read of it while it has not changed.
     const kept = keptReads.turn(person, edition)
@@ -493,7 +515,7 @@ export function createRouter({
             tx,
             clock,
             answerBundles,
-            requestServices(tx, person, { clock, answerBundles, models, readPage, hooks: noHooks }),
+            requestServices(tx, person, { clock, answerBundles, models, hooks: noHooks }),
             calendar,
             kept,
           ),
@@ -528,7 +550,9 @@ export function createRouter({
         void modelChecks.of(choice, role).catch(() => {})
     })
   }
-  return authorized.router({
+  // Each procedure names its own middleware: almost all run in one transaction as the person
+  // (authorized), and the few that wait on the network open their own (signedIn).
+  return os.router({
     proposals: {
       create: authorized.proposals.create.handler(({ context, input }) =>
         retryWrite(
@@ -924,9 +948,20 @@ export function createRouter({
       deleted: authorized.items.deleted.handler(({ context }) => context.context.deleted()),
     },
     drafts: {
-      fromText: authorized.drafts.fromText.handler(({ input, context }) =>
-        context.context.draftFromText(input.text),
-      ),
+      // A pasted link is read first, with no transaction open: the page can take 15 seconds.
+      fromText: signedIn.drafts.fromText.handler(async ({ input, context }) => {
+        const db = forRequest(database, context.request.id)
+        const link = pastedLink(input.text)
+        const page = link ? await linkReaderFor(db, readPage, context.person)(link) : undefined
+        return db.transaction(context.person, (tx) =>
+          requestServices(tx, context.person, {
+            clock,
+            answerBundles,
+            models,
+            hooks: noHooks,
+          }).context.draftFromText(input.text, page),
+        )
+      }),
       save: authorized.drafts.save.handler(({ input, context }) =>
         retryWrite(context.tx, idempotencyKey(context), 'drafts.save', input, () =>
           context.context.saveDraft(input),

@@ -42,7 +42,7 @@ import type { LibraryService } from '../library/index.ts'
 import { draftVocabulary } from '../../mcp/draft-tool.ts'
 import { proposalEvent, readVersions, type ProposalsService } from '../proposals/index.ts'
 import { draftOf, type ReviewPath, type ReviewService } from '../review/index.ts'
-import { readableAddress, type PageReader } from '../web/index.ts'
+import { linkRefusal, pastedLink, type PageRead } from '../web/index.ts'
 import { missing, notAllowed, signedOutKept } from '../../../contract/refusals.ts'
 
 /**
@@ -61,7 +61,6 @@ export type ContextDeps = {
   proposals: ProposalsService
   review: ReviewService
   path: ReviewPath
-  readPage?: PageReader | undefined
 }
 
 /** The words a change records as its reason, where the rules ask for one. */
@@ -100,7 +99,7 @@ export function createContextService(
   tx: Queryable,
   clock: Clock,
   cache: BundleCache,
-  { library, proposals, review, path, readPage }: ContextDeps,
+  { library, proposals, review, path }: ContextDeps,
 ) {
   async function person(id: string | null): Promise<BulkPerson | null> {
     const [row] = await tx.query<BulkPerson>(
@@ -1074,25 +1073,27 @@ export function createContextService(
   /**
    * A draft from pasted text, or from the page a link points to, with no model: the words, a kind
    * and dates by rule, and where it applies by the vocabulary's names (deriveAgentDraft). What it
-   * guessed is named, for the writer to check.
+   * guessed is named, for the writer to check. A link alone is drafted from its page, which the
+   * caller read first under the workspace's rules (FR-144), or not at all: it never becomes the
+   * draft's words or its source unread.
    */
-  async function draftFromText(text: string): Promise<DraftFromText> {
+  async function draftFromText(text: string, page?: PageRead): Promise<DraftFromText> {
     const today = clock.today()
     const trimmed = text.trim()
     let words = trimmed
     let title: string | undefined
     let evidence: Draft['evidence']
-    if (readPage && /^https?:\/\/\S+$/.test(trimmed) && readableAddress(trimmed)) {
-      const read = await readPage(trimmed).catch(() => {
+    if (pastedLink(trimmed)) {
+      if (!page)
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
-          message: "We couldn't read that page. Paste its text instead.",
+          message: linkRefusal('off'),
+          data: { reason: 'off' },
         })
-      })
-      words = read.paragraphs.join('\n\n').slice(0, 4_000)
-      title = read.title?.slice(0, 200) ?? undefined
-      const first = read.paragraphs.find((p) => p.trim()) ?? ''
+      words = page.paragraphs.join('\n\n').slice(0, 4_000)
+      title = page.title?.slice(0, 200) ?? undefined
+      const first = page.paragraphs.find((p) => p.trim()) ?? ''
       const sentence = first.match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] ?? first
-      evidence = [{ url: read.finalUrl, quote: sentence.slice(0, 500), date: today }]
+      evidence = [{ url: page.finalUrl, quote: sentence.slice(0, 500), date: today }]
     }
     if (!words)
       throw new ORPCError('UNPROCESSABLE_CONTENT', { message: 'Paste some text or a link.' })

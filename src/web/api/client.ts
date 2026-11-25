@@ -298,7 +298,15 @@ export type Advanced = {
   editions: { label: string; sealed: string; change: string }[]
   /** Whether answer tests run on their own, and what a run would cost; null when unread. */
   answerTests: AnswerTestRuns | null
+  /** Whether links people paste are read, and the hosts never read; null when unread. */
+  links: LinkReading | null
 }
+
+/**
+ * Reading the links people paste (FR-144): on as installed, and the hosts an admin listed never
+ * to read, each covering its subdomains. Each setting's version, which a change names.
+ */
+export type LinkReading = { on: boolean; version: number; hosts: string[]; hostsVersion: number }
 
 /**
  * Whether answer tests run on their own (decision 6), and what one run of every domain's active
@@ -774,6 +782,10 @@ export interface FootnoteApi {
   advancedPage: () => Promise<Advanced>
   /** Turns answer tests that run on their own on or off, at the version read. */
   setAutomaticRuns: (input: { on: boolean; version: number }) => Promise<void>
+  /** Turns reading the links people paste on or off, at the version read. Admins only. */
+  setLinkReading: (input: { on: boolean; version: number }) => Promise<void>
+  /** Sets the hosts links are never read on, at the version read. Admins only. */
+  setNeverReadHosts: (input: { hosts: string[]; version: number }) => Promise<void>
   /**
    * Checks the history log's hash chain end to end: whether it is whole, and how many entries it
    * checked when the binding counts them (null when it doesn't).
@@ -1057,6 +1069,8 @@ export const footnoteApiMethods = [
   'renameAccessKey',
   'advancedPage',
   'setAutomaticRuns',
+  'setLinkReading',
+  'setNeverReadHosts',
   'checkHistory',
   'exportHistory',
   'exportContext',
