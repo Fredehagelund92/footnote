@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-25
 ---
 
+## The keys work on every list
+
+2026-11-25
+
+J and K move through Context, Definitions and the Inbox from the moment the page opens, and the row you move to takes the focus. With a side panel open, J opens the next row in it while the panel keeps the focus, and Esc closes the panel from anywhere. After a click on an Inbox card, one Enter opens it.
+
+G then a letter goes to a place: I the Inbox, A Ask, C Context, D Definitions and S Settings. Press ? to see every key.
+
 ## See what a metric is built from
 
 2026-11-25

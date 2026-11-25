@@ -11,3 +11,14 @@ export function isTyping(target: EventTarget | null) {
 /** A plain key press for a page shortcut: nothing typed into, no modifier held. */
 export const pageKey = (e: KeyboardEvent) =>
   !isTyping(e.target) && !e.metaKey && !e.ctrlKey && !e.altKey
+
+/** G then a letter goes to a place (lib/go-to.ts). */
+export const GO_TO = [
+  { key: 'I', place: 'Inbox' },
+  { key: 'A', place: 'Ask' },
+  { key: 'C', place: 'Context' },
+  { key: 'D', place: 'Definitions' },
+  { key: 'S', place: 'Settings' },
+] as const
+
+export type GoPlace = (typeof GO_TO)[number]['place']
