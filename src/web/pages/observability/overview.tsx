@@ -57,9 +57,9 @@ import {
   type TopicGroup,
 } from '@/model/observability'
 import { savedCounts } from '@/model/saved-questions'
-import { openDock, useDock } from '@/lib/dock'
+import { closeDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
-import { usePublishOrder, useRowKeys } from '@/lib/list'
+import { useListKeys, usePublishOrder } from '@/lib/list'
 import {
   OBS_PURPOSE,
   ObsDrawn,
@@ -226,9 +226,17 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
     obs.rowOrder(rows, group, sorting).map((t) => t.id),
   )
   const peeked = dock?.kind === 'topic' ? dock.id : undefined
-  const onKeyDown = useRowKeys({
-    onMove: (id) => peeked && openDock('topic', id),
-    onEscape: () => !!peeked,
+  const topicRows = React.useRef<HTMLTableSectionElement>(null)
+  useListKeys({
+    list: topicRows,
+    current: peeked,
+    docked: !!peeked,
+    onMove: (id, from) => peeked && openFromRow('topic', id, undefined, { focus: from.panel }),
+    onEscape: () => {
+      if (!peeked) return false
+      closeDock()
+      return true
+    },
   })
   const said = sentence(shown, domains)
   const narrow = narrowed(on, chosen)
@@ -523,7 +531,7 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
             view={view}
             peeked={peeked}
             unread={unread}
-            onKeyDown={onKeyDown}
+            list={topicRows}
             empty={
               <>
                 <p className="font-medium">No topics match</p>

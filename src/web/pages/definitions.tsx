@@ -82,9 +82,9 @@ import {
   useGlossary,
 } from '@/lib/definitions'
 import { WindowRows, type WindowRowsHandle } from '@/components/footnote/window-rows'
-import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
+import { closeDock, openFromRow, useDock } from '@/lib/dock'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
-import { matches, matchesWords, usePublishOrder, useRowKeys, words, wordsIn } from '@/lib/list'
+import { matches, matchesWords, useListKeys, usePublishOrder, words, wordsIn } from '@/lib/list'
 import { href, navigate, useRoute } from '@/lib/router'
 import { useDomainList, useDomains, useFacts, useMe } from '@/lib/workspace'
 import { mayOpenSettings } from '@/lib/settings-access'
@@ -475,9 +475,14 @@ export function DefinitionsPage() {
     'dimension',
     'term',
   ]
-  const rowKeys = useRowKeys({
-    rows: { order, reveal: (name, then) => drawn.current?.reveal(name, then) },
-    onMove: (name) => peeked && openDock('def', name),
+  useListKeys({
+    list: table,
+    order,
+    current: peeked,
+    docked: !!peeked,
+    reveal: (name, then) => drawn.current?.reveal(name, then),
+    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the focus.
+    onMove: (name, from) => peeked && openFromRow('def', name, undefined, { focus: from.panel }),
     // Escape closes the peek first, then clears the selection.
     onEscape: () => {
       if (peeked) closeDock()
@@ -1095,10 +1100,7 @@ export function DefinitionsPage() {
                     estimate={heightOfLine}
                     colSpan={cols}
                     keep={[peeked]}
-                    onKeyDown={(e) => {
-                      sel.onKeyDown(e)
-                      rowKeys(e)
-                    }}
+                    onKeyDown={sel.onKeyDown}
                     before={
                       <>
                         {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}

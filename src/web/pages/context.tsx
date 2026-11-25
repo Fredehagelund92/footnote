@@ -66,7 +66,7 @@ import {
 import { waitingLine } from '@/model/waiting'
 import { today } from '@/lib/today'
 import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
-import { matches, usePublishOrder, useRowKeys, words } from '@/lib/list'
+import { matches, useListKeys, usePublishOrder, words } from '@/lib/list'
 import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
 import { inForce, parseWhen, timeShort, trustOf } from '@/lib/timeframe'
 import { FreshDot, KindIcon, StatusIcon, TimeGlyph } from '@/components/footnote/columns'
@@ -269,9 +269,14 @@ export function ContextPage() {
   const peeked = dock?.kind === 'context' ? dock.id : undefined
   // The two items of the conflict open in the dock are marked as a peeked row is.
   const compared = dock?.kind === 'conflict' ? (dock.id?.split('.') ?? []) : []
-  const rowKeys = useRowKeys({
-    rows: { order, reveal: (id, then) => drawn.current?.reveal(id, then) },
-    onMove: (id) => peeked && openDock('context', id),
+  useListKeys({
+    list: table,
+    order,
+    current: peeked,
+    docked: !!peeked,
+    reveal: (id, then) => drawn.current?.reveal(id, then),
+    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the focus.
+    onMove: (id, from) => peeked && openFromRow('context', id, undefined, { focus: from.panel }),
     // Escape closes the peek first, then clears the selection, as in the Footnote app.
     onEscape: () => {
       if (peeked) closeDock()
@@ -779,10 +784,7 @@ export function ContextPage() {
                   estimate={heightOfLine}
                   colSpan={COLS}
                   keep={[peeked, ...compared]}
-                  onKeyDown={(e) => {
-                    sel.onKeyDown(e)
-                    rowKeys(e)
-                  }}
+                  onKeyDown={sel.onKeyDown}
                   before={
                     <>
                       {!ready ? null : noConflicts ? (

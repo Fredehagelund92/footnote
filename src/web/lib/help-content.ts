@@ -1,5 +1,6 @@
 import type { AnswerState } from '@/model/ask'
 import { CONFLICT_KEYS } from '@/lib/conflict'
+import { GO_TO } from '@/lib/keys'
 import { REPOSITORY_URL } from '@domain/brand'
 import { answerLines } from '@domain/words'
 
@@ -141,6 +142,7 @@ export const HOW_AGENTS_USE_IT: {
   },
 ]
 
+/** A row of the sheet: `keys` pressed together, then `then`, or else `or`. */
 export type Keys = { keys: string[]; then?: string[]; label: string; or?: string[] }
 
 /** A key as the sheet shows it: an arrow as an arrow, a letter as a capital. */
@@ -165,6 +167,11 @@ export const SHORTCUTS: { group: string; rows: Keys[] }[] = [
       { keys: ['X'], or: ['⇧', '↓'], label: 'Select, or select a run as Shift and a click does' },
       { keys: ['/'], or: ['F'], label: 'Search the list; on Overview, add a filter' },
     ],
+  },
+  {
+    group: 'Go to',
+    // The places' own keys, so the sheet cannot drift from them.
+    rows: GO_TO.map(({ key, place }) => ({ keys: ['G'], then: [key], label: place })),
   },
   {
     group: 'Review',
