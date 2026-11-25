@@ -311,6 +311,11 @@ Ask page does (`tests/web/integration/ask-answerers.ts`).
   answerer reads which of them failed or tunes on them. The loop's mocked suite holds how
   many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
   lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
+  The one exception is a lowering the owner approved: the same change adds or updates
+  `tests/web/integration/held-count-approval.json` with the suite's path (`suite`), the count it
+  lowers from (`from`, the base's) and to (`to`, the change's), a reason in one sentence
+  (`reason`), who approved it (`approvedBy`) and the date (`date`, as YYYY-MM-DD). The step passes
+  only a record that names that exact lowering.
   The harness holds 29 held-back cases. The loop's steps in use are the recording made on 19
   November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later re-keyed one step for a
   date fix. Today Ask's loop passes 14 of the 29, and 28 of the 29 keep every promise; the rest fail on what they must say, which the answer
