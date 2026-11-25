@@ -2415,7 +2415,9 @@ function Finished({
                 )}
               </>
             )}
-            {report && <P.ReportLine report={report} focus={!!sent} answerKey={key} />}
+            {report && (
+              <P.ReportLine report={report} focus={!!sent} answerKey={P.answerKey(answer)} />
+            )}
             {docked && wrong && canReport && (
               <P.SomethingWrong
                 answer={answer}
