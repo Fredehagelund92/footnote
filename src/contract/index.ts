@@ -298,6 +298,7 @@ import {
   saveClientSchema,
   setSettingSchema,
   settingSchema,
+  aboutDraftSchema,
   workspaceSchema,
   setToolSchema,
   toolSwitchSchema,
@@ -2019,6 +2020,23 @@ export const contract = {
       })
       .input(setSettingSchema)
       .output(settingSchema),
+  },
+  about: {
+    draft: admin
+      .errors({
+        UNPROCESSABLE_CONTENT: {
+          status: 422,
+          message: 'A first version could not be written. Write the text yourself.',
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/about/draft',
+        tags: ['admin'],
+        summary:
+          "A first version of About our business, written by the assistant's model from the domains, metrics and definitions; nothing is saved",
+      })
+      .output(aboutDraftSchema),
   },
   models: {
     checks: admin

@@ -17,7 +17,7 @@ import { useWide } from '@/hooks/use-wide'
 import { docExtensions } from '@/lib/doc-extensions'
 import { href, navigate, useRoute } from '@/lib/router'
 import { toApiError } from '@/api/errors'
-import { useWorkspace, useWrite } from '@/api/queries'
+import { useVocabulary, useWorkspace, useWrite } from '@/api/queries'
 import { useAutosave } from '@/lib/autosave'
 import { useMe } from '@/lib/workspace'
 import { useGlossary } from '@/lib/definitions'
@@ -32,8 +32,10 @@ import {
 // the header, the text on the document sheet, markdown in and out, one footer with the count. It
 // saves itself, so a quiet status replaces a Save button. The help panel is closed until asked for.
 // The text says what the company does; words and their meanings go in Definitions, so a line
-// that defines a word Definitions already has says so under the field. Loaded on its own, like
-// the other editors, to keep Tiptap out of the first load.
+// that defines a word Definitions already has says so under the field. Write a first version for
+// me drafts the text from the install; the draft is shown to change and saved only when kept, so
+// nothing reaches Ask or an agent before then. Loaded on its own, like the other editors, to keep
+// Tiptap out of the first load.
 
 const LIMIT = ABOUT_BUSINESS_MAX
 
@@ -45,13 +47,19 @@ export function AboutPage({
   helpText: React.ReactNode
 }) {
   const me = useMe()
-  const { about, aboutTemplate } = useWorkspace()
+  const { about, aboutTemplate, domains } = useWorkspace()
+  // A first version is written from the domains and the metrics: offered once there are some.
+  const { metrics } = useVocabulary()
+  const draftable = metrics.length > 0 || domains.some((d) => !d.sandbox)
   const glossary = useGlossary()
   const write = useWrite()
   const { query } = useRoute()
   const setup = query.get('setup')
   // Null until the first keystroke; until then the count and the words are what the editor writes back.
   const [typed, setTyped] = React.useState<string | null>(null)
+  // A first version on the sheet that is not kept yet: what is typed into it is not saved either.
+  const [draft, setDraft] = React.useState<'writing' | 'shown' | null>(null)
+  const drafting = React.useRef(false)
   const autosave = useAutosave({
     save: (text: string) => write('setAbout', { text }),
     onError: (e) =>
@@ -59,6 +67,7 @@ export function AboutPage({
   })
   const save = (text: string) => {
     setTyped(text)
+    if (drafting.current) return
     // Too long is never sent; shortening it saves it.
     if (aboutBusinessLength(normalizeAboutBusiness(text)) <= LIMIT) autosave.change(text)
     else autosave.discard()
@@ -68,7 +77,7 @@ export function AboutPage({
     immediatelyRender: true,
     shouldRerenderOnTransaction: false,
     extensions: docExtensions(
-      'What the company does: what you sell, to whom, where and through which channels.',
+      'For example: We sell outdoor gear to hikers in our own stores, online and through marketplaces.',
     ),
     content: about,
     contentType: 'markdown',
@@ -83,13 +92,41 @@ export function AboutPage({
   const tooLong = length > LIMIT
   const defined = React.useMemo(() => definedInAbout(text, glossary.find), [text, glossary])
 
+  const writeFirstVersion = () => {
+    setDraft('writing')
+    write('draftAbout', undefined).then(
+      ({ text }) => {
+        drafting.current = true
+        editor.commands.setContent(text, { contentType: 'markdown' })
+        setTyped(editor.getMarkdown())
+        setDraft('shown')
+      },
+      (e: unknown) => {
+        setDraft(null)
+        toast("Couldn't write a first version", { description: toApiError(e).message })
+      },
+    )
+  }
+  const keepDraft = () => {
+    drafting.current = false
+    setDraft(null)
+    save(editor.getMarkdown())
+  }
+  const discardDraft = () => {
+    editor.commands.setContent(about, { contentType: 'markdown' })
+    setTyped(editor.getMarkdown())
+    drafting.current = false
+    setDraft(null)
+  }
+
   const help = useHelpAside(me.name)
   const [paneRef, wide] = useWide<HTMLDivElement>()
 
-  // Too long is not saved, and the footer says how to save it.
+  // Too long is not saved, and the footer says how to save it. A first version not kept yet is not
+  // saved either, whatever the last save stored.
   const status = (
     <SaveStatus
-      status={tooLong ? 'failed' : autosave.status}
+      status={tooLong ? 'failed' : draft === 'shown' ? 'dirty' : autosave.status}
       retry={tooLong ? undefined : autosave.retry}
     />
   )
@@ -104,7 +141,7 @@ export function AboutPage({
           {setup && (
             <Button
               data-primary
-              disabled={tooLong || length === 0}
+              disabled={tooLong || length === 0 || draft !== null}
               onClick={() => {
                 void autosave
                   .flush()
@@ -170,22 +207,54 @@ export function AboutPage({
         <h2 className="text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
           About our business
         </h2>
-        <p className="mt-2 mb-6 border-b pb-5 text-sm text-muted-foreground sm:mb-8">
-          What the company does, in one or two sentences. Ask and agents read it as background,
-          never as a source.
+        <div className="mt-2 mb-6 space-y-2 border-b pb-5 text-sm text-muted-foreground sm:mb-8 [&_p]:max-w-reading">
+          <p>Ask and agents read it as background, never as a source.</p>
+          <p>Leave out numbers, dates, deals, legal conclusions, secrets and personal data.</p>
+        </div>
+        <h3 id="about-what" className="text-base font-semibold">
+          What the company does
+        </h3>
+        <p className="mt-1 mb-4 max-w-reading text-sm text-muted-foreground">
+          One or two sentences: what you sell, to whom, where and through which channels.
         </p>
-        <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-64! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
-        {length === 0 && (
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => {
-              editor.commands.setContent(aboutTemplate, { contentType: 'markdown' })
-              save(editor.getMarkdown())
-            }}
+        <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-48! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
+        {draft === 'shown' && (
+          <div
+            role="group"
+            aria-label="First version"
+            className="mt-4 flex max-w-reading flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border bg-muted/50 px-3 py-2 text-sm"
           >
-            Start from the guide
-          </Button>
+            <p className="text-muted-foreground">
+              Written from your domains, metrics and definitions. Not saved until you keep it.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={discardDraft}>
+                Discard
+              </Button>
+              <Button disabled={tooLong || length === 0} onClick={keepDraft}>
+                Keep it
+              </Button>
+            </div>
+          </div>
+        )}
+        {length === 0 && draft !== 'shown' && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {draftable && (
+              <Button variant="outline" disabled={draft === 'writing'} onClick={writeFirstVersion}>
+                {draft === 'writing' ? 'Writing…' : 'Write a first version for me'}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              disabled={draft === 'writing'}
+              onClick={() => {
+                editor.commands.setContent(aboutTemplate, { contentType: 'markdown' })
+                save(editor.getMarkdown())
+              }}
+            >
+              Start from the guide
+            </Button>
+          </div>
         )}
         {/* Said as it is typed, so a screen reader hears it too. */}
         <div aria-live="polite">

@@ -4,7 +4,7 @@ import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
 import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
-import { ABOUT_BUSINESS_STARTER } from '@domain/about-business'
+import { ABOUT_BUSINESS_STARTER, aboutByRule } from '@domain/about-business'
 import { ApiError } from '../errors'
 import { missing } from '@contract/refusals'
 import { reviewActions, type ReviewAction } from '@domain/review-actions'
@@ -529,6 +529,17 @@ export function createMockApi() {
       })),
     getActivity: ({ name }) => now(() => workspace.activityOf(name, seedFacts)),
     setAbout: ({ text }) => now(() => dispatch({ type: 'about', text })),
+    // As the service's scripted mock writes it: by rule, from the demo's domains and metrics.
+    draftAbout: () =>
+      now(() => ({
+        text: aboutByRule({
+          domains: workspace
+            .domains()
+            .filter((d) => !d.sandbox)
+            .map((d) => ({ name: d.name, description: d.covers })),
+          metrics: metrics.map((m) => ({ name: m.name, description: m.definition || null })),
+        }),
+      })),
     completeSetupStep: ({ step }) => now(() => dispatch({ type: 'setupStep', step })),
 
     // Domains and people
