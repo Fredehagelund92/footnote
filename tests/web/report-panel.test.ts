@@ -53,13 +53,14 @@ const { ApiError } = await import('@/api/errors')
 beforeAll(() => {
   ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
   Element.prototype.scrollIntoView = () => {}
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- only checks whether it exists
   window.matchMedia ??= ((q: string) => ({
     matches: false,
     media: q,
-    addEventListener() {},
-    removeEventListener() {},
-    addListener() {},
-    removeListener() {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
   })) as never
 })
 let root: Root | undefined
@@ -218,7 +219,7 @@ describe('Something wrong?', () => {
     expect(world.writes[0]?.input).not.toHaveProperty('correction')
   })
 
-  it('shows a note instead of a fresh form for an answer already reported', async () => {
+  it('shows a note instead of a fresh form for an answer already reported', () => {
     keepShown('a1-key', { answer, facts: [fact] })
     markReportSent('a1-key')
     host = document.body.appendChild(document.createElement('div'))

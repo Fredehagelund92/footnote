@@ -2151,9 +2151,9 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
     if (!canReport) return
     if (docked) {
       if (open) opener.current = from ?? null
+      else opener.current?.focus()
       setWrong(open)
-    }
-    else if (open) P.openFromButton('report', key, from ?? null)
+    } else if (open) P.openFromButton('report', key, from ?? null)
     else if (reporting) P.closeDock()
   }
   // The items it cites are read ahead once it is written, so their quick views open whole.
@@ -2416,10 +2416,7 @@ function Finished({
               <P.SomethingWrong
                 answer={answer}
                 facts={cited}
-                onClose={() => {
-                  setWrong(false)
-                  opener.current?.focus()
-                }}
+                onClose={() => onWrong(false)}
                 onSent={() => {
                   setWrong(false)
                   setSent({ on: 'just now' })
