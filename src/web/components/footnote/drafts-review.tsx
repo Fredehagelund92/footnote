@@ -18,7 +18,7 @@ import {
   publishesNow,
 } from '@/lib/bulk'
 import { publishedWhen } from '@/lib/publish-lines'
-import { pageKey } from '@/lib/keys'
+import { useListKeys } from '@/lib/list'
 import { publishSplit, usePublishDrafts } from '@/lib/publish-drafts'
 import { changeQuery, href, navigate, useRoute } from '@/lib/router'
 import { useOnline } from '@/lib/send'
@@ -88,6 +88,9 @@ export default function DraftsReview({
   // The draft last read: its row takes the focus when the list comes back.
   const lastRead = React.useRef<string | undefined>(undefined)
   const readingId = reading?.id
+  // The arrows, J and K move through the drafts while a row has the focus; anywhere else they are
+  // the Inbox's, through its cards.
+  useListKeys({ list: listRef, within: true })
 
   // Back on the list: where it was left, with the last draft read in view and focused.
   React.useLayoutEffect(() => {
@@ -101,7 +104,7 @@ export default function DraftsReview({
     const body = paneBody(list)
     const was = left.get(card.id)
     if (body && was) body.scrollTop = was.scroll
-    const row = list.querySelector<HTMLElement>(`[data-draft-row="${CSS.escape(id)}"]`)
+    const row = list.querySelector<HTMLElement>(`[data-row-open="${CSS.escape(id)}"]`)
     row?.scrollIntoView({ block: 'nearest' })
     row?.focus({ preventScroll: true })
   }, [readingId, card.id])
@@ -178,7 +181,7 @@ export default function DraftsReview({
             <li key={f.id} className="border-b last:border-b-0">
               <a
                 href={href(path, { ...Object.fromEntries(query), draft: f.id })}
-                data-draft-row={f.id}
+                data-row-open={f.id}
                 onClick={opening}
                 className="flex items-center gap-2.5 px-3 py-2 outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
               >
@@ -284,23 +287,16 @@ function DraftReader({
   }, [fact.id])
 
   // J and K step through the drafts and Esc goes back to their list, before the Inbox's own keys
-  // (which step its cards) hear them. A dialog or a menu keeps its own Esc.
-  const onKey = React.useEffectEvent((e: KeyboardEvent) => {
-    if (!pageKey(e) || e.defaultPrevented) return
-    if (e.key === 'j' || e.key === 'k') {
-      e.preventDefault()
-      step(e.key === 'j' ? 1 : -1)
-    }
-    const t = e.target as Element
-    if (e.key === 'Escape' && !t.closest?.('[role=dialog],[role=menu],[role=listbox]')) {
-      e.preventDefault()
+  // (which step its cards) hear them (lib/list.ts). A dialog or a menu keeps its own Esc.
+  useListKeys({
+    order: rows.map((f) => f.id),
+    current: fact.id,
+    onMove: stepTo,
+    onEscape: () => {
       toList()
-    }
+      return true
+    },
   })
-  React.useEffect(() => {
-    window.addEventListener('keydown', onKey, true)
-    return () => window.removeEventListener('keydown', onKey, true)
-  }, [])
 
   const publish = async () => {
     moveOn()
