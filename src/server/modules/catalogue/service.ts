@@ -641,7 +641,12 @@ export function createCatalogueService(
    * live terms that name any of them, in one statement.
    */
   async function readTree(key: string) {
-    type Row = RelationMember & { known: boolean; missing: boolean; visible: boolean }
+    type Row = Omit<RelationMember, 'name'> & {
+      name: string | null
+      known: boolean
+      missing: boolean
+      visible: boolean
+    }
     const [row] = await database.query<{
       own: string | null
       metrics: Row[]
@@ -664,7 +669,7 @@ export function createCatalogueService(
        select
          (select ref from own) as own,
          (select coalesce(json_agg(json_build_object(
-                   'ref', w.ref, 'name', coalesce(d.name, w.ref), 'known', d.ref is not null,
+                   'ref', w.ref, 'name', d.name, 'known', d.ref is not null,
                    'missing', coalesce(d.missing_since_snapshot is not null, false),
                    'visible', d.ref is null or ${visibleTo},
                    'builtFrom', case when d.built_from_refs is null then null
@@ -691,12 +696,15 @@ export function createCatalogueService(
         if (!definition.visible) return null
         const term = termOf.get(ref)
         return {
-          name: term?.name ?? definition.name,
+          name: term?.name ?? definition.name!,
           key: term?.key ?? null,
           missing: definition.missing,
         }
       }
-      return { metrics: treeOf(root, metrics, targetOf) }
+      const known = metrics.filter(
+        (metric): metric is typeof metric & { name: string } => metric.known,
+      )
+      return { metrics: treeOf({ ...root, name: root.name! }, known, targetOf) }
     },
     async relations(key) {
       const { own, peers, targets, terms } = await readRelations(key)

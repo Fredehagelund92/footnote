@@ -19,18 +19,21 @@ import { foundSaid } from '@domain/family-found'
 export function DefinitionRelations({ d }: { d: Definition }) {
   const relations = useQuery(definitionRelationsQuery(d.name)).data ?? []
   const tool = d.tool ?? 'its tool'
+  const built = builtFromParts.useBuiltFrom(d.name)
   return (
     <RelationList
       relations={relations}
       tool={tool}
       tree={
-        <BuiltFromTree
-          name={d.name}
-          tool={tool}
-          parts={builtFromParts}
-          label={<h3 className="text-muted-foreground">Built from</h3>}
-          className="mb-3"
-        />
+        built && (
+          <BuiltFromTree
+            name={d.name}
+            tool={tool}
+            parts={builtFromParts}
+            label={<h3 className="text-muted-foreground">Built from</h3>}
+            className="mb-3"
+          />
+        )
       }
     />
   )
