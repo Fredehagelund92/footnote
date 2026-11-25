@@ -208,7 +208,7 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
   const dock = useDock()
   const peeked = dock?.kind === 'context' ? dock.id : undefined
 
-  const items = React.useMemo(
+  const everyItem = React.useMemo(
     () =>
       timeItemsOf(facts, {
         today: today(),
@@ -218,9 +218,10 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
           wordsIn(
             `${f.title} ${plainText(f.summary)} ${f.where.join(' ')} ${domains[f.domain]?.name ?? ''} ${ownersOf(f, domains).join(' ')}`,
           ),
-      }).filter((i) => !i.always),
+      }),
     [facts, metricNames, domains],
   )
+  const items = React.useMemo(() => everyItem.filter((i) => !i.always), [everyItem])
   // The dimensions of the definitions, then any other an item names.
   const dims = React.useMemo(() => {
     const names = dimensions.map((d) => d.name)
@@ -884,11 +885,23 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
               <EmptyMedia variant="icon">
                 <CalendarIcon />
               </EmptyMedia>
-              <EmptyTitle>Nothing published yet</EmptyTitle>
-              <EmptyDescription>
-                By time shows published context and what waits for review, along the days it holds.
-                Drafts show in the list.
-              </EmptyDescription>
+              {everyItem.length === 0 ? (
+                <>
+                  <EmptyTitle>Nothing published yet</EmptyTitle>
+                  <EmptyDescription>
+                    By time shows published context and what waits for review, along the days it
+                    holds. Drafts show in the list.
+                  </EmptyDescription>
+                </>
+              ) : (
+                <>
+                  <EmptyTitle>No item has dates to show</EmptyTitle>
+                  <EmptyDescription>
+                    By time draws items that start or end on a day. The list shows the items
+                    without dates.
+                  </EmptyDescription>
+                </>
+              )}
             </EmptyHeader>
           </Empty>
         </div>
