@@ -611,12 +611,12 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
   },
 }
 
-/** A read's warnings, each kind once with how many there are, in the words of who says them. */
 /** The warnings about one file of the tool's, which name the file. */
 const FILE_WARNINGS = new Set(['unsupported_file', 'unreadable_file'])
 /** How many files a warning names before it only counts them. */
 const FILES_SHOWN = 5
 
+/** A read's warnings, each kind once with how many there are, in the words of who says them. */
 function readWarnings(
   warnings: SourceCheck['warnings'],
   own: ConnectorManifest['warnings'] = {},
