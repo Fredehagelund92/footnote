@@ -18,7 +18,7 @@ const withAlias: Term[] = terms.map((term) =>
 
 describe('a question read for a person', () => {
   it('names the terms with their kind and a value’s dimension, and the whole year for a bare year', () => {
-    expect(questionReading('what were orders in Norway in 2026', terms, today)).toEqual({
+    expect(questionReading('what were orders in Norway in 2026', terms, today, [])).toEqual({
       about: [
         { key: 'metric:orders', name: 'Orders', kind: 'metric', dimension: null },
         {
@@ -48,15 +48,15 @@ describe('a question read for a person', () => {
   })
 
   it('reads a "this" period to today, and says so without the time zone', () => {
-    const reading = questionReading('orders this year', terms, today)
+    const reading = questionReading('orders this year', terms, today, [])
     expect([reading.from, reading.to]).toEqual(['2026-01-01', '2026-10-14'])
     expect(reading.dates?.note).toBe('this year so far')
     // A day says nothing more than its days.
-    expect(questionReading('orders on 2026-10-01', terms, today).dates?.note).toBeNull()
+    expect(questionReading('orders on 2026-10-01', terms, today, []).dates?.note).toBeNull()
   })
 
   it('gives words that name more than one term with the terms they could be, choosing none', () => {
-    const reading = questionReading('money in for Spain', withAlias, today)
+    const reading = questionReading('money in for Spain', withAlias, today, [])
     expect(reading.about.map((term) => term.key)).toEqual(['val:market/spain'])
     expect(reading.ambiguous).toEqual([
       {
@@ -70,9 +70,28 @@ describe('a question read for a person', () => {
   })
 
   it('names words it cannot read as dates, and gives no period for them', () => {
-    const reading = questionReading('orders since the launch', terms, today)
+    const reading = questionReading('orders since the launch', terms, today, [])
     expect(reading).toMatchObject({ from: null, to: null, dates: null })
     expect(reading.dates_problem?.words).toBe('since the launch')
     expect(reading.dates_problem?.message).toMatch(/^'since the launch' cannot be read as dates\./)
+  })
+
+  it('never reads a word that names a domain as part of a metric, as get_context does not', () => {
+    const shop: Term[] = [
+      {
+        key: 'metric:gross_sales',
+        kind: 'metric',
+        name: 'Gross sales',
+        aliases: [],
+        parentKey: null,
+        areaId: null,
+        definitionRefs: [],
+      },
+    ]
+    expect(questionReading('sales last week', shop, today, ['Sales']).about).toEqual([])
+    // Where no domain has the word, it is the one metric whose name holds it.
+    expect(questionReading('sales last week', shop, today, []).about).toMatchObject([
+      { key: 'metric:gross_sales' },
+    ])
   })
 })

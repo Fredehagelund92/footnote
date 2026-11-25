@@ -306,6 +306,24 @@ export const definitionRelationsSchema = z.object({
   relations: z.array(definitionRelationSchema),
 })
 
+/** A metric in what another is built from: refs and names, never a calculation (FR-143). */
+export const builtFromMetricSchema = z.object({
+  ref: z.string(),
+  /** The live term's name when one names it, else its name in the source. */
+  name: z.string(),
+  /** The live term that names it, whose page it opens; null when none does. */
+  key: z.nullable(z.string()),
+  /** No longer in the source: what it was built from is not read. */
+  missing: z.boolean(),
+  /** The metrics it is built from, by ref, in the source's order. */
+  from: z.array(z.string()),
+})
+
+export const definitionBuiltFromSchema = z.object({
+  /** The metric first, then each metric below it once, in the order they are first reached. */
+  metrics: z.array(builtFromMetricSchema),
+})
+
 const familyKey = z.string().check(z.regex(/^group:[a-z0-9_]+$/))
 
 /**
@@ -369,6 +387,7 @@ export type CatalogueSplit = z.infer<typeof catalogueSplitSchema>
 export type CatalogueValue = z.infer<typeof catalogueValueSchema>
 export type DefinitionRelation = z.infer<typeof definitionRelationSchema>
 export type DefinitionRelations = z.infer<typeof definitionRelationsSchema>
+export type DefinitionBuiltFrom = z.infer<typeof definitionBuiltFromSchema>
 export type FamilyMeaningData = z.infer<typeof familyMeaningSchema>
 export type FamilyMeaningInput = z.infer<typeof familyMeaningInputSchema>
 export type FamilyMeaningVersion = z.infer<typeof familyMeaningVersionSchema>

@@ -774,6 +774,7 @@ describe("Ask's loop on a period the person chose on the read line", () => {
       // The read made at the period, with the earlier turn's words, as the model wrote them.
       expect(again.reads?.[0]).toEqual({
         tool: 'get_context',
+        step: 0,
         input: { about: 'orders in Norway', no_period: true, period: 'last month' },
       })
     } finally {

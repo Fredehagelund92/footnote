@@ -115,7 +115,7 @@ import {
   relationText,
 } from '@/model/review-page'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { navigate } from '@/lib/router'
+import { backToList, navigate, plainClick } from '@/lib/router'
 import { useDomains, useFacts } from '@/lib/workspace'
 import { useInboxRows } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
@@ -1703,7 +1703,7 @@ function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUnd
             Undo the last one
           </Button>
         )}
-        <Button onClick={() => navigate('/inbox')}>Back to the Inbox</Button>
+        <Button onClick={() => backToList('/inbox', { card: undefined })}>Back to the Inbox</Button>
       </div>
     </div>
   )
@@ -1798,15 +1798,18 @@ export function ReviewPage({ id }: { id: string }) {
   )
   const at = reviews.findIndex((x) => x.id === id)
   // The next suggestion crossfades in (150ms) where the browser can; with reduced motion it cuts.
+  // A step through the suggestions takes the place of the address, as a cursor move does, so Esc
+  // and Back still lead to the Inbox in one press.
   const go = React.useCallback(
     (to: string) => {
-      const open = () => navigate(`/inbox/${to}/review`)
+      const open = () => navigate(`/inbox/${to}/review`, undefined, { replace: true })
       if (reduced || !document.startViewTransition) return open()
       document.startViewTransition(() => flushSync(open))
     },
     [reduced],
   )
-  const leave = React.useCallback(() => navigate('/inbox', { card: id }), [id])
+  // Esc goes back to the Inbox it was opened from, on the card of the suggestion last open.
+  const leave = React.useCallback(() => backToList('/inbox', { card: id }), [id])
   // Opening the review is reading its new reply and any mention of you: the Inbox markers go.
   // Opening it also counts as reading it, for "Publish the ones you've read".
   React.useEffect(() => {
@@ -1906,7 +1909,7 @@ export function ReviewPage({ id }: { id: string }) {
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {waiting && <Button onClick={() => go(waiting.id)}>Open the next suggestion</Button>}
-            <Button variant="outline" onClick={() => navigate('/inbox')}>
+            <Button variant="outline" onClick={() => backToList('/inbox', { card: undefined })}>
               Back to the Inbox
             </Button>
           </div>
@@ -2102,7 +2105,7 @@ export function ReviewPage({ id }: { id: string }) {
       {/* Under a finger every control is at least 40px; the phone bar's actions are 44px. */}
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
-          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
+          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox', onBack: leave }}
           more={
             <DropdownMenuItem onClick={() => setQueueOpen(true)}>
               <ListIcon />
@@ -2113,7 +2116,9 @@ export function ReviewPage({ id }: { id: string }) {
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
                 <BreadcrumbItem className="max-sm:hidden">
-                  <BreadcrumbLink href={`/inbox?card=${r.id}`}>Inbox</BreadcrumbLink>
+                  <BreadcrumbLink href={`/inbox?card=${r.id}`} onClick={plainClick(leave)}>
+                    Inbox
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="max-sm:hidden" />
                 <BreadcrumbItem className="max-sm:hidden">

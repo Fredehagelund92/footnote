@@ -2,8 +2,8 @@ import { expect, go, test } from './go.ts'
 
 // J87, what a metric is built from (FR-143): a synced metric's page says, under its description,
 // what its tool's structure says it is built from and what is built from it. A ratio's two inputs
-// are links to their pages; an input's page names the columns it reads and the metrics it is used
-// by. The same at 1440 and 390 wide, where the rows wrap and the page never scrolls sideways.
+// are lines of its tree; an input's page names the columns it reads and links the metrics it is
+// used by. The same at 1440 and 390 wide, where the rows wrap and the page never scrolls sideways.
 
 const widths = [
   { name: '1440', width: 1440, height: 900 },
@@ -14,7 +14,7 @@ for (const { name, width, height } of widths) {
   test.describe(name, () => {
     test.use({ viewport: { width, height } })
 
-    test('links a ratio’s inputs, and an input says what uses it', async ({ page }) => {
+    test('shows a ratio’s inputs, and an input says what uses it', async ({ page }) => {
       await go(page, '/definitions/Cost%20per%20acquisition')
       const main = page.getByRole('main')
       const built = main.getByRole('region', { name: 'How it is built' })
@@ -27,10 +27,14 @@ for (const { name, width, height } of widths) {
       expect(own.y).toBeGreaterThanOrEqual(above.y + above.height)
       expect(own.y + own.height).toBeLessThanOrEqual(below.y)
       await expect(built).toContainText('Built from')
-      await expect(built.getByRole('link')).toHaveText(['Marketing spend', 'First-time buyers'])
+      // The inputs are the lines of its tree (J128), under the metric itself.
+      await expect(built.getByRole('treeitem')).toContainText([
+        'Cost per acquisition',
+        'Marketing spend',
+        'First-time buyers',
+      ])
 
-      await built.getByRole('link', { name: 'First-time buyers' }).click()
-      await expect(page).toHaveURL(/\/definitions\/First-time%20buyers$/)
+      await go(page, '/definitions/First-time%20buyers')
       const input = page.getByRole('main').getByRole('region', { name: 'How it is built' })
       await expect(input).toContainText('columnscustomer_idfirst_paid_order_at')
       await expect(input.getByRole('link')).toHaveText(['Cost per acquisition'])

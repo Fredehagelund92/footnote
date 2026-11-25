@@ -8,7 +8,12 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { DockFrame, DockMissing, DockWaiting, PeekBar } from '@/components/dock'
-import { AnotherNameFor, SynonymTags, TypeTile } from '@/components/footnote/definition'
+import {
+  AnotherNameFor,
+  builtFromParts,
+  SynonymTags,
+  TypeTile,
+} from '@/components/footnote/definition'
 import { familyParts } from '@/components/footnote/family-parts'
 import { DockStepper } from '@/components/footnote/list'
 import {
@@ -40,6 +45,8 @@ import { useRelated } from '@/hooks/use-related'
 // row, and the one action. A word that means two things is the one attention line.
 
 const FamilyPeek = React.lazy(() => import('@/components/footnote/family-peek'))
+// What a synced metric is built from: its own code, loaded when a metric's quick view first opens.
+const BuiltFromBand = React.lazy(() => import('@/components/footnote/built-from-tree'))
 
 export function DefinitionPeek({ name }: { name: string }) {
   const glossary = useGlossary()
@@ -89,7 +96,11 @@ export function DefinitionPeek({ name }: { name: string }) {
       quietTitle
       actions={
         <PeekBar onExpand={() => navigate(page)}>
-          <DockStepper list="definitions" id={d.name} onGo={(n) => openDock('def', n)} />
+          <DockStepper
+            list="definitions"
+            id={d.name}
+            onGo={(n) => openDock('def', n, undefined, { replace: true })}
+          />
         </PeekBar>
       }
       footer={
@@ -177,6 +188,11 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekBand label="Another name">
             <SynonymTags d={d} canEdit={canEdit} />
           </PeekBand>
+        )}
+        {d.synced && subject.type === 'metric' && (
+          <React.Suspense fallback={null}>
+            <BuiltFromBand name={d.name} tool={d.tool ?? 'its tool'} parts={builtFromParts} />
+          </React.Suspense>
         )}
         {related.links.length > 0 && (
           <PeekBand label="Related">

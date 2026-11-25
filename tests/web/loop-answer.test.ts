@@ -1152,7 +1152,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(section.querySelectorAll('li').length).toBe(long.rows.length)
     // A group a page shows filtered links there.
     expect(
-      [...el.querySelectorAll('a')].some((a) => a.getAttribute('href') === '/context?due=1'),
+      [...el.querySelectorAll('a')].some((a) => a.getAttribute('href') === '/context?status=due'),
     ).toBe(true)
   })
 

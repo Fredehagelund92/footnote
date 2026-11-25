@@ -1,3 +1,4 @@
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider'
 import { describe, expect, it } from 'vitest'
 import { chatTurnOf, type Answer } from '@/model/ask'
 import { fitChat } from '@domain/ask-chat'
@@ -93,5 +94,119 @@ describe('a long chat in Ask', () => {
     expect(costs[9]!, said).toBeLessThanOrEqual(2 * costs[1]!)
     // Nor any later turn: what a turn sends stops growing after its third (EARLIER_TURNS).
     for (const cost of costs.slice(2)) expect(cost, said).toBeLessThanOrEqual(2 * costs[1]!)
+  }, 120_000)
+})
+
+/*
+  A follow-up starts with what the turn before it last sent, message for message (23 November
+  2026): the earlier question with its language note, and its reads under the ids the follow-up
+  sends them by. So the provider reads them from its prompt cache instead of writing them again:
+  a follow-up that read nothing cost USD 0.022 with them written again, USD 0.0048 with them read.
+  Each read goes back with its step and the words the model wrote before it, as models mostly do
+  ("I'll look up ..."), so a turn that read in two steps is sent again in two.
+*/
+describe('a follow-up in Ask', () => {
+  const prompts: LanguageModelV4Prompt[] = []
+  const capture = scriptedLoopChoice('chat-prefix', ({ question, results, prompt }) => {
+    prompts.push(structuredClone(prompt))
+    if (question === 'Who owns it?' || results.length > 1)
+      return { text: 'What is written is listed under the answer, with who checked it and when.' }
+    return results.length
+      ? {
+          text: 'And what else is written about it.',
+          calls: [{ toolName: 'find_context', input: { words: question } }],
+        }
+      : {
+          text: 'Looking up what is written.',
+          calls: [{ toolName: 'get_context', input: { about: question } }],
+        }
+  })
+  const captured: ModelChoice = { ...capture, prices: sonnet.prices }
+  const port: ModelPort = { ...live, choose: () => captured, otherLine: () => captured }
+  const chat = askWorld({ models: port })
+  // Where a cache mark sits moves from turn to turn; what is sent does not.
+  const sent = (prompt: LanguageModelV4Prompt) =>
+    JSON.parse(
+      JSON.stringify(prompt, (key, value: unknown) =>
+        key === 'providerOptions' ? undefined : value,
+      ),
+    ) as unknown[]
+
+  it('sends the earlier turn as it was sent, so its prompt cache holds', async () => {
+    const api = await chat.as(ML)
+    const first = await api.ask({ question: 'What is net revenue?' })
+    const last = sent(prompts.at(-1)!)
+    const from = prompts.length
+    const turns = fitChat([chatTurnOf(first)!])
+    const followUp = await api.ask({ question: 'Who owns it?', turns })
+    expect(followUp.stopped).toBeUndefined()
+    const next = sent(prompts[from]!)
+    // The two steps the first turn read in, then its words: the follow-up adds to what was sent.
+    expect(last.length).toBeGreaterThan(4)
+    expect(next.slice(0, last.length)).toEqual(last)
+  }, 120_000)
+
+  /*
+    A turn that reads more than a follow-up sends back (LOOP_READS, 8): twelve reads, three a step.
+    Each read has an id of its own, kept as the turn goes on, so each step's prompt starts with the
+    last one's; numbered among the latest 8, the ninth read took an id an earlier read was sent by.
+    The follow-up sends the latest 8 back in the steps that made them, each step with its own words.
+  */
+  const many = [
+    'Looking up net revenue.',
+    'Now who owns it.',
+    'And what changed.',
+    'Last, conflicts.',
+  ]
+  const manyPrompts: LanguageModelV4Prompt[] = []
+  const reading = scriptedLoopChoice('chat-many', ({ question, step, prompt }) => {
+    manyPrompts.push(structuredClone(prompt))
+    if (question === 'Who owns it?' || step >= many.length)
+      return { text: 'What is written is listed under the answer, with who checked it and when.' }
+    return {
+      text: many[step]!,
+      calls: [
+        { toolName: 'get_context', input: { about: `${question} ${many[step]!}` } },
+        { toolName: 'find_context', input: { words: `net revenue ${step}` } },
+        { toolName: 'find_context', input: { words: `revenue ${step}` } },
+      ],
+    }
+  })
+  const readingChoice: ModelChoice = { ...reading, prices: sonnet.prices }
+  const manyChat = askWorld({
+    models: { ...live, choose: () => readingChoice, otherLine: () => readingChoice },
+  })
+
+  it('keeps each read’s id through a turn of twelve, and sends the latest 8 in their steps', async () => {
+    const api = await manyChat.as(ML)
+    const first = await api.ask({ question: 'What is net revenue?' })
+    const turn = manyPrompts.map(sent)
+    expect(turn.length).toBe(many.length + 1)
+    for (const [k, prompt] of turn.entries())
+      if (k) expect(prompt.slice(0, turn[k - 1]!.length), `step ${k}`).toEqual(turn[k - 1])
+    const ids = (manyPrompts.at(-1) ?? []).flatMap((m) =>
+      m.role === 'assistant'
+        ? m.content.flatMap((part) => (part.type === 'tool-call' ? [part.toolCallId] : []))
+        : [],
+    )
+    expect(new Set(ids).size).toBe(12)
+    expect(ids).toHaveLength(12)
+    const from = manyPrompts.length
+    await api.ask({ question: 'Who owns it?', turns: fitChat([chatTurnOf(first)!]) })
+    type Part = { type: string; text?: string }
+    const steps = (sent(manyPrompts[from]!) as { role: string; content: Part[] | string }[])
+      .filter((m) => m.role === 'assistant' && Array.isArray(m.content))
+      .map((m) => m.content as Part[])
+      .filter((parts) => parts.some((p) => p.type === 'tool-call'))
+    expect(
+      steps.map((parts) => ({
+        words: parts.find((p) => p.type === 'text')?.text,
+        calls: parts.filter((p) => p.type === 'tool-call').length,
+      })),
+    ).toEqual([
+      { words: many[1], calls: 2 },
+      { words: many[2], calls: 3 },
+      { words: many[3], calls: 3 },
+    ])
   }, 120_000)
 })

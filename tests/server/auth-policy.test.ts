@@ -178,6 +178,7 @@ const readOperations = [
   'terms.history',
   'definitions.related',
   'definitions.relations',
+  'definitions.builtFrom',
   'definitions.setFamilyMeaning',
   'definitions.setFamilyUsual',
   'definitions.splitFamily',

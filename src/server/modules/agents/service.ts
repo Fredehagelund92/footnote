@@ -56,5 +56,10 @@ export async function readTryItQuestion(
       message:
         'Nothing is shared with agents yet. They get context once an owner publishes the first item.',
     })
-  return questionReading(question, bundle.terms, clock.today())
+  return questionReading(
+    question,
+    bundle.terms,
+    clock.today(),
+    bundle.areas.map((area) => area.name),
+  )
 }

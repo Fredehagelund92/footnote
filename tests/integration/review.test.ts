@@ -57,7 +57,8 @@ const norway = {
 async function ask(input: object = norway) {
   const result = await execute(
     'get_context',
-    { response_format: 'full', ...input },
+    // Every item that applies: these tests read what is served, not one page of it.
+    { response_format: 'full', max_items: 50, ...input },
     { client: 'claude-code', scopes: ['read'], caller: 'agent', canSelectEdition: false },
     100000,
     () => {},

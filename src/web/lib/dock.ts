@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { setQuery, useRoute } from '@/lib/router'
+import { changeQuery, setQuery, useRoute } from '@/lib/router'
 
 // The dock's content lives in the address (?dock=kind.id), so Back closes it and every state has a link.
 
@@ -47,21 +47,30 @@ export function useDock(): DockState | null {
   }
 }
 
-export function openDock(kind: DockKind, id?: string, extra?: Record<string, string | undefined>) {
+/** Opens a panel; with `replace`, as a cursor moving through a list does, in the place of the address now. */
+export function openDock(
+  kind: DockKind,
+  id?: string,
+  extra?: Record<string, string | undefined>,
+  opts?: { replace?: boolean },
+) {
   setTyped(null)
   fromRow = undefined
   fromButton = null
   fromButtonId = undefined
-  setQuery({
-    dock: id ? `${kind}.${id}` : kind,
-    tab: undefined,
-    flag: undefined,
-    ptab: undefined,
-    when: undefined,
-    variant: undefined,
-    meaning: undefined,
-    ...extra,
-  })
+  void changeQuery(
+    {
+      dock: id ? `${kind}.${id}` : kind,
+      tab: undefined,
+      flag: undefined,
+      ptab: undefined,
+      when: undefined,
+      variant: undefined,
+      meaning: undefined,
+      ...extra,
+    },
+    opts,
+  )
 }
 
 export function closeDock() {

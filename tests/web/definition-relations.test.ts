@@ -26,11 +26,11 @@ afterEach(() => {
   host?.remove()
 })
 
-function draw(relations: DefinitionRelation[]) {
+function draw(relations: DefinitionRelation[], tree?: React.ReactNode) {
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)
-  act(() => root!.render(React.createElement(RelationList, { relations, tool: 'dbt' })))
+  act(() => root!.render(React.createElement(RelationList, { relations, tool: 'dbt', tree })))
   return host
 }
 
@@ -77,6 +77,39 @@ describe('how a metric is built', () => {
       ['Used by', 'partners.signup_quality'],
     ])
     expect([...page.querySelectorAll('a')].map((a) => a.textContent)).toEqual(['Signups'])
+  })
+
+  it('draws the metrics it is built from as the tree, first, and names its own columns apart', () => {
+    const tree = React.createElement('div', { role: 'tree' }, 'the tree')
+    const page = draw(
+      [
+        relation({ kind: 'built_from', name: 'Signups' }),
+        relation({ kind: 'built_from', name: 'signup_bonus', column: true, linked: false }),
+        relation({ kind: 'used_by', name: 'Signup quality' }),
+      ],
+      tree,
+    )
+    expect(page.querySelector('section')!.firstElementChild!.getAttribute('role')).toBe('tree')
+    expect(rows(page)).toEqual([
+      ['Columns', 'columnsignup_bonus'],
+      ['Used by', 'Signup quality'],
+    ])
+  })
+
+  it('keeps its inputs as Built from while there is no tree to show them', () => {
+    const page = draw([
+      relation({ kind: 'built_from', name: 'Signups' }),
+      relation({ kind: 'built_from', name: 'signup_bonus', column: true, linked: false }),
+    ])
+    expect(page.querySelector('[role="tree"]')).toBeNull()
+    expect(rows(page)).toEqual([['Built from', 'Signupscolumnsignup_bonus']])
+  })
+
+  it('draws no tree for a metric built from no metric', () => {
+    const tree = React.createElement('div', { role: 'tree' }, 'the tree')
+    expect(draw([relation({ kind: 'used_by', name: 'Signup quality' })], tree).textContent).toBe(
+      'Used bySignup quality',
+    )
   })
 
   it('shows nothing when the tool says nothing', () => {

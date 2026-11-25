@@ -61,6 +61,8 @@ export const queryKeys = {
   definitionPages: ['definitionPage'] as const,
   definitionRelations: (name: string) => ['getDefinitionRelations', name.toLowerCase()] as const,
   definitionRelationLists: ['getDefinitionRelations'] as const,
+  builtFrom: (name: string) => ['getBuiltFrom', name.toLowerCase()] as const,
+  builtFromLists: ['getBuiltFrom'] as const,
   definitionHistory: (name: string) => ['getDefinitionHistory', name.toLowerCase()] as const,
   definitionHistories: ['getDefinitionHistory'] as const,
   inbox: ['getInbox'] as const,
@@ -241,6 +243,12 @@ export const definitionRelationsQuery = (name: string) =>
   queryOptions({
     queryKey: queryKeys.definitionRelations(name),
     queryFn: () => api.getDefinitionRelations({ name }),
+  })
+
+export const builtFromQuery = (name: string) =>
+  queryOptions({
+    queryKey: queryKeys.builtFrom(name),
+    queryFn: () => api.getBuiltFrom({ name }),
   })
 
 export const definitionHistoryQuery = (name: string) =>
@@ -556,6 +564,7 @@ const definitions: QueryKey[] = [
   queryKeys.familySplits,
   queryKeys.definitionPages,
   queryKeys.definitionRelationLists,
+  queryKeys.builtFromLists,
   queryKeys.definitionHistories,
   queryKeys.relateds,
   // A synonym changes how a question is read.

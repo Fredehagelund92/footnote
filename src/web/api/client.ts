@@ -21,6 +21,7 @@ import type { ScopeSearchResult } from '@contract/scope'
 import type { ReactionEmoji } from '@/components/templates/comment-box/types'
 import type { FactAction, Skip } from '@/lib/bulk'
 import type {
+  BuiltFromMetric,
   Definition,
   DefinitionRelation,
   DefinitionType,
@@ -575,6 +576,11 @@ export interface FootnoteApi {
   /** What a synced metric is built from and what is built from it; none for anything else. */
   getDefinitionRelations: (input: { name: string }) => Promise<DefinitionRelation[]>
   /**
+   * What a synced metric is built from at every depth: the metric first, then each metric below it
+   * once. None for anything else.
+   */
+  getBuiltFrom: (input: { name: string }) => Promise<BuiltFromMetric[]>
+  /**
    * Chooses what a family of metrics means, by an owner of its domain or an admin: worked out from
    * its variants again, or words written for the family. `revision` is the meaning's as the
    * person read it.
@@ -1021,6 +1027,7 @@ export const footnoteApiMethods = [
   'definitionsPage',
   'definitionPage',
   'getDefinitionRelations',
+  'getBuiltFrom',
   'getDefinitionHistory',
   'setFamilyMeaning',
   'setFamilyUsual',
@@ -1155,6 +1162,7 @@ export const readMethods = [
   'definitionsPage',
   'definitionPage',
   'getDefinitionRelations',
+  'getBuiltFrom',
   'getDefinitionHistory',
   'getFamilySplits',
   'getInbox',

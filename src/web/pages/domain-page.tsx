@@ -363,7 +363,7 @@ export function DomainPage({
                       <>
                         <span aria-hidden>-</span>
                         <a
-                          href={href('/context', { domain: id, due: '1' })}
+                          href={href('/context', { domain: id, status: 'due' })}
                           className="underline-offset-4 hover:underline"
                         >
                           {due} due for a check

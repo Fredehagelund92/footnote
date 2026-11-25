@@ -74,7 +74,15 @@ import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { askInDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
-import { href, navigate, setQuery, useRoute } from '@/lib/router'
+import {
+  backToList,
+  changeQuery,
+  href,
+  navigate,
+  openFromList,
+  setQuery,
+  useRoute,
+} from '@/lib/router'
 import { safeHref } from '@/lib/host'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -594,12 +602,12 @@ function useActions(card: InboxCard) {
   const primary = () => {
     switch (card.type) {
       case 'suggestion':
-        return navigate(`/inbox/${card.id}/review`)
+        return openFromList(`/inbox/${card.id}/review`)
       case 'gap':
         // A draft waits: the same review as any suggestion. With none yet, the editor opens on the
         // scope, for this card: publishing what is written there closes it.
         return card.gap?.draft
-          ? navigate(`/inbox/${card.id}/review`)
+          ? openFromList(`/inbox/${card.id}/review`)
           : navigate('/context/new', {
               gap: card.id,
               metric: card.gap?.scope[0],
@@ -1503,7 +1511,7 @@ function DueRow({ due }: { due: number }) {
     <section aria-label="Needs you" className="mb-4 grid grid-cols-1 gap-px bg-border p-px">
       <Cell className="gap-0 py-0">
         <a
-          href={href('/context', { due: '1' })}
+          href={href('/context', { status: 'due' })}
           className="flex min-h-16 items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
         >
           <span
@@ -1659,11 +1667,21 @@ export function InboxPage() {
   })
   const frameRef = React.useRef<HTMLDivElement>(null)
   const primary = () => frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
+  // The card on show, in the address. On a wide screen the pane follows the cursor, so a pick takes
+  // the place of the address and Back leaves the Inbox in one press. On a phone a card opens over
+  // the list as a page of its own: Back, or the card's back arrow, returns to the list.
+  const show = (card: string | undefined, extra?: Record<string, string | undefined>) => {
+    const changes = { card, draft: undefined, ...extra }
+    const all = { ...Object.fromEntries(query), ...changes }
+    if (isMobile && card && !selectedId) openFromList('/inbox', all)
+    else if (isMobile && !card && selectedId) backToList('/inbox', all, { replace: true })
+    else void changeQuery(changes, { replace: true })
+  }
   // Enter on a row opens the card and moves the focus to the pane's one decision.
   const select = (id?: string, pointer = false, key = false) => {
     // On a phone the whole card slides in; its body does not fade on top of that.
     setPicked({ id, fade: pointer && !isMobile, key })
-    setQuery({ card: id ?? (isMobile ? undefined : 'none'), draft: undefined })
+    show(id ?? (isMobile ? undefined : 'none'))
   }
   React.useEffect(() => {
     if (picked.key && picked.id === selectedId) primary()?.focus()
@@ -1696,7 +1714,7 @@ export function InboxPage() {
   const next = () => {
     const rest = needing.filter((r) => rowId(r) !== selectedId)
     setPicked({ id: rest[0] && rowId(rest[0]), fade: true })
-    setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined, draft: undefined })
+    show(rest[0] && rowId(rest[0]), { dock: undefined })
   }
 
   // J and K step through the list, Enter opens the selected card's primary action.
