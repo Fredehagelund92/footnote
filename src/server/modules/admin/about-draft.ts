@@ -35,9 +35,8 @@ const cut = (text: string | null) =>
   text ? [...text.trim()].slice(0, ABOUT_FACTS_LIMITS.description).join('') : null
 
 /**
- * The domains, the live metrics with what their definitions say, and the live dimensions with
- * their values, as the person reads them. The sandbox is not the business, and a definition the
- * source limits to groups is left out.
+ * The domains and the live metrics with what their definitions say, as the person reads them.
+ * The sandbox is not the business, and a definition the source limits to groups is left out.
  */
 export async function readAboutFacts(tx: Queryable): Promise<AboutFacts> {
   const domains = await tx.query<{ name: string; description: string }>(
@@ -55,28 +54,14 @@ export async function readAboutFacts(tx: Queryable): Promise<AboutFacts> {
       where t.kind = 'metric' order by t.name limit $1`,
     [ABOUT_FACTS_LIMITS.metrics],
   )
-  const dimensions = await tx.query<{ name: string; values: string[] }>(
-    `select d.name,
-            coalesce((select array_agg(v.name order by v.name) from (
-               select v.name from serving_vocabulary((select seq from live_edition)) v
-                where v.kind = 'dimension_value' and v.parent_key = d.key
-                order by v.name limit $2) v), '{}') as values
-       from serving_vocabulary((select seq from live_edition)) d
-      where d.kind = 'dimension' order by d.name limit $1`,
-    [ABOUT_FACTS_LIMITS.dimensions, ABOUT_FACTS_LIMITS.values],
-  )
   return {
     domains: domains.map((d) => ({ name: d.name, description: cut(d.description) ?? '' })),
     metrics: metrics.map((m) => ({ name: m.name, description: cut(m.description) })),
-    dimensions,
   }
 }
 
 /** Whether the facts hold anything to write from. */
-const holdsAnything = (facts: AboutFacts) =>
-  facts.domains.length > 0 ||
-  facts.metrics.length > 0 ||
-  facts.dimensions.some((d) => d.values.length > 0)
+const holdsAnything = (facts: AboutFacts) => facts.domains.length > 0 || facts.metrics.length > 0
 
 /** The scripted drafter the service runs on the mock (MODELS=mock): the rule, no model. */
 export function scriptedAboutModel(): ModelChoice {

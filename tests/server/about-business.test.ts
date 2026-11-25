@@ -52,24 +52,17 @@ describe('a first version by rule', () => {
       { name: 'Orders', description: 'Completed and paid orders.' },
       { name: 'Net revenue', description: null },
     ],
-    dimensions: [
-      { name: 'Market', values: ['Germany', 'Norway', 'Sweden'] },
-      { name: 'Region', values: [] },
-      { name: 'Channel', values: ['Stores', 'Webshop'] },
-    ],
   }
 
-  it('names the metrics across the domains, then the dimensions with values', () => {
-    expect(aboutByRule(facts)).toBe(
-      'We follow Orders and Net revenue across Sales and Marketing. We work by Market (Germany, Norway and Sweden) and Channel (Stores and Webshop).',
-    )
+  it('names the metrics across the domains', () => {
+    expect(aboutByRule(facts)).toBe('We follow Orders and Net revenue across Sales and Marketing.')
   })
 
   it('says only what there is, and nothing when there is nothing', () => {
-    expect(aboutByRule({ domains: facts.domains, metrics: [], dimensions: [] })).toBe(
+    expect(aboutByRule({ domains: facts.domains, metrics: [] })).toBe(
       'Our work is organised in Sales and Marketing.',
     )
-    expect(aboutByRule({ domains: [], metrics: [], dimensions: [] })).toBe('')
+    expect(aboutByRule({ domains: [], metrics: [] })).toBe('')
   })
 
   it('is one the setting accepts, however many names there are', () => {
@@ -77,7 +70,6 @@ describe('a first version by rule', () => {
     const text = aboutByRule({
       domains: many.map((name) => ({ name, description: '' })),
       metrics: many.map((name) => ({ name, description: null })),
-      dimensions: many.map((name) => ({ name, values: many })),
     })
     expect(settingSchemas['business.about'].safeParse(text)).toEqual({ success: true, data: text })
   })
@@ -88,7 +80,6 @@ describe("a model's first version", () => {
     const facts: AboutFacts = {
       domains: [{ name: 'Sales', description: 'Orders.' }],
       metrics: [],
-      dimensions: [],
     }
     expect(aboutFactsIn(`Before ${aboutFactsMessage(facts)} after`)).toEqual(facts)
     expect(aboutFactsIn('No facts here.')).toBeNull()

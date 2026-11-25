@@ -4,7 +4,7 @@ import { expect, go, inHttpOnly, test } from './go.ts'
 // J119: About our business says what to write and what to leave out, and Write a first version for
 // me drafts the text from the install's domains, metrics and definitions. The draft is shown to
 // change and saved only when it is kept: until then the page says Not saved yet, the service still
-// stores what it stored before, a narrower window keeps it, and Discard puts back what was stored.
+// stores what it stored before, and Discard puts back what was stored.
 
 const about = (page: Page) => page.getByRole('textbox', { name: 'About our business' })
 /** The header's status: the one line that says whether the words are saved. */
@@ -41,13 +41,6 @@ test('a first version is written from the install and saved only when it is kept
   await expect(first).toContainText('Not saved until you keep it')
   await expect(about(page)).toHaveText(/^(We follow|Our work is organised in) /)
   await expect(status(page)).toHaveText('Not saved yet')
-  // The page is drawn again when the window crosses the narrow layout: the draft stays.
-  const wide = page.viewportSize()!
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expect(first).toBeVisible()
-  await page.setViewportSize(wide)
-  await expect(first).toBeVisible()
-  await expect(about(page)).toHaveText(/^(We follow|Our work is organised in) /)
   // Changed, and still not saved.
   await about(page).locator('p').last().click()
   await page.keyboard.press('End')

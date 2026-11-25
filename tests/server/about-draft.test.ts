@@ -19,7 +19,6 @@ import type { ModelChoice } from '../../src/server/modules/models/index.ts'
 const facts: AboutFacts = {
   domains: [{ name: 'Sales', description: 'Orders and what customers pay.' }],
   metrics: [{ name: 'Orders', description: 'Completed and paid orders.' }],
-  dimensions: [{ name: 'Market', values: ['Germany', 'Norway'] }],
 }
 const noDatabase = {} as Database
 
@@ -67,7 +66,7 @@ describe('a first version of About our business', () => {
 
   it('is refused when there is nothing to write from', async () => {
     const { choice, sent } = modelOf('Anything.')
-    await expect(draft(choice, { domains: [], metrics: [], dimensions: [] })).rejects.toThrow(
+    await expect(draft(choice, { domains: [], metrics: [] })).rejects.toThrow(
       /nothing to write from yet/,
     )
     expect(sent).toHaveLength(0)

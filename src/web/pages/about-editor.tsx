@@ -39,12 +39,6 @@ import {
 
 const LIMIT = ABOUT_BUSINESS_MAX
 
-/**
- * The first version on the sheet, as it is now, while it is not kept: the page is drawn again when
- * the window crosses the narrow layout, and the draft must outlive that as typed words do.
- */
-const shown: { draft: string | null; person: string | null } = { draft: null, person: null }
-
 export function AboutPage({
   title,
   helpText,
@@ -53,8 +47,6 @@ export function AboutPage({
   helpText: React.ReactNode
 }) {
   const me = useMe()
-  // Another person signed in on this tab never gets the draft.
-  const kept = shown.person === me.name ? shown.draft : null
   const { about, aboutTemplate, domains } = useWorkspace()
   // A first version is written from the domains and the metrics: offered once there are some.
   const { metrics } = useVocabulary()
@@ -66,10 +58,8 @@ export function AboutPage({
   // Null until the first keystroke; until then the count and the words are what the editor writes back.
   const [typed, setTyped] = React.useState<string | null>(null)
   // A first version on the sheet that is not kept yet: what is typed into it is not saved either.
-  const [draft, setDraft] = React.useState<'writing' | 'shown' | null>(
-    kept === null ? null : 'shown',
-  )
-  const drafting = React.useRef(kept !== null)
+  const [draft, setDraft] = React.useState<'writing' | 'shown' | null>(null)
+  const drafting = React.useRef(false)
   const autosave = useAutosave({
     save: (text: string) => write('setAbout', { text }),
     onError: (e) =>
@@ -77,10 +67,7 @@ export function AboutPage({
   })
   const save = (text: string) => {
     setTyped(text)
-    if (drafting.current) {
-      shown.draft = text
-      return
-    }
+    if (drafting.current) return
     // Too long is never sent; shortening it saves it.
     if (aboutBusinessLength(normalizeAboutBusiness(text)) <= LIMIT) autosave.change(text)
     else autosave.discard()
@@ -92,7 +79,7 @@ export function AboutPage({
     extensions: docExtensions(
       'For example: We sell outdoor gear to hikers in our own stores, online and through marketplaces.',
     ),
-    content: kept ?? about,
+    content: about,
     contentType: 'markdown',
     editorProps: { attributes: { 'aria-label': 'About our business' } },
     onUpdate: ({ editor }) => save(editor.getMarkdown()),
@@ -111,9 +98,7 @@ export function AboutPage({
       ({ text }) => {
         drafting.current = true
         editor.commands.setContent(text, { contentType: 'markdown' })
-        shown.draft = editor.getMarkdown()
-        shown.person = me.name
-        setTyped(shown.draft)
+        setTyped(editor.getMarkdown())
         setDraft('shown')
       },
       (e: unknown) => {
@@ -123,7 +108,6 @@ export function AboutPage({
     )
   }
   const keepDraft = () => {
-    shown.draft = null
     drafting.current = false
     setDraft(null)
     save(editor.getMarkdown())
@@ -131,7 +115,6 @@ export function AboutPage({
   const discardDraft = () => {
     editor.commands.setContent(about, { contentType: 'markdown' })
     setTyped(editor.getMarkdown())
-    shown.draft = null
     drafting.current = false
     setDraft(null)
   }

@@ -529,7 +529,7 @@ export function createMockApi() {
       })),
     getActivity: ({ name }) => now(() => workspace.activityOf(name, seedFacts)),
     setAbout: ({ text }) => now(() => dispatch({ type: 'about', text })),
-    // As the service's scripted mock writes it: by rule, from the demo's domains, metrics and values.
+    // As the service's scripted mock writes it: by rule, from the demo's domains and metrics.
     draftAbout: () =>
       now(() => ({
         text: aboutByRule({
@@ -538,10 +538,6 @@ export function createMockApi() {
             .filter((d) => !d.sandbox)
             .map((d) => ({ name: d.name, description: d.covers })),
           metrics: metrics.map((m) => ({ name: m.name, description: m.definition || null })),
-          dimensions: dimensions.map((d) => ({
-            name: d.name,
-            values: d.name === 'Market' ? markets : d.values.split(', '),
-          })),
         }),
       })),
     completeSetupStep: ({ step }) => now(() => dispatch({ type: 'setupStep', step })),
