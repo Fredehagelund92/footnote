@@ -200,7 +200,9 @@ export function MentionChip({
       className={cn(
         chip,
         tone.className,
-        'cursor-pointer transition-[filter] outline-none hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:brightness-125',
+        // A domain or a person opens nothing on a press, only its card: the arrow, not a pointer.
+        kind === 'domain' || kind === 'person' ? 'cursor-default' : 'cursor-pointer',
+        'transition-[filter] outline-none hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:brightness-125',
         className,
       )}
       {...(kind === 'context' ? ahead(key) : {})}

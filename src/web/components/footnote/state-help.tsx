@@ -14,12 +14,12 @@ const GAP = 8
 const heights = new Map<string, number>()
 
 /**
- * Where the card goes, so it never covers the words it explains: beside the words when the thread
- * has room to their right for all of it, above the badge when it fits there, and otherwise in the
- * thread under the badge, where it moves the words down rather than sitting on them (a phone, or
- * an answer at the very top of the view).
+ * Where the card goes, so it covers the words it explains only when nothing else fits: beside the
+ * words when the thread has room to their right for all of it, above the badge when it fits there,
+ * and otherwise under the badge, over the words (a phone, or an answer at the very top of the
+ * view). It always floats: opening it never moves the thread.
  */
-type Place = 'right' | 'top' | 'inline'
+type Place = 'right' | 'top' | 'bottom'
 
 function placeFor(badge: Element, words: Element | null | undefined, height: number): Place {
   const frame = badge.closest('[data-thread]')?.getBoundingClientRect() ?? {
@@ -37,15 +37,15 @@ function placeFor(badge: Element, words: Element | null | undefined, height: num
   )
     return 'right'
   if (top - frame.top - 2 * GAP >= height) return 'top'
-  return 'inline'
+  return 'bottom'
 }
 
 /**
  * The state of an answer, at its head: the badge alone, its one or two words with its icon and
  * tint. What it means is a card on the badge: on hover, on keyboard focus and on a tap, the
  * meaning in plain words, what to do, anything the answer adds (`children`: which two items
- * disagree), and a way to all six. The card never covers the words it explains (`placeFor`), and
- * Escape closes it with focus back on the badge.
+ * disagree), and a way to all six. The card floats, off the words it explains wherever it fits
+ * (`placeFor`), and Escape closes it with focus back on the badge.
  */
 export function StateHelp({
   state,
@@ -124,7 +124,7 @@ export function DefinitionHelp({
   )
 }
 
-/** A badge whose meaning is a card on it, placed so it never covers the words it explains. */
+/** A badge whose meaning is a floating card on it, placed off the words it explains where it fits. */
 function BadgeCard({
   id,
   label,
@@ -155,7 +155,6 @@ function BadgeCard({
   const [place, setPlace] = React.useState<Place>('top')
   const trigger = React.useRef<HTMLButtonElement>(null)
   const card = React.useRef<HTMLDivElement>(null)
-  const slot = React.useRef<HTMLDivElement>(null)
   // Closed from inside the card, focus comes back to the badge: that doesn't open it again.
   const returning = React.useRef(false)
   const show = (next: boolean) => {
@@ -205,19 +204,13 @@ function BadgeCard({
       >
         {badge}
       </PopoverTrigger>
-      {/* Where the card goes in the thread when it has nowhere else to go. */}
-      <div ref={slot} className="empty:hidden" />
       <PopoverContent
-        side={place === 'right' ? 'right' : place === 'top' ? 'top' : 'bottom'}
+        side={place}
         align="start"
         sideOffset={GAP}
         anchor={place === 'right' ? besideWords : undefined}
         // Never turned onto the words: beside them or above the badge it stays on its side.
         collisionAvoidance={{ side: 'none', align: 'shift' }}
-        container={place === 'inline' ? slot : undefined}
-        positionerClassName={
-          place === 'inline' ? 'static! transform-none! translate-none!' : undefined
-        }
         // It opens beside the badge, not into it: Tab goes on into the card, Escape comes back.
         initialFocus={false}
         ref={card}

@@ -68,9 +68,10 @@ export function dayText(day: string, short = false) {
   return short ? dayMonthYear(day) : dayMonthYearLong(day)
 }
 
-// 24px tall at the least, so each is a target a pointer can hit (WCAG 2.5.8).
+// 24px tall at the least, so each is a target a pointer can hit (WCAG 2.5.8). The arrow, not the
+// text cursor: a chip is a name with a card, and only one whose press opens something points.
 const chip =
-  'inline-flex min-h-6 max-w-full items-center gap-1 rounded-sm px-1.5 py-px align-baseline text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+  'inline-flex min-h-6 max-w-full cursor-default items-center gap-1 rounded-sm px-1.5 py-px align-baseline text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
 
 /**
  * A trigger with its card: hover opens it after a moment, keyboard focus opens it at once, a press
@@ -423,7 +424,7 @@ export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
   const P = useParts()
   const { lit } = React.useContext(LitSource)
   const marker =
-    'relative ml-0.5 mr-px inline-flex h-6 min-w-6 -translate-y-px items-center justify-center rounded-md bg-muted px-1.5 align-middle text-xs font-medium text-foreground tabular-nums outline-none transition-colors after:absolute after:-inset-[13px] hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50'
+    'relative ml-0.5 mr-px inline-flex h-6 min-w-6 -translate-y-px cursor-default items-center justify-center rounded-md bg-muted px-1.5 align-middle text-xs font-medium text-foreground tabular-nums outline-none transition-colors after:absolute after:-inset-[13px] hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50'
   const shown = P.cn(marker, lit === n && 'bg-foreground text-background hover:bg-foreground')
   if (!item)
     return (
@@ -439,7 +440,8 @@ export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
           role="button"
           tabIndex={0}
           aria-label={`Source ${n}: ${item.title}`}
-          className={shown}
+          // A press opens the item.
+          className={P.cn(shown, 'cursor-pointer')}
         >
           {n}
         </span>
