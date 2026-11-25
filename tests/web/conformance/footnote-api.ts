@@ -866,6 +866,30 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'getInbox', 'copyQuestionLink', 'getQuestion'))(
+      "passes a card's question on as a link: copied again it is the same link, and its day shows",
+      async () => {
+        const live = await signedIn()
+        const card = (await live.getInbox()).cards.find((c) =>
+          c.secondary.includes('Ask someone who knows'),
+        )
+        expect(card).toBeDefined()
+        const first = await live.copyQuestionLink({ card: card!.id })
+        expect((await live.copyQuestionLink({ card: card!.id })).id).toBe(first.id)
+        const question = await live.getQuestion({ id: first.id })
+        expect(question).toMatchObject({
+          id: first.id,
+          kind: card!.type === 'gap' ? 'gap' : 'check',
+          open: true,
+        })
+        expect(question.topic).not.toBe('')
+        expect((await live.getInbox()).cards.find((c) => c.id === card!.id)?.asked?.on).toBeTruthy()
+        await expect(
+          live.getQuestion({ id: '00000000-0000-4000-8000-0000000000ff' }),
+        ).rejects.toMatchObject({ kind: 'not-found' })
+      },
+    )
+
     it.skipIf(
       lacks(
         'signIn',

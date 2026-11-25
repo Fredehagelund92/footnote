@@ -12,6 +12,7 @@
  */
 import type { JSONContent } from '@tiptap/core'
 import type { ConnectRequest } from '@contract/connections'
+import type { AnswerQuestion, Question, QuestionLink } from '@contract/questions'
 import type { MyShare, MyShares, ShareChatInput, SharedChat } from '@contract/shared-chats'
 import type { AgentToolName } from '@domain/agents'
 import type { FamilyMeaningChoice } from '@domain/family-meaning-line'
@@ -927,6 +928,17 @@ export interface FootnoteApi {
   /** The person's answer on the consent page: where the browser goes back to the agent. */
   answerConnectRequest: (input: { id: string; allow: boolean }) => Promise<{ redirectTo: string }>
 
+  // Ask someone who knows
+  /**
+   * The link of a Nothing written yet or a Due for a check card ("gap:<id>", "check:<item>"), for
+   * its owner to paste: the same link copied on a new day after the first time.
+   */
+  copyQuestionLink: (input: { card: string }) => Promise<QuestionLink>
+  /** The one question a link asks, for anyone signed in who has it. */
+  getQuestion: (input: { id: string }) => Promise<Question>
+  /** The person's answer, as themselves: a suggestion for a gap, an answer for a check. */
+  answerQuestion: (input: AnswerQuestion) => Promise<{ proposalId: string | null }>
+
   // Saved questions
   getSavedQuestions: () => Promise<SavedQuestion[]>
   /** Where the check of every saved question stands. */
@@ -1100,6 +1112,9 @@ export const footnoteApiMethods = [
   'getConnectReview',
   'getConnectRequest',
   'answerConnectRequest',
+  'copyQuestionLink',
+  'getQuestion',
+  'answerQuestion',
   'getSavedQuestions',
   'getSavedCheck',
   'checkSavedQuestions',
@@ -1173,6 +1188,7 @@ export const readMethods = [
   'checkConnect',
   'getConnectReview',
   'getConnectRequest',
+  'getQuestion',
   'observabilityPage',
   'obsDimensions',
   'obsValues',

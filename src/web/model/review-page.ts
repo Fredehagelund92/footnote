@@ -65,6 +65,7 @@ export const actionsOf = (r: Review, answers: Record<string, Relation>) =>
     drafted: !!r.drafted,
     claimsToCheck: claimsToCheck(r),
     clashes: (r.clash?.items ?? []).filter((c) => !answers[c.factId]).length,
+    sourceless: !!r.sourceless,
   })
 
 /**

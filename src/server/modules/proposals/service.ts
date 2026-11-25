@@ -407,10 +407,16 @@ function proposalsService(
     const [draft] = await forReader(tx, [row.draft])
     return draft!
   }
-  /** A read's suggestion comes through `source`; a person's through the channel they used. */
-  const channelOf = (input: z.infer<typeof createProposalSchema>): ProposalRecord['channel'] =>
-    author ? 'source' : (input.channel ?? 'form')
-  async function prepare(input: z.infer<typeof createProposalSchema>) {
+  /**
+   * A read's suggestion comes through `source`; a person's through the channel they used, or the
+   * question page, which only the service names (`question`).
+   */
+  const channelOf = (
+    input: z.infer<typeof createProposalSchema>,
+    question = false,
+  ): ProposalRecord['channel'] =>
+    author ? 'source' : question ? 'question' : (input.channel ?? 'form')
+  async function prepare(input: z.infer<typeof createProposalSchema>, question = false) {
     let source: Draft = {}
     let itemId = input.itemId
     if (input.itemId) source = await seedItem(input.itemId)
@@ -429,7 +435,7 @@ function proposalsService(
       source = prior.draft
     }
     const draft = await defaults({ ...source, ...input.draft }, undefined, source.scope)
-    const checks = await checkDraft(tx, draft, personId, channelOf(input), itemId ?? null)
+    const checks = await checkDraft(tx, draft, personId, channelOf(input, question), itemId ?? null)
     return { draft, itemId: itemId ?? null, checks }
   }
   return {
@@ -490,11 +496,13 @@ function proposalsService(
          * `saveAgentDraft` passes it, for an agent's suggestion.
          */
         agentId?: string
+        /** Sent from a question link's page; only the questions service passes it. */
+        question?: boolean
       } = {},
     ) {
-      const { draft, itemId, checks } = await prepare(input)
+      const { draft, itemId, checks } = await prepare(input, options.question)
       rejectSensitive(draft)
-      const channel = channelOf(input)
+      const channel = channelOf(input, options.question)
       const action = itemId ? 'change' : 'create'
       const reason = changeReason(input.reason, action)
       // The words of a change are written from the version the writer read: the one named, or else

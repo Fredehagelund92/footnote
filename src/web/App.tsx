@@ -421,9 +421,10 @@ function Gate() {
   const route = useRoute()
   useInAppLinks()
   React.useEffect(() => {
-    // The documentation is a public site: it needs nobody signed in. An agent's consent page asks
-    // a person who is not signed in to sign in there, and stays.
-    if (!user && !['signin', 'docs', 'connect'].includes(route.parts[0] ?? '')) navigate('/signin')
+    // The documentation is a public site: it needs nobody signed in. An agent's consent page and a
+    // question link's page ask a person who is not signed in to sign in there, and stay.
+    if (!user && !['signin', 'docs', 'connect', 'question'].includes(route.parts[0] ?? ''))
+      navigate('/signin')
     // Signed in, there is nobody to pick: a sign-in that just finished, or /signin opened again,
     // lands where the app opens (routes/index.tsx).
     if (user && route.parts[0] === 'signin') redirectTo('/')
@@ -463,9 +464,10 @@ function Loaded({ children }: { children: React.ReactNode }) {
     queries: laterQueries().map((q) => ({ ...q, enabled: signedIn })),
   })
   const { parts } = useRoute()
-  // The sign-in page and an agent's consent page wait for the session alone; anything else waits
-  // in the shape it will have.
-  const waiting = ['signin', 'connect'].includes(parts[0] ?? '') ? null : <ShellSkeleton />
+  // The sign-in page, an agent's consent page and a question link's page wait for the session
+  // alone; anything else waits in the shape it will have.
+  const alone = ['signin', 'connect', 'question'].includes(parts[0] ?? '')
+  const waiting = alone ? null : <ShellSkeleton />
   // Opened at the Inbox, the shell waits for the reviews too, the page's own read: the page draws
   // with it, never later under a search or a click already started. Once drawn, the shell stays,
   // and a move to the Inbox waits in the page's own frame.

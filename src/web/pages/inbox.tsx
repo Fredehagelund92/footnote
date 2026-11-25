@@ -13,6 +13,7 @@ import {
   ClockIcon,
   type FlagIcon,
   InboxIcon,
+  LinkIcon,
   MailOpenIcon,
   MessageSquareIcon,
   SearchIcon,
@@ -20,7 +21,7 @@ import {
 } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { cn, midSentence } from '@/lib/utils'
-import { FieldDiff } from '@/components/footnote/bits'
+import { FieldDiff, PersonAvatar } from '@/components/footnote/bits'
 import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/footnote/tool-logo'
@@ -65,7 +66,8 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { scopeText } from '@/model/ask'
-import type { InboxCard, Waiting } from '@/model/inbox'
+import { ASK_SOMEONE, type InboxCard, type Waiting } from '@/model/inbox'
+import { questionPath } from '@domain/question-link'
 import type { DomainId, Fact } from '@/model/items'
 import { questionDates } from '@/model/validity'
 import { today } from '@/lib/today'
@@ -656,10 +658,41 @@ function useActions(card: InboxCard) {
         patch: { status: 'Archived' },
       }),
   }
+  // Ask someone who knows: the link is made, then copied as the service answers. Footnote sends
+  // nothing; the owner pastes it where the company talks.
+  const write = useWrite()
+  secondary[ASK_SOMEONE] = () => {
+    const link = new Promise<string>((resolve, reject) => {
+      write('copyQuestionLink', { card: card.id }, ({ id }) =>
+        resolve(`${window.location.origin}${questionPath(id)}`),
+      ).catch(reject)
+    })
+    copyLater(link).then(
+      () => toast('Link copied', { description: 'Paste it to the person who knows.' }),
+      // The service's refusal, or the browser's when it would not copy, says what to do.
+      (error: Error) => toast.error("Couldn't copy the link", { description: error.message }),
+    )
+  }
   // Only what writes needs the connection; Review and Edit only open a page.
   const writes = card.type === 'check' || (card.type === 'flag' && !card.factId)
   return { primary, secondary, online, writes }
 }
+
+/**
+ * Copies words the service is still making: a browser keeps the press that asked for them as the
+ * reason to copy, which a write after the answer would have lost.
+ */
+const copyLater = (text: Promise<string>) =>
+  navigator.clipboard.write([
+    new ClipboardItem({ 'text/plain': text.then((t) => new Blob([t], { type: 'text/plain' })) }),
+  ])
+
+/**
+ * The card's link once copied, and what people answered there (asked-on.tsx): loaded only for a
+ * card with a link, handed what it uses of the Inbox, so the first load is split no further.
+ */
+const AskedOn = React.lazy(() => import('@/components/footnote/asked-on'))
+const askedParts = { PersonAvatar, LinkIcon, midSentence }
 
 /** A decision on a card: what it is called, what the toast says, and what it changes on the item. */
 type Decision = { outcome: string; message: string; description?: string; patch?: Partial<Fact> }
@@ -807,6 +840,11 @@ function CardDetail({
             {card.changed && card.changed.length > 0 && (
               <React.Suspense fallback={null}>
                 <ChangedDefinitions names={card.changed} />
+              </React.Suspense>
+            )}
+            {card.asked && (
+              <React.Suspense fallback={null}>
+                <AskedOn asked={card.asked} parts={askedParts} />
               </React.Suspense>
             )}
             {card.look && <LookList ids={card.look.questions} />}

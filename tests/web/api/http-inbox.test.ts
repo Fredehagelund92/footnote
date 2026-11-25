@@ -226,6 +226,7 @@ describe('the Inbox', () => {
       times: 9,
       told: 0,
       draft: 'p9',
+      asked: null,
     }
     const inbox = inboxOf(
       feed([gap, suggestion({ id: 'proposal:p9', proposalId: 'p9', opened: true, read: true })]),
@@ -248,6 +249,29 @@ describe('the Inbox', () => {
     // With no draft yet, the card keeps the service's name and writes context from the editor.
     const [blank] = inboxOf(feed([{ ...gap, draft: null }]), 'Jon Abara', domains, now).cards
     expect(blank).toMatchObject({ id: 'gap:g1', primary: 'Write context' })
+    // Ask someone who knows sits between the card's two decisions, and its link keeps its day.
+    expect(blank!.secondary).toEqual(['Not something we write down', 'Ask someone who knows'])
+    const [asked] = inboxOf(
+      feed([{ ...gap, draft: null, asked: { copiedOn: '2026-10-25' } }]),
+      'Jon Abara',
+      domains,
+      now,
+    ).cards
+    expect(asked!.asked).toEqual({ on: '25 Oct', answers: [] })
+    // A card about words Ask could not find has no topic to pass on.
+    const [words] = inboxOf(
+      feed([
+        {
+          ...gap,
+          draft: null,
+          scope: { metrics: [], values: [], dimensions: [], month: '2026-10' },
+        },
+      ]),
+      'Jon Abara',
+      domains,
+      now,
+    ).cards
+    expect(words!.secondary).toEqual(['Not something we write down'])
     // Someone pressed Tell the owner in Ask: the card says so, and what agents found when they asked.
     const line = (times: number | null, told: number) =>
       inboxOf(feed([{ ...gap, draft: null, times, told }]), 'Jon Abara', domains, now).cards[0]!
@@ -411,6 +435,8 @@ describe('the Inbox', () => {
       changed: [],
       families: [],
       lastChecked: { on: '2026-07-02', by: 'Jon Abara' },
+      asked: null,
+      answers: [],
       ...patch,
     })
     const [due, changed] = inboxOf(
@@ -433,7 +459,7 @@ describe('the Inbox', () => {
       line: 'Its check date passed on 2 Oct 2026. Agents are told it may be out of date.',
       detail: 'Last checked by you, 2 Jul 2026.',
       primary: 'Still true',
-      secondary: ['Edit', 'Archive'],
+      secondary: ['Edit', 'Archive', 'Ask someone who knows'],
       factId: 'itm_a',
     })
     expect(due?.changed).toEqual([])
@@ -464,6 +490,8 @@ describe('the Inbox', () => {
             { name: 'Accrued share', metrics: ['Accrued share (EUR)', 'Accrued share (USD)'] },
           ],
           lastChecked: { on: null, by: null },
+          asked: null,
+          answers: [],
         },
       ]),
       'Jon Abara',
@@ -475,7 +503,7 @@ describe('the Inbox', () => {
       splitInto: ['Accrued share (EUR)', 'Accrued share (USD)'],
       line: 'Its family Accrued share was split into Accrued share (EUR) and Accrued share (USD). No word of it changed: it reaches agents for both until you say which it is about.',
       primary: 'Keep for both',
-      secondary: ['Edit', 'Archive'],
+      secondary: ['Edit', 'Archive', 'Ask someone who knows'],
     })
   })
 

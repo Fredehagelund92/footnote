@@ -3,8 +3,8 @@ title: Keep context up to date
 line: The Inbox cards for a context item that is due for a check or was reported, and the ways to answer each.
 group: Write and review
 order: 3
-minutes: 3
-reviewed: 2026-11-22
+minutes: 4
+reviewed: 2026-11-25
 open:
   label: Open the Inbox
   href: /inbox
@@ -12,7 +12,7 @@ open:
 
 A published context item has a check date. When the date passes, or a definition it relies on changes, the item is due for a check, and agents are told it may be out of date. Your Inbox brings each one to you, with what someone reported, so the context agents read stays true.
 
-![A card in the Inbox under Due for a check: Returns changed definition on 28 April 2026, in Sales. It says its check date passed on 2 October and agents are told it may be out of date. The item's text follows, and at the foot are Edit, Archive and Still true.](../images/docs/inbox-due-light.webp)
+![A card in the Inbox under Due for a check: Returns changed definition on 28 April 2026, in Sales. It says its check date passed on 2 October and agents are told it may be out of date. The item's text follows, and at the foot are Edit, Archive, Ask someone who knows and Still true.](../images/docs/inbox-due-light.webp)
 
 ## Who gets these cards
 
@@ -36,6 +36,10 @@ Answer the card in one of three ways:
 | **Archive**    | It no longer applies       | Agents stop getting it from the next question                                     |
 
 The card leaves the Inbox, the next one opens, and Undo is offered for a moment. A card you answered is under All, as Done.
+
+Not sure? Press **Ask someone who knows** and paste the link to a colleague. Nothing is sent for you. The link opens one page that asks Is this still true?, with three answers: Yes, still true; It ended on a day; I don't know.
+
+Their answer, their words and a link if they gave one show on the card under their name. Agents never get it, and the check is still yours: [When nothing is written yet](when-nothing-is-written-yet.md#ask-someone-who-knows) says more about the link.
 
 Until someone answers, an answer that uses the item starts with Outdated: see [Answer lines](answer-lines.md). In Ask, an owner sees Mark it still true beside the item, under Used. The item's own page shows Due for a check too, with Still true beside it.
 

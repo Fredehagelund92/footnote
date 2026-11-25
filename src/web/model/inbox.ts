@@ -1,5 +1,6 @@
 import type { AlertCardRule } from '@domain/alerts'
 import { DRAFT_OLD_DAYS } from '@domain/inbox'
+import type { CheckAnswer } from '@domain/question-link'
 import type { DomainId, Fact } from './items'
 
 // The Inbox as the app reads it (src/web/api): cards that need someone, what they sent that waits
@@ -90,6 +91,21 @@ export function draftsVerb(publish: number, send: number, all = true) {
 
 export type FieldChange = { label: string; before: string; after: string }
 
+/** The third action of a Nothing written yet and a Due for a check card: it copies the card's link. */
+export const ASK_SOMEONE = 'Ask someone who knows'
+
+/** What someone answered on a Due for a check card's link, under their name. */
+export type CheckAnswerRow = {
+  by: string
+  answer: CheckAnswer
+  /** The day it ended, as people read it ("31 Mar 2026"), with the answer `ended`. */
+  endedOn?: string | null
+  words?: string | null
+  link?: string | null
+  /** When they answered, as the Inbox says it. */
+  when: string
+}
+
 export type Suggestion = {
   /** The context item it changes; none for a new one. */
   factId?: string
@@ -170,6 +186,11 @@ export type InboxCard = {
    * imported or not saved for a while.
    */
   drafts?: { ids: string[]; imported: number; old: number }
+  /**
+   * Ask someone who knows: the day the card's link was last copied ("25 Nov"), never who opened
+   * it, and on a Due for a check card what people answered there since it was last checked.
+   */
+  asked?: { on: string; answers: CheckAnswerRow[] }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */
   names?: { ready: number; flagged: number; families: number; tools: string[] }
   /**

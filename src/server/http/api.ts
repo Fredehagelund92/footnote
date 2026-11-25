@@ -117,6 +117,7 @@ import { createContextService } from '../modules/context/index.ts'
 import { createTermsService } from '../modules/terms/index.ts'
 import { createInboxFeedService } from '../modules/inbox/index.ts'
 import { createCommentsService } from '../modules/comments/index.ts'
+import { createQuestionsService } from '../modules/questions/index.ts'
 import {
   createReportsService,
   rateAnswer,
@@ -285,6 +286,7 @@ export function requestServices(
     names,
     comments,
     reports: createReportsService(tx),
+    questions: createQuestionsService(tx, clock, answerBundles, { proposals, review }),
     sharedChats: createSharedChatsService(tx),
     gaps,
     evals: createEvalsService(tx, { port: models, clock }),
@@ -1242,6 +1244,19 @@ export function createRouter({
       decide: authorized.cards.decide.handler(({ context, input }) =>
         retryWrite(context.tx, idempotencyKey(context), 'cards.decide', input, () =>
           context.cards.decide(input),
+        ),
+      ),
+    },
+    questions: {
+      copy: authorized.questions.copy.handler(({ context, input }) =>
+        context.questions.copy(input.card),
+      ),
+      read: authorized.questions.read.handler(({ context, input }) =>
+        context.questions.read(input.id),
+      ),
+      answer: authorized.questions.answer.handler(({ context, input }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'questions.answer', input, () =>
+          context.questions.answer(input),
         ),
       ),
     },

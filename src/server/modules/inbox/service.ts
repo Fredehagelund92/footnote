@@ -222,8 +222,10 @@ export function createInboxFeedService(
       told: number
       draft: string | null
       words: string[]
+      copied: string | null
     }>(
       `select g.id::text, g.ref, g.status_since::text as at, t.area_id as area,
+              (select l.copied_on::text from question_links l where l.gap_id=g.id) as copied,
               cl_topic_domains(t.area_id, t.metric_keys) as areas, t.metric_keys as metrics,
               t.value_keys as values, t.dimension_keys as dimensions, t.month::text as month,
               coalesce((select w.reports - w.human_reports + w.no_item_calls from gap_weekly_counts w
@@ -275,6 +277,7 @@ export function createInboxFeedService(
         times: visibleCount(row.calls, min),
         told: row.told,
         draft: row.draft,
+        asked: row.copied ? { copiedOn: row.copied } : null,
       }
     })
   }
@@ -394,6 +397,26 @@ export function createInboxFeedService(
       [due.map((item) => item.id)],
     )
     const lastChecked = new Map(reviews.map((r) => [r.id, { on: r.on, by: r.by }]))
+    // Its link, and what people answered there since its live version was last published or checked.
+    const asked = await tx.query<{
+      id: string
+      copied: string
+      answers: Extract<Card, { group: 'check' }>['answers']
+    }>(
+      `select l.item_id as id, l.copied_on::text as copied,
+              coalesce((select jsonb_agg(jsonb_build_object('by', p.display_name, 'answer', a.answer,
+                         'endedOn', a.ended_on::text, 'words', a.words, 'link', a.link, 'at', a.created_at::text)
+                         order by a.created_at desc)
+                  from (select * from question_answers x where x.link_id = l.id
+                          and x.created_at > coalesce((select max(d.decided_at) from item_version_service s
+                                join decisions d on d.item_version_id = s.version_id and d.outcome = 'accept'
+                               where s.item_id = l.item_id and upper_inf(s.editions)), '-infinity')
+                        order by x.created_at desc limit 5) a
+                  left join people p on p.id = a.person_id), '[]'::jsonb) as answers
+         from question_links l where l.item_id = any($1::text[])`,
+      [due.map((item) => item.id)],
+    )
+    const askedOf = new Map(asked.map((row) => [row.id, row]))
     // A definition changed when its mark first read as it does now, after the last other mark.
     const moved = await tx.query<{ id: string; name: string; on: string }>(
       `select id, name, "on" from (
@@ -449,6 +472,8 @@ export function createInboxFeedService(
         .filter((s) => s.id === item.id)
         .map(({ name, metrics }) => ({ name, metrics })),
       lastChecked: lastChecked.get(item.id) ?? { on: null, by: null },
+      asked: askedOf.has(item.id) ? { copiedOn: askedOf.get(item.id)!.copied } : null,
+      answers: askedOf.get(item.id)?.answers ?? [],
     }))
   }
 
@@ -502,6 +527,8 @@ export function createInboxFeedService(
           changed: [],
           families: [],
           lastChecked: { on: row.at.slice(0, 10), by: null },
+          asked: null,
+          answers: [],
         })
         continue
       }
@@ -593,6 +620,7 @@ export function createInboxFeedService(
         times: 0,
         told: 0,
         draft: null,
+        asked: null,
       })
     return cards
   }
