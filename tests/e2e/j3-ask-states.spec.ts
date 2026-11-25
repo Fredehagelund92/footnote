@@ -366,8 +366,8 @@ for (const question of [
     }
   })
 
-// The cursor says what a press does: a pointer on what opens something (a metric's definition, a
-// source's item), the arrow on a name whose press only keeps its card open, never the text cursor.
+// The cursor says what a press does: a pointer on what opens something (a metric's, a dimension's or
+// a value's definition, a source's item), the arrow on a name whose press only keeps its card open, never the text cursor.
 test('A chip in an answer points only where a press opens something', async ({ page }) => {
   await go(page, `/ask?n=${Date.now()}`)
   await ask(page, 'How many test accounts does units sold leave out in Norway?')
@@ -384,7 +384,11 @@ test('A chip in an answer points only where a press opens something', async ({ p
       })
   expect(await cursor(/, metric$/)).toBe('pointer')
   expect(await cursor(/^Source 1: /)).toBe('pointer')
-  for (const kind of [/, value$/, /, domain$/, /, person$/]) {
+  for (const kind of [/, value$/, /, dimension$/]) {
+    if (await log.getByRole('button', { name: kind }).count())
+      expect(await cursor(kind), String(kind)).toBe('pointer')
+  }
+  for (const kind of [/, domain$/, /, person$/]) {
     if (await log.getByRole('button', { name: kind }).count())
       expect(await cursor(kind), String(kind)).toBe('default')
   }

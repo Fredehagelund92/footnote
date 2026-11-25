@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import type { ChosenPeriodInput, LoopBlock, LoopTurn } from '@contract/answer'
 import type { Answer } from '@/model/ask'
+import { nounId } from '@domain/ask-nouns'
 import {
   scriptedLoopChoice,
   type ScriptedPrompt,
@@ -161,14 +162,17 @@ const cases: Case[] = [
     id: 'loop-question',
     question: 'When did the payment provider switch?',
     calls: [{ toolName: 'find_context', input: { words: 'payment provider switch' } }],
-    write: () => ({
-      calls: [
-        {
-          toolName: 'ask_back',
-          input: { question: 'Which switch do you mean?', choices: ['In France', 'In Spain'] },
-        },
-      ],
-    }),
+    write: (p) => {
+      modelRead = JSON.stringify(p.results)
+      return {
+        calls: [
+          {
+            toolName: 'ask_back',
+            input: { question: 'Which switch do you mean?', choices: ['In France', 'In Spain'] },
+          },
+        ],
+      }
+    },
   },
   {
     id: 'loop-dates-guessed',
@@ -207,6 +211,20 @@ const cases: Case[] = [
     write: (p) => {
       const d = arr(readOf(p, 'definitions').definitions)[0]!
       return { text: `${mention(`metric:${String(d.id)}`)} is ${String(d.words)}` }
+    },
+  },
+  {
+    // A dimension's definition nothing is written about: its chip opens the pane as a metric's does.
+    id: 'loop-definition-dimension',
+    question: 'What is market?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'market', no_period: true } },
+      { toolName: 'definitions', input: { names: ['market'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      const id = nounId(String(d.id))
+      return { text: `${mention(id)} is ${String(d.words)} [${id}]` }
     },
   },
   {
@@ -321,6 +339,8 @@ const cases: Case[] = [
 ]
 
 let current: Case | undefined
+/** What the scripted model was given to read at its last step that kept it. */
+let modelRead = ''
 const world = askWorld({
   // Spain's VAT pair, which the mock marks across two domains, is marked here too.
   allConflicts: true,
@@ -447,6 +467,10 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(loop.kind).toBe('question')
     expect(loop.state).toBeNull()
     expect(loop.choices).toEqual(['In France', 'In Spain'])
+    // A metric group that is no family is marked for its chip, a mark the model never reads.
+    expect(loop.nouns.find((n) => n.id === 'group:payments')).toMatchObject({ plainGroup: true })
+    expect(modelRead).toContain('group:payments')
+    expect(modelRead).not.toContain('plainGroup')
   })
 
   it('says on the read line how the dates were read when the words left room', async () => {
@@ -493,6 +517,15 @@ describe("Ask's loop answers, as the page draws them", () => {
     for (const id of card!.context.items) expect(loop.items.map((i) => i.id)).toContain(id)
   })
 
+  it('draws an answer about what a dimension is as its definition card, its chip a dimension', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-definition-dimension')!)
+    expect(loop.state).toBeNull()
+    const [card] = loop.defined!.cards
+    expect(card).toMatchObject({ id: 'dimension:market', name: 'Market', kind: 'dimension' })
+    expect(runsOf(loop.body)).toContainEqual({ t: 'noun', id: 'dimension:market' })
+    expect(loop.nouns.map((n) => n.id)).toContain('dimension:market')
+  })
+
   it('draws the definition card of a metric nothing is written about, with no context', async () => {
     const loop = await ask(cases.find((c) => c.id === 'loop-definition-unwritten')!)
     expect(loop.state).toBeNull()
@@ -502,7 +535,7 @@ describe("Ask's loop answers, as the page draws them", () => {
   })
 
   it('names the word its reads found nothing under, when nothing it read covers the question', async () => {
-    const loop = await ask(cases[13]!)
+    const loop = await ask(cases.find((c) => c.id === 'loop-unknown')!)
     expect(loop.unknown).toEqual(['EBITDA'])
     expect(loop.state).toBeNull()
     expect(loop.sources).toEqual([])
