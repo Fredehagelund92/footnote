@@ -51,6 +51,7 @@ const GROUP_SHOWN = 4
 
 type Props = {
   turn: Turn
+  docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
@@ -2124,7 +2125,7 @@ const cardsStandIn = (loop: LoopTurn) =>
   !!loop.defined?.cards.length &&
   loop.defined.cards.every((c) => c.inWords && !(c.family && !c.family.meaning))
 
-function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
+function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const P = useParts()
   const { answer, stopped } = turn
   const loop = answer.loop
@@ -2198,6 +2199,7 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
       loop={shown}
       answer={answer}
       {...{
+        docked,
         typed,
         upTo: revealing ? revealed : undefined,
         // Stopped while the model wrote: the sentences checked so far, and nothing from the reads.
@@ -2227,6 +2229,7 @@ function Finished({
   onRetry,
   onAsk,
   latest,
+  docked,
   words,
   wrong,
   setWrong,
@@ -2255,6 +2258,7 @@ function Finished({
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
+  docked?: boolean
   words: React.RefObject<HTMLDivElement | null>
   wrong: boolean
   setWrong: (w: boolean) => void
