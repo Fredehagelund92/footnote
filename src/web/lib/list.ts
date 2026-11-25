@@ -78,7 +78,7 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
       const stop = stops.find((s) => s.dataset.rowOpen === id)
       if (stop) show(stop)
     }
-    k.onMove?.(id, { panel: inPanel })
+    if (id !== k.current) k.onMove?.(id, { panel: inPanel })
     return true
   }
   const arrows = inList || (nowhere && !!list)

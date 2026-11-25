@@ -221,14 +221,13 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
 
   const all = obs.data.topics
   const rows = all.filter((t) => inView(t) && passes(t, on, obs.topicName))
-  usePublishOrder(
-    'obs-topics',
-    obs.rowOrder(rows, group, sorting).map((t) => t.id),
-  )
+  const topicOrder = obs.rowOrder(rows, group, sorting).map((t) => t.id)
+  usePublishOrder('obs-topics', topicOrder)
   const peeked = dock?.kind === 'topic' ? dock.id : undefined
   const topicRows = React.useRef<HTMLTableSectionElement>(null)
   useListKeys({
     list: topicRows,
+    order: topicOrder,
     current: peeked,
     docked: !!peeked,
     onMove: (id, from) => peeked && openFromRow('topic', id, undefined, { focus: from.panel }),

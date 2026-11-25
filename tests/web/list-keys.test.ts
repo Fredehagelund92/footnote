@@ -90,6 +90,13 @@ describe('the list keys', () => {
     expect(document.activeElement).toBe(inPanel)
   })
 
+  it('do not reopen the row already open when J runs past the last row', () => {
+    const onMove = vi.fn()
+    draw(rows({ current: 'd', onMove }))
+    press('j', document.body)
+    expect(onMove).not.toHaveBeenCalled()
+  })
+
   it('leave keys in a dock that shows something else to it', () => {
     const onMove = vi.fn()
     const host = draw([rows({ onMove, onEscape: () => true }), dock('A conflict')])
