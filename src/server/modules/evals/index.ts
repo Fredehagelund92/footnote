@@ -1,6 +1,7 @@
 /**
  * Evaluations (slice S13): golden questions, answer tests through the real MCP wire with judges,
- * the cell cache, the impact set from replay, baselines, scorecards and spend caps. The review
+ * the cell cache, the impact set from replay, baselines, scorecards and spend caps, and the proof
+ * of `footnote prove`. The review
  * gate needs levels 1 to 3 only (FR-513), so no suggestion waits for an answer test. The
  * retrieval pass scores every edition without a model, and full runs follow changes outside the
  * gate.
@@ -32,6 +33,15 @@ export {
 export { readEvalSettings } from './settings.ts'
 export { createEvalsService, type EvalsService } from './service.ts'
 export { CEILING_MARGIN, workEvaluations, type WorkSummary } from './worker.ts'
+export {
+  planProof,
+  proofDigest,
+  proofSystemPrompt,
+  runProof,
+  type ProofOptions,
+  type ProofPlan,
+  type ProofRun,
+} from './proof.ts'
 export {
   estimateWithheld,
   runWithheld,

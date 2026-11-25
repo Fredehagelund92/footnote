@@ -86,13 +86,15 @@ export const DEFAULT_MCP_RATES: McpRates = { person: 30, client: 120 }
  * server instructions end with, and the workspace's calendar, which they name.
  */
 export async function loadServingPolicy(tx: Queryable, label: string): Promise<ServingPolicy> {
-  const [clients, tools, settings] = await Promise.all([
-    tx.query<ClientPolicy>('select * from client_policies where client_label=$1', [label]),
-    enabledTools(tx),
-    tx.query<{ key: string; value: unknown }>(
-      "select key,value from settings_current where key in ('limits.mcp_rate_per_minute','limits.mcp_requests_per_minute','business.about','calendar.fiscal_year_start','calendar.time_zone')",
-    ),
-  ])
+  // One query at a time: a transaction's client runs one, and pg refuses a second in flight.
+  const clients = await tx.query<ClientPolicy>(
+    'select * from client_policies where client_label=$1',
+    [label],
+  )
+  const tools = await enabledTools(tx)
+  const settings = await tx.query<{ key: string; value: unknown }>(
+    "select key,value from settings_current where key in ('limits.mcp_rate_per_minute','limits.mcp_requests_per_minute','business.about','calendar.fiscal_year_start','calendar.time_zone')",
+  )
   const value = (key: string) => settings.find((row) => row.key === key)?.value
   const perTool = value('limits.mcp_rate_per_minute')
   const about = value('business.about')

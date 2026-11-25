@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { APICallError } from '@ai-sdk/provider'
 import type { Logger } from 'pino'
 import {
   questionVerdict,
@@ -12,17 +11,10 @@ import {
 } from '../../../domain/golden-question.ts'
 import { onDay } from '../../clock.ts'
 import type { Database } from '../../db/database.ts'
-import { errorCode } from '../../observability/logger.ts'
-import {
-  createCallMeter,
-  ModelCallError,
-  readCallLimits,
-  testRunRetry,
-  type CallLimiter,
-  type Sleep,
-} from '../models/index.ts'
+import type { CallLimiter, Sleep } from '../models/index.ts'
 import { tryQuestion } from './answer.ts'
-import { openArm, ToolCallRefused, type Arm } from './arm.ts'
+import { openArm, type Arm } from './arm.ts'
+import { endCommandRun, stoppedWords, workCommandRun } from './command-run.ts'
 import { cellEstimateMicros } from './plan.ts'
 import {
   armTools,
@@ -35,8 +27,7 @@ import {
   type EvalDeps,
 } from './runs.ts'
 import { readEvalSettings } from './settings.ts'
-import { capReached, formatUsd } from './spend.ts'
-import { CEILING_MARGIN, HEARTBEAT_MS, LEASE } from './worker.ts'
+import { LEASE } from './worker.ts'
 
 /*
   An area run of questions held in memory, of which nothing is kept (FR-525): the sealed held-out
@@ -49,9 +40,8 @@ import { CEILING_MARGIN, HEARTBEAT_MS, LEASE } from './worker.ts'
   `held_out`, no area, no question ids), with counts in words. The caller gets a verdict per
   question, in the order given, and says nothing more than counts.
 
-  No worker takes such a run, so the runner holds a lease on it, as a worker does, and renews it
-  while it works. It starts no answer once the run is no longer its own (cancelled, or ended by
-  the job's housekeeping when the lease ran out), and then leaves the run as it was ended.
+  No worker takes such a run, so the runner holds a lease on it and works it as every command's
+  run is worked (command-run.ts), and then leaves the run as it was ended.
 */
 
 export type WithheldOptions = {
@@ -97,9 +87,6 @@ export async function estimateWithheld(
     return { edition: head?.label ?? null, cells, costMicros: cells * cellEstimateMicros(models) }
   })
 }
-
-/** Why a run stops starting answers: a spending cap or its ceiling. */
-class Halt extends Error {}
 
 /** Runs the questions as one area run, keeping none of their words. */
 export async function runWithheld(
@@ -150,14 +137,7 @@ export async function runWithheld(
     return { run, tools, policy, bundle }
   })
   const { run, tools, policy, bundle } = prepared
-  const limits = await readCallLimits(database)
-  const ceiling = options.ceilingMicros
   const estimate = cellEstimateMicros(models)
-  let spent = 0
-  let reserved = 0
-  /** Why the run stopped starting answers, once it did. */
-  const halt: { reason: string | null } = { reason: null }
-  const failed: Record<string, number> = {}
   // Each question's tries, one list per wording; a try not made stays out.
   const scores = questions.map((q) => q.wordings.map((): CellScore[] => []))
   const arms = new Map<string, Promise<Arm>>()
@@ -169,111 +149,49 @@ export async function runWithheld(
     }
     return arm
   }
-  const queue = questions.flatMap((q, question) =>
+  const tasks = questions.flatMap((q, question) =>
     q.wordings.flatMap((_, wording) =>
-      Array.from({ length: settings.tries }, () => ({ question, wording })),
+      Array.from({ length: settings.tries }, () => ({
+        task: { question, wording },
+        estimateMicros: estimate,
+      })),
     ),
   )
-  const total = queue.length
-  /** Renews the lease; false once the run is no longer this runner's to work. */
-  const renew = async () =>
-    (
-      await database.query(
-        `update eval_runs set lease_until=now()+interval '${LEASE}'
-          where id=$1 and worker=$2 and state='running' returning id`,
-        [run.id, worker],
-      )
-    ).length > 0
-  const heartbeat = setInterval(() => {
-    renew().catch((error: unknown) =>
-      options.logger.warn({ err: errorCode(error), run: run.id }, 'lease not renewed'),
-    )
-  }, HEARTBEAT_MS)
-  heartbeat.unref()
-
-  async function makeTry(question: number, wording: number) {
-    if (!(await renew())) throw new Halt('It was ended before it finished.')
-    if (await capReached(database, settings, estimate, person))
-      throw new Halt('A spending cap stopped it.')
-    const hold = Math.ceil(estimate * CEILING_MARGIN)
-    if (ceiling !== null && spent + reserved + hold > ceiling)
-      throw new Halt(`It spent ${formatUsd(spent)} of its ${formatUsd(ceiling)} ceiling.`)
-    reserved += hold
-    const meter = createCallMeter({
-      database,
-      feature: 'eval',
-      person,
-      runId: run.id,
-      limits,
-      retry: testRunRetry,
-      ...(options.limiter ? { limiter: options.limiter } : {}),
-      ...(options.wait ? { wait: options.wait } : {}),
-      admit: () => {
-        if (ceiling !== null && spent >= ceiling)
-          throw new Halt(`It spent its ${formatUsd(ceiling)} ceiling.`)
-      },
-      onCall: (call) => {
-        spent += call.costMicros
-      },
-      onRecordError: (error) =>
-        options.logger.error({ err: errorCode(error), run: run.id }, 'model call not recorded'),
-    })
-    try {
-      const body = questions[question]!
-      const made = await tryQuestion(
-        await armOn(body.as_of ?? deps.clock.today()),
-        {
-          answer: meter.wrap(models.answer, { role: 'eval_answer' }),
-          judge: meter.wrap(models.judge, { role: 'judge' }),
-        },
-        body,
-        wording,
-        signal,
-      )
-      await meter.settled()
-      scores[question]![wording]!.push(made.score)
-    } catch (error) {
-      await meter.close()
-      if (error instanceof Halt || signal.aborted) throw error
-      // The kind of failure only: a provider's message can quote the request, question included.
-      const kind =
-        error instanceof ModelCallError
-          ? error.kind
-          : error instanceof ToolCallRefused
-            ? 'tool'
-            : APICallError.isInstance(error)
-              ? 'provider'
-              : 'error'
-      failed[kind] = (failed[kind] ?? 0) + 1
-      options.logger.warn(
-        { err: errorCode(error), run: run.id, failure: kind },
-        'held-out answer failed',
-      )
-    } finally {
-      reserved -= hold
-    }
-  }
-
+  const total = tasks.length
+  let work
   try {
-    await Promise.all(
-      Array.from({ length: Math.min(limits.concurrency, queue.length) }, async () => {
-        for (let next = queue.shift(); next && !halt.reason; next = queue.shift()) {
-          if (signal.aborted) {
-            halt.reason = 'It was stopped before it finished.'
-            break
-          }
-          try {
-            await makeTry(next.question, next.wording)
-          } catch (error) {
-            if (signal.aborted) halt.reason = 'It was stopped before it finished.'
-            else if (error instanceof Halt) halt.reason = error.message
-            else throw error
-          }
-        }
-      }),
+    work = await workCommandRun(
+      database,
+      {
+        runId: run.id,
+        worker,
+        settings,
+        person,
+        ceilingMicros: options.ceilingMicros,
+        signal,
+        logger: options.logger,
+        failure: 'held-out answer failed',
+        ...(options.limiter ? { limiter: options.limiter } : {}),
+        ...(options.wait ? { wait: options.wait } : {}),
+      },
+      tasks,
+      async ({ question, wording }, meter) => {
+        const body = questions[question]!
+        const made = await tryQuestion(
+          await armOn(body.as_of ?? deps.clock.today()),
+          {
+            answer: meter.wrap(models.answer, { role: 'eval_answer' }),
+            judge: meter.wrap(models.judge, { role: 'judge' }),
+          },
+          body,
+          wording,
+          signal,
+        )
+        await meter.settled()
+        scores[question]![wording]!.push(made.score)
+      },
     )
   } finally {
-    clearInterval(heartbeat)
     for (const arm of arms.values()) await (await arm.catch(() => null))?.close()
   }
 
@@ -285,48 +203,29 @@ export async function runWithheld(
     judged: tries.filter((t) => t.passed !== null || t.judgeError).length,
     errors: tries.filter((t) => t.judgeError).length,
   }
-  const made = tries.length
-  const missing = total - made
-  const failures = Object.entries(failed)
-    .map(([kind, n]) => `${n} ${kind}`)
-    .join(', ')
-  const stopped =
-    halt.reason || missing
-      ? `${halt.reason ? `${halt.reason} ` : ''}${missing} of ${total} answers not made${failures ? ` (${failures})` : ''}.`
-      : null
+  const stopped = stoppedWords(work, total)
   const count = (verdict: Verdict) => verdicts.filter((v) => v === verdict).length
   const words =
     `Held-out questions: ${count('pass')} passed, ${count('fail')} failed, ` +
     `${count('no_answer')} without an answer, of ${questions.length}.`
   const ended = stopped ? 'incomplete' : 'finished'
-  // Only a run still this runner's: one cancelled or ended meanwhile keeps how it was ended.
-  const [row] = await database.transaction(person, async (tx) => {
-    const [own] = await tx.query<{ state: WithheldRun['state']; cost: string }>(
-      `update eval_runs set state=$2,finished_at=now(),worker=null,lease_until=null,failure=$3,
-         summary=summary||jsonb_build_object('judging',$4::jsonb)
-       where id=$1 and worker=$5 and state='running' returning state::text,actual_cost_micros::text as cost`,
-      [
-        run.id,
-        ended,
-        `${stopped ? `${stopped} ` : ''}${words}`.slice(0, 500),
-        JSON.stringify(judging),
-        worker,
-      ],
-    )
-    return own
-      ? [own]
-      : tx.query<{ state: WithheldRun['state']; cost: string }>(
-          'select state::text,actual_cost_micros::text as cost from eval_runs where id=$1',
-          [run.id],
-        )
-  })
-  const state = row?.state ?? ended
+  const row = await endCommandRun(
+    database,
+    person,
+    { id: run.id, worker },
+    {
+      state: ended,
+      failure: `${stopped ? `${stopped} ` : ''}${words}`,
+      summary: { judging },
+    },
+  )
+  const state = row.state
   return {
     runId: run.id,
     state,
     verdicts,
     judging,
-    costMicros: Number(row?.cost ?? spent),
+    costMicros: row.costMicros,
     stopped: state === ended ? stopped : (stopped ?? 'It was ended before it finished.'),
   }
 }

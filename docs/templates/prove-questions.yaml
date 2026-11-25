@@ -1,0 +1,57 @@
+# Questions for `footnote prove`: copy this file, replace the four examples with your own
+# questions, then
+#
+#   npm run footnote -- prove --questions my-questions.yaml                 # scripted model, free
+#   npm run footnote -- prove --questions my-questions.yaml --real --cap 5  # a real agent
+#
+# The command asks every question three ways (no context, your published context as one plain
+# file, and Footnote) and prints how often each way named the right reason. docs/prove.md says how
+# to read the table.
+#
+# The examples are about the demo's invented company, so they fit the demo database
+# (`npm run seed`), not yours. They show one question of each kind a good set has: a note that
+# fits, a note that had ended, a note about another market, and a question nothing written
+# answers. Write yours about periods and markets where you know the answer, before you run the
+# command for the first time, and keep them as they are after: a question changed until one way
+# wins proves nothing. About a quarter of a good set is questions where nothing is written.
+#
+#   id        3 to 81 lower-case letters, digits and dashes; your choice, stable
+#   as_of     the day the question is asked on (YYYY-MM-DD): the agent is told it is that day
+#   question  the question, as a person asks it, naming its period and its market
+#   reasons   the ids of the notes that give the right reason (an item's id is on its page,
+#             itm_...). Leave it out, or empty, when nothing written answers the question
+#   wrong     the ids of notes an answer must not tell: one that had ended before the period, or
+#             one about another market. Up to nine notes in reasons and wrong together
+#
+# A question is never a real one someone asked: no names, figures or partner details.
+
+questions:
+  # A note that fits: online sales to Norway stopped on 4 August 2026, and still are.
+  - id: orders-norway-october
+    as_of: '2026-10-23'
+    question: Why are orders in Norway close to nothing from 1 to 21 October 2026?
+    reasons: [itm_ae954c78b6]
+    wrong: [itm_inptukz0]
+
+  # A note that had ended: the campaign of 17 February 2026 ran until 6 March; the one of
+  # 5 January 2026 still runs.
+  - id: orders-united-kingdom-october
+    as_of: '2026-10-23'
+    question: Why are United Kingdom orders higher than usual from 5 to 11 October 2026?
+    reasons: [itm_7wqlcaps]
+    wrong: [itm_kqxeychp]
+
+  # A note about another market: France switched its payment provider, Canada did too, a year
+  # earlier.
+  - id: orders-france-may
+    as_of: '2026-06-30'
+    question: Why were some orders in France booked twice from 12 to 18 May 2026?
+    reasons: [itm_spe2w9kh]
+    wrong: [itm_v54xt0c3]
+
+  # Nothing written: no note explains Spain in October 2026. The Norway note is about another
+  # market and must not be told.
+  - id: orders-spain-october
+    as_of: '2026-10-23'
+    question: Why did orders in Spain drop from 1 to 7 October 2026?
+    wrong: [itm_ae954c78b6]

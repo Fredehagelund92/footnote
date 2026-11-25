@@ -181,20 +181,21 @@ function cachingSteps(choice: ModelChoice): LanguageModelV4 {
 /**
  * The agent loop for one wording. A tool call the tool server did not answer ends the loop at
  * once and throws `ToolCallRefused`: the model never saw what it asked for, so what it would say
- * next is no result of its own.
+ * next is no result of its own. `system` is the test's own prompt, before the arm's instructions.
  */
 export async function answerQuestion(
   arm: Arm,
   choice: ModelChoice,
   wording: string,
   signal?: AbortSignal,
+  system: string = answerSystemPrompt,
 ): Promise<AnswerResult> {
   const result = await generateText({
     model: cachingSteps(choice),
     // The tools and the instructions are the same bytes for every step, try and question of a
     // run: one cache breakpoint after them lets the provider read them from its prompt cache, as
     // the assistant's do (plan 3.2). Round 5 read nothing from it in 1,044 answer calls.
-    instructions: [answerSystemPrompt, ...(arm.instructions ? [arm.instructions] : [])].map(
+    instructions: [system, ...(arm.instructions ? [arm.instructions] : [])].map(
       (content, i, all) => ({
         role: 'system' as const,
         content,
