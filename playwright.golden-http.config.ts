@@ -116,6 +116,9 @@ export default defineConfig({
     // and opens a loop answer by the mock's example address; the drawing is the same component on
     // the service, and tests/web/source-markdown.test.ts reads it.
     /\/j101-source-markdown\.spec\.ts$/,
+    // J130 opens answers with what is not published yet by the mock's example address; the
+    // service writes them in tests/web/integration/ask-loop-shapes.test.ts and ask-drafts.test.ts.
+    /\/j130-ask-not-published\.spec\.ts$/,
     // J102 connects the mock's ?demo=families dbt project; the service counts a test read's
     // families in tests/integration/metric-variants.test.ts and its card's in
     // declared-families.test.ts.

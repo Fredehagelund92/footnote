@@ -3,7 +3,7 @@ title: Ask a question
 line: Ask about a number, read how the answer was made, ask again at other dates, and tell the owner what is missing.
 group: Ask
 order: 1
-minutes: 7
+minutes: 8
 reviewed: 2026-11-25
 open:
   label: Open Ask
@@ -63,6 +63,16 @@ When the answer says how to do something, a button under it opens that screen, s
 A Not found answer means nothing is written about it yet, and a card under it says what is missing. If you do not own that domain, Tell the owner sends the owners what you asked about and the dates, never your words. It waits in their Inbox, where they can write it: [When nothing is written yet](when-nothing-is-written-yet.md).
 
 When Ask finds no metric or context item that uses a word at all, Tell an admin sends the admins that word alone, never your question. If you are an admin or own a domain, Add the word to Definitions opens a new term with the word already in it.
+
+### Not published yet
+
+When nothing published covers your question, Ask also looks in your own drafts and in the suggestions waiting for review that you may open. A draft is yours alone. A suggestion waiting for review is open to the person who sent it, the owners of its domain and admins.
+
+What it finds shows in a block of its own under the answer, Not published yet, in place of the card: each item with its state, its domain, who wrote it and the day.
+
+None of it is part of the answer. It is not final, it is never a source, and agents don't get it until an owner publishes it. Under the items, one sentence may say what they would mean if published as written.
+
+Open the draft opens your draft, and Review opens a suggestion that waits for you to decide. Anyone who may not open them sees no block at all, and a shared chat leaves it out.
 
 ## When an answer is wrong
 

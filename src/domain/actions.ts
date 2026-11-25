@@ -28,6 +28,8 @@ export const actionIds = [
   'open_domain',
   'about_business',
   'add_domain',
+  'open_draft',
+  'review_suggestion',
 ] as const
 export type ActionId = (typeof actionIds)[number]
 
@@ -37,8 +39,17 @@ export const isActionId = (id: string): id is ActionId =>
 /** A family an action is about, as a read gave it: its name, its domain's noun id and its owners by name. */
 export type ActionFamily = { name: string; domain: string | null; owners: string[] }
 
-/** An action an answer offers: its id, and the family the read that offered it is about, when one is. */
-export type ActionOffer = { id: ActionId; family?: ActionFamily }
+/**
+ * A context item not published yet that an action opens, as a read gave it: its id, its domain's
+ * noun id, whether the reader wrote it, and the owners of its domain by name.
+ */
+export type ActionDraft = { id: string; domain: string | null; mine: boolean; owners: string[] }
+
+/**
+ * An action an answer offers: its id, and the family or the item not published yet that the read
+ * that offered it is about, when one is.
+ */
+export type ActionOffer = { id: ActionId; family?: ActionFamily; draft?: ActionDraft }
 
 /** Who reads the answer: an admin or not, and the domains they own, by id. */
 export type Doer = { admin: boolean; owns: readonly string[] }
@@ -88,6 +99,16 @@ const familyView = (_me: Doer, offer: ActionOffer): ActionTarget =>
 /** An admin, or an owner of the family's domain; any owner where the read named no family. */
 const mayFamily = (me: Doer, offer: ActionOffer) =>
   me.admin || (offer.family ? ownsDomain(me, offer.family.domain) : owner(me))
+/** An item not published yet opens on its own page, where its state's buttons are. */
+const draftPage = (_me: Doer, offer: ActionOffer): ActionTarget =>
+  offer.draft ? { path: `/context/${offer.draft.id}` } : { path: '/context' }
+/** The owners of the domain of the item not published yet, or an admin. */
+const draftOwners = (offer: ActionOffer): DoneBy => ({
+  by: 'owners',
+  domain: offer.draft?.domain ?? null,
+  people: offer.draft?.owners ?? [],
+  admins: true,
+})
 
 export const ACTIONS: Record<ActionId, Action> = {
   // Anyone writes: an item in a domain they do not own is sent to its owners as a suggestion.
@@ -165,6 +186,20 @@ export const ACTIONS: Record<ActionId, Action> = {
     may: (me) => me.admin,
     target: () => ({ path: '/settings/domains/new' }),
     doneBy: admins,
+  },
+  // A draft is its writer's own (FR-230); an admin and its domain's owners may open one too.
+  open_draft: {
+    label: () => 'Open the draft',
+    may: (me, offer) => me.admin || !!offer.draft?.mine || ownsDomain(me, offer.draft?.domain),
+    target: draftPage,
+    doneBy: draftOwners,
+  },
+  // A suggestion waiting for review is decided by its domain's owners and the admins.
+  review_suggestion: {
+    label: () => 'Review',
+    may: (me, offer) => me.admin || ownsDomain(me, offer.draft?.domain),
+    target: draftPage,
+    doneBy: draftOwners,
   },
 }
 
