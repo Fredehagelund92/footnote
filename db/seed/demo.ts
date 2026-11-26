@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type pg from 'pg'
 import type { ContextItem } from '../../src/domain/item.ts'
 import { textFindings } from '../../src/domain/draft.ts'
@@ -16,7 +17,7 @@ import {
 import { createModelPort } from '../../src/server/modules/models/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { generateItems, regression } from './fixtures/items.ts'
-import { areas } from './fixtures/reference-data.ts'
+import { areas, demoTerms } from './fixtures/reference-data.ts'
 import { bulkSeed, seedPersonId, type LibraryExtras } from './bulk.ts'
 import { seedGaps } from './gaps.ts'
 import { demoTestQuestions } from './test-questions.ts'
@@ -322,6 +323,24 @@ export type DemoCounts = {
 }
 
 /**
+ * The demo library: the generated items (`count` of them, or the usual 1,500) and its terms, each
+ * written in its domain by its owner.
+ */
+export const demoLibrary = (count?: number): { items: ContextItem[]; extras: LibraryExtras } => ({
+  items: generateItems(count),
+  extras: {
+    terms: demoTerms.map((t) => ({
+      id: randomUUID(),
+      name: t.name,
+      meaning: t.meaning,
+      areaId: t.areaId,
+      by: seedPersonId(t.personId),
+      at: `${t.day}T09:00:00Z`,
+    })),
+  },
+})
+
+/**
  * The demo on an empty database, as a superuser: the bulk seed of a library (the demo library
  * unless another is given; golden-fixtures.ts has the other), then its quality
  * history and gaps (`seedDemo`). Each step is one transaction; a failed second step leaves the
@@ -329,7 +348,7 @@ export type DemoCounts = {
  */
 export async function loadDemo(
   client: pg.Client,
-  library: { items: ContextItem[]; extras?: LibraryExtras } = { items: generateItems() },
+  library: { items: ContextItem[]; extras?: LibraryExtras } = demoLibrary(),
 ): Promise<DemoCounts> {
   const items = await bulkSeed(client, library.items, library.extras)
   await seedDemo(client)

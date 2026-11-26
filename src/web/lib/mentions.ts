@@ -2,7 +2,7 @@ import * as React from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { scopeSearchQuery, useVocabulary, useWorkspace } from '@/api/queries'
 import { servedToAgents, type Fact, type Kind } from '@/model/items'
-import type { Domain, Person } from '@/model/people'
+import { PLAIN_ROLE, type Domain, type Person } from '@/model/people'
 import { useDefinitions, type Definition } from '@/lib/definitions'
 import { useFacts } from '@/lib/workspace'
 import { storageKey } from '@/lib/brand'
@@ -29,6 +29,11 @@ export type Mentionable = {
   contextKind?: Kind
   /** Another name for a definition: a synonym. */
   synonym?: boolean
+  /**
+   * A family of metrics, named as one metric (FR-142). A question can name it; a text cannot link
+   * to it, since the service keeps a text's mention of a metric only, so only Ask's '@' offers it.
+   */
+  family?: boolean
 }
 
 export type MentionRef = { id: string; label: string }
@@ -78,9 +83,16 @@ type World = {
   markets: string[]
 }
 
-function build({ facts, definitions, domains: list, people, markets }: World): Mentionable[] {
+/** What there is to mention in a world: one entry per id. */
+export function mentionablesOf({
+  facts,
+  definitions,
+  domains: list,
+  people,
+  markets,
+}: World): Mentionable[] {
   const domains = Object.fromEntries(list.map((d) => [d.id, d]))
-  return [
+  const all: Mentionable[] = [
     // A domain's row says what it covers, in its owners' words.
     ...list.map((d) => ({
       id: mentionId('domain', d.id),
@@ -88,20 +100,19 @@ function build({ facts, definitions, domains: list, people, markets }: World): M
       label: d.name,
       hint: d.covers || 'Domain',
     })),
-    // A family is no target a text can link to: a mention names a metric, a dimension or a term.
-    ...definitions
-      .filter((d) => !d.family)
-      .map((d) => ({
-        id: mentionId(d.type, d.name),
-        kind: d.type,
-        label: d.name,
-        hint: d.sameAs
-          ? `Another name for ${d.sameAs}`
-          : d.domain
-            ? domains[d.domain]?.name
-            : undefined,
-        synonym: !!d.sameAs,
-      })),
+    // A family is a metric by its name, as Ask reads it; its variants are never named apart.
+    ...definitions.map((d) => ({
+      id: mentionId(d.type, d.name),
+      kind: d.type,
+      label: d.name,
+      hint: d.sameAs
+        ? `Another name for ${d.sameAs}`
+        : d.domain
+          ? domains[d.domain]?.name
+          : undefined,
+      synonym: !!d.sameAs,
+      ...(d.family ? { family: true } : {}),
+    })),
     ...facts.filter(servedToAgents).map((f) => ({
       id: mentionId('context', f.id),
       kind: 'context' as const,
@@ -119,9 +130,12 @@ function build({ facts, definitions, domains: list, people, markets }: World): M
       id: mentionId('person', p.name),
       kind: 'person' as const,
       label: p.name,
-      hint: p.role,
+      // Only a line that tells people apart: the plain one sat under nearly every name.
+      hint: p.role === PLAIN_ROLE ? undefined : p.role,
     })),
   ]
+  // A mention is its id: two definitions of one name (two families a source named alike) are one.
+  return [...new Map(all.map((m) => [m.id, m] as const)).values()]
 }
 
 /** Everything that can be mentioned right now, edits included. */
@@ -131,7 +145,7 @@ export function useMentionables(): Mentionable[] {
   const { domains, people } = useWorkspace()
   const { markets } = useVocabulary()
   return React.useMemo(
-    () => build({ facts, definitions, domains, people, markets }),
+    () => mentionablesOf({ facts, definitions, domains, people, markets }),
     [facts, definitions, domains, people, markets],
   )
 }

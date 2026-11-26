@@ -1,8 +1,112 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-21
+reviewed: 2026-11-25
 ---
+
+## Publish moves on at once
+
+2026-11-25
+
+Publish in a review opens the next suggestion at once. The one you left says Publishing, then Published once it is in, or why it couldn't be. Command and Z undoes your last decision from any screen, for as long as Undo is offered. See [Review a suggestion](review-a-suggestion.md#after-you-decide).
+
+## The keys work on every list
+
+2026-11-25
+
+J and K move through Context, Definitions and the Inbox from the moment the page opens, and the row you move to takes the focus. With a side panel open, J opens the next row in it while the panel keeps the focus, and Esc closes the panel from anywhere. After a click on an Inbox card, one Enter opens it.
+
+G then a letter goes to a place: I the Inbox, A Ask, C Context, D Definitions and S Settings. Press ? to see every key.
+
+## See what a metric is built from
+
+2026-11-25
+
+A metric built from others shows them as a small tree, on its page and in the side panel, with the metrics they are built from in turn. Each line counts the published context about that metric, so you can see where something is written. See [Definitions](definitions-and-synonyms.md#what-a-metric-is-built-from).
+
+## Lists keep their view, and Back goes back
+
+2026-11-25
+
+Context and Definitions keep their filters, search words, sort and grouping in the address, so a reload, or Back from an item's page, gives the same list with the row you came from in focus.
+
+Moving through the Inbox with J and K no longer adds a Back step, so leaving the Inbox takes one Back. Esc, or the back arrow, on something opened from a list goes back to that list.
+
+## Share a chat as a link
+
+2026-11-25
+
+Share chat, at the top of Ask, makes one link to a copy of the whole chat, under your name. Only people signed in can open it, each source only if they may read it, and it lasts 90 days. Stop sharing is in History. An answer no longer has a Share of its own. See [Share a chat](ask-a-question.md#share-a-chat).
+
+## Test a tool from its page
+
+2026-11-24
+
+Test connection is on every definitions tool's page now, under Connection, a tool set up on the server included. It tests the tool as it is saved, names each file a read skips, and says what to do when something fails. Families are always on the page too, with how to make one in your tool.
+
+## Figures leave Ask, for now
+
+2026-11-24
+
+Ask no longer shows a number read from your definitions tool, and its page in Integrations has one connection again. Your workspace keeps no figures: an answer says what is written about a number, and the number itself is in the tool that holds your data.
+
+## Drafts are yours alone
+
+2026-11-24
+
+Only the person who wrote a draft can see it now. Owners and admins see it once it is sent, as Waiting. The editor has Save as draft, and a draft's page sends or publishes it as it is.
+
+Drafts you imported, or haven't saved for 30 days, wait on one card in your Inbox, which publishes or sends them all at once. An admin can delete the drafts of someone who left, without reading them. See [Write context](write-context.md#save-as-draft).
+
+## Five tools for agents
+
+2026-11-24
+
+Agents now call five tools. Given no words, find_context lists what is defined and written down, a page at a time, with each item's summary. read_context gives an item's links with every read, so Agents and access no longer has a Let agents follow links switch, and Settings lists five tools.
+
+Only get_context says to call it first, and only for a question about a metric, so an agent looks a name up with find_context. In Claude Code, get_context loads when a session starts. See [Agent tools](tools.md).
+
+## The period you chose, in the answer
+
+2026-11-24
+
+When you choose other dates in Read as, the new answer says so: its Read as names the period with its days, such as last month with its first and last day, and its first sentence names it. The answer above keeps its own dates. An answer about what a metric means offers no dates, since they do not change it. See [Ask a question](ask-a-question.md#ask-again-at-other-dates).
+
+## Waiting for review, and Don't publish
+
+2026-11-23
+
+A new item someone sent now shows in Context as Waiting, with who sent it, how long ago and who decides, to its sender, its domain's owners and admins. Filter by Waiting for review to see them all.
+
+On its page an owner can publish it, edit it and then publish it, send it back with a note, or choose Don't publish with a reason. The sender reads who closed it and why in their Inbox. See [Review a suggestion](review-a-suggestion.md#from-context).
+
+## Families where you connect a source
+
+2026-11-23
+
+Test connection now leads with the families a read would find: how many of the metrics are variants, and how each family was found, declared in your tool, from the calculation, from a rate or by names that look alike. A family found from a rate is now its own kind.
+
+The Names card has a Families part apart from the Names, and a source's page counts its families with Review families. See [Variants](metric-variants.md#what-test-connection-says).
+
+## Buttons that start with what you asked for
+
+2026-11-22
+
+The buttons that open a screen now fill in what they are about. Add the word to Definitions, under an answer that found a word nobody defined, opens a new term with that word. A definition card with no context yet offers its owners Write context.
+
+In the Inbox, a report from Ask shows the question asked, with Try this question, and a card due for a check because a definition changed has See the definition. See [Keep context up to date](keep-context-up-to-date.md#reported).
+
+## Ask opens the screen it explains
+
+2026-11-22
+
+An answer in Ask that says how to do something in the app, such as writing a context item or inviting a colleague, now ends with a button that opens that screen. When the screen is not yours to use, the answer says who does it instead. See [Ask a question](ask-a-question.md#ask-how-it-works).
+
+## Help pages open their screen
+
+2026-11-22
+
+Every help page about a screen now says where to start and has a button beside its title that opens that screen, such as New context on [Write context](write-context.md#add-a-context-item).
 
 ## Families declared in your tool
 

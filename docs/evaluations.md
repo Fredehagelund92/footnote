@@ -121,8 +121,9 @@ saved questions follows each publish instead (FR-526).
   deliveries differ from the previous pass of the same edition and overlay (`date_expiry`). The
   run names its `trigger`; the budget and the spending caps hold as for any run.
 - **Cell cache** (FR-522): a cell whose inputs did not change (wording, expected results, what
-  `get_context` delivers, tool descriptions, prompts, models and effort, try) reuses the earlier
-  result without a model call.
+  `get_context` delivers, tool descriptions, the server instructions the model is given, prompts,
+  models and effort, try) reuses the earlier result without a model call. A run keeps the About
+  our business text and calendar it was planned with, so its answers match its keys.
 - **Cost** (FR-409, FR-516): every run is estimated first, from typical calls that read and
   write the prompt cache as measured runs do; one above `evals.run_budget_micros` waits for
   `POST /evals/runs/{id}/approve` by an administrator. Before each answer the runner checks the
@@ -162,19 +163,12 @@ saved questions follows each publish instead (FR-526).
   regressions against the previous one, measures the held-out targets of requirements section
   1.7, and posts an `eval.scorecard` outbox event. A scheduled run that has not finished within a
   day, stopped or not, fails with an `eval_run_unfinished` alert; the watchdog alerts when eight days pass without one.
-- **Links runs** (FR-523): whether following links helps is measured with `get_related` off on
-  one side and on on the other (it is on by default since the agent contract). A link-follow question sets `expected.reachable_via_link` (the
-  items whose context the answer must reach through `read_context` or `get_related`, and cite) and
+- **Link-follow questions** (FR-523): a question sets `expected.reachable_via_link` (the items
+  whose context the answer must reach by reading a link with `read_context`, and cite) and
   `expected.forbidden_links` (stale or hidden targets the answer must neither read nor cite).
-  `npm run eval -- --area <id> --links` runs the domain's
-  questions on the live edition twice: with `get_related` off (baseline) and on (candidate),
-  everything else equal, with flips repeated as above. The run's `links` result lists the
-  questions that pass only with links and those that fail because of them, and per side the
-  answers, the mean tool calls and cost per answer (over-following shows here) and the answers
-  that claim a cause. `gain` is true only with a gain, nothing lost and no new cause claims. The
-  tool stays off until an administrator switches it on. Each run fixes the tools each side
-  offers when it is planned, and the cell cache key includes them.
-- `GET /evals/runs`, `GET /evals/runs/{id}` (results, flips, cells, replay, links),
+  Links come with every `read_context`, so there is no run with links off: each run fixes the
+  tools switched on when it is planned, and the cell cache key includes them.
+- `GET /evals/runs`, `GET /evals/runs/{id}` (results, flips, cells, replay),
   `POST /evals/runs/{id}/approve`, `POST /evals/runs/{id}/cancel` and
   `POST /evals/runs/{id}/resume` are API only, with no screen in the web app. A domain's runs start
   from `npm run eval` and the weekly job.
@@ -185,8 +179,9 @@ saved questions follows each publish instead (FR-526).
   stays readable by everyone signed in (FR-616).
 - **Models**: `MODELS=mock` (the default, and in every test) is a scripted model: it asks
   `get_context` with the question and answers with the delivered ids, titles and summaries and the
-  reply's `say` (and, when `get_related` is offered, follows the first delivered item's links once
-  and adds the neighbour items in service); the scripted judge grades by fixed rules. `MODELS=live` calls each role's
+  reply's `say` (and, when `read_context` is offered, reads the first delivered item, then the first
+  item in service it links to or is linked from, once, and adds that item); the scripted judge
+  grades by fixed rules. `MODELS=live` calls each role's
   provider with explicit model objects (`models.eval_answer`, Claude Sonnet 5.5 on the Anthropic
   API by default, and `models.judge`); a string model is refused by lint. The judge defaults to
   `different_family`: the first model the answering model's provider lists (Opus, Sonnet, Haiku)
@@ -202,6 +197,44 @@ saved questions follows each publish instead (FR-526).
   against the provider's own counter of what the key used, where the provider keeps one (Vercel's
   gateway, `GET /v1/credits`, read-only): another use of the same key in the meantime moves the
   counter too. Cache writes bill at the provider's cache write price (Claude: 1.25 times input).
+
+## The proof
+
+`npm run footnote -- prove` ([Run the proof](prove.md) is the reader's page) asks the same
+questions about a period and a market three ways through one agent loop, and prints a table. It
+is built on the area runner, not beside it (`src/server/modules/evals/proof.ts`):
+
+- **The three ways.** No context: no tools, no notes. One plain file: no tools, and every note
+  the live edition serves to an agent with no group, written out by `notesFile`
+  (`src/domain/proof.ts`) as one Markdown file in the instructions, after the test's own prompt.
+  Footnote: the eval client's tools through the real MCP wire (`openArm`), with the server
+  instructions, as every area run asks them. The prompt (`proofSystemPrompt`), the model, the day
+  (each question's `as_of`, told in the prompt and used as the server's day) and the judge are
+  the same for all three.
+- **The judge.** `judgeAnswer`, the area runs' judge, reads each answer, never its tools, with
+  one rubric for each note the question names and one for "nothing is written" where nothing is.
+  Code turns the grades into the three counts (`proofScore`): the right reason and no wrong one,
+  a wrong note told, and nothing is written said. A refusal or an unreadable verdict counts in no
+  column. The scripted judge passes a rubric when the answer holds its quoted title, and the
+  scripted answer model reads the plain file by place alone, whatever the dates.
+- **The questions** are a file in the format of `docs/templates/prove-questions.yaml` (`--questions`),
+  checked before anything runs, and refused when a named note is not served. The run prints their
+  digest (`proofDigest`).
+- **Size and cost.** Three tries by default (`--tries`). The estimate counts each way apart: a
+  Footnote answer as an area run's cell, the plain file read from the prompt cache after one write
+  for each day and each answer that can start at once, and a judge call for every answer. `--real`
+  needs `--cap` at or above it and a typed yes; the cap is the run's ceiling (command-run.ts).
+- **What is kept.** One run of kind `proof` (migration 0018), worked only by its command under a
+  lease, as a held-out run is: its model calls, its cost and, in its summary, whose questions,
+  their digest and the counts by way and try. No cell, transcript, question or answer.
+
+The invented company's questions are sealed with the held-out key in
+`db/seed/prove-questions.age` until its first funded run, guarded by the held-out seal. The key
+holder writes them (`npm run held-out -- edit --set prove`), counts them (`count --set prove`) and
+runs them (`npm run held-out -- prove [--real --cap <dollars>]`), which prints the same table and
+nothing of a question. With the published result the key holder commits them opened, as
+`db/seed/prove-questions.yml`, which `npm run footnote -- prove` asks when it is given no file;
+until then it says the questions are sealed and asks nothing.
 
 ## Ask's promises and the burned cases
 
@@ -278,10 +311,17 @@ Ask page does (`tests/web/integration/ask-answerers.ts`).
   answerer reads which of them failed or tunes on them. The loop's mocked suite holds how
   many pass (`heldPassingToday`), and no merge may lower it: CI's step "No merge
   lowers the held-back count" (`scripts/check-held-count.ts`, the base branch's copy) fails a change that writes a lower one.
-  The harness holds 29 held-back cases. The loop's steps in use are the recording made on 19
-  November 2026 in PR 387 (Haiku 5.5, one try, after H15); PR 394 later re-keyed one step for a
-  date fix. Today Ask's loop passes 14 of the 29, and 28 of the 29 keep every promise; the rest fail on what they must say, which the answer
-  check does not change.
+  The one exception is a lowering the owner approved: the same change adds or updates
+  `tests/web/integration/held-count-approval.json` with the suite's path (`suite`), the count it
+  lowers from (`from`, the base's) and to (`to`, the change's), a reason in one sentence
+  (`reason`), who approved it (`approvedBy`) and the date (`date`, as YYYY-MM-DD). The step passes
+  only a record that names that exact lowering.
+  The harness holds 30 held-back cases. The loop's steps in use are the recording made on 24
+  November 2026 (Haiku 5.5, one try, after the reads were ordered by the question). Today Ask's
+  loop passes 11 of the 30, and 27 of the 30 keep every promise; the rest fail on what they must
+  say, which the answer check does not change. Main's code run once live the same day passed 9
+  where that recording's run passed 8: the 15 of the run before was that run's, not the code's,
+  and the owner's approval of that lowering is recorded.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                                                                           |
@@ -398,7 +438,7 @@ FR-720.10 before they are shown (below); the judges' part waits.
   (`src/domain/ask-nouns.ts`): `metric:<id>`, `dimension:<id>`, `value:<dimension>/<value>`,
   `domain:<id>`, `person:<id>`, a value always with its own dimension. The model writes
   `[@value:<dimension>/<value>]` for a noun, `[#r1.count]` for a number or a day a read holds,
-  `[list:r1]` for a read's items as rows, and lines that start with a dash for a short list. Code
+  `[list:r1]` for a read's items as rows, and Markdown for the rest (bold, italic, code, lists, numbered lists, short tables, links; a heading is drawn as bold words, raw HTML is plain words, and a link goes only to a help page or to an address the reads or the question give word for word). Code
   checks each against the chat's reads, and repairs the words, never deleting a sentence: a
   mention no read named is plain words (its name, also when the model wrote a name in place of an
   id), a reference to a read's words is those words and one to nothing a read holds is left out
@@ -518,7 +558,8 @@ failed; ...)`: never a question, an expectation or a transcript. The code that r
 ...`. It counts nothing and fails nothing: `npm run held-out -- eval` exits 0, and `count` says
   that no cases are sealed.
 - **The guard** (`scripts/check-held-out-seal.ts`, the "Held-out seal" job of CI) fails a pull
-  request that changes the sealed file or the seal's own code together with anything under
+  request that changes a sealed file (the held-out cases, or the proof questions in
+  `db/seed/prove-questions.age`) or the seal's own code together with anything under
   `src/`, that deletes or moves the sealed file, that commits held-out cases in plain text or in
   the visible file, or whose code outside the seal names the sealed file, the key's variables, the
   age library or a function that hands out the cases. The rules on the sealed file hold once it

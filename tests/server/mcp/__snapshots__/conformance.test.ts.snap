@@ -2,20 +2,28 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "61b55c26aff9cf102bba3fd5e486ed6dbeeb359b60bd05886bfa56cb379b2261",
+  "digest": "861fd80b15d6ea1b1f13db6d503993aba5e05f0750828f6ea091f58b7a8fa510",
   "tools": [
     {
+      "_meta": {
+        "anthropic/alwaysLoad": true,
+      },
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "The context that applies to a question, with one sentence to relay. Call get_context before answering a question about company data. Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
+      "description": "The context that applies to a question about a metric, with one sentence to relay. Call it before you answer a question about company numbers, never to browse or to look a name up (call find_context). Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. The items come in one order, the one Ask reads too: first those whose title, summary or not_to_conclude line hold the question's own words (those that name no metric, value or domain), a rarer word weighing more; then whole matches, higher risk and newer start. A reply gives max_items of them, 10 by default; when more apply, next_cursor passed back as cursor with the same question gives the next ones. A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). When the question names no metric, unread gives each word that could have named one, with the names that hold it: ask the person, or search it with find_context, and never read it as one of them yourself. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
+          "cursor": {
+            "description": "The next_cursor of a reply to the same question: the context items after that reply's, in the same order.",
+            "maxLength": 2000,
+            "type": "string",
+          },
           "dimension_filters": {
             "items": {
               "additionalProperties": false,
@@ -56,7 +64,8 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "integer",
           },
           "max_items": {
-            "default": 20,
+            "default": 10,
+            "description": "How many context items a reply gives at most: the ones the question turns on come first. next_cursor gives the rest.",
             "maximum": 50,
             "minimum": 1,
             "type": "integer",
@@ -212,6 +221,10 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "minLength": 1,
             "type": "string",
           },
+          "next_cursor": {
+            "description": "Where the rest of the context items that apply start, when more apply than the reply gives: pass it as cursor with the same question for the next ones.",
+            "type": "string",
+          },
           "period_read": {
             "additionalProperties": false,
             "description": "The days that were looked up, inclusive, and how they were read: say them.",
@@ -259,6 +272,35 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
               "provenance",
             ],
             "type": "object",
+          },
+          "read_as": {
+            "description": "The question's words read as a name they are not exactly: another form or order of it (form), its initials (initials), or a word only its name holds (part). Say a part reading to the person, since the word may mean something else.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "by": {
+                  "enum": [
+                    "form",
+                    "initials",
+                    "part",
+                  ],
+                  "type": "string",
+                },
+                "name": {
+                  "type": "string",
+                },
+                "words": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "words",
+                "name",
+                "by",
+              ],
+              "type": "object",
+            },
+            "type": "array",
           },
           "reply_id": {
             "description": "The id of this reply, for report when the person says what was wrong or helped.",
@@ -348,6 +390,32 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             },
             "type": "array",
           },
+          "unread": {
+            "description": "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "closest": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+                "domain": {
+                  "type": "string",
+                },
+                "word": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "word",
+                "closest",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
         },
         "required": [
           "say",
@@ -364,11 +432,16 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "A word search over names, titles and summaries. Call get_context before answering a question about company data. Find what is written down about a few words, by the names people use: metrics and their other names (such as GMV), markets, domains, member names from the data tool (such as payments.orders), and words in an item's title, summary or text. Use it for "what do we know about", "what is" or "how is it defined", and when you don't know the exact names. Filter by domain (a name such as Sales) or kind (event, warning, rule or guide). Returns the matching items, titles and summaries only, and for each metric or dimension the words name: the definition its source gives and what this context adds; and terms, each word a person defined in Definitions, with its meaning as written. When no words match, it returns the items that apply to what the words name, on the dates the window or the words give, or else today, as say says; when nothing is found, why says what to try. Read an item in full with read_context.",
+      "description": "Find context items and definitions by words, or list them by kind or domain. Use it to look names up, to browse or to pick some, never to answer a question about a metric, market and dates (call get_context). With words, it finds what is written down by the names people use: metrics and their other names (such as GMV), markets, domains, member names from the data tool (such as payments.orders), and words in an item's title, summary or text. Use it for "what do we know about", "what is" or "how is it defined", and when you don't know the exact names. It returns the matching items, each with its title and summary, and for each metric or dimension the words name, the definition its source gives and what this context adds. When no words match, it returns the items that apply to what the words name, on the dates the window or the words give, or else today, as say says; when nothing is found, why says what to try. Without words, it lists everything there is of a kind or in a domain, in a fixed order: definitions first, metrics, dimensions and terms, each A to Z with a one-line meaning, then items A to Z by title, each with its summary. Filter by kind (metric, dimension, term, event, warning, rule or guide) and domain (a name such as Sales). Every reply says how many there are; pass next_cursor as cursor for the next page. terms gives each word of the query a person defined in Definitions, with its meaning as written. No row carries an item's text: read one in full with read_context.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
+          "cursor": {
+            "description": "The next_cursor of the page before, for the next page.",
+            "maxLength": 2000,
+            "type": "string",
+          },
           "domain": {
             "description": "A domain by its name, such as Sales (its id, such as area_sales, works too).",
             "maxLength": 80,
@@ -380,8 +453,11 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "string",
           },
           "kind": {
-            "description": "Only items of this kind: event, warning, rule or guide.",
+            "description": "Only this kind: a definition (metric, families too, dimension, or term, a word a person defined) or an item (event, warning, rule or guide).",
             "enum": [
+              "metric",
+              "dimension",
+              "term",
               "event",
               "warning",
               "rule",
@@ -390,8 +466,8 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "string",
           },
           "limit": {
-            "default": 10,
-            "maximum": 50,
+            "description": "How many to a page: 10 with words and 25 without by default, at most 100.",
+            "maximum": 100,
             "minimum": 1,
             "type": "integer",
           },
@@ -402,7 +478,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "integer",
           },
           "query": {
-            "description": "A few words or the question as asked: a metric, a market, a domain or a topic, such as "GMV Spain" or "what is net revenue".",
+            "description": "A few words or the question as asked: a metric, a market, a domain or a topic, such as "GMV Spain" or "what is net revenue". Leave it out to list everything of a kind or in a domain.",
             "maxLength": 2000,
             "minLength": 1,
             "type": "string",
@@ -434,9 +510,6 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "object",
           },
         },
-        "required": [
-          "query",
-        ],
         "type": "object",
       },
       "name": "find_context",
@@ -448,6 +521,10 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "items": {
               "additionalProperties": {},
               "properties": {
+                "applies": {
+                  "description": "What it applies to, in words.",
+                  "type": "string",
+                },
                 "checked": {
                   "additionalProperties": false,
                   "description": "Who checked it before agents got it, as a role (never a person), and on which day.",
@@ -472,11 +549,23 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                   "description": "event, warning, rule or guide.",
                   "type": "string",
                 },
+                "may_be_out_of_date": {
+                  "const": true,
+                  "description": "It is due for a check: say so if you use it.",
+                  "type": "boolean",
+                },
+                "summary": {
+                  "type": "string",
+                },
                 "title": {
                   "type": "string",
                 },
                 "url": {
                   "description": "The item's page, for the person: link it where you cite the item.",
+                  "type": "string",
+                },
+                "when": {
+                  "description": "When it applies, in words.",
                   "type": "string",
                 },
               },
@@ -485,7 +574,19 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 "title",
                 "kind",
                 "url",
+                "summary",
+                "applies",
+                "when",
               ],
+              "type": "object",
+            },
+            "type": "array",
+          },
+          "definitions": {
+            "description": "With words, each metric or dimension they name: the definition its source gives and what this context adds. Without words, a page of definitions: each one's key, name, kind, domain, owner and one-line meaning.",
+            "items": {
+              "additionalProperties": {},
+              "properties": {},
               "type": "object",
             },
             "type": "array",
@@ -494,6 +595,13 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
             "minLength": 1,
             "type": "string",
+          },
+          "next_cursor": {
+            "description": "Pass it as cursor for the next page; null on the last page.",
+            "type": [
+              "string",
+              "null",
+            ],
           },
           "say": {
             "description": "What you may tell the person about this result, in these words: plain sentences on what was read and what was found.",
@@ -569,6 +677,12 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             },
             "type": "array",
           },
+          "total": {
+            "description": "How many there are with these filters, on every page.",
+            "maximum": 9007199254740991,
+            "minimum": -9007199254740991,
+            "type": "integer",
+          },
         },
         "required": [
           "say",
@@ -576,7 +690,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         ],
         "type": "object",
       },
-      "title": "Find context",
+      "title": "Find or list context",
     },
     {
       "annotations": {
@@ -585,12 +699,13 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": true,
       },
-      "description": "One context item in full. Call get_context before answering a question about company data. Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. An edition needs a service token with edition scope. A link proves neither that an item applies nor a cause.",
+      "description": "One context item or one definition in full, with its links. Read one by an id or a name another reply gave. An item comes with its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line, and terms, each word of it a person defined in Definitions, with its meaning as written; then links_out, what it links to, and links_in, a page of the items that link to it, each with how it links (relations keeps only those kinds). Read a linked item the same way to follow a link, only when it helps answer the question: a link neither widens where an item applies nor proves a cause. A definition, by its name, another of its names or its key from find_context, is for when the person asks what something means or how it is defined: its words whole, as its source or a person wrote them, where they come from, its owner as a role, its other names, its family with what the family means and its usual metric, what it is built from, and the titles of the published items about it, even when there are none; never to answer a question about the data, which get_context does. An edition needs a service token with edition scope.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
           "cursor": {
+            "description": "The next_cursor of the reply before, for the next page.",
             "maxLength": 2000,
             "type": "string",
           },
@@ -599,7 +714,9 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "string",
           },
           "id": {
-            "pattern": "^itm_[a-z0-9]{8,16}$",
+            "description": "A context item's id (itm_...), or a definition: its name, another of its names, or its key from find_context (such as metric:orders or term:...).",
+            "maxLength": 200,
+            "minLength": 1,
             "type": "string",
           },
           "max_bytes": {
@@ -607,6 +724,24 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "maximum": 100000,
             "minimum": 1000,
             "type": "integer",
+          },
+          "relations": {
+            "description": "Only an item's links of these kinds. Leave it out for all of them.",
+            "items": {
+              "enum": [
+                "replaces",
+                "replaced_by",
+                "conflicts_with",
+                "applies_to",
+                "mentions",
+                "mentioned_by",
+                "in_area",
+              ],
+              "type": "string",
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "type": "array",
           },
         },
         "required": [
@@ -662,10 +797,473 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             ],
             "type": "object",
           },
+          "definition": {
+            "additionalProperties": {},
+            "properties": {
+              "context": {
+                "additionalProperties": false,
+                "description": "The published context items about it, titles only: read one with read_context.",
+                "properties": {
+                  "count": {
+                    "description": "How many published context items about it you may read.",
+                    "maximum": 9007199254740991,
+                    "minimum": -9007199254740991,
+                    "type": "integer",
+                  },
+                  "items": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                        },
+                        "title": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "count",
+                  "items",
+                ],
+                "type": "object",
+              },
+              "domain": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "family": {
+                "additionalProperties": false,
+                "properties": {
+                  "by": {
+                    "description": "What tells its metrics apart, such as Currency.",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "converted": {
+                    "description": "Which metric is worked out from which, by names, and the column it reads.",
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "by": {
+                          "type": "string",
+                        },
+                        "from": {
+                          "type": "string",
+                        },
+                        "to": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "from",
+                        "to",
+                        "by",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "found": {
+                    "description": "How it was found, in a sentence.",
+                    "type": "string",
+                  },
+                  "meaning_from": {
+                    "description": "Where its meaning comes from: declared in its source, written by an owner, the words most of its metrics share, or none.",
+                    "enum": [
+                      "declared",
+                      "written",
+                      "common",
+                      "none",
+                    ],
+                    "type": "string",
+                  },
+                  "members": {
+                    "description": "Its metrics, each with the values that tell it apart.",
+                    "items": {
+                      "additionalProperties": {},
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                        },
+                        "name": {
+                          "type": "string",
+                        },
+                        "values": {
+                          "items": {
+                            "type": "string",
+                          },
+                          "type": "array",
+                        },
+                        "words": {
+                          "description": "Its source's own words, when it gives some.",
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "key",
+                        "name",
+                      ],
+                      "type": "object",
+                    },
+                    "type": "array",
+                  },
+                  "usual": {
+                    "additionalProperties": false,
+                    "description": "The metric its owners say a question means when it names none of the values, such as EUR.",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                      },
+                      "name": {
+                        "type": "string",
+                      },
+                      "values": {
+                        "items": {
+                          "type": "string",
+                        },
+                        "type": "array",
+                      },
+                    },
+                    "required": [
+                      "key",
+                      "name",
+                      "values",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "members",
+                ],
+                "type": "object",
+              },
+              "key": {
+                "description": "Its key, which read_context reads it by, such as metric:orders.",
+                "type": "string",
+              },
+              "kind": {
+                "description": "A metric family is one name for near-identical metrics, such as one per currency.",
+                "enum": [
+                  "metric",
+                  "metric family",
+                  "dimension",
+                  "term",
+                ],
+                "type": "string",
+              },
+              "member_of": {
+                "additionalProperties": false,
+                "description": "The family it is one metric of.",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                  },
+                  "name": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "key",
+                  "name",
+                ],
+                "type": "object",
+              },
+              "name": {
+                "type": "string",
+              },
+              "other_names": {
+                "description": "Its other names: those its source gives, and the synonyms people wrote.",
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
+              },
+              "owner": {
+                "additionalProperties": false,
+                "description": "Who looks after it, as a role and a team (never a person).",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                  },
+                  "team": {
+                    "type": [
+                      "string",
+                      "null",
+                    ],
+                  },
+                },
+                "required": [
+                  "role",
+                  "team",
+                ],
+                "type": "object",
+              },
+              "relations": {
+                "description": "What it is built from and what is built from it, by name, as its source's structure says: never a calculation.",
+                "items": {
+                  "additionalProperties": {},
+                  "properties": {
+                    "key": {
+                      "description": "Its key, or null for a column.",
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "kind": {
+                      "enum": [
+                        "converted_from",
+                        "converted_to",
+                        "built_from",
+                        "used_by",
+                      ],
+                      "type": "string",
+                    },
+                    "missing": {
+                      "const": true,
+                      "type": "boolean",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "kind",
+                    "name",
+                    "key",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "shortened": {
+                "const": true,
+                "description": "The source wrote more than the 500 characters kept of it: the words end with ... and the rest is in the source.",
+                "type": "boolean",
+              },
+              "source": {
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "description": "Its own name in the tool, such as payments.orders.",
+                    "type": "string",
+                  },
+                  "read_on": {
+                    "description": "The day it was last read from the source.",
+                    "type": "string",
+                  },
+                  "source": {
+                    "description": "The source's name in Sources.",
+                    "type": "string",
+                  },
+                  "state": {
+                    "description": "changed: the source changed it after some context items about it were checked; missing: the source no longer lists it.",
+                    "enum": [
+                      "current",
+                      "changed",
+                      "missing",
+                    ],
+                    "type": "string",
+                  },
+                  "title": {
+                    "type": "string",
+                  },
+                  "tool": {
+                    "description": "The tool that defines it, such as Cube.",
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "tool",
+                  "source",
+                  "name",
+                  "state",
+                ],
+                "type": "object",
+              },
+              "url": {
+                "description": "Its page in Definitions, for the person.",
+                "type": "string",
+              },
+              "words": {
+                "description": "What it means, whole: its source's own words, a family's meaning, or what a person wrote for a term. Null when nothing says.",
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "words_from": {
+                "description": "Where the words come from, in a sentence: say it with them.",
+                "type": "string",
+              },
+              "written": {
+                "additionalProperties": false,
+                "description": "For a term: who wrote it, as a role, and when.",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                  },
+                  "role": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "role",
+                  "date",
+                ],
+                "type": "object",
+              },
+            },
+            "required": [
+              "key",
+              "name",
+              "kind",
+              "domain",
+              "owner",
+              "other_names",
+              "words",
+              "words_from",
+              "context",
+              "url",
+            ],
+            "type": "object",
+          },
+          "links_in": {
+            "additionalProperties": false,
+            "description": "A page of the items that link to it, in a fixed order; next_cursor gives the next.",
+            "properties": {
+              "count": {
+                "description": "How many links to it you may read: one for each item and way it links.",
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer",
+              },
+              "items": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                    },
+                    "rel": {
+                      "description": "How it links to this item: mentioned_by, replaced_by or conflicts_with.",
+                      "type": "string",
+                    },
+                    "title": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "rel",
+                    "id",
+                    "title",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            },
+            "required": [
+              "count",
+              "items",
+            ],
+            "type": "object",
+          },
+          "links_out": {
+            "description": "What the item links to, in a fixed order. Read a linked item with read_context.",
+            "items": {
+              "additionalProperties": {},
+              "properties": {
+                "rel": {
+                  "description": "How it links: replaces, conflicts_with, applies_to, mentions or in_area.",
+                  "type": "string",
+                },
+                "target": {
+                  "additionalProperties": {},
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                    },
+                    "label": {
+                      "type": "string",
+                    },
+                    "status": {
+                      "description": "current; retired or replaced for an item no longer served; source_missing, source_changed or unresolved for a definition.",
+                      "type": "string",
+                    },
+                    "type": {
+                      "description": "item, metric, dimension, term or area.",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "type",
+                    "id",
+                    "label",
+                    "status",
+                  ],
+                  "type": "object",
+                },
+              },
+              "required": [
+                "rel",
+                "target",
+              ],
+              "type": "object",
+            },
+            "type": "array",
+          },
           "next": {
             "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
             "minLength": 1,
             "type": "string",
+          },
+          "next_cursor": {
+            "description": "Pass it as cursor for the next page; null on the last page.",
+            "type": [
+              "string",
+              "null",
+            ],
+          },
+          "options": {
+            "description": "The definitions the words may mean, by key: call again with one of them.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "field": {
+                  "type": "string",
+                },
+                "input": {
+                  "type": "string",
+                },
+                "options": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "required": [
+                "field",
+                "input",
+                "options",
+              ],
+              "type": "object",
+            },
+            "type": "array",
           },
           "say": {
             "description": "What you may tell the person about this result, in these words: plain sentences on what was read and what was found.",
@@ -748,7 +1346,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         ],
         "type": "object",
       },
-      "title": "Read a context item",
+      "title": "Read a context item or a definition",
     },
     {
       "annotations": {
@@ -1414,115 +2012,6 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "type": "object",
       },
       "title": "Send a suggestion",
-    },
-    {
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false,
-        "readOnlyHint": true,
-      },
-      "description": "Follow a link between context items, definitions and domains, one step at a time. Call get_context before answering a question about company data. Follow links from an item's id, a vocabulary key such as metric:orders, a term written in Definitions (term:<id>), or a domain. Returns neighbours one or two steps away with their kind of link, never bodies; a term comes with what it means, as a person wrote it, which is background for reading words and never a checked source. A link shows what a text refers to: it neither widens where an item applies nor proves a cause, and it never changes what get_context includes. Call it only when a link helps answer the question; read a neighbour with read_context. Follow next_cursor for another page.",
-      "inputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "additionalProperties": false,
-        "properties": {
-          "cursor": {
-            "maxLength": 2000,
-            "type": "string",
-          },
-          "depth": {
-            "default": 1,
-            "maximum": 2,
-            "minimum": 1,
-            "type": "integer",
-          },
-          "edition": {
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}\\.\\d+$",
-            "type": "string",
-          },
-          "id": {
-            "maxLength": 160,
-            "minLength": 1,
-            "type": "string",
-          },
-          "max_bytes": {
-            "default": 100000,
-            "maximum": 100000,
-            "minimum": 1000,
-            "type": "integer",
-          },
-          "max_nodes": {
-            "default": 20,
-            "maximum": 50,
-            "minimum": 1,
-            "type": "integer",
-          },
-          "relations": {
-            "items": {
-              "enum": [
-                "replaces",
-                "replaced_by",
-                "conflicts_with",
-                "applies_to",
-                "mentions",
-                "mentioned_by",
-                "in_area",
-              ],
-              "type": "string",
-            },
-            "maxItems": 7,
-            "minItems": 1,
-            "type": "array",
-          },
-          "window": {
-            "additionalProperties": false,
-            "properties": {
-              "from": {
-                "type": "string",
-              },
-              "to": {
-                "type": "string",
-              },
-            },
-            "required": [
-              "from",
-              "to",
-            ],
-            "type": "object",
-          },
-        },
-        "required": [
-          "id",
-        ],
-        "type": "object",
-      },
-      "name": "get_related",
-      "outputSchema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "additionalProperties": {},
-        "properties": {
-          "next": {
-            "description": "What to do next with this result: for you, not the person. When nothing was found, it says why that proves nothing and which call to make.",
-            "minLength": 1,
-            "type": "string",
-          },
-          "say": {
-            "description": "What you may tell the person about this result, in these words: plain sentences on what was read and what was found.",
-            "minLength": 1,
-            "type": "string",
-          },
-          "status": {
-            "type": "string",
-          },
-        },
-        "required": [
-          "say",
-          "status",
-        ],
-        "type": "object",
-      },
-      "title": "Follow links",
     },
   ],
 }

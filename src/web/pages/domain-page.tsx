@@ -15,7 +15,7 @@ import {
   UserPlusIcon,
   WholeWordIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { RichTextEditor } from '@/components/editor'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
 import { DocFooter, Paper } from '@/components/footnote/doc'
@@ -363,7 +363,7 @@ export function DomainPage({
                       <>
                         <span aria-hidden>-</span>
                         <a
-                          href={href('/context', { domain: id, due: '1' })}
+                          href={href('/context', { domain: id, status: 'due' })}
                           className="underline-offset-4 hover:underline"
                         >
                           {due} due for a check

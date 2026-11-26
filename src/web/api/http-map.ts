@@ -94,6 +94,7 @@ export function factsOf(rows: readonly LibraryItem[], names: Names): Fact[] {
       domain: row.areaId,
       kind: row.kind,
       where: row.chips,
+      values: row.values,
       valid,
       when: whenLabel(valid),
       status: statusOf(row),
@@ -119,14 +120,12 @@ function meaningOf(
   const { chosen, common, automatic, ...meaning } = family.meaning
   return {
     ...meaning,
-    member: nameOf(meaning.member),
     base: nameOf(meaning.base),
     common: common ?? undefined,
     automatic: automatic ?? undefined,
     differing: meaning.differing.flatMap((key) => nameOf(key) ?? []),
     chosen: chosen && {
       choice: chosen.choice,
-      member: nameOf(chosen.member),
       words: chosen.words ?? undefined,
       by: person(chosen.personId),
       on: dateLabel(chosen.at.slice(0, 10)),
@@ -162,6 +161,7 @@ export function definitionsOf(
       ? {
           tool: term.definition.tool,
           connector: term.definition.connector,
+          source: term.definition.sourceId,
           ref: term.definition.ref,
           ...(term.definition.fileUrl ? { fileUrl: term.definition.fileUrl } : {}),
         }
@@ -188,6 +188,7 @@ export function definitionsOf(
             })),
             meaning: meaningOf(term.family, person),
             usual: usualOf(term.family, person),
+            ...(term.family.declared ? { declared: term.family.declared } : {}),
           },
         }
       : {}),

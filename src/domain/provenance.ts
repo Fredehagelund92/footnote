@@ -1,6 +1,7 @@
 import * as z from 'zod/mini'
 import { canonicalJson } from './canonical.ts'
 import type { Draft } from './draft.ts'
+import { instructionWords, matchesOf, words } from './instruction-words.ts'
 import { fieldMarks, markedFields, type FieldMark, type MarkedField } from './proposal-rules.ts'
 
 /*
@@ -12,6 +13,7 @@ import { fieldMarks, markedFields, type FieldMark, type MarkedField } from './pr
 */
 
 export { fieldMarks, markedFields, type FieldMark, type MarkedField }
+export { instructionWords }
 
 /**
  * `may_be_high_risk`: the words suggest a legal, regulatory or financial-reporting matter; the
@@ -110,13 +112,6 @@ export function provenanceOf(
   }
 }
 
-/**
- * A word list in Portuguese or Spanish, matched as whole words: `\\b` reads only ASCII letters, so
- * an accented letter at either end would break it.
- */
-const words = (list: string) =>
-  new RegExp(`(?<![\\p{L}\\p{N}])(?:${list})(?![\\p{L}\\p{N}])`, 'giu')
-
 const riskPatterns: RegExp[] = [
   /\bregulat(?:or|ors|ory|ion|ions|ed)\b/gi,
   /\b(?:law|laws|legal|legislation|court)\b/gi,
@@ -130,36 +125,8 @@ const riskPatterns: RegExp[] = [
     'leis?|ley(?:es)?|decretos?|portarias?|medidas? provis[óo]rias?|regulamenta\\p{L}*|reglament\\p{L}*|regula[çc][ãa]o|regulaci[óo]n|legisla[çc][ãa]o|legislaci[óo]n|licen[çc]as?|licencias?|tribunal|pro[ií]b\\p{L}*|proh[ií]b\\p{L}*|san[çc][ãa]o|sanci[óo]n',
   ),
 ]
-const instructionPatterns: RegExp[] = [
-  /\b(?:ignore|disregard|forget|override)\b[^.\n]{0,40}\b(?:previous|prior|above|earlier|all|other|system)\b[^.\n]{0,20}\b(?:instructions?|prompts?|rules?|messages?)\b/gi,
-  /\b(?:always|never|you must|you should)\s+(?:call|use|run|invoke|answer|reply|say|tell|output|include)\b/gi,
-  /\byou are (?:now )?(?:an?|the) (?:ai|assistant|agent|model|language model|chatbot)\b/gi,
-  /\b(?:system prompt|developer message|jailbreak)\b/gi,
-  /<\/?\s*(?:system|assistant|instructions?|tool_call|im_start|im_end)\b[^>]*>/gi,
-  /\b(?:do not|don't|never) (?:tell|show|inform|warn) (?:the )?(?:user|person|owner|reviewer|human)\b/gi,
-  // Portuguese and Spanish: a page in either language can carry orders to a model too.
-  words(
-    '(?:ignore|ignora|desconsidere|desconsidera|esque[çc]a|olvida)[^.\\n]{0,40}instru(?:[çc][õo]es|cciones)',
-  ),
-  words(
-    '(?:voc[êe] [ée]|eres|usted es) (?:agora |ahora )?(?:um|uma|un|una) (?:assistente|asistente|ia|modelo)',
-  ),
-  words(
-    '(?:n[ãa]o|no)(?: le| lhe)? (?:conte|diga|informe|mostre|avise|cuentes|digas|informes|muestres|avises)(?: nada)? (?:ao|al|a la|à) (?:usu[áa]rio|pessoa|persona|revisor)',
-  ),
-]
-
-function matchesOf(patterns: RegExp[], text: string): string[] {
-  const words = new Set<string>()
-  for (const pattern of patterns)
-    for (const match of text.matchAll(pattern)) words.add(match[0].toLowerCase().slice(0, 60))
-  return [...words].slice(0, 10)
-}
-
 /** Words that suggest a legal, regulatory or financial-reporting matter (FR-106's high risk). */
 export const riskWords = (text: string) => matchesOf(riskPatterns, text)
-/** Words that read like orders to a language model (NFR-024): shown as a warning, kept as data. */
-export const instructionWords = (text: string) => matchesOf(instructionPatterns, text)
 
 const flaggedFields = ['title', 'summary', 'body', 'notToConclude', 'evidence'] as const
 

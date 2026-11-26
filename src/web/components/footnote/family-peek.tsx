@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { FamilyParts } from '@/components/footnote/family-parts'
 import type { Definition, Family } from '@/lib/definitions'
+import { foundSaid } from '@domain/family-found'
 
 // A family's quick view, meaning first (FR-142, the captain's panel A): what the family means, with
 // each value it varies by as a slot, and where the words come from; the values its variants hold,
@@ -172,31 +173,6 @@ const axisValuesOf = (family: Family) =>
   ])
 
 /**
- * How variants are converted from others, in one line each, by the values that differ: "USD is
- * converted from EUR by the column exchange_rate_usd". The same conversion across a channel is
- * said once; past two, how many more.
- */
-function conversionLines(family: Family): {
-  lines: { to: string; from: string; by: string }[]
-  more: number
-} {
-  const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []
-  const said = new Map<string, { to: string; from: string; by: string }>()
-  for (const c of family.conversions ?? []) {
-    const [from, to] = [valuesOf(c.from), valuesOf(c.to)]
-    const differ = to.flatMap((value, i) => (value !== from[i] ? [i] : []))
-    const line = {
-      to: differ.map((i) => to[i]).join(' · ') || c.to,
-      from: differ.map((i) => from[i]).join(' · ') || c.from,
-      by: c.by,
-    }
-    said.set(`${line.to}\u0000${line.from}\u0000${line.by}`, line)
-  }
-  const lines = [...said.values()]
-  return { lines: lines.slice(0, 2), more: Math.max(0, lines.length - 2) }
-}
-
-/**
  * The words the variants that say something else differ by, from the first of them: "before
  * marketplace fees". Null when the difference is no clear few words.
  */
@@ -222,8 +198,6 @@ function differingQuote(
 const sourceIcon = (P: FamilyParts) => ({
   declared: P.LockIcon,
   written: P.PencilIcon,
-  member: P.CircleDotIcon,
-  base: P.CircleDotIcon,
   common: P.SparklesIcon,
   none: P.CircleDotIcon,
 })
@@ -243,11 +217,32 @@ function MeaningLead({
 }) {
   const P = useParts()
   const [changing, setChanging] = React.useState(false)
+  const [writing, setWriting] = React.useState(false)
+  const change = React.useRef<HTMLButtonElement>(null)
+  // Write what it means, on Ask's card of a family with no meaning, opens the panel writing it.
+  const { query } = P.useRoute()
+  const asked = query.get('meaning') === 'write'
   const meaning = family.meaning
+  const mayChange = !!meaning && canChange && meaning.source !== 'declared'
+  const [handled, setHandled] = React.useState(false)
+  if (asked !== handled && (!asked || meaning)) {
+    setHandled(asked)
+    if (asked && mayChange) {
+      setWriting(true)
+      setChanging(true)
+    }
+  }
+  React.useEffect(() => {
+    if (asked && meaning) void P.changeQuery({ meaning: undefined }, { replace: true })
+  }, [asked, meaning, P])
   if (!meaning) return null
   const source = P.meaningSource(family, meaning, d.tool ?? 'its tool')
-  const Icon = sourceIcon(P)[meaning.source]
-  const mayChange = canChange && meaning.source !== 'declared'
+  const Icon =
+    meaning.source === 'common' && meaning.base ? P.CircleDotIcon : sourceIcon(P)[meaning.source]
+  const close = () => {
+    setChanging(false)
+    setWriting(false)
+  }
   // A variant converted from another says how, which the values band shows: it says nothing else.
   const converted = new Set((family.conversions ?? []).map((c) => c.to))
   const others = meaning.differing.filter((name) => !converted.has(name))
@@ -256,9 +251,13 @@ function MeaningLead({
   const page = `/definitions/${encodeURIComponent(d.name)}`
   return (
     <>
-      <p className="mt-3 text-base leading-7 text-pretty">
-        <P.MeaningWords meaning={meaning} by={family.by} />
-      </p>
+      {meaning.words ? (
+        <p className="mt-3 text-base leading-7 text-pretty">
+          <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
+        </p>
+      ) : (
+        <P.VariantsOwnWords family={family} code="text-sm" className="mt-3 text-base leading-7" />
+      )}
       {(source || mayChange) && (
         <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
           <Icon aria-hidden className="mt-0.75 size-3.5 shrink-0" />
@@ -268,6 +267,7 @@ function MeaningLead({
               <>
                 {source && ' '}
                 <P.Button
+                  ref={change}
                   variant="link"
                   className="h-auto p-0 text-xs"
                   onClick={() => setChanging(true)}
@@ -303,7 +303,9 @@ function MeaningLead({
             name={d.name}
             family={family}
             parts={P.meaningParts}
-            onClose={() => setChanging(false)}
+            writing={writing}
+            finalFocus={writing ? change : undefined}
+            onClose={close}
           />
         </React.Suspense>
       )}
@@ -328,11 +330,13 @@ function FoundBy({ family, name }: { family: Family; name: string }) {
           Found by its variant <b className="font-semibold">{variant.name}</b>
         </p>
         <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-          {!variant.description
-            ? 'Its tool gives no words for it.'
-            : differs || !family.meaning?.words
-              ? variant.description
-              : `Same words as the family, with ${listed(variant.values)}.`}
+          {!variant.description ? (
+            'Its tool gives no words for it.'
+          ) : differs || !family.meaning?.words ? (
+            <P.SourceText text={variant.description} />
+          ) : (
+            `Same words as the family, with ${listed(variant.values)}.`
+          )}
         </p>
       </div>
     </div>
@@ -439,10 +443,13 @@ function ValuesBand({
 }) {
   const P = useParts()
   const [picking, setPicking] = React.useState(false)
-  const base = family.variants.find((v) => v.name === family.meaning?.base)
+  // The variant every conversion starts at, never converted itself: none when they start at two.
+  const to = new Set((family.conversions ?? []).map((c) => c.to))
+  const from = new Set((family.conversions ?? []).map((c) => c.from).filter((v) => !to.has(v)))
+  const base = from.size === 1 ? family.variants.find((v) => from.has(v.name)) : undefined
   const usual = family.variants.find((v) => v.name === family.usual?.member)
   const gone = !!family.usual?.member && !usual
-  const { lines, more } = conversionLines(family)
+  const { lines, more } = P.conversionLines(family)
   const converted = new Set(
     (family.conversions ?? []).flatMap((c) => {
       const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []
@@ -599,16 +606,6 @@ function ContextBand({ d, family }: { d: Definition; family: Family }) {
   )
 }
 
-/** How a family was found, in its tool's name (D1). */
-export const foundSaid = (found: Family['found'], tool: string) =>
-  found === 'declared'
-    ? `Declared as one family in ${tool}`
-    : found === 'calculation'
-      ? `Found from the calculation in ${tool}`
-      : found === 'names'
-        ? 'Its names look alike, and an owner published them as one family'
-        : null
-
 /** "dbt:orders.revenue_eur_web and 249 more": the variants' ids in their tool. */
 export function RefsSaid({ refs }: { refs: readonly string[] }) {
   if (!refs.length) return null
@@ -642,14 +639,12 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
   const P = useParts()
   const me = P.useMe()
   const domains = P.useDomains()
-  const figures = P.useFigures()
   const related = P.useRelated(P.mentionId(d.type, d.name))
   const { query } = P.useRoute()
   const page = `/definitions/${encodeURIComponent(d.name)}`
   const tool = d.tool ?? 'its tool'
   const domain = d.domain ? domains[d.domain] : undefined
   const owners = domain?.owners ?? []
-  const source = figures.sourceOf(d.tool)
   // An owner of its domain or an admin changes what it means and picks its usual variant.
   const canChange = me.admin || (!!d.domain && me.owns.includes(d.domain))
   const found = foundSaid(family.found, tool)
@@ -661,7 +656,7 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
       quietTitle
       actions={
         <P.PeekBar onExpand={() => P.navigate(page)}>
-          <P.DockStepper list="definitions" id={d.name} onGo={(x) => P.openDock('def', x)} />
+          <P.DockStepper list="definitions" kind="def" id={d.name} />
         </P.PeekBar>
       }
       footer={
@@ -701,20 +696,9 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
                 </>
               )}
             </P.PeekFact>
-            {(owners.length > 0 || source) && (
+            {owners.length > 0 && (
               <P.PeekFact icon={P.UserIcon}>
-                {owners.length > 0 && (
-                  <>
-                    Owned by <BoldNames names={owners} />
-                    {source && '.'}
-                  </>
-                )}
-                {source && (
-                  <>
-                    {owners.length > 0 && ' '}
-                    Data contact <b>{figures.contact(source)}</b>
-                  </>
-                )}
+                Owned by <BoldNames names={owners} />
               </P.PeekFact>
             )}
           </P.PeekFacts>

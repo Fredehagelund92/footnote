@@ -2,8 +2,9 @@ import { expect, go, test } from './go.ts'
 
 // J86, families of metrics (FR-142): a dbt model with a metric per currency and channel, which a
 // read found as twenty families (the mock's ?demo=families), beside the demo's Cube. Definitions lists one entry per family and
-// never a variant, marked as a family a person can read without opening it, the same at 1440 and
-// 390 wide; a search for a variant finds its family by the family's name, never the variant; the
+// never a variant, a row at a metric row's height marked as a family by its stack alone, which says
+// what tells the variants apart on hover, the same at 1440 and 390 wide; a search for a variant
+// finds its family by the family's name, never the variant; the
 // family's own page is the one place its variants are listed, by Currency and Channel. On the Names
 // card a family is one name, and one press publishes it with its variants.
 
@@ -28,9 +29,20 @@ for (const { name, width, height } of widths) {
       })
       await expect(revenue).toBeVisible()
       const row = revenue.locator('xpath=ancestor::tr')
-      await expect(row.getByRole('img', { name: 'Family of metrics' })).toBeVisible()
-      await expect(row.getByText('Family · 250 variants', { exact: true })).toBeVisible()
-      await expect(row).toContainText('by Currency and Channel')
+      // The stack alone marks it, saying what tells its variants apart; the row says no more.
+      const stack = row.getByRole('img', {
+        name: 'Family of 250 metrics, by Currency and Channel',
+        exact: true,
+      })
+      await expect(stack).toBeVisible()
+      await expect(row).not.toContainText('variants')
+      await expect(row).not.toContainText('by Currency')
+      if (width > 1000) {
+        await stack.hover()
+        await expect(page.locator('[data-slot=tooltip-content]')).toHaveText(
+          'Family of 250 metrics, by Currency and Channel',
+        )
+      }
       // No variant is ever a row.
       await expect(main.locator('tbody tr').filter({ hasText: /\(EUR\)/ })).toHaveCount(0)
       // The families come from dbt, beside the demo's Cube: each row says which tool (F8).
@@ -43,26 +55,32 @@ for (const { name, width, height } of widths) {
           .getByRole('img', { name: 'From Cube' }),
       ).toBeVisible()
       await search.fill('')
-      await expect(page.getByText(/\(5,006 variants\)/).first()).toBeVisible()
+      await expect(page.getByText(/\(5,011 variants\)/).first()).toBeVisible()
     })
 
-    test('gives a family’s name a line of its own, the panel open or not, and counts what the search shows', async ({
+    test('keeps a family’s row at a metric row’s height and its name whole, the panel open or not, and counts what the search shows', async ({
       page,
     }) => {
       await go(page, '/definitions?demo=families')
       const main = page.getByRole('main')
-      await main.getByPlaceholder('Search definitions').fill('accrued')
+      const search = main.getByPlaceholder('Search definitions')
+      const height = async (name: string) => {
+        const box = await main
+          .getByRole('button', { name, exact: true })
+          .locator('xpath=ancestor::tr')
+          .boundingBox()
+        return box!.height
+      }
+      await search.fill('net revenue')
+      const metric = await height('Net revenue')
+      await search.fill('accrued')
       const name = main.getByRole('button', {
         name: 'Accrued share front loaded, family of 2 variants',
         exact: true,
       })
-      const chip = name
-        .locator('xpath=ancestor::tr')
-        .getByText('Family · 2 variants', { exact: true })
-      // The chip sits under the name, and the name is never cut to tell it from another (F6).
+      // The row is a metric's, and the name is never cut to tell it from another (F6).
       const whole = async () => {
-        const [at, under] = await Promise.all([name.boundingBox(), chip.boundingBox()])
-        expect(under!.y).toBeGreaterThanOrEqual(at!.y + at!.height - 1)
+        expect(await height('Accrued share front loaded, family of 2 variants')).toBe(metric)
         expect(
           await name.evaluate((el) => {
             const shown = el.firstElementChild as HTMLElement
@@ -79,6 +97,7 @@ for (const { name, width, height } of widths) {
         await whole()
       }
       // The coverage line counts the rows the search shows, not every definition (F9).
+      await search.fill('partner payouts')
       await expect(main.getByText('1 of 1 have no context yet.')).toBeVisible()
     })
 
@@ -127,7 +146,15 @@ test('groups a metric in EUR with one in USD worked out from it, and says how', 
   await expect(
     rows.getByRole('button', { name: 'Accrued share front loaded, family of 2 variants' }),
   ).toBeVisible()
-  await expect(rows).toContainText('by Currency')
+  // Its stack says how, as its quick view does.
+  const stack = rows.getByRole('img', {
+    name: 'Family of 2 metrics, by Currency. USD is converted from EUR',
+    exact: true,
+  })
+  await stack.hover()
+  await expect(page.locator('[data-slot=tooltip-content]')).toHaveText(
+    'Family of 2 metrics, by CurrencyUSD is converted from EUR',
+  )
   await expect(main.locator('tbody')).not.toContainText('(USD)')
   await go(page, '/definitions/Accrued%20share%20front%20loaded?demo=families')
   await expect(page.getByRole('main')).toContainText(
@@ -139,15 +166,15 @@ test('the Names card offers a family as one name, and one press publishes it', a
   await go(page, '/inbox?demo=families')
   const main = page.getByRole('main')
   await main
-    .getByText(/new metrics and dimensions from dbt/)
+    .getByText(/families and \d+ names from dbt/)
     .first()
     .click()
-  const ready = main.getByRole('region', { name: 'Ready to publish' })
-  const family = ready.getByRole('listitem').filter({ hasText: 'Packaging costs' })
-  await expect(family).toContainText('Family · 8 variants by Currency and Channel')
+  const ready = main.getByRole('region', { name: /^Ready/ })
+  const family = ready.getByRole('listitem').filter({ hasText: /^Packaging costs/ })
+  await expect(family).toContainText('8 variants by Currency and Channel')
   // Its variants are never names of their own on the card.
   await expect(main).not.toContainText('Packaging costs (EUR) web')
   await family.getByRole('button', { name: 'Publish', exact: true }).click()
   await expect(page.getByText('Packaging costs is published')).toBeVisible()
-  await expect(ready.getByRole('listitem').filter({ hasText: 'Packaging costs' })).toHaveCount(0)
+  await expect(ready.getByRole('listitem').filter({ hasText: /^Packaging costs/ })).toHaveCount(0)
 })

@@ -112,6 +112,13 @@ export type Answer = {
 /** The question an answer read: the one it repeated, when it was asked again in words. */
 export const askedOf = (a: Pick<Answer, 'question' | 'again'>) => a.again?.question ?? a.question
 
+/**
+ * The words to search for a turn: what Ask read the question as, its metric and markets, since a
+ * search needs every word; empty when it read neither, and there is nothing to search for.
+ */
+export const searchWordsOf = (a: Pick<Answer, 'metric' | 'markets'>) =>
+  [a.metric, ...a.markets].filter(Boolean).join(' ')
+
 const clipped = (line: string) =>
   line.length > CHAT_LINE ? `${line.slice(0, CHAT_LINE - 1).trimEnd()}…` : line
 

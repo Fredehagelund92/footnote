@@ -17,6 +17,9 @@ import { fileURLToPath } from 'node:url'
      counts from heldOutL1 or heldOutArea (db/seed/held-out-runs.ts), which run the cases silenced
      and print nothing but counts.
 
+  The invented company's proof questions (`footnote prove`) are sealed the same way in
+  db/seed/prove-questions.age, until its first funded run, and every rule holds for them too.
+
   No cases are sealed at present: the sealed file and its cases were removed before the public
   repository was cut, and the key holder seals fresh ones with a new key. While the file is absent,
   rules 1 to 3 have nothing to protect and rules 4 and 5 still hold. The first pull request that
@@ -27,11 +30,14 @@ import { fileURLToPath } from 'node:url'
 */
 
 export const sealedPath = 'db/seed/golden-held-out.age'
+/** The invented company's sealed proof questions. */
+export const proofSealedPath = 'db/seed/prove-questions.age'
+export const sealedPaths = [sealedPath, proofSealedPath]
 export const visiblePath = 'db/seed/golden-set.yml'
 
 /** The seal's own files: the only ones that may open the sealed file, never changed with src/. */
 export const sealFiles = [
-  sealedPath,
+  ...sealedPaths,
   'db/seed/held-out.ts',
   'db/seed/held-out-runs.ts',
   'scripts/held-out.ts',
@@ -44,6 +50,9 @@ export const sealFiles = [
 /** What opens the sealed cases or reads the key, in code. */
 const opening = [
   'golden-held-out',
+  'prove-questions.age',
+  'readSealedProof',
+  'parseSealedProof',
   'FOOTNOTE_HELDOUT_KEY',
   'age-encryption',
   'readHeldOut',
@@ -64,10 +73,10 @@ export type SealInput = {
   changes: Change[]
   /** Lines each changed file adds, by path. */
   added: Record<string, string[]>
-  /** Whether the base had the sealed file. */
+  /** Whether the base had a sealed file. */
   sealedBefore: boolean
-  /** The sealed file and the visible set at the head, or null where absent. */
-  sealedAfter: string | null
+  /** Each sealed file at the head, by path, or null where absent; and the visible set. */
+  sealedAfter: Record<string, string | null>
   visibleAfter: string | null
 }
 
@@ -97,13 +106,16 @@ export function sealProblems(input: SealInput): string[] {
     problems.push(
       `It changes the sealed held-out cases or their code (${seal.join(', ')}) together with src/ (${src.slice(0, 3).join(', ')}${src.length > 3 ? ', ...' : ''}). No component grades its own change: put the held-out change in a pull request of its own.`,
     )
-  for (const c of input.changes)
-    if ((c.from ?? c.path) === sealedPath && (c.status.startsWith('D') || c.status.startsWith('R')))
-      problems.push(`It deletes or moves ${sealedPath}, which holds the sealed held-out cases.`)
-  if (input.sealedAfter !== null && !isAgeFile(input.sealedAfter))
-    problems.push(
-      `${sealedPath} is not an age file: sealed cases are never committed in plain text.`,
-    )
+  for (const c of input.changes) {
+    const path = c.from ?? c.path
+    if (sealedPaths.includes(path) && (c.status.startsWith('D') || c.status.startsWith('R')))
+      problems.push(
+        `It deletes or moves ${path}, which holds the sealed ${path === proofSealedPath ? 'proof questions' : 'held-out cases'}.`,
+      )
+  }
+  for (const [path, text] of Object.entries(input.sealedAfter))
+    if (text !== null && !isAgeFile(text))
+      problems.push(`${path} is not an age file: sealed cases are never committed in plain text.`)
   for (const [path, lines] of Object.entries(input.added))
     if (lines.some((line) => secretKey.test(line)))
       problems.push(`${path} adds an age secret key: a key is never committed.`)
@@ -173,8 +185,8 @@ export function readChange(base: string, head: string): SealInput {
   return {
     changes,
     added,
-    sealedBefore: show(base, sealedPath) !== null,
-    sealedAfter: show(head, sealedPath),
+    sealedBefore: sealedPaths.some((path) => show(base, path) !== null),
+    sealedAfter: Object.fromEntries(sealedPaths.map((path) => [path, show(head, path)])),
     visibleAfter: show(head, visiblePath),
   }
 }

@@ -711,6 +711,42 @@
           "path": "/drafts/from-text"
         }
       }
+    },
+    "save": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/drafts"
+        }
+      }
+    },
+    "left": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/drafts/left"
+        }
+      }
+    },
+    "clearLeft": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/drafts/left/{personId}/clear"
+        }
+      }
     }
   },
   "library": {
@@ -878,6 +914,18 @@
         }
       }
     },
+    "builtFrom": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/definitions/built-from"
+        }
+      }
+    },
     "setFamilyMeaning": {
       "~orpc": {
         "errorMap": {},
@@ -899,6 +947,30 @@
         "route": {
           "method": "PUT",
           "path": "/definitions/families/{key}/usual"
+        }
+      }
+    },
+    "splitFamily": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/definitions/families/{key}/split"
+        }
+      }
+    },
+    "joinFamily": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/definitions/families/{key}/join"
         }
       }
     },
@@ -1122,6 +1194,18 @@
         "route": {
           "method": "POST",
           "path": "/sources/test"
+        }
+      }
+    },
+    "check": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/sources/{id}/check"
         }
       }
     },
@@ -1387,6 +1471,44 @@
         "route": {
           "method": "POST",
           "path": "/inbox/cards/decide"
+        }
+      }
+    }
+  },
+  "questions": {
+    "copy": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/questions/links"
+        }
+      }
+    },
+    "read": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/questions/{id}"
+        }
+      }
+    },
+    "answer": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/questions/answer"
         }
       }
     }
@@ -1677,6 +1799,20 @@
       }
     }
   },
+  "about": {
+    "draft": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "admin"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/about/draft"
+        }
+      }
+    }
+  },
   "models": {
     "checks": {
       "~orpc": {
@@ -1850,56 +1986,6 @@
       }
     }
   },
-  "figures": {
-    "list": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "read"
-        },
-        "route": {
-          "method": "GET",
-          "path": "/figures"
-        }
-      }
-    },
-    "set": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "admin"
-        },
-        "route": {
-          "method": "PUT",
-          "path": "/figures/{id}"
-        }
-      }
-    },
-    "read": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "read"
-        },
-        "route": {
-          "method": "POST",
-          "path": "/figures/read"
-        }
-      }
-    },
-    "try": {
-      "~orpc": {
-        "errorMap": {},
-        "meta": {
-          "scope": "admin"
-        },
-        "route": {
-          "method": "POST",
-          "path": "/figures/{id}/try"
-        }
-      }
-    }
-  },
   "reports": {
     "create": {
       "~orpc": {
@@ -1922,6 +2008,56 @@
         "route": {
           "method": "GET",
           "path": "/reports/mine"
+        }
+      }
+    }
+  },
+  "sharedChats": {
+    "create": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/shared-chats"
+        }
+      }
+    },
+    "mine": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/shared-chats"
+        }
+      }
+    },
+    "read": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/shared-chats/{id}"
+        }
+      }
+    },
+    "stop": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "DELETE",
+          "path": "/shared-chats/{id}"
         }
       }
     }

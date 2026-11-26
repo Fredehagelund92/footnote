@@ -168,6 +168,11 @@ export type Review = {
    * is returned and a suggestion to archive closed, not sent out as it is.
    */
   stale?: true
+  /**
+   * Sent from a question link without a source: the owner adds one, or confirms the link its
+   * sender gave without a sentence from it, in the editor before publishing.
+   */
+  sourceless?: 'add' | 'confirm'
   /** Drafted for a Not found card: how many questions it answers, and what it was drafted from. Nobody wrote it. */
   drafted?: { questions: number; scope: string; from: string }
   /** A suggestion a sync created from a document: where it came from, and the quote Footnote kept. */

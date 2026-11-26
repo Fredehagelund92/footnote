@@ -88,7 +88,38 @@ const measures = [
  * its metrics are made.
  */
 export function familyDefinitions(tool: string): Definition[] {
-  return [...measureFamilies(tool), accruedShare(tool), ...partnerPairs(tool)]
+  return [...measureFamilies(tool), accruedShare(tool), activeBuyers(tool), ...partnerPairs(tool)]
+}
+
+/**
+ * Buyers by sales line, which the dbt project declares as one family in `meta.footnote` (D4): it
+ * is changed there, never split here, and its model file is in the shop's repository.
+ */
+function activeBuyers(tool: string): Definition {
+  const lines = ['online', 'retail', 'wholesale']
+  return {
+    name: 'Active buyers',
+    type: 'metric',
+    definition: '',
+    synced: true,
+    tool,
+    sourceNames: [],
+    domain: 'sales',
+    group: 'orders',
+    fileUrl: 'https://git.example/shop/dbt/blob/main/models/orders.yml',
+    updated: '22 Oct 2026',
+    family: {
+      by: ['Sales line'],
+      found: 'declared',
+      declared: 'active_buyers',
+      variants: lines.map((line) => ({
+        name: `Active buyers (${line})`,
+        values: [line],
+        description: `Buyers with at least one paid order this month, sold ${line}.`,
+        ref: refOf(`Active buyers ${line}`),
+      })),
+    },
+  }
 }
 
 /**
@@ -112,8 +143,13 @@ const refOf = (name: string) =>
     .replace(/^_|_$/g, '')}`
 
 function measureFamilies(tool: string): Definition[] {
-  // Two of the measures are the demo's own metrics by name: one word has one meaning (FR-138).
-  const own: Record<string, string> = { 'Net revenue': 'Net takings', 'Gross margin': 'Margin' }
+  // Three of the measures are the demo's own words by name, two metrics and a term: one word has
+  // one meaning (FR-138).
+  const own: Record<string, string> = {
+    'Net revenue': 'Net takings',
+    'Gross margin': 'Margin',
+    'Store credit': 'Store credit used',
+  }
   return measures.map<Definition>((measure) => {
     const label = own[measure] ?? measure
     return {
@@ -155,8 +191,8 @@ function measureFamilies(tool: string): Definition[] {
 
 /**
  * A metric in EUR and one in USD worked out from it with each row's rate: two calculations, one
- * family found from the calculation (one rate converts the second from the first, D2), whose
- * source also says so in its own words.
+ * family found from a rate (one rate converts the second from the first, D2, D6), whose source
+ * also says so in its own words.
  */
 function accruedShare(tool: string): Definition {
   return {
@@ -174,7 +210,7 @@ function accruedShare(tool: string): Definition {
       derivations: [
         "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
       ],
-      found: 'calculation',
+      found: 'rate',
       conversions: [
         {
           from: 'Accrued share front loaded (EUR)',
@@ -202,11 +238,12 @@ function accruedShare(tool: string): Definition {
 }
 
 /**
- * Two pairs in EUR and USD found by their names alone, as a Cube model writes them (R1): one whose
- * USD words are the EUR ones with a note on the rate, so the family means what both say; and one
- * whose two variants are written apart, so it has no meaning yet.
+ * Three pairs in EUR and USD found by their names alone, as a Cube model writes them (R1): one
+ * whose USD words are the EUR ones with a note on the rate, so the family means what both say; one
+ * whose USD words say only that it is converted to USD, so the EUR words speak for it (C3); and
+ * one whose two variants are written apart, so it has no meaning yet.
  */
-function partnerPairs(tool: string): Definition[] {
+export function partnerPairs(tool: string): Definition[] {
   const pair = (name: string, eur: string, usd: string): Definition => {
     const variants = [
       { name: `${name} (EUR)`, values: ['EUR'], description: eur, ref: refOf(`${name} EUR`) },
@@ -240,6 +277,11 @@ function partnerPairs(tool: string): Definition[] {
       'Partner payouts',
       'Payouts we send partners in EUR, booked on the day they are sent.',
       'Partner payouts converted to USD at each month’s rate.',
+    ),
+    pair(
+      'Partner forecasts',
+      'Payouts the planning model expects to send partners next month, in EUR.',
+      'What finance plans to pay partners in the coming quarter, in USD.',
     ),
   ]
 }
@@ -320,6 +362,12 @@ export function familyFacts(): Fact[] {
       'Revenue (GBP) store is before UK VAT',
       'Revenue (GBP) store is before UK VAT, as every other variant of Revenue is before tax.',
       ['Revenue (GBP) store'],
+    ),
+    note(
+      'itm_fam_accrued_restated',
+      'Accrued share front loaded was restated for October',
+      'Contracts signed in October were booked again on 4 November, so October reads higher than it did.',
+      ['Accrued share front loaded'],
     ),
   ]
 }

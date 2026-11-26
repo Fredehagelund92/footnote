@@ -148,8 +148,17 @@ export const invites: Invite[] = [
   },
 ]
 
-/** The four people the sign-in picker offers first, each showing a different Inbox. */
-export const signInPeople = ['Jon Abara', 'Tomas Eriksen', 'Ines Duarte', 'Ravi Kapoor']
+/**
+ * The people the sign-in picker offers first, each showing a different Inbox: Sofia Brandt owns
+ * Sales and is no admin, as an owner who splits a family is (FR-142).
+ */
+export const signInPeople = [
+  'Jon Abara',
+  'Tomas Eriksen',
+  'Ines Duarte',
+  'Ravi Kapoor',
+  'Sofia Brandt',
+]
 
 export const person = (name: string) => people.find((p) => p.name === name) ?? people[0]
 
@@ -554,10 +563,13 @@ const stored: StoredFact[] = [
     checkedBy: 'Sofia Brandt',
     checkedOn: '3 Mar 2026',
     source: 'https://wiki.example/data/freshness',
-    quote: 'Germany payment files are loaded two days after the orders.',
+    // Copied from a wiki page written in Markdown: the app draws its marks.
+    quote:
+      '**Germany payment files** are loaded two days after the orders. The `payments_daily_by_market_and_provider` export waits for _both_ banks, see the [freshness notes](https://wiki.example/data/freshness).',
     dontConclude: "Low last two days for Germany orders aren't a drop.",
   },
-  // Drafts: started, never published. Agents don't get them; they can be finished or deleted.
+  // Drafts: started, never published. Only each writer sees theirs, and agents don't get them;
+  // they can be finished or deleted.
   {
     id: 'itm_draft_spain_returns',
     title: 'Store returns in Spain count on the day they are booked',
@@ -568,7 +580,7 @@ const stored: StoredFact[] = [
     where: ['Returns', 'Spain'],
     valid: { ongoing: true },
     status: 'Draft',
-    by: 'Sofia Brandt',
+    by: 'Jon Abara',
     checkedBy: '',
     checkedOn: '',
     source: '',
@@ -588,8 +600,8 @@ const stored: StoredFact[] = [
     by: 'Jon Abara',
     checkedBy: '',
     checkedOn: '',
-    source: '',
-    quote: '',
+    source: 'https://wiki.example/data/reporting-weeks',
+    quote: 'Weekly reports run Monday to Sunday, so a weekend that spans two weeks is split.',
     dontConclude: '',
   },
   {
@@ -601,11 +613,11 @@ const stored: StoredFact[] = [
     where: ['Marketing spend'],
     valid: { from: '2026-03-16', until: '2026-03-22' },
     status: 'Draft',
-    by: 'Tomas Eriksen',
+    by: 'Ines Duarte',
     checkedBy: '',
     checkedOn: '',
-    source: '',
-    quote: '',
+    source: 'https://wiki.example/marketing/spend-calendar',
+    quote: 'The spring campaign invoices were booked in week 12.',
     dontConclude: '',
   },
 ]
@@ -721,7 +733,9 @@ export const metrics: Metric[] = [
     group: 'Marketing',
     domain: 'marketing',
     facts: 1,
-    definition: 'Marketing spend divided by first-time buyers in the same period, in euros.',
+    // Written in Markdown in Cube, as source descriptions often are: the app draws its marks.
+    definition:
+      '**Marketing spend** divided by first-time buyers in the same period, in euros (`marketing_spend_eur / first_time_buyers`). Computed from totals, _never_ as an average of daily CPA. See the [attribution notes](https://wiki.example/marketing/attribution).',
   },
   {
     name: 'Return on ad spend',
@@ -840,15 +854,3 @@ export const markets = [
   'Sweden',
   'Mexico',
 ]
-
-export const ABOUT_BUSINESS = `We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our own stores, in our webshop and apps, and through marketplaces, in twelve markets.
-
-Words that are easy to misread here:
-- Order: a purchase a customer completed and paid for, in a store, the webshop or an app. A cancelled order is not an order.
-- Return: a product a customer sends back for a refund. Gross sales are before returns, discounts and VAT. Net revenue is after them.
-- First-time buyer: a customer whose first paid order falls in the period, whenever they signed up.
-- Marketplace: another company's online shop that sells our gear. It reports those sales to us a day or more late.
-- Marketplace commission: the share of each marketplace sale the marketplace keeps.
-- Gross margin: net revenue minus what the goods cost us, as a share of net revenue.
-- Market: the country or region an order ships to. Selling country: the country of the store or webshop that took the order. They can differ.
-- Season: spring and summer, or autumn and winter. Compare a season with the same season a year before.`

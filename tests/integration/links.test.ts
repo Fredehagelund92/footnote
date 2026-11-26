@@ -12,8 +12,8 @@ import { servingPool, testDatabase, transaction } from './support.ts'
 /*
   Access across links (FR-314, FR-333 to FR-335) through the real serving role and MCP wire. A
   hidden item carries a canary marker in its title, summary and body; a retired item carries
-  another in its own text. Whatever an agent asks, with get_related switched on, no reply may hold
-  the hidden item's id, any canary, or the retired item's content: only the author's words.
+  another in its own text. Whatever an agent asks, with the links every read gives, no reply may
+  hold the hidden item's id, any canary, or the retired item's content: only the author's words.
 */
 const { client: admin, url } = testDatabase()
 const pool = servingPool(url)
@@ -132,52 +132,53 @@ const ask = async (name: string, args: Record<string, unknown>) => {
   return { reply, text: JSON.stringify(reply) }
 }
 
-it('ships get_related switched on, with its own switch (FR-332 as changed)', async () => {
-  expect((await wire.listTools()).tools.map((t) => t.name)).toContain('get_related')
-  await admin.query("update tool_config set enabled=false where tool='get_related'")
-  expect((await wire.listTools()).tools.map((t) => t.name)).not.toContain('get_related')
-  await expect(
-    wire.callTool({ name: 'get_related', arguments: { id: ids.closure } }),
-  ).rejects.toThrow()
-  await admin.query("update tool_config set enabled=true where tool='get_related'")
-  expect((await wire.listTools()).tools.map((t) => t.name)).toContain('get_related')
+type Read = {
+  status: string
+  message?: string
+  links_out: { rel: string; target: { id: string; status: string; label: string } }[]
+  links_in: { count: number; items: { rel: string; id: string }[] }
+  check_report: { links_withheld: number }
+}
+const read = async (args: Record<string, unknown>) =>
+  (await ask('read_context', args)).reply.structuredContent as Read
+
+it('offers no tool of its own for links: every read_context gives them', async () => {
+  const names = (await wire.listTools()).tools.map((t) => t.name)
+  expect(names).not.toContain('get_related')
+  const out = await read({ id: ids.closure })
+  expect(out.status).toBe('matched')
+  expect(out.links_out.length).toBeGreaterThan(0)
 })
 
-it('follows visible links and shows a retired target only as the author’s words', async () => {
-  const { reply } = await ask('get_related', { id: ids.closure, depth: 2 })
-  expect(reply.isError).not.toBe(true)
-  const out = reply.structuredContent as {
-    root: { id: string }
-    nodes: { id: string; status: string; label: string; distance: number }[]
-    counts: Record<string, number>
-    check_report: { links_withheld: number }
-  }
-  expect(out.root.id).toBe(ids.closure)
-  expect(out.nodes).toContainEqual(
-    expect.objectContaining({ id: ids.retired, status: 'retired', label: 'the old rule' }),
+it('gives visible links both ways and shows a retired target only as the author’s words', async () => {
+  const out = await read({ id: ids.closure })
+  const links = out.links_out.map((l) => [l.rel, l.target.id, l.target.status, l.target.label])
+  expect(links).toContainEqual(['mentions', ids.retired, 'retired', 'the old rule'])
+  expect(links.map(([rel, id]) => [rel, id])).toEqual(
+    expect.arrayContaining([
+      ['mentions', 'metric:orders'],
+      ['applies_to', 'metric:orders'],
+    ]),
   )
-  expect(out.nodes).toContainEqual(
-    expect.objectContaining({ id: ids.mentioning, status: 'current', distance: 1 }),
-  )
-  expect(out.nodes).toContainEqual(expect.objectContaining({ id: 'metric:orders', distance: 1 }))
-  // Counts hold visible neighbours only; the hidden note is one withheld link.
-  expect(out.counts).toMatchObject({ mentions: 2, mentioned_by: 1, applies_to: 1 })
+  expect(out.links_in.count).toBe(1)
+  expect(out.links_in.items.map((l) => [l.rel, l.id])).toEqual([['mentioned_by', ids.mentioning]])
+  // The hidden note is one withheld link, never named.
   expect(out.check_report.links_withheld).toBe(1)
 })
 
 it('never names a hidden target, nor shows a canary, through any tool', async () => {
   const replies = await Promise.all([
-    ask('get_related', { id: ids.closure, depth: 2 }),
-    ask('get_related', { id: ids.mentioning, depth: 2 }),
-    ask('get_related', { id: 'metric:orders', depth: 2, max_nodes: 50 }),
-    ask('get_related', { id: 'area:finance', relations: ['in_area', 'mentioned_by'], depth: 2 }),
-    ask('get_related', { id: ids.hidden }),
-    ask('get_related', { id: ids.retired }),
     ask('get_context', { question: 'Orders in August 2026' }),
     ask('get_context', { question: 'Orders in August 2026', response_format: 'full' }),
     ask('find_context', { query: canary }),
+    ask('find_context', {}),
+    ask('find_context', { kind: 'rule' }),
     ask('read_context', { id: ids.closure }),
+    ask('read_context', { id: ids.mentioning }),
+    ask('read_context', { id: ids.closure, relations: ['mentions', 'mentioned_by', 'in_area'] }),
+    ask('read_context', { id: 'metric:orders' }),
     ask('read_context', { id: ids.hidden }),
+    ask('read_context', { id: ids.retired }),
   ])
   for (const { text } of replies) {
     expect(text).not.toContain(canary)
@@ -185,33 +186,26 @@ it('never names a hidden target, nor shows a canary, through any tool', async ()
     expect(text).not.toContain(retiredText)
   }
   // The delivery itself is unchanged by links: the hidden and retired items are not in it (FR-335).
-  const delivered = (replies[6].reply.structuredContent as { context: { id: string }[] }).context
+  const delivered = (replies[0].reply.structuredContent as { context: { id: string }[] }).context
   expect(delivered.map((i) => i.id).sort()).toEqual([ids.closure, ids.mentioning].sort())
 })
 
-it('answers a hidden or retired start exactly as a start that does not exist', async () => {
-  const missing = (await ask('get_related', { id: 'itm_doesnotexist' })).reply.structuredContent
-  for (const id of [ids.hidden, ids.retired]) {
-    const reply = (await ask('get_related', { id })).reply.structuredContent
-    expect(reply).toEqual(missing)
-  }
+it('answers a hidden or retired item exactly as one that does not exist', async () => {
+  const missing = await read({ id: 'itm_doesnotexist' })
+  for (const id of [ids.hidden, ids.retired]) expect(await read({ id })).toEqual(missing)
   expect(missing).toMatchObject({ status: 'no_match', message: 'Not found' })
 })
 
-it('hides a stopped item at once, as a start and as a neighbour', async () => {
+it('hides a stopped item at once, as one read and as a link', async () => {
   await admin.query(
     "insert into overlay_events (kind,scope,item_id,reason) values ('stop_on','item',$1,'Stop')",
     [ids.closure],
   )
   try {
-    expect((await ask('get_related', { id: ids.closure })).reply.structuredContent).toMatchObject({
-      message: 'Not found',
-    })
-    const from = (await ask('get_related', { id: ids.mentioning })).reply.structuredContent as {
-      nodes: { id: string }[]
-      check_report: { links_withheld: number }
-    }
-    expect(from.nodes.map((n) => n.id)).not.toContain(ids.closure)
+    expect(await read({ id: ids.closure })).toMatchObject({ message: 'Not found' })
+    const from = await read({ id: ids.mentioning })
+    expect(from.links_out.map((l) => l.target.id)).not.toContain(ids.closure)
+    expect(from.links_in.items.map((l) => l.id)).not.toContain(ids.closure)
     expect(from.check_report.links_withheld).toBe(1)
   } finally {
     await admin.query(

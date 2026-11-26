@@ -15,7 +15,7 @@ import type { FastifyInstance } from 'fastify'
 import { appFamilyOf, type AppFamily } from '../../domain/app-family.ts'
 import { productName } from '../brand.ts'
 import { footnoteVersion } from '../version.ts'
-import type { EditionSource, ServingBundle } from '../modules/editions/index.ts'
+import type { EditionSource } from '../modules/editions/index.ts'
 import { personScopes, TokenError, type TokenVerifier } from './auth.ts'
 import {
   createAnonymousQueue,
@@ -39,6 +39,7 @@ import type { ServingReads } from './reads.ts'
 import { resolverStatusOf } from '../../domain/answer-state.ts'
 import type { PublishPermission } from '../../domain/mcp-text.ts'
 import {
+  dataToolsOf,
   isToolName,
   personOnly,
   serverInstructions,
@@ -93,13 +94,6 @@ export interface McpDependencies {
    * item's page in Footnote (FR-347). Without it the pages are paths on the web app.
    */
   web?: string | null
-}
-
-/** The data tools the definition sources name, by their own label (CON-101). */
-function dataTools(bundle: ServingBundle): string[] {
-  return [...new Set(bundle.terms.flatMap((term) => (term.described ? [term.described.tool] : [])))]
-    .filter(Boolean)
-    .sort()
 }
 
 /**
@@ -447,7 +441,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
             })
         : []
     const instructions = serverInstructions(
-      describes ? await deps.source.bundle().then(dataTools, () => []) : [],
+      describes ? await deps.source.bundle().then(dataToolsOf, () => []) : [],
       policy.about,
       policy.calendar,
       permits,
@@ -479,6 +473,8 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
               inputSchema: lenientInputSchema(tool),
               ...(outputSchema ? { outputSchema } : {}),
               annotations: definition.annotations,
+              // get_context loads in Claude Code before any search for it (anthropic/alwaysLoad).
+              ...('_meta' in definition ? { _meta: definition._meta } : {}),
             },
             // The typed callback has no room for an input-required return, which the SDK accepts
             // on tools/call (protocol 2026-07-28).

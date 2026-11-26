@@ -117,10 +117,12 @@ export type MentionOptions = {
   kinds: MentionKind[]
   /** The line under "Nothing called ...": what this place can mention. */
   empty: string
+  /** Families of metrics among the metrics: a question names one, a text cannot link to one. */
+  families?: boolean
 }
 
 /** The mention node with the shared picker, for one place's kinds. */
-export function mentionExtension({ kinds, empty }: MentionOptions) {
+export function mentionExtension({ kinds, empty, families = false }: MentionOptions) {
   const key = new PluginKey(`mention-${kinds.join('-')}`)
   keys.add(key)
   return Mention.extend({
@@ -136,7 +138,7 @@ export function mentionExtension({ kinds, empty }: MentionOptions) {
       placement: 'bottom-start',
       floatingUi: { strategy: 'fixed' },
       items: () => [],
-      render: renderList(MentionPicker as unknown as Picker, key, { kinds, empty }),
+      render: renderList(MentionPicker as unknown as Picker, key, { kinds, empty, families }),
     },
   })
 }

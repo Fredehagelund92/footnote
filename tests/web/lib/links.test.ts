@@ -4,8 +4,8 @@ import { definitionSeed } from '@/api/mock/definitions'
 import { createWorkspace } from '@/api/mock/workspace'
 import { linksOf } from '@/lib/links'
 
-// get_related: links both ways and the owners' relations, one step, a retired target shown and
-// never followed, a definition from another domain marked, and the switch turns it all off.
+// The links agents follow with read_context: links both ways and the owners' relations, one step,
+// a retired target shown and never followed, and a definition from another domain marked.
 
 const w = { facts, definitions: definitionSeed, domains: createWorkspace().domainMap() }
 

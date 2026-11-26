@@ -7,7 +7,6 @@ import type { ConnectorManifest } from '../../../src/domain/connector-manifest.t
 import { nextReadAt } from '../../../src/domain/source-schedule.ts'
 import { SourceReadError } from '../../../src/server/modules/connectors/types.ts'
 import {
-  figureFetch,
   guardedFetch,
   registerConnectors,
   type StoredSource,
@@ -90,13 +89,12 @@ const failure = async (work: Promise<unknown>) => {
 }
 
 describe('a status no response can hold', () => {
-  it('is a bad gateway through ctx.fetch and through a figure, and does not stop the server', async () => {
+  it('is a bad gateway through ctx.fetch, and does not stop the server', async () => {
     behaviours.set('/seven-hundred', (socket) =>
       socket.end('HTTP/1.1 700 Nope\r\nconnection: close\r\ncontent-length: 2\r\n\r\nno'),
     )
     const link = rawAddress('/seven-hundred')
     expect((await fetcher(link)(link)).status).toBe(502)
-    expect((await figureFetch(link, AbortSignal.timeout(5_000))(link)).status).toBe(502)
     const read = await failure(connector.source(address(link)).read({ cursor: null }))
     expect(read.warnings[0]).toMatchObject({ code: 'unreachable' })
   })

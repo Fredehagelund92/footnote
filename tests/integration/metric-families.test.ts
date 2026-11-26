@@ -14,6 +14,7 @@ import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { createDevVerifier, mintDevToken } from '../../src/server/mcp/auth.ts'
 import { registerMcpRoutes } from '../../src/server/mcp/gateway.ts'
+import { createServingReads } from '../../src/server/mcp/reads.ts'
 import { createAnonymousStore } from '../../src/server/mcp/store.ts'
 import {
   ConnectorRegistry,
@@ -69,13 +70,14 @@ registerMcpRoutes(mcp, {
   resource,
   verifier: createDevVerifier(privateKey, resource, 'test'),
   now: () => new Date('2026-10-08T12:00:00Z'),
+  reads: createServingReads(database, clock),
 })
 let host: GitHost
 let agent: Client
 type Who = keyof typeof people
 const headers: Partial<Record<Who, Record<string, string>>> = {}
 
-const call = (method: 'GET' | 'POST', path: string, who: Who, payload?: object) =>
+const call = (method: 'GET' | 'POST' | 'PUT', path: string, who: Who, payload?: object) =>
   app.inject({
     method,
     url: '/api/v1' + path,
@@ -263,6 +265,124 @@ describe('the catalogue', () => {
     )
     expect(families).toHaveLength(20)
     expect(families.find((f) => f.key === 'group:revenue')?.variants).toBe(250)
+  })
+})
+
+describe('listed to an agent', () => {
+  it('is one entry per family, with how many metrics it has, and no variant (FR-338)', async () => {
+    const reply = await agent.callTool({
+      name: 'find_context',
+      arguments: { kind: 'metric', limit: 100 },
+    })
+    expect(reply.isError).not.toBe(true)
+    const page = reply.structuredContent as {
+      total: number
+      definitions: { key: string; name: string; family: boolean; members?: number }[]
+    }
+    expect(page.total).toBe(20)
+    expect(page.definitions.every((d) => d.family && d.members === 250)).toBe(true)
+    expect(page.definitions.map((d) => d.key)).toContain('group:revenue')
+    expect(JSON.stringify(page)).not.toMatch(/Revenue \([A-Z]{3}\)/)
+  })
+})
+
+describe('read to an agent', () => {
+  type Family = {
+    by: string[]
+    found: string
+    meaning_from: string
+    usual?: { key: string; name: string; values: string[] }
+    members: { key: string; name: string; values: string[]; words?: string }[]
+  }
+  type Read = {
+    status: string
+    say: string
+    definition: {
+      key: string
+      kind: string
+      words: string | null
+      words_from: string
+      source?: unknown
+      family?: Family
+      member_of?: { key: string; name: string }
+      context: { count: number; items: unknown[] }
+    }
+  }
+  const readContext = async (id: string) => {
+    const reply = await agent.callTool({ name: 'read_context', arguments: { id } })
+    expect(reply.isError, JSON.stringify(reply.content)).not.toBe(true)
+    return { reply: reply.structuredContent as Read, text: JSON.stringify(reply.content) }
+  }
+  const revenue = async () => (await catalogue()).terms.find((t) => t.key === 'group:revenue')!
+
+  it('is the family in full, with no context item yet: its metrics, how it was found, its meaning (FR-353)', async () => {
+    const shown = (await revenue()).family!
+    const { reply } = await readContext('Revenue')
+    expect(reply.status).toBe('matched')
+    expect(reply.say).toBe(
+      'This is the whole definition of Revenue, a metric family. No published context item is about it.',
+    )
+    const family = reply.definition.family!
+    expect(reply.definition).toMatchObject({ key: 'group:revenue', kind: 'metric family' })
+    expect(family.by).toEqual(shown.by)
+    expect(family.found).toBe('Found from the calculation in dbt')
+    expect(family.meaning_from).toBe(shown.meaning.source)
+    expect(family.usual).toBeUndefined()
+    expect(family.members).toHaveLength(250)
+    expect(family.members[0]).toEqual({
+      key: shown.variants[0]!.key,
+      name: shown.variants[0]!.name,
+      values: shown.variants[0]!.values,
+      ...(shown.variants[0]!.description ? { words: shown.variants[0]!.description } : {}),
+    })
+    // A family speaks with its meaning, never with one metric's words.
+    expect(reply.definition.words).toEqual(shown.meaning.words ? expect.any(String) : null)
+  })
+
+  it('gives the usual metric and the words an owner wrote, never who picked or wrote them', async () => {
+    const shown = (await revenue()).family!
+    const eur = shown.variants.find((v) => v.values.includes('EUR'))!
+    await ok(
+      call('PUT', '/definitions/families/group%3Arevenue/usual', 'admin', {
+        key: 'group:revenue',
+        member: eur.key,
+        revision: 0,
+      }),
+    )
+    const words = 'Money customers paid for orders, before refunds.'
+    await ok(
+      call('PUT', '/definitions/families/group%3Arevenue/meaning', 'admin', {
+        key: 'group:revenue',
+        choice: 'written',
+        words,
+        revision: shown.meaning.revision,
+      }),
+    )
+    const { reply, text } = await readContext('group:revenue')
+    expect(reply.definition.family!.usual).toEqual({
+      key: eur.key,
+      name: eur.name,
+      values: eur.values,
+    })
+    expect(reply.definition).toMatchObject({ words, family: { meaning_from: 'written' } })
+    expect(reply.definition.words_from).toBe(
+      'Words an owner of its domain or an admin wrote for the family in Definitions.',
+    )
+    expect(text).not.toContain(people.admin)
+    expect(text).not.toContain('admin@example.test')
+  })
+
+  it('reads one of its metrics with its own words and the family it is in', async () => {
+    const variant = (await revenue()).family!.variants[0]!
+    const { reply } = await readContext(variant.name)
+    expect(reply.definition).toMatchObject({
+      key: variant.key,
+      kind: 'metric',
+      member_of: { key: 'group:revenue', name: 'Revenue' },
+      words: variant.description,
+      source: { tool: 'dbt' },
+    })
+    expect(reply.definition.family).toBeUndefined()
   })
 })
 

@@ -34,11 +34,13 @@ import { Kbd } from '@/components/ui/kbd'
 import type { Kind } from '@/model/items'
 import { searchQuery, useAskExamples } from '@/api/queries'
 import { onOpen, open as openOverlay } from '@/lib/events'
+import { goKey, listenForGoTo, placeHref } from '@/lib/go-to'
+import type { GoPlace } from '@/lib/keys'
 import { navigate } from '@/lib/router'
 import { kindName, variantPart } from '@/lib/definitions'
 import { useDomains, useMe } from '@/lib/workspace'
 import { DomainDot } from '@/components/footnote/tag-chip'
-import { TypeGlyph } from '@/components/footnote/type-glyph'
+import { FamilyGlyph, TypeGlyph } from '@/components/footnote/type-glyph'
 import { useTheme } from '@/lib/theme-context'
 import { logos } from '@/model/integrations'
 
@@ -51,6 +53,34 @@ function KindGlyph({ kind }: { kind: Kind }) {
     guide: MapIcon,
   }[kind]
   return <Icon className="text-muted-foreground" aria-hidden />
+}
+
+/** A place to go to, with the keys that go there from anywhere: G then its letter. */
+function GoItem({
+  place,
+  icon,
+  onGo,
+}: {
+  place: GoPlace
+  icon: React.ReactNode
+  onGo: (fn: () => void) => () => void
+}) {
+  const me = useMe()
+  const letter = goKey(place)
+  // Outlined, the keys stay drawn on the row the menu has selected.
+  const key = 'border bg-transparent'
+  return (
+    <CommandItem value={place} onSelect={onGo(() => navigate(placeHref(place, me)))}>
+      {icon}
+      {place}
+      {/* Its name is its words, so a screen reader hears the keys as part of them. */}
+      <span className="sr-only">(G then {letter})</span>
+      <CommandShortcut aria-hidden className="flex gap-1 tracking-normal max-sm:hidden">
+        <Kbd className={key}>G</Kbd>
+        <Kbd className={key}>{letter}</Kbd>
+      </CommandShortcut>
+    </CommandItem>
+  )
 }
 
 /** Marks a row search everywhere found, so the palette's own filter keeps it. */
@@ -111,7 +141,15 @@ export function CommandPalette() {
   const me = useMe()
   const { theme, setTheme } = useTheme()
 
-  React.useEffect(() => onOpen('palette', () => setOpen(true)), [])
+  // Opened on words, such as those of a turn of Ask that stopped, it searches them at once.
+  React.useEffect(
+    () =>
+      onOpen('palette', (words) => {
+        if (words) setQ(words)
+        setOpen(true)
+      }),
+    [],
+  )
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -127,6 +165,9 @@ export function CommandPalette() {
     setOpen(false)
     fn()
   }
+  // G then a letter goes to a place from anywhere (lib/go-to.ts); the Go to rows show the keys.
+  const who = React.useEffectEvent(() => me)
+  React.useEffect(() => listenForGoTo(who), [])
   React.useLayoutEffect(() => {
     moved.current = false
   }, [open, q])
@@ -137,15 +178,16 @@ export function CommandPalette() {
     })
     return () => cancelAnimationFrame(frame)
   }, [open, q, results])
-  const onOpenChange = (o: boolean) => {
-    setOpen(o)
-    if (!o) setQ('')
+  const [wasOpen, setWasOpen] = React.useState(open)
+  if (wasOpen !== open) {
+    setWasOpen(open)
+    if (!open) setQ('')
   }
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={setOpen}
       title="Search"
       description="Search context and go anywhere"
     >
@@ -165,28 +207,13 @@ export function CommandPalette() {
         <CommandList ref={list} onPointerMove={() => (moved.current = true)}>
           <CommandEmpty>Nothing found.</CommandEmpty>
           <CommandGroup heading="Go to">
-            <CommandItem onSelect={run(() => navigate('/inbox'))}>
-              <InboxIcon />
-              Inbox
-            </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/ask'))}>
-              <MessageSquareIcon />
-              Ask
-            </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/context'))}>
-              <NotebookTextIcon />
-              Context
-            </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/definitions'))}>
-              <BookAIcon />
-              Definitions
-            </CommandItem>
+            <GoItem place="Inbox" icon={<InboxIcon />} onGo={run} />
+            <GoItem place="Ask" icon={<MessageSquareIcon />} onGo={run} />
+            <GoItem place="Context" icon={<NotebookTextIcon />} onGo={run} />
+            <GoItem place="Definitions" icon={<BookAIcon />} onGo={run} />
+            <GoItem place="Settings" icon={<SettingsIcon />} onGo={run} />
             {me.admin && (
               <>
-                <CommandItem onSelect={run(() => navigate('/settings/general'))}>
-                  <SettingsIcon />
-                  Settings
-                </CommandItem>
                 <CommandItem
                   value={`Settings Integrations ${toolWords}`}
                   onSelect={run(() => navigate('/settings/integrations'))}
@@ -219,12 +246,14 @@ export function CommandPalette() {
           <CommandGroup className="border-t" heading="Do">
             <CommandItem onSelect={run(() => navigate('/context/new'))}>
               <PlusIcon />
-              New context
+              Write context
             </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/definitions/new'))}>
-              <PlusIcon />
-              New term
-            </CommandItem>
+            {(me.admin || me.owns.length > 0) && (
+              <CommandItem onSelect={run(() => navigate('/definitions/new'))}>
+                <PlusIcon />
+                New term
+              </CommandItem>
+            )}
             <CommandItem onSelect={run(() => openDock('ask'))}>
               <MessageSquareIcon />
               Ask in the side panel
@@ -250,7 +279,12 @@ export function CommandPalette() {
                     openDock('def', d.name, { variant: d.variants?.matched ?? undefined }),
                   )}
                 >
-                  <TypeGlyph d={d} className="text-current" />
+                  {/* A family is marked by its stack, on a phone too, where the words beside go. */}
+                  {d.variants ? (
+                    <FamilyGlyph className="text-current" />
+                  ) : (
+                    <TypeGlyph d={d} className="text-current" />
+                  )}
                   <span className="min-w-0 flex-1 truncate">
                     {d.name}
                     {/* Found by one variant's name, a family says which, by what tells it apart. */}

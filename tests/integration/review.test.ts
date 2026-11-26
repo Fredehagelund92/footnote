@@ -57,7 +57,8 @@ const norway = {
 async function ask(input: object = norway) {
   const result = await execute(
     'get_context',
-    { response_format: 'full', ...input },
+    // Every item that applies: these tests read what is served, not one page of it.
+    { response_format: 'full', max_items: 50, ...input },
     { client: 'claude-code', scopes: ['read'], caller: 'agent', canSelectEdition: false },
     100000,
     () => {},
@@ -80,8 +81,8 @@ const call = (method: 'GET' | 'POST' | 'PUT', path: string, who: Who, payload?: 
 beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
-    await client.query(`insert into vocab_terms(key,kind,parent_key) values
-      ('val:market/spain','dimension_value','dim:market'),('metric:revenue','metric',null)`)
+    await client.query(`insert into vocab_terms(key,kind) values
+      ('val:market/spain','dimension_value'),('metric:revenue','metric')`)
     // The first edition is a bootstrap: its vocabulary needs no decision.
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")

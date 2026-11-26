@@ -9,6 +9,7 @@ import type {
   LoopRun,
   LoopTurn,
 } from '@contract/answer'
+import { ACTIONS, type ActionId, type DoneBy } from '@domain/actions'
 import type { LucideIcon } from '@/components/icons'
 import {
   CompactItemRow,
@@ -27,6 +28,7 @@ import {
   type LoopParts,
   type Nouns,
 } from '@/components/footnote/loop-nouns'
+import { SourcePassages, SourceText } from '@/components/footnote/source-text'
 import { useReveal } from '@/lib/ask-motion'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
@@ -148,23 +150,34 @@ function ReadLine({
   const nouns: Nouns = React.useMemo(() => new Map(loop.nouns.map((n) => [n.id, n])), [loop])
   if (!subject || (!subject.about.length && subject.assumedToday)) return null
   const about = subject.about.filter((id) => nouns.has(id))
+  // Dates change nothing of what a metric means: a definition's answer has no period to choose.
+  const dated = !!loop.state || !loop.defined
+  if (!about.length && !dated) return null
   return (
     <p className="flex max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-right text-xs text-muted-foreground @lg:max-w-4/5">
       <span>{subject.carried ? 'Read with' : 'Read as'}</span>
       {/* Each dot stays with what it follows, so a line that wraps never starts with one. */}
-      {about.map((id) => (
+      {about.map((id, i) => (
         <span key={id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
           <NounChip id={id} nouns={nouns} />
-          <span aria-hidden>·</span>
+          {(i < about.length - 1 || dated || !!subject.note) && <span aria-hidden>·</span>}
         </span>
       ))}
-      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        <PeriodChip
-          days={subject.assumedToday ? 'Today · assumed' : subject.period}
-          onChoose={onReperiod}
-        />
-        {subject.note && <span aria-hidden>·</span>}
-      </span>
+      {dated && (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <PeriodChip
+            days={
+              subject.assumedToday
+                ? 'Today · assumed'
+                : subject.carried
+                  ? subject.period
+                  : chosenWords(answer.period, subject.period)
+            }
+            onChoose={onReperiod}
+          />
+          {subject.note && <span aria-hidden>·</span>}
+        </span>
+      )}
       {subject.note && <span>{subject.note}</span>}
       {subject.carried && <span>carried from your last question</span>}
       {onRescope && (
@@ -184,6 +197,36 @@ function ReadLine({
           {subject.carried ? 'Drop them' : 'Change'}
         </button>
       )}
+    </p>
+  )
+}
+
+/**
+ * The days a question was read at, after the period the person chose for it when that has a name
+ * other than its days: "last month (1-30 Sep 2026)". Any date and the days picked are their days.
+ */
+const chosenWords = (chosen: ChosenPeriodInput | undefined, days: string) =>
+  typeof chosen === 'string' && chosen !== 'any date' ? `${chosen} (${days})` : days
+
+/** The days on the read line, as a chip. */
+const periodChip =
+  'inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground'
+
+/**
+ * The period a question was asked again at, under it until its answer says how it was read
+ * (`ReadLine`): "Asked again at last month".
+ */
+export function AskedAtLine({ period }: { period: ChosenPeriodInput }) {
+  return (
+    <p className="flex min-h-6 max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 text-right text-xs text-muted-foreground @lg:max-w-4/5">
+      <span>Asked again at</span>
+      <span className={periodChip}>
+        {typeof period === 'string'
+          ? period
+          : period.from === period.to
+            ? dayText(period.from, true)
+            : `${dayText(period.from, true)} to ${dayText(period.to, true)}`}
+      </span>
     </p>
   )
 }
@@ -221,9 +264,7 @@ function PeriodChip({
     if (wasPicking.current && !picking) pickRow.current?.focus()
     wasPicking.current = picking
   }, [picking])
-  const chip =
-    'inline-flex items-center rounded-sm bg-muted px-1.5 py-px font-medium text-foreground'
-  if (!onChoose) return <span className={chip}>{days}</span>
+  if (!onChoose) return <span className={periodChip}>{days}</span>
   const choose = (period: ChosenPeriodInput) => {
     setOpen(false)
     onChoose(period)
@@ -238,7 +279,7 @@ function PeriodChip({
     >
       <P.PopoverTrigger
         className={P.cn(
-          chip,
+          periodChip,
           'gap-0.5 outline-none hover:bg-foreground/8 focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-foreground/8',
         )}
       >
@@ -425,25 +466,35 @@ function Body({
   return (
     <div data-answer-words className="flex max-w-reading flex-col gap-3 text-base leading-chat">
       {body.map((b, i) => {
-        if (b.t === 'list') {
-          // A read's rows come in once the words before them are in.
+        if (b.t === 'list' || b.t === 'table' || b.t === 'code') {
+          // A read's rows, a table and code come in whole once the words before them are in.
           if (upTo !== undefined && blockAt[i]! > upTo) return null
-          const rows = (
-            <Rows
-              key={i}
-              items={b.rows.flatMap((id) => {
-                const item = byId.get(id)
-                return item ? [item] : []
-              })}
-              nouns={nouns}
-              more={b.more}
-            />
-          )
+          const drawn =
+            b.t === 'list' ? (
+              <Rows
+                key={i}
+                items={b.rows.flatMap((id) => {
+                  const item = byId.get(id)
+                  return item ? [item] : []
+                })}
+                nouns={nouns}
+                more={b.more}
+              />
+            ) : b.t === 'table' ? (
+              <Table key={i} rows={b.rows} nouns={nouns} items={numbered} seen={seen} />
+            ) : (
+              <pre
+                key={i}
+                className="overflow-x-auto rounded-md bg-muted/50 p-2.5 font-mono text-xs leading-relaxed text-foreground"
+              >
+                <code>{b.text}</code>
+              </pre>
+            )
           return upTo === undefined ? (
-            rows
+            drawn
           ) : (
             <div key={i} className={blockIn}>
-              {rows}
+              {drawn}
             </div>
           )
         }
@@ -464,10 +515,18 @@ function Body({
           <div key={i} className="flex flex-col gap-1.5">
             {rows}
           </div>
-        ) : (
+        ) : b.start === undefined ? (
           <ul key={i} className="ml-6 list-disc space-y-1.5 marker:text-muted-foreground">
             {rows}
           </ul>
+        ) : (
+          <ol
+            key={i}
+            start={b.start}
+            className="ml-6 list-decimal space-y-1.5 marker:text-muted-foreground"
+          >
+            {rows}
+          </ol>
         )
       })}
       {hidden > 0 && (upTo === undefined || end <= upTo) && (
@@ -479,6 +538,54 @@ function Body({
           Show {hidden} more
         </button>
       )}
+    </div>
+  )
+}
+
+/**
+ * A short table the model wrote: its first row the heads, each cell's words drawn as a line's
+ * are. It scrolls on its own when it is wider than the words, as on a phone.
+ */
+function Table({
+  rows,
+  nouns,
+  items,
+  seen,
+}: {
+  rows: readonly (readonly LoopRun[])[][]
+  nouns: Nouns
+  items: ReadonlyMap<number, LoopItem>
+  seen: Set<string>
+}) {
+  const [head, ...body] = rows
+  return (
+    // Focusable, so a keyboard can scroll it when it is wider than the words.
+    <div
+      tabIndex={0}
+      className="max-w-full overflow-x-auto rounded-md border outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <table className="w-full border-collapse text-sm leading-snug">
+        <thead className="bg-muted/50">
+          <tr>
+            {head?.map((cell, j) => (
+              <th key={j} scope="col" className="px-2.5 py-1.5 text-left align-top font-medium">
+                <Runs runs={cell} nouns={nouns} items={items} seen={seen} />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {body.map((row, k) => (
+            <tr key={k} className="border-t">
+              {row.map((cell, j) => (
+                <td key={j} className="px-2.5 py-1.5 align-top">
+                  <Runs runs={cell} nouns={nouns} items={items} seen={seen} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -815,9 +922,15 @@ function Disagree({ loop, maps }: { loop: LoopTurn; maps: ReturnType<typeof useM
   )
 }
 
+/** Every run of the words, in their paragraphs, lists and tables. */
+const runsOf = (body: LoopTurn['body']) =>
+  body.flatMap((b) =>
+    b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : b.t === 'table' ? b.rows.flat(2) : [],
+  )
+
 /** The people the words name: by their mention, or by their name in plain words. */
 function namedIn(body: LoopTurn['body'], nouns: Nouns): Set<string> {
-  const runs = body.flatMap((b) => (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []))
+  const runs = runsOf(body)
   const words = runs.map((r) => (r.t === 'text' ? r.text : '')).join(' ')
   const named = new Set<string>()
   for (const r of runs) if (r.t === 'noun' && r.id.startsWith('person:')) named.add(r.id)
@@ -952,11 +1065,15 @@ function WhatAskRead({ loop, footer }: { loop: LoopTurn; footer: string[] }) {
   )
 }
 
+/** A domain's own key, from the noun's id (`domain:area_sales`), the service's (`area_sales`) or the mock's (`sales`). */
+const domainKey = (id: string) => id.replace(/^domain:/, '').replace(/^area_/, '')
+const sameDomain = (a: string, b: string) => domainKey(a) === domainKey(b)
+
 /** Whether the reader owns what the answer is about, or is an admin: theirs to write or check. */
 function useOwns(loop: LoopTurn) {
   const me = useParts().useMe()
-  const owned = new Set(loop.owners.map((o) => o.domain.replace(/^domain:(area_)?/, '')))
-  return me.admin || me.owns.some((d) => owned.has(d.replace(/^area_/, '')))
+  const owned = new Set(loop.owners.map((o) => domainKey(o.domain)))
+  return me.admin || me.owns.some((d) => owned.has(domainKey(d)))
 }
 
 /** Names as a sentence says them: "A", "A and B", "A, B and C". */
@@ -1018,7 +1135,8 @@ function People({ names }: { names: readonly string[] }) {
  * which reports the subject as missing to its owners' Inbox (decision 7 of the chat audit), its
  * metrics, values and days and nothing of the question, and then says who was told. For a word
  * the reads found nothing under (`unknown`), it is Tell an admin, which sends the word alone, or
- * to an admin, Add it to Definitions. Ask itself writes nothing.
+ * to an admin or an owner, Add “the word” to Definitions, which opens a new term with the word in
+ * it. Ask itself writes nothing.
  */
 function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?: string }) {
   const P = useParts()
@@ -1034,7 +1152,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   if (!about.length && !words.length) return null
   const quoted = listed(words.map((w) => `“${w}”`))
   const said = about.length ? subjectWords(about, nouns) : quoted
-  const mayWrite = about.length ? owns : me.admin
+  const mayWrite = about.length ? owns : ACTIONS.add_definition.may(me, { id: 'add_definition' })
   const tell = () => {
     setSending(true)
     const sent = about.length
@@ -1057,11 +1175,11 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   const it = words.length > 1 ? 'these words' : 'this word'
   const line = about.length
     ? mayWrite
-      ? 'No context item covers it yet. It is yours to write: agents get it once it is published.'
-      : `No context item covers it yet. ${Whom} can write it.`
+      ? 'No published context item covers it yet. It is yours to write: agents get it once it is published.'
+      : `No published context item covers it yet. ${Whom} can write it.`
     : mayWrite
-      ? `No metric, other name or context item uses ${it} yet. ${words.length > 1 ? 'They are' : 'It is'} yours to add.`
-      : `No metric, other name or context item uses ${it} yet. ${Whom} can add ${words.length > 1 ? 'them' : 'it'}.`
+      ? `No published metric, other name or context item uses ${it} yet. ${words.length > 1 ? 'They are' : 'It is'} yours to add.`
+      : `No published metric, other name or context item uses ${it} yet. ${Whom} can add ${words.length > 1 ? 'them' : 'it'}.`
   return (
     <section
       data-gap
@@ -1089,7 +1207,7 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
             </span>
           </p>
         ) : (
-          <p className="text-sm text-muted-foreground">{line}</p>
+          <p className="text-sm text-pretty text-muted-foreground">{line}</p>
         )}
       </div>
       {!told && (
@@ -1100,26 +1218,24 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
                 variant="outline"
                 nativeButton={false}
                 aria-label={`Write context for ${said}`}
-                render={
-                  <a
-                    href={P.href('/context/new', {
-                      about: about.map((id) => nouns.get(id)!.name).join('|'),
-                    })}
-                  />
-                }
+                render={<a href={P.href('/context/new', writeSearch(loop, about, nouns))} />}
               >
                 <P.PencilIcon data-icon="inline-start" />
                 Write context
               </P.Button>
             ) : (
-              <P.Button
-                variant="outline"
-                nativeButton={false}
-                render={<a href={P.href('/definitions/new')} />}
-              >
-                <P.BookOpenIcon data-icon="inline-start" />
-                Add it to Definitions
-              </P.Button>
+              // Each word opens a new term with that word already in it.
+              words.map((word) => (
+                <P.Button
+                  key={word}
+                  variant="outline"
+                  nativeButton={false}
+                  render={<a href={P.href('/definitions/new', { name: word })} />}
+                >
+                  <P.BookOpenIcon data-icon="inline-start" />
+                  {`Add “${word}” to Definitions`}
+                </P.Button>
+              ))
             )
           ) : (
             <>
@@ -1139,6 +1255,202 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
     </section>
   )
 }
+
+/** A row of the block of what is not published yet. */
+type DraftRow = NonNullable<LoopTurn['drafts']>['rows'][number]
+
+/** A day as a row of the block says it: "22 Nov". */
+const shortDay = (day: string) =>
+  new Date(`${day}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+
+/** What the rows are, said once: drafts, suggestions waiting for review, or both. */
+function draftsHead(d: NonNullable<LoopTurn['drafts']>) {
+  const states = new Set(d.rows.map((r) => r.state))
+  const words = d.words.map((w) => `“${w}”`).join(' or ')
+  const one = d.found === 1
+  const what =
+    d.more === 0 && states.size === 1
+      ? states.has('draft')
+        ? one
+          ? 'a draft mentions'
+          : `${d.found.toLocaleString('en-GB')} drafts mention`
+        : one
+          ? 'a suggestion waiting for review mentions'
+          : `${d.found.toLocaleString('en-GB')} suggestions waiting for review mention`
+      : `${d.found.toLocaleString('en-GB')} context items mention`
+  return `Not published yet: ${what} ${words}`
+}
+
+/**
+ * What is not published yet and matches the question's words (FR-718.2): the person's own drafts
+ * and the suggestions waiting for review they may open, in a block of its own under the answer,
+ * never mixed into it. Each row's title opens it; under the one sentence the model may write about
+ * them, conditional, a button opens the first of each kind the reader may act on: their draft,
+ * or a suggestion they review. Anyone else is told who reviews it. It stands in for the gap card.
+ */
+function NotPublishedYet({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
+  const P = useParts()
+  const me = P.useMe()
+  const d = loop.drafts
+  if (!d?.rows.length) return null
+  const allDrafts = d.rows.every((r) => r.state === 'draft') && d.more === 0
+  const offers = (['open_draft', 'review_suggestion'] as const).flatMap((id) => {
+    const row = d.rows.find((r) => r.action.id === id)
+    return row ? [{ id, draft: row.action.draft, title: row.title }] : []
+  })
+  const may = offers.filter((o) => ACTIONS[o.id].may(me, o))
+  const not = offers.filter((o) => !may.includes(o))
+  return (
+    <section
+      data-drafts
+      aria-label="Not published yet"
+      className="grid max-w-reading grid-cols-(--cols-lead-6) gap-x-1 gap-y-2.5 rounded-frame border bg-muted/40 py-3.5 pr-4 pl-3"
+    >
+      <P.CircleDashedIcon aria-hidden className="mt-1 size-4 text-muted-foreground" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-sm font-medium break-words">{draftsHead(d)}</p>
+        <p className="text-sm text-pretty text-muted-foreground">
+          {allDrafts
+            ? 'Not final: a draft can still change or be deleted, and agents don’t get it.'
+            : d.rows.length === 1 && d.more === 0
+              ? 'Not final: no owner has published it yet, so it can still change or be turned down, and agents don’t get it.'
+              : 'Not final: no owner has published these yet, so they can still change or be turned down, and agents don’t get them.'}
+        </p>
+      </div>
+      <ul
+        aria-label="Context items not published yet"
+        className="col-start-2 flex min-w-0 flex-col gap-2"
+      >
+        {d.rows.map((row) => (
+          <DraftRowLine key={row.id} row={row} nouns={nouns} />
+        ))}
+        {d.more > 0 && (
+          <li className="text-sm text-muted-foreground">
+            and {d.more.toLocaleString('en-GB')} more in{' '}
+            <a
+              className="underline underline-offset-2 hover:text-foreground"
+              href={P.href('/context')}
+            >
+              Context
+            </a>
+          </li>
+        )}
+      </ul>
+      {d.sentence && (
+        <p data-draft-sentence className="col-start-2 max-w-reading text-sm text-pretty">
+          <span className="text-muted-foreground">
+            {d.rows.length === 1
+              ? 'If it is published as written: '
+              : 'If they are published as written: '}
+          </span>
+          <Runs runs={withoutLead(d.sentence)} nouns={nouns} items={new Map()} />
+        </p>
+      )}
+      {(may.length > 0 || not.length > 0) && (
+        <div className="col-start-2 flex flex-col gap-2 pt-0.5">
+          {may.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {may.map((o) => {
+                const to = ACTIONS[o.id].target(me, o)
+                return 'path' in to ? (
+                  <P.Button
+                    key={o.id}
+                    variant="outline"
+                    nativeButton={false}
+                    aria-label={`${ACTIONS[o.id].label(me)}: ${o.title}`}
+                    render={<a href={P.href(to.path, to.search ?? {})} />}
+                  >
+                    {o.id === 'open_draft' ? (
+                      <P.PencilIcon data-icon="inline-start" />
+                    ) : (
+                      <P.InboxIcon data-icon="inline-start" />
+                    )}
+                    {ACTIONS[o.id].label(me)}
+                  </P.Button>
+                ) : null
+              })}
+            </div>
+          )}
+          {not.map((o) => (
+            <p key={o.id} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+              <P.UsersIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+              <span>
+                <WhoDoes
+                  label={ACTIONS[o.id].label(me)}
+                  by={ACTIONS[o.id].doneBy(o)}
+                  admins={[]}
+                  nouns={nouns}
+                />
+              </span>
+            </p>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** The sentence after its lead, which the block says itself: "If they are published as written". */
+function withoutLead(runs: readonly LoopRun[]): LoopRun[] {
+  const [first, ...rest] = runs
+  if (first?.t !== 'text') return [...runs]
+  const text = first.text.replace(
+    /^[\s*_~]*if\s+(?:it\s+is|it's|they\s+are|they're|this\s+is|these\s+are)\s+published\s+as\s+written[\s*_~]*[,:]?\s*/i,
+    '',
+  )
+  return [{ ...first, text }, ...rest]
+}
+
+/** One row of the block: its title as a link to it, then its state, domain, who wrote it and when. */
+function DraftRowLine({ row, nouns }: { row: DraftRow; nouns: Nouns }) {
+  const P = useParts()
+  const Icon = row.state === 'draft' ? P.CircleDashedIcon : P.ClockIcon
+  const domain = row.domain ? nouns.get(row.domain)?.name : undefined
+  return (
+    <li className="flex min-w-0 flex-col gap-0.5">
+      <a
+        href={P.href(`/context/${row.id}`)}
+        className="rounded-sm text-sm font-medium break-words underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {row.title}
+      </a>
+      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-px text-foreground">
+          <Icon aria-hidden className="size-3" />
+          {row.state === 'draft' ? 'Draft' : 'Waiting'}
+        </span>
+        {domain && <span>{domain}</span>}
+        {row.by && (
+          <>
+            <span aria-hidden>·</span>
+            <span>{row.by}</span>
+          </>
+        )}
+        <span aria-hidden>·</span>
+        <span>
+          {row.state === 'draft' ? 'started' : 'sent'} {shortDay(row.on)}
+        </span>
+      </span>
+    </li>
+  )
+}
+
+/**
+ * The editor's search keys for an item about what the question was about: its names, and the kind
+ * it most likely is: a rule when the question was about any date (what a metric means), else an
+ * event. The editor starts it in the domain of what it is about.
+ */
+const writeSearch = (loop: LoopTurn, about: readonly string[], nouns: Nouns) => ({
+  about: about.map((id) => nouns.get(id)!.name).join('|'),
+  kind: !loop.subject || loop.subject.period === 'any date' ? 'note' : 'event',
+})
+
+/** The metrics the answer's words name, by their nouns' ids. */
+const metricsSaid = (loop: LoopTurn) => [
+  ...new Set(
+    runsOf(loop.body).flatMap((r) => (r.t === 'noun' && r.id.startsWith('metric:') ? [r.id] : [])),
+  ),
+]
 
 /** A subject in plain words, as `Subject` says it with chips: "Orders in Poland". */
 const subjectWords = (ids: readonly string[], nouns: Nouns) => {
@@ -1173,13 +1485,7 @@ function Next({
         variant="outline"
         className="w-fit"
         nativeButton={false}
-        render={
-          <a
-            href={P.href('/context/new', {
-              about: about.map((id) => nouns.get(id)!.name).join('|'),
-            })}
-          />
-        }
+        render={<a href={P.href('/context/new', writeSearch(loop, about, nouns))} />}
       >
         <P.PencilIcon data-icon="inline-start" />
         Write context for <Subject ids={about} nouns={nouns} still />
@@ -1213,8 +1519,9 @@ function Next({
 /**
  * The definition card, for an answer about what something is: the definition's chip and what it
  * is, the source's own words at the answer's size, then two quiet lines on where the words come
- * from and who owns it, and the context about it, which opens in the card. With the words of the
- * answer giving the same definition, the card stands in for them.
+ * from and who owns it, and the context about it, which opens in the card; with none about a
+ * metric, Write context for its owners and the admins. With the words of the answer giving the
+ * same definition, the card stands in for them.
  */
 function DefinitionCards({ loop, maps }: { loop: LoopTurn; maps: ReturnType<typeof useMaps> }) {
   const cards = loop.defined?.cards ?? []
@@ -1232,6 +1539,31 @@ function DefinitionCards({ loop, maps }: { loop: LoopTurn; maps: ReturnType<type
 
 const kindWord = { metric: 'Metric', dimension: 'Dimension', term: 'Word' } as const
 
+/**
+ * Where a family's meaning comes from, as its card says it (C1): its tool, and whose words they are.
+ * A turn written before it knew says only the tool.
+ */
+function meaningFrom(family: FamilyShown, tool: string): string {
+  const source = family.source
+  const n = family.variants.toLocaleString('en-GB')
+  switch (source?.kind) {
+    case 'declared':
+      return `Written for the family in ${tool}`
+    case 'written':
+      return `Written for the family by ${source.by} on ${dayText(source.on, true)}`
+    case 'common':
+      return source.agree === family.variants
+        ? `From ${tool}: the words its ${n} variants share`
+        : `From ${tool}: the words ${source.agree.toLocaleString('en-GB')} of its ${n} variants share`
+    case 'base':
+      return `From ${tool}: the words of ${source.values.join(', ')}, the variant ${
+        source.converted.length === 1 ? `${source.converted[0]!.join(', ')} is` : 'the others are'
+      } converted from`
+    default:
+      return `From ${tool}`
+  }
+}
+
 /** What a card says a definition is: "Metric", "Family of 2 metrics, by Currency". */
 const kindOf = (card: DefinitionCard) =>
   card.family
@@ -1240,7 +1572,8 @@ const kindOf = (card: DefinitionCard) =>
 
 /**
  * A family's definition as an answer shows it (FR-142): its meaning, then the own words of its
- * variants that say something else or how they are worked out, each after its values. `mark` is
+ * variants that say something else or how they are worked out, each after its values. With no
+ * meaning, its variants say what it is in their own words, as large as a meaning (C1). `mark` is
  * marked where it first shows.
  */
 function FamilyDefinition({
@@ -1252,19 +1585,27 @@ function FamilyDefinition({
   mark?: string
   className?: string
 }) {
+  const P = useParts()
   const parts = [family.meaning ?? '', ...family.own.map((o) => o.words)]
   const marked = mark ? parts.findIndex((p) => p.toLowerCase().includes(mark.toLowerCase())) : -1
   const words = (text: string, at: number) =>
-    at === marked ? <Marked words={text} mark={mark!} /> : text
+    at === marked ? <Marked words={text} mark={mark!} /> : <SourceText text={text} code="answer" />
   return (
     <div className={className}>
       {family.meaning ? (
         <p>{words(family.meaning, 0)}</p>
+      ) : family.own.length ? (
+        <p className="text-sm text-muted-foreground">
+          Its {family.variants.toLocaleString('en-GB')} variants say what it is in their own words:
+        </p>
       ) : (
-        <p className="text-muted-foreground">No meaning yet: its variants say different things.</p>
+        <p className="text-muted-foreground">Its variants have no words of their own yet.</p>
       )}
       {family.own.length > 0 && (
-        <ul aria-label="In its variants’ own words" className="mt-2 flex flex-col gap-1.5 text-sm">
+        <ul
+          aria-label="In its variants’ own words"
+          className={P.cn('flex flex-col gap-1.5', family.meaning ? 'mt-2 text-sm' : 'mt-1.5')}
+        >
           {family.own.map((o, i) => (
             <li key={o.values.join(', ')}>
               <span className="font-medium">{o.values.join(', ')}</span>
@@ -1292,11 +1633,26 @@ function DefinitionCardOf({
   maps: ReturnType<typeof useMaps>
 }) {
   const P = useParts()
+  const me = P.useMe()
+  const domains = P.useDomains()
   const [open, setOpen] = React.useState(false)
   const title = React.useId()
   const rows = card.context.items.flatMap((id) => maps.byId.get(id) ?? [])
   const count = card.context.count
   const items = `${count.toLocaleString('en-GB')} context ${count === 1 ? 'item' : 'items'}`
+  // With nothing written about a metric, its owners and the admins are offered to write the first.
+  const at = card.domain?.id
+  const writes =
+    card.kind === 'metric' &&
+    !card.family &&
+    (me.admin || card.owners.includes(me.name) || (!!at && me.owns.some((d) => sameDomain(d, at))))
+  // The editor starts in the metric's domain, as the workspace names it.
+  const domain = at ? Object.keys(domains).find((d) => sameDomain(d, at)) : undefined
+  // A family with no meaning: its owners and the admins are offered to write what it means (C1).
+  const meansNothing =
+    !!card.family &&
+    !card.family.meaning &&
+    (me.admin || card.owners.includes(me.name) || (!!at && me.owns.some((d) => sameDomain(d, at))))
   return (
     <article
       data-definition-card
@@ -1323,13 +1679,17 @@ function DefinitionCardOf({
       ) : (
         card.words && (
           <blockquote className="px-4 pt-2.5 text-base leading-chat text-pretty">
-            {card.words}
+            <SourcePassages text={card.words} code="answer" />
           </blockquote>
         )
       )}
       <div className="mx-4 mt-3 flex flex-col gap-1 border-t pt-3 text-sm text-muted-foreground">
+        {card.mentions && (
+          // Found by its words, not its name: what was asked may be something else.
+          <p>Its description mentions “{card.mentions}”</p>
+        )}
         <p>
-          From {card.tool}
+          {card.family ? meaningFrom(card.family, card.tool) : `From ${card.tool}`}
           {card.member && (
             <>
               {', as '}
@@ -1363,6 +1723,15 @@ function DefinitionCardOf({
           <P.BookOpenIcon data-icon="inline-start" />
           Open the definition
         </P.Button>
+        {meansNothing && (
+          <P.Button
+            variant="ghost"
+            onClick={() => P.openDock('def', card.name, { meaning: 'write' })}
+            aria-label={`Write what ${card.name} means`}
+          >
+            Write what it means
+          </P.Button>
+        )}
         {rows.length > 0 ? (
           <P.Button variant="ghost" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
             {`See the ${items}`}
@@ -1371,8 +1740,20 @@ function DefinitionCardOf({
               className={P.cn('transition-transform', open && 'rotate-180')}
             />
           </P.Button>
+        ) : count > 0 ? (
+          <span className="text-sm text-muted-foreground">{items} about it</span>
         ) : (
-          count > 0 && <span className="text-sm text-muted-foreground">{items} about it</span>
+          writes && (
+            <P.Button
+              variant="outline"
+              nativeButton={false}
+              aria-label={`Write context about ${card.name}`}
+              render={<a href={P.href('/context/new', { metric: card.name, domain })} />}
+            >
+              <P.PencilIcon data-icon="inline-start" />
+              Write context
+            </P.Button>
+          )
         )}
       </div>
       {open && (
@@ -1449,7 +1830,7 @@ const groupIcons = (P: LoopParts): Record<string, LucideIcon> => ({
 function groupPage(P: LoopParts, o: LoopOverview, key: string | null) {
   if (!key) return null
   if ((o.from === 'inbox' && key === 'check') || (o.from === 'records' && key === 'due'))
-    return { href: '/context?due=1', label: 'Open in Context' }
+    return { href: '/context?status=due', label: 'Open in Context' }
   if (o.from === 'records' && key.startsWith('domain:'))
     return {
       href: P.href('/context', { domain: key.slice('domain:'.length) }),
@@ -1526,7 +1907,7 @@ function Overview({
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
                 <span>{g.name}</span>
-                <span className="rounded-md bg-muted px-1.5 text-xs font-medium tabular-nums">
+                <span className="cursor-default rounded-md bg-muted px-1.5 text-xs font-medium tabular-nums">
                   {g.count.toLocaleString('en-GB')}
                 </span>
               </h3>
@@ -1643,7 +2024,7 @@ function StateRow({
   const shown = (() => {
     if (loop.kind === 'stopped')
       return (
-        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+        <p className="flex w-fit cursor-default items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
           <P.CircleStopIcon aria-hidden className="size-4" />
           Stopped
         </p>
@@ -1659,7 +2040,7 @@ function StateRow({
       )
     if (!loop.state && loop.help?.length)
       return (
-        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+        <p className="flex w-fit cursor-default items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
           <P.BookOpenIcon aria-hidden className="size-4" />
           From {P.PRODUCT}&apos;s help
         </p>
@@ -1668,7 +2049,7 @@ function StateRow({
       return loop.reads.some((r) =>
         ['records', 'agent_questions', 'inbox', 'conflicts'].includes(r.tool),
       ) && !loop.overview ? (
-        <p className="flex w-fit items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
+        <p className="flex w-fit cursor-default items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm font-semibold">
           <P.TableIcon aria-hidden className="size-4" />
           From {P.PRODUCT}&apos;s records
         </p>
@@ -1717,6 +2098,141 @@ function HelpSources({ loop }: { loop: LoopTurn }) {
   )
 }
 
+/** Each quick action's icon, first in its button, as its screen shows it. */
+const actionIcon = (P: LoopParts): Record<ActionId, LucideIcon> => ({
+  write_context: P.PencilIcon,
+  add_definition: P.BookOpenIcon,
+  invite_people: P.UserPlusIcon,
+  connect_agent: P.BotIcon,
+  connect_source: P.PlugIcon,
+  publish_names: P.InboxIcon,
+  pick_usual_variant: P.SplitIcon,
+  family_meaning: P.PencilIcon,
+  decide_conflict: P.ArrowLeftRightIcon,
+  open_domain: P.LayersIcon,
+  about_business: P.PencilIcon,
+  add_domain: P.LayersIcon,
+  open_draft: P.PencilIcon,
+  review_suggestion: P.InboxIcon,
+})
+
+/**
+ * The quick actions an answer offers (FR-719.10), under its words: to a reader who may do one, an
+ * outline button, the gap card's own, that opens its screen or the Connect dialog; to anyone else,
+ * one quiet line that says who does it, with their chips, and no button. Who may is the list's
+ * (src/domain/actions.ts), the rule the screens keep, so a button never opens a page that refuses
+ * them. Only an admin is told who the admins are on the service, as the gap card says it.
+ */
+function QuickActions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
+  const P = useParts()
+  const me = P.useMe()
+  const admins = P.usePeople()
+    .filter((p) => p.admin && p.name !== me.name)
+    .map((p) => p.name)
+  const offers = loop.actions ?? []
+  if (!offers.length) return null
+  // Write context opens on what the question was about, as the gap card's button does, or on the
+  // metrics the words name when the question read nothing as its subject (a how-to).
+  const asked = (loop.subject?.about ?? []).filter((id) => nouns.has(id))
+  const about = asked.length ? asked : metricsSaid(loop).filter((id) => nouns.has(id))
+  const icons = actionIcon(P)
+  const may = offers.filter((o) => ACTIONS[o.id].may(me, o))
+  const not = offers.filter((o) => !may.includes(o))
+  return (
+    <div data-actions className="flex flex-col gap-2">
+      {may.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {may.map((o) => {
+            const action = ACTIONS[o.id]
+            const target = action.target(me, o)
+            const to =
+              o.id === 'write_context' && 'path' in target && about.length
+                ? { ...target, search: writeSearch(loop, about, nouns) }
+                : target
+            const Icon = icons[o.id]
+            const label = action.label(me)
+            return 'dialog' in to ? (
+              <P.Button key={o.id} variant="outline" onClick={() => P.openOverlay(to.dialog)}>
+                <Icon data-icon="inline-start" />
+                {label}
+              </P.Button>
+            ) : (
+              <P.Button
+                key={o.id}
+                variant="outline"
+                nativeButton={false}
+                render={<a href={P.href(to.path, to.search ?? {})} />}
+              >
+                <Icon data-icon="inline-start" />
+                {label}
+              </P.Button>
+            )
+          })}
+        </div>
+      )}
+      {not.map((o) => (
+        <p key={o.id} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+          <P.UsersIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <WhoDoes
+              label={ACTIONS[o.id].label(me)}
+              by={ACTIONS[o.id].doneBy(o)}
+              admins={admins}
+              nouns={nouns}
+            />
+          </span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Who does an action, to someone who may not: "Invite people is for admins: Jon Abara and Ravi
+ * Kapoor", "The owners of Sales do this: Jon Abara and Sofia Brandt", or, where the reads named no
+ * one, who does it by role alone.
+ */
+function WhoDoes({
+  label,
+  by,
+  admins,
+  nouns,
+}: {
+  label: string
+  by: DoneBy
+  admins: readonly string[]
+  nouns: Nouns
+}) {
+  if (by.by === 'admins')
+    return admins.length ? (
+      <>
+        {label} is for admins: <People names={admins} />
+      </>
+    ) : (
+      <>{label} is for admins.</>
+    )
+  const domain = by.domain ? nouns.get(by.domain)?.name : undefined
+  if (domain && by.people.length)
+    return (
+      <>
+        {by.people.length === 1 ? `The owner of ${domain} does` : `The owners of ${domain} do`}{' '}
+        this: <People names={by.people} />
+      </>
+    )
+  if (domain)
+    return (
+      <>
+        {label} is for the owners of {domain}
+        {by.admins ? ' and admins' : ''}.
+      </>
+    )
+  return (
+    <>
+      {label} is for owners of a domain{by.admins ? ' and admins' : ''}.
+    </>
+  )
+}
+
 /** The footer's lines, said once each: what was found out of what, and what may be out of date. */
 const footerLines = (loop: LoopTurn) =>
   [loop.footer.denominator, loop.footer.stale, loop.footer.notSeen].filter((x): x is string => !!x)
@@ -1728,10 +2244,11 @@ const StoppedLine = ({ text }: { text: string }) => (
 
 /**
  * A turn of the loop that stopped with no plain read under it: its fixed sentence, Ask again, and
- * a search for its words.
+ * Search on the words it read, handed over in memory: a question never goes into an address.
  */
 function Stopped({ answer, onRetry }: { answer: Answer; onRetry?: () => void }) {
   const P = useParts()
+  const words = P.searchWordsOf(answer)
   return (
     <div className="flex flex-col gap-3">
       <StoppedLine text={answer.text} />
@@ -1742,14 +2259,12 @@ function Stopped({ answer, onRetry }: { answer: Answer; onRetry?: () => void }) 
             Ask again
           </P.Button>
         )}
-        <P.Button
-          variant="ghost"
-          nativeButton={false}
-          render={<a href={P.href('/search', { q: P.askedOf(answer) })} />}
-        >
-          <P.SearchIcon data-icon="inline-start" />
-          Search for these words
-        </P.Button>
+        {words && (
+          <P.Button variant="ghost" onClick={() => P.openOverlay('palette', words)}>
+            <P.SearchIcon data-icon="inline-start" />
+            Search for these words
+          </P.Button>
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Nothing it wrote was checked, so nothing is shown.
@@ -1784,10 +2299,12 @@ const wordsLength = (loop: LoopTurn, nouns: Nouns) =>
 
 /**
  * Whether the definition cards stand in for the answer's words: every definition the answer is
- * about has its card, and the words only give those definitions.
+ * about has its card, and the words only give those definitions. A family with no meaning never
+ * does (C1): its card gives its variants' words, and the answer's sentence what it is.
  */
 const cardsStandIn = (loop: LoopTurn) =>
-  !!loop.defined?.cards.length && loop.defined.cards.every((c) => c.inWords)
+  !!loop.defined?.cards.length &&
+  loop.defined.cards.every((c) => c.inWords && !(c.family && !c.family.meaning))
 
 function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const P = useParts()
@@ -1799,12 +2316,28 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const words = React.useRef<HTMLDivElement>(null)
   const facts = P.useFacts()
   const [wrong, setWrong] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
   const [sent, setSent] = React.useState<Answer['report']>(undefined)
   const key = P.answerKey(answer)
+  // Something wrong? opens beside the answer, or under it where Ask is itself in the right panel.
+  const dock = P.useDock()
+  const sentBeside = P.useReportSent(key)
+  const report = sent ?? (sentBeside ? { on: 'just now' } : undefined)
   const cited = React.useMemo(
     () => (loop ? loop.sources.flatMap((id) => facts.find((f) => f.id === id) ?? []) : []),
     [loop, facts],
   )
+  const canReport = cited.length > 0 && !report
+  const reporting = docked ? wrong : dock?.kind === 'report' && dock.id === key
+  const onWrong = (open: boolean, from?: HTMLElement | null) => {
+    if (!canReport) return
+    if (docked) {
+      if (open) opener.current = from ?? null
+      else opener.current?.focus()
+      setWrong(open)
+    } else if (open) P.openFromButton('report', key, from ?? null)
+    else if (reporting) P.closeDock()
+  }
   // The items it cites are read ahead once it is written, so their quick views open whole.
   P.useReadCitedAhead(loop?.sources ?? [], done && !!latest)
   const { keepShown } = P
@@ -1847,12 +2380,12 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
       loop={shown}
       answer={answer}
       {...{
+        docked,
         typed,
         upTo: revealing ? revealed : undefined,
         // Stopped while the model wrote: the sentences checked so far, and nothing from the reads.
         unfinished: !done && stopped,
         busy: P.isLive(turn),
-        docked,
         onRetry,
         onAsk,
         latest,
@@ -1861,8 +2394,11 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
         setWrong,
         sent,
         setSent,
+        report,
+        canReport,
+        reporting,
+        onWrong,
         cited,
-        answerId: key,
       }}
     />
   )
@@ -1871,17 +2407,20 @@ function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
 function Finished({
   loop,
   answer,
-  docked,
   onRetry,
   onAsk,
   latest,
+  docked,
   words,
   wrong,
   setWrong,
   sent,
   setSent,
+  report,
+  canReport,
+  reporting,
+  onWrong,
   cited,
-  answerId,
   typed,
   upTo,
   unfinished,
@@ -1897,17 +2436,23 @@ function Finished({
   unfinished: boolean
   /** The turn is still on its way. */
   busy: boolean
-  docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
+  docked?: boolean
   words: React.RefObject<HTMLDivElement | null>
   wrong: boolean
   setWrong: (w: boolean) => void
+  /** Sent from the form under the answer, this visit. */
   sent: Answer['report']
   setSent: (s: Answer['report']) => void
+  /** Sent from here or from the panel beside it. */
+  report: Answer['report']
+  canReport: boolean
+  /** Whether Something wrong? is open for this answer. */
+  reporting: boolean
+  onWrong: (open: boolean, from?: HTMLElement | null) => void
   cited: Fact[]
-  answerId: string
 }) {
   const P = useParts()
   const maps = useMaps(loop)
@@ -1921,7 +2466,8 @@ function Finished({
   const shownUsed = loop.overview ? [] : used.filter((i) => !listed.has(i.id))
   const owns = useOwns(loop)
   // The gap card names who owns what is not written: the owners line would say it twice.
-  const gap = missingOf(loop, maps.nouns).length > 0 || !!loop.unknown?.length
+  // The block of what is not published yet stands in for the gap card.
+  const gap = !loop.drafts && (missingOf(loop, maps.nouns).length > 0 || !!loop.unknown?.length)
   const showOwners =
     !gap && (loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale')
   const [lit, light] = React.useState<number | null>(null)
@@ -2026,6 +2572,7 @@ function Finished({
                     )}
                   </div>
                 )}
+                <QuickActions loop={loop} nouns={maps.nouns} />
                 <HelpSources loop={loop} />
                 {!cardsStandIn(loop) && <DefinitionCards loop={loop} maps={maps} />}
                 {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
@@ -2037,10 +2584,10 @@ function Finished({
                     {...(answer.dates ? { dates: answer.dates } : {})}
                   />
                 )}
+                <NotPublishedYet loop={loop} nouns={maps.nouns} />
                 {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
                 {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
                 <Definitions loop={loop} nouns={maps.nouns} />
-                {loop.kind === 'answer' && !loop.overview && <P.AnswerFigure answer={answer} />}
                 <Next
                   loop={loop}
                   nouns={maps.nouns}
@@ -2051,12 +2598,14 @@ function Finished({
                 )}
               </>
             )}
-            {sent && <P.ReportLine report={sent} />}
-            {wrong && !sent && cited.length > 0 && (
+            {report && (
+              <P.ReportLine report={report} focus={!!sent} answerKey={P.answerKey(answer)} />
+            )}
+            {docked && wrong && canReport && (
               <P.SomethingWrong
                 answer={answer}
                 facts={cited}
-                onClose={() => setWrong(false)}
+                onClose={() => onWrong(false)}
                 onSent={() => {
                   setWrong(false)
                   setSent({ on: 'just now' })
@@ -2067,14 +2616,12 @@ function Finished({
               answer={answer}
               copyText={loop.kind === 'stopped' ? '' : copyOf(answer)}
               facts={cited}
-              answerId={answerId}
               draft={false}
-              docked={docked}
               latest={latest}
               onRetry={bare ? undefined : onRetry}
-              wrong={wrong}
-              onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
-              canReport={cited.length > 0 && !sent}
+              wrong={reporting}
+              onWrong={onWrong}
+              canReport={canReport}
             />
           </div>
         )}

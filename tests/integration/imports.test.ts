@@ -112,8 +112,8 @@ async function footnote(args: string[], who: Who | null = 'author') {
 beforeAll(async () => {
   await transaction(client, async () => {
     await foundation(client)
-    await client.query(`insert into vocab_terms(key,kind,parent_key) values
-      ('val:market/spain','dimension_value','dim:market')`)
+    await client.query(`insert into vocab_terms(key,kind) values
+      ('val:market/spain','dimension_value')`)
     // The first edition is a bootstrap: its vocabulary needs no decision.
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")

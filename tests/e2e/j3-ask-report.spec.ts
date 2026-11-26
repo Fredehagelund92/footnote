@@ -9,13 +9,15 @@ test('someone asks, then reports a wrong part', async ({ page }) => {
   await box.pressSequentially('Do Norway orders include gift-card money?')
   await box.press('Enter')
   await expect(page.getByText('Conflict', { exact: true }).first()).toBeVisible()
-  // Something wrong? is in More, under the answer.
+  // Something wrong? is in More, under the answer, and opens beside it.
   await page.getByRole('button', { name: 'More' }).last().click()
   await page.getByRole('menuitem', { name: 'Something wrong?' }).click()
-  await page
+  const panel = page.getByRole('region', { name: 'Something wrong?' })
+  await panel
     .getByRole('textbox', { name: "What's wrong?" })
     .fill('Gift cards are paid out separately since October.')
-  await page.getByRole('button', { name: /^Send to the owner of/ }).click()
+  await panel.getByRole('button', { name: /^Send to / }).click()
+  await expect(panel.getByRole('heading', { name: /^Sent to the owners of / })).toBeFocused()
   await expect(
     page.getByRole('status').filter({ hasText: 'You reported this just now' }),
   ).toBeVisible()

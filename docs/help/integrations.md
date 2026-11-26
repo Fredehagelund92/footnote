@@ -1,13 +1,18 @@
 ---
 title: Integrations
-line: Connect where metrics are defined and where documents live, and what is read.
+line: Connect a source of definitions or documents, and what is read from each.
 group: Set up
 order: 2
 minutes: 4
-reviewed: 2026-11-21
+reviewed: 2026-11-22
+open:
+  label: Open Integrations
+  href: /settings/integrations
+does:
+  connect-a-source: connect_source
 ---
 
-Connect where metrics are defined and where documents live, and what is read from each.
+Connect the sources where metrics are defined and where documents live, and what is read from each.
 
 ![Integrations in Settings: under Connected, one tool that holds definitions and one that holds documents, each read today; under Available, three more tools, each with Connect.](../images/docs/integrations-light.webp)
 
@@ -23,9 +28,9 @@ A read makes a name for each new one, and an owner publishes them on one card in
 
 A folder shared with a service account, or Markdown in a repository. A read never publishes: each document becomes a suggestion in its owners' Inbox.
 
-## Connect one
+## Connect a source
 
-Only admins connect a tool. It takes five steps on one page:
+Only admins connect a tool. Open **Settings**, then **Integrations**, and choose **Connect** on a tool under Available. It takes five steps on one page:
 
 1. Pick: the tool.
 2. Connect: its settings, then **Test connection**.
@@ -43,19 +48,14 @@ Every view is read until an admin chooses. A view taken out leaves Definitions a
 
 A view the tool adds later is not read until it is chosen. The admins get one card in the Inbox, New views not chosen, which opens Choose.
 
-## Figures in Ask
+## Test a tool you connected
 
-Off by default. Switched on per integration, Ask shows one figure, read when asked and kept nowhere, with its source, how fresh it is, and the data contact who hears about a figure that looks wrong.
+**Test connection** under Connection, on a tool's page, tests it as it is saved. That includes one the person who hosts this app set up from a folder on the server, whose settings are theirs. Nothing is kept, and nothing changes.
 
-Figures are not an integration of their own. Where your definitions source can read them, its page has a second connection for them, beside the one its definitions are read through, with its own data endpoint and its own read-only token.
+It says, step by step, that it reached the tool and signed in, what a read would hold, and whether the views it reads are all in the model. It names each file a read skips, such as one written with Jinja, and the families a read would find. When something fails, it says what, and what to do.
 
-The endpoint is the address of its data API, such as one ending in `/v1/load`: no MCP server and no warehouse login are needed.
+## Families on a tool's page
 
-An admin sets it up in the integration's figures connection. The token is sent only to the endpoint's address and never shown again.
+A definitions tool's page always has Families: metrics that are one metric with variants, such as Revenue in each currency. With none, it says how a read finds one, and shows the lines to add to your tool's model to make one.
 
-- **Replace token** gives it a new token, and a new address needs its token again.
-- **Try a figure** reads one measure for the last 7 days with the settings as saved, and says what came back or why nothing did. Nothing is kept, and figures stay as they are.
-
-Then name the **Data contact** and switch on **Show figures in Ask**.
-
-The metric's definition decides which integration answers. When someone says in Ask that a figure doesn't fit a context item, the figure and the item show side by side until the owner or the data contact has a look. Nothing picks one of them.
+With some, it lists each one: how it was found, its variants, and whether it is published or waits in the Inbox. Owners decide them in the Inbox and in Definitions, as [Metric variants](metric-variants.md) explains.

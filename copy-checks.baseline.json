@@ -10,13 +10,12 @@
     },
     "src/contract/index.ts": {
       "accept": 2,
-      "administrator": 20,
+      "administrator": 19,
       "client": 5,
       "edition": 10,
       "proposal": 1
     },
     "src/domain/about-business.ts": {
-      "a fact": 1,
       "administrator": 1
     },
     "src/domain/answer-state.ts": {
@@ -88,9 +87,6 @@
       "over25": 1
     },
     "src/web/pages/domain-page.tsx": {
-      "over25": 1
-    },
-    "src/web/pages/integrations.tsx": {
       "over25": 1
     }
   },

@@ -23,7 +23,7 @@ vi.mock('@/lib/workspace', () => ({
   useMe: () => world.me,
   useDomains: () => ({}),
 }))
-vi.mock('sonner', () => {
+vi.mock('@/lib/toast', () => {
   const push = (title: unknown) => {
     world.toasts.push(title)
     return 1

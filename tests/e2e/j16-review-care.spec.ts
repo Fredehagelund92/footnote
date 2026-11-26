@@ -75,14 +75,14 @@ test('an overlap with several live items asks about each, and archives only the 
   expect(asked!.y).toBeLessThan(overlaps!.y)
   await expect(page.getByText('Marked unrelated')).toBeVisible()
   await expect(decide.getByText("Compare it with what's published.")).toHaveCount(0)
-  await expect(decide.getByRole('button', { name: 'Publish' })).toBeEnabled()
+  await expect(decide.getByRole('button', { name: 'Publish', exact: true })).toBeEnabled()
   // One answer is not an answer for the others.
   await relate(credit, 'Replaces it')
   await relate(cardOnly, 'Disagrees')
   await expect(
     decide.getByText('When you publish, 1 live item is archived and 2 stay.'),
   ).toBeVisible()
-  await decide.getByRole('button', { name: 'Publish' }).click()
+  await decide.getByRole('button', { name: 'Publish', exact: true }).click()
   await expect(page.getByText(`Archived: ${credit}.`)).toBeVisible()
   // The one it replaces is archived; the unrelated stop and the one it disagrees with stay live.
   await go(page, '/context/itm_gift_store_credit')
@@ -114,7 +114,7 @@ test('a withdrawn retirement closes; archiving asks first, from the key too', as
   await expect(ask).toBeHidden()
   await expect(decide.getByText('Archived')).toHaveCount(0)
   await page.keyboard.press('ControlOrMeta+Enter')
-  await expect(decide.getByText('Nothing changes: the context item stays live.')).toBeVisible()
+  await expect(page.getByText('Nothing changes: the context item stays live.')).toBeVisible()
 })
 
 test('its sender takes a suggestion to archive back in the comments, or lets it stand', async ({

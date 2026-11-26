@@ -57,12 +57,18 @@ export default defineConfig({
     // J84 asks the mock for 5,000 definitions with a metric per currency (?demo=variants); the
     // service reads such a model in tests/integration/metric-variants.test.ts.
     /\/j84-definitions-at-scale\.spec\.ts$/,
+    // J124 asks the mock for 5,000 items over 40 markets (?demo=many); By time draws the service's
+    // library as J123 shows.
+    /\/j124-context-by-time-at-scale\.spec\.ts$/,
     // J86 asks the mock for twenty families of 250 variants (?demo=families); the service reads
     // and publishes families in tests/integration/metric-families.test.ts.
     /\/j86-families\.spec\.ts$/,
     // J87 reads what the mock's demo metrics are built from; the demo source on the service says
     // nothing of it, and a dbt read's is tests/integration/definition-relations.test.ts.
     /\/j87-built-from\.spec\.ts$/,
+    // J128 draws the mock's demo metrics' tree, which the demo source on the service has none of;
+    // the service's read is in tests/integration/definition-relations.test.ts.
+    /\/j128-built-from-tree\.spec\.ts$/,
     // J88 asks the mock for a dbt folder beside the demo's Cube model (?demo=dbt); the service reads
     // one and gives its refs in tests/integration/server-folder-catalogue.test.ts.
     /\/j88-dbt-definitions\.spec\.ts$/,
@@ -98,6 +104,44 @@ export default defineConfig({
     // reaches the Inbox in tests/web/integration/ask-tell-owner.test.ts.
     /\/j93-ask-definition-card\.spec\.ts$/,
     /\/j94-ask-gap-card\.spec\.ts$/,
+    // J97 opens an answer from the help in Markdown by the mock's example address; the service
+    // draws it in tests/web/integration/ask-loop-shapes.test.ts.
+    /\/j97-ask-markdown\.spec\.ts$/,
+    // J98 opens answers from the help that carry quick actions by the mock's example address; the
+    // service offers them in tests/web/integration/ask-loop-shapes.test.ts.
+    /\/j98-ask-quick-actions\.spec\.ts$/,
+    // J114 opens the demo's partner families as Ask's mock examples (?example=loop-family-*).
+    /\/j114-ask-family-card\.spec\.ts$/,
+    // J99 opens answers of Ask's loop by the mock's example address; the service writes the word
+    // and the card of a metric with no context in tests/web/integration/ask-loop-shapes.test.ts.
+    /\/j99-ask-prefills\.spec\.ts$/,
+    // J101 reads words the mock's demo world holds in Markdown (an item's quote, a Cube description)
+    // and opens a loop answer by the mock's example address; the drawing is the same component on
+    // the service, and tests/web/source-markdown.test.ts reads it.
+    /\/j101-source-markdown\.spec\.ts$/,
+    // J130 opens answers with what is not published yet by the mock's example address; the
+    // service writes them in tests/web/integration/ask-loop-shapes.test.ts and ask-drafts.test.ts.
+    /\/j130-ask-not-published\.spec\.ts$/,
+    // J102 connects the mock's ?demo=families dbt project; the service counts a test read's
+    // families in tests/integration/metric-variants.test.ts and its card's in
+    // declared-families.test.ts.
+    /\/j102-families-on-source\.spec\.ts$/,
+    // J104 to J106 split the mock's ?demo=families families as an owner, an admin and a member;
+    // the service splits, refuses, flags the items and joins them again in
+    // tests/integration/declared-families.test.ts.
+    /\/j104-family-split\.spec\.ts$/,
+    /\/j105-definitions-families\.spec\.ts$/,
+    /\/j106-family-member\.spec\.ts$/,
+    // J110 mentions a family of the mock's ?demo=families in Ask; the service's catalogue gives the
+    // app the same family, which tests/web/lib/mentions.test.ts finds in Ask's '@' list.
+    /\/j110-ask-mention-family\.spec\.ts$/,
+    // J117 opens a dimension's definition answer by the mock's example address; the service writes
+    // it in tests/web/integration/ask-loop-shapes.test.ts, and the chip is the same component there.
+    /\/j117-ask-dimension-chip\.spec\.ts$/,
+    // J118 asks the mock for a failed test and a Cube set up on the server (?check=, ?origin=);
+    // the service tests a saved source in tests/integration/cube-sources.test.ts and its own
+    // folder in tests/integration/approved-groups.test.ts.
+    /\/j118-cube-page\.spec\.ts$/,
   ],
   outputDir: 'test-results/golden-http/output',
   globalSetup: './tests/e2e/http/global-setup.ts',

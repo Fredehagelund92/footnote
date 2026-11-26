@@ -1,7 +1,7 @@
 # Security
 
 Footnote holds what an organisation knows about its numbers, and it decides which AI agents and people
-may read each fact. If you find a way around that, please tell us privately first.
+may read each context item. If you find a way around that, please tell us privately first.
 
 ## Report a vulnerability
 
@@ -30,11 +30,11 @@ if you'd like that.
 
 Anything that lets someone read, change or decide more than their role allows. For example:
 
-- an agent or a person gets a fact they are not allowed to read;
-- someone accepts, edits or archives a fact without the right to do so;
+- an agent or a person gets a context item they are not allowed to read;
+- someone accepts, edits or archives a context item without the right to do so;
 - an access key, a sign-in or a session works longer or wider than it should;
 - a connector reaches a network address, a file or a secret it was not given;
-- personal data or a secret ends up in a fact, a log or an export.
+- personal data or a secret ends up in a context item, a log or an export.
 
 Two pages describe the design these rules come from: `docs/contributing/sign-in.md` ("Threat notes"
 and "Out of scope") and `docs/contributing/connector-security.md`.

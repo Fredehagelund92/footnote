@@ -71,7 +71,6 @@ Ask answers with one model that reads with Footnote's own read tools, as the per
 | `FOOTNOTE_DOMAIN_OVERRIDES`     | None    | A JSON file: view to domain, for what the model leaves unnamed                                                                                                                                         |
 | `CUBE_RENAMES_FILE`             | None    | A JSON file of renamed members, old id to new id                                                                                                                                                       |
 | `CUBE_VIEWS_FILE`               | None    | A JSON list of the Cube views to read, such as `["orders", "revenue"]`, until an admin chooses them in the app. Unset, every view; empty, none ([views](connectors/cube.md#choose-the-views-it-reads)) |
-| `FOOTNOTE_FIGURE_OVERRIDES`     | None    | A JSON file of [figure settings](connectors/cube.md#figure-settings-on-the-server), for what the model leaves unsaid                                                                                   |
 | `CUBE_COMPILE_TIMEOUT_SECONDS`  | `120`   | How long Cube's compiler may take                                                                                                                                                                      |
 | `CUBE_COMPILE_MEMORY_MB`        | `1024`  | The memory Cube's compiler may use                                                                                                                                                                     |
 | `FOOTNOTE_SERVER_FOLDERS`       | None    | A JSON object of connector ids to folders on the server                                                                                                                                                |
@@ -84,7 +83,7 @@ A connector that cannot read a folder stops the service at start. A folder that 
 
 > **Moving off a server folder.** Moving a project from a server folder to a source of the same definitions is not supported yet. A server source taken out of the configuration keeps its definitions, so a source added later cannot take them.
 
-`FOOTNOTE_EGRESS_PRIVATE_HOSTS` applies to files and APIs read over https, not to Git or figures. An admin in the app cannot add a host: see [Connector security](connectors/security.md#what-a-connector-may-reach).
+`FOOTNOTE_EGRESS_PRIVATE_HOSTS` applies to files and APIs read over https, not to Git. An admin in the app cannot add a host: see [Connector security](connectors/security.md#what-a-connector-may-reach).
 
 `FOOTNOTE_SECRETS_DIR` must be outside the repository, and only the server's user may open it (mode 0700). `compose.yaml` sets it to a folder in the `footnote_keys` volume. Unset, no secret is kept, and a source that needs one cannot be added: connecting says so at its first step.
 

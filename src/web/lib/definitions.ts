@@ -1,6 +1,6 @@
 import * as React from 'react'
 import type { FamilyFound } from '@domain/family-found'
-import type { FamilyMeaningChoice, FamilyMeaningSource } from '@domain/family-meaning'
+import type { FamilyMeaningChoice, FamilyMeaningSource } from '@domain/family-meaning-line'
 import { lookAlikes, termWord, wordRefusal, type WordHolder } from '@domain/terms'
 import { useDefinitions as useDefinitionList } from '@/api/queries'
 import { servedToAgents, type DomainId, type Fact } from '@/model/items'
@@ -41,30 +41,24 @@ export type FamilyUsual = {
 }
 
 /**
- * What a family means (FR-142, M1): the words its tool writes for it, else an owner's choice,
- * else the words most of its variants share, else the base variant's. Variants by name.
+ * What a family means (FR-142, M1): the words its tool writes for it, else words an owner wrote,
+ * else the words most of its variants share. Variants by name.
  */
 export type FamilyMeaning = {
   source: FamilyMeaningSource
-  /**
-   * The meaning; the common words and the base variant's write each value as what it stands for:
-   * "in {Currency}".
-   */
+  /** The meaning; the common words write each value as what it stands for: "in {Currency}". */
   words: string | null
-  /** The variant whose words are the meaning: of `member` and `base`. */
-  member?: string
   /** The words most variants share, values aside, and how many share them. */
   common?: { words: string; agree: number }
-  /** The variant the others are converted from. */
+  /** The variant the others are converted from, when the common words are its alone. */
   base?: string
-  /** The words the rule gives, an owner's choice aside: the common words, else the base's. */
+  /** The words the rule gives, an owner's choice aside: the common words. */
   automatic?: string
   /** The variants whose own words say something else than the meaning. */
   differing: string[]
   /** What an owner chose last, by whom and on which day. */
   chosen?: {
     choice: FamilyMeaningChoice
-    member?: string
     words?: string
     by: string
     on: string
@@ -82,7 +76,7 @@ export type Family = {
   variants: Variant[]
   /** What the source says of how a variant is worked out from another, as plain lines. */
   derivations?: string[]
-  /** How it was found (D1): declared in its tool, from the calculation, or from its names. */
+  /** How it was found (D1, D6): declared in its tool, from the calculation, from a rate, or from its names. */
   found?: FamilyFound
   /**
    * The variants worked out from another with one column more, as the tool's structure says (D2):
@@ -93,6 +87,25 @@ export type Family = {
   meaning?: FamilyMeaning
   /** The variant Ask reads when a question names none of its values. */
   usual?: FamilyUsual
+  /**
+   * The family's name as its tool declares it (`meta.footnote.family: active_buyers`), for one
+   * found so: it is changed or split there, never here (D4).
+   */
+  declared?: string
+}
+
+/** A family split back into its metrics, while it stands (FR-142): Definitions lists it. */
+export type SplitFamily = {
+  /** Its name when it was split. */
+  name: string
+  /** The domain it was in: its owners and admins may make it one family again. */
+  domain?: DomainId
+  /** Its former variants, each a metric of its own now, by name. */
+  metrics: string[]
+  /** Live context items still about it, which reach agents through its metrics. */
+  items: number
+  by: string
+  on: string
 }
 
 export type Definition = {
@@ -106,8 +119,10 @@ export type Definition = {
   synced: boolean
   /** The tool a synced definition comes from, as people say it: "Cube". */
   tool?: string
-  /** The connector a synced definition is read by: its id in Integrations. */
+  /** The manifest id of the connector that reads a synced definition, such as `dbt-metricflow`. */
   connector?: string
+  /** The source a synced definition is read from: its id in Integrations. */
+  source?: string
   /** A synced definition's id in its tool, as its source reads it: `dbt:orders.revenue`. */
   ref?: string
   /**
@@ -147,6 +162,22 @@ export type DefinitionRelation = {
   missing: boolean
   /** A conversion's column: the one the converted metric reads beyond the other; else null. */
   by: string | null
+}
+
+/**
+ * A metric in what another is built from, as its source's structure says (FR-143): its name in
+ * Definitions, or else in its tool, and the metrics it is built from, by ref. Never a calculation.
+ */
+export type BuiltFromMetric = {
+  /** Its id in its tool: one metric under two others is the same ref. */
+  ref: string
+  name: string
+  /** Definitions lists it, so its name opens it. */
+  linked: boolean
+  /** No longer in its tool. */
+  missing: boolean
+  /** What it is built from, by ref, in its tool's order. */
+  from: string[]
 }
 
 export const typeLabel: Record<DefinitionType, string> = {
@@ -248,6 +279,45 @@ export function variantPart(family: string, variant: string): string {
 export function familyBy(family: Family): string {
   const by = family.by
   return `by ${by.length < 2 ? (by[0] ?? '') : `${by.slice(0, -1).join(', ')} and ${by.at(-1)}`}`
+}
+
+/**
+ * How variants are converted from others, in one line each, by the values that differ: "USD is
+ * converted from EUR by the column exchange_rate_usd". The same conversion across a channel is
+ * said once; past two, how many more.
+ */
+export function conversionLines(family: Family): {
+  lines: { to: string; from: string; by: string }[]
+  more: number
+} {
+  const valuesOf = (name: string) => family.variants.find((v) => v.name === name)?.values ?? []
+  const said = new Map<string, { to: string; from: string; by: string }>()
+  for (const c of family.conversions ?? []) {
+    const [from, to] = [valuesOf(c.from), valuesOf(c.to)]
+    const differ = to.flatMap((value, i) => (value !== from[i] ? [i] : []))
+    const line = {
+      to: differ.map((i) => to[i]).join(' · ') || c.to,
+      from: differ.map((i) => from[i]).join(' · ') || c.from,
+      by: c.by,
+    }
+    said.set(`${line.to}\u0000${line.from}\u0000${line.by}`, line)
+  }
+  const lines = [...said.values()]
+  return { lines: lines.slice(0, 2), more: Math.max(0, lines.length - 2) }
+}
+
+/**
+ * A family's mark said in words, as its quick view's first line says it: "Family of 250 metrics,
+ * by Currency and Channel", with how one variant is converted from another after it.
+ */
+export function familyLines(family: Family): string[] {
+  const n = (x: number) => x.toLocaleString('en-GB')
+  const { lines, more } = conversionLines(family)
+  return [
+    `Family of ${n(family.variants.length)} metrics, ${familyBy(family)}`,
+    ...lines.map((line) => `${line.to} is converted from ${line.from}`),
+    ...(more > 0 ? [`${n(more)} more conversions`] : []),
+  ]
 }
 
 /** The terms that mean the same as this definition: its "Also called in Footnote". */

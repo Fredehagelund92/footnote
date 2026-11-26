@@ -19,6 +19,7 @@ import {
   actionGroup,
   byNeed,
   cardKey,
+  DRAFT_OLD_DAYS,
   groupCounts,
   parseCardKey,
   setupSteps,
@@ -27,9 +28,11 @@ import {
 } from '../../../domain/inbox.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { lastingUndo, undoOffer } from '../../db/undo.ts'
 import { askedCounts, type BundleCache } from '../answer/index.ts'
 import type { CommentsService } from '../comments/index.ts'
+import type { ContextService } from '../context/index.ts'
 import { syncedOf } from '../connectors/index.ts'
 import type { ServingBundle } from '../editions/index.ts'
 import type { GapsService } from '../gaps/index.ts'
@@ -50,7 +53,8 @@ import { missing } from '../../../contract/refusals.ts'
   Mentioned you: threads where a comment mentions the person and they haven't read it,
   whatever domain it is in. Due for a check: live items whose check date passed or whose
   definition changed. Suggestions: those waiting for a decision. Under All, the person's own
-  suggestions that wait on an owner, and what was decided in the last two weeks. Saved questions:
+  suggestions that wait on an owner, those an owner closed (Don't publish) in the last two weeks
+  with the reason, and what was decided in the last two weeks. Saved questions:
   one card for each domain whose saved questions need a look (FR-526). Names: one card for the
   names a read made that the person may accept (FR-141), above the rest, since nothing can be
   written about a metric that has none. Once only names an owner left out remain, it goes under
@@ -79,7 +83,8 @@ const outcomeWords: Record<string, string> = {
   // Published without a review round, under the policy the owner set for the agent (FR-421).
   policy: 'Published with your permission',
   request_changes: 'Returned',
-  reject: 'Rejected',
+  // Not published, with a reason its sender reads: Don't publish.
+  reject: 'Closed',
   retire: 'Archived',
   // A suggestion to archive that is not archived: closed once its sender took it back.
   close: 'Closed',
@@ -119,6 +124,7 @@ export function createInboxFeedService(
     gaps: GapsService
     comments: Pick<CommentsService, 'mentionCards' | 'markMentionsRead'>
     names: Pick<NamesService, 'waiting'>
+    context: Pick<ContextService, 'pointAtSplitMetrics'>
   },
 ) {
   async function liveBundle(): Promise<ServingBundle | null> {
@@ -216,8 +222,10 @@ export function createInboxFeedService(
       told: number
       draft: string | null
       words: string[]
+      copied: string | null
     }>(
       `select g.id::text, g.ref, g.status_since::text as at, t.area_id as area,
+              (select l.copied_on::text from question_links l where l.gap_id=g.id) as copied,
               cl_topic_domains(t.area_id, t.metric_keys) as areas, t.metric_keys as metrics,
               t.value_keys as values, t.dimension_keys as dimensions, t.month::text as month,
               coalesce((select w.reports - w.human_reports + w.no_item_calls from gap_weekly_counts w
@@ -269,6 +277,7 @@ export function createInboxFeedService(
         times: visibleCount(row.calls, min),
         told: row.told,
         draft: row.draft,
+        asked: row.copied ? { copiedOn: row.copied } : null,
       }
     })
   }
@@ -306,13 +315,13 @@ export function createInboxFeedService(
       question: null,
       correction: null,
       link: null,
+      suggestion: null,
       items: row.items,
     }))
   }
 
   /**
-   * Named reports from Ask (FR-622) in the person's domains, and the figure reports sent to them as
-   * an integration's data contact (FR-716), with who sent them: the open ones,
+   * Named reports from Ask (FR-622) in the person's domains, with who sent them: the open ones,
    * which wait until an owner acts, or (`done`) those an owner acted on in the last two weeks. An
    * owner acts by closing it as not a problem, or by checking, changing or archiving its item.
    */
@@ -325,6 +334,7 @@ export function createInboxFeedService(
       question: string
       correction: string | null
       link: string | null
+      suggestion: string | null
       by: string
       item: string
       title: string | null
@@ -333,13 +343,14 @@ export function createInboxFeedService(
     }>(
       `select r.id::text, r.created_at::text as at, r.area_id as area, r.what, r.question, r.correction,
               r.link, r.person_id::text as by, r.item_id as item,
+              (select p.id::text from proposals p where p.id = r.proposal_id
+                  and p.state in ('submitted', 'in_review')) as suggestion,
               (select v.title from item_version_service s join item_versions v on v.id = s.version_id
                 where s.item_id = r.item_id and cl_audience_allows(v.audience_groups)
                 order by lower(s.editions) desc limit 1) as title,
               o.outcome, o.decided_at::text as decided
          from reports r left join lateral cl_report_outcome(r.id) o on true
-        where ((r.area_id = any($1::text[]) and r.figure_route is distinct from 'contact')
-               or (r.figure_route in ('contact', 'both') and cl_is_figure_contact(r.figure_source)))
+        where r.area_id = any($1::text[])
           and r.created_at > now() - interval '90 days'
           and ${which === 'open' ? 'o.outcome is null' : 'o.decided_at > now() - make_interval(days => $2)'}
         order by r.created_at desc, r.id limit 100`,
@@ -361,6 +372,7 @@ export function createInboxFeedService(
       question: row.question,
       correction: row.correction,
       link: row.link,
+      suggestion: row.suggestion,
       items: row.title ? [{ id: row.item, title: row.title }] : [],
     }))
   }
@@ -385,9 +397,35 @@ export function createInboxFeedService(
       [due.map((item) => item.id)],
     )
     const lastChecked = new Map(reviews.map((r) => [r.id, { on: r.on, by: r.by }]))
+    // Its link, and what people answered there since its live version was last published or checked.
+    const asked = await tx.query<{
+      id: string
+      copied: string
+      answers: Extract<Card, { group: 'check' }>['answers']
+    }>(
+      `select l.item_id as id, l.copied_on::text as copied,
+              coalesce((select jsonb_agg(jsonb_build_object('by', p.display_name, 'answer', a.answer,
+                         'endedOn', a.ended_on::text, 'words', a.words, 'link', a.link, 'at', a.created_at::text)
+                         order by a.created_at desc)
+                  from (select * from question_answers x where x.link_id = l.id
+                          and x.created_at > coalesce((select max(d.decided_at) from item_version_service s
+                                join decisions d on d.item_version_id = s.version_id and d.outcome = 'accept'
+                               where s.item_id = l.item_id and upper_inf(s.editions)), '-infinity')
+                        order by x.created_at desc limit 5) a
+                  left join people p on p.id = a.person_id), '[]'::jsonb) as answers
+         from question_links l where l.item_id = any($1::text[])`,
+      [due.map((item) => item.id)],
+    )
+    const askedOf = new Map(asked.map((row) => [row.id, row]))
     // A definition changed when its mark first read as it does now, after the last other mark.
     const moved = await tx.query<{ id: string; name: string; on: string }>(
-      `select s.item_id as id, coalesce(d.title, d.name) as name,
+      `select id, name, "on" from (
+       select s.item_id as id,
+              coalesce((select min(v.name collate "C") from vocab_term_service ts
+                          join vocab_term_refs tr on tr.version_id = ts.version_id
+                          join vocab_term_versions v on v.id = ts.version_id
+                         where tr.definition_ref = d.ref and upper_inf(ts.editions)),
+                       d.title, d.name) as name,
               (select min(k.fetched_at at time zone 'UTC')::date::text
                  from definition_marks m join connector_snapshots k on k.id = m.snapshot_id
                 where m.definition_ref = d.ref and m.change_mark = d.change_mark
@@ -399,7 +437,19 @@ export function createInboxFeedService(
          join item_version_refs r on r.version_id = s.version_id
          join definitions d on d.ref = r.definition_ref and d.change_mark <> r.change_mark
         where s.item_id = any($1::text[]) and upper_inf(s.editions)
-        order by s.item_id, name collate "C"`,
+       ) q order by id, name collate "C"`,
+      [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
+    )
+    // A family it is about that was split, with the metrics it reaches agents through now.
+    const split = await tx.query<{ id: string; name: string; metrics: string[] }>(
+      `select s.item_id as id, x.name,
+              array(select t.name from serving_vocabulary((select seq from live_edition)) t
+                     where t.key = any(x.variants) order by t.name collate "en-x-icu") as metrics
+         from item_version_service s
+         join item_version_metrics m on m.version_id = s.version_id
+         join ${standingSplits(liveSeq)} x on x.family_key = m.metric_key
+        where s.item_id = any($1::text[]) and upper_inf(s.editions)
+        order by s.item_id, x.name collate "en-x-icu"`,
       [due.filter((item) => item.checkFlag === 'needs_check').map((item) => item.id)],
     )
     return due.map((item) => ({
@@ -411,9 +461,19 @@ export function createInboxFeedService(
       done: null,
       itemId: item.id,
       title: item.title,
-      reason: item.checkFlag === null ? 'date' : 'source',
+      reason:
+        item.checkFlag === null
+          ? 'date'
+          : split.some((s) => s.id === item.id) && !moved.some((m) => m.id === item.id)
+            ? 'family'
+            : 'source',
       changed: moved.filter((m) => m.id === item.id).map(({ name, on }) => ({ name, on })),
+      families: split
+        .filter((s) => s.id === item.id)
+        .map(({ name, metrics }) => ({ name, metrics })),
       lastChecked: lastChecked.get(item.id) ?? { on: null, by: null },
+      asked: askedOf.has(item.id) ? { copiedOn: askedOf.get(item.id)!.copied } : null,
+      answers: askedOf.get(item.id)?.answers ?? [],
     }))
   }
 
@@ -465,7 +525,10 @@ export function createInboxFeedService(
           title: p.title,
           reason: 'date',
           changed: [],
+          families: [],
           lastChecked: { on: row.at.slice(0, 10), by: null },
+          asked: null,
+          answers: [],
         })
         continue
       }
@@ -523,6 +586,7 @@ export function createInboxFeedService(
         question: null,
         correction: null,
         link: null,
+        suggestion: null,
         items: row.items,
       })
     cards.push(...(await reports(areas, 'done')))
@@ -556,6 +620,7 @@ export function createInboxFeedService(
         times: 0,
         told: 0,
         draft: null,
+        asked: null,
       })
     return cards
   }
@@ -684,11 +749,23 @@ export function createInboxFeedService(
                 (select json_build_object('by',x.display_name,'at',d.decided_at::text)
                    from decisions d left join people x on x.id=d.decided_by
                   where d.proposal_id=p.id and d.outcome='request_changes'
-                  order by d.decided_at desc,d.id desc limit 1) end as returned
+                  order by d.decided_at desc,d.id desc limit 1) end as returned,
+              case when p.state='rejected' then
+                (select json_build_object('by',x.display_name,'at',d.decided_at::text,'reason',d.reason,
+                          'read',exists(select 1 from card_reads r where r.person_id=cl_person() and r.card='closed:'||p.id))
+                   from decisions d left join people x on x.id=d.decided_by
+                  where d.proposal_id=p.id and d.outcome='reject'
+                  order by d.decided_at desc,d.id desc limit 1) end as closed
          from proposals p left join item_versions v on v.id=p.item_version_id
-        where p.proposer_id=cl_person() and p.state in ('submitted','in_review','changes_requested')
-          and p.discarded_at is null
-        order by p.submitted_at desc nulls last limit 100`,
+        where p.proposer_id=cl_person() and p.subject='item' and p.discarded_at is null
+          and (p.state in ('submitted','in_review','changes_requested')
+               or (p.state='rejected' and exists(
+                     select 1 from decisions d
+                      where d.proposal_id=p.id and d.outcome='reject' and d.decided_by<>cl_person()
+                        and d.decided_at > now() - make_interval(days => $1)
+                        and not exists (select 1 from decision_undos u where u.decision_id=d.id))))
+        order by coalesce(p.closed_at,p.submitted_at) desc nulls last limit 100`,
+      [doneDays],
     )
   }
 
@@ -747,7 +824,41 @@ export function createInboxFeedService(
         done: looking.length ? null : { outcome: 'Left out', at: when },
         ready: names.filter((name) => name.state === 'ready').length,
         flagged: names.filter((name) => name.state === 'flagged').length,
+        families: looking.filter((name) => name.family).length,
         tools: [...new Set(names.map((name) => name.tool))].sort(),
+      },
+    ]
+  }
+
+  /**
+   * The one card of the person's own drafts that wait for them (FR-139): every draft they imported,
+   * and every other one they have not saved for DRAFT_OLD_DAYS days. Only they read their drafts,
+   * so nobody else is told of them; none, and there is no card.
+   */
+  async function draftsCard(): Promise<Card[]> {
+    const rows = await tx.query<{ id: string; areaId: string; imported: boolean; at: string }>(
+      `select id::text, area_id as "areaId", import_batch_id is not null as imported,
+              to_char((case when import_batch_id is not null then created_at
+                            else draft_saved_at + make_interval(days => $2) end) at time zone 'UTC',
+                      'YYYY-MM-DD"T"HH24:MI:SS"Z"') as at
+         from proposals
+        where proposer_id = cl_person() and subject = 'item' and state = 'draft'
+          and discarded_at is null and area_id is not null
+          and (import_batch_id is not null or draft_saved_at <= $1::timestamptz - make_interval(days => $2))
+        order by created_at, id`,
+      [clock.now().toISOString(), DRAFT_OLD_DAYS],
+    )
+    if (!rows.length) return []
+    const [area, ...others] = new Set(rows.map((r) => r.areaId))
+    return [
+      {
+        id: cardKey.drafts(),
+        group: 'drafts',
+        areaId: others.length ? null : area!,
+        at: rows.reduce((at, r) => (r.at > at ? r.at : at), rows[0]!.at),
+        opened: false,
+        done: null,
+        drafts: rows.map(({ id, areaId, imported }) => ({ id, areaId, imported })),
       },
     ]
   }
@@ -767,6 +878,7 @@ export function createInboxFeedService(
         ...(await looks(areas)),
         ...(await checks(bundle, areas)),
         ...(await suggestions(areas)),
+        ...(await draftsCard()),
         ...(await alertCards()),
       ]
       const rules = await alertState()
@@ -787,7 +899,8 @@ export function createInboxFeedService(
       const counted = sorted.filter((c) => !(c.group === 'suggestion' && drafts.has(c.proposalId)))
       return {
         week: await week(bundle),
-        groups: groupCounts(counted, waits.length),
+        // What the person sent that still waits: a suggestion an owner closed waits on nobody.
+        groups: groupCounts(counted, waits.filter((w) => !w.closed).length),
         cards: sorted,
         waiting: waits,
       }
@@ -865,6 +978,15 @@ export function createInboxFeedService(
         input.reason ??
         (input.action === 'still_true' ? 'Checked: still true.' : 'Archived from the Inbox.')
       if (input.action === 'still_true') {
+        // About a family that was split, it stays about each of its metrics (FR-142): its owner
+        // publishes that change, as a check could not.
+        const pointed = await deps.context.pointAtSplitMetrics(key.id)
+        if (pointed) {
+          const [live] = await tx.query<{ label: string }>(
+            'select e.label from editions e join live_edition l on l.seq = e.seq',
+          )
+          return { edition: live?.label ?? null, undo: await undoOffer(tx, `decision:${pointed}`) }
+        }
         // Footnote v1's check (FR-139): an owner of its domain or an admin, as Mark as checked.
         const result = await deps.review.recheck(key.id, reason)
         const [decision] = await tx.query<{ id: string }>(

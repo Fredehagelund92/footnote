@@ -63,10 +63,18 @@ afterAll(async () => {
   await app.close()
 })
 
-/** A submitted suggestion written straight into the tables: no proposal can name scope before a vocabulary is live. */
+/**
+ * A submitted suggestion written straight into the tables: no proposal can name scope before a
+ * vocabulary is live. Like every version a person sends from the editor, it has a source.
+ */
 const submitted = () =>
   transaction(client, async () => {
     const v = await version(client, { title: 'Units sold excludes test accounts' })
+    await client.query(
+      `insert into item_version_evidence (version_id,position,url,quote,read_on)
+       values ($1,0,'https://example.test/units','Test accounts are left out.','2026-08-04')`,
+      [v.id],
+    )
     const row = await client.query<{ id: string; revision: number }>(
       `insert into proposals (action,state,area_id,item_id,item_version_id,proposer_id,channel,submitted_at)
        select 'change','submitted',area_id,item_id,id,proposer_id,'form',now()

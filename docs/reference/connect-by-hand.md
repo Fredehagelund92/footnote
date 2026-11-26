@@ -31,7 +31,7 @@ Each agent has its own steps, the same as in Agents and access under Prefer to d
 2. Add this line to CLAUDE.md if the project has one, otherwise AGENTS.md, so it checks first:
 
    ```text
-   Before you answer a question about company data, call get_context first and use what it returns.
+   Before you answer a question about a company metric, call get_context first and use what it returns.
    ```
 
 3. In Claude Code, type `/mcp`, choose the server you added, press Authenticate, and approve the connection in the browser.
@@ -56,7 +56,7 @@ Agents and access has an Add to Cursor link that does the first step for you.
 2. Add this line to AGENTS.md, so it checks first:
 
    ```text
-   Before you answer a question about company data, call get_context first and use what it returns.
+   Before you answer a question about a company metric, call get_context first and use what it returns.
    ```
 
 3. In Cursor's settings, under MCP, press Connect and approve the connection in the browser.
@@ -74,7 +74,7 @@ Agents and access has an Install in VS Code link that does the first step for yo
 2. Add this line to AGENTS.md, so it checks first:
 
    ```text
-   Before you answer a question about company data, call get_context first and use what it returns.
+   Before you answer a question about a company metric, call get_context first and use what it returns.
    ```
 
 3. Start the server from the file, and approve the connection in the browser.
@@ -90,7 +90,7 @@ Agents and access has an Install in VS Code link that does the first step for yo
 2. Add this line to AGENTS.md, so it checks first:
 
    ```text
-   Before you answer a question about company data, call get_context first and use what it returns.
+   Before you answer a question about a company metric, call get_context first and use what it returns.
    ```
 
 3. If the browser did not open, run `codex mcp login footnote` and approve the connection in the browser.

@@ -3,6 +3,7 @@ import { CalendarIcon, MapPinIcon, ShieldAlertIcon, type LucideIcon } from '@/co
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { PeekPending } from '@/components/footnote/peek'
 import { Related } from '@/components/footnote/related'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { ScopeChips } from '@/components/footnote/scope-chips'
 import { hostOf } from '@/lib/host'
 import { mentionId } from '@/lib/mentions'
@@ -18,9 +19,9 @@ import { kindLabel, type Fact } from '@/model/items'
 export const detailsSummary = (fact: Fact) =>
   [kindLabel[fact.kind], fact.where.join(', ') || 'Read from the text', fact.when].join(' - ')
 
-/** Agents use a Live item; a draft's use is still to come and an archived item's is over. */
+/** Agents use a Live item; an unpublished one's use is still to come and an archived item's is over. */
 const useWords = (fact: Fact) =>
-  fact.status === 'Draft'
+  fact.status === 'Draft' || fact.status === 'Waiting'
     ? 'Agents will use it for'
     : fact.status === 'Archived'
       ? 'Agents used it for'
@@ -35,11 +36,16 @@ function Line({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode 
   )
 }
 
-/** The quote as a source block, with where it was copied from under it when that is known. */
+/**
+ * The quote as a source block, its Markdown drawn as the source drew it, with where it was copied
+ * from under it when that is known.
+ */
 function SourceQuote({ quote, source }: { quote: string; source?: string }) {
   return (
     <figure className="flex flex-col gap-1">
-      <blockquote className="border-l-2 pl-3 leading-6">{quote}</blockquote>
+      <blockquote className="border-l-2 pl-3 leading-6">
+        <SourcePassages text={quote} />
+      </blockquote>
       {source && (
         <figcaption className="pl-3.5 text-xs leading-5 text-muted-foreground">
           Copied from{' '}

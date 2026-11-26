@@ -29,6 +29,7 @@ import {
   type Resolution,
 } from './resolver.ts'
 import { answerStateOf } from './answer-state.ts'
+import { questionWords } from './question-order.ts'
 import {
   askedGroups,
   askedMetrics,
@@ -42,6 +43,7 @@ import {
   extractScope,
   type AssumedDate,
   type DatesRead,
+  type NamesRead,
   type ResolvedScope,
   type ScopeIssue,
   type ScopeResult,
@@ -65,8 +67,13 @@ export const answerStates = [
 ] as const
 export type AnswerState = (typeof answerStates)[number]
 
-/** How many items an answer gives, as get_context does by default (`max_items`). */
-export const ANSWER_MAX_ITEMS = 20
+/**
+ * How many items an agent's get_context gives by default (`max_items`), and so the engine: those
+ * the question turns on come first, and next_cursor gives the rest (decided 23 November 2026).
+ */
+export const AGENT_MAX_ITEMS = 10
+/** How many items a read of Ask's gives whole: the rest it names by title. */
+export const ASK_MAX_ITEMS = 20
 
 /** An item of the bundle as the engine needs it: what the resolver reads, its kind and title. */
 export type AnswerSource = ResolverItem & {
@@ -81,6 +88,8 @@ export type AnswerSource = ResolverItem & {
 export type AnswerBundle = Omit<EditionBundle, 'items'> & {
   items: readonly AnswerSource[]
   terms: readonly Term[]
+  /** The domains, by name: a question's words that name one order nothing (question-order.ts). */
+  areas?: readonly { name: string }[]
 }
 
 /** A dimension and the values asked for, by name or key; no values names the dimension only. */
@@ -109,6 +118,11 @@ export type AnswerOptions = {
   calendar?: Calendar
   /** How many items the answer gives at most; the rest are left out as `cut`. */
   maxItems?: number
+  /**
+   * The words what applies is ordered by (question-order.ts): the question's own when not given.
+   * Ask gives the person's question with the subject the model read, which a scope ask has not.
+   */
+  order?: string
   /** A clock in milliseconds, to time the steps; without it every step takes 0 ms. */
   now?: () => number
   /** Whose words `say` is in: a person's (`peopleVoice`) without it. */
@@ -204,6 +218,8 @@ export type Answer = {
   issues: ScopeIssue[]
   items: AnswerItem[]
   leftOut: LeftOut[]
+  /** How the words were read beyond whole names, and those unread (names-read.ts). */
+  names: NamesRead
   /** Near misses past `NEAR_MISSES_SHOWN`, counted only. */
   leftOutMore: number
   /** Items that apply but are for another group: counted, never named. */
@@ -226,6 +242,8 @@ export function readAsk(
   today: string,
   person = false,
   calendar?: Calendar,
+  /** The domains' names: a word that names one is never read as a word of a metric's name. */
+  domains: readonly string[] = [],
 ): ScopeResult {
   if ('scope' in ask) return { status: 'resolved', scope: ask.scope }
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
@@ -239,14 +257,21 @@ export function readAsk(
       : { window: { start: ask.window.from, end: shiftDate(ask.window.to, 1) } }),
     ...(person ? { loose: true } : {}),
     ...(calendar ? { calendar } : {}),
+    domains,
   })
 }
 
 /** What the resolver gives an agent for a read scope, with no audience groups, as get_context. */
-function resolved(bundle: AnswerBundle, scope: ScopeResult, today: string): Resolution {
+function resolved(
+  bundle: AnswerBundle,
+  scope: ScopeResult,
+  today: string,
+  words: readonly string[] = [],
+): Resolution {
   return resolve(bundle, {
     scope,
     today,
+    words,
     groups: noGroups,
     hiddenMetrics: [],
     sizeLimit: Number.MAX_SAFE_INTEGER,
@@ -382,10 +407,11 @@ export function* lookUp(
   {
     today,
     calendar,
-    maxItems = ANSWER_MAX_ITEMS,
+    maxItems = AGENT_MAX_ITEMS,
     now = () => 0,
     voice = peopleVoice,
     person = false,
+    order,
   }: AnswerOptions,
 ): Generator<AnswerStep, Answer, void> {
   const steps: AnswerStep[] = []
@@ -402,15 +428,31 @@ export function* lookUp(
     return value
   }
 
-  const read = readAsk(ask, bundle.terms, today, person, calendar)
+  const read = readAsk(
+    ask,
+    bundle.terms,
+    today,
+    person,
+    calendar,
+    (bundle.areas ?? []).map((area) => area.name),
+  )
   const scope = read.status === 'resolved' ? read.scope : null
   const dates = (read.status === 'resolved' && read.dates) || null
   const assumed = (read.status === 'resolved' && read.assumed) || null
   const issues = read.status === 'need_more_detail' ? read.issues : []
+  const names: NamesRead = {
+    ...(read.loose ? { loose: read.loose } : {}),
+    ...(read.unread ? { unread: read.unread } : {}),
+  }
   yield step({ step: 'read_scope', ms: lap(), scope, dates, assumed, issues })
   mark = now()
 
-  const resolution = resolved(bundle, read, today)
+  const words = questionWords(
+    order ?? ('question' in ask ? ask.question : ''),
+    bundle.terms,
+    bundle.areas ?? [],
+  )
+  const resolution = resolved(bundle, read, today, words)
   const byId = new Map(bundle.items.map((item) => [item.id, item]))
   const matched = resolution.items.map((match) => ({ match, item: byId.get(match.id)! }))
   const given = matched.slice(0, Math.max(0, maxItems))
@@ -443,16 +485,20 @@ export function* lookUp(
   yield step({ step: 'left_out', ms: lap(), leftOut, more, forAnotherGroup })
   mark = now()
 
+  // What is written decides the state, the items past the limit too (answer-state.ts).
   const uncovered = scope
     ? uncoveredParts(
         bundle,
         scope,
-        given.map((g) => ({ item: g.item, match: g.match.match })),
+        matched.map((g) => ({ item: g.item, match: g.match.match })),
       )
     : { metrics: [], values: [] }
   const state = answerStateOf({
     status: resolution.status,
-    items,
+    items: [
+      ...items,
+      ...matched.slice(given.length).map((g) => ({ match: g.match.match, unverified: false })),
+    ],
     uncovered,
     assumed: assumed !== null,
   })
@@ -460,6 +506,15 @@ export function* lookUp(
   mark = now()
 
   const metrics = scope ? askedMetrics(bundle, scope) : []
+  // A term an agent is shown: none of a stopped domain, as get_context names them (FR-333).
+  const shownName = (key: string) => {
+    const term = bundle.terms.find((t) => t.key === key)
+    return term &&
+      !bundle.stopped.all &&
+      !(term.areaId && bundle.stopped.areas.includes(term.areaId))
+      ? [term.name]
+      : []
+  }
   const said = contextSaid(
     bundle,
     {
@@ -477,6 +532,14 @@ export function* lookUp(
       upTo: person,
       groups: resolution.scope ? askedGroups(bundle, resolution.scope) : [],
       about: metrics.length > 1,
+      unread: (names.unread ?? []).map((w) => ({
+        word: w.word,
+        closest: w.closest.flatMap(shownName),
+        ...(w.domain ? { domain: w.domain } : {}),
+      })),
+      readAs: (names.loose ?? []).flatMap((hit) =>
+        shownName(hit.key).map((name) => ({ words: hit.words, name, by: hit.by })),
+      ),
     },
     voice,
   )
@@ -494,6 +557,7 @@ export function* lookUp(
     issues,
     items,
     leftOut,
+    names,
     leftOutMore: more,
     forAnotherGroup,
     uncovered,
@@ -608,7 +672,7 @@ export function reach(
   topics: readonly TopicCount[],
   today: string,
   minimum: number,
-  maxItems = ANSWER_MAX_ITEMS,
+  maxItems = AGENT_MAX_ITEMS,
 ): number {
   let total = 0
   for (const topic of topics) {

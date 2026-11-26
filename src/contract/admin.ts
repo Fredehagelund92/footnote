@@ -11,6 +11,7 @@ import {
 import { isTimeZone } from '../domain/dates.ts'
 import { EDITION_EXPORT_FORMAT } from '../domain/edition-export.ts'
 import { ITEM_FILE_MAX_LENGTH } from '../domain/item-file.ts'
+import { isHost, NEVER_READ_HOSTS_MAX, normalizeHost } from '../domain/never-read-hosts.ts'
 import { itemVersionSchema } from '../domain/item-version.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 import { findingSchema } from './proposals.ts'
@@ -25,6 +26,13 @@ const days = int(1, 3650)
 const micros = int(0, 1_000_000_000_000)
 const perMinute = int(1, 10_000)
 const toolName = z.string().check(z.regex(/^[a-z_]{1,40}$/))
+/** A host Footnote never reads a link on, kept as domain/never-read-hosts.ts says. */
+const neverReadHost = z
+  .string()
+  .check(
+    z.overwrite(normalizeHost),
+    z.refine(isHost, 'Expected a host such as intranet.example.com'),
+  )
 /** US dollars per million tokens; 0 is allowed, for a model that costs nothing, such as a local one. */
 const dollarsPerMillion = z.number().check(z.minimum(0), z.maximum(10_000))
 /**
@@ -75,6 +83,22 @@ export const settingSchemas = {
   // Whether owners may let an agent publish without review (FR-421); off ends every policy, in the
   // database, whichever way it is switched.
   'agents.auto_publish': z.boolean(),
+  // Whether Footnote reads a public page a person links, to draft from it (FR-144). Off, a
+  // pasted link is never opened and the person pastes the page's text instead.
+  'links.read_pages': z.boolean(),
+  // Hosts Footnote never reads a link on, each with its subdomains (FR-144): such as internal
+  // systems on public addresses that trust the network's own address.
+  'links.never_read_hosts': z.array(neverReadHost).check(
+    z.maxLength(NEVER_READ_HOSTS_MAX),
+    z.refine((hosts) => new Set(hosts).size === hosts.length, 'Each host is listed once'),
+  ),
+  // Links one person may read in an hour and in 24 hours, and the workspace in 24 hours; a read
+  // that fails counts too (FR-144).
+  'limits.link_reads': z.strictObject({
+    person_per_hour: int(1, 10_000),
+    person_per_day: int(1, 100_000),
+    workspace_per_day: int(1, 1_000_000),
+  }),
   'limits.llm_daily_micros_per_person': micros,
   'limits.llm_monthly_cap_micros': micros,
   'limits.llm_feature_monthly_micros': z.partialRecord(z.enum(['eval', 'assistant']), micros),
@@ -91,6 +115,8 @@ export const settingSchemas = {
   // and the longest it may take. A turn that reaches either says so in a fixed sentence.
   'ask.max_steps': int(2, 12),
   'ask.time_limit_seconds': int(5, 120),
+  // Whether people may share an Ask chat as a link (FR-721). Off, no link is made and none opens.
+  'ask.share_chats': z.boolean(),
   'evals.tries': int(1, 20),
   // The majority of the repeats decides a flip, so the count is odd.
   'evals.flip_repeats': int(1, 15).check(z.refine((n) => n % 2 === 1, 'Expected an odd number')),
@@ -127,8 +153,8 @@ export const settingSchemas = {
       }, 'Expected an https address without credentials, query or fragment'),
     ),
   ),
-  // About our business (domain/about-business.ts): what the company does and the words models
-  // misread, as background the assistant and connected agents get, never as evidence. Kept as
+  // About our business (domain/about-business.ts): what the company does, in one or two
+  // sentences, as background the assistant and connected agents get, never as evidence. Kept as
   // plain text in Footnote's form of it; empty gives them none.
   'business.about': z.string().check(
     z.overwrite(normalizeAboutBusiness),
@@ -396,5 +422,12 @@ export const editionExportSchema = z.object({
   /** The domains the definition source gave terms in the edition; with the vocabulary's areas, its area map. */
   domains: z.array(z.object({ key: z.string(), areaId: z.string() })),
 })
+
+/**
+ * Write a first version for me (domain/about-business.ts): a first text of About our business,
+ * written from the install's domains, metrics and definitions. Nothing is saved.
+ */
+export const aboutDraftSchema = z.object({ text: z.string() })
+export type AboutDraft = z.infer<typeof aboutDraftSchema>
 
 export const jsonSchemaDocument = z.record(z.string(), z.unknown())

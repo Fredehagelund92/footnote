@@ -188,6 +188,99 @@ export function columnsOf(expression: string): string[] {
   return columns.slice(0, BUILT_FROM_MAX)
 }
 
+/**
+ * What a Cube measure's own calculation reads, when it is column arithmetic (C2): the measures it
+ * takes as written (`revenue` of `{revenue}` or `{CUBE.revenue}`, `orders.revenue` of
+ * `{orders.revenue}`), and its cube's columns (`amount_eur` of `{CUBE}.amount_eur` or a bare
+ * `amount_eur`). Arithmetic is names, numbers, `+ - * /` and brackets, and the functions that
+ * only guard, round or cast what they are given: `NULLIF`, `COALESCE`, `ROUND` and `CAST(... AS
+ * type)`, nested as deep as written, so a guarded ratio `{orders} / NULLIF({sessions}, 0)` is
+ * built from both. Any other calculation, another function, a keyword, a literal or a qualified
+ * column, is null: what it reads is not told by its names alone. Only names cross, never the
+ * calculation (CON-207).
+ */
+export function arithmeticInputs(sql: string): { measures: string[]; columns: string[] } | null {
+  const measures: string[] = []
+  // A measure is a number here, so the rest is read as columns, numbers, signs and the functions.
+  const rest = sql
+    .replace(/\$?\{CUBE\}\.([A-Za-z_]\w*)/g, ' $1 ')
+    .replace(/\$?\{(?:CUBE\.)?([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\}/g, (_all, name: string) => {
+      if (!measures.includes(name)) measures.push(name)
+      return ' 0 '
+    })
+  const tokens = arithmeticTokens(rest)
+  if (!tokens) return null
+  const columns: string[] = []
+  let at = 0
+  // Takes the next token when it is `text`.
+  const next = (text: string) => {
+    if (tokens[at]?.toLowerCase() !== text) return false
+    at++
+    return true
+  }
+  // A function's arguments, at least `fewest`, at most `most`.
+  const args = (fewest: number, most: number, depth: number): boolean => {
+    if (!next('(')) return false
+    let count = 0
+    do {
+      if (!expression(depth + 1)) return false
+      count++
+    } while (next(','))
+    return next(')') && count >= fewest && count <= most
+  }
+  // The type a CAST gives: `numeric`, `double precision`, `decimal(10, 2)`.
+  const type = (): boolean => {
+    if (!/^[a-z_]\w*$/i.test(tokens[at] ?? '')) return false
+    while (/^[a-z_]\w*$/i.test(tokens[at] ?? '')) at++
+    if (!next('(')) return true
+    do if (!/^\d+$/.test(tokens[at++] ?? '')) return false
+    while (next(','))
+    return next(')')
+  }
+  const operand = (depth: number): boolean => {
+    if (depth > 50) return false
+    while (tokens[at] === '-' || tokens[at] === '+') at++
+    const token = tokens[at++]
+    if (token === undefined) return false
+    if (token === '(') return expression(depth + 1) && next(')')
+    if (/^\d/.test(token)) return true
+    const word = token.toLowerCase()
+    if (tokens[at] === '(') {
+      if (word === 'nullif') return args(2, 2, depth)
+      if (word === 'coalesce') return args(1, 50, depth)
+      if (word === 'round') return args(1, 2, depth)
+      if (word === 'cast')
+        return next('(') && expression(depth + 1) && next('as') && type() && next(')')
+      return false
+    }
+    if (!columnNamePattern.test(token) || sqlKeywords.has(word) || niladicFunctions.has(word))
+      return false
+    if (!columns.includes(token)) columns.push(token)
+    return true
+  }
+  const expression = (depth: number): boolean => {
+    if (!operand(depth)) return false
+    while (next('+') || next('-') || next('*') || next('/')) if (!operand(depth)) return false
+    return true
+  }
+  if (!expression(0) || at < tokens.length) return null
+  if (!measures.length && !columns.length) return null
+  return { measures: measures.slice(0, BUILT_FROM_MAX), columns: columns.slice(0, BUILT_FROM_MAX) }
+}
+
+// The words, numbers and signs of a calculation, or null when it holds anything else: a literal,
+// a quoted name, a dot that qualifies a name, another sign.
+function arithmeticTokens(text: string): string[] | null {
+  const tokens: string[] = []
+  const pattern = /\s+|(\d+(?:\.\d+)?(?:e[+-]?\d+)?(?![\w.])|[A-Za-z_]\w*(?![\w.])|[-+*/(),])/giy
+  while (pattern.lastIndex < text.length) {
+    const match = pattern.exec(text)
+    if (!match) return null
+    if (match[1]) tokens.push(match[1])
+  }
+  return tokens
+}
+
 /** The most values one variant is told apart by: currency and channel are two. */
 export const VARIANT_BY_MAX = 5
 /** The longest value a variant is told apart by, in characters. */

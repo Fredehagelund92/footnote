@@ -325,8 +325,16 @@ describe('Cube change flags, the needs-check flow and stale links', () => {
     expect(feed.cards.find((c) => c.id === `check:${items.a}`)).toMatchObject({
       group: 'check',
       reason: 'source',
-      changed: [{ name: 'Sales Count', on: today.rows[0]!.day }],
+      // The published term's name, not the tool's title 'Sales Count'.
+      changed: [{ name: 'Orders', on: today.rows[0]!.day }],
     })
+    // The name is one the owner's Definitions list has, so the card's button finds its page.
+    const listed = ok<{ terms: { name: string; definitions: { ref: string }[] }[] }>(
+      await call('GET', '/catalogue', 'owner'),
+    )
+    expect(
+      listed.terms.filter((t) => t.definitions.some((d) => d.ref === 'cube:sales.count')),
+    ).toEqual([expect.objectContaining({ name: 'Orders' })])
     // C18: still delivered, labelled unverified with the state needs_check.
     expect(await delivery(items.a)).toMatchObject({
       freshness: 'unverified',

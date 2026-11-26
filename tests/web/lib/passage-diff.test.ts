@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import fc from 'fast-check'
-import {
-  passageDiff,
-  passageStats,
-  safeHref,
-  type Passage,
-  type PassageRow,
-} from '@/lib/passage-diff'
+import { passageDiff, passageStats, type Passage, type PassageRow } from '@/lib/passage-diff'
+import { safeHref } from '@/lib/host'
 import { reviewFor } from '@/api/mock/data/review'
 
 // K2, the text in two columns: the done-when lines of the slice, on the rows the view draws.

@@ -1,17 +1,12 @@
 import * as React from 'react'
-import { toast } from 'sonner'
-import { FAMILY_WORDS_MAX } from '@domain/family-meaning'
+import { toast } from '@/lib/toast'
+import { FAMILY_WORDS_MAX } from '@domain/family-meaning-line'
+import { inlineSegments } from '@domain/markdown-blocks'
 import { useWrite } from '@/api/queries'
 import { TriangleAlertIcon } from '@/components/icons'
 import { PeekAttention } from '@/components/footnote/peek'
+import { Marks, SourceText, codeLook, type CodeLook } from '@/components/footnote/source-text'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import {
   Dialog,
   DialogClose,
@@ -40,27 +35,91 @@ export const MeaningDialog = React.lazy(() => import('@/components/footnote/fami
 
 const n = (x: number) => x.toLocaleString('en-GB')
 
-/** The meaning's words, each value it varies by as the axis it stands for, in a chip. */
-export function MeaningWords({ meaning, by }: { meaning: FamilyMeaning; by: string[] }) {
+/**
+ * The meaning's words, each value it varies by as the axis it stands for, in a chip, and the
+ * Markdown its tool wrote drawn as the rest of a definition's words are (source-text.tsx). `code`
+ * is how its code is drawn.
+ */
+export function MeaningWords({
+  meaning,
+  by,
+  code = 'text-xs',
+}: {
+  meaning: FamilyMeaning
+  by: string[]
+  code?: CodeLook
+}) {
   if (!meaning.words)
     return (
       <span className="text-muted-foreground">
-        No meaning yet: its variants say different things.
+        No meaning yet: no words speak for all its variants.
       </span>
     )
-  return meaning.words.split(/(\{[^{}]+\})/).map((part, i) => {
-    const axis = part.slice(1, -1)
-    return part.startsWith('{') && by.includes(axis) ? (
-      <span
-        key={i}
-        className="mx-0.5 inline-flex h-5.5 items-center rounded-sm border bg-muted px-1.5 text-sm font-medium text-muted-foreground"
-      >
-        {axis}
-      </span>
-    ) : (
-      <React.Fragment key={i}>{part}</React.Fragment>
+  // The marks are read over the whole words first, so a mark around a slot keeps the slot inside it.
+  return inlineSegments(meaning.words).map((segment, i) => (
+    <Marks key={i} marks={segment.marks} code={codeLook(code)}>
+      {segment.text.split(/(\{[^{}]+\})/).map((part, j) => {
+        const axis = part.slice(1, -1)
+        return part.startsWith('{') && by.includes(axis) ? (
+          <span
+            key={j}
+            className="mx-0.5 inline-flex h-5.5 items-center rounded-sm border bg-muted px-1.5 text-sm font-medium text-muted-foreground"
+          >
+            {axis}
+          </span>
+        ) : (
+          <React.Fragment key={j}>{part}</React.Fragment>
+        )
+      })}
+    </Marks>
+  ))
+}
+
+/** The most variants whose own words a family with no meaning shows. */
+const OWN_SHOWN = 4
+
+/**
+ * A family with no meaning yet, as a reader reads it (C1): its variants say what it is, each in
+ * its own words after its values, as large as a meaning; past a few, how many more have words.
+ */
+export function VariantsOwnWords({
+  family,
+  code = 'text-xs',
+  className,
+}: {
+  family: Pick<Family, 'variants'>
+  code?: CodeLook
+  className?: string
+}) {
+  const own = family.variants.filter((variant) => variant.description?.trim())
+  if (!own.length)
+    return (
+      <p className={cn('text-muted-foreground', className)}>
+        Its variants have no words of their own yet.
+      </p>
     )
-  })
+  const more = own.length - OWN_SHOWN
+  return (
+    <div className={className}>
+      <p className="text-sm text-muted-foreground">
+        Its {n(family.variants.length)} variants say what it is in their own words:
+      </p>
+      <ul aria-label="In its variants’ own words" className="mt-1.5 flex flex-col gap-1.5">
+        {own.slice(0, OWN_SHOWN).map((variant) => (
+          <li key={variant.name}>
+            <span className="font-medium">{variant.values.join(', ') || variant.name}</span>
+            {': '}
+            <SourceText text={variant.description!.trim()} code={code} />
+          </li>
+        ))}
+      </ul>
+      {more > 0 && (
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {n(more)} more {more === 1 ? 'has words of its' : 'have words of their'} own.
+        </p>
+      )}
+    </div>
+  )
 }
 
 /** What the owner's dialog uses of the app, handed to it as its parts. */
@@ -68,15 +127,9 @@ export const meaningParts = {
   toast,
   useWrite,
   useReported,
-  cn,
   FAMILY_WORDS_MAX,
   MeaningWords,
   Button,
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
   Dialog,
   DialogClose,
   DialogContent,
@@ -87,6 +140,7 @@ export const meaningParts = {
   RadioGroup,
   RadioGroupItem,
   Textarea,
+  SourceText,
 }
 export type MeaningParts = typeof meaningParts
 
@@ -98,13 +152,11 @@ export function meaningSource(family: Family, meaning: FamilyMeaning, tool: stri
     ? `Written for the family in ${tool}`
     : source === 'written'
       ? `Written for the family ${by}`
-      : source === 'member'
-        ? `Words of ${meaning.member}, chosen ${by}`
-        : source === 'base'
-          ? `Words of ${meaning.member}, the variant the others are converted from`
-          : source === 'common'
-            ? `Common words of ${n(meaning.common!.agree)} of ${n(family.variants.length)} variants, chosen automatically`
-            : ''
+      : source === 'common' && meaning.base
+        ? `Words of ${meaning.base}, the variant the others are converted from`
+        : source === 'common'
+          ? `Common words of ${n(meaning.common!.agree)} of ${n(family.variants.length)} variants, chosen automatically`
+          : ''
 }
 
 /** Variants that say something else: named when they are few, counted when many. */
@@ -146,9 +198,13 @@ export function FamilyMeaningBlock({
   const source = meaningSource(family, meaning, d.tool ?? 'its tool')
   return (
     <div className={className}>
-      <p>
-        <MeaningWords meaning={meaning} by={family.by} />
-      </p>
+      {meaning.words ? (
+        <p>
+          <MeaningWords meaning={meaning} by={family.by} />
+        </p>
+      ) : (
+        <VariantsOwnWords family={family} />
+      )}
       {(source || canChange) && (
         <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
           {source}

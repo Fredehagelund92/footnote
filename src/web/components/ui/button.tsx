@@ -14,7 +14,7 @@ const buttonVariants = cva(
         // fill, also when it is only aria-disabled (still focusable, so a press can say why). Muted
         // text stays legible; a faded control does not.
         default:
-          'bg-primary text-primary-foreground hover:bg-primary/80 disabled:border-border disabled:bg-muted aria-disabled:border-border aria-disabled:bg-muted aria-disabled:hover:bg-muted',
+          'bg-primary text-primary-foreground hover:bg-primary/90 disabled:border-border disabled:bg-muted aria-disabled:border-border aria-disabled:bg-muted aria-disabled:hover:bg-muted',
         outline:
           'border-border bg-background hover:bg-muted hover:text-foreground aria-disabled:hover:bg-transparent aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/10 dark:hover:bg-input/20 dark:disabled:bg-transparent dark:aria-disabled:bg-transparent dark:aria-disabled:hover:bg-transparent',
         secondary:

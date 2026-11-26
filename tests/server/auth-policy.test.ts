@@ -58,6 +58,9 @@ const adminOperations = [
   // Alert rules: administrators turn them on and off and set their thresholds.
   'alerts.setRule',
   'roles.grant',
+  // The drafts of people who left: counted and deleted unread (FR-139).
+  'drafts.left',
+  'drafts.clearLeft',
   'roles.revoke',
   'assignments.grant',
   'assignments.revoke',
@@ -74,6 +77,8 @@ const adminOperations = [
   'evals.runs.approve',
   'settings.list',
   'settings.set',
+  // Write a first version for me: About our business is an administrator's setting.
+  'about.draft',
   'models.checks',
   'tools.set',
   'clients.list',
@@ -96,11 +101,10 @@ const adminOperations = [
   'sources.types',
   'sources.get',
   'sources.add',
-  'figures.set',
-  'figures.try',
   'sources.update',
   'sources.groups',
   'sources.test',
+  'sources.check',
   'sources.leftOut',
   'sources.read',
   'sources.remove',
@@ -174,8 +178,11 @@ const readOperations = [
   'terms.history',
   'definitions.related',
   'definitions.relations',
+  'definitions.builtFrom',
   'definitions.setFamilyMeaning',
   'definitions.setFamilyUsual',
+  'definitions.splitFamily',
+  'definitions.joinFamily',
   'definitions.familyMeaningHistory',
   // Conflicts: anyone signed in reads a pair they may read; the service checks each way of settling
   // it against the item it changes (an owner of it, or an admin).
@@ -192,11 +199,17 @@ const readOperations = [
   'items.bulkApply',
   'items.changes',
   'drafts.fromText',
+  // Save as draft: the person's own draft, which only they read (FR-139).
+  'drafts.save',
   'inbox.feed',
   'inbox.names',
   'inbox.decideNames',
   'cards.markRead',
   'cards.decide',
+  // Ask someone who knows: owners copy a card's link; anyone signed in reads and answers it.
+  'questions.copy',
+  'questions.read',
+  'questions.answer',
   'comments.list',
   'comments.create',
   'comments.edit',
@@ -221,8 +234,6 @@ const readOperations = [
   'tryIt.read',
   // The answer engine: Ask's look-up and Asked this week, and the reach of a draft the person
   // may read (the service checks the draft).
-  'figures.list',
-  'figures.read',
   'reports.create',
   'reports.mine',
   'ask.lookup',
@@ -230,6 +241,12 @@ const readOperations = [
   // A person's rating of an answer, and taking it back (FR-712).
   'ask.rate',
   'ask.takeBack',
+  // A chat shared as a link (FR-721): anyone signed in shares, opens and stops their own; row
+  // security keeps the rest (who opens, while sharing is on, for how long).
+  'sharedChats.create',
+  'sharedChats.mine',
+  'sharedChats.read',
+  'sharedChats.stop',
   // Saved questions and how far a check got: anyone signed in reads, and someone who manages no
   // domain gets none (row security).
   'savedQuestions.list',

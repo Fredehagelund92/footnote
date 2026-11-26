@@ -41,10 +41,10 @@ import { plainOf } from '@/components/templates/comment-box/utils'
 import { reportedOn, reportOutcomeWords } from '@/model/ask'
 import type { FactAction } from '@/lib/bulk'
 import { parseMentionId } from '@/lib/mentions'
+import { daysOfDates } from '@/lib/dates'
 import { setToday } from '@/lib/today'
 import type { Definition } from '@/lib/definitions'
 import type { Version } from '@/model/history'
-import type { FigureReport } from '@/model/figures'
 import type { Fact, Sent } from '@/model/items'
 import { ALL_VALUES } from '@/model/observability'
 import { excerptOf, type Domains } from '@/model/people'
@@ -70,11 +70,11 @@ import {
   nothingLiveAnswer,
   type Shelf,
 } from './http-ask'
-import { daysOfDates, figureTryOf, figureViewOf } from './http-figures'
 import {
   dayShiftOf,
   draftOf,
   factOfDraft,
+  factOfWaiting,
   factOfReadDraft,
   itemPageOf,
   linksOfRelated,
@@ -163,6 +163,8 @@ export const wiredMethods = [
   'markViewed',
   'editItem',
   'saveItem',
+  'saveDraft',
+  'clearLeftDrafts',
   'draftFromText',
   'applyBulk',
   'sendSuggestion',
@@ -171,9 +173,13 @@ export const wiredMethods = [
   'definitionsPage',
   'definitionPage',
   'getDefinitionRelations',
+  'getBuiltFrom',
   'getDefinitionHistory',
   'setFamilyMeaning',
   'setFamilyUsual',
+  'splitFamily',
+  'joinFamily',
+  'getFamilySplits',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -213,24 +219,21 @@ export const wiredMethods = [
   'getConnectReview',
   'getConnectRequest',
   'answerConnectRequest',
+  'copyQuestionLink',
+  'getQuestion',
+  'answerQuestion',
   'getSettings',
-  'setFigures',
-  'setDataContact',
-  'setFigureConnection',
-  'readFigure',
-  'tryFigure',
-  'getIntegrations',
   'integrationsPage',
   'integrationPage',
   'readIntegration',
   'pauseIntegration',
   'connectForm',
   'testIntegration',
+  'checkIntegration',
   'connectIntegration',
   'changeIntegration',
   'integrationLeftOut',
   'disconnectIntegration',
-  'setLinks',
   'setTool',
   'createAccessKey',
   'renameAccessKey',
@@ -246,12 +249,16 @@ export const wiredMethods = [
   'checkConnect',
   'advancedPage',
   'setAutomaticRuns',
+  'setLinkReading',
+  'setChatSharing',
+  'setNeverReadHosts',
   'checkHistory',
   'exportHistory',
   'exportContext',
   'addDomain',
   'removeDomain',
   'setAbout',
+  'draftAbout',
   'completeSetupStep',
   'readQuestion',
   'ask',
@@ -263,6 +270,10 @@ export const wiredMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'shareChat',
+  'getChatShares',
+  'getSharedChat',
+  'stopSharing',
   'rateAnswer',
   'takeBackRating',
   'tellOwner',
@@ -310,6 +321,8 @@ const isUuid = (id: string) =>
 const isItemId = (id: string) => /^itm_[a-z0-9]{8,16}$/.test(id)
 /** A suggestion its writer edits in the editor: a draft, or one an owner returned with a note. */
 const editable = (state: string) => state === 'draft' || state === 'changes_requested'
+/** Sent, and waiting for an owner's decision. */
+const waits = (state: string) => state === 'submitted' || state === 'in_review'
 
 /** A change to many items in the service's words, by the bar's action. */
 const bulkActions = {
@@ -320,6 +333,7 @@ const bulkActions = {
   'owner-add': 'owner_add',
   'owner-set': 'owner_set',
   check: 'check',
+  publish: 'publish',
 } as const satisfies Record<FactAction, string>
 
 /** A read that finds nothing answers null. */
@@ -573,7 +587,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (
         operation.startsWith('terms.') ||
         operation === 'decisions.undo' ||
-        operation === 'inbox.decideNames'
+        operation === 'inbox.decideNames' ||
+        operation === 'definitions.splitFamily' ||
+        operation === 'definitions.joinFamily'
       )
         words = undefined
       return result
@@ -639,7 +655,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /** The metrics and dimensions the catalogue lists, the terms written here, and who wrote them. */
-  async function readGlossary() {
+  async function buildGlossary() {
     const [catalogue, { terms }, people] = await Promise.all([
       read(() => client.catalogue.list()),
       read(() => client.terms.list()),
@@ -651,6 +667,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         ...definitionsOf(catalogue.terms, people.name),
         ...termDefinitionsOf(terms, people.name),
       ],
+      /** The families split back into their metrics, as the catalogue has them. */
+      splits: catalogue.splits,
       /** The family Definitions lists by this name, as the catalogue has it. */
       familyOf: (name: string) =>
         catalogue.terms.find((t) => t.family && same(t.name, name)) ?? null,
@@ -690,6 +708,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     }
   }
 
+  /** One read at a time: the reads of a screen that overlap share it, a later one reads again. */
+  let glossaryRead: ReturnType<typeof buildGlossary> | undefined
+  const readGlossary = () =>
+    (glossaryRead ??= buildGlossary().finally(() => {
+      glossaryRead = undefined
+    }))
+
   /** A change to many terms: its Undo, or why none of them changed. */
   const undoOf = (done: { undo: UndoOffer | null; skipped: { message: string }[] }) => {
     if (!done.undo)
@@ -700,46 +725,58 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   /* ---------- Context ---------- */
 
   const readWords = () =>
-    (words ??= Promise.all([read(() => client.vocabulary.get()), read(() => client.terms.list())])
-      .then(([vocabulary, { terms }]) => wordsOf(vocabulary, terms))
+    (words ??= Promise.all([
+      read(() => client.vocabulary.get()),
+      read(() => client.terms.list()),
+      read(() => client.catalogue.list()),
+    ])
+      .then(([vocabulary, { terms }, { splits }]) => wordsOf(vocabulary, terms, splits))
       .catch((error: unknown) => {
         words = undefined
         throw error
       }))
 
-  /** Every draft of a context item the person may read: never published, never sent. */
-  async function readDrafts(): Promise<ProposalRecord[]> {
+  /** Every proposal of a context item in one state that the person may read. */
+  async function readProposals(state: 'draft' | 'submitted' | 'in_review') {
     const rows: ProposalRecord[] = []
     for (let offset = 0; ; offset += 100) {
-      const page = await read(() => client.proposals.list({ state: 'draft', limit: 100, offset }))
+      const page = await read(() => client.proposals.list({ state, limit: 100, offset }))
       rows.push(...page.rows.filter((p) => p.subject === 'item'))
       if (offset + page.rows.length >= page.total || !page.rows.length) return rows
     }
   }
 
-  /** Every context item the person may read, and the drafts, with what the index says of them. */
+  /**
+   * Every context item the person may read, the drafts, and the new items waiting for review that
+   * they may open (sent by them, or in a domain they decide for), with what the index says of them.
+   * A change waiting for review shows on its item's page instead: the item is in the list already.
+   */
   async function contextRows() {
-    const [index, drafts, names, vocabulary] = await Promise.all([
+    const [index, drafts, sent, reviewing, names, vocabulary] = await Promise.all([
       read(() => client.library.index()),
-      readDrafts(),
+      readProposals('draft'),
+      readProposals('submitted'),
+      readProposals('in_review'),
       readNames(),
       readWords(),
     ])
     calendar = { today: index.today, shift: dayShiftOf(index) }
     setToday(index.today)
+    const waiting = [...sent, ...reviewing].filter((p) => p.action === 'create')
     return {
       index,
       names,
       items: [
         ...factsOf(index.items, names),
         ...drafts.map((d) => factOfDraft(d, names, vocabulary)),
+        ...waiting.map((p) => factOfWaiting(p, names, vocabulary, calendar.shift)),
       ],
     }
   }
 
   /**
    * A published item's page, or a draft's, or a suggestion an owner returned to its sender, which
-   * the editor opens to send again; null for anything else. The item is asked for beside the names
+   * the editor opens to send again, or one waiting for review; null for anything else. The item is asked for beside the names
    * and words it is read with, not after them.
    */
   async function itemPage(id: string) {
@@ -757,15 +794,29 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       readNames(),
       readWords(),
     ])
-    return proposal?.subject === 'item' && editable(proposal.state)
-      ? { item: factOfDraft(proposal, names, vocabulary), history: [] as Version[] }
+    if (proposal?.subject !== 'item') return null
+    if (editable(proposal.state))
+      return {
+        item: {
+          ...factOfDraft(proposal, names, vocabulary),
+          ...(proposal.state === 'changes_requested' ? { returned: true } : {}),
+        },
+        history: [] as Version[],
+      }
+    return waits(proposal.state)
+      ? {
+          item: factOfWaiting(proposal, names, vocabulary, calendar.shift),
+          history: [] as Version[],
+        }
       : null
   }
 
   /**
    * What the editor publishes in one step, or sends to the owners: only what it changes from the
-   * item as the service has it, or the whole of a new one. The person's own draft is finished and
-   * sent as itself; someone else's draft stays theirs, and what was written from it goes as new.
+   * item as the service has it, or the whole of a new one. A draft is finished and sent as itself,
+   * also one someone else wrote, which an owner publishes as theirs: never a copy beside it. So is a
+   * suggestion waiting for an owner's review that the owner edited (Edit then publish). A
+   * suggestion returned to someone else stays theirs, and what was written from it goes as new.
    */
   async function publishFromEditor(
     fact: Fact,
@@ -775,9 +826,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   ) {
     const [vocabulary, who] = await Promise.all([readWords(), signedIn()])
     const started = !isNew && isUuid(fact.id) ? await readDraft(fact.id) : null
-    const own = started?.proposerId === who.id ? started : null
+    const itself =
+      started &&
+      (started.proposerId === who.id || started.state === 'draft' || waits(started.state))
+        ? started
+        : null
     const itemId = isNew ? undefined : started ? (started.itemId ?? undefined) : fact.id
-    const before = itemId && !own ? (await itemPage(itemId))?.item : undefined
+    const before = itemId && !itself ? (await itemPage(itemId))?.item : undefined
     if (!isNew && !started && !before)
       throw new ApiError('not-found', "This context item isn't in Context any more.")
     const answered = Object.entries(relations).map(([id, relation]) => ({
@@ -787,12 +842,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     // Written from a Not found card: the publish names its gap, which it then covers.
     const gap = card ? parseCardKey(card) : null
     // A change starts from the version the editor opened, so the service refuses it once someone
-    // has published since. Someone else's draft was not read from a version: it starts from now.
+    // has published since. Someone else's returned suggestion was not read from a version: it starts
+    // from now.
     const version = started ? before?.version : fact.version
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
-      ...(own
-        ? { draftId: own.id }
+      ...(itself
+        ? { draftId: itself.id }
         : itemId
           ? { itemId, ...(version !== undefined ? { version } : {}) }
           : {}),
@@ -803,12 +859,39 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /**
-   * A draft of a context item, or a suggestion returned to its sender, by its proposal; not found
-   * once it was sent or deleted.
+   * Save as draft from the editor (FR-139): a new item, a change to a published one written from
+   * the version the editor opened, or the person's own draft saved again in place. Only a draft is
+   * saved so: a suggestion is sent or published.
+   */
+  async function saveDraftFromEditor(fact: Fact, isNew: boolean, card?: string) {
+    const vocabulary = await readWords()
+    const started = !isNew && isUuid(fact.id) ? await readDraft(fact.id) : null
+    if (started && started.state !== 'draft')
+      throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+    const itemId = isNew || started ? undefined : fact.id
+    const before = itemId ? (await itemPage(itemId))?.item : undefined
+    if (itemId && !before)
+      throw new ApiError('not-found', "This context item isn't in Context any more.")
+    const gap = card ? parseCardKey(card) : null
+    const input = {
+      draft: draftOf(fact, vocabulary, calendar.today, before),
+      ...(started
+        ? { draftId: started.id }
+        : itemId
+          ? { itemId, ...(fact.version !== undefined ? { version: fact.version } : {}) }
+          : {}),
+      ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
+    }
+    return write('drafts.save', input, (o) => client.drafts.save(input, o))
+  }
+
+  /**
+   * A draft of a context item, a suggestion returned to its sender, or one waiting for review (an
+   * owner edits it to publish it), by its proposal; not found once it was decided or deleted.
    */
   async function readDraft(id: string) {
     const proposal = await read(() => client.proposals.get({ id }))
-    if (proposal.subject !== 'item' || !editable(proposal.state))
+    if (proposal.subject !== 'item' || !(editable(proposal.state) || waits(proposal.state)))
       throw new ApiError('not-found', 'This draft was sent or deleted.')
     return proposal
   }
@@ -827,8 +910,10 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const name = new Map(listed.people.map((p) => [p.id, p.name]))
     const shown = inboxOf(feed, who.name, byId, new Date(), (id) => name.get(id) ?? 'Someone')
     // What this visit sent waits as it was sent, until an owner decides; the rest as the feed says.
-    const waits = new Set(feed.waiting.filter((w) => !w.returned).map((w) => w.proposalId))
-    sent = sent.filter((x) => waits.has(x.id))
+    const open = new Set(
+      feed.waiting.filter((w) => !w.returned && !w.closed).map((w) => w.proposalId),
+    )
+    sent = sent.filter((x) => open.has(x.id))
     const mine = new Set(sent.map((x) => `waiting:${x.id}`))
     return { ...shown, waiting: shown.waiting.filter((w) => !mine.has(w.id)), sent }
   }
@@ -1029,13 +1114,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
 
   /* ---------- people ---------- */
 
-  /** A member of the workspace by name, as the integrations page names a data contact. */
-  async function memberNamed(name: string) {
-    const member = (await read(() => client.members.list())).find((m) => m.name === name)
-    if (!member) throw new ApiError('not-found', `${name} isn't in the workspace any more.`)
-    return member
-  }
-
   /** Sets a domain's owners by id; false when it would leave the domain without one. */
   async function setOwnerIds(areaId: string, personIds: string[]) {
     const input = { areaId, personIds: [...new Set(personIds)] }
@@ -1063,46 +1141,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const token = `people:${randomKey()}`
     peopleUndos.set(token, work)
     return { token, until }
-  }
-
-  /* ---------- figures in Ask ---------- */
-
-  /** The integrations that read figures, by their connector's id: every one the service lists. */
-  const connectorOf = (type: string): string | undefined => type
-  async function figureSources() {
-    return (await read(() => client.figures.list())).sources.flatMap((source) => {
-      const id = connectorOf(source.type)
-      return id ? [{ id, source }] : []
-    })
-  }
-  /** The service's own integration for an app's tool: the first that reads figures for it. */
-  async function figureSourceId(id: string) {
-    const found = (await figureSources()).find((f) => f.id === id)
-    if (!found) throw new ApiError('not-found', "This integration isn't connected.")
-    return found.source.id
-  }
-  async function setFiguresOf(
-    id: string,
-    change: Omit<Parameters<typeof client.figures.set>[0], 'id'>,
-  ) {
-    const input = { id: await figureSourceId(id), ...change }
-    return write('figures.set', input, (o) => client.figures.set(input, o))
-  }
-  /** A figure that doesn't fit a context item, as the service files it: its keys and its days. */
-  async function reportedFigure(figure: FigureReport | undefined) {
-    if (!figure) throw new ApiError('invalid', 'Say which figure does not fit.')
-    const days = daysOfDates(figure.dates, localDay(new Date()))
-    const names = namesOf(await readVocabulary())
-    const metric = names.metricKey(figure.metric)
-    if (!days || !metric)
-      throw new ApiError('invalid', 'This figure has no metric or days to report.')
-    return {
-      source: await figureSourceId(figure.source),
-      metric,
-      values: figure.markets.flatMap((m) => names.marketKey(m) ?? []),
-      ...days,
-      route: figure.to,
-    }
   }
 
   const wired: Pick<FootnoteApi, (typeof wiredMethods)[number]> = {
@@ -1367,6 +1405,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       await write('settings.set', input, (o) => client.settings.set(input, o))
     },
+    draftAbout: () => write('about.draft', undefined, (o) => client.about.draft(undefined, o)),
     // The service reads each step from what exists (setup.state): nothing to mark by hand.
     completeSetupStep: () => Promise.resolve(),
     getVocabulary: async () => {
@@ -1472,9 +1511,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           : definition && definition.kind === (kind === 'metric' ? 'metric' : 'dim')
             ? await orNull(() => read(() => client.definitions.related({ key: definition.key })))
             : null
-      return found
-        ? { links: linksOfRelated(found, words), following: found.following }
-        : { links: [], following: true }
+      return { links: found ? linksOfRelated(found, words) : [] }
     },
     restoreAsDraft: async ({ id, v }) => {
       const page = await orNull(() => read(() => client.items.page({ id })))
@@ -1518,6 +1555,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       published[done.itemId] = 'just now'
       return { id: done.itemId }
     },
+    saveDraft: async ({ fact, isNew, gap }) => ({
+      id: (await saveDraftFromEditor(fact, isNew, gap)).proposalId,
+    }),
+    clearLeftDrafts: ({ id }) =>
+      write('drafts.clearLeft', { personId: id }, (o) =>
+        client.drafts.clearLeft({ personId: id }, o),
+      ),
     draftFromText: async ({ text }) => {
       const [drafted, names, vocabulary] = await Promise.all([
         write('drafts.fromText', { text }, (o) => client.drafts.fromText({ text }, o)),
@@ -1527,7 +1571,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return factOfReadDraft(drafted.draft, names, vocabulary)
     },
     applyBulk: async (change) => {
-      const rows = [...new Set([...Object.keys(change.patches), ...change.remove])]
+      const rows = [
+        ...new Set([...Object.keys(change.patches), ...change.remove, ...(change.suggest ?? [])]),
+      ]
       const personId = change.person ? (await readPeople()).idOf(change.person) : undefined
       if (change.person && !personId)
         throw new ApiError('not-found', `${change.person} isn't in this workspace.`)
@@ -1540,10 +1586,15 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       const done = await write('items.bulkApply', input, (o) => client.items.bulkApply(input, o))
       // A row the service left alone where the screen expected it to act is one that didn't go
-      // through: it stays ticked, to try again. With nothing done there is nothing to undo.
+      // through: it stays ticked, to try again. A draft its checks refused says why instead. With
+      // nothing done there is nothing to undo.
+      const refused = done.skipped.filter((r) => r.code === 'not_ready')
       return {
         done: done.done,
-        failed: [...done.failed, ...done.skipped].map((r) => r.id),
+        failed: [...done.failed, ...done.skipped.filter((r) => r.code !== 'not_ready')].map(
+          (r) => r.id,
+        ),
+        skipped: refused.map((r) => ({ id: r.id, title: r.title, why: r.why, reason: r.message })),
         undo: done.undo ?? { token: '', until: null },
       }
     },
@@ -1584,6 +1635,18 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         by: relation.by,
       }))
     },
+    getBuiltFrom: async ({ name }) => {
+      const key = (await readGlossary()).keyOf(name)
+      if (!key?.startsWith('metric:')) return []
+      const found = await orNull(() => read(() => client.definitions.builtFrom({ key })))
+      return (found?.metrics ?? []).map((metric) => ({
+        ref: metric.ref,
+        name: metric.name,
+        linked: metric.key !== null,
+        missing: metric.missing,
+        from: metric.from,
+      }))
+    },
     getDefinitionHistory: async ({ name }) => {
       const glossary = await readGlossary()
       const term = glossary.terms.find((t) => same(t.name, name))
@@ -1608,20 +1671,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         ...glossary.syncedHistory(synced),
       ]
     },
-    setFamilyMeaning: async ({ name, choice, member, words, revision }) => {
+    setFamilyMeaning: async ({ name, choice, words, revision }) => {
       const family = (await readGlossary()).familyOf(name)
       if (!family?.family)
         throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
-      const variant = family.family.variants.find((v) => v.name === member)
-      if (choice === 'member' && !variant)
-        throw new ApiError('not-found', 'That variant is no longer in this family.')
-      const input = {
-        key: family.key,
-        choice,
-        member: variant?.key,
-        words,
-        revision,
-      }
+      const input = { key: family.key, choice, words, revision }
       await write('definitions.setFamilyMeaning', input, (o) =>
         client.definitions.setFamilyMeaning(input, o),
       )
@@ -1637,6 +1691,33 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       await write('definitions.setFamilyUsual', input, (o) =>
         client.definitions.setFamilyUsual(input, o),
       )
+    },
+    splitFamily: async ({ name }) => {
+      const family = (await readGlossary()).familyOf(name)
+      if (!family?.family)
+        throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
+      const input = { key: family.key }
+      const split = await write('definitions.splitFamily', input, (o) =>
+        client.definitions.splitFamily(input, o),
+      )
+      return { metrics: split.metrics.map((m) => m.name), items: split.items }
+    },
+    joinFamily: async ({ name }) => {
+      const split = (await readGlossary()).splits.find((x) => same(x.name, name))
+      if (!split) throw new ApiError('not-found', `“${name}” isn't split any more.`)
+      const input = { key: split.key }
+      await write('definitions.joinFamily', input, (o) => client.definitions.joinFamily(input, o))
+    },
+    getFamilySplits: async () => {
+      const [glossary, people] = await Promise.all([readGlossary(), readPeople()])
+      return glossary.splits.map((split) => ({
+        name: split.name,
+        ...(split.areaId ? { domain: split.areaId } : {}),
+        metrics: split.metrics.map((m) => m.name),
+        items: split.items,
+        by: people.name(split.personId),
+        on: dateLabel(serviceDay(split.at, calendar.shift)),
+      }))
     },
     saveTerm: async ({ previous, term }) => {
       if (term.synced) return
@@ -1777,7 +1858,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const cards = ids.flatMap((id) =>
         isUuid(id)
           ? [`proposal:${id}`, ...(gaps.has(id) ? [gaps.get(id)!.card] : [])]
-          : /^(proposal|gap|feedback|report|check|mention):/.test(id)
+          : /^(proposal|gap|feedback|report|check|mention|closed):/.test(id)
             ? [id]
             : [],
       )
@@ -1887,14 +1968,20 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     answerConnectRequest: (input) =>
       write('connections.decide', input, (o) => client.connections.decide(input, o)),
 
+    // Ask someone who knows: the card's link, the question it opens, and the person's answer.
+    copyQuestionLink: (input) =>
+      write('questions.copy', input, (o) => client.questions.copy(input, o)),
+    getQuestion: ({ id }) => read(() => client.questions.read({ id })),
+    answerQuestion: (input) =>
+      write('questions.answer', input, (o) => client.questions.answer(input, o)),
+
     // Settings, agents and access. The switches are what everyone signed in may read: the tools on
-    // and what is paused. Figures and their data contacts come with the figures (P11a, part 2).
+    // and what is paused.
     getSettings: async () => {
-      const [connect, stops, who, figured] = await Promise.all([
+      const [connect, stops, who] = await Promise.all([
         read(() => client.connect.get()),
         read(() => client.serving.stops()),
         signedIn(),
-        figureSources(),
       ])
       // The tools connected, which only an admin reads: Settings' menu counts them as Integrations
       // lists them, so not the service's demo definitions (src/server/modules/connectors/demo.ts),
@@ -1911,79 +1998,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return {
         mcpAddress: connect.address,
         ...(await settingsWords()).switchesOf(connect.tools, stops),
-        figures: Object.fromEntries(figured.map(({ id, source }) => [id, source.enabled])),
-        figureTools: Object.fromEntries(figured.map(({ id, source }) => [id, source.tool])),
-        contacts: Object.fromEntries(
-          figured.flatMap(({ id, source }) =>
-            source.dataContact ? [[id, source.dataContact.name]] : [],
-          ),
-        ),
         connected,
       }
     },
-    setFigures: async ({ source, on }) =>
-      void (await setFiguresOf(source, {
-        enabled: on,
-        reason: on ? 'Show figures in Ask, switched on.' : 'Show figures in Ask, switched off.',
-      })),
-    setDataContact: async ({ source, name }) => {
-      const member = await memberNamed(name)
-      await setFiguresOf(source, {
-        dataContactId: member.id,
-        reason: 'The data contact, chosen on the integration.',
-      })
-    },
-    setFigureConnection: async ({ source, endpoint, token }) =>
-      void (await setFiguresOf(source, {
-        endpoint,
-        token,
-        reason: 'Where figures are read, set on the integration.',
-      })),
-    readFigure: async ({ metric, markets, values: read, dates, state, sources }) => {
-      if (!metric || state === 'failed') return null
-      const days = daysOfDates(dates, localDay(new Date()))
-      if (!days) return null
-      const names = namesOf(await readVocabulary())
-      const key = names.metricKey(metric)
-      // The values the answer was read for, of any dimension; an answer without them, its markets.
-      const values = read ?? markets.flatMap((m) => names.marketKey(m) ?? [])
-      // A metric or a market Definitions doesn't name has no figure the service could read.
-      if (!key || (!read && values.length !== markets.length)) return null
-      const items = (sources ?? []).filter(isItemId)
-      const input = { metric: key, values, ...days, ...(items.length ? { items } : {}) }
-      const figure = await readPosted((o) => client.figures.read(input, o))
-      return figureViewOf(
-        figure,
-        { metric, markets: read ? read.map(names.value) : markets, ...(dates ? { dates } : {}) },
-        connectorOf,
-        new Date(),
-      )
-    },
-    tryFigure: async ({ source }) => {
-      const id = await figureSourceId(source)
-      const tried = figureTryOf(
-        await readPosted((o) => client.figures.try({ id }, o)),
-        connectorOf,
-        new Date(),
-      )
-      if (!tried) throw new ApiError('not-found', "This integration isn't connected.")
-      return tried
-    },
-    // What the figures read: how each integration that reads figures is reached.
-    getIntegrations: async () => ({
-      figureConnections: Object.fromEntries(
-        (await figureSources()).map(({ id, source }) => [
-          id,
-          {
-            endpoint: source.connection?.endpoint ?? null,
-            host: source.connection?.declaredHost ?? null,
-            secretSet: source.connection?.tokenSet ?? false,
-            contact: source.dataContact?.name ?? '',
-            state: source.state,
-          },
-        ]),
-      ),
-    }),
     // Settings › Integrations: the sources the service reads, each with how it is (CON-104).
     integrationsPage: async () => {
       const [rows, types] = await Promise.all([
@@ -2059,6 +2076,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           return { ok: false, steps: [], scopes: [], failure: error.message }
         throw error
       }
+    },
+    // Keeps nothing and changes nothing: a POST because a test may take a while.
+    checkIntegration: async ({ id }) => {
+      const [{ connectTestOf }, rows] = await Promise.all([
+        integrationWords(),
+        read(() => client.sources.list()),
+      ])
+      const type = rows.find((row) => row.id === id)?.type
+      if (!type) throw new ApiError('not-found', "This integration isn't connected.")
+      return connectTestOf(await readPosted((o) => client.sources.check({ id }, o)), type)
     },
     // The source is named after its tool; the service reads it at once (CON-115).
     connectIntegration: async ({ connector, config, secrets, chosen, readsAll, reason }) => {
@@ -2138,10 +2165,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     disconnectIntegration: async ({ id }) => {
       const input = { id, reason: 'Disconnected, in Settings, Integrations.' }
       await write('sources.remove', input, (o) => client.sources.remove(input, o))
-    },
-    setLinks: async ({ on }) => {
-      const input = { tool: 'get_related', enabled: on, reason: BY_SETTINGS }
-      await write('tools.set', input, (o) => client.tools.set(input, o))
     },
     setTool: async ({ name, on }) => {
       const input = { tool: name, enabled: on, reason: BY_SETTINGS }
@@ -2240,6 +2263,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         areas,
         tests,
         checks,
+        left,
       ] = await Promise.all([
         read(() => client.settings.list()),
         read(() => client.items.deleted()),
@@ -2255,11 +2279,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         read(() => client.evals.automatic()).catch(() => null),
         // What the model check found is a note on each role's model; without it, none.
         read(() => client.models.checks()).catch(() => []),
+        read(() => client.drafts.left()),
       ])
       const domainName = (id: string) => areas.find((a) => a.id === id)?.name ?? id
       return {
         settings: words.settingsOf(settings, (id) => people.name(id), now, checks),
         deleted: words.deletedOf(drafts, terms, (id) => (id ? people.name(id) : 'Someone'), now),
+        left: left.map((l) => ({ id: l.personId, name: l.name, drafts: l.drafts })),
         history: words.historyOf(history.entries, changes, now, {
           domain: domainName,
           person: (id) => people.name(id),
@@ -2277,7 +2303,36 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           model: tests.modelId,
           judge: tests.judgeModelId,
         },
+        links: words.linkReadingOf(settings),
+        sharing: words.chatSharingOf(settings),
       }
+    },
+    setChatSharing: async ({ on, version }) => {
+      const input = {
+        key: 'ask.share_chats',
+        version,
+        value: on,
+        reason: on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
+    },
+    setLinkReading: async ({ on, version }) => {
+      const input = {
+        key: 'links.read_pages',
+        version,
+        value: on,
+        reason: on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
+    },
+    setNeverReadHosts: async ({ hosts, version }) => {
+      const input = {
+        key: 'links.never_read_hosts',
+        version,
+        value: hosts,
+        reason: 'Changed in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     setAutomaticRuns: async ({ on, version }) => {
       const input = {
@@ -2347,25 +2402,19 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     renameChat: async ({ id, title }) => chats.rename((await signedIn()).id, id, title),
     deleteChat: async ({ id }) => chats.remove((await signedIn()).id, id),
     // A named report: the question, the part and the words the person sent, with their name.
-    reportAnswer: async ({ question, part, sources, what, correction, link, figure }) => {
-      const itemId = part === 'answer' || part === 'figure' ? sources[0] : part
+    reportAnswer: async ({ question, part, sources, what, correction, link }) => {
+      const itemId = part === 'answer' ? sources[0] : part
       if (!itemId) throw new ApiError('invalid', 'This answer has no context item to report.')
       const input = {
         question,
         itemId,
-        part:
-          part === 'answer'
-            ? ('answer' as const)
-            : part === 'figure'
-              ? ('figure' as const)
-              : ('item' as const),
+        part: part === 'answer' ? ('answer' as const) : ('item' as const),
         what,
         ...(correction?.trim() ? { correction } : {}),
         ...(link?.trim() ? { link: link.trim() } : {}),
-        ...(part === 'figure' ? { figure: await reportedFigure(figure) } : {}),
       }
       const sent = await write('reports.create', input, (o) => client.reports.create(input, o))
-      return { id: sent.id }
+      return { id: sent.id, ...(sent.suggestion ? { suggestion: sent.suggestion } : {}) }
     },
     tellOwner: async ({ about, dates, word }) => {
       const metrics = about.filter((id) => id.startsWith('metric:'))
@@ -2402,6 +2451,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           ? { outcome: reportOutcomeWords(r.outcome.kind, new Date(r.outcome.at)) }
           : {}),
       }))
+    },
+
+    // A shared chat (FR-721): a copy the person sends on purpose, under their name.
+    shareChat: (input) =>
+      write('sharedChats.create', input, (o) => client.sharedChats.create(input, o)),
+    getChatShares: () => read(() => client.sharedChats.mine()),
+    getSharedChat: ({ id }) => read(() => client.sharedChats.read({ id })),
+    stopSharing: async ({ ids }) => {
+      for (const id of ids)
+        await write('sharedChats.stop', { id }, (o) => client.sharedChats.stop({ id }, o))
     },
 
     // A rating names no one (FR-712): the service keeps no retry record of it.

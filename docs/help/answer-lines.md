@@ -4,10 +4,13 @@ line: The six lines an answer starts with, and what each one asks of you.
 group: Ask
 order: 2
 minutes: 3
-reviewed: 2026-10-30
+reviewed: 2026-11-22
+open:
+  label: Open Ask
+  href: /ask
 ---
 
-Every answer, in the app and in your own agent, starts with one of six lines. Each says what the answer rests on, and what it asks of you.
+Every answer, in Ask and in your own agent, starts with one of six lines. Each says what the answer rests on, and what it asks of you.
 
 ## The six lines
 
@@ -17,7 +20,7 @@ Every answer, in the app and in your own agent, starts with one of six lines. Ea
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | Checked: This is written down and checked.          | Based on checked context. Context applies, and its owner published it with a source and a check date.          | Nothing to do.                                  |
 | Partial: Only part of this is written down.         | Covers part of it. Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
-| Not found: Nothing is written about this yet.       | Nothing written down. Nobody has written anything down for this. It does not mean there is no explanation.     | Write context, or tell the owner.               |
+| Not found: Nothing published about this yet.        | Nothing written down. Nobody has written anything down for this. It does not mean there is no explanation.     | Write context, or tell the owner.               |
 | Conflict: Two items say different things.           | Context disagrees. Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
 | Outdated: Some of this may be old.                  | May be out of date. An item's check date has passed, or a definition it relies on changed.                     | The owner checks it: Still true, or Edit.       |
 | Not looked up: Ask could not look this up just now. | Could not look up. Ask could not look this up just now. That does not mean nothing is written.                 | Ask again in a minute.                          |

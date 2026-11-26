@@ -2510,7 +2510,8 @@
           "id": "group:payments",
           "name": "Payments",
           "of": null,
-          "type": null
+          "type": null,
+          "plainGroup": true
         },
         {
           "id": "domain:area_sales",
@@ -3054,6 +3055,383 @@
       "checks": []
     }
   },
+  "loop-definition-dimension": {
+    "question": "What is market?",
+    "turn": {
+      "kind": "answer",
+      "text": "Market is The country or region the cost was booked for.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "0 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up “market”, any date: 0 items apply.",
+        "Read Definitions for market: 1 found."
+      ],
+      "subject": {
+        "names": [],
+        "about": [],
+        "period": "any date",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [
+        {
+          "name": "Market",
+          "words": "The country or region the cost was booked for.",
+          "tool": "Cube",
+          "id": "dimension:market"
+        }
+      ],
+      "defined": {
+        "names": ["Market"],
+        "tool": "Cube",
+        "cards": [
+          {
+            "id": "dimension:market",
+            "name": "Market",
+            "kind": "dimension",
+            "words": "The country or region the cost was booked for.",
+            "tool": "Cube",
+            "member": "marketing.market",
+            "group": null,
+            "domain": {
+              "id": null,
+              "name": "no domain"
+            },
+            "owners": [],
+            "context": {
+              "count": 20,
+              "items": []
+            },
+            "inWords": false
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "market",
+            "no_period": true
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["market"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "noun",
+              "id": "dimension:market"
+            },
+            {
+              "t": "text",
+              "text": " is The country or region the cost was booked for."
+            }
+          ]
+        }
+      ],
+      "said": "[@dimension:market] is The country or region the cost was booked for.",
+      "nouns": [
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/canada",
+          "name": "Canada",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/italy",
+          "name": "Italy",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/mexico",
+          "name": "Mexico",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/netherlands",
+          "name": "Netherlands",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/united_kingdom",
+          "name": "United Kingdom",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/united_states",
+          "name": "United States",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-definition-unwritten": {
+    "question": "What is churn rate?",
+    "turn": {
+      "kind": "answer",
+      "text": "Churn rate is The share of customers active in the previous month who placed no order this month.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": "0 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Looked up Churn rate, any date: 0 items apply.",
+        "Read Definitions for churn rate: 1 found."
+      ],
+      "subject": {
+        "names": ["Churn rate"],
+        "about": ["metric:churn_rate"],
+        "period": "any date",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "defined": {
+        "names": ["Churn rate"],
+        "tool": "Cube",
+        "cards": [
+          {
+            "id": "metric:churn_rate",
+            "name": "Churn rate",
+            "kind": "metric",
+            "words": "The share of customers active in the previous month who placed no order this month.",
+            "tool": "Cube",
+            "member": "customers.churn_rate",
+            "group": "Customers",
+            "domain": {
+              "id": "domain:area_customer_value",
+              "name": "Customer value"
+            },
+            "owners": ["Alex Moreau", "Noor Haddad"],
+            "context": {
+              "count": 0,
+              "items": []
+            },
+            "inWords": true
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "churn rate",
+            "no_period": true
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["churn rate"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "noun",
+              "id": "metric:churn_rate"
+            },
+            {
+              "t": "text",
+              "text": " is The share of customers active in the previous month who placed no order this month."
+            }
+          ]
+        }
+      ],
+      "said": "[@metric:churn_rate] is The share of customers active in the previous month who placed no order this month.",
+      "nouns": [
+        {
+          "id": "metric:churn_rate",
+          "name": "Churn rate",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:1c7bc86c-0d85-4d35-82f3-c17b4d1ba6e1",
+          "name": "Alex Moreau",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:42ebe0c7-e5c8-4c1c-889f-2fc033b158b9",
+          "name": "Noor Haddad",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:active_customers",
+          "name": "Active customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:customer_lifetime_value",
+          "name": "Customer lifetime value",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:new_customers",
+          "name": "New customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:repeat_purchase_rate",
+          "name": "Repeat purchase rate",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_customer_value",
+          "people": [
+            "person:1c7bc86c-0d85-4d35-82f3-c17b4d1ba6e1",
+            "person:42ebe0c7-e5c8-4c1c-889f-2fc033b158b9"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
+  },
   "loop-unknown": {
     "question": "What is our EBITDA definition?",
     "turn": {
@@ -3105,6 +3483,340 @@
         }
       ],
       "said": "Nothing written covers EBITDA, so Ask has no definition of it to give you.",
+      "nouns": [],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-help-markdown": {
+    "question": "lets create my first context",
+    "turn": {
+      "kind": "answer",
+      "text": "To write your first context item, open Write and say what agents should know. Write context has every part.\n\n- Properties: the Domain, the Kind, the Status and the owners.\n- Applies to: the metrics and markets it is about, as Definitions names them.\n- Source: a link anyone can open, such as the customs notice.\n\n1. Give it a title that is one plain sentence.\n2. Say what it is about not, if people mix it up.\n3. Publish it.\n\nKind | When to pick it\nEvent | Something happened on a date\nRule | A fixed way to read the numbers",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Read the help for “create a context item”: 3 parts."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "write-context",
+          "id": "add-a-context-item",
+          "title": "Write context",
+          "heading": "Add a context item"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "create a context item"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "To write your first context item, open "
+            },
+            {
+              "t": "text",
+              "text": "Write",
+              "marks": ["bold"]
+            },
+            {
+              "t": "text",
+              "text": " and say what agents should "
+            },
+            {
+              "t": "text",
+              "text": "know",
+              "marks": ["italic"]
+            },
+            {
+              "t": "text",
+              "text": ". "
+            },
+            {
+              "t": "text",
+              "text": "Write context",
+              "link": {
+                "slug": "write-context",
+                "id": "what-to-put-in-it"
+              }
+            },
+            {
+              "t": "text",
+              "text": " has every part."
+            }
+          ]
+        },
+        {
+          "t": "ul",
+          "items": [
+            [
+              {
+                "t": "text",
+                "text": "Properties:",
+                "marks": ["bold"]
+              },
+              {
+                "t": "text",
+                "text": " the Domain, the Kind, the Status and the owners."
+              }
+            ],
+            [
+              {
+                "t": "text",
+                "text": "Applies to:",
+                "marks": ["bold"]
+              },
+              {
+                "t": "text",
+                "text": " the metrics and markets it is about, as "
+              },
+              {
+                "t": "text",
+                "text": "Definitions",
+                "marks": ["code"]
+              },
+              {
+                "t": "text",
+                "text": " names them."
+              }
+            ],
+            [
+              {
+                "t": "text",
+                "text": "Source:",
+                "marks": ["bold"]
+              },
+              {
+                "t": "text",
+                "text": " a link anyone can open, such as the customs notice."
+              }
+            ]
+          ]
+        },
+        {
+          "t": "ul",
+          "items": [
+            [
+              {
+                "t": "text",
+                "text": "Give it a title that is one plain sentence."
+              }
+            ],
+            [
+              {
+                "t": "text",
+                "text": "Say what it is "
+              },
+              {
+                "t": "text",
+                "text": "about",
+                "marks": ["strike"]
+              },
+              {
+                "t": "text",
+                "text": " not, if people mix it up."
+              }
+            ],
+            [
+              {
+                "t": "text",
+                "text": "Publish it."
+              }
+            ]
+          ],
+          "start": 1
+        },
+        {
+          "t": "table",
+          "rows": [
+            [
+              [
+                {
+                  "t": "text",
+                  "text": "Kind"
+                }
+              ],
+              [
+                {
+                  "t": "text",
+                  "text": "When to pick it"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "t": "text",
+                  "text": "Event",
+                  "marks": ["bold"]
+                }
+              ],
+              [
+                {
+                  "t": "text",
+                  "text": "Something happened on a date"
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "t": "text",
+                  "text": "Rule",
+                  "marks": ["bold"]
+                }
+              ],
+              [
+                {
+                  "t": "text",
+                  "text": "A fixed way to read the numbers"
+                }
+              ]
+            ]
+          ]
+        }
+      ],
+      "said": "To write your first context item, open **Write** and say what agents should *know*. [Write context](write-context.md#what-to-put-in-it) has every part.\n\n- **Properties:** the Domain, the Kind, the Status and the owners.\n- **Applies to:** the metrics and markets it is about, as `Definitions` names them.\n- **Source:** a link anyone can open, such as the customs notice.\n\n1. Give it a title that is one plain sentence.\n2. Say what it is ~~about~~ not, if people mix it up.\n3. Publish it.\n\n| Kind | When to pick it |\n| --- | --- |\n| **Event** | Something happened on a date |\n| **Rule** | A fixed way to read the numbers |",
+      "nouns": [],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-help-write": {
+    "question": "How do I create my first context item?",
+    "turn": {
+      "kind": "answer",
+      "text": "Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Read the help for “create my first context item”: 3 parts."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "write-context",
+          "id": "add-a-context-item",
+          "title": "Write context",
+          "heading": "Add a context item"
+        }
+      ],
+      "actions": [
+        {
+          "id": "write_context"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "create my first context item"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?"
+            }
+          ]
+        }
+      ],
+      "said": "Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
+      "nouns": [],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-help-invite": {
+    "question": "How do I invite a colleague?",
+    "turn": {
+      "kind": "answer",
+      "text": "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page.",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Read the help for “invite a colleague”: 3 parts."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "domains-and-owners",
+          "id": "people",
+          "title": "Domains and owners",
+          "heading": "People"
+        }
+      ],
+      "actions": [
+        {
+          "id": "invite_people"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "invite a colleague"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page."
+            }
+          ]
+        }
+      ],
+      "said": "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page.",
       "nouns": [],
       "items": [],
       "closest": null,
@@ -3453,6 +4165,720 @@
           ]
         }
       ],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-help-write-metric": {
+    "question": "How do I write a context item about churn rate?",
+    "turn": {
+      "kind": "answer",
+      "text": "To write a context item about Churn rate, open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
+      "sources": [],
+      "state": null,
+      "footer": {
+        "denominator": null,
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Read the help for “add a context item”: 3 parts.",
+        "Read Definitions for churn rate: 1 found."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "help": [
+        {
+          "slug": "write-context",
+          "id": "add-a-context-item",
+          "title": "Write context",
+          "heading": "Add a context item"
+        }
+      ],
+      "actions": [
+        {
+          "id": "write_context"
+        }
+      ],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "help",
+          "input": {
+            "words": "add a context item"
+          }
+        },
+        {
+          "tool": "definitions",
+          "input": {
+            "names": ["churn rate"],
+            "limit": 10
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "To write a context item about "
+            },
+            {
+              "t": "noun",
+              "id": "metric:churn_rate"
+            },
+            {
+              "t": "text",
+              "text": ", open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?"
+            }
+          ]
+        }
+      ],
+      "said": "To write a context item about [@metric:churn_rate], open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know?",
+      "nouns": [
+        {
+          "id": "metric:churn_rate",
+          "name": "Churn rate",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:active_customers",
+          "name": "Active customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:customer_lifetime_value",
+          "name": "Customer lifetime value",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:new_customers",
+          "name": "New customers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "metric:repeat_purchase_rate",
+          "name": "Repeat purchase rate",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-period": {
+    "question": "What should I know about orders in Norway?",
+    "period": "last month",
+    "turn": {
+      "kind": "answer",
+      "text": "This answer is for last month, September 2026. 3 items apply to Orders in Norway:\n\n- Online sales to Norway stopped on 4 August 2026 [1]\n- Norway orders are card and cash payments only [2]",
+      "sources": ["itm_norwaystop", "itm_giftcardonly"],
+      "state": "conflict",
+      "footer": {
+        "denominator": "3 of 21 published context items you can see apply.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Looked up Orders and Norway, 1-30 Sep 2026: 3 items apply, 6 nearby items do not."],
+      "subject": {
+        "names": ["Orders", "Norway"],
+        "about": ["metric:orders", "value:market/norway"],
+        "period": "1-30 Sep 2026",
+        "note": null,
+        "assumedToday": false,
+        "carried": false,
+        "uncovered": [],
+        "unwritten": []
+      },
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "get_context",
+          "input": {
+            "about": "What should I know about orders in Norway?",
+            "period": "last month"
+          }
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "This answer is for last month, September 2026. "
+            },
+            {
+              "t": "count",
+              "value": "3",
+              "of": null
+            },
+            {
+              "t": "text",
+              "text": " items apply to "
+            },
+            {
+              "t": "noun",
+              "id": "metric:orders"
+            },
+            {
+              "t": "text",
+              "text": " in "
+            },
+            {
+              "t": "noun",
+              "id": "value:market/norway"
+            },
+            {
+              "t": "text",
+              "text": ":"
+            }
+          ]
+        },
+        {
+          "t": "ul",
+          "items": [
+            [
+              {
+                "t": "text",
+                "text": "Online sales to Norway stopped on 4 August 2026 "
+              },
+              {
+                "t": "cite",
+                "n": 1
+              }
+            ],
+            [
+              {
+                "t": "text",
+                "text": "Norway orders are card and cash payments only "
+              },
+              {
+                "t": "cite",
+                "n": 2
+              }
+            ]
+          ]
+        }
+      ],
+      "said": "This answer is for last month, September 2026. 3 items apply to [@metric:orders] in [@value:market/norway]:\n\n- Online sales to Norway stopped on 4 August 2026 [itm_norwaystop]\n- Norway orders are card and cash payments only [itm_giftcardonly]",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:25a8735f-76bb-4631-8614-1c9af887664d",
+          "name": "Jon Abara",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "person:db6d5653-79bd-4395-8787-7ab023c4f97d",
+          "name": "Sofia Brandt",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [
+        {
+          "id": "itm_norwaystop",
+          "title": "Online sales to Norway stopped on 4 August 2026",
+          "kind": "event",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-03",
+          "outOfDate": null,
+          "n": 1
+        },
+        {
+          "id": "itm_giftcardonly",
+          "title": "Norway orders are card and cash payments only",
+          "kind": "rule",
+          "domain": "domain:area_sales",
+          "about": ["metric:orders", "value:market/norway"],
+          "status": "live",
+          "checked": "2026-10-02",
+          "outOfDate": null,
+          "n": 2
+        }
+      ],
+      "closest": null,
+      "owners": [
+        {
+          "domain": "domain:area_sales",
+          "people": [
+            "person:25a8735f-76bb-4631-8614-1c9af887664d",
+            "person:db6d5653-79bd-4395-8787-7ab023c4f97d"
+          ]
+        }
+      ],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-drafts": {
+    "question": "How are Black Friday orders counted?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing published covers Black Friday orders yet.",
+      "sources": [],
+      "state": "missing",
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Searched “Black Friday”, any date: 0 found.",
+        "Searched the drafts and suggestions waiting for review you can open for “Black Friday”: 1 found, not published."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "drafts": {
+        "words": ["Black Friday"],
+        "found": 1,
+        "more": 0,
+        "rows": [
+          {
+            "id": "itm_draft_black_friday",
+            "state": "draft",
+            "change": false,
+            "title": "Black Friday 2026 orders are split over two weeks",
+            "domain": "domain:area_sales",
+            "by": "Jon Abara",
+            "on": "2026-10-23",
+            "action": {
+              "id": "open_draft",
+              "draft": {
+                "id": "itm_draft_black_friday",
+                "domain": "domain:area_sales",
+                "mine": true,
+                "owners": ["Jon Abara", "Sofia Brandt"]
+              }
+            }
+          }
+        ],
+        "sentence": [
+          {
+            "t": "text",
+            "text": "If it is published as written, the weekend's orders are counted in two reporting weeks, week 48 and week 49."
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Black Friday",
+            "limit": 10
+          },
+          "step": 0
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing published covers Black Friday orders yet."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing published covers Black Friday orders yet.",
+      "nouns": [
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-drafts-waiting": {
+    "question": "Is order data from Poland late?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing published covers late order data from Poland yet.",
+      "sources": [],
+      "state": "missing",
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Searched “Poland payment provider delays” (read as Poland), any date: 0 found.",
+        "Searched the drafts and suggestions waiting for review you can open for “Poland payment provider delays”: 1 found, not published."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "drafts": {
+        "words": ["Poland payment provider delays"],
+        "found": 1,
+        "more": 0,
+        "rows": [
+          {
+            "id": "sug-agent",
+            "state": "waiting",
+            "change": false,
+            "title": "Payment provider delays order data in Poland",
+            "domain": "domain:area_sales",
+            "by": "Kofi Mensah",
+            "on": "2026-10-23",
+            "action": {
+              "id": "review_suggestion",
+              "draft": {
+                "id": "sug-agent",
+                "domain": "domain:area_sales",
+                "mine": false,
+                "owners": ["Jon Abara", "Sofia Brandt"]
+              }
+            }
+          }
+        ],
+        "sentence": null
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Poland payment provider delays",
+            "limit": 10
+          },
+          "step": 0
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing published covers late order data from Poland yet."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing published covers late order data from Poland yet.",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-drafts-member": {
+    "question": "Is order data from Poland late?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing published covers late order data from Poland yet.",
+      "sources": [],
+      "state": "missing",
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Searched “Poland payment provider delays” (read as Poland), any date: 0 found."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Poland payment provider delays",
+            "limit": 10
+          },
+          "step": 0
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing published covers late order data from Poland yet."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing published covers late order data from Poland yet.",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
       "overview": null,
       "checks": []
     }

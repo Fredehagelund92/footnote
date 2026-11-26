@@ -32,7 +32,9 @@ const passing: JudgeVerdict = {
 /** Scores an answer that cites what it was given, from the tool calls it made. */
 const score = (id: string, calls: [tool: string, output: unknown][]) => {
   const q = question(id)
-  const seen = observed(calls.map(([tool, output]) => recordOf(tool, {}, output)))
+  const seen = observed(
+    calls.map(([tool, output]) => recordOf(tool, { query: 'net revenue' }, output)),
+  )
   const answer = seen.delivered.map((item) => `[${item}]`).join(' ')
   const verdict = { ...passing, rubrics: rubricIds(q.rubrics).map((id) => ({ id, passed: true })) }
   return scoreTry(q.expected, q.rubrics, { refused: false, answer, ...seen, verdict })
@@ -77,6 +79,14 @@ describe('the status and delivery checks of an answer (try-it-2, round 4)', () =
       ).toBe(true)
   })
 
+  it('leave a find_context browse out of what was delivered', () => {
+    const page = { status: 'matched', context: [{ id: 'itm_browsed01', match: 'scope' }] }
+    for (const input of [{}, { kind: 'metric' }, { query: undefined, kind: 'term' }]) {
+      const record = recordOf('find_context', input, page)
+      expect(record).toMatchObject({ status: null, items: [], applied: [] })
+    }
+    expect(recordOf('find_context', { query: 'orders' }, page).items).toEqual(['itm_browsed01'])
+  })
   it('count the items find_context delivered as delivered', () => {
     const q = question('gs-baseline-orders-united-kingdom')
     const items = q.expected.must_deliver.map((id) => ({ id }))
@@ -90,8 +100,7 @@ describe('the status and delivery checks of an answer (try-it-2, round 4)', () =
 
   it('stay strict when the agent used no context tool, or got the wrong status from one', () => {
     const read = score('gs-definition-net-revenue', [
-      ['read_context', { context: { id: 'itm_q2upr28v' } }],
-      ['get_related', { status: 'matched', context: [{ id: 'itm_q2upr28v' }] }],
+      ['read_context', { status: 'matched', context: { id: 'itm_q2upr28v' } }],
     ])
     expect(read.checks.status).toBe(false)
     expect(read.passed).toBe(false)
@@ -177,6 +186,7 @@ const armWith = (execute: () => unknown): Arm => ({
       execute: () => Promise.resolve().then(execute),
     }),
   },
+  instructions: '',
   close: () => Promise.resolve(),
 })
 
@@ -245,6 +255,24 @@ describe('the prompt cache of an answer (round 5)', () => {
       content: answerSystemPrompt,
       providerOptions: breakpoint,
     })
+  })
+
+  it('sends the server instructions after its own, marked once, as an AI client gives them (F1)', async () => {
+    const { choice, prompts } = agent()
+    const arm = {
+      ...armWith(() => ({ status: 'matched', context: [{ id: 'itm_abc12345' }] })),
+      instructions: 'Footnote holds checked context about company metrics.',
+    }
+    await answerQuestion(arm, { ...choice, cacheBreakpoint: breakpoint }, 'Orders in Norway?')
+    const system = prompts[0]!.filter((m) => m.role === 'system')
+    expect(system).toEqual([
+      { role: 'system', content: answerSystemPrompt },
+      { role: 'system', content: arm.instructions, providerOptions: breakpoint },
+    ])
+    expect(prompts.map(marks)).toEqual([
+      ['system', 'user:0'],
+      ['system', 'tool:0'],
+    ])
   })
 
   it('sends the same prompt with no marks to a model without a prompt cache', async () => {

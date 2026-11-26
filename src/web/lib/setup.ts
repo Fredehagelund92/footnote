@@ -11,7 +11,8 @@ export const setupSteps: SetupStep[] = [
   {
     id: 'about',
     title: 'Say what the business is about',
-    description: 'Paste a paragraph or write a few lines. Every agent reads it first.',
+    description:
+      'One or two sentences on what the company does. Ask and agents read it as background.',
     action: 'Write',
   },
   {

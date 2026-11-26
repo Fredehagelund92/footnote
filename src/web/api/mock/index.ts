@@ -1,13 +1,20 @@
 import { footnoteApiMethods, readMethods } from '../client'
-import { clockTime } from '@/lib/dates'
+import { clockTime, dayMonth, dayMonthYear, parseDay } from '@/lib/dates'
+import { shiftDate } from '@domain/validity'
+import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
+import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
+import { ABOUT_BUSINESS_STARTER, aboutByRule } from '@domain/about-business'
 import { ApiError } from '../errors'
 import { missing } from '@contract/refusals'
+import { SHARED_CHAT_DAYS, type ShareTurn } from '@contract/shared-chats'
 import { reviewActions, type ReviewAction } from '@domain/review-actions'
 import type { SavedView } from '@/lib/obs-views'
 import { mentionNotesOf, type Subject } from '@/model/comments'
 import { servedToAgents } from '@/model/items'
+import { draftItem } from '@/model/review-page'
+import { today } from '@/lib/today'
 import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
@@ -15,16 +22,18 @@ import { familyMeaningHistoryOf } from '../http-family-meaning'
 import { connectorById } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
-import { cards, waiting, week } from './data/inbox'
+import { cards, demoQuestions, questionDays, waiting, week } from './data/inbox'
 import { norwayDraft } from './data/drafts'
 import { obsData } from './data/observability'
 import { obsPage } from './obs-page'
 import { BEFORE, changedSteps, replay } from './replay'
 import { reviews } from './data/review'
+import { ASK_SOMEONE, draftsWords, type CheckAnswerRow, type InboxCard } from '@/model/inbox'
+import type { Question } from '@contract/questions'
+import { titleOfWords } from '@domain/questions'
 import type { Relation, Review } from '@/model/review'
 import { plainOf } from '@/components/templates/comment-box/utils'
 import {
-  ABOUT_BUSINESS,
   dimensions,
   facts as seedFacts,
   markets,
@@ -40,7 +49,9 @@ import {
   historyFile,
   UNDO_SECONDS,
   type Automatic,
+  type Links,
   type Pins,
+  type Sharing,
 } from './advanced'
 import { loopExample, playAnswer, recordedAnswer } from './ask-live'
 import { createChats } from './chats'
@@ -57,20 +68,21 @@ import {
   testFor,
   type Kept,
 } from './integrations'
-import { figureFor, figureTryFor } from './data/figures'
 import { reportedOn, type Answer, type AskInput } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
 import { createDefinitions } from './definitions'
-import { relationsFor } from './data/relations'
+import { builtFromFor, relationsFor } from './data/relations'
 import { dimensionsOf, valuesOf } from './obs-filters'
 import { publishEffects, touchedBy } from './publish'
 import { SAVED_TREND } from './data/saved-questions'
 import { createSaved } from './saved'
 import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
-import { createScopeSearch, withScope } from './scope'
+import { createScopeSearch, withScope, withValues } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
+import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
+import { manyFacts } from './data/many'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -83,6 +95,7 @@ import {
 } from './conflicts'
 import type { Fact } from '@/model/items'
 import { maySettle } from '@domain/conflicts'
+import { limits } from '@domain/proposal-rules'
 import { TODAY } from '@/model/history'
 
 /**
@@ -101,6 +114,10 @@ export function createMockApi() {
   /** The dimensions an admin pinned on Overview in this visit (observability.pinned_dimensions). */
   let pins: Pins = { keys: [] }
   let automatic: Automatic = { on: false, version: 1 }
+  /** Reading the links people paste in this visit: on as installed, no host listed. */
+  let links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 }
+  /** Sharing Ask chats as links in this visit: on as installed. */
+  let sharing: Sharing = { on: true, version: 1 }
   /** An Observability page as the person signed in may read it, for a view. */
   const obsPageFor = ({ range, domain, agent }: Omit<ObsPageInput, 'section'>) => {
     const person = workspace.people().find((p) => p.name === me())
@@ -118,7 +135,7 @@ export function createMockApi() {
   /** What the connect flow set for each tool this visit. */
   const kept = new Map<string, Kept>()
   const integrations = createIntegrations(
-    () => settings.read(scenario.address()).connected,
+    () => settings.read().connected,
     (id) => kept.get(id),
   )
   let views: SavedView[] = []
@@ -180,6 +197,42 @@ export function createMockApi() {
       lasting,
     )
 
+  const same = (a: string, b: string) => termWord(a) === termWord(b)
+  const domainOf = (id: string) => workspace.domains().find((d) => d.id === id)
+  /** The cards a family split gave the owners of each item about it, one per owner (D2). */
+  let splitCards: InboxCard[] = []
+  /** The items a split left due, as they were and as the split changed them: kept past a sign-in. */
+  const splitItems = new Map<
+    string,
+    {
+      family: string
+      before: Pick<Fact, 'status' | 'outOfDate' | 'where'>
+      patch: Partial<Fact>
+    }
+  >()
+  /**
+   * Ask someone who knows: each card's link, by the card, and what people answered on a Due for a
+   * check card's link. As the service: a link keeps the day it was copied, never who opened it.
+   */
+  const questionLinks = new Map<string, { id: string; copiedOn: string }>()
+  const checkAnswers = new Map<string, CheckAnswerRow[]>()
+  const withAsked = (card: InboxCard): InboxCard => {
+    const link = questionLinks.get(card.id)
+    return link
+      ? {
+          ...card,
+          asked: { on: dayMonth(link.copiedOn), answers: checkAnswers.get(card.id) ?? [] },
+        }
+      : card
+  }
+  /** The card a link is for, as the person may read it, and the link. */
+  const questionOf = (id: string) => {
+    const cardId = [...questionLinks].find(([, link]) => link.id === id)?.[0] ?? demoQuestions[id]
+    const card = cardId && inbox().cards.find((c) => c.id === cardId)
+    if (!card) throw new ApiError('not-found', missing('this question'))
+    return card
+  }
+
   /** The Inbox as the person sees it: none of the demo's cards on a new install. */
   const inbox = (): Inbox => {
     const titleOf = (subject: Subject) => {
@@ -190,9 +243,14 @@ export function createMockApi() {
           : cards.find((c) => c.id === id)?.title) ?? 'A comment'
       )
     }
-    const nameCard = names.card(me())
+    const nameCard = names.card(me(), obsReader())
     return {
-      cards: [...(nameCard ? [nameCard] : []), ...(state.fresh ? [] : cards)],
+      cards: [
+        ...(nameCard ? [nameCard] : []),
+        ...splitCards,
+        ...(state.fresh ? [] : cards),
+        ...draftsCard(),
+      ].map(withAsked),
       waiting: state.fresh ? [] : waiting,
       sent: state.sent,
       done: state.done,
@@ -230,7 +288,7 @@ export function createMockApi() {
   /** Why a move is not offered for a suggestion, in the service's words. */
   const notOffered = (action: ReviewAction, r: Review) =>
     action === 'close'
-      ? 'Only a suggestion to archive is closed. Decide this one instead.'
+      ? 'Only a suggestion of a context item is closed. Decide this one instead.'
       : action === 'archive'
         ? 'Only a suggestion to archive is archived. Publish or return this one.'
         : r.mode === 'retire'
@@ -258,6 +316,86 @@ export function createMockApi() {
       drafted: !!r.drafted,
     })
     if (!can.includes(action)) throw new ApiError('conflict', notOffered(action, r))
+  }
+
+  /** The words of the new items sent this visit, by their suggestion's id: Context lists them. */
+  const sentFacts = new Map<string, Fact>()
+  /**
+   * The new items waiting for review that the person may open, as Context lists them: a review's
+   * new item while its card waits, in a domain they decide for or sent by them, and a new item they
+   * sent this visit. As the service: a change waits on its item's page instead.
+   */
+  const waitingFacts = (): Fact[] => {
+    if (state.fresh) return []
+    const who = meAsPerson()
+    const domains = workspace.domainMap()
+    const reviewed = reviews.flatMap((r): Fact[] => {
+      const card = cards.find((c) => c.id === r.id)
+      if (r.mode !== 'new' || r.drafted || !card || state.done[r.id]) return []
+      if (!who.admin && !who.owns.includes(card.domain) && r.from !== me()) return []
+      const item = draftItem(r, undefined, domains)
+      const sent = parseDay(r.on)
+      return item
+        ? [
+            {
+              ...item,
+              id: r.id,
+              domain: card.domain,
+              status: 'Waiting',
+              by: r.synced ? '' : r.from,
+              ...(sent ? { sentAt: new Date(sent).toISOString().slice(0, 10) } : {}),
+            },
+          ]
+        : []
+    })
+    const sentNow = state.sent.flatMap((x): Fact[] => {
+      const fact = sentFacts.get(x.id)
+      return fact && x.by === me()
+        ? [{ ...fact, id: x.id, status: 'Waiting', by: x.by, sentAt: today() }]
+        : []
+    })
+    return [...reviewed, ...sentNow]
+  }
+  /** What the person may read: every item, and of the drafts only their own (FR-139). */
+  const shownFacts = () => factsOf(state).filter((f) => f.status !== 'Draft' || f.by === me())
+  /**
+   * Context's rows: the items, their drafts, and what waits for review that they may open, each
+   * with its dimension values as the library index names them.
+   */
+  const contextFacts = () => [...shownFacts(), ...waitingFacts()].map(withValues)
+  /**
+   * Who left with drafts they never sent, by name, with how many: an admin deletes them unread.
+   * The demo names a person by their name here, as they are gone from People.
+   */
+  const leftDrafts = () => {
+    const here = new Set(workspace.people().map((p) => p.name))
+    const counts = new Map<string, number>()
+    for (const f of factsOf(state))
+      if (f.status === 'Draft' && f.by && !here.has(f.by))
+        counts.set(f.by, (counts.get(f.by) ?? 0) + 1)
+    return [...counts].map(([name, drafts]) => ({ id: name, name, drafts }))
+  }
+  /** The person's own drafts card: the drafts they brought in with an import (FR-139). */
+  const draftsCard = (): InboxCard[] => {
+    const ids = shownFacts()
+      .filter((f) => f.status === 'Draft' && f.by === me() && f.id.startsWith(IMPORTED))
+      .map((f) => f.id)
+    if (!ids.length) return []
+    const domains = new Set(ids.map((id) => factsOf(state).find((f) => f.id === id)!.domain))
+    return [
+      {
+        id: 'drafts:yours',
+        type: 'drafts',
+        domain: domains.size === 1 ? [...domains][0]! : '',
+        for: me(),
+        when: 'Today, 09:20',
+        ...draftsWords({ imported: ids.length, old: 0 }),
+        detail: '',
+        primary: 'Publish all',
+        secondary: ['See them in Context'],
+        drafts: { ids, imported: ids.length, old: 0 },
+      },
+    ]
   }
 
   /** The threads where `who` may take back what they hang on: a suggestion to archive they sent, while it waits. */
@@ -306,14 +444,15 @@ export function createMockApi() {
   }
 
   /** Ask's answer: as the loop answers the question, or an example, on the demo week. */
-  const answer = ({ question = '', parts, scope, example, period }: AskInput): Answer => {
+  const answer = ({ question = '', parts, scope, example }: AskInput): Answer => {
     const found = example ? examples.find((e) => e.id === example) : undefined
     if (example && !found) throw new ApiError('not-found', 'This question is not offered any more.')
     const asked = found?.question ?? question
+    // A period chosen on the read line is not kept: the mock's answers were read at the dates
+    // they were, which the read line says, never the period chosen.
     const extra = {
       ...(parts?.some((p) => typeof p !== 'string') ? { parts } : {}),
       ...(scope?.length ? { scope } : {}),
-      ...(period ? { period } : {}),
     }
     // The check could not run: what the page shows when the service does not answer.
     if (example === 'failed') return { ...failedAnswer(asked), id: example, ...extra }
@@ -322,6 +461,36 @@ export function createMockApi() {
 
   /** The reports the person sent from Ask this visit, newest first. */
   const reports: { id: string; question: string; at: Date }[] = []
+  /**
+   * The chats shared as links this visit (FR-721), newest first: a copy of each turn, or left out
+   * when it rests on a draft, as the service keeps them.
+   */
+  const shares: {
+    id: string
+    chat: string
+    title: string
+    by: string
+    at: Date
+    until: Date
+    turns: (ShareTurn | { left: 'draft' })[]
+  }[] = []
+  /** The context items a person reads as published: never a draft, nor what waits for review. */
+  const publishedIds = () =>
+    new Set(
+      factsOf(state)
+        .filter((f) => f.status !== 'Draft' && f.status !== 'Waiting')
+        .map((f) => f.id),
+    )
+  const shareOf = (s: (typeof shares)[number]) => ({
+    id: s.id,
+    chat: s.chat,
+    title: s.title,
+    at: s.at.toISOString(),
+    until: s.until.toISOString(),
+    turns: s.turns.length,
+    left: s.turns.filter((t) => 'left' in t).length,
+  })
+  const liveShares = () => shares.filter((s) => s.until.getTime() > Date.now())
   const ratings = new Map<string, 'helpful' | 'wrong'>()
 
   /** Who sets and turns off a policy to publish without review, by name; the review flag first. */
@@ -334,7 +503,7 @@ export function createMockApi() {
     policies.fromAddress(scenario.address().query)
     return policies.state().on
   }
-  /** Who reads Observability: an admin, or the owner of some domains. */
+  /** Who reads Observability and the names: an admin, or the owner of some domains. */
   const obsReader = () => {
     const person = workspace.people().find((p) => p.name === me())
     return { admin: !!person?.admin, owns: person?.owns ?? [] }
@@ -386,6 +555,9 @@ export function createMockApi() {
         return Promise.reject(new ApiError('not-found', `${name} can't sign in here.`))
       return now(() => {
         dispatch({ type: 'signIn', name })
+        // The families demo stays for whoever signs in: its context, as its families do.
+        if (familiesShop) for (const fact of familyFacts()) dispatch({ type: 'addFact', fact })
+        for (const [id, { patch }] of splitItems) dispatch({ type: 'editFact', id, patch })
         return {
           user: state.user,
           install: state.install,
@@ -403,7 +575,7 @@ export function createMockApi() {
         people: workspace.people(),
         invites: workspace.invites(),
         about: state.about,
-        aboutTemplate: ABOUT_BUSINESS,
+        aboutTemplate: ABOUT_BUSINESS_STARTER,
         setup: { done: state.setup, serverSource: null },
       })),
     getVocabulary: () =>
@@ -421,6 +593,17 @@ export function createMockApi() {
       })),
     getActivity: ({ name }) => now(() => workspace.activityOf(name, seedFacts)),
     setAbout: ({ text }) => now(() => dispatch({ type: 'about', text })),
+    // As the service's scripted mock writes it: by rule, from the demo's domains and metrics.
+    draftAbout: () =>
+      now(() => ({
+        text: aboutByRule({
+          domains: workspace
+            .domains()
+            .filter((d) => !d.sandbox)
+            .map((d) => ({ name: d.name, description: d.covers })),
+          metrics: metrics.map((m) => ({ name: m.name, description: m.definition || null })),
+        }),
+      })),
     completeSetupStep: ({ step }) => now(() => dispatch({ type: 'setupStep', step })),
 
     // Domains and people
@@ -479,7 +662,7 @@ export function createMockApi() {
     // The library
     getLibrary: () =>
       now(() => ({
-        items: factsOf(state),
+        items: contextFacts(),
         published: state.published,
         viewed: state.viewed,
         log: state.log,
@@ -487,7 +670,7 @@ export function createMockApi() {
     searchAll: ({ q }) =>
       now(() =>
         searchWorld(q, {
-          facts: factsOf(state),
+          facts: shownFacts(),
           definitions: definitions.list(),
           domains: workspace.domains(),
           people: workspace.people(),
@@ -501,10 +684,12 @@ export function createMockApi() {
           definitions.list().filter((d) => d.family),
         ),
       ),
-    contextPage: () => read('contextPage', '', () => factsOf(state)),
+    contextPage: () => read('contextPage', '', contextFacts),
     itemPage: ({ id }) =>
       read('itemPage', id, () => {
-        const item = factsOf(state).find((f) => f.id === id)
+        const item = shownFacts().find((f) => f.id === id)
+        const waits = item ? undefined : waitingFacts().find((f) => f.id === id)
+        if (waits) return { item: withScope(waits), history: [] }
         if (!item) return null
         // The pair its warning names, as the service's page carries it: no read of the pair.
         const pair = item.disagreesWith ? pairAt(item.id, item.disagreesWith) : undefined
@@ -512,7 +697,8 @@ export function createMockApi() {
           pair && conflictOf(pair[0], pair[1], meAsPerson(), workspace.domainMap(), undefined)
         return {
           item: withScope(item),
-          history: historyOf(item, state.log),
+          // A draft was never published, so it has no versions yet, as the service has it.
+          history: item.status === 'Draft' ? [] : historyOf(item, state.log),
           ...(conflict
             ? {
                 conflict: {
@@ -636,7 +822,7 @@ export function createMockApi() {
     getItemHistory: ({ id }) =>
       now(() => {
         const fact = factsOf(state).find((f) => f.id === id)
-        return fact ? historyOf(fact, state.log) : []
+        return fact && fact.status !== 'Draft' ? historyOf(fact, state.log) : []
       }),
     compareVersions: ({ id, from, to }) =>
       now(() => {
@@ -650,7 +836,6 @@ export function createMockApi() {
           definitions: definitions.list(),
           domains: Object.fromEntries(workspace.domains().map((d) => [d.id, d])),
         }),
-        following: settings.read(scenario.address()).links,
       })),
     // The item's words as they are now: the demo's versions are made up, so each restores the same.
     restoreAsDraft: ({ id }) =>
@@ -666,9 +851,69 @@ export function createMockApi() {
       }),
     markViewed: ({ id }) => now(() => dispatch({ type: 'viewedFact', id })),
     editItem: ({ id, patch }) => now(() => dispatch({ type: 'editFact', id, patch })),
-    draftFromText: () => now(() => withScope(norwayDraft)),
+    draftFromText: ({ text }) =>
+      now(() => {
+        if (!links.on && /^https?:\/\/\S+$/i.test(text.trim()))
+          throw new ApiError(
+            'invalid',
+            "Reading links is off in this workspace. Paste the page's text instead.",
+          )
+        return withScope(norwayDraft)
+      }),
+    // Save as draft: the person's own words, kept where only they can see them.
+    saveDraft: ({ fact, isNew }) =>
+      now(() => {
+        const mine = isNew ? undefined : shownFacts().find((f) => f.id === fact.id)
+        if (mine && mine.status !== 'Draft' && !fact.id.startsWith('itm_'))
+          throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+        const saved = { ...fact, status: 'Draft' as const, by: me(), checkedBy: '', checkedOn: '' }
+        if (mine?.status === 'Draft') {
+          dispatch({ type: 'editFact', id: fact.id, patch: saved })
+          return { id: fact.id }
+        }
+        const id = `itm_draft_${Date.now().toString(36)}`
+        dispatch({ type: 'addFact', fact: { ...saved, id } })
+        return { id }
+      }),
+    clearLeftDrafts: ({ id }) =>
+      now(() => {
+        const gone = factsOf(state).filter((f) => f.status === 'Draft' && f.by === id)
+        if (!gone.length || workspace.people().some((p) => p.name === id))
+          throw new ApiError('conflict', 'Only the drafts of someone who left can be deleted here.')
+        dispatch({
+          type: 'bulk',
+          patches: {},
+          remove: gone.map((f) => f.id),
+          entry: {
+            id: `log-left-${Date.now().toString(36)}`,
+            on: today(),
+            who: me(),
+            what: 'deleted',
+            summary: `Deleted ${gone.length === 1 ? '1 draft' : `${gone.length} drafts`} of ${id}, who left.`,
+            items: [],
+          },
+        })
+        return { deleted: gone.length }
+      }),
     saveItem: ({ fact, isNew, relations = {}, gap, setup }) =>
       now(() => {
+        // An owner's words in a new item waiting for their review publish that suggestion as
+        // itself (Edit then publish), as the service does: its card is decided.
+        const waits = isNew ? undefined : waitingFacts().find((f) => f.id === fact.id)
+        if (waits) {
+          if (sentFacts.has(fact.id))
+            throw new ApiError(
+              'conflict',
+              'It is waiting for review. Withdraw it to change it, then send it again.',
+            )
+          mayDecide(fact.id, 'publish')
+          const itemId = `itm_new_${Date.now().toString(36)}`
+          scope.used(fact.scope)
+          dispatch({ type: 'addFact', fact: { ...fact, id: itemId, version: 1, by: waits.by } })
+          dispatch({ type: 'complete', card: fact.id, outcome: 'Published' })
+          dispatch({ type: 'published', id: itemId })
+          return { id: itemId }
+        }
         // As the service: an overlap left alone is unrelated, so none refuses a publish.
         const id = isNew ? `itm_new_${Date.now().toString(36)}` : fact.id
         // As the service: an edit from an older version than the one published now changes nothing.
@@ -698,29 +943,153 @@ export function createMockApi() {
         if (setup) dispatch({ type: 'setupStep', step: 'fact' })
         return { id }
       }),
-    applyBulk: ({ patches, remove, entry }) =>
+    applyBulk: ({ patches, remove, suggest = [], entry }) =>
       now(() => {
-        const rows = [...new Set([...Object.keys(patches), ...remove])]
+        const rows = [...new Set([...Object.keys(patches), ...remove, ...suggest])]
         // ?bulk=fail: the first change to many rows fails on its last row, so a partial failure can be seen.
         const failed = rows.length > 1 && scenario.failsOnce('bulk') ? rows.slice(-1) : []
         const done = rows.filter((id) => !failed.includes(id))
         const before = state
+        // A draft sent to its domain's owners leaves the list and waits for them, as from the editor.
+        const sent = suggest.filter((id) => done.includes(id))
+        for (const id of sent) {
+          const draft = factsOf(state).find((f) => f.id === id)
+          if (!draft) continue
+          const to = workspace.domains().find((d) => d.id === draft.domain)?.owners[0] ?? ''
+          dispatch({
+            type: 'send',
+            sent: {
+              id: `sent_${id}`,
+              title: draft.title,
+              by: me(),
+              to,
+              domain: draft.domain,
+              at: 'just now',
+            },
+          })
+        }
         dispatch({
           type: 'bulk',
           patches: Object.fromEntries(Object.entries(patches).filter(([id]) => done.includes(id))),
-          remove: remove.filter((id) => done.includes(id)),
+          remove: [...remove, ...sent].filter((id) => done.includes(id)),
           entry: { ...entry, items: entry.items.filter((i) => done.includes(i.id)) },
         })
-        return { done, failed, ...revertTo(before, { facts: done, entry: entry.id }) }
+        for (const id of done)
+          if (patches[id]?.status === 'Live') dispatch({ type: 'published', id })
+        const offer = revertTo(before, { facts: done, entry: entry.id })
+        if (sent.length) {
+          const undo = undos.get(offer.undo.token)!
+          undos.set(offer.undo.token, {
+            ...undo,
+            run: () => {
+              undo.run()
+              for (const id of sent) dispatch({ type: 'withdraw', id: `sent_${id}` })
+            },
+          })
+        }
+        return { done, failed, ...offer }
       }),
     sendSuggestion: ({ fact, sent }) =>
       now(() => {
         scope.used(fact.scope)
         const id = `sent_${Date.now().toString(36)}`
+        if (!sent.factId) sentFacts.set(id, fact)
         dispatch({ type: 'send', sent: { ...sent, id } })
         return { id }
       }),
-    withdrawSuggestion: ({ id }) => now(() => dispatch({ type: 'withdraw', id })),
+    // Ask someone who knows: a card's link, the one question it opens, and the answer.
+    copyQuestionLink: ({ card: id }) =>
+      now(() => {
+        const card = inbox().cards.find((c) => c.id === id)
+        const who = meAsPerson()
+        if (!card?.secondary.includes(ASK_SOMEONE) || state.done[id])
+          throw new ApiError('not-found', missing('this card'))
+        if (!who.admin && !who.owns.includes(card.domain))
+          throw new ApiError('not-found', missing('this card'))
+        const link = { id: questionLinks.get(id)?.id ?? crypto.randomUUID(), copiedOn: today() }
+        questionLinks.set(id, link)
+        return link
+      }),
+    getQuestion: ({ id }) =>
+      now((): Question => {
+        const card = questionOf(id)
+        const domain = domainOf(card.domain)
+        const base = {
+          id,
+          domain: domain?.name ?? card.domain,
+          owners: domain?.owners ?? [],
+          open: !state.done[card.id],
+        }
+        if (card.type === 'gap')
+          return {
+            ...base,
+            kind: 'gap',
+            topic: card.title.split(', ')[0]!,
+            dates: questionDays[card.id] ?? { start: '2026-10-01', end: '2026-11-01' },
+            times: card.gap?.times ?? null,
+            minimum: 5,
+            item: null,
+          }
+        const fact = factsOf(state).find((f) => f.id === card.factId)
+        return {
+          ...base,
+          kind: 'check',
+          topic: fact?.title ?? card.title,
+          dates: {
+            start: fact?.valid.from ?? '2026-01-01',
+            end: fact?.valid.until ? shiftDate(fact.valid.until, 1) : null,
+          },
+          times: null,
+          minimum: 5,
+          item: { summary: fact?.summary ?? '' },
+          open: base.open && !!fact && fact.status !== 'Archived',
+        }
+      }),
+    answerQuestion: (input) =>
+      now(() => {
+        const card = questionOf(input.id)
+        if (state.done[card.id])
+          throw new ApiError(
+            'conflict',
+            'Someone answered this already, or its owner closed it. Nothing was sent. Thanks for looking.',
+          )
+        const owner = domainOf(card.domain)?.owners[0] ?? 'the admins'
+        if (input.kind === 'gap') {
+          // It waits for the owner, as the sender's own suggestion, under All in their Inbox.
+          const id = `sent_${Date.now().toString(36)}`
+          dispatch({
+            type: 'send',
+            sent: {
+              id,
+              title: titleOfWords(input.words),
+              by: me(),
+              to: owner,
+              domain: card.domain,
+              at: 'just now',
+            },
+          })
+          return { proposalId: id }
+        }
+        if ((input.answer === 'ended') !== (input.endedOn !== undefined))
+          throw new ApiError('invalid', 'Say the day it ended, or choose another answer.')
+        const row: CheckAnswerRow = {
+          by: me() ?? 'Someone',
+          answer: input.answer,
+          ...(input.endedOn ? { endedOn: dayMonthYear(input.endedOn) } : {}),
+          ...(input.words ? { words: input.words } : {}),
+          ...(input.link ? { link: input.link } : {}),
+          when: 'Just now',
+        }
+        checkAnswers.set(card.id, [row, ...(checkAnswers.get(card.id) ?? [])])
+        return { proposalId: null }
+      }),
+    withdrawSuggestion: ({ id }) =>
+      now(() => {
+        dispatch({ type: 'withdraw', id })
+        const r = reviews.find((x) => x.id === id)
+        if (r && r.from === me() && !state.done[id])
+          dispatch({ type: 'complete', card: id, outcome: 'Withdrawn' })
+      }),
     undo: ({ token }) =>
       now(() => {
         const offer = undos.get(token)
@@ -769,6 +1138,7 @@ export function createMockApi() {
         () => definitions.list().find((d) => d.name.toLowerCase() === name.toLowerCase()) ?? null,
       ),
     getDefinitionRelations: ({ name }) => now(() => relationsFor(name, definitions.list())),
+    getBuiltFrom: ({ name }) => now(() => builtFromFor(name, definitions.list())),
     getDefinitionHistory: ({ name }) =>
       now(() => {
         const d = definitions.list().find((x) => x.name.toLowerCase() === name.toLowerCase())
@@ -807,6 +1177,106 @@ export function createMockApi() {
           )
         definitions.setFamilyUsual(input, me())
       }),
+    splitFamily: ({ name }) =>
+      now(() => {
+        const d = definitions.list().find((x) => x.family && same(x.name, name))
+        const person = meAsPerson()
+        if (d && !person.admin && !(d.domain && person.owns.includes(d.domain)))
+          throw new ApiError(
+            'forbidden',
+            `Only an owner of ${domainOf(d.domain ?? '')?.name ?? 'its domain'} or an admin can split it.`,
+          )
+        // The items about it: no word changes, each applies to every former variant, due for a
+        // check, and each owner of its domain gets a card for it (D2).
+        const about = factsOf(state).filter(
+          (f) => servedToAgents(f) && f.where.some((w) => same(w, name)),
+        )
+        const metrics = definitions.splitFamily(name, me(), about.length)
+        for (const fact of about) {
+          const patch: Partial<Fact> = {
+            where: [...new Set(fact.where.flatMap((w) => (same(w, name) ? metrics : [w])))],
+            status: 'Due for a check',
+            outOfDate: splitDue(d!.name),
+          }
+          splitItems.set(fact.id, {
+            family: d!.name,
+            before: { status: fact.status, outOfDate: fact.outOfDate, where: fact.where },
+            patch,
+          })
+          dispatch({ type: 'editFact', id: fact.id, patch })
+          for (const owner of domainOf(fact.domain)?.owners ?? [])
+            splitCards = [
+              ...splitCards.filter((c) => c.id !== `check-split.${fact.id}.${owner}`),
+              {
+                id: `check-split.${fact.id}.${owner}`,
+                type: 'check',
+                domain: fact.domain,
+                for: owner,
+                when: 'Today',
+                title: fact.title,
+                due: 'family',
+                splitInto: metrics,
+                line: splitCardLine(d!.name, metrics),
+                detail: fact.checkedBy
+                  ? `Last checked by ${fact.checkedBy === owner ? 'you' : fact.checkedBy}, ${fact.checkedOn}.`
+                  : 'Not checked yet.',
+                primary: keepLabel(metrics.length),
+                secondary: ['Edit', 'Archive'],
+                factId: fact.id,
+              },
+            ]
+        }
+        return { metrics, items: about.length }
+      }),
+    joinFamily: ({ name }) =>
+      now(() => {
+        const split = definitions.splits(() => 0).find((x) => same(x.name, name))
+        const person = meAsPerson()
+        if (split && !person.admin && !(split.domain && person.owns.includes(split.domain)))
+          throw new ApiError(
+            'forbidden',
+            `Only an owner of ${domainOf(split.domain ?? '')?.name ?? 'its domain'} or an admin can make them one family again.`,
+          )
+        definitions.joinFamily(name)
+        const restored: string[] = []
+        // The items it left due are about the family again, and their cards go.
+        for (const fact of factsOf(state).filter(
+          (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(name),
+        )) {
+          restored.push(fact.id)
+          const was = splitItems.get(fact.id)?.before
+          dispatch({
+            type: 'editFact',
+            id: fact.id,
+            patch: {
+              where: [
+                ...new Set(
+                  fact.where.flatMap((w) =>
+                    split!.metrics.some((m) => same(m, w)) ? [split!.name] : [w],
+                  ),
+                ),
+              ],
+              status: was?.status ?? 'Live',
+              outOfDate: was?.outOfDate,
+            },
+          })
+        }
+        for (const [id, item] of splitItems) if (same(item.family, name)) splitItems.delete(id)
+        splitCards = splitCards.filter(
+          (c) =>
+            !restored.includes(c.factId!) &&
+            !factsOf(state).some((f) => f.id === c.factId && f.status === 'Live'),
+        )
+      }),
+    getFamilySplits: () =>
+      now(() =>
+        definitions.splits(
+          (family) =>
+            factsOf(state).filter(
+              (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(family),
+            ).length,
+        ),
+      ),
     saveTerm: ({ previous, term }) => now(() => definitions.saveTerm(previous, term)),
     addSynonym: ({ target, word }) => now(() => definitions.addSynonym(target, word, me())),
     removeTerm: ({ name }) => now(() => remember(definitions.removeTerm(name))),
@@ -825,9 +1295,9 @@ export function createMockApi() {
     getInbox: () => now(inbox),
     inboxPage: () => read('inboxPage', '', inbox),
     getReviews: () => now(() => reviews.map(reviewNow)),
-    getNames: () => names.read().then(copy),
+    getNames: () => names.read(obsReader()).then(copy),
     decideNames: async (input) => {
-      const decided = await names.decide(input)
+      const decided = await names.decide(input, obsReader())
       if (decided.accepted) dispatch({ type: 'setupStep', step: 'definitions' })
       return decided
     },
@@ -835,7 +1305,7 @@ export function createMockApi() {
     markReviewed: ({ id }) => now(() => dispatch({ type: 'reviewed', card: id })),
     decideCard: ({ card, outcome, patch }) =>
       now(() => {
-        const found = cards.find((c) => c.id === card)
+        const found = [...splitCards, ...cards].find((c) => c.id === card)
         const factId = found?.factId
         const before = state
         if (patch && factId) dispatch({ type: 'editFact', id: factId, patch })
@@ -897,7 +1367,9 @@ export function createMockApi() {
         if (!reviewNow(r).retire?.withdrawn && !reason?.trim())
           throw new ApiError(
             'invalid',
-            'Write why you close it. The reason is kept with the decision.',
+            r.mode === 'retire'
+              ? 'Write why you close it. The reason is kept with the decision.'
+              : "Write why you don't publish it. Its sender reads the reason.",
           )
         return decideReview(id, 'Closed', () => {})
       }),
@@ -942,12 +1414,39 @@ export function createMockApi() {
       now(() => (answers ? chats.keep(id, answers) : chats.add(id, question))),
     renameChat: ({ id, title }) => now(() => chats.rename(id, title)),
     deleteChat: ({ id }) => now(() => remember(chats.remove(id), true)),
-    // A named report waits in this visit's memory; the demo's owners don't act on it here.
-    reportAnswer: ({ question }) =>
+    // A named report waits in this visit's memory; the demo's owners don't act on it here. The
+    // right words for an item wait as a suggestion on it, as one sent from the editor does.
+    reportAnswer: ({ question, part, correction }) =>
       now(() => {
         const id = `report-${reports.length + 1}`
+        const item = factsOf(state).find((f) => f.id === part)
+        const words = correction?.trim()
+        if (item && words && item.status === 'Archived')
+          throw new ApiError(
+            'conflict',
+            'It is archived, so it takes no suggestion. Send the report without new words.',
+          )
+        if (item && words && [...words].length > limits.summary)
+          throw new ApiError(
+            'invalid',
+            `The right words fit in ${limits.summary} characters, as a summary does.`,
+          )
         reports.unshift({ id, question, at: new Date() })
-        return { id }
+        if (!item || !words || words === item.summary.trim()) return { id }
+        const suggestion = `sent_${Date.now().toString(36)}`
+        dispatch({
+          type: 'send',
+          sent: {
+            id: suggestion,
+            factId: item.id,
+            title: item.title,
+            by: me(),
+            to: workspace.domainMap()[item.domain]?.owners[0] ?? 'the owners',
+            domain: item.domain,
+            at: 'just now',
+          },
+        })
+        return { id, suggestion }
       }),
     // The demo's owners don't see it here: it waits in this visit's memory, as a report does.
     tellOwner: () => now(() => ({ id: `gap-report-${reports.length + 1}` })),
@@ -955,6 +1454,76 @@ export function createMockApi() {
       now(() =>
         reports.map((r) => ({ id: r.id, question: r.question, on: reportedOn(r.at, new Date()) })),
       ),
+    // A shared chat waits in this visit's memory, as the service keeps it (FR-721).
+    shareChat: ({ chat, title, turns }) =>
+      now(() => {
+        if (!sharing.on) throw new ApiError('forbidden', 'An admin has turned off sharing chats.')
+        const published = publishedIds()
+        const at = new Date()
+        const share = {
+          id: globalThis.crypto.randomUUID(),
+          chat,
+          title,
+          by: me(),
+          at,
+          until: new Date(at.getTime() + SHARED_CHAT_DAYS * 86_400_000),
+          turns: turns.map((t) =>
+            t.sources.every((id) => published.has(id)) ? t : { left: 'draft' as const },
+          ),
+        }
+        shares.unshift(share)
+        return shareOf(share)
+      }),
+    getChatShares: () =>
+      now(() => ({
+        on: sharing.on,
+        links: liveShares()
+          .filter((s) => s.by === me())
+          .map(shareOf),
+      })),
+    getSharedChat: ({ id }) =>
+      now(() => {
+        const share = sharing.on ? liveShares().find((s) => s.id === id) : undefined
+        if (!share)
+          throw new ApiError(
+            'not-found',
+            "This link has stopped, or it isn't one of this workspace's.",
+          )
+        // Each source is read as the person signed in: the context they may open now.
+        const open = new Set(
+          shownFacts()
+            .filter((f) => f.status !== 'Draft')
+            .map((f) => f.id),
+        )
+        return {
+          id: share.id,
+          title: share.title,
+          by: { personId: share.by, name: share.by },
+          at: share.at.toISOString(),
+          until: share.until.toISOString(),
+          mine: share.by === me(),
+          turns: share.turns.map((t) => {
+            if ('left' in t) return { kind: 'left' as const, why: t.left }
+            const sources = t.sources.map((s) => (open.has(s) ? s : null))
+            const whole = sources.every((s) => s !== null)
+            return {
+              kind: 'turn' as const,
+              question: t.question,
+              read: whole ? t.read : [],
+              state: t.state,
+              words: whole ? t.words : null,
+              sources,
+            }
+          }),
+        }
+      }),
+    stopSharing: ({ ids }) =>
+      now(() => {
+        for (const id of ids) {
+          const at = shares.findIndex((s) => s.id === id && s.by === me())
+          if (at >= 0) shares.splice(at, 1)
+        }
+      }),
     // A rating waits in this visit's memory with only its verdict, as the service keeps it.
     rateAnswer: ({ verdict }) =>
       now(() => {
@@ -1016,8 +1585,7 @@ export function createMockApi() {
     setAlertThreshold: ({ id, value }) => now(() => alerts.setThreshold(id, value)),
 
     // Settings, integrations and agents
-    getSettings: () => now(() => settings.read(scenario.address())),
-    setLinks: ({ on }) => now(() => settings.setLinks(on)),
+    getSettings: () => now(() => settings.read()),
     setTool: ({ name, on }) => now(() => settings.setTool(name, on)),
     setPause: (change) => now(() => settings.setPause(change)),
     createAccessKey: ({ name }) =>
@@ -1043,7 +1611,16 @@ export function createMockApi() {
       }),
     advancedPage: () =>
       read('advancedPage', '', () =>
-        advancedOf(state.log, state.about, autoPublishOn(), pins, automatic),
+        advancedOf(
+          state.log,
+          state.about,
+          autoPublishOn(),
+          pins,
+          automatic,
+          leftDrafts(),
+          links,
+          sharing,
+        ),
       ),
     setAutomaticRuns: ({ on, version }) =>
       now(() => {
@@ -1069,6 +1646,46 @@ export function createMockApi() {
           },
         }
       }),
+    setChatSharing: ({ on, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin turns sharing chats on or off.')
+        if (version !== sharing.version)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        const why = on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.'
+        sharing = { on, version: version + 1, changed: { who: me(), when: 'Today', why } }
+      }),
+    setLinkReading: ({ on, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin turns reading links on or off.')
+        if (version !== links.version)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        const why = on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.'
+        links = { ...links, on, version: version + 1, changed: { who: me(), when: 'Today', why } }
+      }),
+    setNeverReadHosts: ({ hosts, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin lists the hosts links are never read on.')
+        if (version !== links.hostsVersion)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        links = {
+          ...links,
+          hosts,
+          hostsVersion: version + 1,
+          hostsChanged: { who: me(), when: 'Today', why: 'Changed in Settings, Advanced.' },
+        }
+      }),
     checkHistory: () => now(() => ({ whole: true, entries: 1284 })),
     exportHistory: () => now(() => historyFile(state.log)),
     exportContext: () =>
@@ -1079,18 +1696,23 @@ export function createMockApi() {
             .map((f) => ({ id: f.id, title: f.title })),
         ),
       ),
-    setFigures: ({ source, on }) => now(() => settings.setFigures(source, on)),
-    setDataContact: ({ source, name }) => now(() => settings.setContact(source, name)),
-    setFigureConnection: ({ source, endpoint }) =>
-      now(() => settings.setConnection(source, endpoint)),
     connectForm: ({ id }) =>
-      read('connectForm', id, () =>
-        connectFormFor(id, settings.read(scenario.address()).connected, kept.get(id)),
-      ),
+      read('connectForm', id, () => connectFormFor(id, settings.read().connected, kept.get(id))),
     // The checks take a moment, as a tool's do.
     testIntegration: ({ connector, config, secrets }) =>
       new Promise((resolve) => setTimeout(resolve, MOCK_TEST_MS)).then(() =>
-        copy(testFor(connector, { config, secrets }, scenario.address().query.views === 'many')),
+        copy(
+          testFor(
+            connector,
+            { config, secrets },
+            scenario.address().query.views === 'many',
+            familiesShop,
+          ),
+        ),
+      ),
+    checkIntegration: ({ id }) =>
+      new Promise((resolve) => setTimeout(resolve, MOCK_TEST_MS)).then(() =>
+        copy(integrations.check(id, scenario.address())),
       ),
     connectIntegration: ({ connector, config, chosen, readsAll, reason }) =>
       now(() => {
@@ -1098,7 +1720,7 @@ export function createMockApi() {
         settings.connect(connector)
         kept.set(connector, { config, chosen, readsAll, revision: 1 })
         // A definitions tool's read makes names, and the owner accepts them.
-        if (connectorById(connector)?.kind === 'definitions') names.load()
+        if (connectorById(connector)?.kind === 'definitions') names.load(familiesShop)
         // A content tool's first read is at its next morning read; a definitions tool's now.
         return {
           id: connector,
@@ -1108,16 +1730,12 @@ export function createMockApi() {
     changeIntegration: ({ id, revision, config, chosen, readsAll, acceptLeftOut, reason }) =>
       now(() => {
         const tool = connectorById(id)
-        if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
+        if (!tool || !settings.read().connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         checkConnect(tool.id, { chosen, reason })
         // ?change=fail: someone else saves the tool's settings, as they are, just before this.
         if (scenario.failsOnce('change', tool.id)) {
-          const theirs = connectFormFor(
-            tool.id,
-            settings.read(scenario.address()).connected,
-            kept.get(tool.id),
-          )!
+          const theirs = connectFormFor(tool.id, settings.read().connected, kept.get(tool.id))!
           kept.set(tool.id, {
             config: Object.fromEntries(theirs.fields.map((f) => [f.key, f.value])),
             chosen: theirs.chosen,
@@ -1142,38 +1760,24 @@ export function createMockApi() {
     integrationLeftOut: ({ id, readsAll, views }) =>
       read('integrationLeftOut', id, () => {
         const tool = connectorById(id)
-        if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
+        if (!tool || !settings.read().connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         return leftOutNow(tool.id, { readsAll, views })
       }),
     disconnectIntegration: ({ id }) =>
       now(() => {
         const tool = connectorById(id)
-        if (!tool || !settings.read(scenario.address()).connected.includes(tool.id))
+        if (!tool || !settings.read().connected.includes(tool.id))
           throw new ApiError('not-found', "We couldn't find this source.")
         settings.disconnect(tool.id)
         kept.delete(tool.id)
       }),
-    getIntegrations: () =>
-      now(() => ({
-        figureConnections: settings.connections(scenario.address(), integrations.paused),
-      })),
     integrationsPage: () =>
       read('integrationsPage', '', () => integrations.page(scenario.address())),
     integrationPage: ({ id }) =>
       read('integrationPage', id, () => integrations.sourcePage(id, scenario.address())),
     readIntegration: ({ id }) => now(() => integrations.readAgain(id, new Date())),
     pauseIntegration: ({ id, paused }) => now(() => integrations.pause(id, paused)),
-    readFigure: (asked) =>
-      now(() => {
-        // As the service: only a tool whose figures are on is asked, never one paused or broken.
-        const shown = settings.connections(scenario.address(), integrations.paused)
-        return figureFor(asked, (id) => shown[id]?.state === 'on')
-      }),
-    tryFigure: ({ source }) =>
-      now(() =>
-        figureTryFor(source, settings.connections(scenario.address(), integrations.paused)[source]),
-      ),
     listAgentConnections: () =>
       now(() =>
         settings
@@ -1272,7 +1876,7 @@ export function createMockApi() {
 
   // Every write is sent as the scenario plays a send: refused offline, failing its first try under
   // a fault flag. These take as long as a send does; every other write answers at once unless a
-  // flag plays sends. ?decide=fail names the card it fails on.
+  // flag plays sends. ?decide=fail names the card it fails on, ?publish=fail the suggestion.
   const timedSends: FootnoteApiMethod[] = [
     'settleConflict',
     'suggestArchiving',
@@ -1299,7 +1903,13 @@ export function createMockApi() {
               key: (args[0] as Parameters<FootnoteApi['decideCard']>[0]).card,
               flag: 'decide' as const,
             }
-          : {}),
+          : method === 'publishReview'
+            ? {
+                key: (args[0] as Parameters<FootnoteApi['publishReview']>[0]).id,
+                flag: 'publish' as const,
+                refusal: 'Another owner is already reviewing this suggestion.',
+              }
+            : {}),
       })) as never
   }
 
@@ -1316,12 +1926,23 @@ export function createMockApi() {
         if (demo === 'variants') definitions.loadVariants()
         if (demo === 'dbt') definitions.loadDbtFolder()
         if (demo === 'families') {
+          familiesShop = true
           definitions.loadFamilies()
           names.load(true)
           // Context about a family, and about one of its variants alone, for its quick view.
           for (const fact of familyFacts())
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         }
+        // 21 drafts brought in from a wiki, to publish from the Context list at once.
+        if (demo === 'imported')
+          for (const fact of importedDrafts())
+            if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
+        // 5,000 published items over 40 markets, for Context by time at the size of a large library.
+        if (demo === 'many') dispatch({ type: 'addFacts', facts: manyFacts() })
+        // 60 more, past what one Publish takes.
+        if (demo === 'backlog')
+          for (const fact of backlogDrafts())
+            if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
         if ((demo === 'done' || demo === 'week') && state.user) {
@@ -1348,6 +1969,8 @@ export function createMockApi() {
     subscribe: scenario.subscribe,
   }
   let lastDemo: string | undefined
+  // Once ?demo=families was opened, Test connection and a dbt connected read its shop's families.
+  let familiesShop = false
 
   return { api, controls }
 }

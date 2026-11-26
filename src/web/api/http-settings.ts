@@ -105,11 +105,10 @@ const SWITCHED = AGENT_TOOLS.map((t) => t.name)
 export function switchesOf(
   tools: readonly { tool: string; enabled: boolean }[],
   stops: readonly { scope: string; areaId: string | null }[],
-): Pick<Settings, 'links' | 'tools' | 'pause'> {
+): Pick<Settings, 'tools' | 'pause'> {
   const on = (name: string) => tools.find((t) => t.tool === name)?.enabled ?? false
   return {
-    links: on('get_related'),
-    tools: Object.fromEntries(SWITCHED.filter((n) => n !== 'get_related').map((n) => [n, on(n)])),
+    tools: Object.fromEntries(SWITCHED.map((n) => [n, on(n)])),
     pause: {
       all: stops.some((s) => s.scope === 'all'),
       domain: stops.find((s) => s.scope === 'area')?.areaId ?? null,
@@ -155,6 +154,25 @@ export function settingsOf(
 
 const list = (names: readonly string[]) =>
   names.length < 2 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+
+/** Whether links people paste are read, and the hosts never read, from the settings as read. */
+export function linkReadingOf(settings: readonly Setting[]): Advanced['links'] {
+  const on = settings.find((s) => s.key === 'links.read_pages')
+  const hosts = settings.find((s) => s.key === 'links.never_read_hosts')
+  if (!on || !hosts) return null
+  return {
+    on: on.value !== false,
+    version: on.version,
+    hosts: Array.isArray(hosts.value) ? hosts.value.filter((h) => typeof h === 'string') : [],
+    hostsVersion: hosts.version,
+  }
+}
+
+/** Whether people may share an Ask chat as a link, from the settings as read. */
+export function chatSharingOf(settings: readonly Setting[]): Advanced['sharing'] {
+  const on = settings.find((s) => s.key === 'ask.share_chats')
+  return on ? { on: on.value !== false, version: on.version } : null
+}
 
 /** Drafts and terms deleted for good, newest first, each with who deleted it and when. */
 export function deletedOf(
@@ -203,6 +221,7 @@ const SUBJECTS: Record<string, string> = {
   comment: 'a comment',
   report: 'a report',
   source: 'an integration',
+  // Figures in Ask left the app, but the history log keeps what was done to them before.
   figures: 'figures in Ask',
   access_key: 'an access key',
   agent: 'an agent',
@@ -218,7 +237,7 @@ const VERBS: Record<string, string> = {
   published: 'Published',
   submitted: 'Suggested',
   accepted: 'Published',
-  rejected: 'Returned',
+  rejected: 'Closed',
   withdrawn: 'Withdrew',
   withdrawal_taken_back: 'Took back the withdrawal of',
   connected: 'Connected',
@@ -268,6 +287,14 @@ export function historyLine(
     return {
       what: `Published ${e.subjectTitle ? `“${e.subjectTitle}”` : 'a suggestion'} with ${policy.setByName}'s permission to publish without review`,
     }
+  // The drafts of someone who left, deleted unread (FR-230): how many, and whose.
+  if (e.action === 'drafts.cleared') {
+    const n = typeof e.details.drafts === 'number' ? e.details.drafts : 0
+    const who = typeof e.details.name === 'string' ? e.details.name : 'someone'
+    return {
+      what: `Deleted ${n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`} of ${who}, who left`,
+    }
+  }
   if (e.action === 'access_key.renamed' && named('from') && named('to'))
     return { what: `Renamed the access key ${named('from')} to ${named('to')}` }
   if (noun === 'access_key' && named('name'))

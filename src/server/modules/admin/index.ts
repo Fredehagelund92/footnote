@@ -1,5 +1,7 @@
+export { draftAbout, readAboutFacts, scriptedAboutModel } from './about-draft.ts'
 export { exportAudit, plainReason, recordAudit, searchAudit, verifyAudit } from './audit.ts'
 export { exportEdition } from './edition-export.ts'
 export { importItems, type ImportServices } from './imports.ts'
+export { clearLeftDrafts, leftDrafts } from './left-drafts.ts'
 export { knownTools, listClients, saveClient, setTool } from './serving.ts'
 export { calendarOf, listSettings, readCalendar, readWorkspace, setSetting } from './settings.ts'

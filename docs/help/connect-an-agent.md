@@ -3,11 +3,13 @@ title: Connect an agent
 line: One prompt for Claude, Cursor or another agent, and what approving does.
 group: Start
 order: 3
-minutes: 4
+minutes: 5
 reviewed: 2026-11-20
 open:
   label: Open Agents and access
   href: /settings/agents
+does:
+  paste-the-prompt: connect_agent
 ---
 
 Connect Claude, Cursor or another agent, so it reads your published context before it answers a question about the numbers.
@@ -37,7 +39,7 @@ claude mcp add --transport http footnote https://footnote.example.com/mcp
 
 2. Add this line to the instructions file this project uses: CLAUDE.md if it exists, otherwise AGENTS.md, which you can create:
 
-Before you answer a question about company data, call get_context first and use what it returns.
+Before you answer a question about a company metric, call get_context first and use what it returns.
 
 3. Then tell me how to sign in. A browser window opens once, and I approve the connection there. Never ask me for a key or a token. Change nothing else.
 ```
@@ -73,7 +75,9 @@ Connected agents lists every agent by its name, with who it works for and how ma
 
 Open Details on a row to see each tool the agent can call, such as:
 
-- get_context, to read context
+- get_context, to read the context for a question
+- find_context, to look a name up or see what is defined and written down
+- read_context, to read one context item or one definition in full, with its links
 - report, to say what is missing or wrong
 - suggest_context, to send a suggestion that an owner checks before anything changes
 

@@ -11,7 +11,9 @@ import type { Card, Feed } from '@contract/inbox'
 import type { ReviewSheet } from '@contract/review-path'
 import type { Area } from '@domain/item'
 import type { ClashRelation } from '@domain/clash-relations'
+import { andList, keepLabel, splitCardLine } from '@domain/family-split'
 import { alertCardWords, alertRule, lookTitle, type RaiseSubject } from '@domain/alerts'
+import { cardKey } from '@domain/inbox'
 import { parseMentions } from '@domain/mentions'
 import { answerText, savedWhy } from '@domain/saved-check'
 import { staleWords } from '@domain/suggestion-standing'
@@ -20,7 +22,14 @@ import type { Inbox, Workspace } from './client'
 import { mentionIdOf, textFromService, type Words } from './http-context'
 import { commentWhen } from './http-map'
 import type { Subject } from '@/model/comments'
-import { namesWords, type InboxCard, type Outcome, type Waiting } from '@/model/inbox'
+import {
+  ASK_SOMEONE,
+  draftsWords,
+  namesWords,
+  type InboxCard,
+  type Outcome,
+  type Waiting,
+} from '@/model/inbox'
 import { kindLabel, type Fact, type Kind } from '@/model/items'
 import { describe, type Domain, type Domains, type Person } from '@/model/people'
 import type { Block, ChangeKind, FieldSide, Relation, Review } from '@/model/review'
@@ -162,8 +171,29 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         detail: '',
         primary: 'Review',
         secondary: [],
-        names: { ready: card.ready, flagged: card.flagged, tools: card.tools },
+        names: {
+          ready: card.ready,
+          flagged: card.flagged,
+          families: card.families,
+          tools: card.tools,
+        },
       }
+    case 'drafts': {
+      const imported = card.drafts.filter((d) => d.imported).length
+      return {
+        ...base,
+        type: 'drafts',
+        ...draftsWords({ imported, old: card.drafts.length - imported }),
+        detail: '',
+        primary: 'Publish all',
+        secondary: ['See them in Context'],
+        drafts: {
+          ids: card.drafts.map((d) => d.id),
+          imported,
+          old: card.drafts.length - imported,
+        },
+      }
+    }
     case 'suggestion': {
       const synced = card.synced
       const from = synced ? synced.source.tool : (card.from?.name ?? 'Someone')
@@ -210,6 +240,9 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
       }
     }
     case 'gap': {
+      // A topic of words Ask could not find has no question to pass on: its words stay here.
+      const topic =
+        card.scope.metrics.length + card.scope.values.length + card.scope.dimensions.length
       return {
         ...base,
         type: 'gap',
@@ -219,7 +252,11 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           ? 'A draft is ready. Check every part before you publish.'
           : `Nothing is drafted yet: write what agents should know about ${card.title}.`,
         primary: card.draft ? 'Review' : 'Write context',
-        secondary: ['Not something we write down'],
+        secondary:
+          topic && !card.draft
+            ? ['Not something we write down', ASK_SOMEONE]
+            : ['Not something we write down'],
+        ...(card.asked ? { asked: { on: dayMonth(card.asked.copiedOn), answers: [] } } : {}),
         gap: {
           scope: [card.title],
           times: card.times,
@@ -254,6 +291,10 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           when: dayWords(card.at),
           by: card.by ? person(card.by) : '',
           via: card.source === 'ask' ? 'Ask' : 'an agent',
+          ...(card.question ? { question: card.question } : {}),
+          ...(card.correction ? { correction: card.correction } : {}),
+          ...(card.link ? { link: card.link } : {}),
+          ...(card.suggestion ? { suggestion: cardKey.proposal(card.suggestion) } : {}),
         },
       }
     }
@@ -298,6 +339,14 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
       }
     }
     case 'check': {
+      // A family it is about was split: the metrics it still reaches agents through, by name.
+      const split =
+        card.reason === 'family' && card.families.length
+          ? {
+              name: andList(card.families.map((f) => f.name)),
+              metrics: [...new Set(card.families.flatMap((f) => f.metrics))],
+            }
+          : undefined
       const by = card.lastChecked.by
       const on = card.lastChecked.on
       // Due since a day, as the mock says it: "Since 2 Oct".
@@ -309,19 +358,35 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           : `Since ${since.replace(/^Yesterday, .*/, 'yesterday')}`,
         type: 'check',
         due: card.reason,
+        changed: card.changed.map((c) => c.name),
+        ...(split ? { splitInto: split.metrics } : {}),
         title: card.title,
         // The line names the definitions and the day each changed; not the tool, which the card lacks.
-        line:
-          card.reason === 'source'
+        line: split
+          ? splitCardLine(split.name, split.metrics)
+          : card.reason === 'source'
             ? changedLine(card.changed)
             : `Its check date passed on ${dayWords(card.at)}. Agents are told it may be out of date.`,
         detail:
           by && on
             ? `Last checked by ${by === me ? 'you' : by}, ${dayWords(on)}.`
             : 'Not checked yet.',
-        primary: 'Still true',
-        secondary: ['Edit', 'Archive'],
+        primary: split ? keepLabel(split.metrics.length) : 'Still true',
+        secondary: ['Edit', 'Archive', ASK_SOMEONE],
         factId: card.itemId,
+        ...(card.asked
+          ? {
+              asked: {
+                on: dayMonth(card.asked.copiedOn),
+                answers: card.answers.map((a) => ({
+                  ...a,
+                  by: a.by ?? 'Someone',
+                  endedOn: a.endedOn && dayWords(a.endedOn),
+                  when: whenWords(a.at, now),
+                })),
+              },
+            }
+          : {}),
       }
     }
   }
@@ -339,13 +404,13 @@ function changedLine(changed: Extract<Card, { group: 'check' }>['changed']): str
     .join(', ')}.`
 }
 
-/** What the Inbox shows of the person's own suggestions that wait on an owner. */
+/** What the Inbox shows of the person's own suggestions that wait on an owner, or that one closed. */
 function waitingOf(w: Feed['waiting'][number], me: string, domains: Domains, now: Date): Waiting {
   const owners = w.waitingFor
   const domain = w.areaId ?? ''
   const of = domains[domain]?.name ?? domain
   return {
-    id: `waiting:${w.proposalId}`,
+    id: w.closed ? cardKey.closed(w.proposalId) : `waiting:${w.proposalId}`,
     for: me,
     title: w.title,
     waitingFor: owners.length
@@ -356,6 +421,15 @@ function waitingOf(w: Feed['waiting'][number], me: string, domains: Domains, now
     card: w.proposalId,
     ...(w.returned
       ? { returned: { by: w.returned.by ?? 'An owner', when: whenWords(w.returned.at, now) } }
+      : {}),
+    ...(w.closed
+      ? {
+          closed: {
+            by: w.closed.by ?? 'An owner',
+            when: whenWords(w.closed.at, now),
+            reason: w.closed.reason,
+          },
+        }
       : {}),
   }
 }
@@ -401,6 +475,8 @@ export function inboxOf(
       c.group === 'suggestion' && drafts.has(c.proposalId) ? [[c.proposalId, c] as const] : [],
     ),
   )
+  // A suggestion an owner closed is opened once its sender opened its row.
+  for (const w of feed.waiting) if (w.closed?.read) opened[cardKey.closed(w.proposalId)] = true
   for (const c of cards) {
     const id = idOf(c)
     const draft = c.group === 'gap' && c.draft ? draftCards.get(c.draft) : undefined
@@ -916,6 +992,11 @@ export function reviewOf(
             title: sheet.readiness.title,
             text: sheet.readiness.text,
           },
+    ...(sheet.readiness.state === 'no_source'
+      ? { sourceless: 'add' as const }
+      : sheet.readiness.state === 'confirm_source'
+        ? { sourceless: 'confirm' as const }
+        : {}),
     readMs: sheet.readMs,
     saved: sheet.saved.map((x) => ({
       id: x.id,

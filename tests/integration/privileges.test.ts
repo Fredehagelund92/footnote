@@ -181,6 +181,20 @@ it('serving role can read serving models but no raw versions, people or private 
     asRole(localRoles.serve, null, () => client.query("select edition_open('bootstrap',null)")),
   ).rejects.toMatchObject({ code: '42501' })
 })
+it('serving and the service read the split families, and analytics is refused', async () => {
+  for (const role of [localRoles.serve, localRoles.api])
+    expect(
+      await asRole(role, null, () =>
+        client.query('select family_key, variants from serving_family_splits(1)'),
+      ),
+    ).toMatchObject({ rows: [] })
+  await expect(
+    asRole(localRoles.readonly, null, () => client.query('select * from serving_family_splits(1)')),
+  ).rejects.toMatchObject({ code: '42501' })
+  await expect(
+    asRole(localRoles.serve, null, () => client.query('select split_by from family_splits')),
+  ).rejects.toMatchObject({ code: '42501' })
+})
 it('analytics cannot read personal columns or change data', async () => {
   for (const table of [
     'people',
@@ -354,24 +368,27 @@ describe('attached tests', () => {
     await expect(attach(people.author, draft, 'finance-held')).rejects.toMatchObject({
       code: '23514',
     })
+    // A draft is its writer's alone (FR-139): an owner of its area attaches nothing to it.
     await expect(attach(people.owner, draft, 'finance-held')).rejects.toMatchObject({
-      code: '23514',
+      code: '42501',
     })
     await expect(attach(people.author, draft, 'marketing-open')).rejects.toMatchObject({
       code: '23514',
     })
   })
 
-  it("lets the author attach to their draft, the area's maintainers until a decision", async () => {
-    // Someone else's draft, and the author's own proposal once it is sent.
-    await expect(attach(people.stranger, draft, 'finance-later')).rejects.toMatchObject({
-      code: '42501',
-    })
+  it("lets the author attach to their draft, the area's maintainers once it is sent, until a decision", async () => {
+    // Someone else's draft, also for an owner of its area or an admin, and the author's own
+    // proposal once it is sent.
+    for (const person of [people.stranger, people.owner, people.admin])
+      await expect(attach(person, draft, 'finance-later')).rejects.toMatchObject({
+        code: '42501',
+      })
     await expect(attach(people.author, submitted, 'finance-open')).rejects.toMatchObject({
       code: '42501',
     })
     await attach(people.owner, submitted, 'finance-open')
-    await attach(people.admin, draft, 'finance-later')
+    await attach(people.author, draft, 'finance-later')
     await expect(
       asRole(localRoles.api, people.admin, () =>
         client.query("update proposal_tests set question_id='finance-later'"),

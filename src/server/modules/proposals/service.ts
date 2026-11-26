@@ -29,8 +29,25 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
  item_version_id::text as "itemVersionId",proposer_id::text as "proposerId",channel,revision,
  case when subject='item' then coalesce(draft,'{}'::jsonb) else '{}'::jsonb end as draft,
  provenance,draft_findings as findings,claimed_by::text as "claimedBy",due_at::text as "dueAt",
- created_at::text as "createdAt",updated_at::text as "updatedAt",
+ submitted_at::text as "submittedAt",created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
+/**
+ * The states in which an owner of its domain or an admin may finish someone else's words: a
+ * suggestion waiting for their review. A draft is its writer's alone (FR-139).
+ */
+const ownersFinish = (state: ProposalRecord['state']) =>
+  state === 'submitted' || state === 'in_review'
+
+/**
+ * Whether its words may change now: a draft, or a suggestion sent back for changes, by its writer;
+ * a suggestion waiting for review only by an owner or an admin who edits it to publish it, which
+ * writerOr checked (Edit then publish). Its writer withdraws a waiting suggestion instead.
+ */
+const editableBy = (p: ProposalRecord, personId: string | null) =>
+  p.state === 'draft' ||
+  p.state === 'changes_requested' ||
+  (p.proposerId !== personId && ownersFinish(p.state))
+
 /**
  * Proposals as the API returns them to the reader: a draft that names an item the audience rule
  * hides from them reads without it (`forReader`). Row security leaves out the proposals they may
@@ -183,6 +200,24 @@ function proposalsService(
     if (p.proposerId !== personId)
       throw new ORPCError('FORBIDDEN', {
         message: notAllowed('change a suggestion someone else wrote', 'the person who wrote it'),
+      })
+  }
+  /**
+   * Its writer changes it, or else, with `byDomainOwners`, an owner of its domain or an admin
+   * edits a suggestion waiting for their review, to publish it as itself: it stays its writer's.
+   */
+  async function writerOr(p: ProposalRecord, byDomainOwners: boolean) {
+    if (p.proposerId === personId || !byDomainOwners || !ownersFinish(p.state))
+      return proposerOnly(p)
+    const [may] = await tx.query<{ ok: boolean }>(
+      'select cl_is_admin_now() or cl_is_owner_now($1) as ok',
+      [p.areaId],
+    )
+    if (!may?.ok) proposerOnly(p)
+    // An edit before publishing is the reviewer's: never past another owner's claim on it.
+    if (p.claimedBy && p.claimedBy !== personId)
+      throw new ORPCError('CONFLICT', {
+        message: 'Another owner is already reviewing this suggestion.',
       })
   }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
@@ -372,10 +407,16 @@ function proposalsService(
     const [draft] = await forReader(tx, [row.draft])
     return draft!
   }
-  /** A read's suggestion comes through `source`; a person's through the channel they used. */
-  const channelOf = (input: z.infer<typeof createProposalSchema>): ProposalRecord['channel'] =>
-    author ? 'source' : (input.channel ?? 'form')
-  async function prepare(input: z.infer<typeof createProposalSchema>) {
+  /**
+   * A read's suggestion comes through `source`; a person's through the channel they used, or the
+   * question page, which only the service names (`question`).
+   */
+  const channelOf = (
+    input: z.infer<typeof createProposalSchema>,
+    question = false,
+  ): ProposalRecord['channel'] =>
+    author ? 'source' : question ? 'question' : (input.channel ?? 'form')
+  async function prepare(input: z.infer<typeof createProposalSchema>, question = false) {
     let source: Draft = {}
     let itemId = input.itemId
     if (input.itemId) source = await seedItem(input.itemId)
@@ -394,7 +435,7 @@ function proposalsService(
       source = prior.draft
     }
     const draft = await defaults({ ...source, ...input.draft }, undefined, source.scope)
-    const checks = await checkDraft(tx, draft, personId, channelOf(input), itemId ?? null)
+    const checks = await checkDraft(tx, draft, personId, channelOf(input, question), itemId ?? null)
     return { draft, itemId: itemId ?? null, checks }
   }
   return {
@@ -455,11 +496,13 @@ function proposalsService(
          * `saveAgentDraft` passes it, for an agent's suggestion.
          */
         agentId?: string
+        /** Sent from a question link's page; only the questions service passes it. */
+        question?: boolean
       } = {},
     ) {
-      const { draft, itemId, checks } = await prepare(input)
+      const { draft, itemId, checks } = await prepare(input, options.question)
       rejectSensitive(draft)
-      const channel = channelOf(input)
+      const channel = channelOf(input, options.question)
       const action = itemId ? 'change' : 'create'
       const reason = changeReason(input.reason, action)
       // The words of a change are written from the version the writer read: the one named, or else
@@ -504,17 +547,23 @@ function proposalsService(
       return p!
     },
     /** `reason` left out keeps the stored one; null or empty clears it. */
-    async save(id: string, revision: number, input: Draft, reasonInput?: string | null) {
+    async save(
+      id: string,
+      revision: number,
+      input: Draft,
+      reasonInput?: string | null,
+      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
+    ) {
       const p = await current(id, revision)
-      proposerOnly(p)
-      if (!['draft', 'changes_requested'].includes(p.state))
+      await writerOr(p, byDomainOwners)
+      if (!editableBy(p, personId))
         throw new ORPCError('CONFLICT', {
           message: 'You can only edit a draft, or a suggestion sent back for changes.',
         })
       const draft = await defaults(input, p.areaId, p.draft.scope)
       rejectSensitive(draft)
       const reason = reasonInput === undefined ? p.reason : changeReason(reasonInput, p.action)
-      const checks = await checkDraft(tx, draft, personId, p.channel, p.itemId)
+      const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId)
       // A field the person changed is theirs from now on: it loses the agent's mark (FR-121).
       const provenance = p.provenance ? keepMarks(p.provenance, p.draft, draft) : null
       await tx.query(
@@ -532,10 +581,14 @@ function proposalsService(
       await event(saved, 'saved')
       return saved
     },
-    async submit(id: string, revision: number) {
+    async submit(
+      id: string,
+      revision: number,
+      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
+    ) {
       const p = await current(id, revision)
-      proposerOnly(p)
-      if (!['draft', 'changes_requested'].includes(p.state))
+      await writerOr(p, byDomainOwners)
+      if (!editableBy(p, personId))
         throw new ORPCError('CONFLICT', {
           message: 'Only a draft, or a suggestion sent back for changes, can be sent for review.',
         })
@@ -543,7 +596,7 @@ function proposalsService(
       await tx.query(
         "select pg_advisory_xact_lock_shared(hashtextextended('context_layer.edition',0))",
       )
-      const checks = await checkDraft(tx, p.draft, personId, p.channel, p.itemId)
+      const checks = await checkDraft(tx, p.draft, p.proposerId, p.channel, p.itemId)
       if (!checks.version || checks.findings.some((f) => f.severity === 'error'))
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
           message: 'Fix the problems shown before you send it for review.',
@@ -601,16 +654,23 @@ function proposalsService(
         }
         previous = written ?? base?.id ?? previous ?? rescue?.versionId ?? null
       }
-      const version = await insertVersion(tx, item, v, previous)
+      // An owner's or an admin's words in a suggestion that waits for them (Edit then publish)
+      // supersede the version its writer sent, and name who edited it.
+      const edit = p.state === 'submitted' || p.state === 'in_review'
+      const version = edit
+        ? await insertVersion(tx, item, v, p.itemVersionId, { editedBy: personId! })
+        : await insertVersion(tx, item, v, previous)
       const [area] = await tx.query<{ review_days: number }>(
         'select review_days from areas where id=$1',
         [p.areaId],
       )
       const due = addWorkingDays(clock.now().toISOString(), area!.review_days)
       await tx.query(
-        `update proposals set state='submitted',item_id=$2,item_version_id=$3,submitted_at=now(),due_at=$4,
-        claimed_by=null,claimed_at=null,draft_findings=$5 where id=$1`,
-        [id, item, version.id, due, JSON.stringify(checks.findings)],
+        `update proposals set state=case when $6::boolean then state else 'submitted' end,
+        item_id=$2,item_version_id=$3,submitted_at=now(),due_at=$4,
+        claimed_by=case when $6::boolean then claimed_by end,claimed_at=case when $6::boolean then claimed_at end,
+        draft_findings=$5 where id=$1`,
+        [id, item, version.id, due, JSON.stringify(checks.findings), edit],
       )
       await tx.query(
         `insert into check_results(item_version_id,level,outcome,inputs_digest,details) values($1,'format',$2,decode($3,'hex'),$4)`,
@@ -652,24 +712,13 @@ function proposalsService(
       return withdrawn
     },
     /**
-     * The author, or an administrator, discards a draft that was never sent (withdraw is for a
-     * sent proposal). The row stays for its timeline and audit entries, and reads as not found.
+     * Its writer discards a draft that was never sent (withdraw is for a sent proposal): a draft is
+     * theirs alone (FR-139). The row stays for its timeline and audit entries, and reads as not
+     * found.
      */
-    async discard(
-      id: string,
-      revision: number,
-      /** Footnote v1's Context list (FR-139): an owner of the draft's domain deletes it too. */
-      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
-    ) {
+    async discard(id: string, revision: number) {
       const p = await current(id, revision)
-      if (p.proposerId !== personId) {
-        const [may] = await tx.query<{ ok: boolean }>(
-          'select cl_is_admin_now() or ($2 and cl_is_owner_now($1)) as ok',
-          [p.areaId, byDomainOwners],
-        )
-        if (!may?.ok)
-          throw new ORPCError('FORBIDDEN', { message: notAllowed('decide this suggestion') })
-      }
+      proposerOnly(p)
       if (p.state !== 'draft')
         throw new ORPCError('CONFLICT', {
           message:

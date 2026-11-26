@@ -10,6 +10,10 @@ const places = [
   '/signin',
   // An agent's consent page, with the demo's waiting sign-in (src/web/api/mock/data/agents.ts).
   '/connect/approve?request=demo-agent-sign-in-waiting-for-your-answer0',
+  // The page a question link opens, for a Nothing written yet card and a Due for a check card
+  // (src/web/api/mock/data/inbox.ts).
+  '/question/demo-question-orders-in-germany',
+  '/question/demo-question-returns-check',
   '/inbox',
   '/inbox?card=sug-ines',
   // The pane's answers in each state it draws: a conflict on the soft caution fill, a Not found
@@ -17,9 +21,14 @@ const places = [
   '/inbox?card=sug-sofia-clash',
   '/inbox?card=gap-spain',
   '/inbox?card=check-returns',
+  // A report from Ask with the words its sender would write and their link.
+  '/inbox?card=flag-germany',
   '/inbox?dock=review.sug-sofia-clash',
   '/inbox?demo=setup',
   '/inbox?demo=names',
+  // The imported drafts card, its list and one draft open in the card's place.
+  '/inbox?demo=imported&card=drafts%3Ayours',
+  '/inbox?demo=imported&card=drafts%3Ayours&draft=itm_draft_imported_07',
   '/inbox/sug-ines/review',
   '/inbox/sug-sofia-clash/review',
   '/inbox/gap-spain/review',
@@ -30,13 +39,22 @@ const places = [
   '/inbox/gap-spain/review?view=preview',
   '/context',
   '/context?dock=context.itm_norway_stop',
+  // Context by time, and an item of it open in the side panel.
+  '/context?view=time',
+  '/context?view=time&dock=context.itm_za26xpzv',
   '/context/itm_norway_stop',
   '/context/itm_norway_stop/edit',
   '/context/itm_norway_stop/suggest',
+  // A new item waiting for review, as an owner decides it.
+  '/context/sug-agent',
   '/context/new',
   '/definitions',
   '/definitions?dock=def.Orders',
   '/definitions/Orders',
+  // What a metric is built from, as a tree on its page and in its quick view.
+  '/definitions/Return%20on%20ad%20spend',
+  '/definitions?dock=def.Gross%20margin',
+  '/definitions/Gross%20margin?dock=def.Net%20revenue',
   '/definitions/Webshop/edit',
   '/definitions/new',
   '/ask',
@@ -57,6 +75,12 @@ const places = [
   '/ask?example=loop-unknown',
   '/ask?example=loop-stopped',
   '/ask?example=loop-used-trust',
+  // An answer from the help in Markdown: marks, a link, a numbered list and a table.
+  '/ask?example=loop-help-markdown',
+  // What is not published yet, in its own block under the answer: a draft, and a suggestion that
+  // waits for review.
+  '/ask?example=loop-drafts',
+  '/ask?example=loop-drafts-waiting',
   '/context/itm_gift_store_credit',
   // Conflicts: the Context list filtered to them, a pair's page, the dock, a pair across two
   // domains, a near copy.
@@ -111,6 +135,13 @@ const places = [
   '/inbox?open=report',
   '/settings/agents?open=connect',
 ]
+
+// The places whose trees draw lazily, with how many each shows: axe waits for them.
+const trees = new Map([
+  ['/definitions/Return%20on%20ad%20spend', 1],
+  ['/definitions?dock=def.Gross%20margin', 1],
+  ['/definitions/Gross%20margin?dock=def.Net%20revenue', 2],
+])
 
 const widths = [
   { name: '390', width: 390, height: 844 },
@@ -187,9 +218,43 @@ for (const { name, width, height } of widths) {
           // The demo starts signed in, and someone signed in goes from sign-in to the Inbox.
           if (place === '/signin') await signOut(page, width)
           await expect(page.locator('main, [role=main], h1').first()).toBeVisible()
+          if (trees.has(place)) await expect(page.getByRole('tree')).toHaveCount(trees.get(place)!)
           expect(await violations(page)).toEqual([])
         })
       }
+
+      // Something wrong? beside an answer: the form with the right words open, then sent. Jon owns
+      // the item, so it is checked as Ines, who can suggest them; none of it wider than the screen.
+      test('Something wrong? beside an answer, then sent', async ({ page }) => {
+        await page.goto(withTheme('/ask?example=grounded', theme))
+        await signOut(page, width)
+        await page.getByRole('button', { name: /Ines Duarte/ }).click()
+        await expect(page).toHaveURL(/\/(inbox|ask)$/)
+        // The demo's sign-in lives in this page's memory: move inside the app, never load it again.
+        await page.evaluate(
+          (to) => {
+            const link = Object.assign(document.createElement('a'), { href: to })
+            document.body.append(link)
+            link.click()
+            link.remove()
+          },
+          withTheme('/ask?example=grounded', theme),
+        )
+        await page.getByRole('button', { name: 'Bad answer' }).last().click()
+        const panel = page.getByRole('region', { name: 'Something wrong?' })
+        await panel.getByRole('textbox', { name: "What's wrong?" }).fill('Off by four.')
+        await panel.getByRole('button', { name: 'Suggest the right words' }).click()
+        await panel
+          .getByRole('textbox', { name: 'The right words (a suggestion)' })
+          .fill('New words.')
+        expect(await violations(page)).toEqual([])
+        expect(await fitsTheScreen(page)).toBe(true)
+        await panel.getByRole('button', { name: 'Send the report and suggestion' }).click()
+        await expect(panel.getByRole('heading', { name: /^Sent to the owners of/ })).toBeVisible()
+        // Close takes Send's place under the pointer: hovered, a button is drawn lighter.
+        await page.mouse.move(0, 0)
+        expect(await violations(page)).toEqual([])
+      })
 
       // A context item's Details, open: the lines, the source block, Related and the toolbar.
       test('the Details of a context item, open', async ({ page }) => {
@@ -239,6 +304,22 @@ for (const { name, width, height } of widths) {
         await page.getByLabel('File address').fill('https://b.s3.amazonaws.com/f.json')
         await page.getByRole('button', { name: 'Test connection' }).click()
         await expect(page.getByText('A read would hold', { exact: false })).toBeVisible()
+        expect(await violations(page)).toEqual([])
+        expect(await fitsTheScreen(page)).toBe(true)
+      })
+
+      // Don't publish: the reason an owner gives to close a new item waiting for review.
+      test("Don't publish, its dialog open", async ({ page }) => {
+        await page.goto(withTheme('/context/sug-agent', theme))
+        // On a phone it is in the page's More menu.
+        if (width < 768) {
+          await page.getByRole('button', { name: 'More', exact: true }).click()
+          await page.getByRole('menuitem', { name: "Don't publish" }).click()
+        } else await page.getByRole('button', { name: "Don't publish", exact: true }).click()
+        const dialog = page.getByRole('dialog', { name: "Don't publish it?" })
+        await expect(
+          dialog.getByRole('textbox', { name: "Why you don't publish it" }),
+        ).toBeVisible()
         expect(await violations(page)).toEqual([])
         expect(await fitsTheScreen(page)).toBe(true)
       })

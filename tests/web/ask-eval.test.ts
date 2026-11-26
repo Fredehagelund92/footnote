@@ -104,6 +104,15 @@ describe('the code graders', () => {
     expect(
       ungroundedNumbers(reply('There are 9 of them.', { evidence: ['9 context items'] }), ctx),
     ).toEqual([])
+    // An id's digits are no number a read gave, whatever time made the id.
+    const ids = {
+      evidence: [
+        '{"id":"term:01a212b7-6e07-7203-a953-ad3a02a8aace","name":"Sales"}',
+        '{"id":"itm_kcy06j38","title":"Sales targets"}',
+      ],
+    }
+    expect(ungroundedNumbers(reply('Sales has six metrics.', ids), ctx)).toEqual(['6'])
+    expect(ungroundedNumbers(reply('Sales has 38 metrics.', ids), ctx)).toEqual(['38'])
   })
 
   it('fail a citation the reader cannot follow', () => {

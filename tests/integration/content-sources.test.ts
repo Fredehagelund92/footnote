@@ -128,7 +128,7 @@ beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
     await client.query(
-      "insert into vocab_terms(key,kind,parent_key) values ('val:market/spain','dimension_value','dim:market')",
+      "insert into vocab_terms(key,kind) values ('val:market/spain','dimension_value')",
     )
     const [{ seq }] = (
       await client.query<{ seq: string }>("select edition_open('bootstrap',null) as seq")

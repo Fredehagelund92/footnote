@@ -11,7 +11,8 @@ import type { VersionPair } from '../../../contract/context.ts'
 import { answer, topicWords, type Answer, type AnswerBundle } from '../../../domain/answer.ts'
 import { CLAIMS_SHOWN, claimCheck } from '../../../domain/claim-check.ts'
 import { docDiff, docMarkdown, plainText, type DocSide } from '../../../domain/doc-diff.ts'
-import type { ItemVersion } from '../../../domain/item-version.ts'
+import { publishable, type ItemVersion } from '../../../domain/item-version.ts'
+import { linksToConfirm } from '../../../domain/questions.ts'
 import { anyDate, shiftDate } from '../../../domain/validity.ts'
 import { sourceDiff } from '../../../domain/source-diff.ts'
 import { staleWords, standingOf, type Standing } from '../../../domain/suggestion-standing.ts'
@@ -52,7 +53,7 @@ import {
   type LoadedProposal,
 } from './records.ts'
 import type { CommentsService } from '../comments/index.ts'
-import type { ReviewService, UnderPolicy } from './service.ts'
+import { refuseWithoutSource, type ReviewService, type UnderPolicy } from './service.ts'
 import { missing } from '../../../contract/refusals.ts'
 
 /*
@@ -160,6 +161,8 @@ export function createReviewPath(
    */
   async function fieldsOf(
     r: Pick<Reading, 'before' | 'after' | 'candidate'>,
+    /** Links a sender gave on the question page with no sentence from them yet: theirs to confirm. */
+    given: readonly string[] = [],
   ): Promise<ReviewSheet['fields']> {
     const versions = [r.before, r.after].flatMap((v) => (v ? [v.version] : []))
     const areas = await tx.query<{ id: string; name: string }>(
@@ -184,10 +187,9 @@ export function createReviewPath(
       sources: v.evidence.map((e) => ({ url: e.url, quote: e.quote })),
       notToConclude: v.notToConclude,
     })
-    return {
-      before: r.before ? side(r.before.version) : null,
-      after: r.after ? side(r.after.version) : null,
-    }
+    const after = r.after ? side(r.after.version) : null
+    if (after && !after.sources.length) after.sources = given.map((url) => ({ url, quote: null }))
+    return { before: r.before ? side(r.before.version) : null, after }
   }
 
   /**
@@ -391,6 +393,11 @@ export function createReviewPath(
       withdrawn: withdrawn !== null,
       // Made by a content source's read from a document, never by a person (CON-611).
       synced: r.p.channel === 'source',
+      ...(r.after && !publishable(r.after.version)
+        ? {
+            needsSource: linksToConfirm(r.p.draft).length ? ('confirm' as const) : ('add' as const),
+          }
+        : {}),
     })
     return { diff, claims, ready }
   }
@@ -443,10 +450,15 @@ export function createReviewPath(
     const relations = await relationsOf(r)
     const withdrawn = await withdrawalOf(r)
     const { diff, claims, ready } = readinessOf(r, relations, withdrawn)
+    const [name] = await tx.query<{ name: string | null }>(
+      'select display_name as name from people where id=$1',
+      [p.proposerId],
+    )
     const words = readinessWords(ready, {
       diff,
       clashes: r.clashes.length,
       ...(withdrawn?.by.name ? { withdrawnBy: withdrawn.by.name } : {}),
+      ...(name?.name ? { from: name.name } : {}),
     })
     const beforeMarkdown = r.before ? markdownOf(r.before.version) : ''
     const afterMarkdown = r.after ? markdownOf(r.after.version) : ''
@@ -456,10 +468,6 @@ export function createReviewPath(
     const options = { today, voice: peopleVoice }
     const before = ask ? brief(answer(r.bundle, ask, options)) : empty
     const after = ask ? brief(answer(r.candidate, ask, options)) : empty
-    const [name] = await tx.query<{ name: string | null }>(
-      'select display_name as name from people where id=$1',
-      [p.proposerId],
-    )
     const live = new Map(r.candidate.items.map((i) => [i.id, i]))
     const whyNot = await publishRight(p)
     let reach: ReviewSheet['reach'] = null
@@ -477,7 +485,7 @@ export function createReviewPath(
       withdrawn,
       diff,
       versions: { before: r.before?.id ?? null, after: r.after?.id ?? null },
-      fields: await fieldsOf(r),
+      fields: await fieldsOf(r, linksToConfirm(p.draft)),
       source: {
         before: beforeMarkdown,
         after: afterMarkdown,
@@ -615,6 +623,8 @@ export function createReviewPath(
     if (why)
       throw new ORPCError(why.startsWith('Only') ? 'FORBIDDEN' : 'CONFLICT', { message: why })
     const r = await reading(p)
+    // Before any clash: without a source it is not published, whatever it relates to.
+    if (r.after) refuseWithoutSource(r.after.version)
     const given = new Map(
       (input.relations ?? [])
         .filter((x) => !clashesOnly || r.clashes.includes(x.itemId))
@@ -690,9 +700,9 @@ export function createReviewPath(
   }
 
   /**
-   * Closes a suggestion to archive its sender took back in the comments: nothing changes, and the
-   * context item stays live. The review service checks who may (an owner or an admin, as for a
-   * decision) and that it was taken back.
+   * Closes a suggestion, so nothing changes: one to archive leaves the context item live, and a new
+   * item or a change is not published. The review service checks who may (an owner or an admin, as
+   * for a decision) and that a reason is given where one is needed.
    */
   async function close(input: { id: string; revision: number; reason?: string | undefined }) {
     const closed = await review.close(input)
@@ -830,7 +840,7 @@ export function createReviewPath(
         continue
       }
       // A close changed nothing agents get: the suggestion waits again.
-      if (d.outcome === 'reject' && d.action === 'retire') continue
+      if (d.outcome === 'reject') continue
       if (d.outcome === 'retire') {
         // An archive: the archived version comes back, unless something else is live for it now.
         if (await liveVersionId(tx, d.itemId))

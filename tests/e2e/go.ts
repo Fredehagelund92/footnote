@@ -200,10 +200,8 @@ export const test = base.extend<{ demoWeek: void }>({
   the first try of a decision, and of adding or removing a synonym, fail, `?bulk=fail` makes the
   last row of the first change to many rows fail, `?quality=failed` makes the last check of the
   saved questions one that stopped after 8 of them, `?demo=last` decides every suggestion but the one opened, through the service,
-  `?demo=setup` starts on an empty workspace, `?links=off` (or `on`) switches following links
-  for agents in Agents and access, on the service, before the page loads, `?figures=on|off` switches
-  Cube's figures, and Ask's `?example=` asks the example's question in the composer (`figconflict`
-  after someone reported that its figure doesn't fit).
+  `?demo=setup` starts on an empty workspace, and Ask's `?example=` asks the example's question in
+  the composer.
 */
 export async function go(page: Page, route: string) {
   const was = workspace
@@ -289,16 +287,12 @@ async function httpRoute(
   const bulk = query.get('bulk')
   const connect = query.get('connect')
   const quality = query.get('quality')
-  const links = query.get('links')
-  query.delete('links')
-  const figures = query.get('figures')
   const example = path === '/ask' ? query.get('example') : null
   query.delete('demo')
   query.delete('state')
   query.delete('bulk')
   query.delete('connect')
   query.delete('quality')
-  query.delete('figures')
   if (example) {
     // An example is the mock's own answer: on the service the journey asks its question, in a
     // chat of its own.
@@ -318,17 +312,11 @@ async function httpRoute(
   else if (bulk) throw new Error(`?bulk=${bulk} has no http meaning yet`)
   if (quality === 'failed') await failedCheck(8)
   else if (quality) throw new Error(`?quality=${quality} has no http meaning yet`)
-  if (links === 'on' || links === 'off') await followLinks(page, links === 'on')
-  else if (links) throw new Error(`?links=${links} has no http meaning yet`)
-  // Figures on or off for Cube, as an admin switches them.
-  if (figures === 'on' || figures === 'off') await figuresOn(page, figures === 'on')
-  else if (figures) throw new Error(`?figures=${figures} has no http meaning yet`)
-  if (example === 'figconflict') await figureDoesNotFit(page)
   const search = query.toString()
   return {
     route: `${path}${search ? `?${search}` : ''}`,
     // Another workspace on another service, or a switch the app has read: the app loads again.
-    ...(demo === 'setup' || links ? { load: true } : {}),
+    ...(demo === 'setup' ? { load: true } : {}),
     // The live line's states happen for real: a wait, an agent's sign-in, a no in the browser.
     ...(connect ? { after: () => connectState(page, connect) } : {}),
     ...(example ? { after: () => askExample(page, example) } : {}),
@@ -475,41 +463,12 @@ async function publishedItem(page: Page, part: string) {
   return item.id
 }
 
-/** Following links for agents (get_related), switched in Agents and access as Jon, an admin. */
-async function followLinks(page: Page, on: boolean) {
-  const session = await page.request.get('/api/v1/auth/session')
-  const { csrfToken } = (await session.json()) as { csrfToken: string }
-  const set = await page.request.post('/api/v1/tools/get_related', {
-    headers: { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
-    data: { enabled: on, reason: 'Changed in Settings, Agents and access.' },
-  })
-  if (!set.ok()) throw new Error(`Following links could not be switched: ${await set.text()}`)
-}
-
-/** A change through the service's API as Jon, with his session's token. */
-async function asJon(page: Page, method: 'POST' | 'PUT', path: string, data: object) {
-  const session = await page.request.get('/api/v1/auth/session')
-  const { csrfToken } = (await session.json()) as { csrfToken: string }
-  const response = await page.request.fetch(`/api/v1${path}`, {
-    method,
-    headers: { 'x-footnote-csrf': csrfToken, origin, 'idempotency-key': randomUUID() },
-    data,
-  })
-  if (!response.ok()) throw new Error(`${method} ${path} was refused: ${await response.text()}`)
-}
-
-/** Show figures in Ask for Cube, on or off, as an admin switches it on Cube's page. */
-const figuresOn = (page: Page, on: boolean) =>
-  asJon(page, 'PUT', '/figures/cube', { enabled: on, reason: 'Show figures in Ask, in a journey.' })
-
 /**
  * The questions of the mock's examples a journey asks on the service (src/web/api/mock/data/ask.ts),
- * as someone would type them. The service reads no dates in the mock's "after 9 May", and the
- * mock's answer to it is about 9 to 31 May, so that one asks for those days.
+ * as someone would type them.
  */
 const exampleQuestions: Record<string, string> = {
   grounded: 'Why did orders in Norway drop in August?',
-  figconflict: 'Did discount cost in Norway fall from 9 to 31 May?',
 }
 
 /** Asks a mock example's question in Ask's composer, as someone types it. */
@@ -522,27 +481,6 @@ async function askExample(page: Page, id: string) {
   await box.press('Enter')
 }
 
-/**
- * Someone said the figure for discount cost in Norway after 9 May doesn't fit the context item
- * about the regulator's pause, as the mock's `figconflict` example has it: a figure report through
- * the service, to the owners of Marketing and the data contact.
- */
-const figureDoesNotFit = (page: Page) =>
-  asJon(page, 'POST', '/reports', {
-    question: 'Did discount cost in Norway fall from 9 to 31 May?',
-    itemId: card('itm_za26xpzv'),
-    part: 'figure',
-    what: "The figure doesn't fit this context item.",
-    figure: {
-      source: 'cube',
-      metric: 'metric:discount_cost',
-      values: ['val:market/norway'],
-      from: '2026-05-09',
-      to: '2026-05-31',
-      route: 'both',
-    },
-  })
-
 /** The check job's last run over the saved questions stopped after `checked` of them. */
 async function failedCheck(checked: number) {
   const harness = './http/harness.ts'
@@ -550,6 +488,18 @@ async function failedCheck(checked: number) {
     failedCheck: (checked: number) => Promise<void>
   }
   await fail(checked)
+}
+
+/**
+ * On the service, a copy of a draft as another of the demo's people wrote it, never sent; its
+ * proposal id. The demo week's drafts are all an owner's.
+ */
+export async function draftFor(proposalId: string, name: string) {
+  const harness = './http/harness.ts'
+  const { draftFor: copy } = (await import(harness)) as {
+    draftFor: (proposalId: string, name: string) => Promise<string>
+  }
+  return copy(proposalId, name)
 }
 
 /**

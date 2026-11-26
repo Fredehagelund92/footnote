@@ -4,10 +4,12 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { DefinitionCard, LoopTurn } from '@contract/answer'
+import type { Answer } from '@/model/ask'
 import { dimensionHue } from '@domain/ask-nouns'
 import { answerLines } from '@domain/words'
 import examples from '@/api/mock/data/loop-examples.json'
 import { usedTurn } from '@/api/mock/loop-used'
+import { openDock } from '@/lib/dock'
 
 /*
   Ask's loop answers as the page draws them (direction C, FR-349, FR-718 to FR-720), in every state
@@ -21,6 +23,7 @@ const world = vi.hoisted(() => ({
   me: { name: 'Jon Abara', role: 'Owner of Sales, admin', owns: ['area_sales'], admin: true },
   writes: [] as { op: string; input: unknown }[],
   failing: new Set<string>(),
+  definitions: [] as { name: string; type: string; group?: string; tool?: string }[],
 }))
 vi.mock('@/lib/workspace', () => ({
   useFacts: () => [],
@@ -34,10 +37,17 @@ vi.mock('@/lib/workspace', () => ({
       covers: 'Orders.',
       text: '',
     },
+    area_customer_value: {
+      id: 'area_customer_value',
+      name: 'Customer value',
+      owners: ['Alex Moreau'],
+      covers: 'Churn.',
+      text: '',
+    },
   }),
   usePeople: () => [world.me, { name: 'Ravi Kapoor', role: 'Admin', owns: [], admin: true }],
 }))
-vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
+vi.mock('@/lib/definitions', () => ({ useDefinitions: () => world.definitions }))
 vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: unknown) => {
     world.writes.push({ op, input })
@@ -46,22 +56,31 @@ vi.mock('@/api/queries', () => ({
     return Promise.resolve({ id: 'g1' })
   },
 }))
-vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
+vi.mock('@/lib/dock', () => ({
+  openDock: vi.fn(),
+  openFromButton: vi.fn(),
+  closeDock: vi.fn(),
+  useDock: () => null,
+}))
 // Reading items ahead needs the app's query cache, which a static drawing has not.
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
+vi.mock('@/lib/shown-answers', () => ({
+  answerKey: () => 'k',
+  keepShown: () => {},
+  markReportSent: () => {},
+  useReportSent: () => false,
+  useShownAnswer: () => undefined,
+}))
 vi.mock('@/lib/router', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   useRoute: () => ({ path: '/ask', query: new URLSearchParams() }),
 }))
 
-const { LoopAnswerBody } = await import('@/components/footnote/loop-answer')
+const { AskedAtLine, LoopAnswerBody, LoopReadLine } =
+  await import('@/components/footnote/loop-answer')
 const { loopParts } = await import('@/components/footnote/loop-parts')
 const { AnswerActions, ReportLine, SomethingWrong } = await import('@/components/footnote/answer')
-// The figure reads the data through the app's query cache: here, where it goes is enough.
-const AnswerFigure = ({ answer }: { answer: { metric: string } }) =>
-  React.createElement('p', { 'data-figure': answer.metric })
-const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong, AnswerFigure }
+const parts = { ...loopParts, AnswerActions, ReportLine, SomethingWrong }
 const { loopAnswerOf } = await import('@/api/http-ask')
 const turnModule = await import('@/model/ask-turn')
 const { doneTurn } = turnModule
@@ -108,6 +127,15 @@ const nameOf = (el: Element) => {
   for (const hidden of said.querySelectorAll('[aria-hidden="true"]')) hidden.remove()
   return said.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 }
+/** A chip's card, opened as a pointer rests on the chip: a press may open the pane instead. */
+async function cardOf(chip: HTMLElement, name: string) {
+  await act(async () => {
+    chip.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }))
+    chip.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }))
+    await new Promise((r) => setTimeout(r, 200))
+  })
+  return [...document.querySelectorAll(`[aria-label="${name}"]`)].find((e) => e !== chip)
+}
 const buttons = (el: Element, name: RegExp) =>
   [...el.querySelectorAll('[role="button"], button')].filter((b) =>
     name.test(b.getAttribute('aria-label') ?? b.textContent ?? ''),
@@ -129,7 +157,7 @@ describe("Ask's loop answer, state by state", () => {
 
   it('Not found: one sentence, the closest written counted by value with four rows, the owners, and Write context', () => {
     const el = render(example('loop-missing'))
-    expect(text(el)).toContain('Nothing is written about this yet.')
+    expect(text(el)).toContain('Nothing published about this yet.')
     expect(text(el)).toContain('Written nearest about')
     const rows = el.querySelectorAll('li')
     expect(rows.length).toBe(4)
@@ -141,7 +169,7 @@ describe("Ask's loop answer, state by state", () => {
     const gap = el.querySelector('[data-gap]')!
     expect(gap.getAttribute('aria-label')).toBe('Not written yet: Orders in Poland')
     expect(text(gap)).toMatch(
-      /^Orders in PolandNo context item covers it yet\. It is yours to write/,
+      /^Orders in PolandNo published context item covers it yet\. It is yours to write/,
     )
     expect(buttons(gap, /^Write context for Orders in Poland$/)).toHaveLength(1)
     expect(text(el)).toMatch(/^.*0 of 21 published context items you can see apply/)
@@ -163,6 +191,41 @@ describe("Ask's loop answer, state by state", () => {
     expect(shown).not.toMatch(/Not found|Checked|Partial/)
     expect(el.querySelector('[data-gap]')).toBeNull()
     expect(shown).not.toContain('Nothing it wrote was checked')
+  })
+
+  const searched = (turn: LoopTurn, question: string) => {
+    const el = render(turn, question)
+    const search = buttons(el, /^Search for these words$/)
+    expect(search).toHaveLength(1)
+    // No page of its own, and the words never go into an address.
+    expect(search[0]!.getAttribute('href')).toBeNull()
+    const opened: unknown[] = []
+    const seen = (e: Event) => opened.push((e as CustomEvent).detail)
+    window.addEventListener('footnote:open', seen)
+    try {
+      act(() => (search[0] as HTMLElement).click())
+    } finally {
+      window.removeEventListener('footnote:open', seen)
+    }
+    expect(opened).toHaveLength(1)
+    return (opened[0] as { overlay: string; words: string }).words
+  }
+  const nothingRead = { body: [], items: [], sources: [] }
+
+  it('Stopped with nothing read: Search for these words hands over the words Ask read, never an address', () => {
+    const words = searched(
+      { ...example('loop-stopped'), ...nothingRead },
+      'Give me all about orders in poland',
+    )
+    expect(words).toBe('Orders Poland')
+  })
+
+  it('Stopped with nothing read and no metric or market: no Search button, Ask again stays', () => {
+    const el = render(
+      { ...example('loop-stopped'), ...nothingRead, subject: null },
+      'give me everything we know about churn',
+    )
+    expect(buttons(el, /^Search for these words$/)).toHaveLength(0)
   })
 
   it('Not found, for a reader who may not write: Tell the owner, which files the subject and says it was sent', async () => {
@@ -231,7 +294,7 @@ describe("Ask's loop answer, state by state", () => {
       const gap = el.querySelector('[data-gap]')!
       expect(gap.getAttribute('aria-label')).toBe('Not written yet: “EBITDA”')
       expect(text(gap)).toContain(
-        'No metric, other name or context item uses this word yet. Ravi Kapoor, an admin, can add it.',
+        'No published metric, other name or context item uses this word yet. Ravi Kapoor, an admin, can add it.',
       )
       expect(text(gap)).toContain('Only this word is sent, never your question.')
       const tell = buttons(gap, /^Tell an admin$/)
@@ -278,17 +341,35 @@ describe("Ask's loop answer, state by state", () => {
     }
   })
 
-  it('A word the reads found nothing under, to an admin: Add it to Definitions', () => {
+  it('A word the reads found nothing under, to an admin: Add it to Definitions, with the word in it', () => {
     const el = render(ebitda(), 'What is our EBITDA definition?')
     const gap = el.querySelector('[data-gap]')!
     expect(text(gap)).toContain('It is yours to add.')
-    expect(buttons(gap, /^Add it to Definitions$/)).toHaveLength(1)
+    const [add] = buttons(gap, /^Add “EBITDA” to Definitions$/)
+    expect(add!.getAttribute('href')).toBe('/definitions/new?name=EBITDA')
     expect(buttons(gap, /^Tell/)).toHaveLength(0)
   })
 
-  it('Two words the reads found nothing under, to an admin: They are yours to add', () => {
+  it('A word the reads found nothing under, to an owner who is no admin: Add it to Definitions too, as New term is theirs', () => {
+    const admin = world.me
+    world.me = { ...admin, role: 'Owner of Sales', admin: false }
+    try {
+      const gap = render(ebitda(), 'What is our EBITDA definition?').querySelector('[data-gap]')!
+      expect(text(gap)).toContain('It is yours to add.')
+      expect(buttons(gap, /^Add “EBITDA” to Definitions$/)).toHaveLength(1)
+    } finally {
+      world.me = admin
+    }
+  })
+
+  it('Two words the reads found nothing under, to an admin: They are yours to add, each by its own button', () => {
     const el = render({ ...ebitda(), unknown: ['EBITDA', 'ARR'] }, 'What are our EBITDA and ARR?')
-    expect(text(el.querySelector('[data-gap]')!)).toContain('They are yours to add.')
+    const gap = el.querySelector('[data-gap]')!
+    expect(text(gap)).toContain('They are yours to add.')
+    expect(buttons(gap, /^Add “.+” to Definitions$/).map((b) => b.getAttribute('href'))).toEqual([
+      '/definitions/new?name=EBITDA',
+      '/definitions/new?name=ARR',
+    ])
   })
 
   it('makes the chips and the citations the buttons in the words, never a sentence', () => {
@@ -487,6 +568,181 @@ describe("Ask's loop answer, state by state", () => {
     for (const line of lines) expect(buttons(line, /^Source \d+: /).length).toBe(1)
   })
 
+  it("From the help, in Markdown: bold labels, links, a numbered list and a table, never the model's asterisks", () => {
+    const el = render(example('loop-help-markdown'), 'lets create my first context')
+    const words = el.querySelector('[data-answer-words]')!
+    expect(text(words)).not.toMatch(/\*\*|~~|\||`/)
+    expect([...words.querySelectorAll('li > strong')].map(text)).toEqual([
+      'Properties:',
+      'Applies to:',
+      'Source:',
+    ])
+    expect(text(words.querySelector('em')!)).toBe('know')
+    expect(text(words.querySelector('code')!)).toBe('Definitions')
+    expect(text(words.querySelector('s')!)).toBe('about')
+    // A help page opens at its part, in a new tab; an address no read gave is words.
+    const links = [...words.querySelectorAll('a')]
+    expect(links.map((a) => [text(a), a.getAttribute('href')])).toEqual([
+      ['Write context', '/docs/write-context#what-to-put-in-it'],
+    ])
+    expect(text(words)).toContain('such as the customs notice.')
+    for (const a of links) {
+      expect(a.target).toBe('_blank')
+      expect(a.rel).toBe('noreferrer')
+      expect(nameOf(a)).toMatch(/ \(opens in a new tab\)$/)
+    }
+    const steps = words.querySelector('ol')!
+    expect(steps.getAttribute('start')).toBe('1')
+    expect([...steps.querySelectorAll('li')].map(text)).toEqual([
+      'Give it a title that is one plain sentence.',
+      'Say what it is about not, if people mix it up.',
+      'Publish it.',
+    ])
+    const table = words.querySelector('table')!
+    expect([...table.querySelectorAll('th')].map(text)).toEqual(['Kind', 'When to pick it'])
+    const rows = [...table.querySelectorAll('tbody tr')]
+    expect(rows.map((tr) => [...tr.querySelectorAll('td')].map(text))).toEqual([
+      ['Event', 'Something happened on a date'],
+      ['Rule', 'A fixed way to read the numbers'],
+    ])
+    expect(text(table.querySelector('td strong')!)).toBe('Event')
+  })
+
+  it('From the help, how to do something: the screen it explains as an outline button, between the words and the help', () => {
+    const el = render(example('loop-help-write'), 'How do I create my first context item?')
+    const row = el.querySelector('[data-actions]')!
+    const [write] = buttons(row, /^Write context$/)
+    expect(write?.getAttribute('href')).toBe('/context/new')
+    expect(write?.getAttribute('data-variant') ?? write?.className).toMatch(/outline/)
+    // Under the words, above From the help.
+    const help = [...el.querySelectorAll('p, span')].find((n) => n.textContent === 'From the help')!
+    expect(row.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(text(el)).not.toMatch(/do:/)
+  })
+
+  describe('a quick action, by who reads it', () => {
+    const asMe = (me: typeof world.me, run: () => void) => {
+      const admin = world.me
+      world.me = me
+      try {
+        run()
+      } finally {
+        world.me = admin
+      }
+    }
+    const member = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+    const owner = { name: 'Jon Abara', role: 'Owner of Sales', owns: ['area_sales'], admin: false }
+    const family: LoopTurn = {
+      ...example('loop-help-write'),
+      text: 'An owner of Sales, or an admin, picks the usual variant in its quick view.',
+      actions: [
+        {
+          id: 'pick_usual_variant',
+          family: {
+            name: 'Revenue',
+            domain: 'domain:area_sales',
+            owners: ['Jon Abara', 'Sofia Brandt'],
+          },
+        },
+      ],
+      nouns: [{ id: 'domain:area_sales', name: 'Sales', of: null, type: null }],
+    }
+
+    it('to a member, Write context all the same: what they write goes to the owners as a suggestion', () =>
+      asMe(member, () => {
+        const row = render(example('loop-help-write')).querySelector('[data-actions]')!
+        expect(buttons(row, /^Write context$/)).toHaveLength(1)
+      }))
+
+    it("to an owner of the metric's domain, Write context in that domain; to an owner of another, none", () => {
+      const unwritten = () => example('loop-definition-unwritten')
+      const ownerOf = (owns: string[]) => ({
+        name: 'Noor Other',
+        role: 'Owner',
+        owns,
+        admin: false,
+      })
+      asMe(ownerOf(['area_customer_value']), () => {
+        const [write] = buttons(render(unwritten()), /^Write context about Churn rate$/)
+        expect(write?.getAttribute('href')).toBe(
+          '/context/new?metric=Churn+rate&domain=area_customer_value',
+        )
+      })
+      act(() => root?.unmount())
+      host?.remove()
+      asMe(ownerOf(['area_sales']), () => {
+        expect(buttons(render(unwritten()), /^Write context/)).toHaveLength(0)
+      })
+    })
+
+    it('to an admin, Invite people opens People', () => {
+      const row = render(example('loop-help-invite')).querySelector('[data-actions]')!
+      expect(buttons(row, /^Invite people$/)[0]?.getAttribute('href')).toBe('/settings/people')
+    })
+
+    it("to an owner who is no admin, Invite people opens their own domain's page", () =>
+      asMe(owner, () => {
+        const row = render(example('loop-help-invite')).querySelector('[data-actions]')!
+        expect(buttons(row, /^Invite people$/)[0]?.getAttribute('href')).toBe(
+          '/settings/domains/area_sales',
+        )
+      }))
+
+    it('to a member, no button: who invites, by name, as their chips', () =>
+      asMe(member, () => {
+        const row = render(example('loop-help-invite')).querySelector('[data-actions]')!
+        expect(buttons(row, /^Invite people$/)).toHaveLength(0)
+        expect(text(row)).toBe('Invite people is for admins: Ravi Kapoor')
+        expect(row.querySelectorAll('[role="button"]')).toHaveLength(1)
+      }))
+
+    it("a family's: to its domain's owner, a button to its quick view; to anyone else, its owners", () => {
+      asMe(owner, () => {
+        const row = render(family).querySelector('[data-actions]')!
+        expect(buttons(row, /^Pick the usual variant$/)[0]?.getAttribute('href')).toBe(
+          '/definitions?dock=def.Revenue',
+        )
+      })
+      asMe(member, () => {
+        const row = render(family).querySelector('[data-actions]')!
+        expect(buttons(row, /^Pick the usual variant$/)).toHaveLength(0)
+        expect(text(row)).toBe('The owners of Sales do this: Jon Abara and Sofia Brandt')
+      })
+    })
+
+    it('Connect an agent opens the Connect dialog, which is no address', () => {
+      const el = render({ ...example('loop-help-write'), actions: [{ id: 'connect_agent' }] })
+      const [connect] = buttons(el.querySelector('[data-actions]')!, /^Connect an agent$/)
+      expect(connect?.tagName).toBe('BUTTON')
+      expect(connect?.getAttribute('href')).toBeNull()
+    })
+  })
+
+  it('Markdown links: only to a web or mail address or a help page that exists; any other is words', () => {
+    const turn: LoopTurn = {
+      ...example('loop-help-markdown'),
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'Not ' },
+            { t: 'text', text: 'a script', link: { url: 'javascript:alert(1)' } },
+            { t: 'text', text: ', nor ' },
+            { t: 'text', text: 'a page', link: { slug: 'no-such-page', id: '' } },
+            { t: 'text', text: ', but ' },
+            { t: 'text', text: 'mail', link: { url: 'mailto:ada@example.com' } },
+            { t: 'text', text: '.' },
+          ],
+        },
+      ],
+    }
+    const words = render(turn).querySelector('[data-answer-words]')!
+    expect(text(words)).toBe('Not a script, nor a page, but mail.')
+    expect([...words.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      'mailto:ada@example.com',
+    ])
+  })
+
   it('A long paragraph: one sentence a line, five at most, then Show more; no "Nothing is written" once items were found', () => {
     const base = example('loop-checked')
     const turn: LoopTurn = {
@@ -531,16 +787,6 @@ describe("Ask's loop answer, state by state", () => {
     // What nothing is written about is the gap card's: Orders, not Net revenue, which items cover.
     const gap = render(partial(['metric:orders'])).querySelector('[data-gap]')
     expect(gap?.getAttribute('aria-label')).toBe('Not written yet: Orders')
-  })
-
-  it('The figure: an answer reads the data of its subject, after the evidence; a question back and an overview do not', () => {
-    const answer = render(example('loop-checked'))
-    expect(answer.querySelector('[data-figure]')).not.toBeNull()
-    for (const id of ['loop-question', 'loop-overview'] as const) {
-      act(() => root?.unmount())
-      host?.remove()
-      expect(render(example(id)).querySelector('[data-figure]'), id).toBeNull()
-    }
   })
 
   it('A list asked for: every line of it up to twelve, unfolded, after five sentences of prose at most', () => {
@@ -642,6 +888,45 @@ describe("Ask's loop answer, state by state", () => {
     expect(buttons(shown, /^See the/)).toHaveLength(0)
   })
 
+  it('Definition card: found by the words of its description, not a name, it says which', () => {
+    const words =
+      '**Orders-CPA** is marketing spend divided by first-time buyers. Distinct from **Returns-CPA**.'
+    const el = render(
+      defining(
+        {
+          id: 'metric:cost_per_acquisition',
+          name: 'Cost per acquisition',
+          words,
+          mentions: 'Orders-CPA',
+          inWords: false,
+        },
+        'Orders-CPA divides marketing spend by first-time buyers, and Returns-CPA by those who kept their first order.',
+      ),
+      'What is the difference between Orders-CPA and Returns-CPA?',
+    )
+    const shown = el.querySelector('[data-definition-card]')!
+    expect(text(shown)).toContain('Its description mentions “Orders-CPA”')
+    // A card a name found says nothing of the kind.
+    expect(text(render(defining({}), 'What is orders?'))).not.toContain('Its description mentions')
+  })
+
+  it('Definition card: the source’s Markdown drawn, its marks never shown as characters', () => {
+    const words =
+      '**Cost-CPA** is outbound cost per acquired customer (`cost_eur / affiliate_ndcs`), _from totals_. See [the notes](https://wiki.example/cpa) or [this](javascript:alert(1)).'
+    const el = render(defining({ words }), 'What is orders?')
+    const quote = el.querySelector('[data-definition-card] blockquote')!
+    expect(text(quote)).toBe(
+      'Cost-CPA is outbound cost per acquired customer (cost_eur / affiliate_ndcs), from totals. See the notes or this.',
+    )
+    expect(quote.querySelector('strong')?.textContent).toBe('Cost-CPA')
+    expect(quote.querySelector('code')?.textContent).toBe('cost_eur / affiliate_ndcs')
+    expect(quote.querySelector('em')?.textContent).toBe('from totals')
+    // Only a web or mail address is a link; any other stays words.
+    expect([...quote.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      'https://wiki.example/cpa',
+    ])
+  })
+
   // A family of metrics (invented: Partner fees), as the definitions read gives it to the page.
   const fees = {
     by: ['Currency'],
@@ -677,7 +962,7 @@ describe("Ask's loop answer, state by state", () => {
       'USD: Fees partners report on referred users in USD (EUR × row fx_usd).',
     ])
     expect(text(shown)).not.toContain('near-identical')
-    // A family with no meaning says so, then gives every variant's words.
+    // A family with no meaning: its variants say what it is, every one's words at full size.
     const none = render(
       defining(
         { name: 'Partner fees', words: agentWords, family: { ...fees, meaning: null } },
@@ -685,9 +970,93 @@ describe("Ask's loop answer, state by state", () => {
       ),
       'What is partner fees?',
     )
-    expect(text(none.querySelector('[data-definition-card] blockquote')!)).toMatch(
-      /^No meaning yet: its variants say different things\.USD: /,
+    const said = none.querySelector('[data-definition-card] blockquote')!
+    expect(text(said)).toMatch(/^Its 2 variants say what it is in their own words:USD: /)
+    expect(said.querySelector('ul')?.className).not.toMatch(/text-sm/)
+    expect(text(none)).not.toContain('No meaning yet')
+  })
+
+  it('Definition card of a family with no meaning: never stands in for the answer’s sentence (C1)', () => {
+    // The sentence repeats a variant's words, which made the card stand in for it (S1).
+    const words = 'Partner fees are what partners report, in USD (EUR × row fx_usd).'
+    const el = render(
+      defining(
+        { name: 'Partner fees', family: { ...fees, meaning: null, source: { kind: 'none' } } },
+        words,
+      ),
+      'What is partner fees?',
     )
+    expect(text(el)).toContain(words)
+    expect(el.querySelector('[data-answer-words] [data-definition-card]')).toBeNull()
+    // With a meaning it still stands in.
+    const meant = render(
+      defining({ name: 'Partner fees', family: fees }, words),
+      'What is partner fees?',
+    )
+    expect(text(meant)).not.toContain(words)
+  })
+
+  it('Definition card of a family with no meaning: Write what it means, to its owners and the admins only', () => {
+    const none = (meaning: string | null) =>
+      defining({ name: 'Partner fees', family: { ...fees, meaning, source: { kind: 'none' } } })
+    const write = buttons(render(none(null)), /^Write what Partner fees means$/)
+    expect(write).toHaveLength(1)
+    act(() => (write[0] as HTMLElement).click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Partner fees', {
+      meaning: 'write',
+    })
+    act(() => root?.unmount())
+    host?.remove()
+    expect(buttons(render(none(fees.meaning)), /^Write what Partner fees means$/)).toHaveLength(0)
+    act(() => root?.unmount())
+    host?.remove()
+    const admin = world.me
+    const as = (owns: string[]) => ({ name: 'Noor Other', role: 'Owner', owns, admin: false })
+    try {
+      world.me = { name: 'Ines Duarte', role: 'Suggests context', owns: [], admin: false }
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(0)
+      act(() => root?.unmount())
+      host?.remove()
+      world.me = as(['area_sales'])
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(1)
+      act(() => root?.unmount())
+      host?.remove()
+      world.me = as(['area_customer_value'])
+      expect(buttons(render(none(null)), /^Write what Partner fees means$/)).toHaveLength(0)
+    } finally {
+      world.me = admin
+    }
+  })
+
+  it('Definition card of a family: From names where its meaning comes from (C1, C4)', () => {
+    const from = (
+      source: NonNullable<DefinitionCard['family']>['source'],
+      meaning: string | null = fees.meaning,
+    ) => {
+      const el = render(
+        defining({ name: 'Partner fees', member: null, family: { ...fees, meaning, source } }),
+        'What is partner fees?',
+      )
+      const line = el.querySelector('[data-definition-card] blockquote + div p')!
+      const said = text(line)
+      act(() => root?.unmount())
+      host?.remove()
+      return said
+    }
+    expect(from({ kind: 'base', values: ['EUR'], converted: [['USD']] })).toBe(
+      'From Cube: the words of EUR, the variant USD is converted from',
+    )
+    expect(from({ kind: 'base', values: ['EUR'], converted: [['USD'], ['GBP']] })).toBe(
+      'From Cube: the words of EUR, the variant the others are converted from',
+    )
+    expect(from({ kind: 'common', agree: 2 })).toBe('From Cube: the words its 2 variants share')
+    expect(from({ kind: 'declared' })).toBe('Written for the family in Cube')
+    expect(from({ kind: 'written', by: 'Sofia Brandt', on: '2026-10-20' })).toBe(
+      'Written for the family by Sofia Brandt on 20 Oct 2026',
+    )
+    expect(from({ kind: 'none' }, null)).toBe('From Cube')
+    // A turn written before the card knew says only the tool.
+    expect(from(undefined)).toBe('From Cube')
   })
 
   it('Quoted definition of a family: its meaning and variants’ words, the word the question turns on marked in them (R6)', () => {
@@ -783,7 +1152,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(section.querySelectorAll('li').length).toBe(long.rows.length)
     // A group a page shows filtered links there.
     expect(
-      [...el.querySelectorAll('a')].some((a) => a.getAttribute('href') === '/context?due=1'),
+      [...el.querySelectorAll('a')].some((a) => a.getAttribute('href') === '/context?status=due'),
     ).toBe(true)
   })
 
@@ -972,6 +1341,41 @@ describe('while the loop writes', () => {
     }
   })
 
+  it('types words the model marked in their marks from their first word, never showing a mark', () => {
+    motion(false)
+    const { askedTurn, turnReducer } = turnModule
+    const asked = askedTurn('t1', 'lets create my first context')
+    vi.useFakeTimers({ toFake: ['requestAnimationFrame', 'cancelAnimationFrame', 'performance'] })
+    try {
+      host = document.createElement('div')
+      document.body.append(host)
+      root = createRoot(host)
+      const turn = turnReducer(asked, {
+        type: 'done',
+        answer: loopAnswerOf(example('loop-help-markdown'), 'lets create my first context', names),
+      })
+      act(() => root!.render(React.createElement(LoopAnswerBody, { parts, turn })))
+      const words = () => host!.querySelector('[data-answer-words]')!
+      let bold = 0
+      for (let ms = 0; ms < 8000; ms += 100) {
+        act(() => {
+          vi.advanceTimersByTime(100)
+        })
+        expect(text(words())).not.toMatch(/\*\*|~~|\|/)
+        // A bold label is in bold from its first word on.
+        for (const strong of words().querySelectorAll('strong'))
+          expect(text(strong)).toMatch(
+            /^(?:Write|Properties:|Applies|Applies to:|Source:|Event|Rule)$/,
+          )
+        bold = Math.max(bold, words().querySelectorAll('li > strong').length)
+      }
+      expect(bold).toBe(3)
+      expect(words().querySelector('table')).not.toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('shows a turn opened from the history at once', () => {
     motion(false)
     const whole = example('loop-checked')
@@ -1090,9 +1494,172 @@ describe('the nouns of an answer on any workspace', () => {
     expect(dot.className).not.toMatch(/\bbg-chip-dot\b/)
   })
 
-  it("opens a value's card on a press, which says what it is a value of", () => {
+  it("opens a value's dimension in the pane on a press; its card says what it is a value of", async () => {
     const el = render(invented, 'Tickets closed by billing?')
-    act(() => (buttons(el, /^Billing, value$/)[0] as HTMLElement).click())
-    expect(document.body.textContent).toContain('A value of Team')
+    const billing = buttons(el, /^Billing, value$/)[0] as HTMLElement
+    expect(billing.className).toMatch(/\bcursor-pointer\b/)
+    vi.mocked(openDock).mockClear()
+    act(() => billing.click())
+    // A value has no page of its own: its dimension's definition lists it.
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+    const card = (await cardOf(billing, 'Billing'))!
+    expect(text(card)).toContain('A value of Team')
+    const open = buttons(card, /^Open Team$/)[0] as HTMLElement
+    vi.mocked(openDock).mockClear()
+    act(() => open.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+  })
+
+  it("opens a dimension's definition in the pane on a press, as a metric's, and from its card", async () => {
+    const named: LoopTurn = {
+      ...invented,
+      body: [
+        {
+          t: 'p',
+          runs: [
+            { t: 'text', text: 'Split by ' },
+            { t: 'noun', id: 'dimension:team' },
+            { t: 'text', text: '.' },
+          ],
+        },
+      ],
+    }
+    const el = render(named, 'What is team?')
+    const team = buttons(el, /^Team, dimension$/)[0] as HTMLElement
+    expect(team.className).toMatch(/\bcursor-pointer\b/)
+    vi.mocked(openDock).mockClear()
+    act(() => team.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+    const card = (await cardOf(team, 'Team'))!
+    expect(text(card)).toContain('A dimension')
+    const open = buttons(card, /^Open the definition$/)[0] as HTMLElement
+    vi.mocked(openDock).mockClear()
+    act(() => open.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Team')
+  })
+})
+
+describe('a metric group an answer names', () => {
+  const grouped = (plainGroup: boolean): LoopTurn => ({
+    ...example('loop-checked'),
+    sources: [],
+    items: [],
+    body: [
+      {
+        t: 'p',
+        runs: [
+          { t: 'text', text: 'It is in ' },
+          { t: 'noun', id: 'group:payments' },
+          { t: 'text', text: '.' },
+        ],
+      },
+    ],
+    nouns: [
+      {
+        id: 'group:payments',
+        name: 'Payments',
+        of: null,
+        type: null,
+        ...(plainGroup ? { plainGroup: true as const } : {}),
+      },
+    ],
+  })
+  afterEach(() => {
+    world.definitions = []
+  })
+
+  it('draws a plain group as a group whose card names its metrics, opening no definition', () => {
+    world.definitions = [
+      { name: 'Payment fees', type: 'metric', group: 'Payments', tool: 'Cube' },
+      { name: 'Refunds', type: 'metric', group: 'Payments', tool: 'Cube' },
+      { name: 'Orders', type: 'metric', group: 'Revenue', tool: 'Cube' },
+    ]
+    const el = render(grouped(true), 'What is in payments?')
+    expect(buttons(el, /^Payments, metric$/)).toHaveLength(0)
+    const chip = buttons(el, /^Payments, metric group$/)[0] as HTMLElement
+    expect(chip.querySelector('svg')?.getAttribute('class')).toMatch(/folder/)
+    expect(chip.className).not.toMatch(/\bcursor-pointer\b/)
+    vi.mocked(openDock).mockClear()
+    act(() => chip.click())
+    expect(vi.mocked(openDock)).not.toHaveBeenCalled()
+    // The press keeps its card open: what the group is, and its metrics by name.
+    const card = text(document.querySelector('[aria-label="Payments"]')!)
+    expect(card).toContain('Metric group · in Cube')
+    expect(card).toContain('A group Cube puts metrics under, with no definition of its own.')
+    expect(card).toContain('Its metrics: Payment fees and Refunds.')
+    expect(card).not.toContain('Open the definition')
+  })
+
+  it('draws a family as a metric, whose press opens its definition in the pane', () => {
+    const el = render(grouped(false), 'What is payments?')
+    expect(buttons(el, /^Payments, metric group$/)).toHaveLength(0)
+    const chip = buttons(el, /^Payments, metric$/)[0] as HTMLElement
+    vi.mocked(openDock).mockClear()
+    act(() => chip.click())
+    expect(vi.mocked(openDock)).toHaveBeenLastCalledWith('def', 'Payments')
+  })
+})
+
+describe('the read line under a question', () => {
+  /** The read line of a turn, asked at a period chosen, or none; with Change and the menu. */
+  function line(turn: LoopTurn, period?: Answer['period']) {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    const answer = {
+      ...loopAnswerOf(turn, 'Orders in Norway?', names),
+      ...(period ? { period } : {}),
+    }
+    act(() =>
+      root!.render(
+        React.createElement(LoopReadLine, {
+          parts,
+          answer,
+          onRescope: () => {},
+          onReperiod: () => {},
+        }),
+      ),
+    )
+    return host
+  }
+  const at = (period: string): LoopTurn => {
+    const turn = example('loop-checked')
+    return { ...turn, subject: { ...turn.subject!, period, note: null, assumedToday: false } }
+  }
+
+  it('names the period chosen with its days, and any date or days picked as their days', () => {
+    expect(
+      buttons(line(at('1-30 Sep 2026'), 'last month'), /^last month \(1-30 Sep 2026\)$/),
+    ).toHaveLength(1)
+    expect(buttons(line(at('any date'), 'any date'), /^any date$/)).toHaveLength(1)
+    expect(
+      buttons(
+        line(at('5-11 Oct 2026'), { from: '2026-10-05', to: '2026-10-11' }),
+        /^5-11 Oct 2026$/,
+      ),
+    ).toHaveLength(1)
+    // Asked with no period chosen, the days the words were read at.
+    expect(buttons(line(at('1-23 Oct 2026')), /^1-23 Oct 2026$/)).toHaveLength(1)
+  })
+
+  it('offers no period on the answer of what a metric means: dates do not change it', () => {
+    const el = line(example('loop-definition'))
+    expect(buttons(el, /^Net revenue, metric$/)).toHaveLength(1)
+    expect(text(el)).not.toMatch(/date|assumed|Today/)
+  })
+
+  it('says the period a question was asked again at until its answer is in', () => {
+    host = document.createElement('div')
+    document.body.append(host)
+    root = createRoot(host)
+    act(() => root!.render(React.createElement(AskedAtLine, { period: 'last month' })))
+    const said = () => [...host!.querySelectorAll('span')].map((s) => s.textContent)
+    expect(said()).toEqual(['Asked again at', 'last month'])
+    act(() =>
+      root!.render(
+        React.createElement(AskedAtLine, { period: { from: '2026-10-05', to: '2026-10-11' } }),
+      ),
+    )
+    expect(said()).toEqual(['Asked again at', '5 Oct 2026 to 11 Oct 2026'])
   })
 })

@@ -11,11 +11,10 @@ import {
   FlagIcon,
   PencilIcon,
   RefreshCwIcon,
-  ShareIcon,
   ThumbsDownIcon,
   ThumbsUpIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { marksExceptions } from '@/lib/marks'
 import { AnswerFooter } from '@/components/footnote/answer-footer'
@@ -23,12 +22,12 @@ import type { RatingChain, Verdict } from '@/components/footnote/answer-rating'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { asksWhatItIs } from '@domain/scope'
-import { SharePopover } from '@/components/footnote/share-answer'
 import { loopParts } from '@/components/footnote/loop-parts'
+import { reportParts } from '@/components/footnote/report-parts'
 import { today } from '@/lib/today'
 import { dateLabel } from '@/model/validity'
 import { ReadingLine } from '@/components/footnote/reading'
-import { answerKey, keepShown } from '@/lib/shown-answers'
+import { answerKey, keepShown, useReportSent } from '@/lib/shown-answers'
 import { sentencesOf, type Sentence } from '@/lib/where'
 import {
   ASK_CADENCE,
@@ -48,11 +47,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   askedOf,
@@ -64,26 +58,17 @@ import {
 import { drawnByLoop, isLive, type Turn } from '@/model/ask-turn'
 import { MentionChip } from '@/components/footnote/mention-chip'
 import type { Fact } from '@/model/items'
-import { closeDock, openDock, useDock } from '@/lib/dock'
+import { closeDock, openDock, openFromButton, useDock } from '@/lib/dock'
 import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
 import { href, useRoute } from '@/lib/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
-import { conflictQuery, figureQuery, myReportsQuery, useWrite } from '@/api/queries'
+import { conflictQuery, myReportsQuery, useWrite } from '@/api/queries'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { listOf } from '@/model/people'
 import { SaveQuestion } from '@/components/obs/save-question'
 import { agentReply } from '@/lib/agent-reply'
 import { parseMentionId, plainText } from '@/lib/mentions'
-import { figureAskOf, type FigureView } from '@/model/figures'
-import { useFigures } from '@/lib/figures'
-import {
-  AnswerFigure,
-  FigureAgainst,
-  FigureLine,
-  FigureLink,
-  NoFigure,
-} from '@/components/footnote/answer-figure'
 import { useRelated } from '@/hooks/use-related'
 
 // One turn of Ask, drawn the way the chat apps people know draw a thread: the question as a quiet
@@ -98,7 +83,7 @@ function IconButton({
   children,
 }: {
   label: string
-  onClick: () => void
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   active?: boolean
   children: React.ReactNode
 }) {
@@ -134,7 +119,6 @@ const loopAnswerParts = () => ({
   AnswerActions,
   ReportLine,
   SomethingWrong,
-  AnswerFigure,
 })
 
 /** Ask's loop draws its own answer, loaded with the first one: most chats never need it. */
@@ -143,6 +127,9 @@ const LoopAnswerBody = React.lazy(() =>
 )
 const LoopReadLine = React.lazy(() =>
   import('@/components/footnote/loop-answer').then((m) => ({ default: m.LoopReadLine })),
+)
+const AskedAtLine = React.lazy(() =>
+  import('@/components/footnote/loop-answer').then((m) => ({ default: m.AskedAtLine })),
 )
 
 export function Question({
@@ -172,7 +159,7 @@ export function Question({
             )
           : answer.question}
       </div>
-      {answer.loop && (
+      {answer.loop ? (
         <React.Suspense fallback={null}>
           <LoopReadLine
             parts={loopAnswerParts()}
@@ -181,6 +168,13 @@ export function Question({
             onReperiod={onReperiod}
           />
         </React.Suspense>
+      ) : (
+        // Asked again at a period chosen on the read line: it says so at once.
+        answer.period && (
+          <React.Suspense fallback={null}>
+            <AskedAtLine period={answer.period} />
+          </React.Suspense>
+        )
       )}
       {/* Copy, and Edit to put the question back in the box: under the bubble, so it keeps its width; always there on a touch screen. */}
       <div className="-my-1 flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover/q:opacity-100 focus-within:opacity-100 pointer-coarse:gap-2.5 pointer-coarse:opacity-100">
@@ -452,14 +446,11 @@ function SourceCard({ fact }: { fact: Fact }) {
 /** In a source's card: the links an agent can follow from it, a retired one marked. */
 function SourceLinks({ fact }: { fact: Fact }) {
   const related = useRelated(`context:${fact.id}`)
-  const enabled = related.following
   const links = related.links.filter((l) => l.rel !== 'mentioned_by' && l.rel !== 'replaced_by')
   if (!links.length) return null
   return (
     <div className="flex flex-col gap-1 border-t pt-1.5">
-      <p className="text-xs text-muted-foreground">
-        {enabled ? 'Links an agent can follow from it' : "Links (agents don't follow them now)"}
-      </p>
+      <p className="text-xs text-muted-foreground">Links an agent can follow from it</p>
       <p className="flex flex-wrap items-center gap-1">
         {links.slice(0, 4).map((l) => (
           <MentionChip key={l.to.id} mention={{ id: l.to.id, label: l.to.label }} />
@@ -738,19 +729,35 @@ function SourceChip({
   )
 }
 
-/** The Something wrong? form: a flag, or a suggestion when a correction is given. */
-/** What became of your report, in this chat only: sent, then what the owner did. */
-export function ReportLine({ report }: { report: NonNullable<Answer['report']> }) {
+/** What became of your report, in this chat only: sent, then what the owners did. */
+export function ReportLine({
+  report,
+  focus,
+  answerKey,
+}: {
+  report: NonNullable<Answer['report']>
+  /** The answer it is about: the report panel's close puts focus here when its opener is gone. */
+  answerKey?: string
+  /** Sent from the form under the answer: focus comes here, where the form was. */
+  focus?: boolean
+}) {
+  const line = React.useRef<HTMLParagraphElement>(null)
+  React.useEffect(() => {
+    if (focus) line.current?.focus({ preventScroll: true })
+  }, [focus])
   return (
     <p
+      ref={line}
       role="status"
-      className="flex animate-in items-start gap-2 text-sm text-muted-foreground duration-(--dur-4) fade-in-0"
+      tabIndex={focus || answerKey ? -1 : undefined}
+      data-report-line={answerKey}
+      className="flex animate-in items-start gap-2 text-sm text-muted-foreground duration-(--dur-4) fade-in-0 outline-none"
     >
       <FlagIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
         {report.outcome ?? (
           <>
-            You reported this {report.on}. The owner sees it in their Inbox; you'll see here what
+            You reported this {report.on}. The owners see it in their Inbox; you'll see here what
             they do. Agents keep getting the item until it changes.
           </>
         )}
@@ -759,130 +766,27 @@ export function ReportLine({ report }: { report: NonNullable<Answer['report']> }
   )
 }
 
+const ReportForm = React.lazy(() =>
+  import('@/components/footnote/report-panel').then((m) => ({ default: m.ReportForm })),
+)
+
+/**
+ * Something wrong? under the answer, where Ask is itself in the right panel: the same form as the
+ * panel beside an answer (report-panel.tsx), which comes with its own code.
+ */
 export function SomethingWrong({
-  answer,
-  facts,
-  figure,
-  onClose,
   onSent,
+  ...props
 }: {
   answer: Answer
   facts: Fact[]
-  /** The integration of the figure the answer shows, when it shows one. */
-  figure?: string
   onClose: () => void
   onSent: () => void
 }) {
-  const domains = useDomains()
-  const write = useWrite()
-  const figures = useFigures()
-  const [part, setPart] = React.useState(facts[0]?.id ?? 'answer')
-  const [sending, setSending] = React.useState(false)
-  // The answer itself, and its figure, are filed on its first source, so they reach that
-  // domain's owners; a figure reaches the integration's data contact too.
-  const fact = facts.find((f) => f.id === part) ?? facts[0]
-  const domain = fact?.domain ?? 'sales'
-  const aboutFigure = part === 'figure' && figure !== undefined
-  const owners = `the owner of ${domains[domain]?.name}`
-  const to = aboutFigure ? `${owners} and to ${figures.contact(figure)}, the data contact,` : owners
-
   return (
-    <form
-      className="flex animate-in flex-col gap-4 rounded-surface border border-input bg-background p-4 duration-(--dur-3) fade-in-0 slide-in-from-top-1"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const form = new FormData(e.currentTarget)
-        const text = (name: string) => {
-          const value = form.get(name)
-          return typeof value === 'string' ? value.trim() : ''
-        }
-        setSending(true)
-        write('reportAnswer', {
-          question: askedOf(answer),
-          part,
-          sources: answer.sources,
-          what: text('what'),
-          correction: text('correction') || undefined,
-          link: text('link') || undefined,
-          ...(aboutFigure
-            ? {
-                figure: {
-                  source: figure,
-                  to: 'both' as const,
-                  metric: answer.metric,
-                  markets: answer.markets,
-                  ...(answer.dates ? { dates: answer.dates } : {}),
-                },
-              }
-            : {}),
-        })
-          .then(onSent)
-          .catch(() =>
-            toast.error("The report wasn't sent", {
-              description: 'Nothing was lost: try again in a moment.',
-            }),
-          )
-          .finally(() => setSending(false))
-      }}
-    >
-      <div>
-        <p className="text-sm font-medium">Something wrong?</p>
-        <p className="text-sm text-muted-foreground">
-          It goes to {to} with your words and this question. Nothing else from this chat is kept.
-        </p>
-      </div>
-      <FieldGroup className="gap-4">
-        <FieldSet>
-          <FieldLegend variant="label">Which part?</FieldLegend>
-          <RadioGroup value={part} onValueChange={(v) => setPart(v as string)}>
-            {facts.map((f, i) => (
-              <Field key={f.id} orientation="horizontal">
-                <RadioGroupItem value={f.id} id={`part-${answer.id}-${f.id}`} />
-                <Label htmlFor={`part-${answer.id}-${f.id}`} className="font-normal">
-                  {i + 1}. {f.title}
-                </Label>
-              </Field>
-            ))}
-            {figure && (
-              <Field orientation="horizontal">
-                <RadioGroupItem value="figure" id={`part-${answer.id}-figure`} />
-                <Label htmlFor={`part-${answer.id}-figure`} className="font-normal">
-                  The figure: it doesn&apos;t fit the context
-                </Label>
-              </Field>
-            )}
-            <Field orientation="horizontal">
-              <RadioGroupItem value="answer" id={`part-${answer.id}-answer`} />
-              <Label htmlFor={`part-${answer.id}-answer`} className="font-normal">
-                The answer itself
-              </Label>
-            </Field>
-          </RadioGroup>
-        </FieldSet>
-        <Field>
-          <FieldLabel htmlFor={`what-${answer.id}`}>What's wrong?</FieldLabel>
-          <Textarea id={`what-${answer.id}`} name="what" required />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`correct-${answer.id}`}>Correct version (optional)</FieldLabel>
-          <Textarea id={`correct-${answer.id}`} name="correction" />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`link-${answer.id}`}>Link (optional)</FieldLabel>
-          <Input id={`link-${answer.id}`} name="link" type="url" placeholder="https://" />
-        </Field>
-      </FieldGroup>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={sending}>
-          {aboutFigure
-            ? 'Send to the owner and the data contact'
-            : `Send to the owner of ${domains[domain]?.name}`}
-        </Button>
-      </div>
-    </form>
+    <React.Suspense fallback={null}>
+      <ReportForm {...props} parts={reportParts} onSent={() => onSent()} />
+    </React.Suspense>
   )
 }
 
@@ -1048,20 +952,6 @@ export function Related({ ids }: { ids: string[] }) {
   )
 }
 
-/** The note says what the answer shows of the numbers: shown, a link to them, or not shown here. */
-function noteFor(note: string | undefined, view: FigureView | null) {
-  if (!note) return note
-  const numbers = /The numbers aren't shown here, so the (drop|change) itself isn't confirmed\./
-  if (view?.kind === 'line' || view?.kind === 'against')
-    return note.replace(numbers, '').trim() || undefined
-  if (view?.kind === 'link')
-    return note.replace(
-      numbers,
-      (_, w) => `This answer shows no figure, so the ${w} itself isn't confirmed here.`,
-    )
-  return note
-}
-
 type AnswerBodyProps = {
   /** The question and its answer, as far as the look-up has got. */
   turn: Turn
@@ -1210,13 +1100,30 @@ function ContextAnswerBody({
           }),
     [draft, answer.sources, all],
   )
+  const key = answerKey(answer)
+  // Something wrong? opens beside the answer, or under it where Ask is itself in the right panel.
+  const dock = useDock()
   const [wrong, setWrong] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
   const [sentNow, setSentNow] = React.useState(answer.report)
+  const sentBeside = useReportSent(key)
   // A report the person sent about this answer, here or before: what the owners did comes back.
   const mine = useQuery({ ...myReportsQuery(), enabled: !draft }).data?.find(
     (r) => r.question.toLowerCase() === askedOf(answer).toLowerCase(),
   )
-  const report = mine ? { on: mine.on, outcome: mine.outcome } : sentNow
+  const report = mine
+    ? { on: mine.on, outcome: mine.outcome }
+    : (sentNow ?? (sentBeside ? { on: 'just now' } : undefined))
+  const canReport = !draft && facts.length > 0 && !report
+  const reporting = docked ? wrong : dock?.kind === 'report' && dock.id === key
+  const onWrong = (open: boolean, from?: HTMLElement | null) => {
+    if (!canReport) return
+    if (docked) {
+      if (open) opener.current = from ?? null
+      setWrong(open)
+    } else if (open) openFromButton('report', key, from ?? null)
+    else if (reporting) closeDock()
+  }
 
   // Where the answer has got to: its labels held long enough to read, then the answer, whole.
   const shownStage = useShownStage(turn)
@@ -1249,14 +1156,9 @@ function ContextAnswerBody({
   const finished = turn.stage === 'done' && answered && !revealing && !stopped
   const writing = answered && isLive(turn) && !revealed
   const where = !draft && !docked && facts.length > 0
-  // The data, when an answer asks about a figure: one line, a link into the tool, or why there is none.
-  const asked = figureAskOf(answer)
-  const figure = useQuery({ ...figureQuery(asked), enabled: !draft && answer.state !== null })
-  const figures = useFigures()
-  const view = draft ? null : (figure.data ?? null)
-  const note = noteFor(answer.note, view)
-  // A finished answer is kept by its key, so the right panel can share it or show where it says that.
-  const key = answerKey(answer)
+  // A finished answer is kept by its key, so the right panel can share it, report it or show where
+  // it says that.
+  const note = answer.note
   React.useEffect(() => {
     if (finished && !draft) keepShown(key, { answer, facts })
   }, [finished, draft, key, answer, facts])
@@ -1419,21 +1321,19 @@ function ContextAnswerBody({
               <AnswerFooter footer={answer.footer} />
             </div>
           )}
-          {view?.kind === 'line' && <FigureLine view={view} metric={answer.metric} />}
-          {view?.kind === 'against' && (
-            <FigureAgainst view={view} answer={answer} contact={figures.contact(view.source)} />
-          )}
-          {view?.kind === 'none' && <NoFigure view={view} />}
-          {view?.kind === 'link' && <FigureLink view={view} />}
           {answer.related?.length ? <Related ids={answer.related} /> : null}
           {answer.state !== null && !draft && <NextStep answer={answer} facts={facts} />}
-          {!draft && report && <ReportLine report={report} />}
-          {!draft && wrong && !report && facts.length > 0 && (
+          {!draft && report && (
+            <ReportLine report={report} focus={!!sentNow && !answer.report} answerKey={key} />
+          )}
+          {docked && wrong && canReport && (
             <SomethingWrong
               answer={answer}
               facts={facts}
-              figure={view?.kind === 'line' || view?.kind === 'against' ? view.source : undefined}
-              onClose={() => setWrong(false)}
+              onClose={() => {
+                setWrong(false)
+                opener.current?.focus()
+              }}
               onSent={() => {
                 setWrong(false)
                 setSentNow({ on: 'just now' })
@@ -1444,14 +1344,12 @@ function ContextAnswerBody({
             answer={answer}
             copyText={copyText}
             facts={facts}
-            answerId={key}
             draft={!!draft}
-            docked={docked}
             latest={latest}
             onRetry={onRetry}
-            wrong={wrong}
-            onWrong={(w) => !draft && facts.length > 0 && !report && setWrong(w)}
-            canReport={!draft && facts.length > 0 && !report}
+            wrong={reporting}
+            onWrong={onWrong}
+            canReport={canReport}
           />
         </div>
       )}
@@ -1481,16 +1379,15 @@ function useRating(answer: Answer) {
 
 /**
  * One row of icons under a finished answer: Copy, Good, Bad, Ask again on the chat's last answer,
- * and More with the rest (Something wrong?, Save question, Share). The last answer always shows
- * them; an earlier one on hover or focus, and always on a touch screen.
+ * and More with the rest (Something wrong?, Save question). The last answer always shows them; an
+ * earlier one on hover or focus, and always on a touch screen. A chat is shared whole, from the
+ * chat's header (FR-721), never one answer.
  */
 export function AnswerActions({
   answer,
   copyText,
   facts,
-  answerId,
   draft,
-  docked,
   latest,
   onRetry,
   wrong,
@@ -1501,13 +1398,13 @@ export function AnswerActions({
   /** What Copy copies: the words on screen, the definition first when it leads. */
   copyText: string
   facts: Fact[]
-  answerId: string
   draft: boolean
-  docked?: boolean
   latest?: boolean
   onRetry?: () => void
+  /** Whether Something wrong? is open for this answer. */
   wrong: boolean
-  onWrong: (wrong: boolean) => void
+  /** Opens Something wrong?, or closes it: from the button it was opened with, for focus. */
+  onWrong: (wrong: boolean, from?: HTMLElement | null) => void
   canReport: boolean
 }) {
   const { rated, rate } = useRating(answer)
@@ -1519,10 +1416,9 @@ export function AnswerActions({
   const canSave = me.admin || me.owns.includes(saveDomain)
   // What More opened that needs a card of its own, beside the More button.
   const more = React.useRef<HTMLButtonElement>(null)
-  const [opened, setOpened] = React.useState<'save' | 'share' | null>(null)
-  const stated = !draft && !!answer.state && answer.state !== 'failed'
-  const save = stated && canSave
-  const hasMore = canReport || save || stated
+  const [opened, setOpened] = React.useState<'save' | null>(null)
+  const save = !draft && !!answer.state && answer.state !== 'failed' && canSave
+  const hasMore = canReport || save
   // A check that did not run has its own Ask again above, and nothing to rate, copy or report.
   if (answer.state === 'failed' && !copyText && !hasMore) return null
   return (
@@ -1556,13 +1452,13 @@ export function AnswerActions({
           >
             {rated === 'helpful' ? <CheckIcon /> : <ThumbsUpIcon />}
           </IconButton>
-          {/* One way to say it is wrong: a bad answer asks what was wrong, in the same form. */}
+          {/* The door to Something wrong?: a bad answer counts, then asks the owners why. */}
           <IconButton
             label="Bad answer"
             active={rated === 'wrong'}
-            onClick={() => {
+            onClick={(e) => {
               rate('wrong')
-              if (rated !== 'wrong') onWrong(true)
+              if (rated !== 'wrong') onWrong(true, e.currentTarget)
             }}
           >
             <ThumbsDownIcon />
@@ -1598,7 +1494,7 @@ export function AnswerActions({
           </Tooltip>
           <DropdownMenuContent align="start" className="w-auto">
             {canReport && (
-              <DropdownMenuItem onClick={() => onWrong(!wrong)}>
+              <DropdownMenuItem onClick={() => onWrong(!wrong, more.current)}>
                 <FlagIcon />
                 Something wrong?
               </DropdownMenuItem>
@@ -1608,15 +1504,6 @@ export function AnswerActions({
               <DropdownMenuItem onClick={() => setOpened('save')}>
                 <BookmarkIcon />
                 Save question
-              </DropdownMenuItem>
-            )}
-            {/* The answer travels with its state and its sources: beside it in the right panel. */}
-            {stated && (
-              <DropdownMenuItem
-                onClick={() => (docked ? setOpened('share') : openDock('share', answerId))}
-              >
-                <ShareIcon />
-                Share
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -1630,9 +1517,6 @@ export function AnswerActions({
           from={more}
           onClose={() => setOpened(null)}
         />
-      )}
-      {opened === 'share' && (
-        <SharePopover answer={answer} facts={facts} from={more} onClose={() => setOpened(null)} />
       )}
     </div>
   )

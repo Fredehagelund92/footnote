@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   changeSummary,
   planBulk,
+  publishesNow,
+  publishSummary,
   type BulkInput,
   type BulkPerson,
   type BulkRow,
@@ -89,6 +91,59 @@ describe('a change to many rows', () => {
       ['b', 'not_opened'],
       ['c', 'draft'],
     ])
+  })
+})
+
+describe('publishing drafts', () => {
+  const draft = (id: string, patch: Partial<BulkRow> = {}) =>
+    row(id, { status: 'draft', writer: 'ines', ...patch })
+
+  it('publishes drafts only: a published or archived item is left alone, with why', () => {
+    const rows = [draft('d'), row('live'), row('old', { status: 'archived' })]
+    const result = plan(rows, { action: 'publish' })
+    expect(result.act.map((r) => r.id)).toEqual(['d'])
+    expect(result.skipped.map((s) => [s.id, s.code, s.message])).toEqual([
+      ['live', 'published', 'It is published already.'],
+      [
+        'old',
+        'archived',
+        'It is archived: restore a version of it as a draft to publish it again.',
+      ],
+    ])
+  })
+
+  it('publishes at once in a domain the person owns, or for an admin, whoever wrote it', () => {
+    const theirs = draft('a', { writer: 'someone' })
+    expect(plan([theirs], { action: 'publish' }).act).toEqual([theirs])
+    expect(publishesNow(theirs, jon)).toBe(true)
+    expect(publishesNow(draft('m', { areaId: 'marketing' }), admin)).toBe(true)
+  })
+
+  it("lets a writer send their own draft to another domain's owners, or delete it, and nobody else's", () => {
+    const own = draft('own', { areaId: 'marketing' })
+    const other = draft('other', { areaId: 'marketing', writer: 'someone' })
+    const skipped = {
+      id: 'other',
+      title: 'Item other',
+      code: 'not_allowed',
+      why: 'owned by Marketing',
+      message: 'Only owners of Marketing and admins can change it.',
+    }
+    const result = plan([own, other], { action: 'publish' }, ines)
+    expect(result.act).toEqual([own])
+    expect(publishesNow(own, ines)).toBe(false)
+    expect(result.skipped).toEqual([skipped])
+    const deleted = plan([own, other], { action: 'delete' }, ines)
+    expect(deleted.act).toEqual([own])
+    expect(deleted.skipped).toEqual([skipped])
+    // Nothing else of a draft is its writer's to change where they own nothing.
+    expect(plan([own], { action: 'kind', kind: 'event' }, ines).act).toEqual([])
+  })
+
+  it('says in History what it published and what it sent to the owners', () => {
+    expect(publishSummary(['A', 'B', 'C'], [])).toBe('Published “A” and 2 more.')
+    expect(publishSummary(['A'], ['B'])).toBe("Published “A”. Sent “B” to its domain's owners.")
+    expect(publishSummary([], ['B', 'C'])).toBe("Sent “B” and 1 more to their domain's owners.")
   })
 })
 

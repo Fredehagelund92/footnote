@@ -6,14 +6,16 @@ import {
   DownloadIcon,
   EllipsisIcon,
   FolderInputIcon,
+  SendIcon,
   ShapesIcon,
   Trash2Icon,
   UserPlusIcon,
   UsersIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { BulkBar, BulkButton, type BulkNote } from '@/components/footnote/bulk-bar'
 import { DeleteDialog } from '@/components/footnote/delete-dialog'
+import { PublishDialog } from '@/components/footnote/publish-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,18 +37,23 @@ import type { RowSelection } from '@/hooks/use-selection'
 import { useDeleteConfirmation } from '@/hooks/use-delete-confirmation'
 import {
   canChange,
+  CONFIRM_ABOVE,
   count,
   doneLine,
   download,
   heldRows,
   movableTo,
   planFacts,
+  publishedLine,
+  publishesNow,
+  publishParts,
   skippedLine,
   toCsv,
   toMarkdown,
   type FactAction,
   type Me,
 } from '@/lib/bulk'
+import { nextLine, nothingToPublish, publishedWhen } from '@/lib/publish-lines'
 import { api } from '@/api'
 import { useLibrary, useRefreshAfter } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
@@ -54,8 +61,10 @@ import { useOnline } from '@/lib/send'
 import { useDomains, useMe, usePeople } from '@/lib/workspace'
 import type { LogEntry } from '@/model/items'
 
-// What a person can do to many context items at once, from the bar: Archive (the safe default, with
-// Undo), Delete (drafts only, after a confirmation, with Undo for a short while), and under More:
+// What a person can do to many context items at once, from the bar: Publish (drafts only, as from
+// the editor: at once where they own the domain, else sent to its owners; asked first for more than a
+// handful), Archive (the safe default, with Undo), Delete (drafts only, after a confirmation, with
+// Undo for a short while), and under More:
 // change the domain, the kind or the owners, mark as checked, and export. Each change acts on the
 // rows it may change and says what it left alone; the rows left alone stay ticked, with the reasons.
 // Every change is written to the items' History, and a deletion to Settings, Advanced.
@@ -108,13 +117,20 @@ export function ContextBulk({
       setNote({ text: skippedLine(plan.skipped), skipped: plan.skipped })
       return
     }
+    // Publish: as from a draft's own page; a draft for another domain's owners is sent to them.
+    const parts = action === 'publish' ? publishParts(plan, who, domains, dateLabel(today())) : null
+    const suggest = plan.act.filter((f) => parts?.suggest.includes(f.id))
     const input = {
       action,
       ...(opts.domain ? { domain: opts.domain } : {}),
       ...(opts.kind ? { kind: opts.kind } : {}),
       ...(opts.person ? { person: opts.person.name } : {}),
-      patches: action === 'delete' ? {} : Object.fromEntries(plan.act.map((f) => [f.id, patch(f)])),
+      patches:
+        action === 'delete'
+          ? {}
+          : (parts?.patches ?? Object.fromEntries(plan.act.map((f) => [f.id, patch(f)]))),
       remove: action === 'delete' ? plan.act.map((f) => f.id) : [],
+      ...(parts?.suggest.length ? { suggest: parts.suggest } : {}),
       entry: {
         id: `log-${++entries}`,
         on: today(),
@@ -129,33 +145,56 @@ export function ContextBulk({
     const result = await api.applyBulk(input)
     const ok = plan.act.filter((f) => result.done.includes(f.id))
     const failed = plan.act.filter((f) => result.failed.includes(f.id))
+    // What the service's own checks refused: left alone, with why, as the rows planned out.
+    const skipped = [...plan.skipped, ...(result.skipped ?? [])]
+    const sent = ok.filter((f) => suggest.includes(f))
     const refresh = () => refreshAfter('applyBulk', input, result)
-    if (action === 'delete' || action === 'archive')
+    if (action === 'delete' || action === 'archive' || sent.length)
       void leaveAllThen(
-        ok.map((f) => f.id),
+        (action === 'publish' ? sent : ok).map((f) => f.id),
         refresh,
       )
     else void refresh()
-    // What is done leaves the selection; what failed or was left alone stays, with its line.
-    const stay = [...failed.map((f) => f.id), ...plan.skipped.map((s) => s.id)]
+    // What is done leaves the selection; what failed or was left alone stays, with its line, and
+    // so do the drafts past one Publish's batch, for the next press.
+    const later = plan.next.map((f) => f.id)
+    const stay = [...failed.map((f) => f.id), ...skipped.map((s) => s.id), ...later]
     if (stay.length) sel.select(stay)
     else sel.clear()
-    const line = doneLine(verb, ok.length, failed.length)
+    const line =
+      action === 'publish'
+        ? publishedLine(
+            ok.length - sent.length,
+            sent.length,
+            failed.length,
+            [...new Set(sent.map((f) => domains[f.domain]?.name))].join(' and '),
+          )
+        : doneLine(verb, ok.length, failed.length)
+    if (!ok.length && !failed.length) {
+      setNote({ text: skippedLine(skipped), skipped })
+      noted.current = stay.join('|')
+      return
+    }
     if (failed.length)
       setNote({
-        text: [line, skippedLine(plan.skipped)].filter(Boolean).join('. '),
-        skipped: plan.skipped,
+        text: [line, skippedLine(skipped)].filter(Boolean).join('. '),
+        skipped,
         action: {
           label: 'Retry',
           onClick: () => change(action, verb, what, summary, patch, opts, failed),
         },
       })
-    else
-      setNote(
-        plan.skipped.length
-          ? { text: skippedLine(plan.skipped), skipped: plan.skipped }
-          : undefined,
-      )
+    else if (later.length)
+      setNote({
+        text: nextLine(later.length),
+        action: {
+          label: `Publish next ${later.length.toLocaleString('en-GB')}`,
+          onClick: () => publishNext.current(),
+        },
+      })
+    // What a Publish left has nothing to publish: the bar says why on its own (nothingToPublish).
+    else if (action === 'publish') setNote(undefined)
+    else setNote(skipped.length ? { text: skippedLine(skipped), skipped } : undefined)
     noted.current = stay.join('|')
     undo.offer(line, result.undo, {
       description: (held) =>
@@ -163,8 +202,10 @@ export function ContextBulk({
           ? `You can undo it for ${held}; then they are gone for good.`
           : action === 'archive'
             ? 'Agents stop getting them from the next question.'
-            : undefined,
-      onUndone: () => toast(`Undone: ${count(ok.length, 'item')} as before`),
+            : action === 'publish'
+              ? publishedWhen(ok.length - sent.length, sent.length)
+              : undefined,
+      undone: { title: `Undone: ${count(ok.length, 'item')} as before` },
     })
   }
 
@@ -175,6 +216,17 @@ export function ContextBulk({
       'archived',
       'Archived: agents stop getting it.',
       () => ({ status: 'Archived' }),
+      {},
+      rows,
+    )
+
+  const publish = (rows = picked) =>
+    change(
+      'publish',
+      'published',
+      'published',
+      'Published from the Context list.',
+      () => ({}),
       {},
       rows,
     )
@@ -197,6 +249,51 @@ export function ContextBulk({
   const deleteReason =
     off ??
     (deletePlan.act.length || publishedPlan.act.length ? undefined : deletePlan.skipped[0]?.reason)
+  // Publish is the writer's too, so it is off only offline or for what is not a draft, and then
+  // the line above the bar says why at once. Past a batch it takes the first ones in the list's
+  // order and keeps the rest ticked, saying so.
+  const publishPlan = planFacts('publish', picked, who, domains)
+  const publishNow = publishPlan.act.filter((f) => publishesNow(f, who, domains)).length
+  const publishSend = publishPlan.act.length - publishNow
+  const nothing =
+    picked.length && !publishPlan.act.length ? nothingToPublish(publishPlan.skipped) : undefined
+  const publishReason = !online ? OFFLINE : nothing && publishPlan.skipped[0]?.reason
+  // The button says which it does: publish, send to the owners, or some of each.
+  const publishLabel = !publishSend
+    ? 'Publish'
+    : !publishNow
+      ? 'Suggest'
+      : `Publish ${publishNow}, suggest ${publishSend}`
+  const sendTo = [
+    ...new Set(
+      publishPlan.act
+        .filter((f) => !publishesNow(f, who, domains))
+        .map((f) => domains[f.domain]?.name),
+    ),
+  ].join(' and ')
+  const publishSays = !publishSend
+    ? undefined
+    : publishNow
+      ? `Publishes ${count(publishNow, 'draft')}; sends ${count(publishSend, 'draft')} to the owners of ${sendTo}.`
+      : `Sends ${count(publishSend, 'draft')} to the owners of ${sendTo}.`
+  // More than a handful is asked once, holding the rows ticked then.
+  const [publishing, setPublishing] = React.useState<string[] | null>(null)
+  const askPublish = () => {
+    if (publishPlan.act.length > CONFIRM_ABOVE) setPublishing([...sel.ids])
+    else publish()
+  }
+  // The line's "Publish next 4" is pressed later, with the rows ticked then.
+  const publishNext = React.useRef(askPublish)
+  React.useEffect(() => {
+    publishNext.current = askPublish
+  })
+  const heldRowsToPublish = facts.filter((f) => publishing?.includes(f.id))
+  const heldPublish = planFacts('publish', heldRowsToPublish, who, domains)
+  const heldSend = heldPublish.act.filter((f) => !publishesNow(f, who, domains))
+  // It shuts, and stays shut, when its drafts have gone or the connection has, as Delete's does.
+  const publishStale = !!publishing && (!heldPublish.act.length || !online)
+  if (publishStale) setPublishing(null)
+
   const { confirming, ask, close } = useDeleteConfirmation(sel, deleteReason, (text) =>
     setNote({ text }),
   )
@@ -241,11 +338,16 @@ export function ContextBulk({
             : undefined
         }
         note={
-          online
-            ? note
-            : { text: "You're offline. Changes are off until you're back; nothing is lost." }
+          !online
+            ? { text: "You're offline. Changes are off until you're back; nothing is lost." }
+            : (note ??
+              (nothing ? { text: nothing, info: true, skipped: publishPlan.skipped } : undefined))
         }
       >
+        <BulkButton reason={publishReason} aria-description={publishSays} onClick={askPublish}>
+          <SendIcon />
+          <span className="max-sm:sr-only">{publishLabel}</span>
+        </BulkButton>
         <BulkButton reason={archiveReason} onClick={() => archive()}>
           <ArchiveIcon />
           <span className="max-sm:sr-only">Archive</span>
@@ -431,6 +533,15 @@ export function ContextBulk({
           </DropdownMenuContent>
         </DropdownMenu>
       </BulkBar>
+      <PublishDialog
+        open={!!publishing && !publishStale}
+        onOpenChange={(open) => !open && setPublishing(null)}
+        drafts={heldPublish.act}
+        send={heldSend}
+        next={heldPublish.next.length}
+        skipped={heldPublish.skipped}
+        onPublish={() => publish(heldRowsToPublish)}
+      />
       <DeleteDialog
         open={!!confirming && !stale}
         onOpenChange={(open) => !open && close()}

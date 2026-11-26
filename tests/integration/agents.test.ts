@@ -97,14 +97,7 @@ const suggestion = (title: string) => ({
 const proposalCount = async () =>
   (await admin.query<{ n: number }>('select count(*)::int as n from proposals')).rows[0]!.n
 
-const toolNames = [
-  'get_context',
-  'find_context',
-  'read_context',
-  'report',
-  'suggest_context',
-  'get_related',
-]
+const toolNames = ['get_context', 'find_context', 'read_context', 'report', 'suggest_context']
 
 /** An administrator switches one tool of one agent, with a reason the history log keeps. */
 function setTool(
@@ -265,6 +258,37 @@ describe('every agent by name', () => {
     expect(await proposalCount()).toBe(before + 1)
   })
 
+  it('lists what there is with find_context until an admin switches it off, then neither lists nor searches (FR-338)', async () => {
+    const app = await connect('author')
+    const boss = await signedIn('admin')
+    const id = await agentOfClient(app.clientId)
+    // On for a new agent, like every other tool.
+    const wire = await mcpClient(app.token)
+    const page = await wire.callTool({ name: 'find_context', arguments: { kind: 'metric' } })
+    expect(page.isError).not.toBe(true)
+    expect(page.structuredContent).toMatchObject({ status: 'matched', next_cursor: null })
+    await wire.close()
+
+    expect((await setTool(boss, id, 'find_context', false)).status).toBe(200)
+    const off = await mcpClient(app.token)
+    const names = (await off.listTools()).tools.map((t) => t.name)
+    expect(names).not.toContain('find_context')
+    expect(names).toContain('get_context')
+    await off.close()
+    for (const args of [{}, { query: 'orders' }]) {
+      const refused = await call(app.token, {
+        method: 'tools/call',
+        params: { name: 'find_context', arguments: args },
+      })
+      expect(refused.status).toBe(403)
+      expect(((await refused.json()) as { error: string }).error).toBe(
+        'An admin switched find_context off for this agent in Footnote.',
+      )
+    }
+    const row = (await agentsOf(boss)).find((r) => r.id === id)!
+    expect(row.tools.map((t) => t.tool)).toEqual(toolNames)
+  })
+
   it('refuses one tool switched off, gives an agent with every tool off nothing, and never widens consent', async () => {
     const app = await connect('author')
     const reader = await connect('author', 'read feedback')
@@ -339,12 +363,12 @@ describe('every agent by name', () => {
       (await setTool(boss, await agentOfClient(one.clientId), 'suggest_context', false)).status,
     ).toBe(200)
     expect(
-      (await setTool(boss, await agentOfClient(two.clientId), 'get_related', false)).status,
+      (await setTool(boss, await agentOfClient(two.clientId), 'read_context', false)).status,
     ).toBe(200)
     const again = await connect('owner')
     const id = await agentOfClient(again.clientId)
     const fresh = (await agentsOf(boss)).find((r) => r.id === id)!
-    expect(toolsOn(fresh)).toEqual(['get_context', 'find_context', 'read_context', 'report'])
+    expect(toolsOn(fresh)).toEqual(['get_context', 'find_context', 'report'])
   })
 
   it('ends every connection of an app at once when an agent is revoked', async () => {

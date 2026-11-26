@@ -39,9 +39,9 @@ Three smaller rules follow from them:
 
 An engineer needs the exact term to search a log, match a setting or follow a guide. A sales person must not have to read it. Show **the plain line first, the exact term second and smaller**, in one of three shapes:
 
-1. **Two lines.** The plain line is the label and the exact term sits under it, or beside it, in small mono: "Get the context for a question" with `get_context`.
+1. **Two lines.** The plain line is the label and the exact term sits under it, or beside it, in small mono: "Get context for a question" with `get_context`.
 2. **Brackets on first use.** "As a spreadsheet (CSV)", "choose OAuth (sign in through the browser)".
-3. **A fold.** "Developer details" in Ask, "Connection details" on a tool's figures, "For engineers" in Advanced.
+3. **A fold.** "Developer details" in Ask, "For engineers" in Advanced.
 
 A word that is only for engineers does not stay on a screen for everyone: dev server, thread, queue, ledger, facet, backing off, allow list, "the service", "Enter URL". Model ids, milliseconds and similar terms may stay on an admin page, with the unit spelled out once.
 
@@ -85,7 +85,7 @@ Do and do not:
 | Do                                                                        | Do not                                                            |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | "Published. Agents now say ..."                                           | "The suggestion was successfully accepted into the live edition." |
-| "Nothing is written about this yet."                                      | "no_match: no governed item applies to that exact scope."         |
+| "Nothing published about this yet."                                       | "no_match: no governed item applies to that exact scope."         |
 | "Couldn't publish. <the server's reason> Nothing changed." with Try again | "An error occurred."                                              |
 | "Your suggestion is waiting for Jon Abara."                               | "Your proposal was submitted to the domain for review."           |
 | "2 skipped: owned by Sales"                                               | "2 items could not be processed due to insufficient permissions." |
@@ -104,7 +104,7 @@ The six states of an answer. One or two words, an icon and a tint, one short sen
 | --------- | ----------------- | ------------------------------------ | ------------------------- |
 | grounded  | **Checked**       | (none)                               | Based on checked context  |
 | partial   | **Partial**       | Only part of this is written down.   | Covers part of it         |
-| missing   | **Not found**     | Nothing is written about this yet.   | Nothing written down      |
+| missing   | **Not found**     | Nothing published about this yet.    | Nothing written down      |
 | conflict  | **Conflict**      | Two items say different things.      | Context disagrees         |
 | stale     | **Outdated**      | Some of this may be old.             | May be out of date        |
 | failed    | **Not looked up** | Ask could not look this up just now. | Could not look up         |
@@ -159,7 +159,9 @@ Event (lightning), Warning (triangle), Rule (ruler), Guide (route). Stored as `e
 
 ### Item statuses and freshness
 
-Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives the exact value.
+Draft, Waiting, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives the exact value.
+
+**Waiting** is the chip of a suggestion that was sent and waits for an owner (**Waiting for review** in full, as in the Status filter). Its row and page say who sent it, how long ago and who decides: "Maria Lindqvist sent it 3 days ago. You or Sofia Brandt decide." Never "submitted", "in review" or "not published" for it. **Not published yet** is a draft's. A suggestion an owner chose not to publish is **Closed**, with the reason.
 
 ### Inbox cards and groups
 
@@ -170,6 +172,7 @@ Draft, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives th
 | `look`       | **Saved questions**     | How many need a look                               |
 | mention      | **Mentioned you**       | Who, and where                                     |
 | returned     | **Returned to you**     | Who returned it: "Returned by Jon Abara"           |
+| closed       | **Closed**              | Who closed it: "Closed by Jon Abara", and why      |
 | `check`      | **Due for a check**     | The check date that passed                         |
 | `suggestion` | **Suggestion**          | Size and reach, "2 wording, 1 link - 12 questions" |
 
@@ -177,7 +180,7 @@ Under All: **Waiting on others** and **Done**. Never "Gap" or "Flag" as a card n
 
 ### Review
 
-Change kinds: **Wording**, **Formatting**, **Link**, **Order**, **Added**, **Removed**, **Dates**. Decisions: **Publish**, **Edit**, **Send back with a note**, **Archive**, **Don't archive** (closes it with a reason), **Close the suggestion**. A returned suggestion's sender: **Edit and send again**. Group actions: **Publish the N you've read**, **Mark as read**. Outcomes stay on the page: "Published. Agents now say ...", with Undo. A failed try says "Couldn't publish." with the server's reason when it gave one, then "Nothing changed.", and Try again repeats the same action (a returned note is sent as it reads now, not as it was); offline the button says "Publish is off until you're back". An Undo the service refuses (too late, or the card changed) says "Couldn't undo it." with the service's reason, and the screen stays as it was.
+Change kinds: **Wording**, **Formatting**, **Link**, **Order**, **Added**, **Removed**, **Dates**. Decisions: **Publish**, **Edit**, **Send back with a note**, **Archive**, **Don't archive** (closes it with a reason), **Close the suggestion**, **Don't publish** (closes a new item or a change with a reason its sender reads). A returned suggestion's sender: **Edit and send again**. Group actions: **Publish the N you've read**, **Mark as read**. Outcomes stay on the page (a Publish in the review: the queue row says Publishing, then Published), with Undo. A failed try says "Couldn't publish." with the server's reason when it gave one, then "Nothing changed.", and Try again repeats the same action (a returned note is sent as it reads now, not as it was); offline the button says "Publish is off until you're back". An Undo the service refuses (too late, or the card changed) says "Couldn't undo it." with the service's reason, and the screen stays as it was.
 
 ### The quick view's answers
 
@@ -201,7 +204,7 @@ The live line: **Not connected yet**, **Waiting for your agent to connect...**, 
 
 ### Integrations
 
-States: Healthy, Failed, Needs a new key, Paused. Actions: Connect, Read again, Test connection. The switch **Show figures in Ask** is off by default.
+States: Healthy, Failed, Needs a new key, Paused. Actions: Connect, Read again, Test connection.
 
 ### Alerts
 

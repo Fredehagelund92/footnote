@@ -14,6 +14,8 @@ import type { ObsState } from '@/model/observability'
 //   send take 1.5s instead of 0.6s.
 // - ?loop=1 answers a typed question in Ask as Ask's loop does, so the chat is kept with its answers.
 // - ?decide=fail fails each Inbox card's first save, ?bulk=fail the first change to many rows.
+// - ?publish=fail refuses each suggestion's first Publish in the review, as the service refuses
+//   one another owner is reviewing, so the row the review moved on from says why.
 // - ?replay=fail fails each Observability topic's first replay, so the answer panel's failed read
 //   can be seen, and Retry brings it back.
 // - ?change=fail has someone else save a connected tool's settings just before its first change
@@ -99,7 +101,7 @@ export function createScenario() {
      */
     dataFlags() {
       const q = address.query
-      return JSON.stringify([this.obsState(), q.quality, q.links, q.figures, q.connect, q.loop])
+      return JSON.stringify([this.obsState(), q.quality, q.connect, q.loop, q.origin, q.check])
     },
     /** Observability's own review flag: ?state=empty (nothing connected), quiet (under 5), busy. */
     obsState(): ObsState {
@@ -156,24 +158,32 @@ export function createScenario() {
 
     /**
      * A send as the scenario plays it: refused offline, as long as a send takes, and with a fault
-     * flag the first one of its kind fails (`key` names the kind: a card for ?decide=fail). A quick
-     * send takes no time unless a flag plays sends.
+     * flag the first one of its kind fails (`key` names the kind: a card for ?decide=fail), as a
+     * refusal in the service's words when it has one (`refusal`). The flags are those of the
+     * address it was sent from: a screen may move on before the answer. A quick send takes no time
+     * unless a flag plays sends.
      */
     async send<T>(
       method: FootnoteApiMethod,
       run: () => T,
-      options: { key?: string; flag?: 'decide' | 'bulk'; quick?: boolean } = {},
+      options: {
+        key?: string
+        flag?: 'decide' | 'bulk' | 'publish'
+        refusal?: string
+        quick?: boolean
+      } = {},
     ): Promise<T> {
       if (offline()) throw new ApiError('unanswered', "You're offline.")
+      const kind = `${method}:${options.key ?? ''}`
+      const flag = options.flag !== undefined && address.query[options.flag] === 'fail'
+      const fails = (fault === 'failed' || flag) && !failedOnce.has(kind)
+      if (fails) failedOnce.add(kind)
       // A quick write (a toggle, a mark) answers at once unless a flag asks to see sends play.
       if (!options.quick || slow() || fault !== null) await wait(sendTime(slow()))
-      const kind = `${method}:${options.key ?? ''}`
-      const flagged =
-        fault === 'failed' || (options.flag !== undefined && address.query[options.flag] === 'fail')
-      if (flagged && !failedOnce.has(kind)) {
-        failedOnce.add(kind)
-        throw new ApiError('failed', "Couldn't save that.", { status: 500 })
-      }
+      if (fails)
+        throw flag && options.refusal
+          ? new ApiError('conflict', options.refusal)
+          : new ApiError('failed', "Couldn't save that.", { status: 500 })
       return run()
     },
   }

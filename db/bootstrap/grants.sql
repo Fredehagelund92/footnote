@@ -18,6 +18,9 @@ grant delete on saved_views, notification_prefs, inbox_items to :api;     -- use
 grant insert, update on family_meanings to :api;
 -- The usual variant of a family (FR-142): an owner's pick; its history is written by a trigger.
 grant insert, update on family_usual to :api;
+-- A family split back into its variants (FR-142): who split it, and joining them again.
+grant insert, update on family_splits to :api;
+grant execute on function edition_close_family(bigint, text) to :api;
 grant execute on function cl_family_area(text) to :api;
 -- Which records questions Ask was asked, by id and week only (FR-718).
 grant insert, update on records_asked_weekly to :api;
@@ -48,6 +51,7 @@ grant select on v_topic_counts_public, v_gap_totals, mcp_requests to :readonly;
 
 grant insert on item_version_mentions to :api;
 grant execute on function serving_links(bigint) to :api, :serve;
+grant execute on function serving_family_splits(bigint) to :api, :serve;
 grant execute on function cl_short_id(text), cl_person(), cl_is_admin_now(), cl_is_owner_now(text) to :serve;
 grant execute on function cl_strip_mentions(text) to :api;
 grant execute on function serving_metadata(bigint), serving_report_gap(text,text,text[],text[],text[],date,text) to :serve;
@@ -72,6 +76,8 @@ grant select, insert, update, delete on auth.oauth_clients, auth.oauth_requests,
 grant select, insert, update on auth.oauth_grants to :api;
 grant execute on function cl_parse_mention_text(text), cl_next_item_version(text),
   cl_scopes_overlap(jsonb,jsonb), cl_other_proposal_overlap(uuid) to :api;
+-- Drafts are personal (FR-139): an admin counts and clears the drafts of people who left, unread.
+grant execute on function cl_left_drafts(), cl_clear_left_drafts(uuid) to :api;
 -- An agent's draft (FR-121): accepted items whose words read like it, before it is saved.
 grant execute on function cl_similar_items(text, text) to :api;
 grant execute on function serving_metadata(bigint) to :api;
@@ -169,11 +175,20 @@ grant execute on function serving_terms(), serving_terms_mark() to :api, :serve;
 -- brings them back; the people grant above covers it.
 grant insert, update (token_hash, sent_at, expires_at, invited_by, revoked_at, revoked_by) on invites to :api;
 grant execute on function cl_owns_all(text[]), auth.accept_invite(text, text), invite_standing(invites) to :api;
+-- Question links (Ask someone who knows): an owner makes one for a card and copies it again on a new
+-- day; a person answers a Due for a check card's link as themselves and never changes it. Agents
+-- never read any of it: nothing here is granted to the serving or the analytics role.
+grant insert, update (copied_on) on question_links to :api;
+grant insert on question_answers to :api;
 -- Named reports (FR-622): a person sends one from Ask as themselves and never changes it; its sender
 -- reads what the owners did after it. Agents never read any of it: nothing here is granted to the
 -- serving or the analytics role.
 grant insert on reports to :api;
 grant execute on function cl_report_outcome(uuid) to :api;
+-- A chat a person shares as a link (FR-721): its sender makes and stops it, anyone signed in opens a live
+-- one while sharing is on. Agents never read it: nothing here is granted to the serving or the analytics role.
+grant insert, delete on shared_chats to :api;
+grant execute on function cl_share_chats_on() to :api;
 -- Company sign-in (FR-416): a sign-in in progress, tied to its browser and used once; the link from a person's
 -- account at the identity provider to the person; and, as nobody is signed in yet, joining by a mapped group and
 -- keeping the admin group's Admin role in step run as the owner.
@@ -229,12 +244,6 @@ grant update (enabled, threshold, changed_by, changed_at) on alert_rules to :api
 grant insert, delete on alert_mutes to :api;
 grant execute on function cl_alert_raise(text, text, text[], text, jsonb), cl_alert_reached(uuid[]),
   cl_saved_looks(), cl_connector_domains(text) to :api;
--- Figures in Ask (FR-716, CON-612): an administrator keeps a source's figures settings and its data contact
--- on the source (the connectors grant above); a figure report's data contact reads it and closes it; anyone
--- signed in asks whether an open figure report puts a figure beside a context item, and hears the item only.
--- No figure is ever stored, and nothing here is granted to the serving or the analytics role.
-grant execute on function cl_is_figure_contact(text), cl_closes_figure_report(text),
-  cl_figure_disputes(text, text, text[], date, date) to :api;
 -- Access keys (FR-403, FR-410): an administrator creates a key, kept only as its digest, and revokes it. The MCP
 -- server reads no key: one function that runs as the owner says whether a digest is an open key.
 grant select, insert, update (revoked_at, revoked_by) on auth.access_keys to :api;
@@ -261,3 +270,5 @@ grant select, insert, delete on names_left_out to :api;
 -- The undo window (FR-227): the row policies read it, and the service tells the screens how long Undo
 -- is offered. Nothing here is granted to the serving or the analytics role.
 grant execute on function cl_undo_until(timestamptz) to :api;
+-- Reading a link a person pastes (FR-144): one read taken under the limits, counted unread.
+grant execute on function cl_link_read_take() to :api;

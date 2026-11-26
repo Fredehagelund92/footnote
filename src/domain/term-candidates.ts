@@ -110,6 +110,8 @@ const words = (text: string) => text.replace(/_+/g, ' ').trim()
 /** A name with its view's after it, to tell it from another of one name: "Revenue (orders)". */
 export const withView = (name: string, view: string) => `${name} (${words(view)})`
 const capitalized = (text: string) => `${text.charAt(0).toUpperCase()}${text.slice(1)}`
+/** A view's name in words, as a group it makes is called: `booked_revenue` is "Booked revenue". */
+export const viewWords = (view: string) => capitalized(words(view))
 
 /** A member's own name: after its view, and after the prefix a view joined it with. */
 export const ownName = (member: Pick<CandidateMember, 'name' | 'baseName'>) =>

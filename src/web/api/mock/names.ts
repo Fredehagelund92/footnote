@@ -8,7 +8,8 @@ import {
   variantNameRefusal,
   type WordHolders,
 } from '@domain/source-names'
-import type { CandidateMember } from '@domain/term-candidates'
+import { familiesOf, familyCounts } from '@domain/metric-families'
+import { memberName, type CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'
 import { namesWords, type InboxCard } from '@/model/inbox'
@@ -16,7 +17,11 @@ import { namesWords, type InboxCard } from '@/model/inbox'
 // The names a read makes in the mock (FR-141): the same rules as the service, on the members of an
 // invented shop's dbt project. They wait once a definitions tool is connected, or with
 // ?demo=names. Accepting one takes it off the list; the mock's vocabulary is the demo's own, so
-// nothing else changes. Kept until the page reloads.
+// nothing else changes. Kept until the page reloads. As on the service, a name is read and
+// decided only by an admin or an owner of its domain.
+
+/** Who reads the names: an admin, or the owner of some domains. */
+type Reader = { admin: boolean; owns: readonly string[] }
 
 const member = (
   name: string,
@@ -24,7 +29,8 @@ const member = (
   extra: Partial<CandidateMember> = {},
 ): CandidateMember => ({
   ref: `dbt:${name}`,
-  source: 'dbt',
+  // The dbt project's page in Integrations, where its families are counted.
+  source: 'dbt-metricflow',
   kind: 'metric',
   name,
   title,
@@ -105,6 +111,31 @@ const foundOtherwise: CandidateMember[] = [
   ),
 ]
 
+/**
+ * What Test connection finds in the shop of ?demo=families, as the service counts a test's read:
+ * its metrics and dimensions, and the families of each kind the first read would find (D5).
+ */
+export function familiesShopRead() {
+  const all = [...shop, ...variants, ...foundOtherwise]
+  const metrics = all.filter((m) => m.kind === 'metric')
+  const families = familyCounts(
+    familiesOf(
+      metrics.map((m) => ({
+        ...m,
+        said: memberName(m),
+        variant: m.variant ?? null,
+        declared: m.declared ?? null,
+        builtFrom: m.builtFrom ?? null,
+      })),
+    ),
+  )
+  return {
+    metrics: metrics.length,
+    dimensions: all.length - metrics.length,
+    ...(families ? { families } : {}),
+  }
+}
+
 /** The words that mean something else in the mock's demo: the demo has its own Orders. */
 const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
@@ -125,10 +156,11 @@ export function createMockNames(heldWords: WordHolders = holders) {
           left,
         )
       : []
-  const read = async (): Promise<NamesRead> => {
-    const shown = names().map(
+  const readable = (who: Reader) =>
+    names().filter((n) => who.admin || (n.areaId !== null && who.owns.includes(n.areaId)))
+  const read = async (who: Reader): Promise<NamesRead> => {
+    const shown = readable(who).map(
       ({
-        source: _source,
         views: _views,
         valueType: _type,
         suggested: _s,
@@ -150,12 +182,13 @@ export function createMockNames(heldWords: WordHolders = holders) {
       if (families) members = [...shop, ...variants, ...foundOtherwise]
     },
     read,
-    card(me: string): InboxCard | null {
-      const list = names()
+    card(me: string, who: Reader): InboxCard | null {
+      const list = readable(who)
       const ready = list.filter((n) => n.state === 'ready').length
       const flagged = list.filter((n) => n.state === 'flagged').length
       if (!ready && !flagged) return null
-      const counts = { ready, flagged, tools: ['dbt'] }
+      const families = list.filter((n) => n.family && n.state !== 'left_out').length
+      const counts = { ready, flagged, families, tools: ['dbt'] }
       return {
         id: 'names:waiting',
         type: 'names',
@@ -169,10 +202,16 @@ export function createMockNames(heldWords: WordHolders = holders) {
         names: counts,
       }
     },
-    async decide(input: DecideNames): Promise<NamesDecision> {
-      if ((await read()).revision !== input.revision)
+    async decide(input: DecideNames, who: Reader): Promise<NamesDecision> {
+      if ((await read(who)).revision !== input.revision)
         throw new ApiError('conflict', 'The names changed after you opened them.')
-      const found = names()
+      const found = readable(who)
+      for (const key of [...input.accept.map((pick) => pick.key), ...input.leaveOut])
+        if (!found.some((n) => n.key === key))
+          throw new ApiError(
+            'conflict',
+            'A name here is no longer waiting. Look at the latest list, then try again.',
+          )
       for (const { key, apart } of input.accept) {
         const waiting = found.find((n) => n.key === key)
         if (apart && !(waiting && mayGoApart(waiting)))
@@ -232,7 +271,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
         edition: chosen.size ? 'today.1' : null,
         accepted: chosen.size,
         leftOut: input.leaveOut.length,
-        waiting: await read(),
+        waiting: await read(who),
       }
     },
   }

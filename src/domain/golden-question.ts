@@ -48,7 +48,7 @@ export const questionScopeSchema = z.object({
  * every try must contain it (FR-515). `status` is the status the agent's context tool must give:
  * get_context, or find_context, which replies in the same shape.
  * A link-follow question (FR-523) names the items whose context the answer must reach through a
- * link (`read_context` or `get_related`), and the stale or hidden link targets it must neither read
+ * link (`read_context`), and the stale or hidden link targets it must neither read
  * nor cite. Both are optional: a question about no link names neither, and its cache key leaves
  * them out.
  */
@@ -187,7 +187,7 @@ export type Observation = {
    * search hit, not a claim that it applies, so only these can break `must_not_deliver`.
    */
   applied: string[]
-  /** Items whose content the agent read by following a link: read_context or get_related. */
+  /** Items whose content the agent read by following a link with read_context. */
   reached: string[]
   statuses: string[]
   verdict: JudgeVerdict | null

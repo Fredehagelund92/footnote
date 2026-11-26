@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { Skip } from '@/lib/bulk'
 import { countLine } from '@/lib/selection'
 import { useLinger } from '@/lib/presence'
-import { useReportBulkBar } from '@/lib/bulk-bar-presence'
+import { useToastFloor } from '@/lib/toast-floor'
 
 // The one bar for rows picked in a list (Context, Definitions, the Inbox): the count, Clear, and the
 // list's actions, on the ink surface the Footnote app uses. It takes a band of its own under the list,
@@ -19,6 +19,8 @@ import { useReportBulkBar } from '@/lib/bulk-bar-presence'
 /** What the line above the bar says. */
 export type BulkNote = {
   text: string
+  /** Information rather than an outcome: why an action has nothing to do, led by an info mark. */
+  info?: boolean
   skipped?: Skip[]
   action?: { label: string; onClick: () => void }
 }
@@ -43,14 +45,18 @@ export function BulkBar({
   // appears with its text is often not read.
   // The bar leaves the way it came: it stays for its exit, still showing the count it had.
   const { present, leaving } = useLinger(count > 0)
-  useReportBulkBar(present)
+  const floor = useToastFloor<HTMLDivElement>()
   const [shown, setShown] = React.useState(count)
   if (count > 0 && count !== shown) setShown(count)
   const [said, setSaid] = React.useState('')
   const before = React.useRef({ count, note: note?.text })
   React.useEffect(() => {
-    if (note?.text && note.text !== before.current.note) setSaid(note.text)
-    else if (count !== before.current.count) setSaid(countLine(count))
+    const newNote = note?.text && note.text !== before.current.note
+    const newCount = count !== before.current.count
+    // A selection that comes with its note (nothing to publish) is heard as both.
+    if (newNote && newCount) setSaid(`${countLine(count)}. ${note.text}`)
+    else if (newNote) setSaid(note.text)
+    else if (newCount) setSaid(countLine(count))
     before.current = { count, note: note?.text }
   }, [count, note?.text])
   return (
@@ -60,6 +66,7 @@ export function BulkBar({
       </span>
       {present && (
         <div
+          ref={floor}
           data-leaving={leaving ? '' : undefined}
           inert={leaving}
           className="flex shrink-0 bar-motion flex-col items-center gap-1.5 border-t bg-background px-4 py-2.5 max-md:gap-0 max-md:border-t-0 max-md:bg-foreground max-md:p-0 max-md:pb-safe-area"
@@ -96,35 +103,44 @@ export function BulkBar({
 }
 
 function NoteLine({ note }: { note: BulkNote }) {
+  const listed = !!note.skipped?.length
+  // The rows left alone, with each one's reason, a hover away; an information line starts with it.
+  const why = listed && (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Why they were skipped"
+            className="text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60"
+          />
+        }
+      >
+        <InfoIcon />
+      </TooltipTrigger>
+      <TooltipContent className="max-w-80">
+        <ul className="flex flex-col gap-1">
+          {note.skipped!.slice(0, 8).map((s) => (
+            <li key={s.id}>
+              <span className="font-medium">{s.title}</span> - {s.reason}
+            </li>
+          ))}
+          {note.skipped!.length > 8 && <li>And {note.skipped!.length - 8} more.</li>}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
+  )
   return (
-    <div className="flex max-w-full items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-3 text-xs text-background max-md:w-full max-md:rounded-none max-md:border-b max-md:border-background/15 max-md:py-2">
-      <span className="min-w-0">{note.text}</span>
-      {note.skipped && note.skipped.length > 0 && (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Why they were skipped"
-                className="text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60"
-              />
-            }
-          >
-            <InfoIcon />
-          </TooltipTrigger>
-          <TooltipContent className="max-w-80">
-            <ul className="flex flex-col gap-1">
-              {note.skipped.slice(0, 8).map((s) => (
-                <li key={s.id}>
-                  <span className="font-medium">{s.title}</span> - {s.reason}
-                </li>
-              ))}
-              {note.skipped.length > 8 && <li>And {note.skipped.length - 8} more.</li>}
-            </ul>
-          </TooltipContent>
-        </Tooltip>
+    <div
+      className={cn(
+        'flex max-w-full items-center gap-2 rounded-md bg-foreground py-1 pr-1 pl-3 text-xs text-background max-md:w-full max-md:rounded-none max-md:border-b max-md:border-background/15 max-md:py-2',
+        note.info && (listed ? 'pr-3 pl-1' : 'py-1.5 pr-3'),
       )}
+    >
+      {note.info && (why || <InfoIcon aria-hidden className="size-3.5 shrink-0" />)}
+      <span className="min-w-0">{note.text}</span>
+      {!note.info && why}
       {note.action && (
         <BulkButton
           onClick={note.action.onClick}
@@ -139,20 +155,22 @@ function NoteLine({ note }: { note: BulkNote }) {
 
 /**
  * A button on the bar. With a `reason` it stays in reach but does nothing, and says why on a hover
- * and to a screen reader.
+ * and to a screen reader; without one, an `aria-description` says what it would do.
  */
 export function BulkButton({
   reason,
   className,
   onClick,
   children,
+  'aria-description': description,
   ...props
-}: React.ComponentProps<typeof Button> & { reason?: string }) {
+}: React.ComponentProps<typeof Button> & { reason?: string; 'aria-description'?: string }) {
   const button = (
     <Button
       variant="ghost"
       aria-disabled={reason ? true : undefined}
-      aria-description={reason}
+      // Why it does nothing wins over what it would do.
+      aria-description={reason ?? description}
       onClick={reason ? (e) => e.preventDefault() : onClick}
       className={cn(
         'shrink-0 text-background hover:bg-background/15 hover:text-background focus-visible:ring-background/60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 max-md:h-11 max-md:min-w-11',

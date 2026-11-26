@@ -1,6 +1,7 @@
 import type { FamilyMeaningVersion } from '@contract/catalogue'
 import { REPOSITORY_URL } from '@domain/brand'
-import { FAMILY_WORDS_MAX, familyMeaning, type FamilyMeaningChoice } from '@domain/family-meaning'
+import { familyMeaning } from '@domain/family-meaning'
+import { FAMILY_WORDS_MAX, type FamilyMeaningChoice } from '@domain/family-meaning-line'
 import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
@@ -17,6 +18,7 @@ import {
   goesWith,
   meaningOf,
   type Definition,
+  type SplitFamily,
   type SynonymCheck,
 } from '@/lib/definitions'
 
@@ -58,6 +60,7 @@ const seed: Definition[] = [
     synced: true,
     tool: demoTool(DEMO_DEFINITIONS),
     connector: DEMO_DEFINITIONS,
+    source: DEMO_DEFINITIONS,
     ...fromModel(m.group, m.name),
     sourceNames: m.otherNames ?? [],
     domain: m.domain,
@@ -72,6 +75,7 @@ const seed: Definition[] = [
     synced: true,
     tool: demoTool(DEMO_DEFINITIONS),
     connector: DEMO_DEFINITIONS,
+    source: DEMO_DEFINITIONS,
     ...fromModel('Segments', d.name),
     sourceNames: [],
     group: 'Segments',
@@ -110,7 +114,6 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
       meaning: {
         source: meaning.source,
         words: meaning.words,
-        ...(meaning.member ? { member: meaning.member } : {}),
         ...(meaning.common ? { common: meaning.common } : {}),
         ...(meaning.base ? { base: meaning.base } : {}),
         ...(meaning.automatic ? { automatic: meaning.automatic } : {}),
@@ -119,7 +122,6 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
           ? {
               chosen: {
                 choice: chosen.choice,
-                ...(chosen.member ? { member: chosen.member } : {}),
                 ...(chosen.words ? { words: chosen.words } : {}),
                 by: chosen.personId,
                 on: dateLabel(chosen.at.slice(0, 10)),
@@ -138,6 +140,8 @@ export function createDefinitions() {
   let all = seed
   /** Every choice of what a family means, by the family's name, newest last. */
   const meanings = new Map<string, Chosen[]>()
+  /** The families split back into their metrics, newest first, each with the entry it was. */
+  let splits: { family: Definition; split: SplitFamily }[] = []
 
   return {
     list: () => all,
@@ -163,20 +167,22 @@ export function createDefinitions() {
         all = [
           ...all,
           ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) =>
-            withMeaning({ ...d, connector: FAMILIES_DEFINITIONS }, meanings.get(d.name)?.at(-1)),
+            withMeaning(
+              { ...d, connector: FAMILIES_DEFINITIONS, source: FAMILIES_DEFINITIONS },
+              meanings.get(d.name)?.at(-1),
+            ),
           ),
         ]
     },
 
     /**
-     * Chooses what a family means, as the service does: one variant with words of its own, words
-     * written for the family, or the rule again, against the meaning the person read.
+     * Chooses what a family means, as the service does: words written for the family, or worked
+     * out from its variants again, against the meaning the person read.
      */
     setFamilyMeaning(
       input: {
         name: string
         choice: FamilyMeaningChoice
-        member?: string
         words?: string
         revision: number
       },
@@ -191,17 +197,6 @@ export function createDefinitions() {
           'invalid',
           `Write the family's meaning in 1 to ${FAMILY_WORDS_MAX} characters.`,
         )
-      const member =
-        input.choice === 'member'
-          ? d.family.variants.find((v) => input.member && same(v.name, input.member))
-          : undefined
-      if (input.choice === 'member' && !member)
-        throw new ApiError('not-found', 'That variant is no longer in this family.')
-      if (member && !member.description)
-        throw new ApiError(
-          'invalid',
-          'That variant has no words of its own in its tool. Choose another.',
-        )
       const kept = meanings.get(d.name) ?? []
       if ((kept.at(-1)?.revision ?? 0) !== input.revision)
         throw new ApiError(
@@ -211,8 +206,6 @@ export function createDefinitions() {
       const chosen: Chosen = {
         revision: input.revision + 1,
         choice: input.choice,
-        member: member?.name ?? null,
-        memberName: member?.name ?? null,
         words: words ?? null,
         personId: by,
         at: `${today()}T09:00:00.000Z`,
@@ -247,6 +240,70 @@ export function createDefinitions() {
       }
       all = all.map((x) => (x === d ? { ...x, family: { ...d.family!, usual } } : x))
     },
+
+    /**
+     * Splits a family back into its metrics, as the service does: each variant a metric of its own
+     * under the name it has, and the family kept to join again. One its tool declares is split there.
+     */
+    splitFamily(name: string, by: string, items: number): string[] {
+      const d = all.find((x) => x.family && same(x.name, name))
+      if (!d?.family)
+        throw new ApiError('not-found', `“${name}” isn't a family in Definitions any more.`)
+      const tool = d.tool ?? 'its tool'
+      if (d.family.declared)
+        throw new ApiError(
+          'conflict',
+          `${tool} declares “${d.name}” as one family, under the name ${d.family.declared}. Split it in ${tool}: the next read follows.`,
+        )
+      const metrics = d.family.variants.map<Definition>((v) => ({
+        name: v.name,
+        type: 'metric',
+        definition: v.description ?? '',
+        synced: true,
+        ...(d.tool ? { tool: d.tool } : {}),
+        ...(d.connector ? { connector: d.connector } : {}),
+        ...(d.source ? { source: d.source } : {}),
+        ...(v.ref ? { ref: v.ref } : {}),
+        sourceNames: [],
+        ...(d.domain ? { domain: d.domain } : {}),
+        ...(d.group ? { group: d.group } : {}),
+        updated: d.updated,
+      }))
+      all = [...all.filter((x) => x !== d), ...metrics]
+      splits = [
+        {
+          family: d,
+          split: {
+            name: d.name,
+            ...(d.domain ? { domain: d.domain } : {}),
+            metrics: metrics.map((m) => m.name),
+            items,
+            by,
+            on: dateLabel(today()),
+          },
+        },
+        ...splits,
+      ]
+      return metrics.map((m) => m.name)
+    },
+
+    /** Makes a split family one family again, of the metrics it had, while they stand as they were. */
+    joinFamily(name: string) {
+      const entry = splits.find((x) => same(x.split.name, name))
+      if (!entry) throw new ApiError('not-found', `“${name}” isn't split any more.`)
+      const metrics = entry.split.metrics
+      if (!metrics.every((m) => all.some((x) => same(x.name, m) && !x.family)))
+        throw new ApiError(
+          'conflict',
+          `The metrics of ${entry.split.name} changed since it was split, so they can't be one family again here.`,
+        )
+      all = [...all.filter((x) => !metrics.some((m) => same(x.name, m))), entry.family]
+      splits = splits.filter((x) => x !== entry)
+    },
+
+    /** The families split back into their metrics, newest first, with their items counted now. */
+    splits: (itemsAbout: (family: string) => number): SplitFamily[] =>
+      splits.map(({ split }) => ({ ...split, items: itemsAbout(split.name) })),
 
     /** Every choice of what a family means, newest first. */
     familyMeaningHistory: (name: string) =>

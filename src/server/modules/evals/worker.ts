@@ -36,7 +36,6 @@ import {
   resumeRun,
   runColumns,
   sidesFor,
-  sidesOfRun,
   stopRun,
   TestRunRefused,
   type EvalDeps,
@@ -86,7 +85,7 @@ export type WorkSummary = {
 export const LEASE = '5 minutes'
 export const HEARTBEAT_MS = 60_000
 /** What a held-out run whose command stopped renewing its lease says. */
-const heldOutLapsed =
+const commandLapsed =
   'The command that worked it stopped before it finished. Run that command again.'
 /**
  * Each answer in flight holds room under a run's cost ceiling: its estimate times this margin,
@@ -170,17 +169,17 @@ async function housekeeping(database: Database, options: WorkOptions, summary: W
       )
   for (const run of stopped)
     if (await database.transaction(null, (tx) => resumeRun(tx, run.id))) summary.resumed++
-  // A held-out run is worked by its command alone, under a lease the command renews. One whose
-  // lease ran out lost its command (a kill, a closed terminal, an error), and nothing else will
-  // end it.
-  const lapsed = await database.query<{ id: string }>(
+  // A held-out or proof run is worked by its command alone, under a lease the command renews.
+  // One whose lease ran out lost its command (a kill, a closed terminal, an error), and nothing
+  // else will end it.
+  const lapsed = await database.query<{ id: string; kind: string }>(
     `update eval_runs set state='incomplete',finished_at=now(),worker=null,lease_until=null,failure=$1
-      where kind='held_out' and state='running' and (lease_until is null or lease_until<now())
-      returning id::text`,
-    [heldOutLapsed],
+      where kind = any($2::eval_kind[]) and state='running' and (lease_until is null or lease_until<now())
+      returning id::text,kind::text`,
+    [commandLapsed, commandKinds],
   )
   for (const run of lapsed)
-    options.logger.warn({ run: run.id }, 'held-out run lost its command before it finished')
+    options.logger.warn({ run: run.id, kind: run.kind }, 'run lost its command before it finished')
   summary.lapsed = lapsed.length
 }
 
@@ -216,10 +215,7 @@ async function workRun(
         `The run was planned for ${run.model_id} judged by ${run.judge_model_id ?? 'unknown'}; this service now uses ${models.answer.id} judged by ${models.judge.id}. Resume it with those models, or restore the settings.`,
       )
     const { bodies, sides } = await database.transaction(person, async (tx) => {
-      const sides = sidesOfRun(
-        run.kind,
-        await sidesFor(tx, await headAt(tx, run.baseline_edition_seq!)),
-      )
+      const sides = await sidesFor(tx, await headAt(tx, run.baseline_edition_seq!))
       return { bodies: await loadRevisions(tx, run.summary.plan.questions), sides }
     })
     const paired = sides.candidate !== undefined
@@ -245,7 +241,10 @@ async function workRun(
         let arm = arms.get(key)
         if (!arm) {
           const clock = day ? onDay(deps.clock, day) : deps.clock
-          arm = openArm(sides[name]!, database, clock, run.summary.tools[name])
+          arm = openArm(sides[name]!, database, clock, {
+            tools: run.summary.tools[name],
+            ...run.summary.policy,
+          })
           arms.set(key, arm)
         }
         return arm

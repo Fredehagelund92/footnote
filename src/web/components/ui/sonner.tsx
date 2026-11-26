@@ -1,45 +1,12 @@
 'use client'
 
 import { useTheme } from '@/lib/theme-context'
-import { Toaster as Sonner, type ToasterProps } from 'sonner'
-import {
-  CircleCheckIcon,
-  InfoIcon,
-  TriangleAlertIcon,
-  OctagonXIcon,
-  Loader2Icon,
-} from '@/components/icons'
+import { Toaster as Sonner, useSonner, type ToasterProps } from 'sonner'
 
+/** Where toasts appear. Each toast draws itself and keeps its own time (`@/lib/toast`). */
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = 'system' } = useTheme()
-
-  return (
-    <Sonner
-      theme={theme}
-      className="toaster group"
-      icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
-      }}
-      style={
-        {
-          '--normal-bg': 'var(--popover)',
-          '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius-md)',
-        } as React.CSSProperties
-      }
-      toastOptions={{
-        classNames: {
-          toast: 'cn-toast',
-        },
-      }}
-      {...props}
-    />
-  )
+  return <Sonner theme={theme} {...props} />
 }
 
-export { Toaster }
+export { Toaster, useSonner }

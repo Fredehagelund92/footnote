@@ -13,6 +13,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
+      "builtFrom": { "refs": [], "columns": ["amount"] },
       "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     },
     {
@@ -43,6 +44,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": "income",
+      "builtFrom": { "refs": [], "columns": ["amount"] },
       "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     },
     {
@@ -58,6 +60,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
+      "builtFrom": { "refs": [], "columns": ["amount"] },
       "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     },
     {
@@ -103,6 +106,7 @@
       "modelFile": "model.yml",
       "synonyms": [],
       "baseName": null,
+      "builtFrom": { "refs": [], "columns": ["amount"] },
       "changeMark": "78220339db2c8ab5974594ab4187f595a062cf853db522a8116819a9efa76ca9"
     }
   ],
