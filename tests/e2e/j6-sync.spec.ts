@@ -13,7 +13,9 @@ test('a suggestion from a document read is reviewed and published', async ({ pag
     expect(page.getByText('Marked unrelated')).toBeVisible(),
   )
   await page.locator('#decision').getByRole('button', { name: 'Publish', exact: true }).click()
-  await expect(page.locator('#decision').getByRole('status')).toContainText('Published')
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: /^Published “Orders in Germany/ }),
+  ).toBeVisible()
 })
 
 // A key Google refused does not pause the read: each read tries it again, and the page says so.

@@ -47,7 +47,7 @@ Until someone answers, an answer that uses the item starts with Outdated: see [A
 
 Someone said an item is wrong or unclear, from Ask or from a chat with an agent. The card shows what they wrote, who sent it and from where. Agents keep getting the item until it changes.
 
-A report from Ask shows the question they asked. Try this question opens Ask beside the Inbox with it typed in, so you see the answer as it is for you before you change anything.
+A report from Ask shows the question they asked. Try this question opens Ask beside the Inbox with it typed in, so you see the answer as it is for you before you change anything. It also shows the words they suggest and the link they sent, if they gave them. Their words wait as a suggestion on the item, and Review the suggestion opens it, to publish or not.
 
 - Open the context item to read it, and change it if they are right.
 - **Not a problem** closes the report when the item is right as it is. The item stays as it is.

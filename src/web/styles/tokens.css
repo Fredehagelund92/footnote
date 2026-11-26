@@ -367,8 +367,7 @@
 
   /* A loading loop stands still; its words say it is still working. */
   .animate-spin,
-  .animate-pulse,
-  .animate-ping {
+  .animate-pulse {
     animation: none;
   }
 }

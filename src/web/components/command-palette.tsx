@@ -34,6 +34,8 @@ import { Kbd } from '@/components/ui/kbd'
 import type { Kind } from '@/model/items'
 import { searchQuery, useAskExamples } from '@/api/queries'
 import { onOpen, open as openOverlay } from '@/lib/events'
+import { goKey, listenForGoTo, placeHref } from '@/lib/go-to'
+import type { GoPlace } from '@/lib/keys'
 import { navigate } from '@/lib/router'
 import { kindName, variantPart } from '@/lib/definitions'
 import { useDomains, useMe } from '@/lib/workspace'
@@ -51,6 +53,34 @@ function KindGlyph({ kind }: { kind: Kind }) {
     guide: MapIcon,
   }[kind]
   return <Icon className="text-muted-foreground" aria-hidden />
+}
+
+/** A place to go to, with the keys that go there from anywhere: G then its letter. */
+function GoItem({
+  place,
+  icon,
+  onGo,
+}: {
+  place: GoPlace
+  icon: React.ReactNode
+  onGo: (fn: () => void) => () => void
+}) {
+  const me = useMe()
+  const letter = goKey(place)
+  // Outlined, the keys stay drawn on the row the menu has selected.
+  const key = 'border bg-transparent'
+  return (
+    <CommandItem value={place} onSelect={onGo(() => navigate(placeHref(place, me)))}>
+      {icon}
+      {place}
+      {/* Its name is its words, so a screen reader hears the keys as part of them. */}
+      <span className="sr-only">(G then {letter})</span>
+      <CommandShortcut aria-hidden className="flex gap-1 tracking-normal max-sm:hidden">
+        <Kbd className={key}>G</Kbd>
+        <Kbd className={key}>{letter}</Kbd>
+      </CommandShortcut>
+    </CommandItem>
+  )
 }
 
 /** Marks a row search everywhere found, so the palette's own filter keeps it. */
@@ -135,6 +165,9 @@ export function CommandPalette() {
     setOpen(false)
     fn()
   }
+  // G then a letter goes to a place from anywhere (lib/go-to.ts); the Go to rows show the keys.
+  const who = React.useEffectEvent(() => me)
+  React.useEffect(() => listenForGoTo(who), [])
   React.useLayoutEffect(() => {
     moved.current = false
   }, [open, q])
@@ -174,28 +207,13 @@ export function CommandPalette() {
         <CommandList ref={list} onPointerMove={() => (moved.current = true)}>
           <CommandEmpty>Nothing found.</CommandEmpty>
           <CommandGroup heading="Go to">
-            <CommandItem onSelect={run(() => navigate('/inbox'))}>
-              <InboxIcon />
-              Inbox
-            </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/ask'))}>
-              <MessageSquareIcon />
-              Ask
-            </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/context'))}>
-              <NotebookTextIcon />
-              Context
-            </CommandItem>
-            <CommandItem onSelect={run(() => navigate('/definitions'))}>
-              <BookAIcon />
-              Definitions
-            </CommandItem>
+            <GoItem place="Inbox" icon={<InboxIcon />} onGo={run} />
+            <GoItem place="Ask" icon={<MessageSquareIcon />} onGo={run} />
+            <GoItem place="Context" icon={<NotebookTextIcon />} onGo={run} />
+            <GoItem place="Definitions" icon={<BookAIcon />} onGo={run} />
+            <GoItem place="Settings" icon={<SettingsIcon />} onGo={run} />
             {me.admin && (
               <>
-                <CommandItem onSelect={run(() => navigate('/settings/general'))}>
-                  <SettingsIcon />
-                  Settings
-                </CommandItem>
                 <CommandItem
                   value={`Settings Integrations ${toolWords}`}
                   onSelect={run(() => navigate('/settings/integrations'))}

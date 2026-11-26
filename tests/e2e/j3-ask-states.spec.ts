@@ -445,7 +445,9 @@ test('More holds Something wrong? and Save question; an earlier answer shows its
 
   await more.click()
   await page.getByRole('menuitem', { name: 'Something wrong?' }).click()
-  await expect(page.getByText('Which part?')).toBeVisible()
+  await expect(
+    page.getByRole('region', { name: 'Something wrong?' }).getByText('Which part is wrong?'),
+  ).toBeVisible()
 })
 
 test('The composer is one surface: no hairline or keys inside, a 28 px Send, corners of 14 px', async ({

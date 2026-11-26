@@ -4,11 +4,33 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-25
 ---
 
+## Publish moves on at once
+
+2026-11-25
+
+Publish in a review opens the next suggestion at once. The one you left says Publishing, then Published once it is in, or why it couldn't be. Command and Z undoes your last decision from any screen, for as long as Undo is offered. See [Review a suggestion](review-a-suggestion.md#after-you-decide).
+
+## The keys work on every list
+
+2026-11-25
+
+J and K move through Context, Definitions and the Inbox from the moment the page opens, and the row you move to takes the focus. With a side panel open, J opens the next row in it while the panel keeps the focus, and Esc closes the panel from anywhere. After a click on an Inbox card, one Enter opens it.
+
+G then a letter goes to a place: I the Inbox, A Ask, C Context, D Definitions and S Settings. Press ? to see every key.
+
 ## See what a metric is built from
 
 2026-11-25
 
 A metric built from others shows them as a small tree, on its page and in the side panel, with the metrics they are built from in turn. Each line counts the published context about that metric, so you can see where something is written. See [Definitions](definitions-and-synonyms.md#what-a-metric-is-built-from).
+
+## Lists keep their view, and Back goes back
+
+2026-11-25
+
+Context and Definitions keep their filters, search words, sort and grouping in the address, so a reload, or Back from an item's page, gives the same list with the row you came from in focus.
+
+Moving through the Inbox with J and K no longer adds a Back step, so leaving the Inbox takes one Back. Esc, or the back arrow, on something opened from a list goes back to that list.
 
 ## Share a chat as a link
 

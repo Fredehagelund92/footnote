@@ -330,9 +330,7 @@ describe('the motion tokens (docs/design/motion.md)', () => {
       '--dist-3': '0px',
       '--tw-animation-duration': '0ms',
     })
-    expect(css).toMatch(
-      /\.animate-spin,\s*\.animate-pulse,\s*\.animate-ping\s*\{\s*animation: none;/,
-    )
+    expect(css).toMatch(/\.animate-spin,\s*\.animate-pulse\s*\{\s*animation: none;/)
   })
 })
 

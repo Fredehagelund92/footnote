@@ -1,4 +1,5 @@
 import type { MyShare, ShareTurn } from '@contract/shared-chats'
+import { DRAFTS_READ } from '@domain/ask-chat'
 import type { Answer } from './ask'
 
 // A chat shared as a link (FR-721): what each of its turns sends, and how its sender's links are
@@ -13,14 +14,18 @@ const SOURCES_MAX = 50
 /**
  * What one answered turn sends: its question as asked, what Ask read, its state, its words with
  * [n] for its nth source, and its sources by id. Never a figure, a definition or an item's words:
- * the sources are read live when the link opens. None for a turn with no question.
+ * the sources are read live when the link opens. Never what was found not published yet, which
+ * only the asker may know: its line of what was read, its block. None for a turn with no question.
  */
 export function shareTurnOf(a: Answer): ShareTurn | null {
   const question = a.question.trim()
   if (!question) return null
   return {
     question: question.slice(0, 2000),
-    read: (a.read ?? []).slice(0, LINES_MAX).map((line) => line.slice(0, LINE_MAX)),
+    read: (a.read ?? [])
+      .filter((line) => !line.startsWith(DRAFTS_READ))
+      .slice(0, LINES_MAX)
+      .map((line) => line.slice(0, LINE_MAX)),
     state: a.state,
     words: a.text.slice(0, WORDS_MAX),
     sources: a.sources.slice(0, SOURCES_MAX),

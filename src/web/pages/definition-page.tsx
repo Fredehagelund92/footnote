@@ -16,6 +16,7 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
 import { definitionPageQuery } from '@/api/queries'
 import { kindName, useGlossary, type Definition } from '@/lib/definitions'
+import { listHref } from '@/lib/list'
 import { href, navigate } from '@/lib/router'
 import { Loadable, PageSkeleton } from '@/components/footnote/load-state'
 import { NotFound } from '@/components/footnote/not-found'
@@ -80,7 +81,7 @@ export function DefinitionPage({ name }: { name: string }) {
       <SiteHeader
         title={d.name}
         icon={<BookAIcon />}
-        deep={{ href: href('/definitions'), label: 'Back to Definitions' }}
+        deep={{ href: listHref('/definitions'), label: 'Back to Definitions' }}
         more={
           writable &&
           fileUrl && (

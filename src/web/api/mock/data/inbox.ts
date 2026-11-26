@@ -180,6 +180,9 @@ export const cards: InboxCard[] = [
       by: 'Maria Lindqvist',
       via: 'Ask',
       question: 'Why are Germany orders low for yesterday?',
+      correction:
+        "Every market's payment files arrive the morning after, so yesterday's orders are always short. Leave out the last day when you compare weeks.",
+      link: 'https://wiki.example/data/freshness',
     },
   },
   {

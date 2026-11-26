@@ -80,6 +80,7 @@ import {
   type CheckContext,
   type CheckFinding,
 } from './loop-check.ts'
+import { apartFromDrafts, draftsBlock, draftsLine, draftsRead } from './loop-drafts.ts'
 import { plainStep } from './loop-mock.ts'
 
 /*
@@ -1680,7 +1681,11 @@ export function readLines(made: readonly MadeRead[]): string[] {
     switch (m.tool) {
       case 'find_context': {
         const s = arr(r.searched)
-        return [`Searched ${s.map(searchedLine).join('; then, wider, ')}.`]
+        const drafts = draftsRead([m])
+        return [
+          `Searched ${s.map(searchedLine).join('; then, wider, ')}.`,
+          ...(drafts ? [draftsLine(drafts)] : []),
+        ]
       }
       case 'get_context': {
         const read = isObj(r.read) ? r.read : null
@@ -1818,6 +1823,13 @@ const numberedOf = (made: readonly MadeRead[], earlier: readonly MadeRead[]): Nu
     result: m.result,
   }))
 
+/** A read's result without what it found not published yet. */
+const withoutDrafts = (result: unknown) => {
+  if (!isObj(result) || !('drafts' in result)) return result
+  const { drafts: _, ...rest } = result
+  return rest
+}
+
 /** What the words may name and cite: the chat's reads, and the digits in them and in the question. */
 function wordsContext(
   question: string,
@@ -1825,7 +1837,8 @@ function wordsContext(
   earlier: readonly MadeRead[],
 ): WordsContext {
   const results = [...made, ...earlier].map((m) => m.result)
-  const said = `${JSON.stringify(results)} ${question}`
+  // What is not published yet grounds no number of the answer: only its own block's sentence.
+  const said = `${JSON.stringify(results.map(withoutDrafts))} ${question}`
   const digits = new Set(said.match(/\d+(?:\.\d+)?/g)?.map(String) ?? [])
   return {
     nouns: nounsRead(results),
@@ -2143,6 +2156,29 @@ function evidenceOf(
   return { items, about, state, subject, fromEarlier, aside }
 }
 
+/**
+ * The block's one sentence drawn as the answer's words are (FR-720.3), its numbers held to every
+ * read, what is not published yet too, and with no citation: it is about no source.
+ */
+function draftSentence(
+  sentence: string | null,
+  made: readonly MadeRead[],
+  earlier: readonly MadeRead[],
+  question: string,
+  checks: LoopTurn['checks'],
+): LoopRun[] | null {
+  if (!sentence) return null
+  const ctx = wordsContext(question, made, earlier)
+  const all = `${JSON.stringify([...made, ...earlier].map((m) => m.result))} ${question}`
+  const drawn = wordsOf(sentence, {
+    ...ctx,
+    digits: new Set(all.match(/\d+(?:\.\d+)?/g)?.map(String) ?? []),
+  })
+  checks.push(...drawn.checks)
+  const runs = drawn.body.flatMap((b) => (b.t === 'p' ? withoutCites(b.runs) : []))
+  return runs.length ? runs : null
+}
+
 /** An item's row as the turn carries it, with its number when the answer cites it. */
 const rowsOf = (ids: readonly string[], ctx: WordsContext, cited: readonly string[]) =>
   [...new Set(ids)].flatMap((id) => {
@@ -2168,7 +2204,14 @@ export function turnOf(
   question = '',
 ): LoopTurn {
   const ctx = wordsContext(question, made, earlier)
-  const words = wordsOf(text, ctx)
+  // What is not published yet is never the answer's: its one sentence goes to its own block.
+  const drafts = draftsRead(made)
+  const apart = apartFromDrafts(text, drafts)
+  const words = wordsOf(apart.text, ctx)
+  words.checks.push(...apart.checks)
+  const block = drafts
+    ? draftsBlock(drafts, draftSentence(apart.sentence, made, earlier, question, words.checks))
+    : undefined
   const named = new Set(
     words.body.flatMap((b) => blockRuns(b).flatMap((r) => (r.t === 'noun' ? [r.id] : []))),
   )
@@ -2213,8 +2256,15 @@ export function turnOf(
       ? undefined
       : definedOf(plain, words.marked, about, subject, state, ctx.nouns, state === 'missing')
   const cardItems = defined?.cards.flatMap((c) => c.context.items) ?? []
+  // The block of what is not published yet stands in for the gap card.
   const unknown =
-    sources.length || defined || fromHelp || aside || subject?.about.length || listed.length
+    sources.length ||
+    defined ||
+    fromHelp ||
+    aside ||
+    subject?.about.length ||
+    listed.length ||
+    block
       ? []
       : unknownOf(made)
   // What the card under a Not found offers already is not offered again beside it.
@@ -2246,6 +2296,7 @@ export function turnOf(
     ...(fromHelp ? { help } : {}),
     ...(unknown.length ? { unknown } : {}),
     ...(actions.length ? { actions } : {}),
+    ...(block ? { drafts: block } : {}),
     choices: [],
     reads: readsBack(made),
     stopped: null,

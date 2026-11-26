@@ -14,6 +14,7 @@ import {
   XIcon,
 } from '@/components/icons'
 import { toast } from '@/lib/toast'
+import { openFromRow, type DockKind } from '@/lib/dock'
 import { useListOrder, words } from '@/lib/list'
 import type { Press } from '@/lib/list-motion'
 import { navigate } from '@/lib/router'
@@ -347,41 +348,18 @@ export function AddRow({
   )
 }
 
-/** "3 of 17" with Previous and Next, in the peek's header, while its list is on screen. */
-export function DockStepper({
-  list,
-  id,
-  onGo,
-}: {
-  list: string
-  id: string
-  onGo: (id: string) => void
-}) {
+/**
+ * "3 of 17" with Previous and Next, in the peek's header, while its list is on screen. J and K are
+ * the list's own keys (lib/list.ts), which work from inside the peek too.
+ */
+export function DockStepper({ list, kind, id }: { list: string; kind: DockKind; id: string }) {
   const order = useListOrder(list)
   const at = order?.indexOf(id) ?? -1
-  const ref = React.useRef<HTMLSpanElement>(null)
-  // J and K step through the list while focus is in the peek, as they do in the list itself.
-  React.useEffect(() => {
-    if (!order || at < 0) return
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (
-        t.closest('input, textarea, [contenteditable=true]') ||
-        !ref.current?.closest('section')?.contains(t)
-      )
-        return
-      const next = e.key === 'j' ? order[at + 1] : e.key === 'k' ? order[at - 1] : undefined
-      if (next) {
-        e.preventDefault()
-        onGo(next)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [order, at, onGo])
+  // The next row opens in the peek, which keeps the focus.
+  const onGo = (next: string) => openFromRow(kind, next, undefined, { replace: true })
   if (!order || at < 0) return null
   return (
-    <span ref={ref} className="flex items-center gap-0.5">
+    <span className="flex items-center gap-0.5">
       <Tooltip>
         <TooltipTrigger
           render={

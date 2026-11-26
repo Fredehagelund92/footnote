@@ -4,12 +4,24 @@ import { ApiError } from '@/api/errors'
 const toast = vi.hoisted(() => ({ error: vi.fn(), dismiss: vi.fn(), say: vi.fn(() => 'id') }))
 vi.mock('@/lib/toast', () => ({ toast: Object.assign(toast.say, toast), SAID_MS: 4000 }))
 
-import { heldFor, heldWords, LASTING_TOAST_MS, showOffer, takeBackBy } from '@/lib/undo'
+import {
+  forget,
+  forgetAll,
+  heldFor,
+  heldWords,
+  LASTING_TOAST_MS,
+  rememberOffer,
+  rememberSending,
+  showOffer,
+  takeBackBy,
+  undoLast,
+} from '@/lib/undo'
 
 beforeEach(() => {
   toast.error.mockClear()
   toast.dismiss.mockClear()
   toast.say.mockClear()
+  forgetAll()
 })
 
 describe('an Undo the service refuses', () => {
@@ -81,5 +93,166 @@ describe('the toast of an Undo', () => {
     // An explicit undefined, which replaces the action the toast was first shown with.
     expect('action' in options && options.action).toBeUndefined()
     expect('action' in options).toBe(true)
+  })
+})
+
+describe('Command and Z: the last decision, from any screen', () => {
+  const at = Date.parse('2026-11-16T09:00:00Z')
+  const held = { token: 'review:2', until: '2026-11-16T09:00:15Z' }
+  const said = () => toast.say.mock.calls.map((c) => (c as unknown[]).slice(0, 2))
+
+  it('takes back the last offer, closes its toast and says what it undid', async () => {
+    const takeBack = vi.fn(() => Promise.resolve(true))
+    const onUndone = vi.fn()
+    showOffer('Published “Sales targets”', held, takeBack, { onUndone }, at)
+    toast.say.mockClear()
+    expect(await undoLast(at + 1000)).toBe(true)
+    expect(takeBack).toHaveBeenCalledWith(held)
+    expect(toast.dismiss).toHaveBeenCalledWith('id')
+    expect(said()).toEqual([['Undone', { description: 'Published “Sales targets”' }]])
+    expect(onUndone).toHaveBeenCalledOnce()
+    // One last action, never a history: there is nothing left to take back.
+    toast.say.mockClear()
+    expect(await undoLast(at + 2000)).toBe(false)
+    expect(said()).toEqual([['Nothing to undo']])
+    expect(takeBack).toHaveBeenCalledOnce()
+  })
+
+  it('takes back only the newest of two offers', async () => {
+    const first = vi.fn(() => Promise.resolve(true))
+    const second = vi.fn(() => Promise.resolve(true))
+    showOffer('Published “A”', { token: 'review:1', until: held.until }, first, {}, at)
+    showOffer('Published “B”', held, second, {}, at)
+    await undoLast(at)
+    expect(second).toHaveBeenCalledOnce()
+    expect(first).not.toHaveBeenCalled()
+  })
+
+  it('says the words an offer gave for its undo, in place of Undone', async () => {
+    rememberOffer('Published 3', held, () => Promise.resolve(true), {
+      undone: { title: 'Back: 3 waiting again', description: 'Nothing was published.' },
+    })
+    await undoLast(at)
+    expect(said()).toEqual([['Back: 3 waiting again', { description: 'Nothing was published.' }]])
+  })
+
+  it('says it is too late once the service no longer holds it, and takes nothing back', async () => {
+    const takeBack = vi.fn(() => Promise.resolve(true))
+    rememberOffer('Closed “Churn”', held, takeBack)
+    expect(await undoLast(Date.parse('2026-11-16T09:00:16Z'))).toBe(false)
+    expect(takeBack).not.toHaveBeenCalled()
+    expect(said()).toEqual([["It's too late to undo that", { description: 'Closed “Churn”' }]])
+  })
+
+  it('holds an offer the service takes at any time for good', async () => {
+    const takeBack = vi.fn(() => Promise.resolve(true))
+    rememberOffer('Set aside', { token: 'gap:1', until: null }, takeBack)
+    expect(await undoLast(Date.parse('2027-01-01T00:00:00Z'))).toBe(true)
+  })
+
+  it('keeps the offer when the service refuses, so nothing says Undone', async () => {
+    rememberOffer('Published “A”', held, () => Promise.resolve(false))
+    expect(await undoLast(at)).toBe(false)
+    expect(said()).toEqual([])
+  })
+
+  it('has nothing to take back once the offer was taken back another way', async () => {
+    rememberOffer('Published “A”', held, () => Promise.resolve(true), { toast: 'said' })
+    forget(held)
+    expect(toast.dismiss).toHaveBeenCalledWith('said')
+    expect(await undoLast(at)).toBe(false)
+    expect(said()).toEqual([['Nothing to undo']])
+  })
+
+  it('while a decision is being sent, waits for it instead of taking back the one before', async () => {
+    const before = vi.fn(() => Promise.resolve(true))
+    rememberOffer('Published “A”', held, before)
+    const waiting = rememberSending('Still publishing “B”')
+    expect(await undoLast(at)).toBe(false)
+    expect(before).not.toHaveBeenCalled()
+    expect(said()).toEqual([['Still publishing “B”', { description: 'Undo it once it is done.' }]])
+    // It failed: nothing of it to take back, so the one before is the last again.
+    waiting.failed()
+    expect(await undoLast(at)).toBe(true)
+    expect(before).toHaveBeenCalledOnce()
+  })
+
+  it('takes back a decision still being saved when its screen can, as its own Undo does', async () => {
+    const early = vi.fn()
+    rememberSending('Still saving that decision', early)
+    expect(await undoLast(at)).toBe(true)
+    expect(early).toHaveBeenCalledOnce()
+    expect(said()).toEqual([['Undone']])
+  })
+
+  it('an offer that answers a send takes its place; one taken back as it arrived leaves nothing', async () => {
+    const waiting = rememberSending('Still publishing “B”')
+    const takeBack = vi.fn(() => Promise.resolve(true))
+    rememberOffer('Published “B”', held, takeBack, { sent: waiting })
+    // Answered already: a late failure has no wait left to end.
+    waiting.failed()
+    await undoLast(at)
+    expect(takeBack).toHaveBeenCalledOnce()
+    const again = rememberSending('Still saving that decision')
+    again.undone()
+    toast.say.mockClear()
+    expect(await undoLast(at)).toBe(false)
+    expect(said()).toEqual([['Nothing to undo']])
+  })
+
+  describe('a decision made while an earlier one is still being sent', () => {
+    const a = { token: 'review:1', until: held.until }
+    const b = { token: 'review:2', until: held.until }
+
+    it('keeps the key when the earlier one answers, and the earlier one is never taken back', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      const backB = vi.fn(() => Promise.resolve(true))
+      const publishing = rememberSending('Still publishing “A”')
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Published “A”', a, backA, { sent: publishing }, at)
+      toast.say.mockClear()
+      expect(await undoLast(at)).toBe(false)
+      expect(said()).toEqual([['Still archiving “B”', { description: 'Undo it once it is done.' }]])
+      expect(backA).not.toHaveBeenCalled()
+      showOffer('Archived “B”', b, backB, { sent: archiving }, at)
+      expect(await undoLast(at)).toBe(true)
+      expect(backB).toHaveBeenCalledOnce()
+      // One last action: taking back B leaves nothing made before it to take back.
+      toast.say.mockClear()
+      expect(await undoLast(at)).toBe(false)
+      expect(said()).toEqual([['Nothing to undo']])
+      expect(backA).not.toHaveBeenCalled()
+    })
+
+    it('gives the key back to the earlier one when the later one fails', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      const publishing = rememberSending('Still publishing “A”')
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Published “A”', a, backA, { sent: publishing }, at)
+      archiving.failed()
+      expect(await undoLast(at)).toBe(true)
+      expect(backA).toHaveBeenCalledOnce()
+    })
+
+    it('leaves the earlier one out once the later one can be taken back first', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      const backB = vi.fn(() => Promise.resolve(true))
+      const publishing = rememberSending('Still publishing “A”')
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Archived “B”', b, backB, { sent: archiving }, at)
+      showOffer('Published “A”', a, backA, { sent: publishing }, at)
+      expect(await undoLast(at)).toBe(true)
+      expect(backB).toHaveBeenCalledOnce()
+      expect(backA).not.toHaveBeenCalled()
+    })
+
+    it('ends its wait when it answers too late to take back', async () => {
+      const backA = vi.fn(() => Promise.resolve(true))
+      rememberOffer('Published “A”', a, backA)
+      const archiving = rememberSending('Still archiving “B”')
+      showOffer('Archived “B”', b, () => Promise.resolve(true), { sent: archiving }, at + 20_000)
+      expect(await undoLast(at)).toBe(true)
+      expect(backA).toHaveBeenCalledOnce()
+    })
   })
 })

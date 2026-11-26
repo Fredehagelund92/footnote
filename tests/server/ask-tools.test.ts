@@ -32,6 +32,7 @@ const noReads: ToolReads = {
   index: unread,
   readable: unread,
   records: unread,
+  pending: () => Promise.resolve([]),
   areas: unread,
   people: unread,
   catalogue: unread,

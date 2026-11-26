@@ -145,11 +145,12 @@ export default tseslint.config(
     rules: {
       ...betterTailwind.configs['correctness-error']?.rules,
       // Classes a stylesheet of the app's own styles by name rather than as a utility: the
-      // editor's (components/editor/style.css and static-renderer/style.css), the Ask composer's
-      // placeholder, a mention in the editor, and sonner's toaster.
+      // editor's (components/editor/style.css and static-renderer/style.css), Context by time's
+      // (pages/context-time.css), the Ask composer's placeholder, a mention in the editor, and
+      // sonner's toaster.
       'better-tailwindcss/no-unknown-classes': [
         'error',
-        { ignore: ['^rte-', '^ask-composer$', '^mention-node$', '^toaster$'] },
+        { ignore: ['^rte-', '^time-', '^ask-composer$', '^mention-node$', '^toaster$'] },
       ],
       'better-tailwindcss/enforce-consistent-class-order': 'error',
       'better-tailwindcss/no-duplicate-classes': 'error',

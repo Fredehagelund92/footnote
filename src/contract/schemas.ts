@@ -54,6 +54,11 @@ export const libraryItemSchema = z.extend(z.omit(indexedItemSchema, { scope: tru
    * named as the live vocabulary names them (the key's id when the vocabulary has no name).
    */
   chips: z.array(z.string()),
+  /**
+   * The dimension values among its chips, each with its dimension, by name: what Context groups
+   * and filters by a dimension with ("Market is Norway"), which a value's name alone cannot say.
+   */
+  values: z.array(z.object({ dimension: z.string(), name: z.string() })),
   /** Its own owners, by id, when not its domain's (item_owners); empty when its domain's owners answer for it. */
   owners: z.array(z.string()),
   /** Whether the person opened it (item_reads): only opened items can be marked as checked together. */

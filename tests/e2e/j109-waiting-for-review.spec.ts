@@ -119,9 +119,9 @@ test("the review offers Don't publish beside Send back, and asks for the reason 
     .getByRole('textbox', { name: "Why you don't publish it" })
     .fill('The provider fixed the files on 16 October.')
   await dialog.getByRole('button', { name: "Don't publish" }).click()
-  await expect(
-    decide.getByText("It won't be published. Kofi reads why in their Inbox."),
-  ).toBeVisible()
+  // The review moves on, and a toast says what it did.
+  const said = page.locator('[data-sonner-toast]').filter({ hasText: /^Closed “/ })
+  await expect(said).toContainText("It won't be published. Kofi reads why in their Inbox.")
 })
 
 test('its sender withdraws it and it leaves Context', async ({ page }) => {

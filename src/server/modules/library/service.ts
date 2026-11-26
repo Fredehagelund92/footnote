@@ -101,6 +101,17 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
                 jsonb_agg(coalesce(n.name, k.id) order by k.part, k.key collate "C") as names
            from keys k left join names n on n.key = k.key
           group by k.version_id),
+       -- Each value with its dimension, as the vocabulary names both (the ids when it has no name).
+       vals as (
+         select l.version_id,
+                jsonb_agg(jsonb_build_object(
+                  'dimension', coalesce(dn.name, v->>'dimension'),
+                  'name', coalesce(vn.name, v->>'value'))
+                  order by ((v->>'dimension') || '/' || (v->>'value')) collate "C") as pairs
+           from listed l, jsonb_array_elements(l.entry->'scope'->'dimensionValues') v
+           left join names dn on dn.key = 'dim:' || (v->>'dimension')
+           left join names vn on vn.key = 'val:' || (v->>'dimension') || '/' || (v->>'value')
+          group by l.version_id),
        pairs as materialized (select p.holder, p.other from ${livePairs} p),
        partners as (
          select x.id, jsonb_agg(x.other order by x.other collate "C") as ids
@@ -123,6 +134,7 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
                               when (l.entry->>'reviewDate')::date < $1::date then 'date'
                               else null end,
                 'chips', coalesce(ch.names, '[]'),
+                'values', coalesce(vs.pairs, '[]'),
                 'owners', coalesce(o.ids, '[]'),
                 'conflicts', coalesce(pt.ids, '[]'),
                 'opened', exists (select 1 from item_reads r
@@ -131,6 +143,7 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
          from listed l
          left join checked c on c.version_id = l.version_id
          left join chips ch on ch.version_id = l.version_id
+         left join vals vs on vs.version_id = l.version_id
          left join partners pt on pt.id = l.id
          left join (select item_id, jsonb_agg(person_id::text order by person_id) as ids
                       from item_owners group by item_id) o on o.item_id = l.id`,

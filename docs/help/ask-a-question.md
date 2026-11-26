@@ -3,7 +3,7 @@ title: Ask a question
 line: Ask about a number, read how the answer was made, ask again at other dates, and tell the owner what is missing.
 group: Ask
 order: 1
-minutes: 7
+minutes: 8
 reviewed: 2026-11-25
 open:
   label: Open Ask
@@ -66,9 +66,23 @@ A Not found answer means nothing is written about it yet, and a card under it sa
 
 When Ask finds no metric or context item that uses a word at all, Tell an admin sends the admins that word alone, never your question. If you are an admin or own a domain, Add the word to Definitions opens a new term with the word already in it.
 
+### Not published yet
+
+When nothing published covers your question, Ask also looks in your own drafts and in the suggestions waiting for review that you may open. A draft is yours alone. A suggestion waiting for review is open to the person who sent it, the owners of its domain and admins.
+
+What it finds shows in a block of its own under the answer, Not published yet, in place of the card: each item with its state, its domain, who wrote it and the day.
+
+None of it is part of the answer. It is not final, it is never a source, and agents don't get it until an owner publishes it. Under the items, one sentence may say what they would mean if published as written.
+
+Open the draft opens your draft, and Review opens a suggestion that waits for you to decide. Anyone who may not open them sees no block at all, and a shared chat leaves it out.
+
 ## When an answer is wrong
 
-Under each answer, Good answer and Bad answer say how it went. When the answer cites a context item, Bad answer also opens a form: which part is wrong, what is wrong, and the correct version if you know it. Send it, and the owner sees it in their Inbox as a report: [Keep context up to date](keep-context-up-to-date.md).
+Under each answer, Good answer and Bad answer say how it went. When the answer cites a context item, Bad answer also opens Something wrong? beside the answer, or under it when Ask is itself in the right panel, and so does More.
+
+Say which part is wrong and what is wrong, and add a link if you have one. The owners see it in their Inbox as a report: [Keep context up to date](keep-context-up-to-date.md).
+
+Suggest the right words starts from the item's own words, for you to change. They wait as a suggestion on the item, and agents keep the item as it is until an owner publishes it. If you own the item, or you are an admin, Edit opens it, so you can change it yourself.
 
 ## Save a question
 

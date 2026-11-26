@@ -295,6 +295,14 @@ export const sortGroups = (gs: TopicGroup[], s: Sorting<Sort>) => {
   )
 }
 
+/** The sections the topic table draws: a section per domain (with the topics that have none last) when grouped by domain, else one. */
+export function sectionsOf(groups: TopicGroup[], grouping: Grouping, domainIds: DomainId[]) {
+  if (grouping !== 'domain') return [{ domain: null as DomainId | undefined | null, groups }]
+  return [...domainIds, undefined]
+    .map((d) => ({ domain: d, groups: groups.filter((g) => g.domain === d) }))
+    .filter((s) => s.groups.length)
+}
+
 /** What a topic's status says, in the order that matters: a gap's way forward, then a disagreement, then age. */
 export function statusOf(
   t: Pick<TopicGroup, 'counts' | 'rows'>,
@@ -403,9 +411,9 @@ export function observability(data: ObsData) {
   }
 
   /** The exact rows in the order they show, for stepping through the answer panel. */
-  function rowOrder(rows: Topic[], grouping: Grouping, sort: Sorting<Sort>) {
-    if (grouping === 'none') return sortGroups(rows.map(single), sort).flatMap((g) => g.rows)
-    return sortGroups(rollUp(rows), sort).flatMap((g) => g.rows)
+  function rowOrder(rows: Topic[], grouping: Grouping, sort: Sorting<Sort>, domainIds: DomainId[]) {
+    const groups = sortGroups(grouping === 'none' ? rows.map(single) : rollUp(rows), sort)
+    return sectionsOf(groups, grouping, domainIds).flatMap((s) => s.groups.flatMap((g) => g.rows))
   }
 
   /** Every month the topics are about, newest first. */

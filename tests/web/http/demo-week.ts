@@ -1080,12 +1080,15 @@ export async function seedDemoWeek(
     await after.query('select cl_ensure_delivery_partitions(2), cl_ensure_request_partitions(2)')
     // Maria asked Ask about Orders in Germany, got "Orders lags by one day in the source tool",
     // and reported it with her name, as Observability lists it ("Maria Lindqvist,
-    // from Ask"). Sent after every seeded decision, so nothing an owner did answers it yet.
+    // from Ask"), with the words she would write and a link. Sent after every seeded decision, so
+    // nothing an owner did answers it yet.
     const [report] = (
       await after.query<{ id: string }>(
-        `insert into reports (person_id, area_id, item_id, part, question, what)
+        `insert into reports (person_id, area_id, item_id, part, question, what, correction, link)
          values ($1, 'area_sales', $2, 'item', 'Why are Germany orders low for yesterday?',
-                 'Is this Germany only, or every market?')
+                 'Is this Germany only, or every market?',
+                 'Every market''s payment files arrive the morning after, so yesterday''s orders are always short. Leave out the last day when you compare weeks.',
+                 'https://wiki.example/data/freshness')
          returning id::text`,
         [seedPersonId(personId('Maria Lindqvist')), serverItemId('itm_0tmqp7o1')],
       )
@@ -1141,6 +1144,12 @@ export async function seedDemoWeek(
     await after.query('commit')
     // What agents asked over the weeks Observability counts, and what they reported (P12).
     topics = await seedObservability(after)
+    // The drafts were started this morning too, before anything was sent.
+    for (const [index, id] of Object.values(drafts).entries())
+      await after.query(`update proposals set created_at=$2::timestamptz where id=$1`, [
+        id,
+        `${TODAY}T08:${String(30 - index).padStart(2, '0')}:00Z`,
+      ])
     // Sent this morning, one minute apart, newest first in the mock's order.
     for (const [index, card] of queue.entries())
       await after.query(

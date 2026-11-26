@@ -4495,5 +4495,392 @@
       "overview": null,
       "checks": []
     }
+  },
+  "loop-drafts": {
+    "question": "How are Black Friday orders counted?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing published covers Black Friday orders yet.",
+      "sources": [],
+      "state": "missing",
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Searched “Black Friday”, any date: 0 found.",
+        "Searched the drafts and suggestions waiting for review you can open for “Black Friday”: 1 found, not published."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "drafts": {
+        "words": ["Black Friday"],
+        "found": 1,
+        "more": 0,
+        "rows": [
+          {
+            "id": "itm_draft_black_friday",
+            "state": "draft",
+            "change": false,
+            "title": "Black Friday 2026 orders are split over two weeks",
+            "domain": "domain:area_sales",
+            "by": "Jon Abara",
+            "on": "2026-10-23",
+            "action": {
+              "id": "open_draft",
+              "draft": {
+                "id": "itm_draft_black_friday",
+                "domain": "domain:area_sales",
+                "mine": true,
+                "owners": ["Jon Abara", "Sofia Brandt"]
+              }
+            }
+          }
+        ],
+        "sentence": [
+          {
+            "t": "text",
+            "text": "If it is published as written, the weekend's orders are counted in two reporting weeks, week 48 and week 49."
+          }
+        ]
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Black Friday",
+            "limit": 10
+          },
+          "step": 0
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing published covers Black Friday orders yet."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing published covers Black Friday orders yet.",
+      "nouns": [
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-drafts-waiting": {
+    "question": "Is order data from Poland late?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing published covers late order data from Poland yet.",
+      "sources": [],
+      "state": "missing",
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": [
+        "Searched “Poland payment provider delays” (read as Poland), any date: 0 found.",
+        "Searched the drafts and suggestions waiting for review you can open for “Poland payment provider delays”: 1 found, not published."
+      ],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "drafts": {
+        "words": ["Poland payment provider delays"],
+        "found": 1,
+        "more": 0,
+        "rows": [
+          {
+            "id": "sug-agent",
+            "state": "waiting",
+            "change": false,
+            "title": "Payment provider delays order data in Poland",
+            "domain": "domain:area_sales",
+            "by": "Kofi Mensah",
+            "on": "2026-10-23",
+            "action": {
+              "id": "review_suggestion",
+              "draft": {
+                "id": "sug-agent",
+                "domain": "domain:area_sales",
+                "mine": false,
+                "owners": ["Jon Abara", "Sofia Brandt"]
+              }
+            }
+          }
+        ],
+        "sentence": null
+      },
+      "choices": [],
+      "reads": [
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Poland payment provider delays",
+            "limit": 10
+          },
+          "step": 0
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing published covers late order data from Poland yet."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing published covers late order data from Poland yet.",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
+  },
+  "loop-drafts-member": {
+    "question": "Is order data from Poland late?",
+    "turn": {
+      "kind": "answer",
+      "text": "Nothing published covers late order data from Poland yet.",
+      "sources": [],
+      "state": "missing",
+      "footer": {
+        "denominator": "None of the 21 published context items you can see is cited.",
+        "notSeen": null,
+        "stale": null
+      },
+      "read": ["Searched “Poland payment provider delays” (read as Poland), any date: 0 found."],
+      "subject": null,
+      "nearby": [],
+      "conflict": [],
+      "definitions": [],
+      "choices": [],
+      "reads": [
+        {
+          "tool": "find_context",
+          "input": {
+            "words": "Poland payment provider delays",
+            "limit": 10
+          },
+          "step": 0
+        }
+      ],
+      "stopped": null,
+      "body": [
+        {
+          "t": "p",
+          "runs": [
+            {
+              "t": "text",
+              "text": "Nothing published covers late order data from Poland yet."
+            }
+          ]
+        }
+      ],
+      "said": "Nothing published covers late order data from Poland yet.",
+      "nouns": [
+        {
+          "id": "metric:orders",
+          "name": "Orders",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/norway",
+          "name": "Norway",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "dimension:market",
+          "name": "Market",
+          "of": null,
+          "type": "string"
+        },
+        {
+          "id": "value:market/france",
+          "name": "France",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "metric:first_time_buyers",
+          "name": "First-time buyers",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "value:market/spain",
+          "name": "Spain",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/germany",
+          "name": "Germany",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/sweden",
+          "name": "Sweden",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "value:market/poland",
+          "name": "Poland",
+          "of": {
+            "id": "dimension:market",
+            "name": "Market"
+          },
+          "type": "string"
+        },
+        {
+          "id": "domain:area_sales",
+          "name": "Sales",
+          "of": null,
+          "type": null
+        },
+        {
+          "id": "domain:area_customer_value",
+          "name": "Customer value",
+          "of": null,
+          "type": null
+        }
+      ],
+      "items": [],
+      "closest": null,
+      "owners": [],
+      "overview": null,
+      "checks": []
+    }
   }
 }

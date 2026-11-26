@@ -45,10 +45,11 @@ export function askWorld(
   })
   let address = ''
   const sessions = new Map<string, Promise<FootnoteApi>>()
+  let seeded: Awaited<ReturnType<typeof seedDemoWeek>> | null = null
 
   beforeAll(async () => {
     await client.query('reset role')
-    await seedDemoWeek(url, { allConflicts: options.allConflicts ?? false })
+    seeded = await seedDemoWeek(url, { allConflicts: options.allConflicts ?? false })
     // A run asks more than the default 600 requests a minute; the limit is not what it tests.
     await client.query(
       `insert into settings_versions (key, version, value, reason)
@@ -105,7 +106,13 @@ export function askWorld(
 
   return {
     client,
+    url,
     withTools,
+    /** What the demo week seeded: each mock card's proposal, and each mock draft's, by mock id. */
+    seeded: () => {
+      if (!seeded) throw new Error('The demo week is not seeded yet')
+      return seeded
+    },
     /** The person's session, signed in once. */
     as: (name: string) => {
       const known = sessions.get(name)

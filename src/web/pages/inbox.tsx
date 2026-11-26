@@ -74,7 +74,16 @@ import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { askInDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
-import { href, navigate, setQuery, useRoute } from '@/lib/router'
+import {
+  backToList,
+  changeQuery,
+  href,
+  navigate,
+  openFromList,
+  setQuery,
+  useRoute,
+} from '@/lib/router'
+import { safeHref } from '@/lib/host'
 import { useQuery } from '@tanstack/react-query'
 import {
   conflictQuery,
@@ -92,7 +101,7 @@ import {
   workspaceQuery,
 } from '@/api/queries'
 import type { UndoOffer } from '@/api/client'
-import { useUndo } from '@/lib/undo'
+import { rememberSending, useUndo } from '@/lib/undo'
 import { definitionsStep, setupHeading, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -120,7 +129,7 @@ import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
 import { useOnline } from '@/lib/send'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
-import { pageKey } from '@/lib/keys'
+import { useListKeys } from '@/lib/list'
 import { ResultIcon } from '@/components/obs/result'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
 
@@ -415,7 +424,10 @@ function InboxList({
                     type="button"
                     data-row-open={id}
                     aria-current={isSelected || undefined}
-                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)}
+                    onClick={(e) => {
+                      e.currentTarget.focus({ preventScroll: true })
+                      return sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)
+                    }}
                     className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                   >
                     <span
@@ -593,12 +605,12 @@ function useActions(card: InboxCard) {
   const primary = () => {
     switch (card.type) {
       case 'suggestion':
-        return navigate(`/inbox/${card.id}/review`)
+        return openFromList(`/inbox/${card.id}/review`)
       case 'gap':
         // A draft waits: the same review as any suggestion. With none yet, the editor opens on the
         // scope, for this card: publishing what is written there closes it.
         return card.gap?.draft
-          ? navigate(`/inbox/${card.id}/review`)
+          ? openFromList(`/inbox/${card.id}/review`)
           : navigate('/context/new', {
               gap: card.id,
               metric: card.gap?.scope[0],
@@ -835,6 +847,7 @@ function CardDetail({
             {card.flag?.question && (
               <ReportedQuestion by={card.flag.by} question={card.flag.question} />
             )}
+            {card.flag && <ReportedWords flag={card.flag} title={card.title} />}
             {card.changed && card.changed.length > 0 && (
               <React.Suspense fallback={null}>
                 <ChangedDefinitions names={card.changed} />
@@ -913,6 +926,56 @@ function ReportedQuestion({ by, question }: { by: string; question: string }) {
         Try this question
       </Button>
     </figure>
+  )
+}
+
+/**
+ * The right words and the link a report from Ask was sent with, as its sender wrote them, and the
+ * way to the suggestion the words became, while it waits for an owner.
+ */
+function ReportedWords({ flag, title }: { flag: NonNullable<InboxCard['flag']>; title: string }) {
+  const link = safeHref(flag.link ?? null)
+  if (!flag.correction && !link) return null
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {flag.correction && (
+        <figure className="flex flex-col gap-2">
+          <figcaption className="font-medium">
+            {flag.by ? `${flag.by} suggests these words` : 'The right words'}
+          </figcaption>
+          <blockquote className="border-l-2 pl-3 text-pretty">{flag.correction}</blockquote>
+        </figure>
+      )}
+      {link && (
+        <p>
+          <span className="font-medium">Link they sent:</span>{' '}
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className="break-all text-primary underline-offset-4 hover:underline"
+          >
+            {link.replace(/^https?:\/\//, '')}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </p>
+      )}
+      {flag.suggestion && (
+        <>
+          <p className="text-muted-foreground">
+            A suggestion on “{title}”. Ask and agents keep the item as it is until an owner
+            publishes it.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-1"
+            onClick={() => navigate(`/inbox/${flag.suggestion}/review`)}
+          >
+            Review the suggestion
+          </Button>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -1451,7 +1514,7 @@ function DueRow({ due }: { due: number }) {
     <section aria-label="Needs you" className="mb-4 grid grid-cols-1 gap-px bg-border p-px">
       <Cell className="gap-0 py-0">
         <a
-          href={href('/context', { due: '1' })}
+          href={href('/context', { status: 'due' })}
           className="flex min-h-16 items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
         >
           <span
@@ -1606,18 +1669,41 @@ export function InboxPage() {
     fade: false,
   })
   const frameRef = React.useRef<HTMLDivElement>(null)
+  const paneRef = React.useRef<HTMLDivElement>(null)
+  const listRef = React.useRef<HTMLUListElement>(null)
   const primary = () => frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
-  // Enter on a row opens the card and moves the focus to the pane's one decision.
+  const rowButton = (id: string) =>
+    listRef.current?.querySelector<HTMLElement>(`[data-row-open="${CSS.escape(id)}"]`)
+  // The card on show, in the address. On a wide screen the pane follows the cursor, so a pick takes
+  // the place of the address and Back leaves the Inbox in one press. On a phone a card opens over
+  // the list as a page of its own: Back, or the card's back arrow, returns to the list.
+  const show = (card: string | undefined, extra?: Record<string, string | undefined>) => {
+    const changes = { card, draft: undefined, ...extra }
+    const all = { ...Object.fromEntries(query), ...changes }
+    if (isMobile && card && !selectedId) openFromList('/inbox', all)
+    else if (isMobile && !card && selectedId) backToList('/inbox', all, { replace: true })
+    else void changeQuery(changes, { replace: true })
+  }
+  // Enter on a row opens the card and moves the focus to the pane's one decision, or with none
+  // there keeps it on the row.
   const select = (id?: string, pointer = false, key = false) => {
     // On a phone the whole card slides in; its body does not fade on top of that.
     setPicked({ id, fade: pointer && !isMobile, key })
-    setQuery({ card: id ?? (isMobile ? undefined : 'none'), draft: undefined })
+    show(id ?? (isMobile ? undefined : 'none'))
   }
   React.useEffect(() => {
-    if (picked.key && picked.id === selectedId) primary()?.focus()
+    if (picked.key && picked.id && picked.id === selectedId)
+      (primary() ?? rowButton(picked.id))?.focus()
   }, [picked, selectedId])
+  // The card Esc put away: its row takes the focus once the list shows, so the place is kept.
+  const putAway = React.useRef<string | undefined>(undefined)
+  React.useEffect(() => {
+    const id = putAway.current
+    if (!id || selectedId) return
+    putAway.current = undefined
+    rowButton(id)?.focus({ preventScroll: true })
+  }, [selectedId])
   const ids = shown.map(rowId)
-  const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
   const sel = useSelection(ids, { scope: listRef })
   // Ticked rows, read: the dot goes, and a mention or a new reply is marked seen.
@@ -1644,25 +1730,29 @@ export function InboxPage() {
   const next = () => {
     const rest = needing.filter((r) => rowId(r) !== selectedId)
     setPicked({ id: rest[0] && rowId(rest[0]), fade: true })
-    setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined, draft: undefined })
+    show(rest[0] && rowId(rest[0]), { dock: undefined })
   }
 
-  // J and K step through the list, Enter opens the selected card's primary action.
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (!pageKey(e)) return
-      // A draft open in its card's place takes J and K for its own drafts.
-      if (e.key === 'j' && !e.defaultPrevented) step(1)
-      if (e.key === 'k' && !e.defaultPrevented) step(-1)
-      // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
-      // Ticked rows clear first, in the selection's own Esc. A panel open in the card's place (a
-      // family opened from the Names card) takes its own Esc and closes: the card comes back.
-      if (e.key === 'Escape' && !e.defaultPrevented && selected && !sel.count) select(undefined)
-      if (e.key === 'Enter' && t === document.body) primary()?.click()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+  // The page's list keys (lib/list.ts): J and K step through the cards, Enter on the card on show
+  // presses its primary action. A draft open in its card's place takes J and K for its own drafts.
+  useListKeys({
+    list: listRef,
+    order: ids,
+    current: selectedId,
+    panel: paneRef,
+    // Stepped from inside the pane, the next card's one decision takes the focus.
+    onMove: (id, from) => select(id, false, from.panel),
+    onOpen: sel.count ? undefined : () => primary()?.click(),
+    // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties,
+    // and the card's row keeps the focus. Ticked rows clear first, in the selection's own Esc. A
+    // panel open in the card's place (a family opened from the Names card) takes its own Esc and
+    // closes: the card comes back.
+    onEscape: () => {
+      if (!selected || sel.count) return false
+      putAway.current = selectedId
+      select(undefined)
+      return true
+    },
   })
 
   /**
@@ -1676,21 +1766,23 @@ export function InboxPage() {
     let gone = false
     let saved: UndoOffer | undefined
     next()
+    // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
+    // back now when the answer is in, else when it comes. Command and Z does the same.
+    const takeBackWhenIn = () => {
+      undone = true
+      if (saved) void undo.takeBack(saved)
+    }
     const said = toast(d.message, {
       description: d.description,
       duration: Infinity,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
-          // back now when the answer is in, else when it comes.
-          undone = true
-          if (saved) void undo.takeBack(saved)
-        },
-      },
+      action: { label: 'Undo', onClick: takeBackWhenIn },
       onDismiss: () => {
         gone = true
       },
+    })
+    const waiting = rememberSending('Still saving that decision', () => {
+      toast.dismiss(said)
+      takeBackWhenIn()
     })
     void leaveThen(card.id, () =>
       React.startTransition(async () => {
@@ -1703,10 +1795,19 @@ export function InboxPage() {
           })
           saved = decided.undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
-          if (undone) await undo.takeBack(decided.undo)
-          else if (!gone)
-            undo.offer(d.message, decided.undo, { id: said, description: d.description })
+          if (undone) {
+            waiting.undone()
+            await undo.takeBack(decided.undo)
+          } else if (!gone)
+            undo.offer(d.message, decided.undo, {
+              id: said,
+              description: d.description,
+              sent: waiting,
+            })
+          // Its toast was closed: Command and Z still takes it back while the service holds it.
+          else undo.remember(d.message, decided.undo, { sent: waiting })
         } catch {
+          waiting.failed()
           toast.dismiss(said)
           if (undone) return
           toast.error("Couldn't save that decision", {
@@ -1776,6 +1877,11 @@ export function InboxPage() {
     </Cell>
   )
 
+  const pane = (
+    <div ref={paneRef} className="h-full min-h-0">
+      {detail}
+    </div>
+  )
   const list = (
     <div className="flex h-full min-h-0 flex-col gap-0">
       <Cell className="h-full min-h-0 gap-0 py-0">
@@ -1860,7 +1966,7 @@ export function InboxPage() {
       key={selected ? 'card' : 'list'}
       className={cn('h-full min-h-0', selected ? 'dock-enter' : !allDone && 'dock-swap')}
     >
-      {selected ? detail : list}
+      {selected ? pane : list}
     </div>
   ) : allDone || dock ? (
     <div className="h-full min-h-0">{list}</div>
@@ -1871,7 +1977,7 @@ export function InboxPage() {
       </ResizablePanel>
       <ResizableHandle className="w-px bg-border" />
       <ResizablePanel id="inbox-detail" defaultSize="58" minSize={360}>
-        {detail}
+        {pane}
       </ResizablePanel>
     </ResizablePanelGroup>
   )

@@ -15,6 +15,10 @@ export const memberSections = (owner: boolean): readonly string[] =>
 /** Where Settings opens for someone who isn't an admin: an owner's domains, else their agents. */
 export const landingOf = (owner: boolean) => (owner ? 'domains' : 'agents')
 
+/** Settings' address for this person: its first section for an admin, else their landing. */
+export const settingsHref = (me: { admin: boolean; owns: readonly string[] }) =>
+  me.admin ? '/settings' : `/settings/${landingOf(me.owns.length > 0)}`
+
 /**
  * Whether someone may open a Settings address: an admin any, anyone else only the sections that
  * are theirs, where only an admin adds a domain. Settings itself opens for everyone, on their own

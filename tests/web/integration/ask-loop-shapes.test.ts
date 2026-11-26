@@ -38,6 +38,8 @@ const mention = (id: unknown) => `[@${String(id)}]`
 /** One case: the question, who asks, the reads, then the words written from what they returned. */
 type Case = {
   id: string
+  /** Who asks it; Jon Abara, an owner of Sales, when it says no one. */
+  who?: string
   question: string
   /** The period chosen on the read line, which code reads at before the model's first step. */
   period?: ChosenPeriodInput
@@ -336,6 +338,35 @@ const cases: Case[] = [
       }
     },
   },
+  {
+    // Jon's own draft about Black Friday, where nothing published is: the block, its sentence.
+    id: 'loop-drafts',
+    question: 'How are Black Friday orders counted?',
+    calls: [{ toolName: 'find_context', input: { words: 'Black Friday' } }],
+    write: (p) => {
+      const r = readOf(p, 'find_context')
+      const [d] = arr((r.drafts as Obj).items)
+      return {
+        text: `Nothing published covers Black Friday orders yet. If it is published as written, the weekend's orders are counted in two reporting weeks, week 48 and week 49 [${String(d!.ref)}].`,
+      }
+    },
+  },
+  {
+    // Kofi's suggestion about Poland waits for Sales' owners: Sofia reviews it.
+    id: 'loop-drafts-waiting',
+    who: 'Sofia Brandt',
+    question: 'Is order data from Poland late?',
+    calls: [{ toolName: 'find_context', input: { words: 'Poland payment provider delays' } }],
+    write: () => ({ text: 'Nothing published covers late order data from Poland yet.' }),
+  },
+  {
+    // The same question as a member, who may open none of it: no block, as if it was never sent.
+    id: 'loop-drafts-member',
+    who: 'Ines Duarte',
+    question: 'Is order data from Poland late?',
+    calls: [{ toolName: 'find_context', input: { words: 'Poland payment provider delays' } }],
+    write: () => ({ text: 'Nothing published covers late order data from Poland yet.' }),
+  },
 ]
 
 let current: Case | undefined
@@ -354,7 +385,7 @@ const world = askWorld({
 const turns: Record<string, Answer> = {}
 const ask = async (c: Case) => {
   current = c
-  const api = await world.as(JON)
+  const api = await world.as(c.who ?? JON)
   const answer = await api.ask({ question: c.question, ...(c.period ? { period: c.period } : {}) })
   turns[c.id] = answer
   return answer.loop!
@@ -607,16 +638,50 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(loop.read[0]).toMatch(/^Looked up Orders and Norway, 1-30 Sep 2026: /)
   })
 
+  it('lists what is not published yet apart from the answer, to whoever may open it', async () => {
+    const jon = await ask(cases.find((c) => c.id === 'loop-drafts')!)
+    expect(jon.drafts?.rows.map((r) => [r.state, r.action.id])).toEqual([['draft', 'open_draft']])
+    expect(jon.drafts?.sentence).not.toBeNull()
+    expect(jon.sources).toEqual([])
+    const sofia = await ask(cases.find((c) => c.id === 'loop-drafts-waiting')!)
+    expect(sofia.drafts?.rows.map((r) => [r.state, r.action.id])).toEqual([
+      ['waiting', 'review_suggestion'],
+    ])
+    const ines = await ask(cases.find((c) => c.id === 'loop-drafts-member')!)
+    expect(ines.drafts).toBeUndefined()
+  })
+
   it('writes the examples the mock shows, when asked to', () => {
     const out = process.env.LOOP_SHAPES_OUT
     if (!out) return
+    // What is not published yet goes by its mock id, so the mock opens it as the service would.
+    const seeded = world.seeded()
+    const mockIds = new Map(
+      [
+        ...Object.entries(seeded).filter(([, v]) => typeof v === 'string'),
+        ...Object.entries(seeded.drafts),
+      ].map(([mock, id]) => [id as string, mock]),
+    )
+    const mocked = (turn: LoopTurn): LoopTurn =>
+      turn.drafts
+        ? {
+            ...turn,
+            drafts: {
+              ...turn.drafts,
+              rows: turn.drafts.rows.map((r) => {
+                const id = mockIds.get(r.id) ?? r.id
+                return { ...r, id, action: { ...r.action, draft: { ...r.action.draft, id } } }
+              }),
+            },
+          }
+        : turn
     const examples = Object.fromEntries(
       Object.entries(turns).map(([id, a]) => [
         id,
         {
           question: a.question,
           ...(a.period ? { period: a.period } : {}),
-          turn: a.loop as LoopTurn,
+          turn: mocked(a.loop as LoopTurn),
         },
       ]),
     )

@@ -96,10 +96,58 @@ describe("what a Cube measure's own calculation reads (C2)", () => {
     })
   })
 
+  it('reads the names inside NULLIF, COALESCE, ROUND and CAST, nested as written', () => {
+    // A guarded ratio is built from both of its measures.
+    expect(arithmeticInputs('{net_revenue} / NULLIF({marketing_spend}, 0)')).toEqual({
+      measures: ['net_revenue', 'marketing_spend'],
+      columns: [],
+    })
+    expect(arithmeticInputs('COALESCE({revenue}, 0) - COALESCE({CUBE.refunds}, 0)')).toEqual({
+      measures: ['revenue', 'refunds'],
+      columns: [],
+    })
+    expect(arithmeticInputs('round({net_revenue} / {marketing_spend}, 2)')).toEqual({
+      measures: ['net_revenue', 'marketing_spend'],
+      columns: [],
+    })
+    expect(
+      arithmeticInputs('100.0 * CAST({orders} AS DOUBLE PRECISION) / NULLIF({sessions}, 0)'),
+    ).toEqual({ measures: ['orders', 'sessions'], columns: [] })
+    expect(
+      arithmeticInputs(
+        'ROUND(CAST(COALESCE({orders.revenue}, 0) AS DECIMAL(18, 4)) / NULLIF(COALESCE({orders.order_count}, 0), 0), 2)',
+      ),
+    ).toEqual({ measures: ['orders.revenue', 'orders.order_count'], columns: [] })
+    expect(arithmeticInputs('COALESCE({CUBE}.amount_eur, 0) * ${CUBE}.fx_rate')).toEqual({
+      measures: [],
+      columns: ['amount_eur', 'fx_rate'],
+    })
+    expect(arithmeticInputs('-ROUND({gross_margin}, 1)')).toEqual({
+      measures: ['gross_margin'],
+      columns: [],
+    })
+  })
+
   it('reads nothing of any other calculation: a function, a keyword, a literal or a qualified column', () => {
     for (const sql of [
       'SUM({CUBE}.amount_eur)',
-      'COALESCE(amount_eur, 0) * fx_rate',
+      'ABS({revenue}) / {orders}',
+      'CASE WHEN {sessions} > 0 THEN {orders} / {sessions} END',
+      'NULLIF({sessions}, 0, 1)',
+      'NULLIF({sessions})',
+      'ROUND({revenue}, 2, 1)',
+      'COALESCE()',
+      'COALESCE({revenue}, NULL)',
+      "COALESCE({revenue}, '0')",
+      'CAST({orders} AS numeric',
+      'CAST({orders} AS DECIMAL(scale))',
+      'CAST({orders})',
+      'ROUND {revenue}',
+      'NULLIF(orders.amount, 0)',
+      '{revenue} / ',
+      '({revenue}',
+      '(({revenue}))) + (',
+      `${'('.repeat(60)}{revenue}${')'.repeat(60)}`,
       "CASE WHEN currency = 'EUR' THEN amount END",
       'amount_eur * 1.1 + bonus IS NULL',
       'orders.amount_eur * fx_rate',

@@ -67,10 +67,14 @@ test('a few seconds on the whole change counts; bulk lists them, and Undo restor
   await confirm.getByRole('button', { name: 'Publish 2' }).click()
   await settle(page, 700)
   await expect(page.getByText('Published 2')).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Done / })).toHaveCount(2)
+  // Each row in the queue says how it went.
+  const published = page
+    .getByRole('navigation', { name: 'Waiting suggestions' })
+    .getByRole('button', { name: / Published$/ })
+  await expect(published).toHaveCount(2)
   await page.getByRole('button', { name: 'Undo' }).click()
   await settle(page, 500)
-  await expect(page.getByRole('button', { name: /^Done / })).toHaveCount(0)
+  await expect(published).toHaveCount(0)
   await expect(page.getByText('Published, just now')).toHaveCount(0)
   await expect(page.getByText('Back: 2 waiting again')).toBeVisible()
   await expect(bulk(page)).toHaveText("Publish the 2 you've read")
