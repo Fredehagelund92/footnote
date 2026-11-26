@@ -59,7 +59,8 @@ test('Conflicts filters the one Context table to the items in a conflict, in the
   await page.getByRole('button', { name: /^Filter/ }).click()
   await page.getByRole('menuitemcheckbox', { name: /^In a conflict/ }).click()
   await page.keyboard.press('Escape')
-  await expect(page).toHaveURL(/\/context$/)
+  // The search words stay: they are the list's view too.
+  await expect(page).toHaveURL(/\/context\?q=Norway$/)
   await expect(page.getByRole('radio', { name: 'All' })).toBeChecked()
   await expect(rowOf(page, 'Online sales to Norway stopped on 4 August 2026')).toBeVisible()
 })

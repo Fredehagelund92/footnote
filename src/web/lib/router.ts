@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useRouterState, type AnyRouter } from '@tanstack/react-router'
+import { useRouterState, type AnyRouter, type RouterHistory } from '@tanstack/react-router'
 
 // The app's addresses are TanStack Router file routes (routes/), each with its search params
 // validated (lib/search.ts). Pages read and change the address through this module: the path, its
@@ -8,11 +8,39 @@ import { useRouterState, type AnyRouter } from '@tanstack/react-router'
 export type Route = { path: string; parts: string[]; query: URLSearchParams }
 
 let router: AnyRouter | undefined
+let history: RouterHistory | undefined
+
+/** The path before the address last moved to another one: what Back has just come back from. */
+let here = ''
+let left = ''
+
+/**
+ * The places opened from a list in this tab (`openFromList`), by their history entry: the list's
+ * path, which is the entry before. A step forward drops the entries it takes the place of.
+ */
+const openers = new Map<number, string>()
+let opening: string | undefined
 
 /** The router every navigation goes through; main.tsx binds it once, before the first render. */
 export function bindRouter(r: AnyRouter) {
   router = r
+  history = r.history as RouterHistory
+  here = history.location.pathname
+  history.subscribe(({ location, action }) => {
+    if (action.type === 'PUSH') {
+      const at = location.state.__TSR_index
+      for (const index of openers.keys()) if (index >= at) openers.delete(index)
+      if (opening) openers.set(at, opening)
+      opening = undefined
+    }
+    if (location.pathname === here) return
+    left = here
+    here = location.pathname
+  })
 }
+
+/** The path the address was on before this one, such as the item page Back has just left. */
+export const cameFrom = () => left
 
 /** The validated search of the deepest match, as the query a page reads. */
 function queryOf(search: Record<string, unknown>) {
@@ -63,8 +91,48 @@ export function href(path: string, query?: Record<string, string | undefined>) {
   return `${path}${s ? `?${s}` : ''}`
 }
 
-export function navigate(path: string, query?: Record<string, string | undefined>) {
-  void router!.navigate({ href: href(path, query) })
+/** Go somewhere. With `replace` it takes the place of the address now, so Back skips it. */
+export function navigate(
+  path: string,
+  query?: Record<string, string | undefined>,
+  opts?: { replace?: boolean },
+) {
+  void router!.navigate({ href: href(path, query), replace: opts?.replace })
+}
+
+/**
+ * Open a place from the list on screen (a review from the Inbox). Leaving it by Esc then goes back
+ * to the list's own entry (`backToList`) instead of adding one, so the next Back leaves the list.
+ */
+export function openFromList(path: string, query?: Record<string, string | undefined>) {
+  opening = history!.location.pathname
+  navigate(path, query)
+}
+
+/**
+ * Leave a place for the list at `path`: back in history when the entry before this one is that
+ * list, as it opened this place and only cursor moves (which replace) came since; else to it, as
+ * a step forward or, with `replace`, in this one's place. `query` is what the list should hold on
+ * arrival, such as the card the place was last on.
+ */
+export function backToList(
+  path: string,
+  query: Record<string, string | undefined>,
+  opts?: { replace?: boolean },
+) {
+  if (openers.get(history!.location.state.__TSR_index) !== path) return navigate(path, query, opts)
+  const stop = history!.subscribe(({ location }) => {
+    stop()
+    if (location.pathname !== path) return
+    const q = new URLSearchParams(location.search)
+    const was = q.toString()
+    for (const [k, v] of Object.entries(query)) {
+      if (v) q.set(k, v)
+      else q.delete(k)
+    }
+    if (q.toString() !== was) navigate(path, Object.fromEntries(q), { replace: true })
+  })
+  history!.back()
 }
 
 /** Go somewhere in place of the address now, as a redirect does: Back skips the address left. */
@@ -92,6 +160,13 @@ export function changeQuery(
     else q.delete(k)
   }
   return router!.navigate({ href: href(path, Object.fromEntries(q)), replace: opts?.replace })
+}
+
+/** A plain click on a link (no modifier key) does `then` in its place; any other opens the link. */
+export const plainClick = (then: () => void) => (e: React.MouseEvent) => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  e.preventDefault()
+  then()
 }
 
 /** Where the plain link around `target` goes, if it is one to this origin that opens in this tab. */

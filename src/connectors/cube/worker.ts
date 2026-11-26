@@ -238,7 +238,7 @@ async function compile(
   /**
    * What a view's measure is built from (C2), as dbt's reader says it: the measures its own
    * calculation takes, each by the ref of the view's member that stands for it, and its cube's
-   * columns, by name. None when the calculation is not plain column arithmetic
+   * columns, by name. None when the calculation is not column arithmetic
    * (`arithmeticInputs`), or takes a measure the view leaves out: what it reads is then not told.
    */
   function builtFromOf(

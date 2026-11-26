@@ -17,6 +17,14 @@ function Combo({ row }: { row: Keys }) {
       {row.keys.map((k) => (
         <Kbd key={k}>{k}</Kbd>
       ))}
+      {row.then && (
+        <>
+          <span className="text-xs text-muted-foreground">then</span>
+          {row.then.map((k) => (
+            <Kbd key={k}>{k}</Kbd>
+          ))}
+        </>
+      )}
       {row.or && (
         <>
           <span className="text-xs text-muted-foreground">or</span>

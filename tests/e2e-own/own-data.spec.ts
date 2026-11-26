@@ -396,5 +396,5 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByText(/^Until there is context/)).toHaveCount(0)
   await shot('16-setup-due')
   await due.getByRole('link').click()
-  await expect(page).toHaveURL(/\/context\?due=1$/)
+  await expect(page).toHaveURL(/\/context\?status=due$/)
 })
