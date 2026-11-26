@@ -211,13 +211,14 @@ export function publishParts(plan: Plan<Fact>, me: Me, domains: Domains, checked
 }
 
 /**
- * What a Publish did: "2 published", "1 sent to the owners of Marketing", or both; after a
- * failure, how many failed.
+ * What a Publish did: "2 published", "1 sent to the owners of Marketing", or both; the drafts an
+ * earlier Publish had taken already ("50 already published"); after a failure, how many failed.
  */
-export function publishedLine(published: number, sent: number, failed = 0, to = '') {
+export function publishedLine(published: number, sent: number, failed = 0, to = '', already = 0) {
   const parts = [
     published ? `${published} published` : '',
     sent ? `${sent} sent to the owners${to ? ` of ${to}` : ''}` : '',
+    already ? `${already} already published` : '',
   ].filter(Boolean)
   const line = parts.join(', ')
   return failed ? `${line || 'None published'}, ${failed} failed` : line
