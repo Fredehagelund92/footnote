@@ -116,25 +116,6 @@ describe('loadConfig', () => {
     })
   })
 
-  it('reads one definitions folder on the server at most: one integration is on at a time', () => {
-    expect(
-      loadConfig({
-        DATABASE_URL: databaseUrl,
-        FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
-      }).serverFolders,
-    ).toEqual({ 'dbt-metricflow': '/models/dbt' })
-    for (const env of [
-      {
-        CUBE_MODEL_DIR: '/models/cube',
-        FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
-      },
-      { FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt","static-definitions":"/lists"}' },
-    ])
-      expect(() => loadConfig({ DATABASE_URL: databaseUrl, ...env })).toThrow(
-        /FOOTNOTE_SERVER_FOLDERS: Expected one definitions folder, not 2/,
-      )
-  })
-
   it('takes a metrics token only when it is long enough to guess at', () => {
     expect(loadConfig({ DATABASE_URL: databaseUrl }).metricsToken).toBeUndefined()
     for (const token of ['short', `${'m'.repeat(31)} x`])

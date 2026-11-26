@@ -79,7 +79,7 @@ Ask answers with one model that reads with Footnote's own read tools, as the per
 
 `FOOTNOTE_SERVER_FOLDERS` looks like `{"dbt-metricflow":"/srv/dbt/target"}`. The folder is read by that connector as the server's own source, and the demo definitions stop. In Docker, share the folder into the container and name its path there.
 
-One definitions integration is on at a time, so the server names one definitions folder at most: one entry in `FOOTNOTE_SERVER_FOLDERS`, or `CUBE_MODEL_DIR`, never both. The service refuses to start on two.
+One definitions integration is on at a time. If the server names more than one definitions folder (`CUBE_MODEL_DIR` and an entry in `FOOTNOTE_SERVER_FOLDERS`, or two entries), the service starts, and the source of the first one it reads is on. The sources of the others are registered off: in Settings, Integrations, turn the one on off, then turn another on.
 
 A connector that cannot read a folder stops the service at start. A folder that is not there shows as a failed read in Settings, Integrations.
 
