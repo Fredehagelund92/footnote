@@ -43,8 +43,7 @@ import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { connectorType, connectorTypes, modelFolderOf } from '../connectors/index.ts'
 import { libraryIndexItems } from '../library/index.ts'
 
-const withoutRemoved = <T extends { removed: boolean; modelFolder: string | null }>({
-  removed: _removed,
+const withoutFolder = <T extends { modelFolder: string | null }>({
   modelFolder: _folder,
   ...source
 }: T) => source
@@ -155,7 +154,6 @@ export function createCatalogueService(
       > & { sourceId: string; baseName: string | null })[]
       sources: (Omit<CatalogueSource, 'tool' | 'connector'> & {
         type: string
-        removed: boolean
         fromServer: boolean
         config: SourceConfig
       })[]
@@ -249,14 +247,15 @@ export function createCatalogueService(
        sources as (
          select c.id, c.name, c.type, ${iso('ok.fetched_at')} as "readAt", ok.source_version as "sourceVersion",
                 coalesce(latest.status = 'failed', false) as failing,
-                c.removed_at is not null as removed, c.origin = 'server' as "fromServer", c.config
+                c.origin = 'server' as "fromServer", c.config
            from connectors c
            left join lateral (select s.fetched_at, s.source_version from connector_snapshots s
                                where s.connector_id = c.id and s.status <> 'failed'
                                order by s.fetched_at desc limit 1) ok on true
            left join lateral (select s.status from connector_snapshots s where s.connector_id = c.id
                                order by s.fetched_at desc limit 1) latest on true
-          where c.kind = 'definition_source'),
+          -- The definitions integration that is on: one at a time (CON-120).
+          where c.kind = 'definition_source' and c.enabled),
        -- Counted as the item list counts mentions: current versions, accepted or retired.
        mentions as (
          select m.term_key as key, count(distinct l.id)::int as items
@@ -297,14 +296,14 @@ export function createCatalogueService(
       row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
-    const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
-      row!.sources.map(({ type, removed, fromServer, config, ...source }) => ({
+    const sources: (CatalogueSource & { modelFolder: string | null })[] = row!.sources.map(
+      ({ type, fromServer, config, ...source }) => ({
         ...source,
-        removed,
         tool: connectorType(type, source.name).tool,
         connector: type,
         modelFolder: modelFolderOf({ type, fromServer, config }, (key) => settings.get(key)),
-      }))
+      }),
+    )
     const gaps = row!.gaps.map((keys) => ({ keys }))
     return {
       vocabulary,
@@ -762,7 +761,7 @@ export function createCatalogueService(
             return name ? [{ key, name }] : []
           }),
         })),
-        sources: data.sources.filter((source) => !source.removed).map(withoutRemoved),
+        sources: data.sources.map(withoutFolder),
         coverage: {
           metrics: metrics.length,
           withoutDomain: metrics.filter((metric) => metric.domain.areaId === null).length,

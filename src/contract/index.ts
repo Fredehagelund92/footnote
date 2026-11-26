@@ -1491,6 +1491,8 @@ export const contract = {
     pause: admin
       .errors({
         NOT_FOUND: { message: "We couldn't find this source." },
+        // One definitions integration is on at a time (CON-120): its words name the one that is.
+        CONFLICT: { message: 'Only one definitions integration is on at a time.' },
       })
       .route({
         method: 'PUT',

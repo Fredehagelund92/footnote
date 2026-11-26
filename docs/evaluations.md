@@ -321,7 +321,10 @@ Ask page does (`tests/web/integration/ask-answerers.ts`).
   loop passes 11 of the 30, and 27 of the 30 keep every promise; the rest fail on what they must
   say, which the answer check does not change. Main's code run once live the same day passed 9
   where that recording's run passed 8: the 15 of the run before was that run's, not the code's,
-  and the owner's approval of that lowering is recorded.
+  and the owner's approval of that lowering is recorded. On 25 November 2026 the prompt began to
+  carry the names card (FR-718.8) and the steps were keyed again with no model: so they are still
+  the model's as it answered without the card, and what the card changes in its reads waits for
+  the next recording.
 - **The report** prints scores by class and by promise, then the held-back counts.
 
 | Run    | When                                                                 | What it does                                                                                                                                                                                                                                           |
@@ -411,7 +414,9 @@ FR-720.10 before they are shown (below); the judges' part waits.
   fixed sentence, what Ask can answer instead, and questions to press. Who wrote or last checked
   one context item is a question about that item, and is answered. A word that names no one
   metric (a group's name, or a name several metrics share) is asked about by code before the
-  model reads, with the metrics it may mean as the choices, unless the chat's reads name one. The browser sends each earlier turn with what Ask said and the reads it made, by tool
+  model reads, with the metrics it may mean as the choices, unless the chat's reads name one. After the
+  instructions, the prompt carries the names card of FR-718.8: the names the person may see in
+  Definitions, so the model reads a metric by its name and not by the person's words. The browser sends each earlier turn with what Ask said and the reads it made, by tool
   and input (`reply` and `reads` in `chatTurnSchema`). The service makes each read again, as the
   person, now, before the model sees its result, and leaves out of an earlier reply each sentence
   that cites an item no read returns any more. A turn sent with a result is refused.

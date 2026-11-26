@@ -1,8 +1,9 @@
 /*
-  The site's fonts, served with it, so no page loads a font from another host. The files are
-  Fontsource's (package.json), each variable font with its whole range of weights, so a weight such
-  as the headline's 770 is drawn as it was designed rather than with the next face up. Latin and
-  Latin Extended only: the site is in English.
+  The docs' fonts, and the 404 page's, served with the site, so no page loads a font from another
+  host (the landing page has its own, landing/styles/fonts.css). The files are Fontsource's
+  (package.json), each variable font with its whole range of weights, so a weight between two
+  faces is drawn as it was designed rather than with the next face up. Latin and Latin Extended
+  only: the site is in English.
 */
 @font-face {
   font-family: 'Schibsted Grotesk';

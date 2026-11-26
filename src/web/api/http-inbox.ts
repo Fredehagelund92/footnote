@@ -176,7 +176,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           flagged: card.flagged,
           families: card.families,
           values: card.values,
-          tools: card.tools,
+          tool: card.tool,
         },
       }
     case 'drafts': {

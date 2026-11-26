@@ -834,7 +834,8 @@ export function createInboxFeedService(
         flagged: names.filter((name) => name.state === 'flagged').length,
         families: looking.filter((name) => name.family).length,
         values: values.length,
-        tools: [...new Set(names.map((name) => name.tool))].sort(),
+        // A card of values alone names no tool: its words never say one.
+        tool: names[0]?.tool ?? '',
       },
     ]
   }

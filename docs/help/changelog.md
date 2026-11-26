@@ -1,8 +1,20 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-25
+reviewed: 2026-11-26
 ---
+
+## One definitions tool at a time
+
+2026-11-26
+
+One definitions tool is on at a time, so Definitions lists each metric once. To switch, turn off the tool that is on in Integrations, then connect or turn on the other. Its definitions leave Definitions, and context that relies on one is marked until it is on again. See [Integrations](integrations.md#one-definitions-tool-at-a-time).
+
+## Publishing many drafts says what happened
+
+2026-11-26
+
+Publish on selected drafts in Context shows "Publishing 50 drafts..." while it works, and its buttons wait until it is done. Drafts that were already published, by you a moment before, say "already published" instead of failing.
 
 ## Publish moves on at once
 

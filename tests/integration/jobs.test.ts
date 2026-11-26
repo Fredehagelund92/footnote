@@ -301,16 +301,17 @@ describe('the job runner', () => {
   it('alerts on overdue jobs and out-of-date connectors', async () => {
     await client.query(`
       update job_heartbeats set last_succeeded = now() - interval '3 days' where job = 'retention.run';
+      -- One definitions integration is on at a time (CON-120): the fresh one reads documents.
       insert into connectors (id, kind, type, name, stale_after) values
         ('cube-stale', 'definition_source', 'cube', 'Stale', interval '1 hour'),
-        ('cube-fresh', 'definition_source', 'cube', 'Fresh', interval '1 hour');
+        ('drive-fresh', 'context_source', 'google-drive', 'Fresh', interval '1 hour');
       insert into connectors (id, kind, type, name, enabled, created_at) values
         ('cube-off', 'definition_source', 'cube', 'Off', false, now() - interval '1 year');
       insert into connector_snapshots (connector_id, status, fetched_at, source_version) values
         ('cube-stale', 'ok', now() - interval '2 hours', 'v1'),
-        ('cube-fresh', 'partial', now() - interval '5 minutes', 'v2');
+        ('drive-fresh', 'partial', now() - interval '5 minutes', 'v2');
       insert into connector_snapshots (connector_id, status, fetched_at, error) values
-        ('cube-fresh', 'failed', now() - interval '1 minute', 'model folder missing');`)
+        ('drive-fresh', 'failed', now() - interval '1 minute', 'folder missing');`)
 
     const watchdog = await run('jobs.watchdog')
     expect(watchdog.output).toEqual({
@@ -367,18 +368,18 @@ describe('the operations endpoints', () => {
     )
     expect(body.connectors).toEqual([
       expect.objectContaining({
-        id: 'cube-fresh',
-        status: 'ok',
-        sourceVersion: 'v2',
-        lastError: 'model folder missing',
-      }),
-      expect.objectContaining({
         id: 'cube-off',
         status: 'disabled',
         lastSuccessAt: null,
         ageSeconds: null,
       }),
       expect.objectContaining({ id: 'cube-stale', status: 'stale', sourceVersion: 'v1' }),
+      expect.objectContaining({
+        id: 'drive-fresh',
+        status: 'ok',
+        sourceVersion: 'v2',
+        lastError: 'folder missing',
+      }),
     ])
     expect(body.spend).toEqual({
       month: new Date().toISOString().slice(0, 7),

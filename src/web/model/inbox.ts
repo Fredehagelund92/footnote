@@ -34,7 +34,7 @@ export function namesWords({
   flagged,
   families = 0,
   values = 0,
-  tools,
+  tool,
 }: {
   ready: number
   flagged: number
@@ -42,11 +42,12 @@ export function namesWords({
   families?: number
   /** Values people added in Definitions that wait (values without figures). */
   values?: number
-  tools: readonly string[]
+  /** The definitions integration's tool: one is on at a time (CON-120). */
+  tool: string
 }) {
   const total = ready + flagged
   const others = total - families
-  const from = `from ${tools.join(', ')}`
+  const from = `from ${tool}`
   const n = (x: number) => x.toLocaleString('en-GB')
   const added = `${values === 1 ? '1 value' : `${n(values)} values`} people added`
   if (!total && values)
@@ -204,7 +205,7 @@ export type InboxCard = {
    */
   asked?: { on: string; answers: CheckAnswerRow[] }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */
-  names?: { ready: number; flagged: number; families: number; values: number; tools: string[] }
+  names?: { ready: number; flagged: number; families: number; values: number; tool: string }
   /**
    * Created by a sync from a document, never by a person: the tool as people say it, and its
    * connector's id, which its logo is drawn by.

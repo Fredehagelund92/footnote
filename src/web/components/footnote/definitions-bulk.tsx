@@ -52,8 +52,8 @@ export function DefinitionsBulk({ sel, defs }: { sel: RowSelection; defs: Defini
   const [note, setNote] = React.useState<BulkNote>()
   const picked = defs.filter((d) => sel.isSelected(d.name))
   const who: Me = { name: me.name, admin: me.admin }
-  // The tool the synced ones picked come from, or neutral words when none or several.
-  const tool = toolOf(picked) ?? 'each tool'
+  // The tool the synced ones picked come from, or neutral words when none is.
+  const tool = toolOf(picked) ?? 'its tool'
 
   const key = sel.ids.join('|')
   const noted = React.useRef(key)

@@ -35,6 +35,7 @@ import { kindLabel, type DomainId, type Fact, type Kind } from '@/model/items'
 import { ownersOf } from '@/model/people'
 import type { RowSelection } from '@/hooks/use-selection'
 import { useDeleteConfirmation } from '@/hooks/use-delete-confirmation'
+import { useLeaveGuard } from '@/hooks/use-leave-guard'
 import {
   canChange,
   CONFIRM_ABOVE,
@@ -71,6 +72,11 @@ import type { LogEntry } from '@/model/items'
 
 const KINDS = Object.keys(kindLabel) as Kind[]
 const OFFLINE = "Off while you're offline. Nothing is lost."
+const workingVerbs: Partial<Record<FactAction, string>> = {
+  publish: 'Publishing',
+  archive: 'Archiving',
+  delete: 'Deleting',
+}
 let entries = 0
 
 export function ContextBulk({
@@ -91,6 +97,11 @@ export function ContextBulk({
   const undo = useUndo()
   const refreshAfter = useRefreshAfter()
   const [note, setNote] = React.useState<BulkNote>()
+  // What is being written now, said while it is: a Publish of fifty takes many seconds, and the
+  // list shows nothing new until the service answers.
+  const [working, setWorking] = React.useState('')
+  const writing = React.useRef(false)
+  useLeaveGuard(!!working)
   const picked = facts.filter((f) => sel.isSelected(f.id))
   const who: Me = { name: me.name, admin: me.admin }
 
@@ -112,6 +123,8 @@ export function ContextBulk({
     opts: Parameters<typeof planFacts>[4] = {},
     rows: Fact[] = picked,
   ) {
+    // One change at a time: a second press while the first is out would send the same rows again.
+    if (writing.current) return
     const plan = planFacts(action, rows, who, domains, { ...opts, viewed })
     if (!plan.act.length) {
       setNote({ text: skippedLine(plan.skipped), skipped: plan.skipped })
@@ -142,9 +155,21 @@ export function ContextBulk({
     }
     // The change is made at once; the list shows it once the rows that leave it (archived or
     // deleted) have gone.
-    const result = await api.applyBulk(input)
+    writing.current = true
+    setWorking(
+      `${workingVerbs[action] ?? 'Changing'} ${count(plan.act.length, action === 'publish' ? 'draft' : 'item')}…`,
+    )
+    let result: Awaited<ReturnType<typeof api.applyBulk>>
+    try {
+      result = await api.applyBulk(input)
+    } finally {
+      writing.current = false
+      setWorking('')
+    }
     const ok = plan.act.filter((f) => result.done.includes(f.id))
     const failed = plan.act.filter((f) => result.failed.includes(f.id))
+    // Drafts an earlier press published: done, so they leave the selection and are not failures.
+    const already = plan.act.filter((f) => result.already?.includes(f.id))
     // What the service's own checks refused: left alone, with why, as the rows planned out.
     const skipped = [...plan.skipped, ...(result.skipped ?? [])]
     const sent = ok.filter((f) => suggest.includes(f))
@@ -168,10 +193,15 @@ export function ContextBulk({
             sent.length,
             failed.length,
             [...new Set(sent.map((f) => domains[f.domain]?.name))].join(' and '),
+            already.length,
           )
         : doneLine(verb, ok.length, failed.length)
     if (!ok.length && !failed.length) {
-      setNote({ text: skippedLine(skipped), skipped })
+      // Nothing to undo and nothing to retry: the line says what was found, and the list refreshes.
+      setNote({
+        text: [already.length ? line : '', skippedLine(skipped)].filter(Boolean).join('. '),
+        skipped,
+      })
       noted.current = stay.join('|')
       return
     }
@@ -338,26 +368,33 @@ export function ContextBulk({
             : undefined
         }
         note={
-          !online
-            ? { text: "You're offline. Changes are off until you're back; nothing is lost." }
-            : (note ??
-              (nothing ? { text: nothing, info: true, skipped: publishPlan.skipped } : undefined))
+          working
+            ? { text: working, busy: true }
+            : !online
+              ? { text: "You're offline. Changes are off until you're back; nothing is lost." }
+              : (note ??
+                (nothing ? { text: nothing, info: true, skipped: publishPlan.skipped } : undefined))
         }
       >
-        <BulkButton reason={publishReason} aria-description={publishSays} onClick={askPublish}>
+        <BulkButton
+          disabled={!!working}
+          reason={publishReason}
+          aria-description={publishSays}
+          onClick={askPublish}
+        >
           <SendIcon />
           <span className="max-sm:sr-only">{publishLabel}</span>
         </BulkButton>
-        <BulkButton reason={archiveReason} onClick={() => archive()}>
+        <BulkButton disabled={!!working} reason={archiveReason} onClick={() => archive()}>
           <ArchiveIcon />
           <span className="max-sm:sr-only">Archive</span>
         </BulkButton>
-        <BulkButton reason={deleteReason} onClick={ask}>
+        <BulkButton disabled={!!working} reason={deleteReason} onClick={ask}>
           <Trash2Icon />
           <span className="max-sm:sr-only">Delete</span>
         </BulkButton>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<BulkButton />}>
+          <DropdownMenuTrigger render={<BulkButton disabled={!!working} />}>
             <EllipsisIcon />
             <span className="max-sm:sr-only">More</span>
           </DropdownMenuTrigger>

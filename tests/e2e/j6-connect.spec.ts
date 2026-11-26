@@ -51,6 +51,22 @@ async function testAndGoOn(page: Page) {
   await button(page, 'Continue').click()
 }
 
+/**
+ * One definitions tool is on at a time: Cube is turned off on its page first, as an admin does
+ * before connecting another.
+ */
+async function turnOffCube(page: Page) {
+  await go(page, '/settings/integrations/cube')
+  await button(page, 'Turn off').click()
+  const dialog = page.getByRole('dialog', { name: 'Turn Cube off?' })
+  await expect(dialog).toContainText('Its definitions leave Definitions')
+  await dialog.getByRole('button', { name: 'Turn off' }).click()
+  await expect(page.getByText('Cube is off')).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'Off.' })).toContainText(
+    "agents don't get them",
+  )
+}
+
 /** Map: every folder still to map goes to Sales. */
 async function mapToSales(page: Page) {
   while (await button(page, 'Choose').count()) {
@@ -66,10 +82,13 @@ test('Available offers only what can be connected, and nothing says Soon', async
   await go(page, '/settings/integrations')
   const available = page.locator('#available')
   await expect(available.getByRole('heading', { name: 'Markdown in Git' })).toBeVisible()
-  // Every cell but Request an integration is a tool with its Connect link.
+  // Every cell but Request an integration is a tool with its Connect link, or, for a definitions
+  // tool while Cube is on, the line that says to turn Cube off first.
   const tools = (await available.getByRole('heading').count()) - 1
+  const waiting = await available.getByText('One definitions integration is on at a time.').count()
   expect(tools).toBeGreaterThan(0)
-  await expect(available.getByRole('link', { name: 'Connect' })).toHaveCount(tools)
+  expect(waiting).toBeGreaterThan(0)
+  await expect(available.getByRole('link', { name: 'Connect' })).toHaveCount(tools - waiting)
   await expect(available.getByRole('heading', { name: 'Notion' })).toHaveCount(0)
   await expect(page.getByText(/\bsoon\b/i)).toHaveCount(0)
 })
@@ -149,6 +168,21 @@ test('an admin connects a repository in five steps, changes its folders, and dis
 })
 
 test('an admin connects dbt in five steps: no calculation, no link to a file', async ({ page }) => {
+  // While Cube is on, dbt waits, and both places say why and where to switch.
+  await go(page, '/settings/integrations')
+  await expect(page.locator('a[href$="/dbt-metricflow/connect"]')).toHaveCount(0)
+  await expect(
+    page.getByText(
+      'One definitions integration is on at a time. To connect dbt, turn Cube off first.',
+    ),
+  ).toBeVisible()
+  await go(page, '/settings/integrations/dbt-metricflow/connect')
+  await expect(page.getByRole('alert')).toContainText(
+    'One definitions integration is on at a time, and Cube is on. To connect dbt, turn Cube off first.',
+  )
+  await expect(button(page, 'Continue')).toBeDisabled()
+
+  await turnOffCube(page)
   await go(page, '/settings/integrations')
   await page.locator('a[href$="/dbt-metricflow/connect"]').click()
 
@@ -190,8 +224,9 @@ test('an admin connects dbt in five steps: no calculation, no link to a file', a
   await expect(page.getByRole('heading', { name: /dbt/ }).first()).toBeVisible()
 })
 
-/** dbt's connect form, at Connect. */
+/** dbt's connect form, at Connect, once Cube is off. */
 async function atDbtConnect(page: Page) {
+  await turnOffCube(page)
   await go(page, '/settings/integrations/dbt-metricflow/connect?step=2')
   await step(page, 'Connect')
 }

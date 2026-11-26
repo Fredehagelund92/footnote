@@ -1,7 +1,7 @@
 /*
-  The docs in the landing page's design (site/README.md, "The design"): its tokens
-  (shared/tokens.css) under Starlight's names, its header and footer (shared/chrome.css), and its
-  marks and notes for the pages. A page is a white sheet beside the paper of the sidebar. Values
+  The docs in the landing page's earlier design (site/README.md, "The design"), which "the landing
+  page's" below names: its tokens (shared/tokens.css) under Starlight's names, its header and
+  footer (shared/chrome.css), and its marks and notes for the pages. A page is a white sheet beside the paper of the sidebar. Values
   come from the tokens; this file holds the mapping and the few shapes Starlight draws its own way.
 */
 

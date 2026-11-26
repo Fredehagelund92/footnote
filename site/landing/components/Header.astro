@@ -2,33 +2,26 @@
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
 import Brand from '../../shared/Brand.astro'
-import Scrolled from '../../shared/Scrolled.astro'
 import ThemeToggle from '../../shared/ThemeToggle.astro'
 
-/* The landing page's header: the logo, Docs and GitHub, the theme, and Install. */
-interface Props {
-  /** Where the logo goes: the top of this page, or the landing page. */
-  home: string
-  /** Where Install goes: the install steps on the landing page. */
-  install: string
-}
-
+/* The landing page's header: the logo, the page's own parts, Docs and GitHub, the theme, and Run
+   the demo. It stays at the top, over the page, blurred. */
 const { docs, repository } = siteLinks(readSettings(process.env))
 ---
 
 <header class="top">
   <div class="wrap">
-    <div class="top-in">
-      <Brand href={Astro.props.home} />
-      <nav class="nav" aria-label="Main">
-        <a href={docs()}>Docs</a>
-        <a href={repository}>GitHub</a>
-      </nav>
-      <div class="top-end">
-        <ThemeToggle />
-        <a class="btn btn-ink btn-sm" href={Astro.props.install}>Install</a>
-      </div>
+    <Brand href="#top" />
+    <nav class="nav" aria-label="Main">
+      <a href="#loop">How it works</a>
+      <a href="#lines">Answers</a>
+      <a href="#agents">Agents</a>
+      <a href={docs()}>Docs</a>
+      <a href={repository}>GitHub</a>
+    </nav>
+    <div class="top-end">
+      <ThemeToggle />
+      <a class="btn btn-main btn-sm" href="#run">Run the demo</a>
     </div>
   </div>
 </header>
-<Scrolled />

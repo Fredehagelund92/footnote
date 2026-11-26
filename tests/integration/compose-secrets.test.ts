@@ -192,6 +192,12 @@ describe('a server with no secret store', () => {
 
   it('still lets a source that keeps its secret be renamed', async () => {
     const call = await adminOf(first.app)
+    // One definitions integration is on at a time (CON-120): the first one makes room.
+    const off = await call('PUT', '/sources/shop-metrics/paused', {
+      paused: true,
+      reason: 'Keep the file in another place',
+    })
+    expect(off.statusCode, off.body).toBe(200)
     const added = await call('POST', '/sources', {
       ...addressRoute(),
       name: 'Shop metrics, kept',

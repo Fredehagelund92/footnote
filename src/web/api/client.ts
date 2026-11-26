@@ -508,11 +508,14 @@ export interface FootnoteApi {
   /**
    * Changes many items at once, with its line in History. It acts on every row it can; `failed`
    * names the rows a failure left unchanged, to try again, and `skipped` the drafts a Publish left
-   * alone because the service's checks refused them, each with why.
+   * alone because the service's checks refused them, each with why. `already` names the drafts a
+   * Publish found published already (by an earlier press): done, not failed, with nothing to undo.
    */
   applyBulk: (
     input: BulkChange,
-  ) => Promise<{ done: string[]; failed: string[]; skipped?: Skip[] } & Undoable>
+  ) => Promise<
+    { done: string[]; failed: string[]; skipped?: Skip[]; already?: string[] } & Undoable
+  >
   /**
    * A suggestion sent from the editor to the owners: `fact` is the version it suggests. It waits,
    * visibly, until they decide. `gap` is the Not found card it answers, as for `saveItem`.

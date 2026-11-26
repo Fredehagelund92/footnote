@@ -59484,7 +59484,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                          "default": "Only one definitions integration is on at a time."
                         },
                         "data": {}
                       },
@@ -70499,11 +70499,8 @@
                               "values": {
                                 "type": "number"
                               },
-                              "tools": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
+                              "tool": {
+                                "type": "string"
                               }
                             },
                             "required": [
@@ -70517,7 +70514,7 @@
                               "flagged",
                               "families",
                               "values",
-                              "tools"
+                              "tool"
                             ]
                           },
                           {

@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { expect, go, moveTo, test } from './go.ts'
 
 // J102, families where an admin connects a source (FR-142, D1, D5, D6): on the mock's
-// ?demo=families dbt project, Test connection leads with the families the first read would find,
+// ?demo=families dbt project, connected again as new, Test connection leads with the families the first read would find,
 // counted by how each is found, a rate its own kind, and says they are confirmed in the Inbox,
 // under Families, with the advice on dimensions as one line. Once connected, the source's page
 // counts its families, lists each with how it stands, and Review families opens the Names card on
@@ -32,10 +32,21 @@ async function axe(page: Page) {
 
 const button = (page: Page, name: string) => page.getByRole('button', { name, exact: true })
 
-/** dbt's Connect step, with the shop of ?demo=families, tested. */
+/**
+ * dbt's Connect step, with the shop of ?demo=families, tested. The shop reads dbt already, the one
+ * definitions tool on, so it is disconnected first and connected again as a new source.
+ */
 async function testDbt(page: Page) {
   await go(page, '/inbox?demo=families')
   await expect(page.getByText(/families and \d+ names from dbt/).first()).toBeVisible()
+  await moveTo(page, '/settings/integrations/dbt-metricflow')
+  await page.getByRole('button', { name: 'More for dbt' }).click()
+  await page.getByRole('menuitem', { name: 'Disconnect' }).click()
+  await page
+    .getByRole('dialog', { name: 'Disconnect dbt?' })
+    .getByRole('button', { name: 'Disconnect' })
+    .click()
+  await expect(page).toHaveURL(/\/settings\/integrations$/)
   await moveTo(page, '/settings/integrations/dbt-metricflow/connect?step=2')
   await page.getByLabel('File address').fill('https://files.example.com/dbt/semantic_manifest.json')
   await button(page, 'Test connection').click()

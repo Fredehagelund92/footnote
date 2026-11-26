@@ -11,6 +11,8 @@ import { KEY_REFUSED_CODES, sourceState } from '../../../domain/source-state.ts'
 import type { Queryable } from '../../db/database.ts'
 import { plainReason, recordAudit } from '../admin/index.ts'
 import type { RegisteredConnector } from './platform.ts'
+import { reconcileSourceFlags } from './flags.ts'
+import { makeRoomFor } from './one-on.ts'
 import { connectorType } from './registry.ts'
 
 /*
@@ -407,17 +409,23 @@ export function createSourceOverview({
 
     /**
      * Pauses reading a source, or lets it go on: the job leaves a paused source out, and Read
-     * again refuses it. What is published stays. Kept in the history log,
+     * again refuses it. What is published stays. A definitions integration paused is off
+     * (CON-120): its definitions are not listed and agents do not get them, and the live items
+     * that rely on one are flagged; it is turned on again only while no other one is on. Kept in
+     * the history log,
      * with why, when it changes anything. A source resumed is queued: the job's next turn reads it.
      */
     async pause(tx: Queryable, input: PauseSourceInput): Promise<{ id: string; paused: boolean }> {
       plainReason(input.reason)
-      const [row] = await tx.query<{ enabled: boolean }>(
-        'select enabled from connectors where id = $1 and removed_at is null for update',
+      const [row] = await tx.query<{ enabled: boolean; definitions: boolean; name: string }>(
+        `select enabled, kind = 'definition_source' as definitions, name from connectors
+          where id = $1 and removed_at is null for update`,
         [input.id],
       )
       if (!row) throw new ORPCError('NOT_FOUND', { message: "We couldn't find this source." })
       if (row.enabled === input.paused) {
+        // One definitions integration is on at a time (CON-120): turned on only while none is.
+        if (row.definitions && !input.paused) await makeRoomFor(tx, input.id, row.name)
         // Resumed, a source is queued; paused, its schedule is left as it was.
         await tx.query(
           `update connectors set enabled = $2,
@@ -425,6 +433,9 @@ export function createSourceOverview({
            where id = $1`,
           [input.id, !input.paused],
         )
+        // Its definitions are served again, or no more: the items that rely on them follow.
+        if (row.definitions)
+          await reconcileSourceFlags(tx, { reason: 'Its definitions integration is on again' })
         await recordAudit(tx, {
           action: input.paused ? 'source.paused' : 'source.resumed',
           subjectType: 'source',

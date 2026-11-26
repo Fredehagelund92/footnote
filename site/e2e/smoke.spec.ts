@@ -38,7 +38,7 @@ for (const width of widths)
         const problems = await open(page, path, theme)
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
         // Long enough for the landing page's opening to play to its end.
-        await page.waitForTimeout(path === '/' ? 4000 : 300)
+        await page.waitForTimeout(path === '/' ? 6000 : 300)
         const sideways = await page.evaluate(
           () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
         )
@@ -53,15 +53,23 @@ for (const width of widths)
         expect(problems).toEqual([])
       })
 
-test('the theme a reader picks on the landing page holds in the docs', async ({ page }) => {
-  await page.goto('/')
+test('the theme a reader picks holds from the landing page to the docs and back', async ({
+  page,
+}) => {
+  // Without a pick the landing page opens dark and the docs light.
+  await page.goto('/docs/')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await page.getByRole('button', { name: 'Switch to light mode' }).click()
   await page.getByRole('button', { name: 'Switch to dark mode' }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Docs' }).click()
   await expect(page).toHaveURL(/\/docs\/$/)
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: 'Switch to light mode' }).first().click()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.goto('/')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
 })
 

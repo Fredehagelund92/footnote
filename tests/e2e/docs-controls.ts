@@ -257,6 +257,12 @@ export const docControls: DocControl[] = [
     at: '/settings/integrations/cube',
     drawn: 'button',
   },
+  {
+    phrase: 'Turn off',
+    page: 'integrations',
+    at: '/settings/integrations/cube',
+    drawn: 'button',
+  },
   { phrase: 'Conflict', page: 'decide-a-conflict', at: '/context?show=conflicts', drawn: 'text' },
   {
     phrase: 'Keep this one',

@@ -245,6 +245,26 @@ export function createContextService(
     message: "You can't see it any more.",
   })
 
+  const publishedAlready = ({ id, title }: { id: string; title: string }): BulkRowSkip => ({
+    id,
+    title,
+    code: 'published',
+    why: 'published',
+    message: 'It is published already.',
+  })
+
+  /** The person's own drafts among `ids` that a Publish has since taken: published, by this or an earlier press. */
+  async function publishedDrafts(ids: readonly string[]) {
+    if (!ids.length) return []
+    return tx.query<{ id: string; title: string }>(
+      `select p.id::text, coalesce(nullif(p.draft->>'title', ''), 'Untitled draft') as title
+         from proposals p
+        where p.id = any($1::uuid[]) and p.subject = 'item' and p.state = 'accepted'
+          and p.proposer_id = cl_person()`,
+      [ids],
+    )
+  }
+
   async function plan(input: ItemBulkInput) {
     const mine = await me()
     const read = await inputOf(input, mine)
@@ -258,12 +278,16 @@ export function createContextService(
       opened: await opened(rows.map((r) => r.id)),
       domainName: names,
     })
+    // A draft that was published since the list was read is done already, not gone.
+    const already =
+      input.action === 'publish' ? await publishedDrafts(missing.filter((id) => !isItemId(id))) : []
+    const gone = missing.filter((id) => !already.some((a) => a.id === id))
     return {
       mine,
       read,
       names,
       act: result.act,
-      skipped: [...missing.map(notFound), ...result.skipped],
+      skipped: [...gone.map(notFound), ...already.map(publishedAlready), ...result.skipped],
     }
   }
 

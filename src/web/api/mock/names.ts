@@ -209,7 +209,7 @@ export function createMockNames(
       const waitingValues = valuesFor(who).length
       if (!ready && !flagged && !waitingValues) return null
       const families = list.filter((n) => n.family && n.state !== 'left_out').length
-      const counts = { ready, flagged, families, values: waitingValues, tools: ['dbt'] }
+      const counts = { ready, flagged, families, values: waitingValues, tool: 'dbt' }
       return {
         id: 'names:waiting',
         type: 'names',

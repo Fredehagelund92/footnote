@@ -475,6 +475,10 @@ describe('publishing drafts from the list', () => {
       '2 published, 1 sent to the owners of Marketing',
     )
     expect(publishedLine(0, 0, 2)).toBe('None published, 2 failed')
+    // Drafts an earlier press took are published already, never failures.
+    expect(publishedLine(0, 0, 0, '', 50)).toBe('50 already published')
+    expect(publishedLine(2, 0, 0, '', 3)).toBe('2 published, 3 already published')
+    expect(publishedLine(0, 0, 1, '', 3)).toBe('3 already published, 1 failed')
     // One is "it", as on a draft's own page.
     expect(publishedWhen(1)).toBe('Agents get it from the next question.')
     expect(publishedWhen(3)).toBe('Agents get them from the next question.')
