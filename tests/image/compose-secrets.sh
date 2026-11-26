@@ -38,6 +38,12 @@ call() {
     --header "origin: $origin" --header 'content-type: application/json' "$@"
 }
 
+# One definitions integration is on at a time: the demo's Cube makes room, then goes on again.
+pause() {
+  call --request PUT --data "{\"paused\":$1,\"reason\":\"Checking the secret store\"}" \
+    "$web/api/v1/sources/cube/paused" > /dev/null || fail "Cube is paused: $1"
+}
+pause true
 added=$(call --header "idempotency-key: $(node -p 'crypto.randomUUID()')" --data \
   '{"type":"dbt-metricflow","name":"dbt","config":{"location":"address"},"secrets":{"fileAddress":"https://example.com/semantic_manifest.json"},"reason":"Checking the secret store"}' \
   "$web/api/v1/sources") || fail "the source is added: $added"
@@ -53,4 +59,5 @@ node -e '
 call --request POST --header "idempotency-key: $(node -p 'crypto.randomUUID()')" \
   --data '{"reason":"Checked the secret store"}' "$web/api/v1/sources/$id/disconnect" > /dev/null ||
   fail 'the source is removed'
+pause false
 echo 'ok - a connector secret is kept across a new container'
