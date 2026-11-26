@@ -111,6 +111,12 @@ export async function checkDraft(
     relevantRefs(term.definition_refs, metricRefs).some(
       (ref) => !defs.has(ref) || defs.get(ref)?.missing,
     )
+  // The dimensions that have values in the live edition, by key: `val:market/norway` is market's.
+  const valued = new Set(
+    [...known.values()].flatMap((t) =>
+      t.kind === 'dimension_value' ? [`dim:${t.key.slice(4, t.key.indexOf('/'))}`] : [],
+    ),
+  )
   for (const key of draft.scope?.dimensions ?? []) {
     const term = known.get(key)
     if (term && term.kind !== 'dimension')
@@ -119,12 +125,15 @@ export async function checkDraft(
         'scope',
         `"Any" works for a market, a product or a brand, not for ${term.name}.`,
       )
-    // FR-505: a dimension with any value is broad, so the reviewer is told; it never blocks.
+    // FR-505: a dimension with any value is broad, so the reviewer is told; it never blocks. With
+    // no values kept, no question names one of them: only one that names the dimension gets it.
     else if (term)
       add(
         'broad_scope',
         'scope',
-        `Broad: it applies to all of ${term.name}, so agents get it for any question about ${term.name}.`,
+        valued.has(key)
+          ? `Broad: it applies to all of ${term.name}, so agents get it for any question about ${term.name}.`
+          : `Broad: it applies to all of ${term.name}. No values of ${term.name} are kept yet, so agents get it only when a question names ${term.name} itself, not one of its values.`,
         'warning',
       )
   }

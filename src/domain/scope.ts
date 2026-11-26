@@ -84,14 +84,26 @@ export type HeldScope = Omit<ResolvedScope, 'window'> & { window: DateWindow | n
  * when they name no metric, the words that could have named one. Only when there are some.
  */
 export type NamesRead = { loose?: LooseName[]; unread?: UnreadWord[] }
+/**
+ * Values a typed filter named on a dimension that has no values in the vocabulary. No item can be
+ * about one of its values then, so the filter is read for every value, as the dimension named
+ * without one, and the reply says so (`unkeptSay`): never a refusal with nothing to choose from.
+ */
+export type UnkeptValues = { dimension: string; values: string[] }
 export type ScopeResult =
   | ({
       status: 'resolved'
       scope: ResolvedScope
       assumed?: AssumedDate
       dates?: DatesRead
+      unkept?: UnkeptValues[]
     } & NamesRead)
-  | ({ status: 'need_more_detail'; issues: ScopeIssue[]; held?: HeldScope } & NamesRead)
+  | ({
+      status: 'need_more_detail'
+      issues: ScopeIssue[]
+      held?: HeldScope
+      unkept?: UnkeptValues[]
+    } & NamesRead)
 const unique = (values: string[]) => [...new Set(values)].sort()
 
 /** The words of a term as a person writes them, the one that reads as `name` first. */
@@ -652,6 +664,7 @@ export function extractScope(
   const issues: ScopeIssue[] = []
   const metrics: string[] = []
   const filters: Record<string, string[]> = Object.create(null) as Record<string, string[]>
+  const unkept: UnkeptValues[] = []
   const resolve = (value: string, kinds: Term['kind'][], field: string, parent?: string) => {
     const result = resolveTerm(value, terms, kinds, parent)
     if (result.status === 'resolved') return result.key
@@ -693,6 +706,10 @@ export function extractScope(
     const key = resolve(dimension, ['dimension'], 'filters')
     if (!key) continue
     filters[key] = []
+    if (values.length && !terms.some((t) => t.kind === 'dimension_value' && t.parentKey === key)) {
+      unkept.push({ dimension: key, values: [...values] })
+      continue
+    }
     for (const value of values) {
       const valueKey = resolve(value, ['dimension_value'], key, key)
       if (valueKey) filters[key].push(valueKey)
@@ -811,11 +828,13 @@ export function extractScope(
     ...(found.loosely.length ? { loose: found.loosely.map(asWritten) } : {}),
     ...(unread.length ? { unread } : {}),
   }
+  const kept = unkept.length ? { unkept } : {}
   if (issues.length)
     return {
       status: 'need_more_detail',
       issues,
       ...(contested ? { held: { ...read, window: assumed ? null : window } } : {}),
+      ...kept,
       ...namesRead,
     }
   return {
@@ -823,6 +842,7 @@ export function extractScope(
     scope: { ...read, window: window! },
     ...(assumed ? { assumed } : {}),
     ...(dates ? { dates } : {}),
+    ...kept,
     ...namesRead,
   }
 }

@@ -478,7 +478,7 @@ function ScopePicker({
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   You can only pick metrics, dimensions and values that are published in
-                  Definitions. New ones wait in the Inbox until an owner publishes them.
+                  Definitions.
                 </p>
               </>
             ) : (

@@ -2,7 +2,7 @@ import { stateOfStatus, stateWords } from './answer-state.ts'
 import { periodWords } from './dates.ts'
 import { metricsOf } from './resolver.ts'
 import { SAID_MEANINGS } from './ask-chat.ts'
-import type { ResolvedScope, ScopeIssue } from './scope.ts'
+import type { ResolvedScope, ScopeIssue, UnkeptValues } from './scope.ts'
 import { concepts as peopleConcepts } from './words.ts'
 import type { WordMeaning } from './vocabulary.ts'
 
@@ -577,6 +577,25 @@ export type ContextSay = {
   groups?: readonly AskedGroup[]
   /** Each delivered fact names the asked metrics it is about (`about`). */
   about?: boolean
+  /** Values a filter named on a dimension that has none in the vocabulary (`UnkeptValues`). */
+  unkept?: readonly UnkeptValues[]
+}
+
+/**
+ * What a reply says of values a filter named on a dimension that has none in the vocabulary: the
+ * question was read for every value of it, so an answer never stands on a value it did not read.
+ */
+export function unkeptSay(bundle: Names, unkept: readonly UnkeptValues[]): string {
+  return unkept
+    .map(({ dimension, values }) => {
+      const name = nameOf(bundle, dimension)
+      const named = list(
+        values.map((value) => `'${value}'`),
+        'or',
+      )
+      return `No values of ${name} are kept yet, so this was read for every ${midSentence(name)}, not only ${named}.`
+    })
+    .join(' ')
 }
 
 /**
@@ -660,6 +679,14 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
   // What a group asked for holds, right after what was read for it and how far that went.
   const grouped = groupWords(c.groups ?? [])
   if (grouped) say.splice(say[1] === onlyThat ? 2 : 1, 0, grouped)
+  if (c.unkept?.length) {
+    say.push(unkeptSay(bundle, c.unkept))
+    next.push(
+      `Tell the person it was read for every ${list(
+        c.unkept.map(({ dimension }) => midSentence(nameOf(bundle, dimension))),
+      )}, not only the ones asked about.`,
+    )
+  }
   if (c.assumed) say.push(c.assumed)
   // The answer line comes first (FR-349): the label and, but for Checked, its sentence.
   const state = voice.stateFirst ? stateOfStatus(c.status) : null
