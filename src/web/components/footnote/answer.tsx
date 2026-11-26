@@ -23,10 +23,11 @@ import { kindIcons } from '@/components/footnote/kind-icons'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { asksWhatItIs } from '@domain/scope'
 import { loopParts } from '@/components/footnote/loop-parts'
+import { reportParts } from '@/components/footnote/report-parts'
 import { today } from '@/lib/today'
 import { dateLabel } from '@/model/validity'
 import { ReadingLine } from '@/components/footnote/reading'
-import { answerKey, keepShown } from '@/lib/shown-answers'
+import { answerKey, keepShown, useReportSent } from '@/lib/shown-answers'
 import { sentencesOf, type Sentence } from '@/lib/where'
 import {
   ASK_CADENCE,
@@ -46,11 +47,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Field, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   askedOf,
@@ -62,7 +58,7 @@ import {
 import { drawnByLoop, isLive, type Turn } from '@/model/ask-turn'
 import { MentionChip } from '@/components/footnote/mention-chip'
 import type { Fact } from '@/model/items'
-import { closeDock, openDock, useDock } from '@/lib/dock'
+import { closeDock, openDock, openFromButton, useDock } from '@/lib/dock'
 import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
 import { href, useRoute } from '@/lib/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -87,7 +83,7 @@ function IconButton({
   children,
 }: {
   label: string
-  onClick: () => void
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   active?: boolean
   children: React.ReactNode
 }) {
@@ -733,19 +729,35 @@ function SourceChip({
   )
 }
 
-/** The Something wrong? form: a flag, or a suggestion when a correction is given. */
-/** What became of your report, in this chat only: sent, then what the owner did. */
-export function ReportLine({ report }: { report: NonNullable<Answer['report']> }) {
+/** What became of your report, in this chat only: sent, then what the owners did. */
+export function ReportLine({
+  report,
+  focus,
+  answerKey,
+}: {
+  report: NonNullable<Answer['report']>
+  /** The answer it is about: the report panel's close puts focus here when its opener is gone. */
+  answerKey?: string
+  /** Sent from the form under the answer: focus comes here, where the form was. */
+  focus?: boolean
+}) {
+  const line = React.useRef<HTMLParagraphElement>(null)
+  React.useEffect(() => {
+    if (focus) line.current?.focus({ preventScroll: true })
+  }, [focus])
   return (
     <p
+      ref={line}
       role="status"
-      className="flex animate-in items-start gap-2 text-sm text-muted-foreground duration-(--dur-4) fade-in-0"
+      tabIndex={focus || answerKey ? -1 : undefined}
+      data-report-line={answerKey}
+      className="flex animate-in items-start gap-2 text-sm text-muted-foreground duration-(--dur-4) fade-in-0 outline-none"
     >
       <FlagIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
         {report.outcome ?? (
           <>
-            You reported this {report.on}. The owner sees it in their Inbox; you'll see here what
+            You reported this {report.on}. The owners see it in their Inbox; you'll see here what
             they do. Agents keep getting the item until it changes.
           </>
         )}
@@ -754,102 +766,27 @@ export function ReportLine({ report }: { report: NonNullable<Answer['report']> }
   )
 }
 
+const ReportForm = React.lazy(() =>
+  import('@/components/footnote/report-panel').then((m) => ({ default: m.ReportForm })),
+)
+
+/**
+ * Something wrong? under the answer, where Ask is itself in the right panel: the same form as the
+ * panel beside an answer (report-panel.tsx), which comes with its own code.
+ */
 export function SomethingWrong({
-  answer,
-  facts,
-  onClose,
   onSent,
+  ...props
 }: {
   answer: Answer
   facts: Fact[]
   onClose: () => void
   onSent: () => void
 }) {
-  const domains = useDomains()
-  const write = useWrite()
-  const [part, setPart] = React.useState(facts[0]?.id ?? 'answer')
-  const [sending, setSending] = React.useState(false)
-  // The answer itself is filed on its first source, so it reaches that domain's owners.
-  const fact = facts.find((f) => f.id === part) ?? facts[0]
-  const domain = fact?.domain ?? 'sales'
-  const to = `the owner of ${domains[domain]?.name}`
-
   return (
-    <form
-      className="flex animate-in flex-col gap-4 rounded-surface border border-input bg-background p-4 duration-(--dur-3) fade-in-0 slide-in-from-top-1"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const form = new FormData(e.currentTarget)
-        const text = (name: string) => {
-          const value = form.get(name)
-          return typeof value === 'string' ? value.trim() : ''
-        }
-        setSending(true)
-        write('reportAnswer', {
-          question: askedOf(answer),
-          part,
-          sources: answer.sources,
-          what: text('what'),
-          correction: text('correction') || undefined,
-          link: text('link') || undefined,
-        })
-          .then(onSent)
-          .catch(() =>
-            toast.error("The report wasn't sent", {
-              description: 'Nothing was lost: try again in a moment.',
-            }),
-          )
-          .finally(() => setSending(false))
-      }}
-    >
-      <div>
-        <p className="text-sm font-medium">Something wrong?</p>
-        <p className="text-sm text-muted-foreground">
-          It goes to {to} with your words and this question. Nothing else from this chat is kept.
-        </p>
-      </div>
-      <FieldGroup className="gap-4">
-        <FieldSet>
-          <FieldLegend variant="label">Which part?</FieldLegend>
-          <RadioGroup value={part} onValueChange={(v) => setPart(v as string)}>
-            {facts.map((f, i) => (
-              <Field key={f.id} orientation="horizontal">
-                <RadioGroupItem value={f.id} id={`part-${answer.id}-${f.id}`} />
-                <Label htmlFor={`part-${answer.id}-${f.id}`} className="font-normal">
-                  {i + 1}. {f.title}
-                </Label>
-              </Field>
-            ))}
-            <Field orientation="horizontal">
-              <RadioGroupItem value="answer" id={`part-${answer.id}-answer`} />
-              <Label htmlFor={`part-${answer.id}-answer`} className="font-normal">
-                The answer itself
-              </Label>
-            </Field>
-          </RadioGroup>
-        </FieldSet>
-        <Field>
-          <FieldLabel htmlFor={`what-${answer.id}`}>What's wrong?</FieldLabel>
-          <Textarea id={`what-${answer.id}`} name="what" required />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`correct-${answer.id}`}>Correct version (optional)</FieldLabel>
-          <Textarea id={`correct-${answer.id}`} name="correction" />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`link-${answer.id}`}>Link (optional)</FieldLabel>
-          <Input id={`link-${answer.id}`} name="link" type="url" placeholder="https://" />
-        </Field>
-      </FieldGroup>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={sending}>
-          Send to {to}
-        </Button>
-      </div>
-    </form>
+    <React.Suspense fallback={null}>
+      <ReportForm {...props} parts={reportParts} onSent={() => onSent()} />
+    </React.Suspense>
   )
 }
 
@@ -1163,13 +1100,30 @@ function ContextAnswerBody({
           }),
     [draft, answer.sources, all],
   )
+  const key = answerKey(answer)
+  // Something wrong? opens beside the answer, or under it where Ask is itself in the right panel.
+  const dock = useDock()
   const [wrong, setWrong] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
   const [sentNow, setSentNow] = React.useState(answer.report)
+  const sentBeside = useReportSent(key)
   // A report the person sent about this answer, here or before: what the owners did comes back.
   const mine = useQuery({ ...myReportsQuery(), enabled: !draft }).data?.find(
     (r) => r.question.toLowerCase() === askedOf(answer).toLowerCase(),
   )
-  const report = mine ? { on: mine.on, outcome: mine.outcome } : sentNow
+  const report = mine
+    ? { on: mine.on, outcome: mine.outcome }
+    : (sentNow ?? (sentBeside ? { on: 'just now' } : undefined))
+  const canReport = !draft && facts.length > 0 && !report
+  const reporting = docked ? wrong : dock?.kind === 'report' && dock.id === key
+  const onWrong = (open: boolean, from?: HTMLElement | null) => {
+    if (!canReport) return
+    if (docked) {
+      if (open) opener.current = from ?? null
+      setWrong(open)
+    } else if (open) openFromButton('report', key, from ?? null)
+    else if (reporting) closeDock()
+  }
 
   // Where the answer has got to: its labels held long enough to read, then the answer, whole.
   const shownStage = useShownStage(turn)
@@ -1202,9 +1156,9 @@ function ContextAnswerBody({
   const finished = turn.stage === 'done' && answered && !revealing && !stopped
   const writing = answered && isLive(turn) && !revealed
   const where = !draft && !docked && facts.length > 0
+  // A finished answer is kept by its key, so the right panel can share it, report it or show where
+  // it says that.
   const note = answer.note
-  // A finished answer is kept by its key, so the right panel can share it or show where it says that.
-  const key = answerKey(answer)
   React.useEffect(() => {
     if (finished && !draft) keepShown(key, { answer, facts })
   }, [finished, draft, key, answer, facts])
@@ -1369,12 +1323,17 @@ function ContextAnswerBody({
           )}
           {answer.related?.length ? <Related ids={answer.related} /> : null}
           {answer.state !== null && !draft && <NextStep answer={answer} facts={facts} />}
-          {!draft && report && <ReportLine report={report} />}
-          {!draft && wrong && !report && facts.length > 0 && (
+          {!draft && report && (
+            <ReportLine report={report} focus={!!sentNow && !answer.report} answerKey={key} />
+          )}
+          {docked && wrong && canReport && (
             <SomethingWrong
               answer={answer}
               facts={facts}
-              onClose={() => setWrong(false)}
+              onClose={() => {
+                setWrong(false)
+                opener.current?.focus()
+              }}
               onSent={() => {
                 setWrong(false)
                 setSentNow({ on: 'just now' })
@@ -1388,9 +1347,9 @@ function ContextAnswerBody({
             draft={!!draft}
             latest={latest}
             onRetry={onRetry}
-            wrong={wrong}
-            onWrong={(w) => !draft && facts.length > 0 && !report && setWrong(w)}
-            canReport={!draft && facts.length > 0 && !report}
+            wrong={reporting}
+            onWrong={onWrong}
+            canReport={canReport}
           />
         </div>
       )}
@@ -1442,8 +1401,10 @@ export function AnswerActions({
   draft: boolean
   latest?: boolean
   onRetry?: () => void
+  /** Whether Something wrong? is open for this answer. */
   wrong: boolean
-  onWrong: (wrong: boolean) => void
+  /** Opens Something wrong?, or closes it: from the button it was opened with, for focus. */
+  onWrong: (wrong: boolean, from?: HTMLElement | null) => void
   canReport: boolean
 }) {
   const { rated, rate } = useRating(answer)
@@ -1491,13 +1452,13 @@ export function AnswerActions({
           >
             {rated === 'helpful' ? <CheckIcon /> : <ThumbsUpIcon />}
           </IconButton>
-          {/* One way to say it is wrong: a bad answer asks what was wrong, in the same form. */}
+          {/* The door to Something wrong?: a bad answer counts, then asks the owners why. */}
           <IconButton
             label="Bad answer"
             active={rated === 'wrong'}
-            onClick={() => {
+            onClick={(e) => {
               rate('wrong')
-              if (rated !== 'wrong') onWrong(true)
+              if (rated !== 'wrong') onWrong(true, e.currentTarget)
             }}
           >
             <ThumbsDownIcon />
@@ -1533,7 +1494,7 @@ export function AnswerActions({
           </Tooltip>
           <DropdownMenuContent align="start" className="w-auto">
             {canReport && (
-              <DropdownMenuItem onClick={() => onWrong(!wrong)}>
+              <DropdownMenuItem onClick={() => onWrong(!wrong, more.current)}>
                 <FlagIcon />
                 Something wrong?
               </DropdownMenuItem>

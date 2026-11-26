@@ -83,6 +83,7 @@ import {
   setQuery,
   useRoute,
 } from '@/lib/router'
+import { safeHref } from '@/lib/host'
 import { useQuery } from '@tanstack/react-query'
 import {
   conflictQuery,
@@ -846,6 +847,7 @@ function CardDetail({
             {card.flag?.question && (
               <ReportedQuestion by={card.flag.by} question={card.flag.question} />
             )}
+            {card.flag && <ReportedWords flag={card.flag} title={card.title} />}
             {card.changed && card.changed.length > 0 && (
               <React.Suspense fallback={null}>
                 <ChangedDefinitions names={card.changed} />
@@ -924,6 +926,56 @@ function ReportedQuestion({ by, question }: { by: string; question: string }) {
         Try this question
       </Button>
     </figure>
+  )
+}
+
+/**
+ * The right words and the link a report from Ask was sent with, as its sender wrote them, and the
+ * way to the suggestion the words became, while it waits for an owner.
+ */
+function ReportedWords({ flag, title }: { flag: NonNullable<InboxCard['flag']>; title: string }) {
+  const link = safeHref(flag.link ?? null)
+  if (!flag.correction && !link) return null
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {flag.correction && (
+        <figure className="flex flex-col gap-2">
+          <figcaption className="font-medium">
+            {flag.by ? `${flag.by} suggests these words` : 'The right words'}
+          </figcaption>
+          <blockquote className="border-l-2 pl-3 text-pretty">{flag.correction}</blockquote>
+        </figure>
+      )}
+      {link && (
+        <p>
+          <span className="font-medium">Link they sent:</span>{' '}
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className="break-all text-primary underline-offset-4 hover:underline"
+          >
+            {link.replace(/^https?:\/\//, '')}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </p>
+      )}
+      {flag.suggestion && (
+        <>
+          <p className="text-muted-foreground">
+            A suggestion on “{title}”. Ask and agents keep the item as it is until an owner
+            publishes it.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-1"
+            onClick={() => navigate(`/inbox/${flag.suggestion}/review`)}
+          >
+            Review the suggestion
+          </Button>
+        </>
+      )}
+    </div>
   )
 }
 

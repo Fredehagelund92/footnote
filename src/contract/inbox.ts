@@ -108,10 +108,12 @@ export const cardSchema = z.union([
     note: z.nullable(z.string()),
     /** Who sent a named report; null for an agent's feedback, which keeps nobody. */
     by: z.nullable(z.string()),
-    /** A named report's question, correct version and link, as its sender wrote them. */
+    /** A named report's question, right words and link, as its sender wrote them. */
     question: z.nullable(z.string()),
     correction: z.nullable(z.string()),
     link: z.nullable(z.string()),
+    /** The suggestion its right words became, while it waits for an owner: its id. */
+    suggestion: z.nullable(z.string()),
     /** The context the reported answer gave, as agents got it, first first; empty when unknown. */
     items: z.array(z.object({ id: z.string(), title: z.string() })),
   }),

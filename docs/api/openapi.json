@@ -69359,6 +69359,16 @@
                                   }
                                 ]
                               },
+                              "suggestion": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
                               "items": {
                                 "type": "array",
                                 "items": {
@@ -69393,6 +69403,7 @@
                               "question",
                               "correction",
                               "link",
+                              "suggestion",
                               "items"
                             ]
                           },
@@ -94814,6 +94825,16 @@
                     },
                     "at": {
                       "type": "string"
+                    },
+                    "suggestion": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [

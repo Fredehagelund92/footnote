@@ -95,6 +95,7 @@ import {
 } from './conflicts'
 import type { Fact } from '@/model/items'
 import { maySettle } from '@domain/conflicts'
+import { limits } from '@domain/proposal-rules'
 import { TODAY } from '@/model/history'
 
 /**
@@ -1413,12 +1414,39 @@ export function createMockApi() {
       now(() => (answers ? chats.keep(id, answers) : chats.add(id, question))),
     renameChat: ({ id, title }) => now(() => chats.rename(id, title)),
     deleteChat: ({ id }) => now(() => remember(chats.remove(id), true)),
-    // A named report waits in this visit's memory; the demo's owners don't act on it here.
-    reportAnswer: ({ question }) =>
+    // A named report waits in this visit's memory; the demo's owners don't act on it here. The
+    // right words for an item wait as a suggestion on it, as one sent from the editor does.
+    reportAnswer: ({ question, part, correction }) =>
       now(() => {
         const id = `report-${reports.length + 1}`
+        const item = factsOf(state).find((f) => f.id === part)
+        const words = correction?.trim()
+        if (item && words && item.status === 'Archived')
+          throw new ApiError(
+            'conflict',
+            'It is archived, so it takes no suggestion. Send the report without new words.',
+          )
+        if (item && words && [...words].length > limits.summary)
+          throw new ApiError(
+            'invalid',
+            `The right words fit in ${limits.summary} characters, as a summary does.`,
+          )
         reports.unshift({ id, question, at: new Date() })
-        return { id }
+        if (!item || !words || words === item.summary.trim()) return { id }
+        const suggestion = `sent_${Date.now().toString(36)}`
+        dispatch({
+          type: 'send',
+          sent: {
+            id: suggestion,
+            factId: item.id,
+            title: item.title,
+            by: me(),
+            to: workspace.domainMap()[item.domain]?.owners[0] ?? 'the owners',
+            domain: item.domain,
+            at: 'just now',
+          },
+        })
+        return { id, suggestion }
       }),
     // The demo's owners don't see it here: it waits in this visit's memory, as a report does.
     tellOwner: () => now(() => ({ id: `gap-report-${reports.length + 1}` })),

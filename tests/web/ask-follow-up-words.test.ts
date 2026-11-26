@@ -23,9 +23,20 @@ vi.mock('@/api/queries', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   useWrite: () => vi.fn(),
 }))
-vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
+vi.mock('@/lib/dock', () => ({
+  openDock: vi.fn(),
+  openFromButton: vi.fn(),
+  closeDock: vi.fn(),
+  useDock: () => null,
+}))
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
+vi.mock('@/lib/shown-answers', () => ({
+  answerKey: () => 'k',
+  keepShown: () => {},
+  markReportSent: () => {},
+  useReportSent: () => false,
+  useShownAnswer: () => undefined,
+}))
 vi.mock('@/lib/router', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   useRoute: () => ({ path: '/ask', query: new URLSearchParams() }),

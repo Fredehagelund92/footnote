@@ -25,6 +25,7 @@ import {
   type BulkRowSkip,
 } from '../../../domain/context-bulk.ts'
 import type { Draft } from '../../../domain/draft.ts'
+import { limits } from '../../../domain/proposal-rules.ts'
 import type { Scope } from '../../../domain/item.ts'
 import type { ItemVersion } from '../../../domain/item-version.ts'
 import { termDomain } from '../../../domain/catalogue.ts'
@@ -40,7 +41,14 @@ import { conflictsOfItem } from '../conflicts/index.ts'
 import { createGapsService } from '../gaps/index.ts'
 import type { LibraryService } from '../library/index.ts'
 import { draftVocabulary } from '../../mcp/draft-tool.ts'
-import { proposalEvent, readVersions, type ProposalsService } from '../proposals/index.ts'
+import {
+  changeReason,
+  checkDraft,
+  proposalEvent,
+  readVersions,
+  rejectSensitive,
+  type ProposalsService,
+} from '../proposals/index.ts'
 import { draftOf, type ReviewPath, type ReviewService } from '../review/index.ts'
 import { linkRefusal, pastedLink, type PageRead } from '../web/index.ts'
 import { missing, notAllowed, signedOutKept } from '../../../contract/refusals.ts'
@@ -820,6 +828,7 @@ export function createContextService(
       reviewDate: _due,
       changeMarks: _marks,
       references: _refs,
+      replaces: _replaces,
       ...words
     } = draftOf(stored.version)
     const created = await proposals.create({
@@ -828,6 +837,101 @@ export function createContextService(
       reason: reasons.restored(input.version),
     })
     return { proposalId: created.id }
+  }
+
+  function reasonFor(text: string | undefined) {
+    try {
+      return text && [...text.trim()].length <= limits.changeReason
+        ? changeReason(text, 'change')
+        : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * The right words from a report in Ask (FR-622): the item as agents get it now, with the summary
+   * the person wrote, sent to its owners as a suggestion that waits like any other, whoever sent
+   * it. Null when the words are the summary it has already: there is nothing to suggest.
+   */
+  async function suggestWords(input: {
+    itemId: string
+    summary: string
+    reason?: string | undefined
+  }): Promise<string | null> {
+    const row = await library.getIndexRow(input.itemId)
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
+    if (row.status !== 'accepted')
+      throw new ORPCError('CONFLICT', {
+        message: 'It is archived, so it takes no suggestion. Send the report without new words.',
+      })
+    const summary = input.summary.trim()
+    if ([...summary].length > limits.summary)
+      throw new ORPCError('BAD_REQUEST', {
+        message: `The right words fit in ${limits.summary} characters, as a summary does.`,
+      })
+    try {
+      rejectSensitive(summary)
+    } catch (error) {
+      if (error instanceof ORPCError && error.code === 'UNPROCESSABLE_CONTENT')
+        throw new ORPCError('UNPROCESSABLE_CONTENT', {
+          message: 'Take the email address, phone number or secret out of the right words.',
+          data: error.data,
+        })
+      throw error
+    }
+    const [version] = await tx.query<{ id: string }>(
+      `select v.id::text from item_versions v
+        where v.item_id = $1 and v.version_no = $2
+          and exists (select 1 from item_version_service s where s.version_id = v.id)`,
+      [input.itemId, row.version],
+    )
+    const stored = version ? (await readVersions(tx, [version.id]))[0] : undefined
+    if (!stored) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
+    if (stored.version.summary.trim() === summary) return null
+    // The words of the version agents get, with the person's summary in plain text: a mention it
+    // had there goes with its words, and the owner sees that in the review.
+    const {
+      reviewDate: _due,
+      changeMarks: _marks,
+      references: _refs,
+      replaces: _replaces,
+      ...words
+    } = draftOf(stored.version)
+    const created = await proposals.create({
+      itemId: input.itemId,
+      version: row.version,
+      draft: {
+        ...words,
+        summary,
+        summaryMarkup: summary.replace(/[\\@]/g, '\\$&'),
+        areaId: row.areaId,
+        kind: row.kind,
+        ownerId: row.ownerId,
+      },
+      reason: reasonFor(input.reason),
+    })
+    const checks = await checkDraft(
+      tx,
+      created.draft,
+      created.proposerId,
+      created.channel,
+      created.itemId,
+    )
+    const errors = checks.findings.filter((f) => f.severity === 'error')
+    if (!checks.version || errors.length) {
+      if (!checks.version || errors.some((f) => f.field === 'summary'))
+        throw new ORPCError('BAD_REQUEST', {
+          message: "The right words can't be sent as they are. Write them in plain text.",
+        })
+      await proposals.discard(created.id, created.revision)
+      return null
+    }
+    const submitted = await proposals.submit(created.id, created.revision, {
+      byDomainOwners: false,
+    })
+    await review.checkSubmitted(submitted.id)
+    return submitted.id
   }
 
   /**
@@ -1149,6 +1253,7 @@ export function createContextService(
     undoChange,
     compare,
     restoreAsDraft,
+    suggestWords,
     related: relatedOf,
     publish,
     saveDraft,
