@@ -120,6 +120,8 @@ test('Esc from a review goes back to the Inbox, on the card last reviewed', asyn
   // The card's one decision opens its review.
   await page.locator('button[data-primary]').first().click()
   await expect(page).toHaveURL(new RegExp(`/inbox/${card(first!)}/review`))
+  // The address changes before the review has drawn; a J before it is the Inbox's, and moves its cursor.
+  await expect(page.locator('#change-heading')).toBeVisible()
   await page.locator('body').click({ position: { x: 1, y: 1 } })
   // J steps to the next suggestion in the same step of history.
   await page.keyboard.press('j')
