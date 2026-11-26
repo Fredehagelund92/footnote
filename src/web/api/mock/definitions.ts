@@ -86,8 +86,8 @@ const seed: Definition[] = [
 ]
 
 const same = (a: string, b: string) => termWord(a) === termWord(b)
-/** The definitions tool whose read finds the demo's families. */
-const FAMILIES_DEFINITIONS = 'dbt-metricflow'
+/** The definitions tool whose read finds the demo's families, and reads its model in `?demo=dbt`. */
+export const FAMILIES_DEFINITIONS = 'dbt-metricflow'
 
 /** An owner's choice of what a family means, as the service keeps it, variants by name. */
 type Chosen = FamilyMeaningVersion
@@ -136,7 +136,11 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
 
 export { seed as definitionSeed }
 
-export function createDefinitions() {
+/**
+ * `on` says whether a definitions tool is on: one is at a time (CON-120), and the definitions of
+ * one that is off are not listed.
+ */
+export function createDefinitions(on: (connector: string) => boolean = () => true) {
   let all = seed
   /** Every choice of what a family means, by the family's name, newest last. */
   const meanings = new Map<string, Chosen[]>()
@@ -144,7 +148,20 @@ export function createDefinitions() {
   let splits: { family: Definition; split: SplitFamily }[] = []
 
   return {
-    list: () => all,
+    list: () => all.filter((d) => !d.synced || d.connector === undefined || on(d.connector)),
+
+    /**
+     * Reads the demo's model with another definitions tool, the install's one in its place
+     * (`?demo=dbt`, `?demo=families`): one definitions tool is on at a time (CON-120).
+     */
+    readWith(connector: string) {
+      all = all.map((d) => {
+        if (!d.synced || d.connector !== DEMO_DEFINITIONS) return d
+        // Its links lead to the demo's Cube files, which the other tool does not read.
+        const { fileUrl: _file, ...read } = d
+        return { ...read, connector, source: connector, tool: demoTool(connector) }
+      })
+    },
 
     /** Adds a metric per currency and channel, 5,000 of them, for Definitions at that size. */
     loadVariants() {
@@ -152,7 +169,7 @@ export function createDefinitions() {
         all = [...all, ...variantDefinitions(demoTool(DEMO_DEFINITIONS))]
     },
 
-    /** Adds what a dbt folder on the server holds, beside the demo's Cube model. */
+    /** Adds what a dbt folder on the server holds, to the demo's model it reads. */
     loadDbtFolder() {
       if (!all.some((d) => d.connector === 'dbt-metricflow'))
         all = [...all, ...dbtFolderDefinitions()]
@@ -160,7 +177,7 @@ export function createDefinitions() {
 
     /**
      * Adds the same 5,000 metrics as the 20 families a read of a dbt project finds in them (FR-142),
-     * beside the demo's own: an install with two definitions tools, as the Names card says.
+     * to the demo's own, which dbt reads too.
      */
     loadFamilies() {
       if (!all.some((d) => d.family))

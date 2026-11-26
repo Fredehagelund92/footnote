@@ -263,6 +263,11 @@ describe('a semantic manifest in Git', () => {
   }, 180_000)
 
   it('keeps the id of a connector the server can read a folder for', async () => {
+    // One definitions integration is on at a time (CON-120): the shop source makes room, and is
+    // on again once this one is disconnected.
+    const turn = (paused: boolean) =>
+      ok(call('PUT', `/sources/${sourceId}/paused`, 'admin', { paused, reason: 'Try a second' }))
+    await turn(true)
     const added = await ok<SourceSettings>(
       call('POST', '/sources', 'admin', {
         type: 'dbt-metricflow',
@@ -274,6 +279,8 @@ describe('a semantic manifest in Git', () => {
       201,
     )
     expect(added.id).not.toBe('dbt-metricflow')
+    await ok(call('POST', `/sources/${added.id}/disconnect`, 'admin', { reason: 'Only its id' }))
+    await turn(false)
   })
 
   it('flags nothing when the project moves to dbt’s latest YAML spec', async () => {

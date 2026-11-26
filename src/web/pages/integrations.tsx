@@ -19,6 +19,8 @@ import {
   PlayIcon,
   PlugIcon,
   PlusIcon,
+  PowerIcon,
+  PowerOffIcon,
   RefreshCwIcon,
   SearchIcon,
   TriangleAlertIcon,
@@ -77,7 +79,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { connectorById, connectors } from '@/model/catalogue'
+import { connectorById, connectors, definitionsOn } from '@/model/catalogue'
 import {
   kindName,
   lacksSecretStore,
@@ -181,12 +183,13 @@ const healthLook: Record<Health, { label: string; icon: React.ReactNode; cls: st
   paused: { label: 'Paused', icon: <PauseIcon />, cls: 'text-muted-foreground' },
 }
 
-function HealthBadge({ health }: { health: Health }) {
+/** A definitions integration paused is off (CON-120), and its badge says so. */
+function HealthBadge({ health, off = false }: { health: Health; off?: boolean }) {
   const h = healthLook[health]
   return (
     <Badge variant="outline" className={cn('gap-1 font-normal [&>svg]:size-3', h.cls)}>
-      {h.icon}
-      {h.label}
+      {off && health === 'paused' ? <PowerOffIcon /> : h.icon}
+      {off && health === 'paused' ? 'Off' : h.label}
     </Badge>
   )
 }
@@ -611,7 +614,8 @@ const markedHealth = (s: Source) => {
  */
 function RowHealth({ source, plain }: { source: Source; plain: boolean }) {
   const h = sourceHealth(source.state)
-  if (!markedHealth(source)) return <HealthBadge health={h} />
+  if (!markedHealth(source))
+    return <HealthBadge health={h} off={connectorById(source.connector)?.kind === 'definitions'} />
   const words = healthLook[h].label
   return (
     <span>
@@ -706,7 +710,17 @@ function ConnectedRow({
   )
 }
 
-function AvailableCell({ c }: { c: Connector }) {
+/**
+ * A tool that can be connected. A definitions tool while another is on (`on`) says why it waits,
+ * and where to turn that one off: one definitions integration is on at a time (CON-120).
+ */
+function AvailableCell({
+  c,
+  on,
+}: {
+  c: Connector
+  on?: { source: Source; c: Connector } | undefined
+}) {
   return (
     <div className="flex min-h-44 flex-col gap-2 border-r border-b bg-background p-4 md:p-5">
       <div className="flex items-start justify-between gap-2">
@@ -718,12 +732,25 @@ function AvailableCell({ c }: { c: Connector }) {
       <h4 className="mt-1 text-sm font-medium">{c.label}</h4>
       <p className="text-sm text-muted-foreground">{c.blurb}</p>
       <div className="mt-auto pt-2">
-        <a
-          href={`/settings/integrations/${c.id}/connect`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Connect <ArrowRightIcon className="size-3.5" aria-hidden />
-        </a>
+        {on ? (
+          <p className="text-sm text-muted-foreground">
+            One definitions integration is on at a time. To connect {c.label}, turn{' '}
+            <a
+              href={`/settings/integrations/${on.source.id}`}
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {on.c.label}
+            </a>{' '}
+            off first.
+          </p>
+        ) : (
+          <a
+            href={`/settings/integrations/${c.id}/connect`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Connect <ArrowRightIcon className="size-3.5" aria-hidden />
+          </a>
+        )}
       </div>
     </div>
   )
@@ -789,6 +816,8 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
   )
   const refused = sources.find((s) => sourceHealth(s.state) === 'reauth')
   const refusedTool = refused && connectorById(refused.connector)
+  // One definitions integration is on at a time (CON-120): another is connected once it is off.
+  const on = definitionsOn(sources)
   // Nothing connected starts with definitions: the first definitions tool that can be connected.
   const firstTool = connectors.find(
     (c) => c.kind === 'definitions' && view.connectable.includes(c.id),
@@ -884,7 +913,7 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
           className="-mr-px -mb-px grid border-t @xl/main:grid-cols-2 @4xl/main:grid-cols-3"
         >
           {cells.map((c) => (
-            <AvailableCell key={c.id} c={c} />
+            <AvailableCell key={c.id} c={c} on={c.kind === 'definitions' ? on : undefined} />
           ))}
           <div className="flex min-h-44 flex-col gap-2 border-r border-b bg-background p-4 md:p-5">
             <span className="grid size-8 place-items-center rounded-md border border-dashed text-muted-foreground">
@@ -981,77 +1010,171 @@ function SourceTested({
 /** Pauses reading a tool, or lets it go on, and says so. */
 function usePauseReading(source: Source, c: Connector) {
   const write = useWrite()
+  const definitions = c.kind === 'definitions'
   return (paused: boolean) =>
     void write('pauseIntegration', { id: source.id, paused }).then(
       () =>
-        toast(paused ? `Reading paused for ${c.label}` : `Reading resumed for ${c.label}`, {
-          description: paused
-            ? c.kind === 'context'
-              ? 'Open suggestions stay in the Inbox. Resume from this menu.'
-              : "Agents keep getting what's published. Resume from this menu."
-            : 'It is queued to be read.',
-        }),
+        definitions
+          ? toast(paused ? `${c.label} is off` : `${c.label} is on`, {
+              description: paused
+                ? "Its definitions are not listed and agents don't get them. Turn it on from this page."
+                : 'It is queued to be read.',
+            })
+          : toast(paused ? `Reading paused for ${c.label}` : `Reading resumed for ${c.label}`, {
+              description: paused
+                ? 'Open suggestions stay in the Inbox. Resume from this menu.'
+                : 'It is queued to be read.',
+            }),
       (e: unknown) =>
-        toast(paused ? `Couldn't pause ${c.label}` : `Couldn't resume ${c.label}`, {
-          description: toApiError(e).message,
-        }),
+        toast(
+          definitions
+            ? `Couldn't turn ${c.label} ${paused ? 'off' : 'on'}`
+            : paused
+              ? `Couldn't pause ${c.label}`
+              : `Couldn't resume ${c.label}`,
+          { description: toApiError(e).message },
+        ),
     )
+}
+
+/**
+ * Pause reading a context tool, or resume it. A definitions integration is turned off or on
+ * instead (CON-120): off, its definitions are not listed and agents don't get them, so it asks
+ * first; and it is turned on only while no other one is on (`other`).
+ */
+function useSwitch(source: Source, c: Connector, other: Connector | undefined) {
+  const pause = usePauseReading(source, c)
+  const paused = isPaused(source)
+  const [asking, setAsking] = React.useState(false)
+  if (c.kind !== 'definitions')
+    return {
+      label: paused ? 'Resume reading' : 'Pause reading',
+      icon: paused ? <PlayIcon /> : <PauseIcon />,
+      disabled: false,
+      act: () => pause(!paused),
+      dialog: null,
+    }
+  return {
+    label: paused ? 'Turn on' : 'Turn off',
+    icon: paused ? <PowerIcon /> : <PowerOffIcon />,
+    disabled: paused && other !== undefined,
+    act: () => (paused ? pause(false) : setAsking(true)),
+    dialog: (
+      <TurnOffDialog c={c} open={asking} onOpenChange={setAsking} onTurnOff={() => pause(true)} />
+    ),
+  }
+}
+
+function TurnOffDialog({
+  c,
+  open,
+  onOpenChange,
+  onTurnOff,
+}: {
+  c: Connector
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onTurnOff: () => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Turn {c.label} off?</DialogTitle>
+          <DialogDescription>
+            Its definitions leave Definitions and agents stop getting them. Context that relies on
+            one stays published, flagged as relying on an integration that is off. One definitions
+            integration is on at a time, so this makes room for another.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Keep it on
+          </Button>
+          <Button
+            onClick={() => {
+              onOpenChange(false)
+              onTurnOff()
+            }}
+          >
+            Turn off
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function ConnectorMenu({
   source,
   c,
+  other,
   onDisconnect,
 }: {
   source: Source
   c: Connector
+  other: Connector | undefined
   onDisconnect: () => void
 }) {
-  const pause = usePauseReading(source, c)
-  const paused = isPaused(source)
+  const turn = useSwitch(source, c, other)
   // Whoever runs the server set its own tools up: their settings are theirs to change.
   const own = source.added === null
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="outline" size="icon" aria-label={`More for ${c.label}`} />}
-      >
-        <EllipsisIcon />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem onClick={() => pause(!paused)}>
-          {paused ? <PlayIcon /> : <PauseIcon />}
-          {paused ? 'Resume reading' : 'Pause reading'}
-        </DropdownMenuItem>
-        {!own && (
-          <>
-            <DropdownMenuItem
-              onClick={() => navigate(`/settings/integrations/${source.id}/connect`, { step: '2' })}
-            >
-              <KeyRoundIcon />
-              Change settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={onDisconnect}>
-              <XIcon />
-              Disconnect
-            </DropdownMenuItem>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={<Button variant="outline" size="icon" aria-label={`More for ${c.label}`} />}
+        >
+          <EllipsisIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem disabled={turn.disabled} onClick={turn.act}>
+            {turn.icon}
+            {turn.label}
+          </DropdownMenuItem>
+          {!own && (
+            <>
+              <DropdownMenuItem
+                onClick={() =>
+                  navigate(`/settings/integrations/${source.id}/connect`, { step: '2' })
+                }
+              >
+                <KeyRoundIcon />
+                Change settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={onDisconnect}>
+                <XIcon />
+                Disconnect
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {turn.dialog}
+    </>
   )
 }
 
-/** Pause reading, or Resume reading while paused, as a button of the Connection section. */
-function PauseButton({ source, c }: { source: Source; c: Connector }) {
-  const pause = usePauseReading(source, c)
-  const paused = isPaused(source)
+/** The switch of `useSwitch` as a button of the Connection section. */
+function PauseButton({
+  source,
+  c,
+  other,
+}: {
+  source: Source
+  c: Connector
+  other: Connector | undefined
+}) {
+  const turn = useSwitch(source, c, other)
   return (
-    <Button variant="outline" onClick={() => pause(!paused)}>
-      {paused ? <PlayIcon data-icon="inline-start" /> : <PauseIcon data-icon="inline-start" />}
-      {paused ? 'Resume reading' : 'Pause reading'}
-    </Button>
+    <>
+      <Button variant="outline" disabled={turn.disabled} onClick={turn.act}>
+        {React.cloneElement(turn.icon, { 'data-icon': 'inline-start' })}
+        {turn.label}
+      </Button>
+      {turn.dialog}
+    </>
   )
 }
 
@@ -1074,7 +1197,7 @@ function DisconnectDialog({
           <DialogTitle>Disconnect {c.label}?</DialogTitle>
           <DialogDescription>
             {c.kind === 'definitions'
-              ? 'Reading stops. The definitions already read stay, marked as no longer read, and no context is reported as stale by it again.'
+              ? 'Reading stops. Its definitions leave Definitions and agents stop getting them. Context that relies on one stays published, flagged as relying on an integration that is off.'
               : 'Reading stops and its open suggestions are withdrawn. Context that owners already published stays as it is.'}
           </DialogDescription>
         </DialogHeader>
@@ -1241,6 +1364,9 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
   const failure = readFailureLines(source)
   const h = view.health
   const isDefinitions = c.kind === 'definitions'
+  // The definitions integration on in its place, if one is: this one is turned on once it is off.
+  const all = useQuery({ ...integrationsPageQuery(), enabled: isDefinitions })
+  const other = all.data && definitionsOn(all.data.sources, source.id)
   // A tool read with a key file someone uploads shares folders with an account of its own: its
   // page says who connected it, and changes its folders and its key apart.
   const keyed = c.keyFile !== undefined
@@ -1296,7 +1422,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
               <Badge variant="secondary" className="font-normal">
                 {kindName[c.kind]}
               </Badge>
-              <HealthBadge health={h} />
+              <HealthBadge health={h} off={isDefinitions} />
               {view.pending && <ReadBadge read={view.pending} />}
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
@@ -1308,7 +1434,12 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
           </div>
           <div className="flex items-center gap-2">
             <ReadAgain source={source} c={c} />
-            <ConnectorMenu source={source} c={c} onDisconnect={() => setLeaving(true)} />
+            <ConnectorMenu
+              source={source}
+              c={c}
+              other={other?.c}
+              onDisconnect={() => setLeaving(true)}
+            />
           </div>
         </header>
 
@@ -1379,11 +1510,40 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
         {view.banner?.kind === 'paused' && (
           <div role="status" className="border-t bg-muted/40 px-4 py-4 text-sm md:px-5">
             <p className="flex items-start gap-2">
-              <PauseIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-              <span>
-                <span className="font-medium">{view.banner.words}</span> Agents keep getting
-                what&apos;s published, and nothing is read until an admin resumes it.
-              </span>
+              {isDefinitions ? (
+                <PowerOffIcon
+                  aria-hidden
+                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                />
+              ) : (
+                <PauseIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              )}
+              {isDefinitions ? (
+                <span>
+                  <span className="font-medium">{view.banner.words}</span> Its definitions are not
+                  listed and agents don&apos;t get them. Context that relies on one is flagged until
+                  it is on again.{' '}
+                  {other ? (
+                    <>
+                      One definitions integration is on at a time: to turn this one on, turn{' '}
+                      <a
+                        href={`/settings/integrations/${other.source.id}`}
+                        className="font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        {other.c.label}
+                      </a>{' '}
+                      off first.
+                    </>
+                  ) : (
+                    'Turn it on to read it again.'
+                  )}
+                </span>
+              ) : (
+                <span>
+                  <span className="font-medium">{view.banner.words}</span> Agents keep getting
+                  what&apos;s published, and nothing is read until an admin resumes it.
+                </span>
+              )}
             </p>
           </div>
         )}
@@ -1519,7 +1679,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                         Change settings
                       </Button>
                     )}
-                    <PauseButton source={source} c={c} />
+                    <PauseButton source={source} c={c} other={other?.c} />
                     {disconnect}
                   </>
                 }
@@ -1648,7 +1808,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                       >
                         Replace key
                       </Button>
-                      <PauseButton source={source} c={c} />
+                      <PauseButton source={source} c={c} other={other?.c} />
                       {disconnect}
                     </>
                   ) : (
@@ -2095,6 +2255,10 @@ function ConnectSteps({
   const sentKey = settingsKey(sent)
   const tested = !!test.result?.ok && test.of === sentKey
   const noStore = lacksSecretStore(form, values)
+  // One definitions integration is on at a time (CON-120): a new one waits until the one on is off.
+  const adding = isDefinitions && !form.source && !form.server
+  const all = useQuery({ ...integrationsPageQuery(), enabled: adding })
+  const blocker = adding && all.data ? definitionsOn(all.data.sources) : undefined
 
   const go = (n: number) => setQuery({ step: String(n) })
   const cancel = () =>
@@ -2277,6 +2441,25 @@ function ConnectSteps({
             <span>
               {noSecretStorePlain}
               <span className="block text-xs text-muted-foreground">{noSecretStoreHost}</span>
+            </span>
+          </p>
+        )}
+        {blocker && at <= 2 && (
+          <p
+            role="alert"
+            className="flex items-start gap-2.5 rounded-frame border border-caution/40 bg-caution/8 px-3 py-2.5 text-sm"
+          >
+            <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-caution" />
+            <span>
+              One definitions integration is on at a time, and {blocker.c.label} is on. To connect{' '}
+              {c.label}, turn{' '}
+              <a
+                href={`/settings/integrations/${blocker.source.id}`}
+                className="font-medium text-primary underline-offset-4 hover:underline"
+              >
+                {blocker.c.label}
+              </a>{' '}
+              off first.
             </span>
           </p>
         )}
@@ -2475,7 +2658,7 @@ function ConnectSteps({
         )}
       </div>
       <FlowFooter at={at} go={go} cancel={cancel}>
-        <Button onClick={() => go(at + 1)} disabled={at === 2 ? !tested : at > 2}>
+        <Button onClick={() => go(at + 1)} disabled={!!blocker || (at === 2 ? !tested : at > 2)}>
           Continue
           <ArrowRightIcon data-icon="inline-end" />
         </Button>

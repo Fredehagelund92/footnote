@@ -258,6 +258,18 @@ const envSchema = z
             path: [name],
             message: 'Required when FOOTNOTE_AUTH=oidc',
           })
+    // One definitions integration is on at a time (CON-120), and only a definitions connector
+    // reads a folder on the server: the server names one folder at most.
+    const folders = [
+      ...(env.CUBE_MODEL_DIR ? ['CUBE_MODEL_DIR'] : []),
+      ...Object.keys(env.FOOTNOTE_SERVER_FOLDERS ?? {}),
+    ]
+    if (folders.length > 1)
+      context.addIssue({
+        code: 'custom',
+        path: ['FOOTNOTE_SERVER_FOLDERS'],
+        message: `Expected one definitions folder, not ${folders.length} (${folders.join(', ')}): one definitions integration is on at a time`,
+      })
     if (env.FOOTNOTE_SESSION_IDLE_HOURS > env.FOOTNOTE_SESSION_MAX_DAYS * 24)
       context.addIssue({
         code: 'custom',
