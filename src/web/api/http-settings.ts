@@ -295,6 +295,15 @@ export function historyLine(
       what: `Deleted ${n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`} of ${who}, who left`,
     }
   }
+  // Families of one name, made before a family's name was a word it held, told apart once
+  // (db/migrations/0024_family_names_told_apart.sql).
+  if (e.action === 'names.told_apart' && Array.isArray(e.details.names)) {
+    const [first, ...rest] = e.details.names as { from: string; to: string }[]
+    if (first)
+      return {
+        what: `Told apart families that shared a name: renamed “${first.from}” to “${first.to}”${rest.length ? ` and ${rest.length.toLocaleString('en-GB')} more` : ''}`,
+      }
+  }
   if (e.action === 'access_key.renamed' && named('from') && named('to'))
     return { what: `Renamed the access key ${named('from')} to ${named('to')}` }
   if (noun === 'access_key' && named('name'))
@@ -408,6 +417,7 @@ const REASONS: Record<string, string> = {
   item_restored: 'A context item came back',
   area_deleted: 'A domain was deleted',
   decision_undone: 'A decision was undone',
+  names_told_apart: 'Families of one name were told apart',
 }
 
 /** How a job's last run went. */
