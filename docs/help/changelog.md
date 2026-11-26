@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-25
+reviewed: 2026-11-26
 ---
+
+## Publishing many drafts says what happened
+
+2026-11-26
+
+Publish on selected drafts in Context shows "Publishing 50 drafts..." while it works, and its buttons wait until it is done. Drafts that were already published, by you a moment before, say "already published" instead of failing.
 
 ## Publish moves on at once
 
