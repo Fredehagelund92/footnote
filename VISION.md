@@ -47,8 +47,10 @@ Context that does not age stays small: Footnote keeps only what a dated item nee
 
 The semantic layer, such as Cube or dbt, defines the figures and returns them.
 A definition says what a metric is; a context item says what happened to it, when and where.
+The place is a value of a dimension, such as one market. A value is a name: Footnote keeps the ones context is written about, added by a person or an agent or listed with the definitions, and published by an owner.
 Footnote reads definitions as a read-only copy and pushes nothing into any other tool, not even its own context; another tool may read published items the way an agent does.
 Footnote reads no figure and keeps none, and Ask says so plainly when a question needs one.
+It asks the data nothing: it holds no key that can read a row, and no source is read because someone asked.
 Figures come only from the person's own agent, through its figures tool, and Footnote holds the context.
 Footnote does not watch the numbers: spotting a move nobody explained is the work of the agent that holds the figures, at the moment someone asks it.
 One agent call that returns a figure together with its context is welcome only once it proves to give agents better output than two separate reads.
@@ -93,4 +95,4 @@ It is not a wiki: no page tree and no company directory.
 It is not a notification service: the Inbox is the only announcement, with no email or chat digest.
 
 A change aligns when it helps a person or an agent add or suggest context bound to a time and a place within their rights, helps an owner check it or keep it true, helps any agent read only checked context with its source and dates, makes the repository path easier, or says more honestly what is and is not known.
-A change should be resisted when it lets unpublished words into an answer or to an agent, stores or watches figures, keeps question words, tracks a person, pushes anything into another tool, announces outside the Inbox, turns Footnote into a hosted service, grows content that does not age, or keeps an old path alive beside its replacement.
+A change should be resisted when it lets unpublished words into an answer or to an agent, stores or watches figures, reads data, keeps question words, tracks a person, pushes anything into another tool, announces outside the Inbox, turns Footnote into a hosted service, grows content that does not age, or keeps an old path alive beside its replacement.
