@@ -1589,11 +1589,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       // through: it stays ticked, to try again. A draft its checks refused says why instead. With
       // nothing done there is nothing to undo.
       const refused = done.skipped.filter((r) => r.code === 'not_ready')
+      // A draft a Publish found published already is neither done nor failed: an earlier press took it.
+      const already =
+        change.action === 'publish' ? done.skipped.filter((r) => r.code === 'published') : []
       return {
         done: done.done,
-        failed: [...done.failed, ...done.skipped.filter((r) => r.code !== 'not_ready')].map(
-          (r) => r.id,
-        ),
+        failed: [
+          ...done.failed,
+          ...done.skipped.filter((r) => r.code !== 'not_ready' && !already.includes(r)),
+        ].map((r) => r.id),
+        already: already.map((r) => r.id),
         skipped: refused.map((r) => ({ id: r.id, title: r.title, why: r.why, reason: r.message })),
         undo: done.undo ?? { token: '', until: null },
       }

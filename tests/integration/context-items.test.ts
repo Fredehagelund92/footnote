@@ -783,6 +783,18 @@ describe('publishing many drafts at once (FR-139)', () => {
     expect((await drafts('author')).some((d) => d.draft?.title === sent.draft?.title)).toBe(true)
   })
 
+  it('says a draft a Publish already took is published, not gone, and only for its writer', async () => {
+    const mine = await aDraft({}, 'owner')
+    const first = await bulk('owner', { action: 'publish', rows: [mine] })
+    expect(first.done).toEqual([mine])
+    // The same press again, from a list that had not caught up: nothing to do, nothing to undo.
+    const again = await bulk('owner', { action: 'publish', rows: [mine] })
+    expect(again).toMatchObject({ done: [], failed: [], change: null, undo: null })
+    expect(again.skipped).toEqual([expect.objectContaining({ id: mine, code: 'published' })])
+    const other = await bulk('stranger', { action: 'publish', rows: [mine] })
+    expect(other.skipped).toEqual([expect.objectContaining({ id: mine, code: 'not_found' })])
+  })
+
   it("never finds someone else's draft, and refuses too many at once", async () => {
     const theirs = await aDraft({}, 'owner')
     const r = await bulk('stranger', { action: 'publish', rows: [theirs] })
