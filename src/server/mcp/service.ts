@@ -945,6 +945,18 @@ export function createToolService(
     if (args.reply_id !== undefined || args.context_id !== undefined) {
       let area: string | null = null
       let to: string | null = null
+      // A reply id that names no reply would reach nobody: refused, with where to find one.
+      const reply =
+        args.reply_id !== undefined
+          ? (issued.get(args.reply_id) ?? (await store.reply(args.reply_id)))
+          : null
+      if (args.reply_id !== undefined && !reply)
+        return resultFor({
+          say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
+          next: 'Call report again with the reply_id of the get_context reply it is about, or the context_id of the item.',
+          status: 'need_more_detail',
+          recorded: false,
+        })
       if (args.context_id !== undefined) {
         // A context item is read as an agent reads it: one it may not see answers as one that
         // does not exist (FR-334).
@@ -960,21 +972,10 @@ export function createToolService(
           })
         area = item.areaId
         to = ownerRole(domainName(bundle, item.areaId))
-      } else {
-        // A reply id that names no reply would reach nobody: refused, with where to find one.
-        const reply = issued.get(args.reply_id!) ?? (await store.reply(args.reply_id!))
-        if (!reply)
-          return resultFor({
-            say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
-            next: 'Call report again with the reply_id of the get_context reply it is about, or the context_id of the item.',
-            status: 'need_more_detail',
-            recorded: false,
-          })
-        if (reply.area) {
-          const bundle = await source.bundle()
-          onEdition(bundle.seq)
-          to = ownerRole(domainName(bundle, reply.area))
-        }
+      } else if (reply?.area) {
+        const bundle = await source.bundle()
+        onEdition(bundle.seq)
+        to = ownerRole(domainName(bundle, reply.area))
       }
       await store.feedback({
         delivery: args.reply_id ?? null,

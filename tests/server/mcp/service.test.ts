@@ -963,6 +963,14 @@ describe('a concise reply (FR-342)', () => {
       say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
     })
     expect(s.feedback).toHaveLength(1)
+    // The same refusal when a context_id is sent beside it.
+    const both = await report({
+      kind: 'wrong',
+      context_id: 'itm_norway01',
+      reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+    })
+    expect(both).toMatchObject({ status: 'need_more_detail', recorded: false })
+    expect(s.feedback).toHaveLength(1)
     // A reply about one domain names its owner, before its record is written.
     const finance = (await s.call('get_context', { question })).structuredContent as {
       reply_id: string
