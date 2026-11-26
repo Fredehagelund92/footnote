@@ -39,7 +39,8 @@ export const jobOverviewSchema = z.object({
  * What a definition source warns about in a read, with the file, view or member it names (the
  * connector contract, docs/contributing/connector-contract.md): a file it skipped or could not
  * read, a view without a domain or with one that is not a domain id, a domain taken from the
- * server's list, a rename that does not apply, and a member another source already reads. The rest
+ * server's list, a rename that does not apply, and, in a read from before one definitions integration was on at
+ * a time (CON-120), a member another source already read. The rest
  * say why a read failed before anything was read, naming the repository, its ref, its folder or the
  * secret: the address could not be reached, the token was refused, no repository or ref is there,
  * the folder is not in it, the secret is not in the store, the server has no `git` program, or the

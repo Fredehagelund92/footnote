@@ -26,7 +26,7 @@ import { apiDatabase, queueReads, testDatabase, transaction } from './support.ts
 
 /*
   Families of one name accepted before a family's name was a word it held (0005) stay told apart
-  once (db/migrations/0024_family_names_told_apart.sql), on the real service and PostgreSQL 18. An
+  once (db/migrations/0025_family_names_told_apart.sql), on the real service and PostgreSQL 18. An
   invented revenue model has a forecast revenue in EUR and USD joined into three views, as the
   company model that showed "Forecast Revenue" three times in Definitions has. The database is put
   in the state the old code left: each later family a new version under the first one's name, or
@@ -83,7 +83,7 @@ await writeFile(
 )
 const registry = new ConnectorRegistry([createCubeSource({ modelDir: folder })])
 const files = (await readdir(migrationDirectory)).filter((name) => name.endsWith('.sql')).sort()
-const at = files.indexOf('0023_names_told_apart_reason.sql')
+const at = files.indexOf('0024_names_told_apart_reason.sql')
 const copy = (name: string) =>
   copyFile(fileURLToPath(new URL(name, migrationDirectory)), join(migrations, name))
 
@@ -210,8 +210,8 @@ it('gives each later family of one name its view’s name after it, once', async
     expect(await familyNames()).toEqual(['Bookings', 'Forecast Revenue', 'Forecast Revenue'])
     const before = await live()
 
-    await copy('0023_names_told_apart_reason.sql')
-    await copy('0024_family_names_told_apart.sql')
+    await copy('0024_names_told_apart_reason.sql')
+    await copy('0025_family_names_told_apart.sql')
     expect(await migrate(client, pathToFileURL(migrations + '/'))).toBe(2)
 
     expect(await familyNames()).toEqual([

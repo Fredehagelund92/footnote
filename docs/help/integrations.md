@@ -12,7 +12,7 @@ does:
   connect-a-source: connect_source
 ---
 
-Connect the sources where metrics are defined and where documents live, and what is read from each.
+Connect the tool where metrics are defined and the sources where documents live, and what is read from each.
 
 ![Integrations in Settings: under Connected, one tool that holds definitions and one that holds documents, each read today; under Available, three more tools, each with Connect.](../images/docs/integrations-light.webp)
 
@@ -23,6 +23,12 @@ Metric and dimension names arrive from the tool where they are defined, and stay
 A tool can be read from its files in a repository, or through its own API with a key limited to one deployment. Some APIs give no calculations. Then a changed calculation flags nothing until the definition's type, title or description changes too, and the tool's page says so before you connect it.
 
 A read makes a name for each new one, and an owner publishes them on one card in the Inbox, as [Set up your workspace](set-up-your-workspace.md#publish-the-names) shows. Until then, [Definitions](definitions-and-synonyms.md) doesn't list them. When a definition changes there, the context that relies on it comes back to its owners to check.
+
+## One definitions tool at a time
+
+One definitions tool is on at a time. While one is on, the others under Available say so, and can't be connected.
+
+To switch, open the tool that is on and choose **Turn off**, then connect or turn on the other. A tool that is off leaves Definitions, and agents stop getting its definitions. Context that relies on one stays published, marked as relying on a tool that is off, until it is on again.
 
 ## Documents
 
@@ -38,7 +44,7 @@ Only admins connect a tool. Open **Settings**, then **Integrations**, and choose
 4. Map: each to a domain. A folder's documents go to its domain's owners; a view or semantic model left without a domain stays shared.
 5. Schedule: how often it is read and what each read does. Then say why it is added.
 
-**Change settings** goes through the same steps, filled in. A token or a key left empty stays as it is. **Disconnect** stops reading the tool and forgets its key: its open suggestions are withdrawn, and what owners published stays.
+**Change settings** goes through the same steps, filled in. A token or a key left empty stays as it is. **Disconnect** stops reading the tool and forgets its key: its open suggestions are withdrawn, and what owners published stays. A definitions tool disconnected is off, as above.
 
 ## Choose what it reads
 

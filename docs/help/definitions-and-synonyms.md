@@ -21,7 +21,7 @@ Open **Definitions** to see every metric, dimension and term your workspace know
 
 They come from where your metrics are defined, and are read-only here: their meaning and other names belong to that source. Write context about them instead.
 
-A line under the toolbar says which tool they come from and links to it in Integrations.
+A line under the toolbar says which tool they come from and links to it in Integrations. One definitions tool is on at a time, so they all come from one. See [Integrations](integrations.md#one-definitions-tool-at-a-time).
 
 A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Set up your workspace](set-up-your-workspace.md#publish-the-names).
 

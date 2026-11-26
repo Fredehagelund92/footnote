@@ -52,16 +52,16 @@ source is the last one written to it. The other connector documents:
 These never change, in any interface version. The core enforces them and the conformance kit
 tests them, so no connector can break them.
 
-| #   | Invariant                                                                                                                                                                                                                                                                                                                                                                  | Requirements              |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| I-1 | **Definitions stay canonical.** A definition is a metric, dimension or group with a ref, a name, a title, a description copy of at most 500 characters, a type, a domain hint, a change mark, for a variant its shape and literals, the family it declares, and for a metric the names of its inputs: a closed list of fields, never a calculation, a query or a data row. | CON-201, CON-207          |
-| I-2 | **Definition sources only flag.** They never change an item or an edition, and a failed read changes nothing.                                                                                                                                                                                                                                                              | CON-209 to CON-214        |
-| I-3 | **Content sources only create reviewed drafts.** At most one per document, for one domain, every field marked, never accepted automatically and never served before an owner accepts it. A changed document replaces its open draft instead of adding one.                                                                                                                 | CON-603, CON-604, CON-606 |
-| I-4 | **Secrets never leave the store**, except into the runtime of their own source, toward the settings they were given for.                                                                                                                                                                                                                                                   | CON-105, CON-114          |
-| I-5 | **Domain mapping is per source and explicit**: a hint plus a map of names, or one domain per chosen scope. A hint never creates a domain; an unknown domain is refused when the settings are saved.                                                                                                                                                                        | CON-206, CON-602          |
-| I-6 | **Read only, declared hosts, least access said first.**                                                                                                                                                                                                                                                                                                                    | CON-102, CON-106, CON-113 |
-| I-7 | **Output is untrusted data**: checked, capped; document text is data, never instructions.                                                                                                                                                                                                                                                                                  | CON-107, CON-608          |
-| I-8 | **No vendor in the core, and a connector failure never stops serving.**                                                                                                                                                                                                                                                                                                    | CON-101, CON-103          |
+| #   | Invariant                                                                                                                                                                                                                                                                                                                                                                                                                    | Requirements              |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| I-1 | **Definitions stay canonical.** A definition is a metric, dimension or group with a ref, a name, a title, a description copy of at most 500 characters, a type, a domain hint, a change mark, for a variant its shape and literals, the family it declares, and for a metric the names of its inputs: a closed list of fields, and the values its source writes for a dimension, never a calculation, a query or a data row. | CON-201, CON-207          |
+| I-2 | **Definition sources only flag.** They never change an item or an edition, and a failed read changes nothing.                                                                                                                                                                                                                                                                                                                | CON-209 to CON-214        |
+| I-3 | **Content sources only create reviewed drafts.** At most one per document, for one domain, every field marked, never accepted automatically and never served before an owner accepts it. A changed document replaces its open draft instead of adding one.                                                                                                                                                                   | CON-603, CON-604, CON-606 |
+| I-4 | **Secrets never leave the store**, except into the runtime of their own source, toward the settings they were given for.                                                                                                                                                                                                                                                                                                     | CON-105, CON-114          |
+| I-5 | **Domain mapping is per source and explicit**: a hint plus a map of names, or one domain per chosen scope. A hint never creates a domain; an unknown domain is refused when the settings are saved.                                                                                                                                                                                                                          | CON-206, CON-602          |
+| I-6 | **Read only, declared hosts, least access said first.**                                                                                                                                                                                                                                                                                                                                                                      | CON-102, CON-106, CON-113 |
+| I-7 | **Output is untrusted data**: checked, capped; document text is data, never instructions.                                                                                                                                                                                                                                                                                                                                    | CON-107, CON-608          |
+| I-8 | **No vendor in the core, and a connector failure never stops serving.**                                                                                                                                                                                                                                                                                                                                                      | CON-101, CON-103          |
 
 ## Interface 2: the definitions pipeline
 
@@ -91,8 +91,8 @@ connector was written to (`interfaceVersion`: 3, or 2 for the demo); the registr
 other version, a duplicate id and an id outside `^[a-z][a-z0-9_-]{1,39}$`.
 
 A read is handed the cursor of the newest good read and may return one (`read(context)`,
-`cursor`); the core tests settings with one read it keeps nowhere; and a member another source
-already reads is left with that source (`taken`) instead of failing the read. Every connector an
+`cursor`); the core tests settings with one read it keeps nowhere; and a member a source that is
+off read is handed over to the one reading it (CON-120). Every connector an
 administrator adds is written to interface 3.
 
 ### The server's own sources
@@ -193,7 +193,7 @@ A member's **view** is its name up to the last dot (`orders` of `orders.returns`
 | `invalid_domain`   | a view, a member, or `override:<view>` | complete           | N domains are not a domain id                             |
 | `domain_override`  | a member's ref                         | complete           | N members take their domain from the server (information) |
 | `invalid_rename`   | the old ref                            | complete           | N renames do not apply                                    |
-| `taken`            | a member's ref                         | partial            | N members are read by another source                      |
+| `taken`            | a member's ref                         | partial            | In reads from before CON-120 only: read by another source |
 | `unsupported_file` | a file                                 | partial            | N files were not read                                     |
 | `unreadable_file`  | a file                                 | partial            | N files could not be read                                 |
 
@@ -225,8 +225,10 @@ or disconnected while it was out keeps nothing; a change queues the source, so t
 under the new settings. Snapshot creation and definition updates commit together. A complete
 read marks absent definitions missing without deleting their ids; a partial read never does; a
 failed read keeps every previous mark and status and changes no flag or link (CON-213, CON-214).
-A ref belongs to one connector for good: a member another source already reads stays with it,
-the read leaves it out with a `taken` warning and is partial. The read's
+One definitions integration is on at a time (CON-120, `connectors_one_definitions_source`), and
+a ref belongs to the one that is on: a member a source that is off read is handed over to the
+source that reads it now (CON-117). A source the server names while another is on is registered
+off, and the demo gives way to any other. The read's
 cursor is stored on its snapshot (`connector_snapshots.cursor`). The job `connectors.sync` runs
 as the service starts and every five minutes after, and reads each source that is switched on and
 due: the server's and those administrators added, loaded from the database each time, each on its
@@ -244,8 +246,9 @@ along it is. Choosing one opens its page: what it syncs, how often it reads, the
 and the least access it needs, then the form its manifest declares. **Test connection** runs
 the connector's check step by step, then
 reads the source once with the form's settings and keeps nothing: it says what Footnote would hold
-(version, views, metrics, dimensions and the read's warnings, including members another source
-already reads) or why it could not read. The last step, Schedule and review, saves the source with
+(version, views, metrics, dimensions and the read's warnings) or why it could not read. A
+definitions source is saved only while no other is on (CON-120): the form says which one is, and
+the service refuses it with the same words. The last step, Schedule and review, saves the source with
 a reason and queues a read. The source's page shows its settings, each secret only as set or not set, and
 **Change settings** opens the same form filled in; a secret left empty keeps the one the store
 holds, and a new one replaces it.
@@ -312,9 +315,13 @@ Integrations; settings, reads, Read again, Pause and a second Disconnect find no
 stays (`connectors.removed_at`, `removed_by`), since its reads, suggestions and
 definitions name it. A content source's open suggestions are withdrawn as the source, in a
 transaction of its own after the change commits (the job finishes any it could not); what owners
-published stays. A definitions source's definitions stay as they were, unflagged, and its refs
-are handed over (CON-117): the next source that reads one takes it, so connecting the tool again
-reads it whole.
+published stays. A definitions source disconnected is off (CON-120): its definitions are no
+longer listed or served, the live items that rely on one are flagged, and its refs are handed
+over (CON-117), so the next source of the tool that reads one takes it and clears its flags.
+
+**Turn off** and **Turn on** are Pause for a definitions source (`sources.pause`): off, it is
+not read, its definitions are not listed or served, and the live items that rely on one are
+flagged, until it is on again. It is turned on only while no other definitions source is on.
 
 The settings are `connectors.config` (addresses and names only), the row says `origin =
 'workspace'`, and `secret_ref` names the source's entry in the secret store. A
@@ -628,9 +635,9 @@ capabilities a manifest declares:
 
 - **Ref prefix.** It belongs to the tool, not the connector: `cube` and `cube-cloud` both write
   `cube:`, so items keep their references when a model moves. Ownership of a ref still belongs to
-  one source and moves only by an administrator's hand-over, followed by a new baseline of marks
-  (CON-117): a ref handed over from a connector of another kind keeps the mark items recorded, as
-  a new mark version does.
+  one source and moves only by an administrator's hand-over, turning one source off and another
+  on, followed by a new baseline of marks (CON-117, CON-120): a ref handed over from a connector of
+  another kind keeps the mark items recorded, as a new mark version does.
 
 ### What is built
 

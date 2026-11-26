@@ -359,8 +359,25 @@ describe('a host that misbehaves', () => {
     await new Promise<void>((resolve) => raw.close(() => resolve()))
   })
 
-  const addByLink = async (name: string, link: string) =>
-    ok<SourceSettings>(
+  /** One definitions integration is on at a time (CON-120): `id` alone is, as an admin switches. */
+  const switchTo = async (id: string | null) => {
+    const on = await client.query<{ id: string }>(
+      `select id from connectors
+        where kind = 'definition_source' and enabled and id is distinct from $1`,
+      [id],
+    )
+    for (const row of on.rows)
+      await ok(
+        call('PUT', `/sources/${row.id}/paused`, 'admin', { paused: true, reason: 'Try another' }),
+      )
+    if (id)
+      await ok(
+        call('PUT', `/sources/${id}/paused`, 'admin', { paused: false, reason: 'Read it again' }),
+      )
+  }
+  const addByLink = async (name: string, link: string) => {
+    await switchTo(null)
+    return ok<SourceSettings>(
       call('POST', '/sources', 'admin', {
         type: 'dbt-metricflow',
         name,
@@ -370,6 +387,7 @@ describe('a host that misbehaves', () => {
       }),
       201,
     )
+  }
   const testLink = (link: string) =>
     ok<SourceCheck>(
       call('POST', '/sources/test', 'admin', {
@@ -426,6 +444,7 @@ describe('a host that misbehaves', () => {
 
   it('[hardening 3] a cursor left under other settings is not trusted: a full read with the new settings', async () => {
     // The shop source holds these names, so it is the one that reads: back at its link.
+    await switchTo(source.id)
     const back = await ok<SourceSettings>(call('GET', `/sources/${source.id}`, 'admin'))
     await ok(
       call('PUT', `/sources/${source.id}`, 'admin', {

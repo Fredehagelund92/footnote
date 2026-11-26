@@ -167,35 +167,38 @@ export function ground({ areas, every, strength }: GroundOptions) {
 }
 
 /*
-  The landing page's first screen draws the ground itself (landing/pages/index.astro): one canvas
-  holds the dots of both halves, the paper's and the terminal's, so they can answer. Under the
-  pointer the dots swell and turn blue, and a dotted leader with a moving bead runs along the grid
-  from the pointer to the note on the seam; when the note lands or changes, a wave runs out from it
-  across both halves, blue on the paper and highlighter yellow on the terminal; a press on an empty
-  spot sends a small ring; and now and then a numbered mark lands and points at the note, as above.
-  No dot is lit behind text. It draws only while something moves, rests while the tab is hidden,
-  and is never made with reduced motion, so the still dots of the stylesheet stay.
+  The landing page's first screen draws the ground itself (landing/hero.ts): one canvas holds the
+  dots of the dark ground around the window, so they can answer. Under the pointer the dots swell
+  and turn blue, and a dotted leader with a moving bead runs along the grid from the pointer to the
+  window; when a note lands or changes, a wave runs out from the window's note, fainter when
+  nothing is written; a press on an empty spot sends a small ring; and now and then a numbered mark
+  lands and points at the window, as above. No dot is lit behind text. It draws only while
+  something moves, rests while the tab is hidden, and is never made with reduced motion, so the
+  still dots of the stylesheet stay.
 */
 
 export type Field = {
-  /** The opening has played: the note has landed. */
-  landed: () => void
   /** What is written changed, so the note did: a faint wave when nothing is written. */
   changed: (faint: boolean) => void
-  /** An animation ended, so the layout is final: measure the holes again. */
-  settled: () => void
 }
 
-type Dot = { x: number; y: number; term: boolean; hole: boolean }
+export type FieldOptions = {
+  /** The window the ground points at: no mark lands beside it, and every leader runs to it. */
+  target: HTMLElement
+  /** The window's notes, where a wave starts when one lands. */
+  panel: HTMLElement
+}
+
+type Dot = { x: number; y: number; hole: boolean }
 type Wave = { x: number; y: number; reach: number; dur: number; k: number; t0: number }
-type FieldMark = { x: number; y: number; t0: number; n: number; term: boolean; to: -1 | 1 }
+type FieldMark = { x: number; y: number; t0: number; n: number; to: -1 | 1 }
 type Pointer = { x: number; y: number; t0: number; out: number }
-type Box = { l: number; t: number; r: number; b: number; x: number; y: number }
+type Box = { l: number; t: number; r: number; b: number }
 
 const lens = 150
 const TAU = Math.PI * 2
 
-export function field(hero: HTMLElement): Field | undefined {
+export function field(hero: HTMLElement, { target, panel }: FieldOptions): Field | undefined {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
@@ -206,25 +209,22 @@ export function field(hero: HTMLElement): Field | undefined {
   hero.prepend(canvas)
   hero.classList.add('field-on')
 
-  const narrow = matchMedia('(max-width: 900px)')
   const still = matchMedia('(prefers-reduced-motion: reduce)')
-  let off = false
   const P = pitch
+  let off = false
   let W = 0
   let H = 0
   let cols = 0
   let frame = 0
   let timer = 0
   let count = 0
-  let dots: Dot[] = []
   let again = 0
+  let dots: Dot[] = []
   const waves: Wave[] = []
   const marks: FieldMark[] = []
   let ptr: Pointer | null = null
-  let seamX: number | null = null
-  let seamY: number | null = null
-  let note: Box = { l: 0, t: 0, r: 0, b: 0, x: 0, y: 0 }
-  let col = { paper: '', term: '', lp: '', lt: '', wt: '' }
+  let win: Box = { l: 0, t: 0, r: 0, b: 0 }
+  let col = { dot: '', lit: '' }
 
   const at = (x: number, y: number) => {
     const i = Math.round((x - P / 2) / P)
@@ -245,24 +245,11 @@ export function field(hero: HTMLElement): Field | undefined {
       canvas.height = H * k
     }
     ctx.setTransform(k, 0, 0, k, 0, 0)
-    const dark = document.documentElement.dataset.theme === 'dark'
     col = {
-      paper: dark ? 'rgba(232,235,242,.1)' : 'rgba(21,25,34,.13)',
-      term: 'rgba(230,233,240,.12)',
-      lp: css.getPropertyValue('--mark').trim(),
-      lt: css.getPropertyValue('--mark-t').trim(),
-      wt: css.getPropertyValue('--hl-solid').trim(),
+      dot: css.getPropertyValue('--dot').trim(),
+      lit: css.getPropertyValue('--accent').trim(),
     }
-    const agent = hero.querySelector('.pane.agent')
-    if (narrow.matches && agent) {
-      seamX = null
-      seamY = agent.getBoundingClientRect().top - box.top
-      hero.style.setProperty('--seam-y', `${Math.round(seamY)}px`)
-    } else {
-      seamX = W / 2
-      seamY = null
-    }
-    // The holes: every line of text, the note, the buttons, with a margin.
+    // The holes: every line of text and the buttons, with a margin, and the window itself.
     const holes: [number, number, number, number][] = []
     const range = document.createRange()
     const add = (r: DOMRect, px: number, py: number) => {
@@ -274,63 +261,43 @@ export function field(hero: HTMLElement): Field | undefined {
           r.bottom - box.top + py,
         ])
     }
-    hero
-      .querySelectorAll<HTMLElement>('h1 span, .who, .pane [data-s] > *, .hero-foot .meta')
-      .forEach((el) => {
-        if (!el.offsetParent) return
-        range.selectNodeContents(el)
-        for (const r of range.getClientRects()) add(r, 12, 7)
-      })
-    hero.querySelectorAll<HTMLElement>('.seam, .tabs, .hero-foot .cta').forEach((el) => {
-      if (el.offsetParent) add(el.getBoundingClientRect(), 12, 12)
+    hero.querySelectorAll('h1 .w, .sub, .status, .win-cap').forEach((el) => {
+      range.selectNodeContents(el)
+      for (const r of range.getClientRects()) add(r, 12, 7)
     })
-    const s = hero.querySelector('.seam')?.getBoundingClientRect()
-    if (s)
-      note = {
-        l: s.left - box.left,
-        t: s.top - box.top,
-        r: s.right - box.left,
-        b: s.bottom - box.top,
-        x: (s.left + s.right) / 2 - box.left,
-        y: (s.top + s.bottom) / 2 - box.top,
-      }
+    hero.querySelectorAll('.cta').forEach((el) => add(el.getBoundingClientRect(), 12, 12))
+    const w = target.getBoundingClientRect()
+    add(w, 12, 12)
+    win = { l: w.left - box.left, t: w.top - box.top, r: w.right - box.left, b: w.bottom - box.top }
     dots = []
     cols = Math.ceil((W - P / 2) / P)
     for (let y = P / 2; y < H; y += P)
       for (let i = 0; i < cols; i++) {
         const x = P / 2 + i * P
-        dots.push({
-          x,
-          y,
-          term: seamX !== null ? x > seamX : y > (seamY ?? 0),
-          hole: holes.some((h) => x > h[0] && x < h[2] && y > h[1] && y < h[3]),
-        })
+        dots.push({ x, y, hole: holes.some((h) => x > h[0] && x < h[2] && y > h[1] && y < h[3]) })
       }
     if (frame) cancelAnimationFrame(frame)
     draw(performance.now())
   }
 
-  /** From the pointer to the note: along its row, then along the column beside the note. */
+  /** From the pointer to the window: along its row, then along the column, to the nearest edge. */
   function leader(p: Pointer) {
     const sx = snap(p.x)
     const sy = snap(p.y)
     const path: [number, number][] = []
-    if (sx > note.l - 14 && sx < note.r + 14 && sy > note.t - 14 && sy < note.b + 14) return path
-    if (sy > note.t && sy < note.b) {
-      if (sx < note.l) for (let x = sx; x < note.l - 12; x += P) path.push([x, sy])
-      else for (let x = sx; x > note.r + 12; x -= P) path.push([x, sy])
-    } else if (sx > note.l && sx < note.r) {
-      if (sy < note.t) for (let y = sy; y < note.t - 12; y += P) path.push([sx, y])
-      else for (let y = sy; y > note.b + 12; y -= P) path.push([sx, y])
+    if (sx > win.l - 14 && sx < win.r + 14 && sy > win.t - 14 && sy < win.b + 14) return path
+    if (sx > win.l && sx < win.r) {
+      if (sy < win.t) for (let y = sy; y < win.t - 12; y += P) path.push([sx, y])
+      else for (let y = sy; y > win.b + 12; y -= P) path.push([sx, y])
+    } else if (sy > win.t && sy < win.b) {
+      if (sx < win.l) for (let x = sx; x < win.l - 12; x += P) path.push([x, sy])
+      else for (let x = sx; x > win.r + 12; x -= P) path.push([x, sy])
     } else {
-      const tx =
-        sx < note.l
-          ? Math.floor((note.l - 16 - P / 2) / P) * P + P / 2
-          : Math.ceil((note.r + 16 - P / 2) / P) * P + P / 2
-      const ty = snap(note.y)
+      const tx = snap(sx < win.l ? win.l + 2 * P : win.r - 2 * P)
+      const ty = sy < win.t ? win.t - 12 : win.b + 12
       for (let x = sx; x !== tx; x += tx > sx ? P : -P) path.push([x, sy])
-      for (let y = sy; y !== ty; y += ty > sy ? P : -P) path.push([tx, y])
-      path.push([tx, ty])
+      if (sy < win.t) for (let y = sy; y < ty; y += P) path.push([tx, y])
+      else for (let y = sy; y > ty; y -= P) path.push([tx, y])
     }
     return path
   }
@@ -356,25 +323,21 @@ export function field(hero: HTMLElement): Field | undefined {
     for (let i = marks.length - 1; i >= 0; i--)
       if (now - marks[i]!.t0 >= duration) marks.splice(i, 1)
 
-    // The still dots of both halves.
+    // The still dots.
     ctx.globalAlpha = 1
-    for (const term of [false, true]) {
-      ctx.fillStyle = term ? col.term : col.paper
-      ctx.beginPath()
-      for (const d of dots)
-        if (d.term === term) {
-          ctx.moveTo(d.x + 1.15, d.y)
-          ctx.arc(d.x, d.y, 1.15, 0, TAU)
-        }
-      ctx.fill()
+    ctx.fillStyle = col.dot
+    ctx.beginPath()
+    for (const d of dots) {
+      ctx.moveTo(d.x + 1.15, d.y)
+      ctx.arc(d.x, d.y, 1.15, 0, TAU)
     }
+    ctx.fill()
 
     // The lens under the pointer, and the waves.
     if (ptr || waves.length)
       for (const d of dots) {
         if (d.hole) continue
         let w = 0
-        let c = d.term ? col.lt : col.lp
         if (ptr) {
           const q = Math.hypot(d.x - ptr.x, d.y - ptr.y)
           if (q < lens) w = pk * (1 - q / lens) ** 2
@@ -389,53 +352,49 @@ export function field(hero: HTMLElement): Field | undefined {
             ) *
             (1 - t) *
             v.k
-          if (ww > w) {
-            w = ww
-            c = d.term ? col.wt : col.lp
-          }
+          if (ww > w) w = ww
         }
-        if (w > 0.03) dot(d.x, d.y, 1.15 + w * 2.5, c, Math.min(1, 0.22 + w))
+        if (w > 0.03) dot(d.x, d.y, 1.15 + w * 2.5, col.lit, Math.min(1, 0.22 + w))
       }
 
-    // The leader from the pointer to the note, on a wide screen.
-    if (ptr && seamX !== null) {
+    // The leader from the pointer to the window.
+    if (ptr) {
       const path = leader(ptr)
       const bead = (now / 62) % (path.length + 9)
       path.forEach(([x, y], n) => {
         const o = at(x, y)
         if (!o || o.hole) return
         const near = Math.max(0, 1 - Math.abs(n - bead) / 2.4)
-        dot(x, y, 1.7 + near * 1.5, o.term ? col.lt : col.lp, pk * (0.5 + 0.5 * near))
+        dot(x, y, 1.7 + near * 1.5, col.lit, pk * (0.5 + 0.5 * near))
       })
       const here = at(snap(ptr.x), snap(ptr.y))
-      if (here && !here.hole) dot(here.x, here.y, 4.8, here.term ? col.lt : col.lp, pk)
+      if (here && !here.hole) dot(here.x, here.y, 4.8, col.lit, pk)
     }
 
-    // The marks that land: a ring, a leader toward the note, the mark and its number.
+    // The marks that land: a ring, a leader toward the window, the mark and its number.
     for (const m of marks) {
       const t = (now - m.t0) / duration
       const fade = 1 - Math.max(0, (t - 0.6) / 0.4)
       const ring = ease(Math.min(t / 0.75, 1)) * reach
-      const c = m.term ? col.lt : col.lp
       for (let x = m.x - 5 * P; x <= m.x + 5 * P; x += P)
         for (let y = m.y - 5 * P; y <= m.y + 5 * P; y += P) {
           const o = at(x, y)
           const q = Math.hypot(x - m.x, y - m.y)
           if (!o || o.hole || o.x !== x || !q || q > reach) continue
           const w = Math.max(0, 1 - Math.abs(q - ring) / (P * 1.1)) * (1 - (q / reach) * 0.6) * fade
-          if (w > 0.03) dot(x, y, 1.2 + w * 1.5, c, w * 0.9)
+          if (w > 0.03) dot(x, y, 1.2 + w * 1.5, col.lit, w * 0.9)
         }
       for (let step = 1; step < 40; step++) {
-        const lx = m.x + m.to * step * P
-        const lo = at(lx, m.y)
+        const ly = m.y + m.to * step * P
+        const lo = at(m.x, ly)
         const lit = Math.min(1, Math.max(0, (t - 0.12 - step * 0.045) / 0.12))
-        if (!lo || lo.x !== lx || lit <= 0 || (lx > note.l - 12 && lx < note.r + 12)) break
-        if (!lo.hole) dot(lx, m.y, 1.7, c, lit * fade * 0.9)
+        if (!lo || lit <= 0 || (ly > win.t - 12 && ly < win.b + 12)) break
+        if (!lo.hole) dot(m.x, ly, 1.7, col.lit, lit * fade * 0.9)
       }
       const shown = Math.min(1, t / 0.12) * fade
-      dot(m.x, m.y, 3, c, shown)
-      ctx.font = 'italic 500 17px "Source Serif 4", Georgia, serif'
-      ctx.fillText(String(m.n), m.x + 6, m.y - 6 - (1 - shown) * 4)
+      dot(m.x, m.y, 3, col.lit, shown)
+      ctx.font = '510 13px "Inter Variable", system-ui, sans-serif'
+      ctx.fillText(String(m.n), m.x + 7, m.y - 6 - (1 - shown) * 4)
     }
     ctx.globalAlpha = 1
     if (ptr || waves.length || marks.length) kick()
@@ -449,14 +408,13 @@ export function field(hero: HTMLElement): Field | undefined {
     waves.push({ x, y, reach: far, dur, k, t0: performance.now() })
     kick()
   }
-  const fromNote = (k: number) => wave(note.x, note.y, Math.max(W, H) * 0.62, 1700, k)
 
   function land() {
     timer = 0
     if (off) return
     const box = hero.getBoundingClientRect()
-    if (!document.hidden && box.bottom > 120 && dots.length)
-      for (let tries = 0; tries < 30; tries++) {
+    if (!document.hidden && box.bottom > 160 && dots.length)
+      for (let tries = 0; tries < 40; tries++) {
         const d = dots[Math.floor(Math.random() * dots.length)]!
         if (
           d.hole ||
@@ -464,19 +422,14 @@ export function field(hero: HTMLElement): Field | undefined {
           d.x > W - 3 * P ||
           d.y < 4 * P ||
           d.y > H - 3 * P ||
-          Math.abs(d.x - note.x) < (note.r - note.l) / 2 + 3 * P
+          (d.y > win.t - 2 * P && d.y < win.b + 2 * P)
         )
           continue
+        // Only where the reader can see it, under the header.
+        if (d.y + box.top < 80 || d.y + box.top > innerHeight - 40) continue
         if (ptr && Math.hypot(d.x - ptr.x, d.y - ptr.y) < lens) continue
         count = (count % 9) + 1
-        marks.push({
-          x: d.x,
-          y: d.y,
-          t0: performance.now(),
-          n: count,
-          term: d.term,
-          to: d.x < note.x ? 1 : -1,
-        })
+        marks.push({ x: d.x, y: d.y, t0: performance.now(), n: count, to: d.y < win.t ? 1 : -1 })
         kick()
         break
       }
@@ -506,7 +459,7 @@ export function field(hero: HTMLElement): Field | undefined {
     }
   })
   hero.addEventListener('pointerdown', (e) => {
-    if (off || (e.target instanceof Element && e.target.closest('a, button'))) return
+    if (off || (e.target instanceof Element && e.target.closest('a, button, input, .win'))) return
     const box = hero.getBoundingClientRect()
     wave(e.clientX - box.left, e.clientY - box.top, 6 * P, 950, 0.95)
   })
@@ -537,19 +490,21 @@ export function field(hero: HTMLElement): Field | undefined {
   void document.fonts.ready.then(measure)
   addEventListener('load', measure)
   measure()
-  later(7500)
+  later(6500)
 
   return {
-    landed() {
-      if (off) return
-      measure()
-      fromNote(1)
-    },
     changed(faint) {
       if (off) return
       measure()
-      fromNote(faint ? 0.4 : 1)
+      const p = panel.getBoundingClientRect()
+      const box = hero.getBoundingClientRect()
+      wave(
+        (p.left + p.right) / 2 - box.left,
+        p.top + 120 - box.top,
+        Math.max(W, H) * 0.7,
+        1900,
+        faint ? 0.4 : 1,
+      )
     },
-    settled: measure,
   }
 }

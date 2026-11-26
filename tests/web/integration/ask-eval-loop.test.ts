@@ -50,6 +50,12 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   On 25 November 2026 the steps were keyed again with no model, by place, as above, after the
   answer's state began to come from every item that applies and not only the page shown, and a
   follow-up began to send each earlier read in the step that made it, with the words before it.
+  The same day Ask's prompt began to carry the names card (FR-718.8), after the instructions, so
+  every step was keyed again with no model: each took the recorded step whose prompt was the same
+  but for the card. These steps are therefore the model's as it answered without the card, and
+  the held-back count above is that answer's: awaiting a re-record, which is where the card's
+  effect on the model's reads (D3: 8 of 10 questions that name a metric loosely read a subject at
+  the first try) is measured.
 */
 
 askEvalSuite({

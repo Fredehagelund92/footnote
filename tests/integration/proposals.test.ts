@@ -21,7 +21,7 @@ import { itemVersionDigests } from '../../src/domain/item-version.ts'
 import { formatDraft } from '../../src/domain/draft.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { apiDatabase, ignoreTeardownDisconnects, testDatabase, transaction } from './support.ts'
-import { foundation, people, version, accept, openEdition } from './fixtures.ts'
+import { foundation, people, version, accept, openEdition, demoReadBy } from './fixtures.ts'
 
 const { client, url } = testDatabase()
 const database = apiDatabase(url)
@@ -57,6 +57,7 @@ beforeAll(async () => {
   } finally {
     await cubePool.end()
   }
+  await demoReadBy(client, 'cube')
   await client.query("insert into vocab_terms(key,kind) values('metric:revenue','metric')")
   await transaction(client, async () => {
     const v = await version(client, { risk: 'low', owner: people.owner })

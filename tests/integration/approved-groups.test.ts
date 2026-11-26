@@ -374,6 +374,12 @@ describe('the same step for a source an admin added', () => {
     ).rows
 
   it('chooses the groups of a static list, and keeps the domain of one left out', async () => {
+    // One definitions integration is on at a time (CON-120): the server's own makes room.
+    const off = await api('PUT', '/sources/dbt-metricflow/paused', {
+      paused: true,
+      reason: 'Read our validated list instead',
+    })
+    expect(off.statusCode, off.body).toBe(200)
     const added = await api('POST', '/sources', {
       type: 'static-definitions',
       name: 'Static list',

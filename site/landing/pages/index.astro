@@ -1,361 +1,419 @@
 ---
-import '../../shared/fonts.css'
-import '../../shared/tokens.css'
-import '../../shared/chrome.css'
+import '../styles/fonts.css'
 import '../styles/landing.css'
+import inter from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url'
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
+import { sitePages } from '../../lib/pages.ts'
 import SiteFooter from '../../shared/SiteFooter.astro'
+import AskWindow from '../components/AskWindow.astro'
+import Definitions from '../components/Definitions.astro'
+import Fn from '../components/Fn.astro'
 import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
+import Sprite from '../components/Sprite.astro'
+import { footnotes } from '../footnotes.ts'
 import { released, releaseWords } from '../release.ts'
+// The tour's screens: two of the landing page's own captures and three of the docs' pictures, all
+// taken by scripts/capture.ts.
+import itemLight from '../captures/item-light.webp'
+import itemDark from '../captures/item-dark.webp'
+import observabilityLight from '../captures/observability-light.webp'
+import observabilityDark from '../captures/observability-dark.webp'
+import inboxLight from '../../../docs/images/docs/inbox-light.webp'
+import inboxDark from '../../../docs/images/docs/inbox-dark.webp'
+import askLight from '../../../docs/images/docs/ask-answer-light.webp'
+import askDark from '../../../docs/images/docs/ask-answer-dark.webp'
+import compareLight from '../../../docs/images/docs/compare-light.webp'
+import compareDark from '../../../docs/images/docs/compare-dark.webp'
 
 /*
-  The landing page, "Two readers", as approved (site/README.md, "The landing page"): paper for
-  people, a terminal for agents, and the note on the seam between them. The three replies of the
-  first screen are get_context's on the demo, word for word, and the pictures are real captures of
-  the demo, taken by scripts/capture.ts.
+  The landing page, "Ask this page", as approved (site/README.md, "The landing page"): dark, on
+  Footnote's dot field, with the vision told one sentence a section. The first screen is a question
+  about the demo company answered from a note a named person wrote and its owner checked
+  (landing/demo.ts, landing/hero.ts). Every claim carries a footnote that opens its source's own
+  sentence (landing/footnotes.ts), and the pictures are real captures of the demo, taken by
+  scripts/capture.ts.
 */
 
 const words = releaseWords(released)
-const { docs } = siteLinks(readSettings(process.env))
-const captures = import.meta.glob<{ src: string }>('../captures/*.webp', {
-  eager: true,
-  import: 'default',
-})
-const shot = (name: string) => {
-  const found = captures[`../captures/${name}.webp`]
-  if (!found) throw new Error(`No capture ${name}: run scripts/capture.ts.`)
-  return found.src
+const { docs, repo, repository } = siteLinks(readSettings(process.env))
+
+/* The tour: one real screen of the app per step, in light and dark. */
+const tour = [
+  {
+    light: itemLight,
+    dark: itemDark,
+    title: 'Someone writes it down',
+    text: 'A context item is short: what happened, where and from when, the sentence copied from its source, who owns it and when they last checked.',
+    alt: 'A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link.',
+  },
+  {
+    light: inboxLight,
+    dark: inboxDark,
+    title: 'Its owner checks it',
+    text: 'It lands in the Inbox of whoever owns that area. They see what agents say today and what they would say after, then publish it or send it back.',
+    alt: 'The Inbox on the demo: a suggestion to change a context item, with what agents say today beside what they would say after it is published.',
+  },
+  {
+    light: askLight,
+    dark: askDark,
+    title: 'Anyone asks',
+    text: 'Ask is the page for people. The answer starts with the line, says what is written, and names the item it used.',
+    alt: 'Ask on the demo: a question about units sold in Norway, answered with the line Checked, what is written, and the item it used.',
+  },
+  {
+    light: compareLight,
+    dark: compareDark,
+    title: 'Two notes disagree',
+    text: 'Agents get both and say so. An owner keeps one, narrows one, or keeps both.',
+    alt: 'The conflict view on the demo: two context items about orders in France that say different things, side by side, with what agents would say with each.',
+  },
+  {
+    light: observabilityLight,
+    dark: observabilityDark,
+    title: 'What nobody wrote comes back',
+    text: 'Observability shows what agents asked about and which questions found nothing. It keeps counts, not the words.',
+    alt: 'Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only.',
+  },
+]
+const opening = tour[0]!
+
+/* The footnotes at the end, with where each comes from, and the day a page of the docs was last
+   checked against the app. */
+const pages = new Map(sitePages().map((page) => [page.slug, page]))
+const months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')
+const day = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return `${d} ${months[m! - 1]} ${y}`
 }
+const notes = footnotes.map((note, i) => {
+  if ('file' in note.source)
+    return {
+      n: i + 1,
+      href: note.source.file === 'README.md' ? `${repository}#readme` : repo(note.source.file),
+      label: note.source.label,
+      quote: note.quote,
+    }
+  const page = pages.get(note.source.page)
+  if (!page) throw new Error(`Footnote ${i + 1}: the docs have no page "${note.source.page}".`)
+  return {
+    n: i + 1,
+    href: docs(page.slug),
+    label: `Docs, ${page.title}`,
+    quote: note.quote,
+    when: page.reviewed ? `checked ${day(page.reviewed)}` : undefined,
+  }
+})
+
+const headline = 'Tell your AI agents why the number moved before they'.split(' ')
 ---
 
 <html lang="en">
   <head>
     <Head
-      title="Footnote"
+      title="Footnote. Tell your AI agents why the number moved"
       description="Footnote: write down why a number moved, have the owner check it, and every AI agent reads it before it answers. Open source, self-hosted, pre-1.0."
+      fonts={[inter]}
+      dark
     />
     <script is:inline>
-      // The opening plays only with motion allowed, and the page never stays hidden: if the
-      // script that plays it has not started in five seconds, the finished state shows.
+      // The page arrives and plays only with motion allowed, and never stays hidden: if its script
+      // has not started in five seconds, the page shows as it is with reduced motion.
       if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        document.documentElement.classList.add('anim')
+        const root = document.documentElement
+        root.classList.add('anim')
         setTimeout(function () {
-          var hero = document.querySelector('.hero')
-          if (hero && !hero.classList.contains('play')) hero.classList.add('done')
+          if (!root.classList.contains('live')) root.classList.remove('anim')
         }, 5000)
       }
     </script>
   </head>
   <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <symbol id="i-lines" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h12M3 18h7"/></symbol>
-    <symbol id="l-cube" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M7.24291 1.53643C7.71126 1.26574 8.29068 1.26564 8.75898 1.53643L13.6873 4.38629C13.8808 4.49819 14 4.70361 14 4.92556V6.99762C13.9999 7.1083 13.9405 7.21077 13.8441 7.26679L12.7857 7.92345L13.6901 8.41779C13.882 8.53011 14 8.73444 14 8.9552V11.0745C14 11.2965 13.8808 11.5019 13.6873 11.6138L8.75756 14.4637C8.28924 14.7344 7.71028 14.7344 7.24196 14.4637L2.31226 11.6138C2.11881 11.5019 2 11.2964 2 11.0745V4.92556C2.00005 4.7036 2.11918 4.49817 2.31273 4.38629L7.24291 1.53643ZM8.37984 2.15874C8.14571 2.02338 7.8562 2.02342 7.62204 2.15874L2.82468 4.93163C2.76643 4.9653 2.73056 5.02718 2.73048 5.09397V10.8707L7.49865 8.14396C7.80879 7.96662 8.19122 7.96658 8.50135 8.14396L13.2695 10.8711V9.12361C13.2695 9.0569 13.2334 8.99501 13.1753 8.96127L8.3789 6.18372C8.14484 6.04818 7.85489 6.04806 7.62063 6.18325L4.36948 8.05999C4.24928 8.12918 4.09837 8.04327 4.0982 7.90557V6.27795C4.09825 6.17942 4.1508 6.08826 4.23619 6.0377L7.49299 4.11012C7.8059 3.92499 8.19565 3.92265 8.51077 4.10405L13.2695 6.84382V5.09397C13.2695 5.02725 13.2334 4.96534 13.1753 4.93163L8.37984 2.15874Z" /></symbol>
-    <symbol id="l-dbt" viewBox="0 0 24 24" fill="#FF694B"><path d="M17.9004 9.3763a8.1488 8.1488 0 0 0-3.0421-3.1206l1.7708.8385a10.2874 10.2874 0 0 1 3.74 3.0007l3.234-5.9295a2.8546 2.8546 0 0 0-.0611-2.9604C22.7566.0371 21.2112-.3409 19.9754.3327l-5.8749 3.2101a4.3612 4.3612 0 0 1-4.1761 0L4.1769.408a2.8545 2.8545 0 0 0-2.9592.0632c-1.1673.7853-1.5452 2.33-.8723 3.5655L3.55 9.9106a4.3612 4.3612 0 0 1 0 4.1772l-3.1272 5.743a2.86 2.86 0 0 0 .085 2.9974c.794 1.1438 2.3225 1.5054 3.5448.8385l6.0581-3.3049a10.2877 10.2877 0 0 1-3.0051-3.7454l-.8374-1.7708a8.148 8.148 0 0 0 3.1206 3.0421l10.5832 5.779c1.2213.666 2.7481.3055 3.5426-.8363a2.8699 2.8699 0 0 0 .0796-3.0018L17.9004 9.3763zm3.3801-7.7351c.6022 0 1.0904.4882 1.0904 1.0904s-.4882 1.0904-1.0904 1.0904-1.0904-.4882-1.0904-1.0904.4882-1.0904 1.0904-1.0904zM2.7442 3.822c-.6022 0-1.0904-.4882-1.0904-1.0904s.4882-1.0904 1.0904-1.0904 1.0904.4882 1.0904 1.0904S3.3464 3.822 2.7442 3.822zm0 18.5363c-.6022 0-1.0904-.4882-1.0904-1.0904 0-.6022.4882-1.0904 1.0904-1.0904s1.0904.4882 1.0904 1.0904c0 .6022-.4882 1.0904-1.0904 1.0904zm10.3585-11.4489c-1.2008-.0035-2.177.9672-2.1805 2.1679a2.1738 2.1738 0 0 0 .7052 1.6091c-1.4872-.2091-2.5234-1.5843-2.3142-3.0716.2091-1.4872 1.5843-2.5234 3.0716-2.3142a2.7194 2.7194 0 0 1 2.3142 2.3142 2.1623 2.1623 0 0 0-1.5963-.7054zm8.1778 11.4489c-.6022 0-1.0904-.4882-1.0904-1.0904 0-.6022.4882-1.0904 1.0904-1.0904s1.0904.4882 1.0904 1.0904c0 .6022-.4882 1.0904-1.0904 1.0904z"/></symbol>
-    <symbol id="l-markdown" viewBox="0 0 24 24" fill="currentColor"><path d="M22.27 19.385H1.73A1.73 1.73 0 010 17.655V6.345a1.73 1.73 0 011.73-1.73h20.54A1.73 1.73 0 0124 6.345v11.308a1.73 1.73 0 01-1.73 1.731zM5.769 15.923v-4.5l2.308 2.885 2.307-2.885v4.5h2.308V8.078h-2.308l-2.307 2.885-2.308-2.885H3.46v7.847zM21.232 12h-2.309V8.077h-2.307V12h-2.308l3.461 4.039z"/></symbol>
-    <symbol id="l-drive" viewBox="0 0 87.3 78"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/> <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/> <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/> <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/> <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/> <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></symbol>
-    <symbol id="l-notion" viewBox="0 0 24 24" fill="currentColor"><path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.968c-.42-.326-.981-.7-2.055-.607L3.01 2.295c-.466.046-.56.28-.374.466zm.793 3.08v13.904c0 .747.373 1.027 1.214.98l14.523-.84c.841-.046.935-.56.935-1.167V6.354c0-.606-.233-.933-.748-.887l-15.177.887c-.56.047-.747.327-.747.933zm14.337.745c.093.42 0 .84-.42.888l-.7.14v10.264c-.608.327-1.168.514-1.635.514-.748 0-.935-.234-1.495-.933l-4.577-7.186v6.952L12.21 19s0 .84-1.168.84l-3.222.186c-.093-.186 0-.653.327-.746l.84-.233V9.854L7.822 9.76c-.094-.42.14-1.026.793-1.073l3.456-.233 4.764 7.279v-6.44l-1.215-.139c-.093-.514.28-.887.747-.933zM1.936 1.035l13.31-.98c1.634-.14 2.055-.047 3.082.7l4.249 2.986c.7.513.934.653.934 1.213v16.378c0 1.026-.373 1.634-1.68 1.726l-15.458.934c-.98.047-1.448-.093-1.962-.747l-3.129-4.06c-.56-.747-.793-1.306-.793-1.96V2.667c0-.839.374-1.54 1.447-1.632z"/></symbol>
-    <symbol id="l-claude" viewBox="0 0 24 24"><path fill="#D97757" d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol>
-    <symbol id="l-cursor" viewBox="0 0 24 24" fill="currentColor"><path  d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></symbol>
-    <symbol id="l-vscode" viewBox="0 0 24 24"><path fill="#007ACC" d="M17.5 2.2 9.4 9.7 4.6 6 3 6.9v10.2l1.6.9 4.8-3.7 8.1 7.5L21 20.3V3.7zM4.6 15.3V8.7l3.1 3.3zm12.9.9-5.7-4.2 5.7-4.2z"/></symbol>
-    <symbol id="l-openai" viewBox="0 0 24 24" fill="currentColor"><path  d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></symbol>
-    <symbol id="l-docker" viewBox="0 0 24 24" fill="#2496ED"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></symbol>
-    <symbol id="l-postgres" viewBox="0 0 24 24" fill="#4169E1"><path d="M23.5594 14.7228a.5269.5269 0 0 0-.0563-.1191c-.139-.2632-.4768-.3418-1.0074-.2321-1.6533.3411-2.2935.1312-2.5256-.0191 1.342-2.0482 2.445-4.522 3.0411-6.8297.2714-1.0507.7982-3.5237.1222-4.7316a1.5641 1.5641 0 0 0-.1509-.235C21.6931.9086 19.8007.0248 17.5099.0005c-1.4947-.0158-2.7705.3461-3.1161.4794a9.449 9.449 0 0 0-.5159-.0816 8.044 8.044 0 0 0-1.3114-.1278c-1.1822-.0184-2.2038.2642-3.0498.8406-.8573-.3211-4.7888-1.645-7.2219.0788C.9359 2.1526.3086 3.8733.4302 6.3043c.0409.818.5069 3.334 1.2423 5.7436.4598 1.5065.9387 2.7019 1.4334 3.582.553.9942 1.1259 1.5933 1.7143 1.7895.4474.1491 1.1327.1441 1.8581-.7279.8012-.9635 1.5903-1.8258 1.9446-2.2069.4351.2355.9064.3625 1.39.3772a.0569.0569 0 0 0 .0004.0041 11.0312 11.0312 0 0 0-.2472.3054c-.3389.4302-.4094.5197-1.5002.7443-.3102.064-1.1344.2339-1.1464.8115-.0025.1224.0329.2309.0919.3268.2269.4231.9216.6097 1.015.6331 1.3345.3335 2.5044.092 3.3714-.6787-.017 2.231.0775 4.4174.3454 5.0874.2212.5529.7618 1.9045 2.4692 1.9043.2505 0 .5263-.0291.8296-.0941 1.7819-.3821 2.5557-1.1696 2.855-2.9059.1503-.8707.4016-2.8753.5388-4.1012.0169-.0703.0357-.1207.057-.1362.0007-.0005.0697-.0471.4272.0307a.3673.3673 0 0 0 .0443.0068l.2539.0223.0149.001c.8468.0384 1.9114-.1426 2.5312-.4308.6438-.2988 1.8057-1.0323 1.5951-1.6698zM2.371 11.8765c-.7435-2.4358-1.1779-4.8851-1.2123-5.5719-.1086-2.1714.4171-3.6829 1.5623-4.4927 1.8367-1.2986 4.8398-.5408 6.108-.13-.0032.0032-.0066.0061-.0098.0094-2.0238 2.044-1.9758 5.536-1.9708 5.7495-.0002.0823.0066.1989.0162.3593.0348.5873.0996 1.6804-.0735 2.9184-.1609 1.1504.1937 2.2764.9728 3.0892.0806.0841.1648.1631.2518.2374-.3468.3714-1.1004 1.1926-1.9025 2.1576-.5677.6825-.9597.5517-1.0886.5087-.3919-.1307-.813-.5871-1.2381-1.3223-.4796-.839-.9635-2.0317-1.4155-3.5126zm6.0072 5.0871c-.1711-.0428-.3271-.1132-.4322-.1772.0889-.0394.2374-.0902.4833-.1409 1.2833-.2641 1.4815-.4506 1.9143-1.0002.0992-.126.2116-.2687.3673-.4426a.3549.3549 0 0 0 .0737-.1298c.1708-.1513.2724-.1099.4369-.0417.156.0646.3078.26.3695.4752.0291.1016.0619.2945-.0452.4444-.9043 1.2658-2.2216 1.2494-3.1676 1.0128zm2.094-3.988-.0525.141c-.133.3566-.2567.6881-.3334 1.003-.6674-.0021-1.3168-.2872-1.8105-.8024-.6279-.6551-.9131-1.5664-.7825-2.5004.1828-1.3079.1153-2.4468.079-3.0586-.005-.0857-.0095-.1607-.0122-.2199.2957-.2621 1.6659-.9962 2.6429-.7724.4459.1022.7176.4057.8305.928.5846 2.7038.0774 3.8307-.3302 4.7363-.084.1866-.1633.3629-.2311.5454zm7.3637 4.5725c-.0169.1768-.0358.376-.0618.5959l-.146.4383a.3547.3547 0 0 0-.0182.1077c-.0059.4747-.054.6489-.115.8693-.0634.2292-.1353.4891-.1794 1.0575-.11 1.4143-.8782 2.2267-2.4172 2.5565-1.5155.3251-1.7843-.4968-2.0212-1.2217a6.5824 6.5824 0 0 0-.0769-.2266c-.2154-.5858-.1911-1.4119-.1574-2.5551.0165-.5612-.0249-1.9013-.3302-2.6462.0044-.2932.0106-.5909.019-.8918a.3529.3529 0 0 0-.0153-.1126 1.4927 1.4927 0 0 0-.0439-.208c-.1226-.4283-.4213-.7866-.7797-.9351-.1424-.059-.4038-.1672-.7178-.0869.067-.276.1831-.5875.309-.9249l.0529-.142c.0595-.16.134-.3257.213-.5012.4265-.9476 1.0106-2.2453.3766-5.1772-.2374-1.0981-1.0304-1.6343-2.2324-1.5098-.7207.0746-1.3799.3654-1.7088.5321a5.6716 5.6716 0 0 0-.1958.1041c.0918-1.1064.4386-3.1741 1.7357-4.4823a4.0306 4.0306 0 0 1 .3033-.276.3532.3532 0 0 0 .1447-.0644c.7524-.5706 1.6945-.8506 2.802-.8325.4091.0067.8017.0339 1.1742.081 1.939.3544 3.2439 1.4468 4.0359 2.3827.8143.9623 1.2552 1.9315 1.4312 2.4543-1.3232-.1346-2.2234.1268-2.6797.779-.9926 1.4189.543 4.1729 1.2811 5.4964.1353.2426.2522.4522.2889.5413.2403.5825.5515.9713.7787 1.2552.0696.087.1372.1714.1885.245-.4008.1155-1.1208.3825-1.0552 1.717-.0123.1563-.0423.4469-.0834.8148-.0461.2077-.0702.4603-.0994.7662zm.8905-1.6211c-.0405-.8316.2691-.9185.5967-1.0105a2.8566 2.8566 0 0 0 .135-.0406 1.202 1.202 0 0 0 .1342.103c.5703.3765 1.5823.4213 3.0068.1344-.2016.1769-.5189.3994-.9533.6011-.4098.1903-1.0957.333-1.7473.3636-.7197.0336-1.0859-.0807-1.1721-.151zm.5695-9.2712c-.0059.3508-.0542.6692-.1054 1.0017-.055.3576-.112.7274-.1264 1.1762-.0142.4368.0404.8909.0932 1.3301.1066.887.216 1.8003-.2075 2.7014a3.5272 3.5272 0 0 1-.1876-.3856c-.0527-.1276-.1669-.3326-.3251-.6162-.6156-1.1041-2.0574-3.6896-1.3193-4.7446.3795-.5427 1.3408-.5661 2.1781-.463zm.2284 7.0137a12.3762 12.3762 0 0 0-.0853-.1074l-.0355-.0444c.7262-1.1995.5842-2.3862.4578-3.4385-.0519-.4318-.1009-.8396-.0885-1.2226.0129-.4061.0666-.7543.1185-1.0911.0639-.415.1288-.8443.1109-1.3505.0134-.0531.0188-.1158.0118-.1902-.0457-.4855-.5999-1.938-1.7294-3.253-.6076-.7073-1.4896-1.4972-2.6889-2.0395.5251-.1066 1.2328-.2035 2.0244-.1859 2.0515.0456 3.6746.8135 4.8242 2.2824a.908.908 0 0 1 .0667.1002c.7231 1.3556-.2762 6.2751-2.9867 10.5405zm-8.8166-6.1162c-.025.1794-.3089.4225-.6211.4225a.5821.5821 0 0 1-.0809-.0056c-.1873-.026-.3765-.144-.5059-.3156-.0458-.0605-.1203-.178-.1055-.2844.0055-.0401.0261-.0985.0925-.1488.1182-.0894.3518-.1226.6096-.0867.3163.0441.6426.1938.6113.4186zm7.9305-.4114c.0111.0792-.049.201-.1531.3102-.0683.0717-.212.1961-.4079.2232a.5456.5456 0 0 1-.075.0052c-.2935 0-.5414-.2344-.5607-.3717-.024-.1765.2641-.3106.5611-.352.297-.0414.6111.0088.6356.1851z"/></symbol>
-    <symbol id="l-anthropic" viewBox="0 0 24 24" fill="currentColor"><path d="M17.3041 3.541h-3.6718l6.696 16.918H24Zm-10.6082 0L0 20.459h3.7442l1.3693-3.5527h7.0052l1.3693 3.5528h3.7442L10.5363 3.5409Zm-.3712 10.2232 2.2914-5.9456 2.2914 5.9456Z"/></symbol>
-    <symbol id="l-vercel" viewBox="0 0 24 24" fill="currentColor"><path d="m12 1.608 12 20.784H0Z"/></symbol>
-    <symbol id="l-mcp" viewBox="0 0 24 24" fill="currentColor"><path d="M13.85 0a4.16 4.16 0 0 0-2.95 1.217L1.456 10.66a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l9.442-9.442a2.49 2.49 0 0 1 3.541 0 2.49 2.49 0 0 1 0 3.541L8.59 12.97l-.1.1a.835.835 0 0 0 0 1.18.835.835 0 0 0 1.18 0l.1-.098 7.03-7.034a2.49 2.49 0 0 1 3.542 0l.049.05a2.49 2.49 0 0 1 0 3.54l-8.54 8.54a1.96 1.96 0 0 0 0 2.755l1.753 1.753a.835.835 0 0 0 1.18 0 .835.835 0 0 0 0-1.18l-1.753-1.753a.266.266 0 0 1 0-.394l8.54-8.54a4.185 4.185 0 0 0 0-5.9l-.05-.05a4.16 4.16 0 0 0-2.95-1.218c-.2 0-.401.02-.6.048a4.17 4.17 0 0 0-1.17-3.552A4.16 4.16 0 0 0 13.85 0m0 3.333a.84.84 0 0 0-.59.245L6.275 10.56a4.186 4.186 0 0 0 0 5.902 4.186 4.186 0 0 0 5.902 0L19.16 9.48a.835.835 0 0 0 0-1.18.835.835 0 0 0-1.18 0l-6.985 6.984a2.49 2.49 0 0 1-3.54 0 2.49 2.49 0 0 1 0-3.54l6.983-6.985a.835.835 0 0 0 0-1.18.84.84 0 0 0-.59-.245"/></symbol>
-    <symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
-    <symbol id="fn-logo" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round"><path d="M24 24 L24 10"/><path d="M24 24 L37.3 19.7"/><path d="M24 24 L15.8 35.3"/><path d="M24 24 L10.7 19.7"/></g><circle cx="32.8" cy="36.1" r="4.5" fill="currentColor"/></symbol>
-  </defs>
-</svg>
+    <Sprite />
+    <Header />
 
-<Header home="#top" install="#run" />
+    <main id="top">
+      <section class="hero" id="hero" aria-labelledby="h-hero">
+        <div class="wrap">
+          <h1 id="h-hero">
+            {headline.map((word, i) => <Fragment><span class="w" style={`--i:${i}`}>{word}</span>{' '}</Fragment>)}<span class="w" style={`--i:${headline.length}`}>guess<Fn n={1} /></span>
+          </h1>
+          <div class="hero-row">
+            <div>
+              <p class="sub">The people who know your business write down what happened, where and when, and the owner of that area checks it. Every AI agent reads it before it answers. When nothing is written, it says so.<Fn n={2} /></p>
+              <div class="cta"><a class="btn btn-main" href="#run">Run the demo</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
+            </div>
+            <p class="status"><i class={released ? 'dot' : 'dot none'}></i><b>{words.status}</b><a href={`${repository}#readme`}>What is true today</a></p>
+          </div>
 
-<main id="top">
-  <!-- The first screen: one note, two readers. -->
-  <section class="hero" data-state="checked" aria-labelledby="h-hero">
-    <h1 id="h-hero"><span>Tell your AI agents why the number moved</span> <span>before they guess.</span></h1>
-
-    <div class="pane person">
-      <p class="who"><span class="face" aria-hidden="true">S</span>A person asks, in the browser</p>
-      <div data-s="checked" id="p-checked">
-        <p class="ask">How did orders in Norway change in October 2026?</p>
-        <p class="state-line"><b>Checked</b> This is written down and checked.</p>
-        <p class="ans"><span class="hlx">A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.</span><a class="fm" href="#note" data-to="n1" aria-label="Footnote 1">1</a></p>
-      </div>
-      <div data-s="conflict" id="p-conflict">
-        <p class="ask">How were orders counted in the United Kingdom in October 2026?</p>
-        <p class="state-line"><b>Conflict</b> Two items say different things.</p>
-        <p class="ans"><span class="each">One says they count store credit.<a class="fm" href="#note" data-to="c1" aria-label="Footnote 1">1</a></span><span class="each">One says they are card and cash payments only.<a class="fm" href="#note" data-to="c2" aria-label="Footnote 2">2</a></span></p>
-      </div>
-      <div data-s="missing" id="p-missing">
-        <p class="ask">Why did returns in Sweden jump in March 2023?</p>
-        <p class="state-line"><b>Not found</b> Nothing published about this yet.</p>
-        <p class="ans">Nothing is written down for Returns in Sweden in March 2023.<small>That's not the same as there being no reason.</small></p>
-      </div>
-    </div>
-
-    <div class="seam" id="note">
-      <article class="card" data-s="checked" id="n-checked" data-anchor="n1">
-        <p class="head"><span class="fm" aria-hidden="true">1</span><span>Checked by the owner of Sales</span></p>
-        <h2>Online sales to Norway stopped on 4 August 2026</h2>
-        <blockquote>"Parcels from webshops outside Norway are held at the border from 4 August 2026 until further notice."</blockquote>
-        <p class="by">Sales, owned by Jon Abara and Sofia Brandt.<br /><b>Don't conclude:</b> fewer orders in Norway after 4 August do not mean fewer customers.</p>
-      </article>
-      <div class="pair" data-s="conflict" id="n-conflict">
-        <article class="card" data-anchor="c1">
-          <p class="head"><span class="fm" aria-hidden="true">1</span><span>Sales. Written by Jon Abara</span></p>
-          <h2>United Kingdom orders count store credit</h2>
-        </article>
-        <span class="neq" role="img" aria-label="disagrees with">&ne;</span>
-        <article class="card" data-anchor="c2">
-          <p class="head"><span class="fm" aria-hidden="true">2</span><span>Sales. Written by Sofia Brandt</span></p>
-          <h2>United Kingdom orders are card and cash payments only</h2>
-        </article>
-      </div>
-      <article class="card none" data-s="missing" id="n-missing" data-anchor="m1">
-        <h2>No footnote</h2>
-        <p>Nobody has written this down yet.</p>
-      </article>
-    </div>
-
-    <div class="pane agent">
-      <p class="who"><span class="chip" aria-hidden="true">&gt;_</span>An agent asks, over MCP</p>
-      <div class="tty" data-s="checked" id="a-checked">
-        <p class="q">How did orders in Norway change in October 2026?</p>
-        <p class="guess"><s>This may reflect weaker marketing performance.</s></p>
-        <p class="tool">called <b>get_context</b></p>
-        <p class="kv"><span class="k">"status":</span> "matched"</p>
-        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Checked.</span> 5 context items apply to Orders in Norway in October 2026. Nothing else was looked up. 1 of them applies to only part of that question."</span></p>
-        <p class="kv"><a class="fm" href="#note" data-to="n1" aria-label="Footnote 1">1</a><span class="k">"title":</span> "Online sales to Norway stopped on 4 August 2026"</p>
-        <p class="kv"><span class="k">"not_to_conclude":</span> "Fewer orders in Norway after 4 August do not mean fewer customers."</p>
-      </div>
-      <div class="tty" data-s="conflict" id="a-conflict">
-        <p class="q">How were orders counted in the United Kingdom in October 2026?</p>
-        <p class="tool">called <b>get_context</b></p>
-        <p class="kv"><span class="k">"status":</span> "conflict"</p>
-        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Conflict.</span> Two items say different things. 10 context items apply to Orders in United Kingdom in October 2026. Nothing else was looked up. 2 of them apply to only part of that question. Some of them disagree. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check."</span></p>
-        <p class="kv"><a class="fm" href="#note" data-to="c1" aria-label="Footnote 1">1</a><span class="k">"title":</span> "United Kingdom orders count store credit"</p>
-        <p class="kv"><a class="fm" href="#note" data-to="c2" aria-label="Footnote 2">2</a><span class="k">"title":</span> "United Kingdom orders are card and cash payments only"</p>
-      </div>
-      <div class="tty" data-s="missing" id="a-missing">
-        <p class="q">Why did returns in Sweden jump in March 2023?</p>
-        <p class="tool">called <b>get_context</b></p>
-        <p class="kv"><span class="k">"status":</span> "no_match"</p>
-        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Not found.</span> Nothing published about this yet. Nothing is written down for Returns in Sweden in March 2023. Nothing else was looked up."</span></p>
-        <p class="kv"><span class="k">"context":</span> []</p>
-      </div>
-    </div>
-
-    <svg class="wires" aria-hidden="true"></svg>
-    <p class="sr-only" id="state-live" aria-live="polite"></p>
-
-    <div class="tabs" role="tablist" aria-label="What is written decides the answer">
-      <span class="cap" aria-hidden="true">Try what's written:</span>
-      <button type="button" role="tab" aria-selected="true" data-go="checked" aria-controls="p-checked n-checked a-checked">Checked</button>
-      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="conflict" aria-controls="p-conflict n-conflict a-conflict">Conflict</button>
-      <button type="button" role="tab" aria-selected="false" tabindex="-1" data-go="missing" aria-controls="p-missing n-missing a-missing">Not found</button>
-    </div>
-
-    <div class="hero-foot">
-      <div class="cta"><a class="btn btn-ink" href="#run">Install</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
-      <p class="meta">{words.heroMeta}</p>
-    </div>
-  </section>
-
-  <!-- The timeline on the seam: what happens before either of them reads it. -->
-  <section class="split" aria-labelledby="h-split">
-    <h2 id="h-split"><span>Before either of them</span> <span>reads a word of it.</span></h2>
-    <div class="steps">
-      <div class="step">
-        <span class="dot">Draft</span>
-        <p class="l">Anyone can write a context item. It's short: what happened, where and from when, and how you know.</p>
-        <p class="r">An agent can suggest one too, and it waits for the owner like anything else. A draft never reaches an agent.</p>
-      </div>
-      <div class="step live">
-        <span class="dot">Checked</span>
-        <p class="l">It lands in the Inbox of whoever owns that area. They see whether the claims match the source, and what agents would say before and after. Then they publish it, or send it back with a note.</p>
-        <p class="r">From now on <code>get_context</code> returns it with every answer it applies to, with its source.</p>
-      </div>
-      <div class="step">
-        <span class="dot">Due for a check</span>
-        <p class="l">When the check date passes, or a definition it relies on changes in Cube or dbt, the owner looks again: still true, or edit.</p>
-        <p class="r">Until then the answer starts with <code>Outdated</code>, so the agent can say it may be old.</p>
-      </div>
-      <div class="step">
-        <span class="dot">Not found, again</span>
-        <p class="l">If questions about one topic keep finding nothing, the owner gets a card about it. It's how people find out what to write next.</p>
-        <p class="r">We count the topic, not the words.</p>
-      </div>
-    </div>
-    <p class="docs">In the docs: <a href={docs('write-context')}>Write context</a> <a href={docs('review-a-suggestion')}>Review a suggestion</a></p>
-  </section>
-
-  <div class="sheet">
-    <section class="band" id="fits" aria-labelledby="h-sits">
-      <div class="inner">
-        <h2 id="h-sits">It sits next to your semantic layer, not inside it.</h2>
-        <p class="lede">Cube or dbt MetricFlow still defines Orders and still returns the figure. Footnote only reads the names, so that a note can say which metric and which market it's about. After the owner publishes the note, it goes out with every answer that uses it, as a footnote.</p>
-        <div class="sum">
-          <div class="part fig"><div class="pic" aria-hidden="true"><svg viewBox="0 0 300 60" preserveAspectRatio="none"><path d="M0,14 L24,9 L48,17 L72,11 L96,6 L120,15 L144,10 L150,52 L180,54 L210,53 L240,55 L270,54 L300,54"/></svg></div><b>The figure</b><p>Cube or dbt MetricFlow defines Orders and returns it. Footnote reads the names only.</p></div>
-          <span class="op" aria-hidden="true">+</span>
-          <div class="part fn"><div class="pic" aria-hidden="true"><span class="fm">1</span></div><b>The footnote</b><p>Online sales to Norway stopped on 4 August. Someone in Sales wrote it, and the owner checked it.</p></div>
-          <span class="op" aria-hidden="true">=</span>
-          <div class="part out"><div class="pic"><span>Orders in Norway fell to almost nothing from 4 August.<span class="fm" role="img" aria-label="Footnote 1">1</span></span></div><b>The answer</b><p>Claude Code over MCP, or Ask in the browser.</p></div>
+          <div class="stage">
+            <AskWindow />
+          </div>
+          <p class="win-cap">An example from the demo company that comes with Footnote. The company and the people are invented.</p>
+          <div class="hero-end"></div>
         </div>
-        <p class="plain">No model picks the context. Plain rules match the question's metric, market and dates against what's written. Footnote doesn't store numbers either. Your semantic layer returns the figure, and the item points at it.</p>
-        <div class="real">
-          <figure><div class="frame"><picture class="on-light"><source media="(max-width: 640px)" srcset={shot('item-light-phone')} width="780" height="1560" /><img src={shot('item-light')} alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." width="1600" height="1266" loading="lazy" /></picture><picture class="on-dark"><source media="(max-width: 640px)" srcset={shot('item-dark-phone')} width="780" height="1560" /><img src={shot('item-dark')} alt="A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link." width="1600" height="1266" loading="lazy" /></picture></div><h3>A context item is short</h3><p>What happened, where and from when, the sentence copied from its source, who owns it and when they last checked. That's all an agent reads.</p></figure>
-          <figure><div class="frame"><picture class="on-light"><source media="(max-width: 640px)" srcset={shot('observability-light-phone')} width="780" height="1560" /><img src={shot('observability-light')} alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." width="1600" height="1250" loading="lazy" /></picture><picture class="on-dark"><source media="(max-width: 640px)" srcset={shot('observability-dark-phone')} width="780" height="1560" /><img src={shot('observability-dark')} alt="Observability on the demo: what agents asked this week, by topic and answer line, with the share of checked answers and the questions that found nothing. Counts only." width="1600" height="1250" loading="lazy" /></picture></div><h3>Gaps come back as counts</h3><p>Observability shows what agents asked about, by topic and answer line, and which questions found nothing. It keeps counts, not the words.</p></figure>
+      </section>
+
+      <section class="sec" id="why" aria-label="What Footnote is for">
+        <div class="wrap">
+          <p class="state-big rv" id="state"><b>An AI agent asked why a number moved should answer from what a person checked,</b> or say plainly that nothing is written. Footnote exists for that, and three things make it work.</p>
+          <ol class="trio">
+            <li class="rv">
+              <div class="frag" aria-hidden="true">
+                <div class="row a1"><span class="chipx">Orders</span><span class="chipx">Netherlands</span><span class="chipx">13 Feb to 24 Sep 2026</span></div>
+                <div class="year"><i class="span"></i><i class="q a2" style="--x:45.8%" data-l="June: told"></i><i class="q out a3" style="--x:87.5%" data-l="November: not told"></i></div>
+              </div>
+              <h2>A note is bound to a time and a place</h2>
+              <p>A market closed for a month, a tool that changed how it counts, data that arrived late. Each note carries its dates and its place, and is told only for a question about those dates and that place.<Fn n={3} /></p>
+            </li>
+            <li class="rv" style="--d:120ms">
+              <div class="frag" aria-hidden="true">
+                <div class="row"><span class="swap"><span class="badge was"><svg class="ic"><use href="#i-check"></use></svg>Checked</span><span class="badge b-old now"><svg class="ic"><use href="#i-old"></use></svg>Outdated</span></span><i class="due"></i><span class="a3" style="--t:1400ms">check date passed</span></div>
+                <div class="row a3" style="--t:1700ms"><span class="pill">Still true</span><span class="pill">Edit</span></div>
+              </div>
+              <h2>It ends itself</h2>
+              <p>A question after a note's end date does not get it. Past its check date it is told as possibly out of date, until its owner looks again.<Fn n={4} /></p>
+            </li>
+            <li class="rv" style="--d:240ms">
+              <div class="frag" aria-hidden="true">
+                <div class="row a1"><s class="struck">This may reflect weaker marketing performance.</s></div>
+                <div class="row a3"><span class="badge b-missing"><svg class="ic"><use href="#i-none"></use></svg>Not found</span><span>nothing is written down</span></div>
+              </div>
+              <h2>When nothing fits, it says so</h2>
+              <p>The answer says so in plain words, and no agent is handed a guess that sounds sure. The question goes back to the owner as a gap, so it gets written.<Fn n={5} /></p>
+            </li>
+          </ol>
         </div>
-        <p class="docs">In the docs: <a href={docs('how-agents-use-it')}>How agents use it</a></p>
-      </div>
-    </section>
+      </section>
 
-    <section class="band" id="lines" aria-labelledby="h-lines">
-      <div class="inner">
-        <h2 id="h-lines">Every answer starts by saying what it found.</h2>
-        <p class="lede">Ask is the page for people. Agents get the same first line over MCP. There are six of these lines, and code picks which one, not the model, so Checked means the same thing every time.</p>
-        <ul class="lines">
-          <li><i class="g checked" aria-hidden="true"></i><b>Checked</b><span>Something applies, and its owner published it with a source and a check date.</span><em>Nothing to do.</em></li>
-          <li><i class="g partial" aria-hidden="true"></i><b>Partial</b><span>Part of the question is covered, or the dates were assumed. The answer says which.</span><em>Write the rest, or tell the owner.</em></li>
-          <li><i class="g missing" aria-hidden="true"></i><b>Not found</b><span>Nobody has written this down. That's not the same as there being no reason.</span><em>Write it, or tell the owner.</em></li>
-          <li><i class="g conflict" aria-hidden="true"></i><b>Conflict</b><span>Two items apply and they disagree. Agents get both and say so.</span><em>An owner keeps one, narrows one, or keeps both.</em></li>
-          <li><i class="g old" aria-hidden="true"></i><b>Outdated</b><span>The check date has passed, or a definition the item relies on changed.</span><em>The owner looks again: Still true, or Edit.</em></li>
-          <li><i class="g failed" aria-hidden="true"></i><b>Not looked up</b><span>Ask couldn't look just now. It doesn't mean nothing is written.</span><em>Try again in a minute.</em></li>
-        </ul>
-        <p class="docs">In the docs: <a href={docs('answer-lines')}>Answer lines</a></p>
-      </div>
-    </section>
-
-    <section class="band" id="trust" aria-labelledby="h-owners">
-      <div class="inner">
-        <h2 id="h-owners">Agents only see what an owner has published.</h2>
-        <p class="lede">Every item belongs to one area, like Sales or Paid media, and the owners of that area decide what goes out. Drafts, suggestions and comments stay inside.</p>
-        <div class="claims">
-          <div><h3>Drafts stay drafts</h3><p>The database role that answers agents can't read the versions table at all. That's a permission, not a setting someone can flip by accident.</p></div>
-          <div><h3>A review before it goes live</h3><p>The review holds the claims up against the source. It also replays the questions agents asked against the draft, so the owner sees what will change before it does.</p></div>
-          <div><h3>Nothing filled in</h3><p>When nothing is written, the answer says Not found and stops. It doesn't reach for a likely story.</p></div>
-          <div><h3>Don't conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.</p></div>
-          <div><h3>When a definition changes</h3><p>If a definition an item relies on changes or disappears in Cube or dbt, the item is flagged for its owner, and answers say Outdated until they've looked.</p></div>
-          <div><h3>Topics, not words</h3><p>When an agent asks something, we keep what it was about and how often. We don't keep the words. Your own chats in Ask stay in your browser.</p></div>
+      <section class="sec" id="loop" aria-labelledby="h-loop">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-loop">Anyone may suggest a note. Its owner decides</h2>
+            <p>Anyone who knows the business may suggest one, and so may an agent. Only a person publishes,<Fn n={6} /> and a draft, a suggestion or a comment never reaches an agent.<Fn n={7} /> These are real screens of the app, on its demo.</p>
+          </div>
+          <div class="tour rv" id="tour" style="--d:120ms">
+            <div class="tour-tabs" role="tablist" aria-label="Screens of the app">
+              {
+                tour.map((step) => (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={step === opening ? 'true' : 'false'}
+                    tabindex={step === opening ? undefined : '-1'}
+                    aria-controls="shot"
+                    data-light={step.light.src}
+                    data-dark={step.dark.src}
+                    data-alt={step.alt}
+                  >
+                    <b>{step.title}</b>
+                    <span>{step.text}</span>
+                  </button>
+                ))
+              }
+            </div>
+            <figure>
+              <div class="shot glow" id="shot" role="tabpanel" aria-label="The screen">
+                <i class="gl" aria-hidden="true"></i>
+                <div class="pic">
+                  <img class="on-light" src={opening.light.src} width={opening.light.width} height={opening.light.height} loading="lazy" alt={opening.alt} />
+                  <img class="on-dark" src={opening.dark.src} width={opening.dark.width} height={opening.dark.height} loading="lazy" alt={opening.alt} />
+                </div>
+              </div>
+              <figcaption class="cap">Real screens of the app. The names on them are invented.</figcaption>
+            </figure>
+          </div>
         </div>
-        <p class="know"><b>One thing to know:</b> in this version, everyone who is signed in, and every agent, can read everything that's published. Per-person limits aren't built yet.</p>
-        <p class="docs">In the docs: <a href={docs('domains-and-owners')}>Domains and owners</a> <a href={docs('privacy')}>Privacy</a></p>
-      </div>
-    </section>
-  </div>
+      </section>
 
-  <section class="agents" id="agents" aria-labelledby="h-agents">
-    <div class="inner">
-      <div>
-        <h2 id="h-agents">Five MCP tools, and no model on our side.</h2>
-        <p class="lede">Your agent connects over MCP and signs in as you. Footnote doesn't run a model for agents, so the same question gets the same items until an owner publishes a change.</p>
-        <ul class="tools">
-          <li><code>get_context</code><span>The items that apply to a question about a metric, a market or some dates, with the answer line first.</span></li>
-          <li><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV, or list what there is.</span></li>
-          <li><code>read_context</code><span>One item or definition in full, with its source, its owner and its links. A link is not proof of a cause.</span></li>
-          <li><code>report<i>asks first</i></code><span>Tell the owner an item looks wrong or unclear, after the person says yes.</span></li>
-          <li><code>suggest_context<i>asks first</i></code><span>Send the owner a suggestion. Nothing goes live until they've checked it.</span></li>
-        </ul>
-        <p class="after">Connecting takes one command, then one approval in the browser. An admin can switch any tool off for any agent. We tell agents that item text is data, not instructions, and in our test runs they ignored the instructions we planted in items.</p>
-        <p class="docs">In the docs: <a href={docs('connect-an-agent')}>Connect an agent</a> <a href={docs('tools')}>Agent tools</a></p>
-      </div>
-      <div>
-        <h3>One line in your AGENTS.md</h3>
-        <p>When you connect an agent, the prompt the app gives you adds one line to the project's instructions file: CLAUDE.md if you have one, otherwise AGENTS.md. That's all you write.</p>
-        <div class="file"><p class="bar"><b>AGENTS.md</b><span>the line you add</span></p><pre><span># Footnote</span>
-Before you answer a question about a company metric, call get_context first and use what it returns.</pre></div>
-        <div class="file"><p class="bar"><b>get_context reply</b><span>sent every time</span></p><ol>
-          <li>State what the item says, with its source and dates.</li>
-          <li>Say "might be related" only when the dates overlap and the metric is in scope, and say the context does not prove a cause.</li>
-          <li>Never say "caused by" unless the item states the effect.</li>
-          <li>When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out.</li>
-          <li>Suggest a check that would test the effect.</li>
-        </ol></div>
-        <p class="after">How to explain the why isn't left to that file. Footnote sends the rules with every reply, so each agent gets the same ones, and they change with the server rather than in every repository.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="reads" id="connectors" aria-labelledby="h-reads">
-    <h2 id="h-reads"><span>What it reads,</span> <span>and what reads it.</span></h2>
-    <p class="how"><span>Some of this works today. Some of it is built and still waiting for someone to try it on a real account. Each row says which.</span></p>
-    <div class="io">
-      <div class="side in-side">
-        <div><h3>Definitions</h3><p>Metric and dimension names from your semantic layer. Read only, and it works today.</p>
-          <ul class="kit">
-            <li><svg aria-hidden="true"><use href="#l-cube"/></svg><span>Cube<small><i class="s works" aria-hidden="true"></i>works today</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-dbt"/></svg><span>dbt MetricFlow<small><i class="s works" aria-hidden="true"></i>works today</small></span></li>
-            <li><svg aria-hidden="true"><use href="#i-lines"/></svg><span>A list you write yourself<small><i class="s works" aria-hidden="true"></i>works today</small></span></li>
-          </ul></div>
-        <div><h3>Documents</h3><p>Notes that arrive as suggestions for an owner. Built, not tried on a real account yet.</p>
-          <ul class="kit">
-            <li><svg aria-hidden="true"><use href="#l-markdown"/></svg><span>Markdown in Git<small><i class="s built" aria-hidden="true"></i>{words.markdownStatus}</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-drive"/></svg><span>Google Drive<small><i class="s built" aria-hidden="true"></i>built, not tried on a real account</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-notion"/></svg><span>Notion<small><i class="s later" aria-hidden="true"></i>designed, not built</small></span></li>
-          </ul></div>
-      </div>
-      <span class="hub" aria-hidden="true"><svg><use href="#fn-logo"/></svg></span>
-      <div class="side out-side">
-        <div><h3>Agents</h3><p>Anything that speaks MCP, signed in as the person. We've tried Claude Code.</p>
-          <ul class="kit">
-            <li><svg aria-hidden="true"><use href="#l-claude"/></svg><span>Claude Code<small><i class="s works" aria-hidden="true"></i>tried</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-cursor"/></svg><span>Cursor<small><i class="s built" aria-hidden="true"></i>install link, not tried</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-vscode"/></svg><span>VS Code<small><i class="s built" aria-hidden="true"></i>install link, not tried</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-openai"/></svg><span>ChatGPT and Codex<small><i class="s built" aria-hidden="true"></i>written steps, not tried</small></span></li>
-            <li><svg aria-hidden="true"><use href="#l-mcp"/></svg><span>Any other MCP client<small><i class="s built" aria-hidden="true"></i>over HTTP, not tried</small></span></li>
-          </ul></div>
-        <div><h3>People</h3><p>Ask, in the browser, for anyone who is signed in.</p></div>
-      </div>
-    </div>
-    <div class="key">
-      <p><span><i class="s works" aria-hidden="true"></i>works today</span><span><i class="s built" aria-hidden="true"></i>built or linked, not tried</span><span><i class="s later" aria-hidden="true"></i>designed, not built</span></p>
-      <p>In the docs: <a href={docs('connectors')}>Connectors</a> <a href={docs('connectors/authoring')}>Build a connector</a></p>
-    </div>
-  </section>
-
-  <div class="sheet">
-    <section class="band run" id="run" aria-labelledby="h-run">
-      <div class="inner">
-        <h2 id="h-run">Try it on your own computer.</h2>
-        <p class="lede">{words.installLede}</p>
-        <ol class="go">
-          <li><h3>Start it</h3><p>{words.startLine}</p><p class="cmd">{words.startCommands.map((command, i) => <Fragment>{i > 0 && <br />}<span>$ </span>{command}</Fragment>)}</p></li>
-          <li><h3>Open it</h3><p>Sign in as one of the demo people if it asks, open Ask, and try the Norway question.</p><p class="cmd"><span>$ </span>open http://localhost:8080</p></li>
-          <li><h3>Connect Claude Code</h3><p>Add the server, run /mcp, pick it and choose Authenticate. Your browser opens. Pick a demo person and press Allow.</p><p class="cmd"><span>$ </span>claude mcp add --transport http footnote http://localhost:3000/mcp</p></li>
-        </ol>
-        <div class="facts">
-          <div><h3>Runs on</h3><p>One computer with Docker. Everything it keeps is in PostgreSQL.</p><ul class="kit"><li><svg aria-hidden="true"><use href="#l-docker"/></svg>Docker</li><li><svg aria-hidden="true"><use href="#l-postgres"/></svg>PostgreSQL</li></ul></div>
-          <div><h3>A model, if you want one</h3><p>For Ask's sentences and the answer tests. It's off unless you start Footnote with <code>MODELS=live</code> and a model key, and agents never need it. A real model costs money and receives the context Ask reads.</p>
-            <ul class="kit rows">
-              <li><svg aria-hidden="true"><use href="#l-anthropic"/></svg><span>Anthropic<small>the default: Footnote is built and tested on Claude</small></span></li>
-              <li><svg aria-hidden="true"><use href="#l-openai"/></svg><span>OpenAI</span></li>
-              <li><svg aria-hidden="true"><use href="#l-vercel"/></svg><span>Vercel AI Gateway</span></li>
-              <li><svg aria-hidden="true"><use href="#i-server"/></svg><span>Any server that speaks either API<small>such as OpenRouter, LiteLLM, or Ollama on your own computer</small></span></li>
-            </ul>
-            <p class="fine">Other models than Claude work, and their answers are less complete. <a href={docs('model-providers')}>Choose a model provider</a></p></div>
-          <div><h3>Your tool</h3><p>A connector is one folder in the repository. The guide is written so a coding agent can follow it.</p></div>
+      <section class="sec" id="meaning" aria-labelledby="h-meaning">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-meaning">It keeps what the numbers mean, never the numbers</h2>
+            <p>Your semantic layer, such as Cube or dbt, still defines Orders and returns the figure. A definition says what a metric is. A note says what happened to it, when and where.<Fn n={8} /></p>
+          </div>
+          <div class="sum rv" id="sum">
+            <div class="part">
+              <div class="pic" aria-hidden="true"><svg class="line" viewBox="0 0 300 60" preserveAspectRatio="none"><path pathLength="1" d="M0,14 L24,9 L48,17 L72,11 L96,6 L120,15 L144,10 L150,52 L180,54 L210,53 L240,55 L270,54 L300,54"></path></svg><p class="axis"><span>Orders, Norway</span><span>2026</span></p></div>
+              <h3>The figure</h3>
+              <p>Cube or dbt MetricFlow defines Orders and returns it. Footnote reads the names only, and keeps no figure.<Fn n={9} /></p>
+            </div>
+            <span class="op" aria-hidden="true">+</span>
+            <div class="part">
+              <div class="pic b2" aria-hidden="true"><div class="mini"><p class="head"><span class="ref">1</span>Online sales to Norway stopped on 4 August 2026</p><p class="row"><i class="av" style="--c:#b4551f">ML</i><span>Written by <b>Maria Lindqvist</b></span></p><p class="row"><i class="av" style="--c:#12746b">JA</i><span>Checked by <b>Jon Abara</b>, 3 Oct 2026</span></p></div></div>
+              <h3>The footnote</h3>
+              <p>Someone in Sales wrote it, and the owner checked it.</p>
+            </div>
+            <span class="op" aria-hidden="true">=</span>
+            <div class="part">
+              <div class="pic b3"><p class="says">Orders in Norway fell to almost nothing from 4 August.<span class="ref" role="img" aria-label="Footnote 1">1</span></p></div>
+              <h3>The answer</h3>
+              <p>From your own agent over MCP, or from Ask in the browser.</p>
+            </div>
+          </div>
+          <p class="small">No model picks the notes. Plain rules match the question's metric, market and dates against what's written.</p>
         </div>
-        <ul class="notes">
-          <li>On the demo nothing leaves your computer, and no AI service is called. Ask uses a scripted reader that lists what's written.</li>
-          <li>Footnote reads your definitions from a Cube model folder or from the semantic_manifest.json that dbt parse writes, and never writes back.</li>
-          <li>{words.versionNote}</li>
-        </ul>
-        <div class="end"><a class="btn btn-ink" href={docs('try-the-demo')}>Install</a><a class="btn btn-line" href={docs()}>Read the docs</a><span class="meta">{words.endMeta}</span></div>
-      </div>
-    </section>
+      </section>
+
+      <section class="sec" id="definitions" aria-labelledby="h-def">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-def">Every metric, with what people know about it</h2>
+            <p>Definitions lists every metric and dimension your semantic layer defines, read only: what it means, its other names, and what it is built from. Beside each one sit the notes people wrote about it.<Fn n={10} /></p>
+          </div>
+          <Definitions />
+        </div>
+      </section>
+
+      <section class="sec" id="lines" aria-labelledby="h-lines">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-lines">Every answer starts with one of six lines</h2>
+            <p>The line comes first, for people in Ask and for agents over MCP. Code picks it from the notes found, never a model,<Fn n={11} /> so Checked means the same thing every time.</p>
+          </div>
+          <ul class="lines">
+            <li class="rv" style="--d:0ms"><span class="badge"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>Checked</span><p>Something applies, and its owner published it with a source and a check date.</p><p>Nothing to do.</p></li>
+            <li class="rv" style="--d:60ms"><span class="badge b-partial"><svg class="ic" aria-hidden="true"><use href="#i-part"></use></svg>Partial</span><p>Part of the question is covered, or the dates were assumed. The answer says which.</p><p>Write the rest, or tell the owner.</p></li>
+            <li class="rv" style="--d:120ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><p>Nobody has written this down. That's not the same as there being no reason.</p><p>Write it, or tell the owner.</p></li>
+            <li class="rv" style="--d:180ms"><span class="badge b-conflict"><svg class="ic" aria-hidden="true"><use href="#i-conflict"></use></svg>Conflict</span><p>Two items apply and they disagree. Agents get both and say so.</p><p>An owner keeps one, narrows one, or keeps both.</p></li>
+            <li class="rv" style="--d:240ms"><span class="badge b-old"><svg class="ic" aria-hidden="true"><use href="#i-old"></use></svg>Outdated</span><p>The check date has passed, or a definition the item relies on changed.</p><p>The owner looks again: Still true, or Edit.</p></li>
+            <li class="rv" style="--d:300ms"><span class="badge b-failed"><svg class="ic" aria-hidden="true"><use href="#i-off"></use></svg>Not looked up</span><p>Ask couldn't look just now. It doesn't mean nothing is written.</p><p>Try again in a minute.</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="sec" id="agents" aria-labelledby="h-agents">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-agents">Your agent asks the same way</h2>
+            <p>Over MCP, signed in as you. It gets the line first, then the notes that apply, each with its source.<Fn n={12} /></p>
+          </div>
+          <div class="agents-grid">
+            <div>
+              <div class="term glow rv" id="term">
+                <i class="gl" aria-hidden="true"></i>
+                <p class="q ln" style="--i:0">How did orders in Norway change in October 2026?</p>
+                <p class="ln" style="--i:1">called <b>get_context</b></p>
+                <p class="ln" style="--i:2"><span class="k">"status":</span> <span class="v">"matched"</span></p>
+                <p class="ln" style="--i:3"><span class="k">"say":</span> <span class="v">"<span class="st">Checked.</span> 5 context items apply to Orders in Norway in October 2026. Nothing else was looked up. 1 of them applies to only part of that question."</span></p>
+                <p class="ln" style="--i:4"><span class="k">"title":</span> <span class="v">"Online sales to Norway stopped on 4 August 2026"</span></p>
+                <p class="ln" style="--i:5;margin-bottom:20px"><span class="k">"not_to_conclude":</span> <span class="v">"Fewer orders in Norway after 4 August do not mean fewer customers."</span></p>
+                <p class="says ln" style="--i:8"><small>the agent then says</small>Orders in Norway fell because online sales there stopped on 4 August 2026 under a new customs rule. Jon Abara, who owns Sales, checked that on 3 Oct 2026. It does not mean there are fewer customers.</p>
+              </div>
+              <p class="cap">What Footnote sends the agent, shortened. The last lines are an example of what the agent then says.</p>
+            </div>
+            <div>
+              <h3>One line in your AGENTS.md</h3>
+              <p class="term one"><span class="c"># Footnote</span><br />Before you answer a question about a company metric, call get_context first and use what it returns.</p>
+              <h3 class="then">Five tools</h3>
+              <ul class="rows">
+                <li><code>get_context</code><span>the notes that apply, answer line first</span></li>
+                <li><code>find_context</code><span>what's written about a few words</span></li>
+                <li><code>read_context</code><span>one note or definition in full</span></li>
+                <li><code>report</code><span>tell the owner it looks wrong, after you say yes</span></li>
+                <li><code>suggest_context</code><span>send a suggestion, after you say yes</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="reads-grid rv">
+            <div>
+              <h3>What reads it<Fn n={13} /></h3>
+              <ul class="rows">
+                <li><b><svg aria-hidden="true"><use href="#l-claude"></use></svg>Claude Code</b><span class="tag"><i class="dot"></i>tried</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-cursor"></use></svg>Cursor</b><span class="tag"><i class="dot none"></i>install link, not tried</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-vscode"></use></svg>VS Code</b><span class="tag"><i class="dot none"></i>install link, not tried</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-openai"></use></svg>ChatGPT and Codex</b><span class="tag"><i class="dot none"></i>written steps, not tried</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-mcp"></use></svg>Any other MCP client</b><span class="tag"><i class="dot none"></i>over HTTP, not tried</span></li>
+              </ul>
+            </div>
+            <div>
+              <h3>What it reads</h3>
+              <ul class="rows">
+                <li><b><svg aria-hidden="true"><use href="#l-cube"></use></svg>Cube</b><span class="tag"><i class="dot"></i>works today</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-dbt"></use></svg>dbt MetricFlow</b><span class="tag"><i class="dot"></i>works today</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-markdown"></use></svg>Markdown in Git</b><span class="tag"><i class="dot part"></i>{words.markdownStatus}</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-drive"></use></svg>Google Drive</b><span class="tag"><i class="dot part"></i>built, not tried on a real account</span></li>
+                <li><b><svg aria-hidden="true"><use href="#l-notion"></use></svg>Notion</b><span class="tag"><i class="dot none"></i>designed, not built</span></li>
+              </ul>
+            </div>
+          </div>
+          <p class="small">Cube and dbt give Footnote the names of your metrics and markets, read only. Footnote keeps what the numbers mean, not the numbers.<Fn n={9} /> Documents arrive as suggestions for an owner, never as published notes. <a href={docs('connectors')}>Connectors</a>, <a href={docs('connect-an-agent')}>Connect an agent</a></p>
+        </div>
+      </section>
+
+      <section class="sec" id="unknown" aria-labelledby="h-unknown">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-unknown">Three things this page won't make up</h2>
+            <p>A product page usually fills these in with something that sounds good. This one does what the product does.</p>
+          </div>
+          <ul class="unknown">
+            <li class="rv" style="--d:0ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>How much better your agents will answer</h3><p>Not measured yet. The same 40 questions will be asked three ways, and the table goes in the README whatever it shows.<Fn n={14} /> <a href={docs('prove')}>Run the proof</a></p></li>
+            <li class="rv" style="--d:100ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>How it runs on a cloud host</h3><p>Nobody has run it on a named cloud host yet. It is for trying on one computer.<Fn n={15} /></p></li>
+            <li class="rv" style="--d:200ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>Who may read which note</h3><p>Not built yet. In this version, everyone who is signed in, and every agent, can read everything that's published.</p></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="sec" id="run" aria-labelledby="h-run">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-run">Run the demo on your own computer</h2>
+            <p>{words.installLede}<Fn n={16} /></p>
+          </div>
+          <ol class="go">
+            <li class="rv" style="--d:0ms"><h3>Start it</h3><p>{words.startLine}</p><p class="cmd">{words.startCommands.map((command, i) => <Fragment>{i > 0 && <br />}<span>$ </span>{command}</Fragment>)}</p></li>
+            <li class="rv" style="--d:80ms"><h3>Open it</h3><p>Open Ask and try the Norway question. The answer is marked Checked and puts the customs rule first.</p><p class="cmd"><span>$ </span>open http://localhost:8080</p></li>
+            <li class="rv" style="--d:160ms"><h3>Connect Claude Code</h3><p>Add the server, run /mcp, pick it and choose Authenticate. Pick a demo person and press Allow.</p><p class="cmd"><span>$ </span>claude mcp add --transport http footnote http://localhost:3000/mcp</p></li>
+          </ol>
+          <ul class="true rv">
+            <li>On the demo nothing leaves your computer, and no AI service is called.<Fn n={17} /></li>
+            <li>From agents, Footnote keeps only what a question was about, and how often. Never the words, and never who asked.<Fn n={18} /></li>
+            <li>{words.versionNote}<Fn n={15} /></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="sec close" aria-labelledby="h-close">
+        <div class="wrap rv">
+          <h2 id="h-close">{words.closeTitle}<b>Runs on your computer today</b></h2>
+          <div class="cta"><a class="btn btn-main" href={docs('try-the-demo')}>Run the demo</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
+          <p>Open source under Apache-2.0</p>
+        </div>
+      </section>
+
+      <section class="sec notes-sec" id="footnotes" aria-labelledby="h-notes">
+        <div class="wrap">
+          <h2 id="h-notes">Footnotes</h2>
+          <p class="lede">Where this page got what it says, in the source's own words. Vision is the project's statement of what Footnote is for. Each docs page carries the day someone last checked it against the app.</p>
+          <ol class="fns rv">
+            {
+              notes.map((note) => (
+                <li id={`fn-${note.n}`}>
+                  <span class="n">{note.n}</span>
+                  <div>
+                    <a href={note.href}>{note.label}</a>
+                    {note.quote && <Fragment> <q>{note.quote}</q></Fragment>}
+                    {note.when && <span class="when">{note.when}</span>}
+                  </div>
+                </li>
+              ))
+            }
+          </ol>
+        </div>
+      </section>
+    </main>
+
     <SiteFooter home="#top" docs={docs()} />
-  </div>
-</main>
 
-<script>
-  import { hero } from '../hero.ts'
+    <script>
+      import { hero } from '../hero.ts'
+      import { page } from '../page.ts'
 
-  const root = document.querySelector<HTMLElement>('.hero')
-  if (root) hero(root)
-</script>
+      document.documentElement.classList.add('live')
+      hero(document.querySelector<HTMLElement>('#hero')!)
+      page()
+    </script>
   </body>
 </html>

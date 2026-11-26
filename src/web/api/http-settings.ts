@@ -296,7 +296,7 @@ export function historyLine(
     }
   }
   // Families of one name, made before a family's name was a word it held, told apart once
-  // (db/migrations/0024_family_names_told_apart.sql).
+  // (db/migrations/0025_family_names_told_apart.sql).
   if (e.action === 'names.told_apart' && Array.isArray(e.details.names)) {
     const [first, ...rest] = e.details.names as { from: string; to: string }[]
     if (first)

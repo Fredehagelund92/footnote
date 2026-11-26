@@ -71,7 +71,6 @@ import {
   familyLines,
   typeLabel,
   toolOf,
-  toolsOf,
   connectorOf,
   listIndex,
   type Definition,
@@ -357,10 +356,8 @@ export function DefinitionsPage() {
     changeQuery({ sort: next.key, dir: flipped(SORTS, next) ? next.dir : undefined })
   const sort = sorting.key
   const way = flipped(SORTS, sorting) ? -1 : 1
-  // The tool the metrics and dimensions come from, when one; neutral words when none or several.
+  // The tool the metrics and dimensions come from: one definitions integration is on at a time.
   const tool = toolOf(all)
-  // With more than one tool, each row says which its definition is from.
-  const tools = toolsOf(all)
   const reader = connectorById(connectorOf(all))
   const source = reader ?? connectorByTool(tool)
   const me = useMe()
@@ -627,20 +624,9 @@ export function DefinitionsPage() {
         <NameKeepingEnd name={d.name} query={text} />
       </button>
     )
-    // The lock is said once, in the line above the table; a row shows who wrote a term, and
-    // which tool a definition is from when there is more than one.
-    const source = d.synced ? (
-      tools.length > 1 && (
-        <span
-          role="img"
-          aria-label={`From ${d.tool ?? 'its tool'}`}
-          title={`From ${d.tool ?? 'its tool'}`}
-          className="inline-flex"
-        >
-          <ToolLogo c={connectorByTool(d.tool)} size="sm" />
-        </span>
-      )
-    ) : (
+    // The lock and the tool are said once, in the line above the table; a row shows who wrote a
+    // term.
+    const source = d.synced ? null : (
       <span title={`Written by ${d.by}, ${d.updated}`} className="inline-flex">
         <PersonAvatar name={d.by ?? 'Someone'} size={20} />
       </span>
@@ -1028,11 +1014,8 @@ export function DefinitionsPage() {
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
               <span className="min-w-0">
-                From{' '}
-                {tools.length > 1
-                  ? `${tools.slice(0, -1).join(', ')} and ${tools.at(-1)}`
-                  : (tool ?? 'your definitions tool')}{' '}
-                - change them there. Terms are written here by their domain owner.
+                From {tool ?? 'your definitions tool'} - change them there. Terms are written here
+                by their domain owner.
                 {/* The tool's page is in an admin's Settings: anyone else reads the line alone. */}
                 {mayOpenSettings(toolPage, me) && (
                   <>
