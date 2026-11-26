@@ -9,22 +9,10 @@ import type { DomainId } from '@/model/items'
 
 /* ---------- people ---------- */
 
-// Soft tint, dark initials, picked from the name so one person keeps one colour everywhere.
-// Each pair is 6.4:1 or better, and stays the same in dark mode.
-const PASTELS: [string, string][] = [
-  ['#ffd9c7', '#7a2e10'],
-  ['#d4ecff', '#174a7a'],
-  ['#dff3d0', '#2d5a14'],
-  ['#f7d6ef', '#7a1f63'],
-  ['#fff0bf', '#6a4a00'],
-  ['#d9dcff', '#2e3591'],
-  ['#cdf1ea', '#0f5a4e'],
-  ['#ffd6dc', '#8a1f33'],
-  ['#e9dcff', '#56309a'],
-  ['#e2ecd4', '#3c5520'],
-  ['#ffe2cc', '#80400e'],
-  ['#d6e9f5', '#1d4d6b'],
-]
+// Soft tint, deep initials, picked from the name so one person keeps one colour everywhere: ten
+// hues every 36 degrees round the wheel, drawn by the avatar tokens, so a face is a dark tint with
+// light initials in dark mode. Every hue keeps its initials at 4.5:1 or better (the token test).
+const HUES = Array.from({ length: 10 }, (_, i) => 20 + 36 * i)
 
 function hash(s: string) {
   let h = 7
@@ -52,7 +40,7 @@ export function PersonAvatar({
   size?: 16 | 20 | 28 | 32
   className?: string
 }) {
-  const [tint, ink] = PASTELS[hash(name) % PASTELS.length]!
+  const hue = HUES[hash(name) % HUES.length]!
   const lettered = size >= 28
   return (
     <Avatar
@@ -66,12 +54,11 @@ export function PersonAvatar({
       {/* The ink is inline so a row that forces its own text colour (a focused menu item) cannot
           take it: the initials keep their contrast on the tint in every row. */}
       <AvatarFallback
-        className="bg-(--avatar-tint) text-xs font-semibold"
+        className="bg-avatar text-xs font-semibold"
         style={
           {
-            '--avatar-tint': tint,
-            '--avatar-ink': ink,
-            color: 'var(--avatar-ink)',
+            '--avatar-h': hue,
+            color: 'oklch(var(--avatar-ink-l) var(--avatar-ink-c) var(--avatar-h))',
           } as CSSProperties
         }
       >

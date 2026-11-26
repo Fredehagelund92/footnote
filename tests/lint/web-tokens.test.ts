@@ -58,17 +58,17 @@ const scales = block('@theme', true)
 const themes = { light, dark } as const
 type Theme = keyof typeof themes
 
-/** The colour a token paints in a theme; a chip's at hue `h`. A token may name another, and
- *  `--caution/8` is a soft fill: the colour at 8 percent over the page. */
+/** The colour a token paints in a theme; a chip's or an avatar's at hue `h`. A token may name
+ *  another, and `--caution/8` is a soft fill: the colour at 8 percent over the page. */
 function paint(name: string, mode: Theme, h = 0): ReturnType<typeof toRgb> {
   const tokens = themes[mode]
   const soft = /^(--[a-z0-9-]+)\/(\d+)$/.exec(name)
   if (soft) return over(paint(soft[1]!, mode), Number(soft[2]) / 100, paint('--background', mode))
-  const chip = /^--chip(-foreground)?$/.exec(name)
-  if (chip) {
-    const [l, c] = chip[1]
-      ? [tokens['--chip-ink-l'], tokens['--chip-ink-c']]
-      : [tokens['--chip-l'], tokens['--chip-c']]
+  const tint = /^--(chip|avatar)(-foreground)?$/.exec(name)
+  if (tint) {
+    const [l, c] = tint[2]
+      ? [tokens[`--${tint[1]}-ink-l`], tokens[`--${tint[1]}-ink-c`]]
+      : [tokens[`--${tint[1]}-l`], tokens[`--${tint[1]}-c`]]
     return toRgb(`oklch(${l} ${c} ${h})`)
   }
   const value = tokens[name]
@@ -147,7 +147,7 @@ describe('src/web/styles/tokens.css holds every token of the design contract', (
   })
 
   it('gives every colour a Tailwind name, so a class names it, never its value', () => {
-    for (const name of [...colours, 'chart-1', 'chip', 'chip-foreground'])
+    for (const name of [...colours, 'chart-1', 'chip', 'chip-foreground', 'avatar'])
       expect(theme[`--color-${name}`], name).toBeDefined()
   })
 
@@ -463,6 +463,28 @@ describe('contrast pairs meet their minimum in both themes', () => {
       expect(low).toEqual([])
       for (const name of ['metric', 'dimension', 'market', 'term', 'warn'])
         expect(Number(light[`--chip-h-${name}`]), name).toBeLessThan(360)
+    },
+  )
+
+  it.each(['light', 'dark'] as const)(
+    '%s: initials on an avatar read at 4.5:1 at every hue, so any of the ten faces is safe',
+    (mode) => {
+      const low = Array.from({ length: 360 }, (_, h) =>
+        contrast(paint('--avatar-foreground', mode, h), paint('--avatar', mode, h)),
+      ).filter((ratio) => ratio < 4.5)
+      expect(low).toEqual([])
+    },
+  )
+
+  it.each([
+    ['--avatar-l', '0.93', '0.34'],
+    ['--avatar-c', '0.045', '0.055'],
+    ['--avatar-ink-l', '0.42', '0.9'],
+    ['--avatar-ink-c', '0.09', '0.06'],
+  ])(
+    '%s: a light tint with deep ink in light mode, a deep tint with light ink in dark',
+    (name, l, d) => {
+      expect([light[name], dark[name]]).toEqual([l, d])
     },
   )
 })

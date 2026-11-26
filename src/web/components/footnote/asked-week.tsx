@@ -7,7 +7,7 @@ import {
   EyeOffIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { stateIcon } from '@/components/footnote/state-line'
+import { StateEdge, stateIcon } from '@/components/footnote/state-line'
 import { Answering } from '@/components/footnote/suggestions'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -191,6 +191,7 @@ const weekParts = {
   Answering,
   Card,
   cn,
+  StateEdge,
   stateIcon,
   stateInk,
   stateLabel,

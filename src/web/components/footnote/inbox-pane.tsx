@@ -23,9 +23,8 @@ import { kindIcons } from '@/components/footnote/kind-icons'
 import { DetailsBody } from '@/components/footnote/details-body'
 import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { DifferingWords } from '@/components/footnote/differing-words'
-import { StateLine } from '@/components/footnote/state-line'
+import { StateEdge, StateLine } from '@/components/footnote/state-line'
 import { useDomains } from '@/lib/workspace'
-import type { AnswerState } from '@/model/ask'
 import { kindLabel, type DomainId, type Fact } from '@/model/items'
 import { ownersOf } from '@/model/people'
 import { plainText } from '@/lib/mentions'
@@ -188,16 +187,6 @@ export function PrimaryAction({
   )
 }
 
-/** The 3 px rule over the answer after the decision, in its state's colour. */
-const afterRule: Record<AnswerState, string> = {
-  grounded: 'border-t-good',
-  partial: 'border-t-caution',
-  missing: 'border-t-muted-foreground',
-  conflict: 'border-t-caution',
-  stale: 'border-t-caution',
-  failed: 'border-t-muted-foreground',
-}
-
 /** One side of the answers: its label, Footnote's answer line, and the words agents give. */
 function AnswerSide({
   label,
@@ -213,17 +202,12 @@ function AnswerSide({
   return (
     <div
       className={cn(
-        'flex min-w-0 flex-col gap-2 px-4 pt-4 pb-4.5',
-        // Side by side, today's side keeps the same 3 px at its top, so both labels line up.
-        !after && '@pane-split:border-t-3 @pane-split:border-t-transparent',
-        after &&
-          cn(
-            'border-t-3 @pane-split:border-l',
-            afterRule[answer.state],
-            answer.state === 'conflict' && 'bg-caution/8',
-          ),
+        'relative flex min-w-0 flex-col gap-2 px-4 py-4',
+        after && 'border-t @pane-split:border-t-0 @pane-split:border-l',
+        after && answer.state === 'conflict' && 'bg-caution/8',
       )}
     >
+      <StateEdge state={answer.state} />
       <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       <StateLine state={answer.state} sentence />
       <p

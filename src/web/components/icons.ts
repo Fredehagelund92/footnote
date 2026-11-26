@@ -3,6 +3,8 @@
  * here, so the app uses one icon set at one version and ESLint can hold that rule. To add an icon,
  * add its name below. Icons draw at the library's default stroke.
  */
+import { createLucideIcon } from 'lucide-react'
+
 export {
   ActivityIcon,
   ArchiveIcon,
@@ -18,6 +20,7 @@ export {
   ArrowUpIcon,
   ArrowUpRightIcon,
   AtSignIcon,
+  BadgeCheckIcon,
   BanIcon,
   BellIcon,
   Bold,
@@ -54,7 +57,6 @@ export {
   Code,
   CodeXmlIcon,
   CoinsIcon,
-  ContrastIcon,
   CommandIcon,
   CopyIcon,
   CornerUpLeftIcon,
@@ -187,6 +189,7 @@ export {
   Underline,
   Undo2,
   Undo2Icon,
+  UnplugIcon,
   UserIcon,
   UserPlusIcon,
   UserRoundIcon,
@@ -198,3 +201,13 @@ export {
   ZapIcon,
   type LucideIcon,
 } from 'lucide-react'
+
+/**
+ * A circle with its left half filled: the library has no plain half-filled circle (its `contrast`
+ * reads as the light and dark switch). Built the way the library builds its own, so it takes the
+ * same size, stroke and colour, and the fill follows the text colour.
+ */
+export const CircleHalfIcon = createLucideIcon('circle-half', [
+  ['circle', { cx: '12', cy: '12', r: '10', key: 'ring' }],
+  ['path', { d: 'M12 2a10 10 0 0 0 0 20z', fill: 'currentColor', key: 'half' }],
+])
