@@ -10,7 +10,7 @@ import { termDomain } from '../../../src/domain/catalogue.ts'
 
 /** The model version the connector reports for db/seed/cube (a digest of its files). */
 export const DEMO_SOURCE_VERSION =
-  '7d73c2db78838fb4b32f22780383c5ef13c65a3986e7ead4ead00e4fb234ed36'
+  '6251f8c5a4af0f49b8d1298eaa11cd1821a548098d312cb2ba9f982171174fe3'
 /** When the seed says the connector first read the model, and read it last (ISO 8601). */
 export const DEMO_FIRST_READ_AT = '2026-09-01T05:00:00.000Z'
 export const DEMO_READ_AT = '2026-10-07T05:00:00.000Z'
@@ -35,6 +35,8 @@ export type DemoDefinition = {
   domainSource: 'source' | 'override' | 'none'
   /** The model file that defines the member's view, in db/seed/cube. */
   modelFile: string
+  /** The measures and columns its own calculation reads, when it is column arithmetic. */
+  builtFrom?: { refs: string[]; columns: string[] }
   changeMark: string
 }
 
@@ -51,6 +53,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
+    builtFrom: { refs: [], columns: ['order_value_eur'] },
     changeMark: '8c3c38d0031ca794c9d24a66da521a4ece524b558d1b1de1ff1388681e8f21ba',
   },
   {
@@ -90,6 +93,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'basket.yml',
+    builtFrom: { refs: [], columns: ['units'] },
     changeMark: 'a8eca6cc0386a4bb793cf3bba5331c67b45f075f87a4af8be4f5e0d4bafbdd58',
   },
   {
@@ -103,6 +107,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
+    builtFrom: { refs: [], columns: ['customer_id'] },
     changeMark: '84163fa596bcd35ed4a87c10101ef035dbe2a03d0f85fe1d8688cd90e8fa1c24',
   },
   {
@@ -129,6 +134,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_customer_value',
     domainSource: 'source',
     modelFile: 'customers.yml',
+    builtFrom: { refs: [], columns: ['predicted_value_eur'] },
     changeMark: '5f8ba26eca616756edb1b85ea95c8078b8d8531c2bdf81f00ae11a54d5d279ce',
   },
   {
@@ -205,6 +211,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
+    builtFrom: { refs: [], columns: ['discount_eur'] },
     changeMark: '39f2b8bb2eff779afc98b709e3f59aa992fced0b15724f7016d0f5302c307348',
   },
   {
@@ -242,6 +249,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_marketing',
     domainSource: 'source',
     modelFile: 'marketing.yml',
+    builtFrom: { refs: [], columns: ['spend_eur'] },
     changeMark: 'a2b59fa0eed684b03ab389f91b79315b562225d0c65b85764bc0425365c2d26e',
   },
   {
@@ -280,6 +288,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: null,
     domainSource: 'none',
     modelFile: 'operations.yml',
+    builtFrom: { refs: [], columns: ['contacts'] },
     changeMark: 'e6a541eb9162f535589eba9e152bbf986040c326662473c08728369fb53435ff',
   },
   {
@@ -317,6 +326,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'orders.yml',
+    builtFrom: { refs: [], columns: ['order_amount'] },
     changeMark: '3300dcae264963259beec8a93e00ac7595ca6357e8651f256fa4c4bdd5aa8129',
   },
   {
@@ -330,6 +340,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'orders.yml',
+    builtFrom: { refs: [], columns: ['refund_amount'] },
     changeMark: 'b82bc59631db1af4563678d9dd0a224213eed0abbf0575892f2456b66a54108f',
   },
   {
@@ -343,6 +354,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'revenue.yml',
+    builtFrom: { refs: [], columns: ['gross_sales_eur'] },
     changeMark: '76acca58c3eb0e0df2fc82fd7bdda67c89d15094998a6d167f7c93440edc81af',
   },
   {
@@ -356,6 +368,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'revenue.yml',
+    builtFrom: { refs: [], columns: ['net_revenue_eur'] },
     changeMark: 'b170f6ef89915ff2e21576d51ae2403a75abc74dc5b95edd193cecb8ae1cb060',
   },
   {
@@ -369,6 +382,7 @@ export const demoDefinitions: DemoDefinition[] = [
     areaHint: 'area_sales',
     domainSource: 'source',
     modelFile: 'revenue.yml',
+    builtFrom: { refs: [], columns: ['units'] },
     changeMark: '1cccdf1061778a9aa416eacae17a5642536f3df5f45dfa5ddf8588e04277fa4c',
   },
   {

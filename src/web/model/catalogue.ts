@@ -9,37 +9,43 @@ import { logos, type Connector, type ConnectorKind } from './integrations'
 
 /**
  * How the app words a connector it knows well: the lead of its page, what it calls a group of
- * metrics, where its definitions say their domain, and an example of its data endpoint. All of it is optional: a connector without
- * an entry is drawn from its manifest alone.
+ * metrics, where its definitions say their domain, and how its model declares a family. All of it
+ * is optional: a connector without an entry is drawn from its manifest alone.
  */
+/** A measure of Cube's that names its family, as its model writes it (meta.footnote). */
+const CUBE_FAMILY = `measures:
+  - name: revenue_eur
+    type: sum
+    sql: amount_eur
+    meta:
+      footnote:
+        family: revenue
+        by:
+          currency: EUR`
+
 const words: Record<
   string,
   Partial<
     Pick<
       Connector,
-      | 'label'
-      | 'lead'
-      | 'group'
-      | 'domainField'
-      | 'endpointExample'
-      | 'noFileLinks'
-      | 'serverSetting'
+      'label' | 'lead' | 'group' | 'domainField' | 'noFileLinks' | 'serverSetting' | 'familyExample'
     >
   >
 > = {
   cube: {
     // From a Git repository an admin names, or a folder whoever runs the server names: the page
     // says which, so the lead says neither.
-    lead: "Reads your Cube definition files. Read-only, and it keeps no calculation. It has two connections: definitions from the files, and figures, when switched on, from Cube's data API at the time of the answer.",
+    lead: 'Reads your Cube definition files. Read-only, and it keeps no calculation.',
     domainField: 'meta.domain',
-    endpointExample: 'https://cube.example.com/cubejs-api/v1/load',
     serverSetting: 'CUBE_MODEL_DIR',
+    familyExample: CUBE_FAMILY,
   },
   'cube-cloud': {
     // Beside Cube model files, which read the same tool: its headings say which.
     label: 'Cube Cloud',
     lead: 'Reads the metadata of a Cube Cloud deployment through its API. Read-only, and it never reads data or SQL. Cube Cloud gives no calculations, so a change to one is seen only through what Cube Cloud shows of the member. That is its type, how it adds up, its title, description, format or meta.',
     domainField: 'meta.domain',
+    familyExample: CUBE_FAMILY,
   },
   'dbt-metricflow': {
     lead: 'Reads the semantic manifest your dbt pipeline writes, from where you keep it. Read-only, and it keeps no calculation and no value.',
@@ -48,6 +54,14 @@ const words: Record<
     group: { one: 'semantic model', many: 'semantic models' },
     domainField: 'config.meta.domain',
     noFileLinks: true,
+    familyExample: `metrics:
+  - name: revenue_eur
+    config:
+      meta:
+        footnote:
+          family: revenue
+          by:
+            currency: EUR`,
   },
   'google-drive': {
     lead: 'Reads the Google Docs in folders shared with its service account. Each new or changed document becomes one suggestion for the owners of its domain.',
@@ -74,7 +88,6 @@ export function connectorOf(manifest: ConnectorManifest): Connector {
     ...(logo ? { logo } : {}),
     ...(manifest.icon ? { icon: manifest.icon } : {}),
     blurb: manifest.summary,
-    ...(manifest.capabilities.figures ? { figures: true as const } : {}),
     ...(key ? { keyFile: key.key } : {}),
     ...(places ? { places: true as const } : manifest.egress.git ? { git: true as const } : {}),
     ...(api ? { api: true as const } : {}),

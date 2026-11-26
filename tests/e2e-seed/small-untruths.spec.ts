@@ -57,6 +57,6 @@ test('the Cube source read from a folder on the server never says it reads from 
     .getByRole('button', { name: 'Manage' })
     .click()
   await expect(page.getByRole('heading', { name: 'Cube', level: 2 })).toBeVisible()
-  await expect(page.getByText(/read from a folder on the server/)).toBeVisible()
+  await expect(page.getByText('Set by the person who hosts this app')).toBeVisible()
   await expect(page.getByText(/from Git/)).toHaveCount(0)
 })

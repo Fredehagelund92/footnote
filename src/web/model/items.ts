@@ -13,8 +13,12 @@ export type DomainId = string
 /** The four kinds the app writes. */
 export type Kind = ItemKind
 
-/** A draft was never published: agents never got it, so it can be deleted. A published item is archived instead. */
-export type Status = 'Draft' | 'Live' | 'Due for a check' | 'Archived'
+/**
+ * A draft was never published: agents never got it, so it can be deleted. Waiting (for review) was
+ * sent: an owner of its domain decides, and agents don't get it yet. A published item is archived
+ * instead.
+ */
+export type Status = 'Draft' | 'Waiting' | 'Live' | 'Due for a check' | 'Archived'
 
 /**
  * The four kinds of context, in plain words most people know, native English or not. The one
@@ -63,6 +67,11 @@ export type Fact = {
    * `where` is the same scope as names.
    */
   scope?: ScopeTerm[]
+  /**
+   * The dimension values it applies to, each with its dimension, by name ("Market", "Norway"):
+   * what By time groups and filters a dimension by. `where` names them without their dimension.
+   */
+  values?: { dimension: string; name: string }[]
   /** When it applies, as stored (dates, not words). */
   valid: Validity
   /** Derived from `valid` by whenLabel: the When people read. Never typed by hand. */
@@ -82,20 +91,31 @@ export type Fact = {
   origin?: { tool: string; connector: string; folder: string; doc: string; read: string }
   /** Who answers for it, when not its domain's owners: set in the editor or in bulk. */
   owners?: string[]
-  /** Who started a draft. */
+  /** Who started a draft, or sent a suggestion that waits for review. */
   by?: string
+  /** When a suggestion waiting for review was sent (ISO): how long it has waited. */
+  sentAt?: string
+  /**
+   * A suggestion an owner returned to its writer with a note: they edit it and send it again. It
+   * is no draft of theirs alone, so it is sent, never saved as a draft.
+   */
+  returned?: boolean
 }
 
-/** A status in the server's words: accepted or retired, with the flags that wait for a look. A draft is no item yet. */
+/** A status in the server's words: accepted or retired, with the flags that wait for a look. A draft, or a suggestion waiting for review, is no item yet. */
 export const toServerStatus = (
   status: Status,
 ): { status: ItemStatus; flags: CheckFlag[] } | null =>
-  status === 'Draft'
+  status === 'Draft' || status === 'Waiting'
     ? null
     : {
         status: status === 'Archived' ? 'retired' : 'accepted',
         flags: status === 'Due for a check' ? ['needs_check'] : [],
       }
+
+/** Not published yet: a draft, or a suggestion waiting for review. Agents never got it. */
+export const unpublished = (f: Pick<Fact, 'status'>) =>
+  f.status === 'Draft' || f.status === 'Waiting'
 
 /** What agents get: a published item that isn't archived. */
 export const servedToAgents = (f: Pick<Fact, 'status'>) =>
@@ -131,7 +151,7 @@ export type LogEntry = {
   /** ISO date. */
   on: string
   who: string
-  what: 'archived' | 'deleted' | 'moved' | 'kind' | 'owners' | 'checked' | 'settled'
+  what: 'archived' | 'deleted' | 'moved' | 'kind' | 'owners' | 'checked' | 'settled' | 'published'
   /** One sentence: "Moved to Marketing." */
   summary: string
   items: { id: string; title: string; domain?: DomainId }[]

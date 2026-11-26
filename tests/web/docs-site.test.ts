@@ -33,7 +33,7 @@ describe('the docs site', () => {
       expect(html, slug).toContain(`>${headOf(slug).title.replaceAll("'", '&#x27;')}</h1>`)
     }
     expect(render('connect-an-agent')).toContain('claude mcp add --transport http')
-    expect(render('answer-lines')).toContain('Nothing is written about this yet.')
+    expect(render('answer-lines')).toContain('Nothing published about this yet.')
     expect(render('tools')).toContain('suggest_context')
     expect(render('changelog')).toContain('<time dateTime="2026-10-23"')
     expect(render(undefined)).toContain('Documentation')

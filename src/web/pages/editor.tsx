@@ -21,10 +21,10 @@ import {
   TriangleAlertIcon,
   UserIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { RichTextEditor } from '@/components/editor'
-import { ContextText } from '@/components/footnote/mention-chip'
+import { ContextText } from '@/components/footnote/context-text'
 import { hostOf } from '@/lib/host'
 import { useSideChoice } from '@/lib/side-panel'
 import { useSend } from '@/lib/send'
@@ -34,8 +34,7 @@ import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { conflictPath } from '@/model/conflicts'
-import { holdLine, readinessOf, SUMMARY_LIMIT } from '@/model/editor-readiness'
-import { type Validity } from '@/model/validity'
+import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/editor-readiness'
 import {
   missingDates,
   validOfWhen,
@@ -72,7 +71,7 @@ import { readOf } from '@/lib/read'
 import { Loading } from '@/App'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldLabel } from '@/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -85,9 +84,14 @@ import {
   type Kind,
   type ScopeTerm,
   type Status,
+  unpublished,
 } from '@/model/items'
 import { homeDomain, ownersOf, type Domain, type Domains } from '@/model/people'
-import { toApiError, type Clash } from '@/api/errors'
+import { ApiError, toApiError, type Clash } from '@/api/errors'
+import { planFacts, publishParts } from '@/lib/bulk'
+import { useUndo } from '@/lib/undo'
+import { today } from '@/lib/today'
+import { dateLabel, type Validity } from '@/model/validity'
 import { closeDock, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
@@ -109,11 +113,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
 import { relationWords } from '@domain/clash-relations'
+import { instructionWords } from '@domain/instruction-words'
 import { draftFromTextQuery, itemPageQuery, useInbox, useVocabulary, useWrite } from '@/api/queries'
+import { useGlossary, type Definition } from '@/lib/definitions'
 import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useWide } from '@/hooks/use-wide'
 import { Kbd } from '@/components/ui/kbd'
 import { usePrimaryKey } from '@/hooks/use-primary-key'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
 
 // The context editor as a document, the way editorcn's Simple Document Editor template shows one: a
@@ -173,8 +180,8 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
     kind: f.kind,
     domain: f.domain,
     owners: ownersOf(f, domains),
-    // A draft is published as Live.
-    status: f.status === 'Draft' ? 'Live' : f.status,
+    // A draft, or a suggestion waiting for review, is published as Live.
+    status: unpublished(f) ? 'Live' : f.status,
     where: scopeOf(f, vocabulary),
     when: w.mode,
     from: w.from,
@@ -230,11 +237,14 @@ function initialForm(
     gapDraft,
     fromText,
     publishes,
+    definitionOf,
   }: {
     domains: Domains
     vocabulary: Vocabulary
     gapDraft?: Fact
     fromText?: Fact
+    /** A definition by its name, as Definitions reads it: its domain is where an item about it starts. */
+    definitionOf: (name: string) => Pick<Definition, 'domain'> | undefined
     /** Whether the writer publishes in a domain: its owner, or an administrator. */
     publishes: (domain: DomainId) => boolean
   },
@@ -256,15 +266,27 @@ function initialForm(
   const metric = query.get('metric')
   const market = query.get('market')
   const about = query.get('about')?.split('|') ?? []
-  // Written from a definition, it starts in the definition's domain when the writer publishes
-  // there, rather than in the first domain they own.
-  const own = query.get('domain')
+  // Written from a definition or about a question, it starts in the domain of what it is about
+  // when the writer publishes there, or owns no domain of their own to start in; else in the first
+  // domain they own.
+  const own =
+    query.get('domain') ??
+    [metric, ...about].flatMap((name) => {
+      const d = name ? definitionOf(name) : undefined
+      return d?.domain ? [d.domain] : []
+    })[0]
   const ownDomain = own && Object.hasOwn(domains, own) ? domains[own] : undefined
-  const start = own && ownDomain && publishes(own) ? { domain: own, owners: ownDomain.owners } : {}
+  const start =
+    own && ownDomain && (publishes(own) || !publishes(home))
+      ? { domain: own, owners: ownDomain.owners }
+      : {}
+  // The kind the question makes likely: a rule about a metric, an event about a date.
+  const kind = query.get('kind')
   if (metric || market || about.length)
     return {
       ...blank,
       ...start,
+      ...(kind && Object.hasOwn(kindLabel, kind) ? { kind: kind as Kind } : {}),
       where: termsOfNames(
         [metric, market, ...about].filter((w): w is string => !!w),
         vocabulary,
@@ -421,8 +443,10 @@ function Editor({
   const domainList = useDomainList()
   const people = usePeople()
   const vocabulary = useVocabulary()
+  const glossary = useGlossary()
   const { cards } = useInbox()
   const write = useWrite()
+  const undo = useUndo()
   const queryClient = useQueryClient()
   const { query } = useRoute()
   // Opened from a conflict (Edit this one): the other item stays in view while this one is narrowed.
@@ -435,6 +459,10 @@ function Editor({
       gapDraft: cards.find((c) => c.id === query.get('gap'))?.gap?.draft,
       fromText: mode === 'new' ? fromText : undefined,
       publishes: (domain) => me.admin || me.owns.includes(domain),
+      definitionOf: (name) => {
+        const d = glossary.find(name)
+        return d && glossary.meaningOf(d)
+      },
     }),
   )
   const [form, setForm] = React.useState<Form>(initial)
@@ -450,6 +478,10 @@ function Editor({
   const [overlap, setOverlap] = React.useState<Record<string, Relation>>({})
   const [pasted, setPasted] = React.useState('')
   const [draftOpen, setDraftOpen] = React.useState(false)
+  // Why the pasted text filled nothing in, such as a page Footnote can't open; the text stays, so
+  // pasting the page's own words is the next step.
+  const [fillProblem, setFillProblem] = React.useState('')
+  const [filling, setFilling] = React.useState(false)
   const [previewAll, setPreviewAll] = React.useState(false)
   const { state: sendState, error: sendError, send, online, reset } = useSend()
   // Live items the service named when it refused to publish until this says how it relates to
@@ -487,9 +519,19 @@ function Editor({
   const trying = useDock()?.kind === 'try'
   const owner = me.owns.includes(form.domain) || me.admin
   const isSuggest = mode === 'suggest' || !owner
-  // A new item, or a draft nobody has published: it has no status until it is published.
-  const unpublished = mode === 'new' || original?.status === 'Draft'
+  // A new item, a draft nobody has published, or a suggestion waiting for review: it has no status
+  // until it is published.
+  const notLive = mode === 'new' || (!!original && unpublished(original))
   const ownerName = form.owners[0] ?? domains[form.domain]?.owners[0] ?? ''
+  const standing = standingLine({
+    mode,
+    draft: original?.status === 'Draft',
+    waiting: original?.status === 'Waiting',
+    suggests: isSuggest,
+    writer: original?.by && original.by !== me.name ? original.by : undefined,
+    owner: ownerName,
+    domain: domains[form.domain]?.name ?? '',
+  })
   const ids = React.useId()
   const KindIcon = kindIcons[form.kind]
   const fieldId = (name: string) => `${ids}-${name}`
@@ -537,15 +579,28 @@ function Editor({
   // Counted as agents read it: a mention is its words.
   const text = plainText(form.body)
   const words = countWords(`${form.title} ${text}`)
+  // Words that read like orders to an AI agent (NFR-024), such as a pasted page can carry: said
+  // while drafting, as the owner's review says them, and kept as words.
+  const orders = React.useMemo(
+    () => instructionWords([form.title, text, form.quote].join('\n')),
+    [form.title, text, form.quote],
+  )
   // Long enough to clamp: about six lines of the preview's width.
   const long = text.split('\n').filter(Boolean).length + Math.floor(text.length / 45) > 6
 
   const fill = async () => {
-    const filled = fromFact(
-      await queryClient.fetchQuery(draftFromTextQuery(pasted)),
-      domains,
-      vocabulary,
-    )
+    setFillProblem('')
+    setFilling(true)
+    let drafted
+    try {
+      drafted = await queryClient.fetchQuery(draftFromTextQuery(pasted))
+    } catch (e) {
+      setFillProblem(toApiError(e).message)
+      return
+    } finally {
+      setFilling(false)
+    }
+    const filled = fromFact(drafted, domains, vocabulary)
     setForm(filled)
     editor?.commands.setContent(filled.body, { contentType: 'markdown' })
     setDraftOpen(false)
@@ -554,7 +609,9 @@ function Editor({
 
   // Nothing is kept until Save: words that differ from what the page opened with are unsaved.
   const edited = JSON.stringify(form) !== JSON.stringify(initial)
-  const unchanged = mode !== 'new' && !edited
+  // A draft nobody has published goes as it is: publishing its words is the change.
+  const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
+  const unchanged = mode !== 'new' && !edited && !asIs
   const guard = useLeaveGuard(edited)
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
@@ -597,7 +654,49 @@ function Editor({
         ?.focus()
   }
 
+  // Sending, then done; or failed with Retry, the text untouched. Offline, nothing is sent.
+  // A draft is published by its button, whoever wrote it: it is not Live yet, so nothing is saved.
+  const verb = isSuggest ? 'Send' : notLive ? 'Publish' : 'Save'
+  /**
+   * A draft as it is, through the Context list's Publish of one row: at once where the person owns
+   * its domain or is an admin, as its writer's; their own for another domain goes to its owners.
+   */
+  const publishAsIs = async (f: Fact) => {
+    const who = { name: me.name, admin: me.admin }
+    const plan = planFacts('publish', [f], who, domains)
+    if (!plan.act.length) throw new ApiError('forbidden', plan.skipped[0]!.reason)
+    const parts = publishParts(plan, who, domains, dateLabel(today()))
+    const result = await write('applyBulk', {
+      action: 'publish',
+      patches: parts.patches,
+      remove: [],
+      ...(parts.suggest.length ? { suggest: parts.suggest } : {}),
+      entry: {
+        id: `log-page-${f.id}`,
+        on: today(),
+        who: me.name,
+        what: 'published',
+        summary: 'Published from its page.',
+        items: [{ id: f.id, title: f.title, domain: f.domain }],
+      },
+    })
+    if (!result.done.includes(f.id))
+      throw new ApiError(
+        result.skipped?.length ? 'invalid' : 'failed',
+        result.skipped?.[0]?.reason ?? "It couldn't be published. Try again.",
+      )
+    guard.release()
+    const sent = parts.suggest.length > 0
+    undo.offer(sent ? `Sent to the owners of ${parts.to}` : 'Published', result.undo, {
+      description: sent
+        ? 'Agents get it once an owner publishes it.'
+        : 'Agents get it from the next question.',
+    })
+    navigate('/context')
+  }
+
   const commit = async () => {
+    if (asIs) return publishAsIs(asIs)
     if (isSuggest) {
       // It waits visibly: a line on the item, and a row under All in your Inbox.
       const { id } = await write('sendSuggestion', {
@@ -651,13 +750,11 @@ function Editor({
       navigate(conflictPath(`${original.id}.${beside.id}`), { settle: 'not_conflict' })
       return
     }
-    toast(original ? 'Saved' : 'Published', {
+    toast(verb === 'Save' ? 'Saved' : 'Published', {
       description: 'Agents get it from the next question.',
     })
     navigate(`/context/${id}`)
   }
-  // Sending, then done; or failed with Retry, the text untouched. Offline, nothing is sent.
-  const verb = isSuggest ? 'Send' : original ? 'Save' : 'Publish'
   // A refusal that names live items to relate to lists them, unanswered, under the title.
   const publish = () =>
     commit().catch(async (e: unknown) => {
@@ -715,6 +812,50 @@ function Editor({
   const held =
     blocked || (!online ? `You're offline. ${verb} once you're back; your text stays here.` : '')
 
+  // Save as draft (FR-139): a new item, the person's own draft, or a change to a published item,
+  // kept where only they can see it, to finish later. A suggestion that waits for review, or one an
+  // owner returned, is sent instead.
+  const savesDraft =
+    !beside &&
+    !query.get('setup') &&
+    (mode === 'new' ||
+      (original?.status === 'Draft' && !original.returned && original.by === me.name) ||
+      (!!original && !unpublished(original)))
+  const [savingDraft, setSavingDraft] = React.useState(false)
+  const draftHeld = !online
+    ? "You're offline. Save it once you're back; your text stays here."
+    : !domains[form.domain]
+      ? 'Choose a domain first.'
+      : !form.title && !form.body.trim()
+        ? 'Write something first.'
+        : mode !== 'new' && !edited
+          ? 'No changes yet.'
+          : ''
+  const saveDraft = async () => {
+    if (draftHeld) {
+      toast("Couldn't save it as a draft", { description: draftHeld })
+      return
+    }
+    setSavingDraft(true)
+    try {
+      const { id } = await write('saveDraft', {
+        fact: draft,
+        isNew: !original,
+        gap: query.get('gap') ?? undefined,
+      })
+      guard.release()
+      toast('Saved as a draft', {
+        description: "Only you can see it. Agents don't get it until it is published.",
+      })
+      navigate(`/context/${id}`)
+    } catch (error) {
+      toast("Couldn't save it as a draft", { description: toApiError(error).message })
+    } finally {
+      setSavingDraft(false)
+    }
+  }
+  const mobile = useIsMobile()
+
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')
 
@@ -743,7 +884,13 @@ function Editor({
 
   // Draft from text: a short dialog, opened from the More menu.
   const draftFromText = (
-    <Dialog open={draftOpen} onOpenChange={setDraftOpen}>
+    <Dialog
+      open={draftOpen}
+      onOpenChange={(open) => {
+        setDraftOpen(open)
+        if (!open) setFillProblem('')
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Draft from text</DialogTitle>
@@ -756,14 +903,22 @@ function Editor({
           <Textarea
             id="draft-text"
             value={pasted}
-            onChange={(e) => setPasted(e.target.value)}
+            onChange={(e) => {
+              setPasted(e.target.value)
+              setFillProblem('')
+            }}
+            aria-invalid={fillProblem ? true : undefined}
+            aria-describedby={fillProblem ? 'draft-text-problem' : undefined}
             className="min-h-28"
             placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
           />
+          <FieldError id="draft-text-problem">{fillProblem}</FieldError>
         </Field>
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-          <Button onClick={() => void fill()}>Fill it in</Button>
+          <Button onClick={() => void fill()} loading={filling} loadingLabel="Reading…">
+            Fill it in
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -830,7 +985,7 @@ function Editor({
             )}
           >
             {form.body.trim() ? (
-              <ContextText text={form.body.replace(/\*\*|`/g, '')} dense />
+              <ContextText text={form.body} dense />
             ) : (
               <p className="text-muted-foreground">…</p>
             )}
@@ -900,6 +1055,19 @@ function Editor({
               on="Try it"
               off="Back to writing"
             />
+            {savesDraft && !mobile && (
+              <Button
+                variant="outline"
+                aria-disabled={!!draftHeld}
+                aria-description={draftHeld || undefined}
+                title={draftHeld || undefined}
+                loading={savingDraft}
+                loadingLabel="Saving…"
+                onClick={() => void saveDraft()}
+              >
+                Save as draft
+              </Button>
+            )}
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -942,6 +1110,12 @@ function Editor({
               {held}
             </span>
             <HeaderMore>
+              {savesDraft && mobile && (
+                <DropdownMenuItem onClick={() => void saveDraft()}>
+                  <FilePenLineIcon />
+                  Save as draft
+                </DropdownMenuItem>
+              )}
               {mode === 'new' && (
                 <DropdownMenuItem onClick={() => setDraftOpen(true)}>
                   <SparklesIcon />
@@ -1071,10 +1245,13 @@ function Editor({
             </p>
           </aside>
         )}
-        {mode === 'suggest' && original && (
-          <p className="mb-5 rounded-frame bg-muted px-3 py-2 text-sm text-muted-foreground">
-            You're suggesting a change. {ownerName}, owner of {domains[original.domain]?.name},
-            decides; agents keep getting the context item as it is until then.
+        {standing && (
+          <p
+            role="note"
+            aria-label="Where this stands"
+            className="mb-5 rounded-frame bg-muted px-3 py-2 text-sm text-muted-foreground"
+          >
+            {standing}
           </p>
         )}
         <textarea
@@ -1090,6 +1267,19 @@ function Editor({
         {problemAt('title') && (
           <p data-problem className="-mt-3 mb-4 text-sm text-destructive">
             {problemAt('title')}
+          </p>
+        )}
+        {orders.length > 0 && (
+          <p
+            aria-label="Words that read like orders"
+            className="mb-5 flex items-start gap-2 rounded-frame bg-muted px-3 py-2 text-sm"
+          >
+            <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0 text-caution" aria-hidden />
+            <span>
+              Some words read like orders to an AI agent: {orders.map((w) => `“${w}”`).join(', ')}.
+              Agents get them as words to read, never as orders. Check that they belong before you
+              publish.
+            </span>
           </p>
         )}
         {/* What stopped a publish, in the service's words, and the live items it named to relate
@@ -1211,7 +1401,7 @@ function Editor({
               />
             </PropertyRow>
             <PropertyRow id={fieldId('status')} label="Status" icon={<CircleDotIcon />}>
-              {unpublished ? (
+              {notLive ? (
                 // Agents get nothing of it until it is published: it is not Live yet (U9).
                 <StaticField>Not published yet</StaticField>
               ) : (

@@ -1,8 +1,10 @@
 import * as React from 'react'
+import { andList } from '@domain/family-split'
 import {
   ArrowLeftIcon,
   ArrowLeftRightIcon,
   AtSignIcon,
+  BookOpenIcon,
   MessageSquareTextIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -11,14 +13,15 @@ import {
   ClockIcon,
   type FlagIcon,
   InboxIcon,
+  LinkIcon,
   MailOpenIcon,
   MessageSquareIcon,
   SearchIcon,
   TriangleAlertIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn, midSentence } from '@/lib/utils'
-import { FieldDiff } from '@/components/footnote/bits'
+import { FieldDiff, PersonAvatar } from '@/components/footnote/bits'
 import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/footnote/tool-logo'
@@ -63,14 +66,24 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { scopeText } from '@/model/ask'
-import type { InboxCard, Waiting } from '@/model/inbox'
+import { ASK_SOMEONE, type InboxCard, type Waiting } from '@/model/inbox'
+import { questionPath } from '@domain/question-link'
 import type { DomainId, Fact } from '@/model/items'
 import { questionDates } from '@/model/validity'
 import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { openDock, openFromRow, useDock } from '@/lib/dock'
+import { askInDock, openDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
-import { href, navigate, setQuery, useRoute } from '@/lib/router'
+import {
+  backToList,
+  changeQuery,
+  href,
+  navigate,
+  openFromList,
+  setQuery,
+  useRoute,
+} from '@/lib/router'
+import { safeHref } from '@/lib/host'
 import { useQuery } from '@tanstack/react-query'
 import {
   conflictQuery,
@@ -78,6 +91,7 @@ import {
   inboxPageQuery,
   namesQuery,
   readQuestionQuery,
+  useDefinitions,
   useInbox,
   useReviews,
   useSavedQuestions,
@@ -87,10 +101,11 @@ import {
   workspaceQuery,
 } from '@/api/queries'
 import type { UndoOffer } from '@/api/client'
-import { useUndo } from '@/lib/undo'
+import { rememberSending, useUndo } from '@/lib/undo'
 import { definitionsStep, setupHeading, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
-import { useDomains, useFacts, useMe } from '@/lib/workspace'
+import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
+import { mayOpenSettings } from '@/lib/settings-access'
 import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
 import type { Outcome } from '@/model/inbox'
 import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments'
@@ -114,7 +129,7 @@ import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
 import { useOnline } from '@/lib/send'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
-import { pageKey } from '@/lib/keys'
+import { useListKeys } from '@/lib/list'
 import { ResultIcon } from '@/components/obs/result'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
 
@@ -164,10 +179,12 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
   if (row.kind === 'waiting')
     return row.item.returned
       ? `Returned by ${row.item.returned.by}`
-      : `Waiting for ${row.item.waitingFor.split(',')[0]}`
+      : row.item.closed
+        ? `Closed by ${row.item.closed.by}`
+        : `Waiting for ${row.item.waitingFor.split(',')[0]}`
   const { card, done } = row
   if (done) return `${done.label}, ${midSentence(done.at)}`
-  if (card.names) return card.line
+  if (card.names || card.drafts) return card.line
   const s = card.suggestion
   const from = card.source
     ? `${card.source.tool}, ${card.source.folder}`
@@ -191,7 +208,11 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
   if (card.flag) return `Reported as ${card.flag.reason}: “${card.flag.note}”`
   if (card.look) return 'Raised by an alert: saved questions answer worse'
   if (card.alert) return `Raised by an alert: ${card.alert.name}`
-  return card.due === 'source' ? 'A definition changed' : 'Its check date passed'
+  return card.due === 'family'
+    ? 'Its family was split'
+    : card.due === 'source'
+      ? 'A definition changed'
+      : 'Its check date passed'
 }
 
 /**
@@ -306,9 +327,11 @@ function InboxList({
             ? cardIcon[row.card.type]
             : row.kind === 'waiting' && row.item.returned
               ? cardIcon.returned
-              : row.kind === 'mention' || row.note
-                ? AtSignIcon
-                : ClockIcon
+              : row.kind === 'waiting' && row.item.closed
+                ? cardIcon.closed
+                : row.kind === 'mention' || row.note
+                  ? AtSignIcon
+                  : ClockIcon
         // A suggestion that needs care says so on its row, before it is opened.
         const care = rowCare(row, reviews)
         const group = groupOf(row)
@@ -324,7 +347,11 @@ function InboxList({
           : 0
         const done = row.kind === 'card' && !!row.done && !row.note
         // The dot is "not opened yet": it goes once the card was opened here or in the review.
-        const unread = row.note ? true : row.kind === 'card' && !row.done && !opened[row.card.id]
+        const unread = row.note
+          ? true
+          : row.kind === 'card'
+            ? !row.done && !opened[row.card.id]
+            : row.kind === 'waiting' && !!row.item.closed && !opened[row.item.id]
         const isSelected = selected === id
         const ticked = sel.isSelected(id)
         return (
@@ -358,12 +385,15 @@ function InboxList({
                 <span className="shrink-0 text-muted-foreground @max-md:hidden">
                   {fromRead} new {fromRead === 1 ? 'suggestion' : 'suggestions'}
                 </span>
-                <a
-                  href={`${integrationHref(source.connector)}?state=suggestions`}
-                  className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                >
-                  About this read
-                </a>
+                {/* The read's page is in an admin's Settings: an owner reads the header alone. */}
+                {mayOpenSettings(integrationHref(source.connector), me) && (
+                  <a
+                    href={`${integrationHref(source.connector)}?state=suggestions`}
+                    className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                  >
+                    About this read
+                  </a>
+                )}
               </li>
             )}
             {!folded.has(group) && (
@@ -394,7 +424,10 @@ function InboxList({
                     type="button"
                     data-row-open={id}
                     aria-current={isSelected || undefined}
-                    onClick={(e) => sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)}
+                    onClick={(e) => {
+                      e.currentTarget.focus({ preventScroll: true })
+                      return sel.rowClick(id, e) || onSelect(id, e.detail > 0, !e.detail)
+                    }}
                     className="flex min-h-16 min-w-0 flex-1 items-center gap-3 px-4 py-2 text-left outline-none @md:pr-6 @md:pl-0"
                   >
                     <span
@@ -432,7 +465,10 @@ function InboxList({
                               ? ''
                               : row.card.when
                             : row.kind === 'waiting'
-                              ? (row.item.returned?.when.replace(/^Today, /, '') ?? row.item.sent)
+                              ? ((row.item.returned ?? row.item.closed)?.when.replace(
+                                  /^Today, /,
+                                  '',
+                                ) ?? row.item.sent)
                               : ''}
                       </span>
                       {unread ? (
@@ -491,6 +527,8 @@ function IconAction({
 type PaneNav = {
   onStep: (d: 1 | -1) => void
   onBack?: () => void
+  /** Where the back arrow goes, said beside it ("21 drafts"): a draft open in its card's place. */
+  backLabel?: string
   /** "3 of 20 in Needs me". */
   position?: string
   /** The new card's body fades in (a pointer pick or a decision); J and K stay at once. */
@@ -503,7 +541,7 @@ type PaneNav = {
  */
 function InboxPanel({
   label,
-  nav: { onStep, onBack, position, fade },
+  nav: { onStep, onBack, backLabel, position, fade },
   foot,
   children,
 }: {
@@ -520,11 +558,22 @@ function InboxPanel({
       className="group/pane"
       bodyClassName={fade ? 'dock-swap' : undefined}
       leading={
-        onBack && (
+        onBack &&
+        (backLabel ? (
+          <Button
+            variant="ghost"
+            aria-label={`Back to ${backLabel}`}
+            className="-ml-1 text-muted-foreground"
+            onClick={onBack}
+          >
+            <ArrowLeftIcon />
+            {backLabel}
+          </Button>
+        ) : (
           <Button variant="ghost" size="icon" aria-label="Back to the list" onClick={onBack}>
             <ArrowLeftIcon />
           </Button>
-        )
+        ))
       }
       actions={
         <>
@@ -556,12 +605,12 @@ function useActions(card: InboxCard) {
   const primary = () => {
     switch (card.type) {
       case 'suggestion':
-        return navigate(`/inbox/${card.id}/review`)
+        return openFromList(`/inbox/${card.id}/review`)
       case 'gap':
         // A draft waits: the same review as any suggestion. With none yet, the editor opens on the
         // scope, for this card: publishing what is written there closes it.
         return card.gap?.draft
-          ? navigate(`/inbox/${card.id}/review`)
+          ? openFromList(`/inbox/${card.id}/review`)
           : navigate('/context/new', {
               gap: card.id,
               metric: card.gap?.scope[0],
@@ -577,8 +626,16 @@ function useActions(card: InboxCard) {
       case 'check':
         return run({
           outcome: 'Checked',
-          message: 'Checked: still true',
-          description: 'It comes back when it is due for a check.',
+          // About a family that was split, it is kept for each of its metrics.
+          ...(card.splitInto
+            ? {
+                message: card.primary.replace(/^Keep/, 'Kept'),
+                description: `It is about ${andList(card.splitInto)} now, and no longer due.`,
+              }
+            : {
+                message: 'Checked: still true',
+                description: 'It comes back when it is due for a check.',
+              }),
           patch: {
             status: 'Live',
             outOfDate: undefined,
@@ -612,10 +669,41 @@ function useActions(card: InboxCard) {
         patch: { status: 'Archived' },
       }),
   }
+  // Ask someone who knows: the link is made, then copied as the service answers. Footnote sends
+  // nothing; the owner pastes it where the company talks.
+  const write = useWrite()
+  secondary[ASK_SOMEONE] = () => {
+    const link = new Promise<string>((resolve, reject) => {
+      write('copyQuestionLink', { card: card.id }, ({ id }) =>
+        resolve(`${window.location.origin}${questionPath(id)}`),
+      ).catch(reject)
+    })
+    copyLater(link).then(
+      () => toast('Link copied', { description: 'Paste it to the person who knows.' }),
+      // The service's refusal, or the browser's when it would not copy, says what to do.
+      (error: Error) => toast.error("Couldn't copy the link", { description: error.message }),
+    )
+  }
   // Only what writes needs the connection; Review and Edit only open a page.
   const writes = card.type === 'check' || (card.type === 'flag' && !card.factId)
   return { primary, secondary, online, writes }
 }
+
+/**
+ * Copies words the service is still making: a browser keeps the press that asked for them as the
+ * reason to copy, which a write after the answer would have lost.
+ */
+const copyLater = (text: Promise<string>) =>
+  navigator.clipboard.write([
+    new ClipboardItem({ 'text/plain': text.then((t) => new Blob([t], { type: 'text/plain' })) }),
+  ])
+
+/**
+ * The card's link once copied, and what people answered there (asked-on.tsx): loaded only for a
+ * card with a link, handed what it uses of the Inbox, so the first load is split no further.
+ */
+const AskedOn = React.lazy(() => import('@/components/footnote/asked-on'))
+const askedParts = { PersonAvatar, LinkIcon, midSentence }
 
 /** A decision on a card: what it is called, what the toast says, and what it changes on the item. */
 type Decision = { outcome: string; message: string; description?: string; patch?: Partial<Fact> }
@@ -658,6 +746,11 @@ function CardDetail({
   next: () => void
 }) {
   const { primary, secondary, online, writes } = useActions(card)
+  const me = useMe()
+  const admins = useAdminsSaid()
+  // An alert whose page is in an admin's Settings, such as a tool that could not be read: anyone
+  // else is told who looks into it, and has no button to a page that refuses them.
+  const opens = !card.alert || mayOpenSettings(card.alert.href, me)
   // Opening a card in the quick view is reading it: its unread dot goes.
   const write = useWrite()
   const facts = useFacts()
@@ -684,7 +777,13 @@ function CardDetail({
     </div>
   ) : (
     <PaneFoot
-      follows={offline ? "Offline: changes wait until you're back." : follows(card, review)}
+      follows={
+        offline
+          ? "Offline: changes wait until you're back."
+          : opens
+            ? follows(card, review)
+            : `An admin looks into it${admins}.`
+      }
     >
       {card.secondary.map((label) => (
         <Button
@@ -697,9 +796,11 @@ function CardDetail({
           {label}
         </Button>
       ))}
-      <PrimaryAction disabled={writes && !online} onClick={primary}>
-        {primaryLabel(card, review)}
-      </PrimaryAction>
+      {opens && (
+        <PrimaryAction disabled={writes && !online} onClick={primary}>
+          {primaryLabel(card, review)}
+        </PrimaryAction>
+      )}
     </PaneFoot>
   )
 
@@ -743,6 +844,20 @@ function CardDetail({
                   ? ' Only what was sent is kept: their words and the question.'
                   : ' Only the words that were sent are kept, not who sent them.')}
             </p>
+            {card.flag?.question && (
+              <ReportedQuestion by={card.flag.by} question={card.flag.question} />
+            )}
+            {card.flag && <ReportedWords flag={card.flag} title={card.title} />}
+            {card.changed && card.changed.length > 0 && (
+              <React.Suspense fallback={null}>
+                <ChangedDefinitions names={card.changed} />
+              </React.Suspense>
+            )}
+            {card.asked && (
+              <React.Suspense fallback={null}>
+                <AskedOn asked={card.asked} parts={askedParts} />
+              </React.Suspense>
+            )}
             {card.look && <LookList ids={card.look.questions} />}
             {card.alert?.rule === 'disagree' && <AlertPair pair={card.alert.pair} />}
             <div className="border-b empty:hidden">
@@ -793,6 +908,100 @@ function CardDetail({
         )}
       </div>
     </InboxPanel>
+  )
+}
+
+/**
+ * The question a report from Ask was sent about, as its sender asked it, and the way to ask it
+ * again: Ask opens beside the Inbox with it typed in, not yet sent, as the owner, who may see more
+ * than the sender did. The question goes to Ask in memory, never in the address.
+ */
+function ReportedQuestion({ by, question }: { by: string; question: string }) {
+  return (
+    <figure className="flex flex-col items-start gap-2">
+      <figcaption className="font-medium">{by ? `${by} asked` : 'The question'}</figcaption>
+      <blockquote className="border-l-2 pl-3 text-pretty">{question}</blockquote>
+      <Button variant="outline" className="mt-1" onClick={() => askInDock(question)}>
+        <MessageSquareIcon data-icon="inline-start" />
+        Try this question
+      </Button>
+    </figure>
+  )
+}
+
+/**
+ * The right words and the link a report from Ask was sent with, as its sender wrote them, and the
+ * way to the suggestion the words became, while it waits for an owner.
+ */
+function ReportedWords({ flag, title }: { flag: NonNullable<InboxCard['flag']>; title: string }) {
+  const link = safeHref(flag.link ?? null)
+  if (!flag.correction && !link) return null
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {flag.correction && (
+        <figure className="flex flex-col gap-2">
+          <figcaption className="font-medium">
+            {flag.by ? `${flag.by} suggests these words` : 'The right words'}
+          </figcaption>
+          <blockquote className="border-l-2 pl-3 text-pretty">{flag.correction}</blockquote>
+        </figure>
+      )}
+      {link && (
+        <p>
+          <span className="font-medium">Link they sent:</span>{' '}
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className="break-all text-primary underline-offset-4 hover:underline"
+          >
+            {link.replace(/^https?:\/\//, '')}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </p>
+      )}
+      {flag.suggestion && (
+        <>
+          <p className="text-muted-foreground">
+            A suggestion on “{title}”. Ask and agents keep the item as it is until an owner
+            publishes it.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-1"
+            onClick={() => navigate(`/inbox/${flag.suggestion}/review`)}
+          >
+            Review the suggestion
+          </Button>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The way to each definition that changed in its tool, beside a Due for a check card that says it
+ * changed: opened beside the Inbox. Only the ones the person can read, which are in their
+ * Definitions; a single one is "the definition", as the card's line names it.
+ */
+function ChangedDefinitions({ names }: { names: readonly string[] }) {
+  const definitions = useDefinitions()
+  const shown = [...new Set(names)].filter((n) => definitions.some((d) => d.name === n))
+  if (!shown.length) return null
+  return (
+    <div className="flex flex-wrap gap-2">
+      {shown.map((name) => (
+        <Button
+          key={name}
+          variant="outline"
+          aria-label={`See the definition of ${name}`}
+          onClick={() => openDock('def', name)}
+        >
+          <BookOpenIcon data-icon="inline-start" />
+          {shown.length === 1 ? 'See the definition' : `See ${name}`}
+        </Button>
+      ))}
+    </div>
   )
 }
 
@@ -858,6 +1067,7 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
 }
 
 const NamesReview = React.lazy(() => import('@/components/footnote/names-review'))
+const DraftsReview = React.lazy(() => import('@/components/footnote/drafts-review'))
 const NamesDialog = React.lazy(() =>
   import('@/components/footnote/names-review').then((m) => ({ default: m.NamesDialog })),
 )
@@ -882,6 +1092,9 @@ function Thread({ subject, domain }: { subject: Subject; domain: DomainId }) {
   )
 }
 
+/** When, in the middle of a sentence: "on 3 Nov 2026", "today, 09:12". */
+const dayWhen = (when: string) => (/^\d/.test(when) ? `on ${when}` : midSentence(when))
+
 function WaitingDetail({
   item,
   note,
@@ -894,12 +1107,27 @@ function WaitingDetail({
   next: () => void
 }) {
   const returned = item.returned
+  const closed = item.closed
+  const write = useWrite()
   return (
     <InboxPanel
       label={item.title}
       nav={nav}
       foot={
-        returned ? (
+        closed ? (
+          // Read once: Done takes it out of Needs me, and it stays under All for two weeks.
+          <PaneFoot follows="It stays under All for two weeks.">
+            <PrimaryAction
+              onClick={() => {
+                void write('markOpened', { ids: [item.id] })
+                if (note) void write('markMentionSeen', { subject: note.subject })
+                next()
+              }}
+            >
+              Done
+            </PrimaryAction>
+          </PaneFoot>
+        ) : returned ? (
           // Its words open in the editor; sending them again puts it back with the owners.
           <PaneFoot follows="It waits on the owners again once you send it.">
             <PrimaryAction keyHint={false} onClick={() => navigate(`/context/${item.card}/edit`)}>
@@ -917,20 +1145,32 @@ function WaitingDetail({
     >
       <PaneHead
         state={
-          returned
-            ? { label: 'Returned', icon: 'returned', tone: 'warn' }
-            : { label: 'Waiting on others', icon: 'waiting', tone: 'neutral' }
+          closed
+            ? { label: 'Closed', icon: 'closed', tone: 'neutral' }
+            : returned
+              ? { label: 'Returned', icon: 'returned', tone: 'warn' }
+              : { label: 'Waiting on others', icon: 'waiting', tone: 'neutral' }
         }
         domain={item.domain}
         title={item.title}
         summary={
-          returned
-            ? `${returned.by} returned it with a note, in the comments below. Edit it and send it again.`
-            : `Waiting for ${item.waitingFor}. You'll see here when it is published or returned.`
+          closed
+            ? `${closed.by} closed it with the reason below. It won't be published, so agents never get it.`
+            : returned
+              ? `${returned.by} returned it with a note, in the comments below. Edit it and send it again.`
+              : `Waiting for ${item.waitingFor}. You'll see here when it is published or returned.`
         }
-        from={`Your suggestion, ${returned ? `returned ${/^\d/.test(returned.when) ? `on ${returned.when}` : midSentence(returned.when)}` : `sent ${item.sent.toLowerCase() === 'today' ? 'today' : `on ${item.sent}`}`}`}
+        from={`Your suggestion, ${closed ? `closed ${dayWhen(closed.when)}` : returned ? `returned ${dayWhen(returned.when)}` : `sent ${item.sent.toLowerCase() === 'today' ? 'today' : `on ${item.sent}`}`}`}
       />
       <div className="flex max-w-2xl flex-col gap-4 px-4 pb-6 text-sm @md:px-7">
+        {closed && (
+          <section aria-label="Why it was closed" className="flex flex-col gap-1">
+            <h3 className="font-medium">Closed by {closed.by}</h3>
+            <blockquote className="border-l-2 pl-3 text-muted-foreground">
+              {closed.reason}
+            </blockquote>
+          </section>
+        )}
         {note && <MentionBlock note={note} />}
         <Thread subject={`review:${item.card}`} domain={item.domain} />
       </div>
@@ -990,6 +1230,8 @@ function MentionDetail({
 /** The names a read made, in the Inbox's pane: the one card that publishes them (FR-141). */
 function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next: () => void }) {
   const write = useWrite()
+  const { query } = useRoute()
+  const show = query.get('show')
   React.useEffect(() => {
     void write('markOpened', { ids: [card.id] })
     // Once per card opened.
@@ -1000,8 +1242,37 @@ function NamesDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next:
       <NamesReview
         onFinished={next}
         onOpenFamily={(key) => openFromRow('family', key)}
+        show={show === 'families' || show === 'names' ? show : undefined}
+        onShow={(next) => setQuery({ show: next })}
         frame={(body, foot) => (
           <InboxPanel label={card.title} nav={nav} foot={foot}>
+            {body}
+          </InboxPanel>
+        )}
+      />
+    </React.Suspense>
+  )
+}
+
+/** The person's own drafts that wait for them, in the Inbox's pane: one card publishes them all (FR-139). */
+function DraftsDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next: () => void }) {
+  const write = useWrite()
+  React.useEffect(() => {
+    void write('markOpened', { ids: [card.id] })
+    // Once per card opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card.id])
+  return (
+    <React.Suspense fallback={<ListSkeleton />}>
+      <DraftsReview
+        card={card}
+        onFinished={next}
+        frame={(body, foot, reading) => (
+          <InboxPanel
+            label={card.title}
+            nav={reading ? { ...reading, fade: false } : nav}
+            foot={foot}
+          >
             {body}
           </InboxPanel>
         )}
@@ -1078,7 +1349,9 @@ function Setup({ due }: { due: number }) {
     names?.length ?? 0,
   )
   const [reviewing, setReviewing] = React.useState(false)
-  const first = setupSteps.find((s) => !setupDone[s.id])
+  const { query } = useRoute()
+  const asked = canPublish && query.get('card') === 'names:waiting'
+  const askedShow = query.get('show')
   // A question about the first item, from what it applies to or, if that is empty, its own words,
   // on its own dates when they miss today: most first items are about a day that has passed.
   // A new install has only what this visit added, newest first.
@@ -1095,6 +1368,15 @@ function Setup({ due }: { due: number }) {
     ? `What should I know about ${scope}${dates ? ` ${dates}` : ''}?`
     : 'What should I know about our numbers?'
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
+  const admins = useAdminsSaid()
+  // The steps done in an admin's Settings: anyone else reads who does them, and has no button.
+  const inSettings: Record<string, string> = {
+    about: '/settings/general',
+    domain: '/settings/domains/new',
+    ...(definitions.opens === 'names' ? {} : { definitions: '/settings/integrations' }),
+  }
+  const mayDo = (id: string) => mayOpenSettings(inSettings[id] ?? '', me)
+  const first = setupSteps.find((s) => !setupDone[s.id] && mayDo(s.id))
   const go = (id: string) => {
     if (id === 'definitions' && definitions.opens === 'names') setReviewing(true)
     else if (id === 'definitions' && definitions.opens === 'source' && serverSource)
@@ -1149,7 +1431,7 @@ function Setup({ due }: { due: number }) {
                   {setupSteps.map((step, i) => {
                     const isDone = setupDone[step.id]
                     const own = step.id === 'definitions'
-                    const action = own ? definitions.action : step.action
+                    const action = mayDo(step.id) ? (own ? definitions.action : step.action) : null
                     return (
                       <li
                         key={step.id}
@@ -1176,6 +1458,11 @@ function Setup({ due }: { due: number }) {
                           >
                             {own ? definitions.description : step.description}
                           </span>
+                          {!isDone && !mayDo(step.id) && (
+                            <span className="block text-xs text-muted-foreground">
+                              An admin does this{admins}.
+                            </span>
+                          )}
                         </span>
                         {isDone && <span className="sr-only">Done</span>}
                         {action !== null && (!isDone || (own && definitions.opens === 'names')) && (
@@ -1201,9 +1488,15 @@ function Setup({ due }: { due: number }) {
           </div>
         </div>
       </div>
-      {reviewing && (
+      {(reviewing || asked) && (
         <React.Suspense fallback={null}>
-          <NamesDialog onClose={() => setReviewing(false)} />
+          <NamesDialog
+            show={askedShow === 'families' || askedShow === 'names' ? askedShow : undefined}
+            onClose={() => {
+              setReviewing(false)
+              if (asked) setQuery({ card: undefined, show: undefined })
+            }}
+          />
         </React.Suspense>
       )}
     </div>
@@ -1221,7 +1514,7 @@ function DueRow({ due }: { due: number }) {
     <section aria-label="Needs you" className="mb-4 grid grid-cols-1 gap-px bg-border p-px">
       <Cell className="gap-0 py-0">
         <a
-          href={href('/context', { due: '1' })}
+          href={href('/context', { status: 'due' })}
           className="flex min-h-16 items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
         >
           <span
@@ -1347,7 +1640,7 @@ export function InboxPage() {
   }, [])
 
   const visible = rows.filter((r) => {
-    if (tab === 'needs' && !needs(r)) return false
+    if (tab === 'needs' && !needs(r, inbox.opened)) return false
     const text = r.kind === 'card' ? `${r.card.title} ${r.card.line}` : rowTitle(r)
     return text.toLowerCase().includes(search.toLowerCase())
   })
@@ -1376,18 +1669,41 @@ export function InboxPage() {
     fade: false,
   })
   const frameRef = React.useRef<HTMLDivElement>(null)
+  const paneRef = React.useRef<HTMLDivElement>(null)
+  const listRef = React.useRef<HTMLUListElement>(null)
   const primary = () => frameRef.current?.querySelector<HTMLButtonElement>('button[data-primary]')
-  // Enter on a row opens the card and moves the focus to the pane's one decision.
+  const rowButton = (id: string) =>
+    listRef.current?.querySelector<HTMLElement>(`[data-row-open="${CSS.escape(id)}"]`)
+  // The card on show, in the address. On a wide screen the pane follows the cursor, so a pick takes
+  // the place of the address and Back leaves the Inbox in one press. On a phone a card opens over
+  // the list as a page of its own: Back, or the card's back arrow, returns to the list.
+  const show = (card: string | undefined, extra?: Record<string, string | undefined>) => {
+    const changes = { card, draft: undefined, ...extra }
+    const all = { ...Object.fromEntries(query), ...changes }
+    if (isMobile && card && !selectedId) openFromList('/inbox', all)
+    else if (isMobile && !card && selectedId) backToList('/inbox', all, { replace: true })
+    else void changeQuery(changes, { replace: true })
+  }
+  // Enter on a row opens the card and moves the focus to the pane's one decision, or with none
+  // there keeps it on the row.
   const select = (id?: string, pointer = false, key = false) => {
     // On a phone the whole card slides in; its body does not fade on top of that.
     setPicked({ id, fade: pointer && !isMobile, key })
-    setQuery({ card: id ?? (isMobile ? undefined : 'none') })
+    show(id ?? (isMobile ? undefined : 'none'))
   }
   React.useEffect(() => {
-    if (picked.key && picked.id === selectedId) primary()?.focus()
+    if (picked.key && picked.id && picked.id === selectedId)
+      (primary() ?? rowButton(picked.id))?.focus()
   }, [picked, selectedId])
+  // The card Esc put away: its row takes the focus once the list shows, so the place is kept.
+  const putAway = React.useRef<string | undefined>(undefined)
+  React.useEffect(() => {
+    const id = putAway.current
+    if (!id || selectedId) return
+    putAway.current = undefined
+    rowButton(id)?.focus({ preventScroll: true })
+  }, [selectedId])
   const ids = shown.map(rowId)
-  const listRef = React.useRef<HTMLUListElement>(null)
   const online = useOnline()
   const sel = useSelection(ids, { scope: listRef })
   // Ticked rows, read: the dot goes, and a mention or a new reply is marked seen.
@@ -1398,6 +1714,7 @@ export function InboxPage() {
         void write('markOpened', { ids: [r.card.id] })
         void commentActions.seen(`review:${r.card.id}`)
       }
+      if (r.kind === 'waiting' && r.item.closed) void write('markOpened', { ids: [r.item.id] })
       if (r.note) void commentActions.seenMention(r.note.subject)
     }
     toast(`Marked ${picked.length} as read`)
@@ -1413,23 +1730,29 @@ export function InboxPage() {
   const next = () => {
     const rest = needing.filter((r) => rowId(r) !== selectedId)
     setPicked({ id: rest[0] && rowId(rest[0]), fade: true })
-    setQuery({ card: rest[0] && rowId(rest[0]), dock: undefined })
+    show(rest[0] && rowId(rest[0]), { dock: undefined })
   }
 
-  // J and K step through the list, Enter opens the selected card's primary action.
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (!pageKey(e)) return
-      if (e.key === 'j') step(1)
-      if (e.key === 'k') step(-1)
-      // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties.
-      // Ticked rows clear first, in the selection's own Esc.
-      if (e.key === 'Escape' && selected && !sel.count) select(undefined)
-      if (e.key === 'Enter' && t === document.body) primary()?.click()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+  // The page's list keys (lib/list.ts): J and K step through the cards, Enter on the card on show
+  // presses its primary action. A draft open in its card's place takes J and K for its own drafts.
+  useListKeys({
+    list: listRef,
+    order: ids,
+    current: selectedId,
+    panel: paneRef,
+    // Stepped from inside the pane, the next card's one decision takes the focus.
+    onMove: (id, from) => select(id, false, from.panel),
+    onOpen: sel.count ? undefined : () => primary()?.click(),
+    // Esc clears the selection: on a phone the list comes back, on a wide screen the pane empties,
+    // and the card's row keeps the focus. Ticked rows clear first, in the selection's own Esc. A
+    // panel open in the card's place (a family opened from the Names card) takes its own Esc and
+    // closes: the card comes back.
+    onEscape: () => {
+      if (!selected || sel.count) return false
+      putAway.current = selectedId
+      select(undefined)
+      return true
+    },
   })
 
   /**
@@ -1443,21 +1766,23 @@ export function InboxPage() {
     let gone = false
     let saved: UndoOffer | undefined
     next()
+    // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
+    // back now when the answer is in, else when it comes. Command and Z does the same.
+    const takeBackWhenIn = () => {
+      undone = true
+      if (saved) void undo.takeBack(saved)
+    }
     const said = toast(d.message, {
       description: d.description,
       duration: Infinity,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
-          // back now when the answer is in, else when it comes.
-          undone = true
-          if (saved) void undo.takeBack(saved)
-        },
-      },
+      action: { label: 'Undo', onClick: takeBackWhenIn },
       onDismiss: () => {
         gone = true
       },
+    })
+    const waiting = rememberSending('Still saving that decision', () => {
+      toast.dismiss(said)
+      takeBackWhenIn()
     })
     void leaveThen(card.id, () =>
       React.startTransition(async () => {
@@ -1470,10 +1795,19 @@ export function InboxPage() {
           })
           saved = decided.undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
-          if (undone) await undo.takeBack(decided.undo)
-          else if (!gone)
-            undo.offer(d.message, decided.undo, { id: said, description: d.description })
+          if (undone) {
+            waiting.undone()
+            await undo.takeBack(decided.undo)
+          } else if (!gone)
+            undo.offer(d.message, decided.undo, {
+              id: said,
+              description: d.description,
+              sent: waiting,
+            })
+          // Its toast was closed: Command and Z still takes it back while the service holds it.
+          else undo.remember(d.message, decided.undo, { sent: waiting })
         } catch {
+          waiting.failed()
           toast.dismiss(said)
           if (undone) return
           toast.error("Couldn't save that decision", {
@@ -1501,6 +1835,8 @@ export function InboxPage() {
   const detail = selected ? (
     selected.kind === 'card' && selected.card.type === 'names' ? (
       <NamesDetail key={selected.card.id} card={selected.card} nav={nav} next={next} />
+    ) : selected.kind === 'card' && selected.card.type === 'drafts' ? (
+      <DraftsDetail key={selected.card.id} card={selected.card} nav={nav} next={next} />
     ) : selected.kind === 'card' ? (
       <CardDetail
         key={selected.card.id}
@@ -1541,6 +1877,11 @@ export function InboxPage() {
     </Cell>
   )
 
+  const pane = (
+    <div ref={paneRef} className="h-full min-h-0">
+      {detail}
+    </div>
+  )
   const list = (
     <div className="flex h-full min-h-0 flex-col gap-0">
       <Cell className="h-full min-h-0 gap-0 py-0">
@@ -1625,7 +1966,7 @@ export function InboxPage() {
       key={selected ? 'card' : 'list'}
       className={cn('h-full min-h-0', selected ? 'dock-enter' : !allDone && 'dock-swap')}
     >
-      {selected ? detail : list}
+      {selected ? pane : list}
     </div>
   ) : allDone || dock ? (
     <div className="h-full min-h-0">{list}</div>
@@ -1636,7 +1977,7 @@ export function InboxPage() {
       </ResizablePanel>
       <ResizableHandle className="w-px bg-border" />
       <ResizablePanel id="inbox-detail" defaultSize="58" minSize={360}>
-        {detail}
+        {pane}
       </ResizablePanel>
     </ResizablePanelGroup>
   )

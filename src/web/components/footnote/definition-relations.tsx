@@ -1,37 +1,64 @@
 import type * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { definitionRelationsQuery } from '@/api/queries'
+import { builtFromParts } from '@/components/footnote/definition'
+import { BuiltFromTree } from '@/components/footnote/built-from-tree'
 import { ShowMoreButton } from '@/components/footnote/show-more'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { useShowMore } from '@/hooks/use-show-more'
 import type { Definition, DefinitionRelation, Family } from '@/lib/definitions'
+import { foundSaid } from '@domain/family-found'
 
 /**
  * What a synced metric is built from and what is built from it (FR-143), as its tool's structure
  * says, never words in its description: Converted from and to (D2), Built from (definitions, then
  * the columns its calculation reads) and Used by. Definitions open their pages; columns are names
- * in the tool. On the metric's own page, under its description, and nowhere in the first load.
+ * in the tool. The metrics it is built from are a tree, each with the context about it. On the
+ * metric's own page, under its description, and nowhere in the first load.
  */
 export function DefinitionRelations({ d }: { d: Definition }) {
   const relations = useQuery(definitionRelationsQuery(d.name)).data ?? []
-  return <RelationList relations={relations} tool={d.tool ?? 'its tool'} />
+  const tool = d.tool ?? 'its tool'
+  const built = builtFromParts.useBuiltFrom(d.name)
+  return (
+    <RelationList
+      relations={relations}
+      tool={tool}
+      tree={
+        built && (
+          <BuiltFromTree
+            name={d.name}
+            tool={tool}
+            parts={builtFromParts}
+            label={<h3 className="text-muted-foreground">Built from</h3>}
+            className="mb-3"
+          />
+        )
+      }
+    />
+  )
 }
 
 export function RelationList({
   relations,
   tool,
+  tree,
 }: {
   relations: readonly DefinitionRelation[]
   tool: string
+  /** What it is built from at every depth: in place of the metrics' names. */
+  tree?: React.ReactNode
 }) {
   const of = (kind: DefinitionRelation['kind']) => relations.filter((r) => r.kind === kind)
   const convertedFrom = of('converted_from')
   const convertedTo = of('converted_to')
-  const builtFrom = of('built_from')
+  const builtFrom = of('built_from').filter((r) => !tree || r.column)
+  const inputs = !!tree && relations.some((r) => r.kind === 'built_from' && !r.column)
   const usedBy = of('used_by')
   if (!relations.length) return null
   return (
-    <section aria-label="How it is built" className="max-w-reading text-sm">
+    <section aria-label="How it is built" className="flex max-w-reading flex-col gap-1 text-sm">
+      {inputs && tree}
       <dl className="flex flex-col">
         {convertedFrom.length > 0 && (
           <Row label="Converted from">
@@ -44,7 +71,7 @@ export function RelationList({
           </Row>
         )}
         {builtFrom.length > 0 && (
-          <Row label="Built from">
+          <Row label={inputs ? 'Columns' : 'Built from'}>
             <Names relations={builtFrom} tool={tool} />
           </Row>
         )}
@@ -87,26 +114,37 @@ function Conversions({ relations, tool }: { relations: DefinitionRelation[]; too
  * declared in its tool, from the calculation, or from names an owner made one family; and each
  * variant converted from another, by the column. On the family's own page, under its meaning.
  */
-export function FamilyRelations({ family, tool }: { family: Family; tool: string }) {
-  const found =
-    family.found === 'declared'
-      ? `Declared as one family in ${tool}`
-      : family.found === 'calculation'
-        ? `Found from the calculation in ${tool}`
-        : family.found === 'names'
-          ? 'Its names look alike, and an owner published them as one family'
-          : null
+export function FamilyRelations({
+  family,
+  tool,
+  action,
+  note,
+}: {
+  family: Family
+  tool: string
+  /** What the person can do to the family, beside how it was found: Split. */
+  action?: React.ReactNode
+  /** What follows how it was found: who decides whether it is one family. */
+  note?: string | null
+}) {
+  const found = foundSaid(family.found, tool)
   const conversions = family.conversions ?? []
   // A variant by what tells it apart, as its family lists it ("USD"), else by its name.
   const said = (name: string) =>
     family.variants.find((v) => v.name === name)?.values.join(' ') || name
-  if (!found && !conversions.length) return null
+  if (!found && !conversions.length && !action) return null
   return (
     <section aria-label="How it is built" className="max-w-reading text-sm">
       <dl className="flex flex-col">
-        {found && (
+        {(found || action) && (
           <Row label="Family">
-            <span className="py-1">{found}</span>
+            <span className="flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 py-1">
+              <span className="min-w-40 flex-1 py-0.5">
+                {found && `${found}.`}
+                {note && ` ${note}`}
+              </span>
+              {action}
+            </span>
           </Row>
         )}
         {conversions.length > 0 && (

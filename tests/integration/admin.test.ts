@@ -310,12 +310,10 @@ describe('tool switch and client policies', () => {
         'select tool, enabled from tool_config order by tool',
       )
     ).rows
-    // The six tools of the agent contract, every one on: suggest_context and get_related too
-    // (FR-121, FR-332 as changed for Footnote v1).
+    // The five tools of the agent contract, every one on: suggest_context too (FR-121).
     expect(tools.map((t) => t.tool)).toEqual([
       'find_context',
       'get_context',
-      'get_related',
       'read_context',
       'report',
       'suggest_context',

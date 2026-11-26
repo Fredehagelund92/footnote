@@ -1,7 +1,8 @@
 import { writeFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import type { LoopBlock, LoopTurn } from '@contract/answer'
+import type { ChosenPeriodInput, LoopBlock, LoopTurn } from '@contract/answer'
 import type { Answer } from '@/model/ask'
+import { nounId } from '@domain/ask-nouns'
 import {
   scriptedLoopChoice,
   type ScriptedPrompt,
@@ -37,7 +38,11 @@ const mention = (id: unknown) => `[@${String(id)}]`
 /** One case: the question, who asks, the reads, then the words written from what they returned. */
 type Case = {
   id: string
+  /** Who asks it; Jon Abara, an owner of Sales, when it says no one. */
+  who?: string
   question: string
+  /** The period chosen on the read line, which code reads at before the model's first step. */
+  period?: ChosenPeriodInput
   calls: ScriptedStep['calls']
   write: (p: ScriptedPrompt) => ScriptedStep
 }
@@ -158,15 +163,18 @@ const cases: Case[] = [
   {
     id: 'loop-question',
     question: 'When did the payment provider switch?',
-    calls: [{ toolName: 'find_context', input: { words: 'payment provider switch' } }],
-    write: () => ({
-      calls: [
-        {
-          toolName: 'ask_back',
-          input: { question: 'Which switch do you mean?', choices: ['In France', 'In Spain'] },
-        },
-      ],
-    }),
+    calls: [{ toolName: 'find_context', input: { words: 'payments provider switch' } }],
+    write: (p) => {
+      modelRead = JSON.stringify(p.results)
+      return {
+        calls: [
+          {
+            toolName: 'ask_back',
+            input: { question: 'Which switch do you mean?', choices: ['In France', 'In Spain'] },
+          },
+        ],
+      }
+    },
   },
   {
     id: 'loop-dates-guessed',
@@ -208,6 +216,20 @@ const cases: Case[] = [
     },
   },
   {
+    // A dimension's definition nothing is written about: its chip opens the pane as a metric's does.
+    id: 'loop-definition-dimension',
+    question: 'What is market?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'market', no_period: true } },
+      { toolName: 'definitions', input: { names: ['market'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      const id = nounId(String(d.id))
+      return { text: `${mention(id)} is ${String(d.words)} [${id}]` }
+    },
+  },
+  {
     id: 'loop-unknown',
     question: 'What is our EBITDA definition?',
     calls: [
@@ -219,6 +241,62 @@ const cases: Case[] = [
     }),
   },
   {
+    // The captain's question, answered from the help in Markdown as a model may write it.
+    id: 'loop-help-markdown',
+    question: 'lets create my first context',
+    calls: [{ toolName: 'help', input: { words: 'create a context item' } }],
+    write: () => ({
+      text: [
+        'To write your first context item, open **Write** and say what agents should *know*. [Write context](write-context.md#what-to-put-in-it) has every part.',
+        '',
+        '- **Properties:** the Domain, the Kind, the Status and the owners.',
+        '- **Applies to:** the metrics and markets it is about, as `Definitions` names them.',
+        '- **Source:** a link anyone can open, such as [the customs notice](https://example.com/customs-notice).',
+        '',
+        '1. Give it a title that is one plain sentence.',
+        '2. Say what it is ~~about~~ not, if people mix it up.',
+        '3. Publish it.',
+        '',
+        '| Kind | When to pick it |',
+        '| --- | --- |',
+        '| **Event** | Something happened on a date |',
+        '| **Rule** | A fixed way to read the numbers |',
+      ].join('\n'),
+    }),
+  },
+  {
+    // The captain's question again, as Ask answers it now: the first step, and the action it marks.
+    id: 'loop-help-write',
+    question: 'How do I create my first context item?',
+    calls: [{ toolName: 'help', input: { words: 'create my first context item' } }],
+    write: () => ({
+      text: 'Open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know? [do:write_context]',
+    }),
+  },
+  {
+    id: 'loop-help-invite',
+    question: 'How do I invite a colleague?',
+    calls: [{ toolName: 'help', input: { words: 'invite a colleague' } }],
+    write: () => ({
+      text: "An admin invites people in Settings, People, with their addresses, Admin or Member, and the domains they own. An owner who isn't an admin invites from their own domain's page [do:invite_people].",
+    }),
+  },
+  {
+    // A metric nothing is written about yet: under Not found the model marks the definition as
+    // what answers, and its card offers its owners the first item.
+    id: 'loop-definition-unwritten',
+    question: 'What is churn rate?',
+    calls: [
+      { toolName: 'get_context', input: { about: 'churn rate', no_period: true } },
+      { toolName: 'definitions', input: { names: ['churn rate'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      const id = `metric:${String(d.id)}`
+      return { text: `${mention(id)} is ${String(d.words)} [${id}]` }
+    },
+  },
+  {
     id: 'loop-stopped',
     question: 'Give me all about orders in poland',
     calls: [{ toolName: 'get_context', input: { about: 'orders in Poland' } }],
@@ -227,9 +305,73 @@ const cases: Case[] = [
       calls: [{ toolName: 'find_context', input: { words: `orders ${p.step}` } }],
     }),
   },
+  {
+    // A how-to that names a metric: its Write context opens on the metric, in its domain.
+    id: 'loop-help-write-metric',
+    question: 'How do I write a context item about churn rate?',
+    calls: [
+      { toolName: 'help', input: { words: 'add a context item' } },
+      { toolName: 'definitions', input: { names: ['churn rate'] } },
+    ],
+    write: (p) => {
+      const d = arr(readOf(p, 'definitions').definitions)[0]!
+      const id = `metric:${String(d.id)}`
+      return {
+        text: `To write a context item about ${mention(id)}, open Context and choose Write context. The editor opens on a new item, with its first question: what should agents know? [do:write_context]`,
+      }
+    },
+  },
+  {
+    // Asked again at Last month on the read line (R12): code reads the subject at it first.
+    id: 'loop-period',
+    question: 'What should I know about orders in Norway?',
+    period: 'last month',
+    calls: [],
+    write: (p) => {
+      const r = readOf(p, 'get_context')
+      const about = (r.read as Obj).about as string[]
+      const lines = arr(r.items)
+        .slice(0, 2)
+        .map((i) => `- ${String(i.title)} [${String(i.id)}]`)
+      return {
+        text: `[#${r.ref}.items.length] items apply to ${mention(about[0])} in ${mention(about[1])}:\n${lines.join('\n')}`,
+      }
+    },
+  },
+  {
+    // Jon's own draft about Black Friday, where nothing published is: the block, its sentence.
+    id: 'loop-drafts',
+    question: 'How are Black Friday orders counted?',
+    calls: [{ toolName: 'find_context', input: { words: 'Black Friday' } }],
+    write: (p) => {
+      const r = readOf(p, 'find_context')
+      const [d] = arr((r.drafts as Obj).items)
+      return {
+        text: `Nothing published covers Black Friday orders yet. If it is published as written, the weekend's orders are counted in two reporting weeks, week 48 and week 49 [${String(d!.ref)}].`,
+      }
+    },
+  },
+  {
+    // Kofi's suggestion about Poland waits for Sales' owners: Sofia reviews it.
+    id: 'loop-drafts-waiting',
+    who: 'Sofia Brandt',
+    question: 'Is order data from Poland late?',
+    calls: [{ toolName: 'find_context', input: { words: 'Poland payment provider delays' } }],
+    write: () => ({ text: 'Nothing published covers late order data from Poland yet.' }),
+  },
+  {
+    // The same question as a member, who may open none of it: no block, as if it was never sent.
+    id: 'loop-drafts-member',
+    who: 'Ines Duarte',
+    question: 'Is order data from Poland late?',
+    calls: [{ toolName: 'find_context', input: { words: 'Poland payment provider delays' } }],
+    write: () => ({ text: 'Nothing published covers late order data from Poland yet.' }),
+  },
 ]
 
 let current: Case | undefined
+/** What the scripted model was given to read at its last step that kept it. */
+let modelRead = ''
 const world = askWorld({
   // Spain's VAT pair, which the mock marks across two domains, is marked here too.
   allConflicts: true,
@@ -243,13 +385,15 @@ const world = askWorld({
 const turns: Record<string, Answer> = {}
 const ask = async (c: Case) => {
   current = c
-  const api = await world.as(JON)
-  const answer = await api.ask({ question: c.question })
+  const api = await world.as(c.who ?? JON)
+  const answer = await api.ask({ question: c.question, ...(c.period ? { period: c.period } : {}) })
   turns[c.id] = answer
   return answer.loop!
 }
 const runsOf = (body: readonly LoopBlock[]) =>
-  body.flatMap((b) => (b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : []))
+  body.flatMap((b) =>
+    b.t === 'p' ? b.runs : b.t === 'ul' ? b.items.flat() : b.t === 'table' ? b.rows.flat(2) : [],
+  )
 
 describe("Ask's loop answers, as the page draws them", () => {
   it('draws each noun as a chip a read named, and each citation as a source', async () => {
@@ -354,6 +498,10 @@ describe("Ask's loop answers, as the page draws them", () => {
     expect(loop.kind).toBe('question')
     expect(loop.state).toBeNull()
     expect(loop.choices).toEqual(['In France', 'In Spain'])
+    // A metric group that is no family is marked for its chip, a mark the model never reads.
+    expect(loop.nouns.find((n) => n.id === 'group:payments')).toMatchObject({ plainGroup: true })
+    expect(modelRead).toContain('group:payments')
+    expect(modelRead).not.toContain('plainGroup')
   })
 
   it('says on the read line how the dates were read when the words left room', async () => {
@@ -400,26 +548,141 @@ describe("Ask's loop answers, as the page draws them", () => {
     for (const id of card!.context.items) expect(loop.items.map((i) => i.id)).toContain(id)
   })
 
+  it('draws an answer about what a dimension is as its definition card, its chip a dimension', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-definition-dimension')!)
+    expect(loop.state).toBeNull()
+    const [card] = loop.defined!.cards
+    expect(card).toMatchObject({ id: 'dimension:market', name: 'Market', kind: 'dimension' })
+    expect(runsOf(loop.body)).toContainEqual({ t: 'noun', id: 'dimension:market' })
+    expect(loop.nouns.map((n) => n.id)).toContain('dimension:market')
+  })
+
+  it('draws the definition card of a metric nothing is written about, with no context', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-definition-unwritten')!)
+    expect(loop.state).toBeNull()
+    const [card] = loop.defined!.cards
+    expect(card).toMatchObject({ id: 'metric:churn_rate', kind: 'metric', context: { count: 0 } })
+    expect(card!.owners.length).toBeGreaterThan(0)
+  })
+
   it('names the word its reads found nothing under, when nothing it read covers the question', async () => {
-    const loop = await ask(cases[13]!)
+    const loop = await ask(cases.find((c) => c.id === 'loop-unknown')!)
     expect(loop.unknown).toEqual(['EBITDA'])
     expect(loop.state).toBeNull()
     expect(loop.sources).toEqual([])
   })
 
+  it('draws an answer from the help in its Markdown: bold labels, a link, a numbered list and a table, no asterisks', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-help-markdown')!)
+    expect(loop.help?.map((h) => h.slug)).toContain('write-context')
+    expect(loop.body.map((b) => b.t)).toEqual(['p', 'ul', 'ul', 'table'])
+    const [lead, labels, steps] = loop.body
+    expect(lead?.t === 'p' && lead.runs).toContainEqual({
+      t: 'text',
+      text: 'Write context',
+      link: { slug: 'write-context', id: 'what-to-put-in-it' },
+    })
+    expect(labels?.t === 'ul' && labels.items.map((i) => i[0])).toEqual(
+      ['Properties:', 'Applies to:', 'Source:'].map((text) => ({
+        t: 'text',
+        text,
+        marks: ['bold'],
+      })),
+    )
+    // An address no read gave is no link: the words in a read could have made it.
+    expect(runsOf(loop.body)).toContainEqual({
+      t: 'text',
+      text: ' a link anyone can open, such as the customs notice.',
+    })
+    expect(steps?.t === 'ul' && steps.start).toBe(1)
+    for (const r of runsOf(loop.body)) if (r.t === 'text') expect(r.text).not.toMatch(/\*\*|~~|\|/)
+    expect(loop.text).not.toMatch(/\*\*|~~/)
+  })
+
+  it('offers the action a help answer marks, from the part that explains it, with no state', async () => {
+    const write = await ask(cases.find((c) => c.id === 'loop-help-write')!)
+    expect(write).toMatchObject({ state: null, actions: [{ id: 'write_context' }] })
+    expect(write.help?.map((h) => `${h.slug}#${h.id}`)).toContain(
+      'write-context#add-a-context-item',
+    )
+    expect(write.text).not.toMatch(/do:/)
+    const invite = await ask(cases.find((c) => c.id === 'loop-help-invite')!)
+    expect(invite.actions).toEqual([{ id: 'invite_people' }])
+    expect(invite.help?.map((h) => `${h.slug}#${h.id}`)).toContain('domains-and-owners#people')
+  })
+
   it('says Stopped at its step limit with no state, over the plain read', async () => {
-    const loop = await ask(cases[14]!)
+    const loop = await ask(cases.find((c) => c.id === 'loop-stopped')!)
     expect(loop).toMatchObject({ kind: 'stopped', stopped: 'steps', state: null })
     expect(loop.text).toMatch(/^Ask stopped at its limit of \d+ steps/)
+  })
+
+  it('offers Write context on a how-to that names a metric, its words naming the metric', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-help-write-metric')!)
+    expect(loop.actions).toEqual([{ id: 'write_context' }])
+    // A how-to reads no subject: the page opens the editor on the metric the words name.
+    expect(loop.subject).toBeNull()
+    expect(runsOf(loop.body)).toContainEqual({ t: 'noun', id: 'metric:churn_rate' })
+  })
+
+  it('names the period chosen on the read line first, by code, and reads the subject at it', async () => {
+    const loop = await ask(cases.find((c) => c.id === 'loop-period')!)
+    expect(loop.subject).toMatchObject({
+      period: '1-30 Sep 2026',
+      assumedToday: false,
+      carried: false,
+    })
+    expect(loop.text).toMatch(
+      /^This answer is for last month, September 2026\. \d+ items apply to /,
+    )
+    expect(loop.read[0]).toMatch(/^Looked up Orders and Norway, 1-30 Sep 2026: /)
+  })
+
+  it('lists what is not published yet apart from the answer, to whoever may open it', async () => {
+    const jon = await ask(cases.find((c) => c.id === 'loop-drafts')!)
+    expect(jon.drafts?.rows.map((r) => [r.state, r.action.id])).toEqual([['draft', 'open_draft']])
+    expect(jon.drafts?.sentence).not.toBeNull()
+    expect(jon.sources).toEqual([])
+    const sofia = await ask(cases.find((c) => c.id === 'loop-drafts-waiting')!)
+    expect(sofia.drafts?.rows.map((r) => [r.state, r.action.id])).toEqual([
+      ['waiting', 'review_suggestion'],
+    ])
+    const ines = await ask(cases.find((c) => c.id === 'loop-drafts-member')!)
+    expect(ines.drafts).toBeUndefined()
   })
 
   it('writes the examples the mock shows, when asked to', () => {
     const out = process.env.LOOP_SHAPES_OUT
     if (!out) return
+    // What is not published yet goes by its mock id, so the mock opens it as the service would.
+    const seeded = world.seeded()
+    const mockIds = new Map(
+      [
+        ...Object.entries(seeded).filter(([, v]) => typeof v === 'string'),
+        ...Object.entries(seeded.drafts),
+      ].map(([mock, id]) => [id as string, mock]),
+    )
+    const mocked = (turn: LoopTurn): LoopTurn =>
+      turn.drafts
+        ? {
+            ...turn,
+            drafts: {
+              ...turn.drafts,
+              rows: turn.drafts.rows.map((r) => {
+                const id = mockIds.get(r.id) ?? r.id
+                return { ...r, id, action: { ...r.action, draft: { ...r.action.draft, id } } }
+              }),
+            },
+          }
+        : turn
     const examples = Object.fromEntries(
       Object.entries(turns).map(([id, a]) => [
         id,
-        { question: a.question, turn: a.loop as LoopTurn },
+        {
+          question: a.question,
+          ...(a.period ? { period: a.period } : {}),
+          turn: mocked(a.loop as LoopTurn),
+        },
       ]),
     )
     writeFileSync(out, `${JSON.stringify(examples, null, 2)}\n`)

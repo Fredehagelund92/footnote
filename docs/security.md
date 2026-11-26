@@ -22,6 +22,7 @@ The scans run on every pull request, on `main` and every night, whatever changed
 
 - **To a model.** With `MODELS=live`, Ask and the test runs send the model provider you choose the chat, the items they read and their owners' names, never an e-mail address. Without it, scripted models answer and nothing is sent. [What leaves this computer](model-providers.md#what-leaves-this-computer) has the whole list, and who receives it for each provider.
 - **To the tools you connect.** A connector reaches only the hosts it declares, over https, and only reads: nothing is written back to the tool. See [Connector security](connectors/security.md).
+- **To a page someone links.** Draft from text opens a public https page a person pastes, on port 443, as one anonymous request: no cookie, no sign-in. It never opens a private address, a sign-in page or a link that carries a key, and keeps only the link and one sentence. See [Links people paste](run-in-production.md#links-people-paste).
 - **To agents.** An agent reads only published context: a person's agent only what that person may read, and an access key only what everyone may read. See [Connect an agent by hand](reference/connect-by-hand.md#sign-in-as-yourself).
 
 ## Report a problem

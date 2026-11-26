@@ -1,8 +1,9 @@
 /**
- * The pure link resolver (FR-331 to FR-335): the links of a delivered item, and the neighbours of
- * an item, a vocabulary term or a domain for `get_related`. A link only says what a text refers
- * to. It never decides what get_context delivers, and a link is shown only when its target passes
- * the same visibility rule as an item (FR-314). A pure function of its inputs: no clock, no I/O.
+ * The pure link resolver (FR-331 to FR-335): the links of a delivered or read item, and the
+ * neighbours of an item, a vocabulary term or a domain that Related shows. A link only says what
+ * a text refers to. It never decides what get_context delivers, and a link is shown only when its
+ * target passes the same visibility rule as an item (FR-314). A pure function of its inputs: no
+ * clock, no I/O.
  */
 import { noGroups, type ItemKind, type RiskLevel } from './item.ts'
 import {
@@ -370,10 +371,12 @@ export function outgoing(
   today: string,
   window?: DateWindow,
   index: LinkIndex = linkIndex(bundle),
+  wanted?: ReadonlySet<string>,
 ): { links: Link[]; withheld: number } {
   const links: Link[] = []
   let withheld = 0
   for (const row of [...index.from(item.id), areaRow(item)]) {
+    if (wanted && !wanted.has(row.rel)) continue
     const resolved = resolveRow(bundle, index, item, row, today, window)
     if (resolved.kind === 'hidden') {
       withheld++
@@ -439,7 +442,7 @@ function termTarget(
 }
 
 /*
-  get_related (FR-332). A node is an item, a vocabulary term or a domain. Edges are the stored
+  Neighbours (FR-332), for Related. A node is an item, a vocabulary term or a domain. Edges are the stored
   links, always from the item that wrote them: `mentions`, `applies_to` (scope), `replaces`,
   `conflicts_with`, and `in_area`. Seen from a node, a relation names how a neighbour connects:
   `mentions` and `replaces` point away from an item, `mentioned_by` and `replaced_by` point at
@@ -458,7 +461,7 @@ export const relations = [
 export type Relation = (typeof relations)[number]
 /** Every item of a domain is not a neighbour worth following unless asked for: no `in_area`. */
 export const defaultRelations: readonly Relation[] = relations.filter((r) => r !== 'in_area')
-export const relatedLimits = { maxDepth: 2, maxNodes: 50, defaultNodes: 20 } as const
+export const relatedLimits = { maxDepth: 2 } as const
 
 export type EdgeRel = 'mentions' | 'applies_to' | 'replaces' | 'conflicts_with' | 'in_area'
 export type RelatedEdge = { from: string; to: string; rel: EdgeRel; status: LinkStatus }

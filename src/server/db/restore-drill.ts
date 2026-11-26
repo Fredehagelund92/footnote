@@ -234,7 +234,7 @@ async function checkVersions(client: pg.Client): Promise<DrillReport['versions']
       digest: string
       versionNo: number
     }>(
-      `select distinct on (v.id) s.term_key as key, t.kind::text as kind, t.parent_key as "parentKey",
+      `select distinct on (v.id) s.term_key as key, t.kind::text as kind, v.parent_key as "parentKey",
          v.name, v.aliases, v.area_id as "areaId",
          coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C")
                      from vocab_term_refs r where r.version_id = v.id), '{}') as "definitionRefs",

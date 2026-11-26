@@ -24,27 +24,28 @@ import { EMOJI, rememberEmoji, searchEmoji, type Emoji } from '@/lib/emoji'
 export type PickerProps = SuggestionProps<Mentionable, { id: string; label: string }> & {
   kinds: MentionKind[]
   empty: string
+  families: boolean
   exit: () => void
 }
 export type PickerHandle = SuggestHandle
 
 export const MentionPicker = React.forwardRef<PickerHandle, PickerProps>(function MentionPicker(
-  { query, command, kinds, empty, editor, exit },
+  { query, command, kinds, empty, families, editor, exit },
   ref,
 ) {
   const me = useMe()
   const all = useMentionables()
   const { values, searching } = useValueMentions(kinds.includes('value') ? query : '')
-  // You never mention yourself.
+  // You never mention yourself, and a family only where this place takes one.
   const groups = React.useMemo(
     () =>
       searchMentions(
-        all.filter((m) => m.id !== `person:${me.name}`),
+        all.filter((m) => m.id !== `person:${me.name}` && (families || !m.family)),
         kinds,
         query,
         values,
       ),
-    [all, kinds, query, me.name, values],
+    [all, kinds, families, query, me.name, values],
   )
   const byId = React.useMemo(
     () => new Map(groups.flatMap((g) => g.items).map((m) => [m.id, m])),

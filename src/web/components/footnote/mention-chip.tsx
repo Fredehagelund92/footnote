@@ -4,7 +4,7 @@ import { CircleSlashIcon, FolderIcon, GlobeIcon, TagIcon, UserRoundIcon } from '
 import { useReadAhead } from '@/lib/read-ahead'
 import { cn } from '@/lib/utils'
 import { PersonAvatar } from '@/components/footnote/bits'
-import { TypeGlyph } from '@/components/footnote/type-glyph'
+import { FamilyGlyph, TypeGlyph } from '@/components/footnote/type-glyph'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -31,7 +31,7 @@ export function MentionIcon({
   className,
   avatar,
 }: {
-  m: Pick<Mentionable, 'kind' | 'contextKind' | 'synonym' | 'label'> & { id?: string }
+  m: Pick<Mentionable, 'kind' | 'contextKind' | 'synonym' | 'family' | 'label'> & { id?: string }
   className?: string
   avatar?: boolean
 }) {
@@ -42,6 +42,8 @@ export function MentionIcon({
     case 'metric':
     case 'dimension':
     case 'term':
+      // A family is marked by its stack, as search and Definitions mark it.
+      if (m.family) return <FamilyGlyph className={cls} />
       return (
         <TypeGlyph d={{ type: m.kind, sameAs: m.synonym ? m.label : undefined }} className={cls} />
       )
@@ -198,7 +200,9 @@ export function MentionChip({
       className={cn(
         chip,
         tone.className,
-        'cursor-pointer transition-[filter] outline-none hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:brightness-125',
+        // A domain or a person opens nothing on a press, only its card: the arrow, not a pointer.
+        kind === 'domain' || kind === 'person' ? 'cursor-default' : 'cursor-pointer',
+        'transition-[filter] outline-none hover:brightness-95 focus-visible:ring-3 focus-visible:ring-ring/50 dark:hover:brightness-125',
         className,
       )}
       {...(kind === 'context' ? ahead(key) : {})}
@@ -252,41 +256,6 @@ export function MentionText({ text, interactive }: { text: string; interactive?:
         )
       })}
     </>
-  )
-}
-
-/**
- * Stored context text as the editor wrote it, read-only: paragraphs, lists and quotes, with
- * mentions as chips. `dense` is the quick view's smaller text.
- */
-export function ContextText({ text, dense }: { text: string; dense?: boolean }) {
-  return text.split('\n\n').map((para, i) =>
-    /^(- |\d\. )/.test(para) ? (
-      <ul
-        key={i}
-        className={cn(
-          'list-disc marker:text-muted-foreground',
-          dense ? 'ml-5 space-y-1' : 'ml-6 space-y-1.5',
-        )}
-      >
-        {para.split('\n').map((li, j) => (
-          <li key={j}>
-            <MentionText text={li.replace(/^(- |\d\. )/, '')} />
-          </li>
-        ))}
-      </ul>
-    ) : para.startsWith('> ') ? (
-      <blockquote
-        key={i}
-        className={cn('border-l-2 text-muted-foreground', dense ? 'pl-3' : 'pl-4')}
-      >
-        <MentionText text={para.replace(/^> ?/gm, '')} />
-      </blockquote>
-    ) : (
-      <p key={i}>
-        <MentionText text={para} />
-      </p>
-    ),
   )
 }
 

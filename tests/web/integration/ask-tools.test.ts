@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { dateNote } from '../../../src/domain/dates.ts'
 import { people } from '@/api/mock/data/world'
+import { unpublished } from '@/model/items'
 import type { AskToolName, AskTools } from '../../../src/server/modules/answer/index.ts'
 import { tableContents } from '../../integration/support.ts'
 import { devPeople } from '../http/demo-week.ts'
@@ -44,7 +45,7 @@ async function ok<N extends AskToolName>(tools: AskTools, name: N, input: object
 const battery: { [N in AskToolName]: object[] } = {
   find_context: [
     { words: 'Norway' },
-    { words: 'orders Poland', widen: { other_words: 'Polish market' } },
+    { words: 'orders Poland', widen: { other_words: ['Polish', 'Polish market'] } },
     { words: 'payment provider', domain: 'Sales', kind: 'event' },
     { words: 'discount', widen: { without: 'domain' }, domain: 'Customer value' },
   ],
@@ -96,7 +97,7 @@ beforeAll(async () => {
 describe.each(persons)('as %s', (name) => {
   it('records counts the Context list as its filters do (FR-718.1, FR-720.3)', async () => {
     const api = await world.as(name)
-    const listed = (await api.getLibrary()).items.filter((f) => f.status !== 'Draft')
+    const listed = (await api.getLibrary()).items.filter((f) => !unpublished(f))
     const status = (s: string) => listed.filter((f) => f.status === s)
     const sales = listed.filter((f) => f.domain === 'area_sales' || f.domain === 'sales')
     await world.withTools(name, async (tools) => {
@@ -196,10 +197,16 @@ describe.each(persons)('as %s', (name) => {
   it('returns only what the person may read, and every id it returned (FR-718.2, FR-720.2)', async () => {
     const api = await world.as(name)
     const readable = new Set(
-      (await api.getLibrary()).items.filter((f) => f.status !== 'Draft').map((f) => f.id),
+      (await api.getLibrary()).items.filter((f) => !unpublished(f)).map((f) => f.id),
     )
-    // What the person's pages never give them: drafts, by their titles.
-    const drafts = (await (await world.as(ADMIN)).getLibrary()).items
+    // What the person's pages never give them: drafts, by their titles. Each writer alone reads
+    // their own (FR-139), so they are gathered from every writer's list.
+    const drafts = (
+      await Promise.all(
+        [...persons, ADMIN].map(async (writer) => (await world.as(writer)).getLibrary()),
+      )
+    )
+      .flatMap((library) => library.items)
       .filter((f) => f.status === 'Draft')
       .map((f) => f.title)
     expect(drafts.length).toBeGreaterThan(0)
@@ -472,7 +479,7 @@ describe('no dead ends (FR-719.3)', () => {
 
       const words = await ok(tools, 'find_context', {
         words: 'Poland',
-        widen: { other_words: 'Polish' },
+        widen: { other_words: ['Polish'] },
       })
       expect([words.everyWord, words.widened, words.searched.map((s) => s.words)]).toEqual([
         0,
@@ -485,7 +492,7 @@ describe('no dead ends (FR-719.3)', () => {
       // A search that finds what matches every word needs no wider one.
       const norway = await ok(tools, 'find_context', {
         words: 'Norway',
-        widen: { other_words: 'Norge' },
+        widen: { other_words: ['Norge'] },
       })
       expect([norway.widened, norway.searched.length, norway.nothing]).toEqual([
         'not needed',

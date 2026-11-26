@@ -173,7 +173,7 @@ export function NoSuchItem() {
       title="There is no context item here"
       way={{ href: '/context', label: 'Open Context' }}
     >
-      It may have been a draft someone deleted, or the link may be old.
+      It may be a draft only its writer can see, or one that was deleted, or the link may be old.
     </NotFound>
   )
 }

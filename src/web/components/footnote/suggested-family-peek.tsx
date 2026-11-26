@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { SourceNameRead } from '@contract/inbox'
 import type { FamilyParts } from '@/components/footnote/family-parts'
+import { foundLine } from '@domain/family-found'
 import {
   BoldNames,
   FamilyHead,
@@ -27,7 +28,9 @@ function whyOne(name: Suggested, familyBy: FamilyParts['familyBy']): string {
     ? `${tool} declares these ${n(family.variants)} metrics as one family, ${by}.`
     : family.found === 'calculation'
       ? `${tool} has ${n(family.variants)} metrics worked out the same way apart from ${family.by.join(' and ')}.`
-      : `These ${n(family.variants)} metrics have one name apart from ${family.by.join(' and ')}, and nothing in ${tool} says they are one metric.`
+      : family.found === 'rate'
+        ? `In ${tool}, these ${n(family.variants)} metrics are one amount, converted from one currency to another by a rate.`
+        : `These ${n(family.variants)} metrics have one name apart from ${family.by.join(' and ')}, and nothing in ${tool} says they are one metric.`
 }
 
 /** Where the words it would mean come from, in one line; empty for none, which says why itself. */
@@ -36,6 +39,7 @@ function sourceSaid(name: Suggested): string {
   if (!meaning) return ''
   if (meaning.source === 'declared') return `Written for the family in ${name.tool}`
   if (meaning.source !== 'common') return ''
+  if (meaning.base) return `Words of ${meaning.base}, the variant the others are converted from`
   return meaning.agree === variants
     ? `Common words of all ${n(variants)} variants`
     : `Common words of ${n(meaning.agree)} of ${n(variants)} variants`
@@ -59,6 +63,7 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
   const P = useParts()
   const read = P.useQuery(P.namesQuery())
   const domains = P.useDomains()
+  const me = P.useMe()
   const write = P.useWrite()
   const online = P.useOnline()
   const [busy, setBusy] = React.useState(false)
@@ -68,7 +73,9 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
     return (
       <P.DockFrame title="Suggested family">
         <P.DockMissing>
-          This family no longer waits on the Names card. It may have been published or left out.
+          {me.admin
+            ? 'This family is not waiting on the Names card. It may have been published or left out.'
+            : "This family is not waiting on your Names card. It may have been published or left out, or it waits in a domain you don't own."}
         </P.DockMissing>
       </P.DockFrame>
     )
@@ -145,7 +152,7 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
           />
           {meaning && (
             <p className="mt-3 text-base leading-7 text-pretty">
-              <P.MeaningWords meaning={meaning} by={family.by} />
+              <P.MeaningWords meaning={meaning} by={family.by} code="text-sm" />
             </p>
           )}
           {source && (
@@ -205,11 +212,9 @@ function SuggestedFamily({ nameKey }: { nameKey: string }) {
               </P.PeekFact>
             )}
             <P.PeekFact icon={P.CircleDotIcon}>
-              {family.found === 'declared'
-                ? `Declared as one family in ${name.tool}`
-                : family.found === 'calculation'
-                  ? `Found from the calculation in ${name.tool}`
-                  : 'Found by its names alone'}
+              {family.found === 'names'
+                ? 'Found by its names alone'
+                : foundLine(family.found, name.tool)}
             </P.PeekFact>
           </P.PeekFacts>
         </P.PeekBand>

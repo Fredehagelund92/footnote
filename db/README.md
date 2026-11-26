@@ -69,9 +69,8 @@ including the backslash in plain text. Token positions start at zero separately 
 The database compares target, label, field and position at commit, caps the total at 50,
 rejects self/unknown targets, and requires the markup's visible text to equal the plain field.
 Mentions never supply scope. Live-target and source-health validation belongs to the write
-services; link filtering and `get_related` are the pure resolver in `src/domain/links.ts`.
-`get_related` is on in `tool_config` unless an admin switched it off (FR-332, FR-407); the
-`links` evaluation kind is a paired run with the tool off and on (FR-523).
+services; link filtering, the links `read_context` gives and Related are the pure resolver in
+`src/domain/links.ts` (FR-331 to FR-335).
 
 ## Jobs
 
@@ -522,17 +521,6 @@ What it changes goes through the retire and publish paths; the row only records 
 who may read both items reads a decision; a person writes only their own. `cl_conflicts_kept()`,
 which runs as the owner, gives the alert job the pairs kept as both with the versions the decision
 saw, ids and numbers only. The serving and analytics roles have no grant on the table.
-
-Figures in Ask. A definitions source keeps its figures settings in
-`connectors.capabilities.figures`: whether Ask shows figures from it (off by default), the data
-endpoint an administrator set and the name of the endpoint's token in the secret store, never the
-token; `connectors.data_contact_id` is its data contact. No figure is ever stored. A named report
-can be about a figure (`part = 'figure'`): it names the source, the metric, the values and the days
-(`figure_*`), never the figure, and goes to the item's owners, the data contact or both
-(`figure_route`). The data contact reads it and closes it as not a problem
-(`cl_is_figure_contact()`, `cl_closes_figure_report()`), and `cl_figure_disputes()` names, for
-anyone signed in, the items an open figure report says a figure doesn't fit, and nothing else of
-it; each runs as the owner. The serving and analytics roles have no grant on any of it.
 
 Serving terms. Agents read the live terms through `serving_terms()`, a security
 definer function the API and serving roles may run: each word with its own meaning or what it

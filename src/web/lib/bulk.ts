@@ -1,20 +1,28 @@
 import type { Definition } from '@/lib/definitions'
+import { sourceProblem } from '@/lib/editor-problems'
+import { plainText } from '@/lib/mentions'
+import { holdLine, readinessOf, SUMMARY_LIMIT, type Readiness } from '@/model/editor-readiness'
 import { kindLabel, type DomainId, type Fact, type Kind } from '@/model/items'
 import { ownersOf, type Domains } from '@/model/people'
 
 // What a change to many rows does, row by row, before anything happens: which rows it acts on, and
 // which it leaves alone and why ("2 skipped: owned by Marketing"). Owners of an item's domain and
-// admins change it. A draft (never published) can be deleted; a published item is archived, never
-// deleted, so its history stays and agents simply stop getting it.
+// admins change it. A draft (never published) is its writer's alone (FR-139): only they see it, and
+// they publish it or delete it. A published item is archived, never deleted, so its history stays
+// and agents simply stop getting it. A draft is published as from the editor, after the editor's
+// own checks: at once in a domain the person owns (or by an admin), and otherwise sent to that
+// domain's owners as a suggestion. A suggestion waiting for review is left alone: an owner decides
+// it on its page.
 
 export type Me = { name: string; admin: boolean }
 
 /** A row left alone: `why` in a few words for the line, `reason` in a sentence for its tooltip. */
 export type Skip = { id: string; title: string; why: string; reason: string }
-export type Plan<T> = { act: T[]; skipped: Skip[] }
+/** What a change acts on, what it leaves alone with why, and (Publish only) what waits for the next press. */
+export type Plan<T> = { act: T[]; skipped: Skip[]; next: T[] }
 
 export type FactAction =
-  'archive' | 'delete' | 'domain' | 'kind' | 'owner-add' | 'owner-set' | 'check'
+  'archive' | 'delete' | 'domain' | 'kind' | 'owner-add' | 'owner-set' | 'check' | 'publish'
 
 /** Owners of the item's domain and admins change an item. */
 export const canChange = (f: Pick<Fact, 'domain'>, me: Me, domains: Domains) =>
@@ -38,18 +46,34 @@ export function planFacts(
 ): Plan<Fact> {
   const act: Fact[] = []
   const skipped: Skip[] = []
+  const next: Fact[] = []
   const skip = (f: Fact, s: { why: string; reason: string }) =>
     skipped.push({ id: f.id, title: f.title, ...s })
   for (const f of facts) {
-    if (!canChange(f, me, domains)) {
+    // A suggestion waiting for review is decided on its own page, one at a time.
+    if (f.status === 'Waiting') {
+      skip(f, {
+        why: 'waiting for review',
+        reason: 'It waits for review: open it to publish it, send it back or close it.',
+      })
+      continue
+    }
+    // Its writer publishes their own draft, or sends it to the owners, as from the editor, and
+    // deletes it.
+    const writes =
+      (action === 'publish' || action === 'delete') && f.status === 'Draft' && f.by === me.name
+    if (!canChange(f, me, domains) && !writes) {
       skip(f, owned(f.domain, domains))
       continue
     }
     const why = whyNot(action, f, domains, opts)
     if (why) skip(f, why)
+    // One Publish takes a batch, the first ones in the list's order: the drafts past it are not
+    // left out, they stay ticked for the next press.
+    else if (action === 'publish' && act.length >= PUBLISH_MAX) next.push(f)
     else act.push(f)
   }
-  return { act, skipped }
+  return { act, skipped, next }
 }
 
 function whyNot(
@@ -102,6 +126,17 @@ function whyNot(
         return { why: 'already the owner', reason: `${p.name} is its only owner already.` }
       return
     }
+    case 'publish': {
+      if (f.status === 'Archived')
+        return {
+          why: 'archived',
+          reason: 'It is archived: restore a version of it as a draft to publish it again.',
+        }
+      if (f.status !== 'Draft') return { why: 'published', reason: 'It is published already.' }
+      const ready = draftReadiness(f, domains)
+      if (ready.state === 'ready') return
+      return { why: readyWhy(ready), reason: holdLine(ready, ' and ') }
+    }
     case 'check':
       if (f.status === 'Draft')
         return { why: 'a draft', reason: 'A draft is checked when it is published.' }
@@ -112,6 +147,80 @@ function whyNot(
         return { why: 'not opened yet', reason: 'Open it first: checking it means reading it.' }
       return
   }
+}
+
+/* ---------- publish ---------- */
+
+/** The most drafts one Publish takes: each is checked and published on its own. */
+export const PUBLISH_MAX = 50
+/** Publishing more drafts than this asks first: agents get every one of them. */
+export const CONFIRM_ABOVE = 5
+
+/**
+ * Whether a draft can be published as it is, by the editor's own checks: a domain, a title, the
+ * text, where it applies, and a source with a sentence copied from it; a source that is a link, and
+ * a first paragraph agents read whole.
+ */
+export function draftReadiness(f: Fact, domains: Domains): Readiness {
+  const missing = [
+    !domains[f.domain] && 'a domain',
+    !f.title.trim() && 'a title',
+    !`${f.summary}${f.body ?? ''}`.trim() && 'what agents should know',
+    !f.where.length && 'where it applies',
+    !f.source.trim() && 'a source',
+    f.source.trim() && !f.quote.trim() && 'a sentence copied from the source',
+  ].filter(Boolean) as string[]
+  return readinessOf({
+    missing,
+    badLink: !!sourceProblem(f.source),
+    tooLong: plainText(f.summary).length > SUMMARY_LIMIT,
+  })
+}
+
+/** What is in a draft's way, in a few words for the line: "missing a source". */
+function readyWhy(r: Readiness) {
+  if (r.state === 'missing') return `missing ${r.missing[0]}`
+  if (r.state === 'bad-link') return 'a link to fix'
+  if (r.state === 'too-long') return 'a first paragraph too long'
+  return 'not ready'
+}
+
+/** Whether publishing a draft publishes it at once, or sends it to its domain's owners. */
+export const publishesNow = canChange
+
+/**
+ * What a Publish of planned drafts sends, from the bar or from a draft's own page: each draft it
+ * publishes at once as a patch (live, checked by the person today), and each it sends to another
+ * domain's owners by id.
+ */
+export function publishParts(plan: Plan<Fact>, me: Me, domains: Domains, checkedOn: string) {
+  const suggest = plan.act.filter((f) => !publishesNow(f, me, domains))
+  return {
+    patches: Object.fromEntries(
+      plan.act
+        .filter((f) => !suggest.includes(f))
+        .map((f): [string, Partial<Fact>] => [
+          f.id,
+          { status: 'Live', checkedBy: me.name, checkedOn },
+        ]),
+    ),
+    suggest: suggest.map((f) => f.id),
+    /** The domains whose owners get a suggestion, by name: "Marketing and Sales". */
+    to: [...new Set(suggest.map((f) => domains[f.domain]?.name))].join(' and '),
+  }
+}
+
+/**
+ * What a Publish did: "2 published", "1 sent to the owners of Marketing", or both; after a
+ * failure, how many failed.
+ */
+export function publishedLine(published: number, sent: number, failed = 0, to = '') {
+  const parts = [
+    published ? `${published} published` : '',
+    sent ? `${sent} sent to the owners${to ? ` of ${to}` : ''}` : '',
+  ].filter(Boolean)
+  const line = parts.join(', ')
+  return failed ? `${line || 'None published'}, ${failed} failed` : line
 }
 
 /* ---------- terms ---------- */
@@ -152,7 +261,7 @@ export function planTerms(
       )
     else act.push(d)
   }
-  return { act, skipped }
+  return { act, skipped, next: [] }
 }
 
 /* ---------- what the bar and the toasts say ---------- */

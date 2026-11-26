@@ -9,7 +9,7 @@ import {
   PlugIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { FrameSection } from '@/components/footnote/frame'
 import { Button, buttonVariants } from '@/components/ui/button'

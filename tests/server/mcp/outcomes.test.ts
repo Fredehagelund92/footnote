@@ -83,7 +83,7 @@ describe('W3: what must not be concluded reaches agents (FR-104, FR-326)', () =>
     })
     expect(out.context[0]!.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
     expect(out.instructions).toContain(
-      'When an item has not_to_conclude, never conclude what it rules out.',
+      "When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out.",
     )
     const read = await s.call('read_context', { id: 'itm_norway01' })
     expect(read.out.context.not_to_conclude).toBe('Do not read lower orders as fewer customers.')
@@ -158,14 +158,20 @@ describe('find_context (FR-338)', () => {
 
   it('reads a metric named by part of its name, but not by a word several names share', async () => {
     const s = setup((data) => {
-      data.terms.push({ ...data.terms[0]!, key: 'metric:deposit_count', name: 'Order count' })
+      data.terms.push(
+        { ...data.terms[0]!, key: 'metric:deposit_count', name: 'Order deposits' },
+        { ...data.terms[0]!, key: 'metric:deposit_fees', name: 'Deposit fees' },
+      )
     })
-    // "order" is in two names, so it names neither; "count" is in one.
-    const shared = await s.call('find_context', { query: 'what is a order' })
+    // "deposit" is in two names, so it names neither; "fees" is in one.
+    const shared = await s.call('find_context', { query: 'what is a deposit' })
     expect(shared.out.definitions ?? []).toEqual([])
-    const one = await s.call('find_context', { query: 'how do we count' })
-    expect(one.out.definitions).toMatchObject([{ key: 'metric:deposit_count', named: 'in part' }])
-    expect(one.out.definitions[0]!.named_note).toMatch(/^The words name Order count only in part\./)
+    const one = await s.call('find_context', { query: 'how do we book fees' })
+    expect(one.out.definitions).toMatchObject([{ key: 'metric:deposit_fees', named: 'in part' }])
+    expect(one.out.definitions[0]!.named_note).toMatch(
+      /^The words name Deposit fees only in part\./,
+    )
+    // "order" is another form of the name Orders, which it reads whole.
     const alone = await setup().call('find_context', { query: 'what is a order' })
     expect(alone.out.definitions.map((d) => d.key)).toEqual(['metric:orders'])
   })

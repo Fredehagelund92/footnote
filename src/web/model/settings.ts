@@ -3,6 +3,7 @@
 // value in words. Both bindings list them through `settingGroups`, so the demo and the service
 // read the same.
 
+import { aboutBusinessLength } from '@domain/about-business'
 import { monthLong } from '@/lib/dates'
 import type { AnswerTestRuns } from '@/api/client'
 
@@ -97,8 +98,9 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
       },
       {
         key: 'business.about',
-        what: 'About our business: background the assistant and agents get, never evidence',
-        value: (v) => (typeof v === 'string' && v ? count(v.length, 'character') : 'No text yet'),
+        what: 'About our business: what the company does, background Ask and agents get, never a source',
+        value: (v) =>
+          typeof v === 'string' && v ? count(aboutBusinessLength(v), 'character') : 'No text yet',
       },
       {
         key: 'sources.cube_model_url',
@@ -165,6 +167,11 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         what: 'How long a change waiting to reach the Inbox is kept after it went',
         value: days,
       },
+      {
+        key: 'ask.share_chats',
+        what: 'Whether people can share an Ask chat as a link, which lasts 90 days',
+        value: (v) => (v === false ? 'Off: no chat is shared, and no link opens' : 'On'),
+      },
     ],
   },
   {
@@ -216,6 +223,27 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         key: 'serving.max_overlay_age_seconds',
         what: 'How soon Pause sharing reaches every request',
         value: seconds,
+      },
+    ],
+  },
+  {
+    group: 'Links people paste',
+    settings: [
+      {
+        key: 'links.read_pages',
+        what: 'Whether Draft from text opens a public page someone links, to fill in from it',
+        value: (v) => (v === false ? 'Off: people paste the page’s text' : 'On'),
+      },
+      {
+        key: 'links.never_read_hosts',
+        what: 'Sites a link is never read on, each with its subdomains',
+        value: (v) => (Array.isArray(v) && v.length ? v.join(', ') : 'None'),
+      },
+      {
+        key: 'limits.link_reads',
+        what: 'Links that can be read, a failed read counting too',
+        value: (v) =>
+          `${count(field(v, 'person_per_hour'), 'link')} an hour and ${n(field(v, 'person_per_day')).toLocaleString('en-GB')} a day for one person, ${n(field(v, 'workspace_per_day')).toLocaleString('en-GB')} a day for the workspace`,
       },
     ],
   },

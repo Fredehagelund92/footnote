@@ -18,6 +18,7 @@ import { Route as AppHelpRouteImport } from './routes/_app/help'
 import { Route as ConnectApproveRouteImport } from './routes/connect.approve'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSlugRouteImport } from './routes/docs/$slug'
+import { Route as QuestionIdRouteImport } from './routes/question.$id'
 import { Route as AppContextIndexRouteImport } from './routes/_app/context.index'
 import { Route as AppContextNewRouteImport } from './routes/_app/context.new'
 import { Route as AppDefinitionsIndexRouteImport } from './routes/_app/definitions.index'
@@ -26,6 +27,7 @@ import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox.index'
 import { Route as AppObservabilityIndexRouteImport } from './routes/_app/observability.index'
 import { Route as AppObservabilitySectionRouteImport } from './routes/_app/observability.$section'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings.index'
+import { Route as AppSharedIdRouteImport } from './routes/_app/shared.$id'
 import { Route as AppContextIdIndexRouteImport } from './routes/_app/context.$id.index'
 import { Route as AppContextIdEditRouteImport } from './routes/_app/context.$id.edit'
 import { Route as AppContextIdSuggestRouteImport } from './routes/_app/context.$id.suggest'
@@ -81,6 +83,11 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/docs/$slug',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/docs/$slug.lazy').then((d) => d.Route))
+const QuestionIdRoute = QuestionIdRouteImport.update({
+  id: '/question/$id',
+  path: '/question/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppContextIndexRoute = AppContextIndexRouteImport.update({
   id: '/context/',
   path: '/context/',
@@ -134,6 +141,13 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   getParentRoute: () => AppRoute,
 } as any).lazy(() =>
   import('./routes/_app/settings.index.lazy').then((d) => d.Route),
+)
+const AppSharedIdRoute = AppSharedIdRouteImport.update({
+  id: '/shared/$id',
+  path: '/shared/$id',
+  getParentRoute: () => AppRoute,
+} as any).lazy(() =>
+  import('./routes/_app/shared.$id.lazy').then((d) => d.Route),
 )
 const AppContextIdIndexRoute = AppContextIdIndexRouteImport.update({
   id: '/context/$id/',
@@ -220,10 +234,12 @@ export interface FileRoutesByFullPath {
   '/help': typeof AppHelpRoute
   '/connect/approve': typeof ConnectApproveRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/question/$id': typeof QuestionIdRoute
   '/docs/': typeof DocsIndexRoute
   '/context/new': typeof AppContextNewRoute
   '/definitions/new': typeof AppDefinitionsNewRoute
   '/observability/$section': typeof AppObservabilitySectionRoute
+  '/shared/$id': typeof AppSharedIdRoute
   '/context/': typeof AppContextIndexRoute
   '/definitions/': typeof AppDefinitionsIndexRoute
   '/inbox/': typeof AppInboxIndexRoute
@@ -248,10 +264,12 @@ export interface FileRoutesByTo {
   '/help': typeof AppHelpRoute
   '/connect/approve': typeof ConnectApproveRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/question/$id': typeof QuestionIdRoute
   '/docs': typeof DocsIndexRoute
   '/context/new': typeof AppContextNewRoute
   '/definitions/new': typeof AppDefinitionsNewRoute
   '/observability/$section': typeof AppObservabilitySectionRoute
+  '/shared/$id': typeof AppSharedIdRoute
   '/context': typeof AppContextIndexRoute
   '/definitions': typeof AppDefinitionsIndexRoute
   '/inbox': typeof AppInboxIndexRoute
@@ -278,10 +296,12 @@ export interface FileRoutesById {
   '/_app/help': typeof AppHelpRoute
   '/connect/approve': typeof ConnectApproveRoute
   '/docs/$slug': typeof DocsSlugRoute
+  '/question/$id': typeof QuestionIdRoute
   '/docs/': typeof DocsIndexRoute
   '/_app/context/new': typeof AppContextNewRoute
   '/_app/definitions/new': typeof AppDefinitionsNewRoute
   '/_app/observability/$section': typeof AppObservabilitySectionRoute
+  '/_app/shared/$id': typeof AppSharedIdRoute
   '/_app/context/': typeof AppContextIndexRoute
   '/_app/definitions/': typeof AppDefinitionsIndexRoute
   '/_app/inbox/': typeof AppInboxIndexRoute
@@ -308,10 +328,12 @@ export interface FileRouteTypes {
     | '/help'
     | '/connect/approve'
     | '/docs/$slug'
+    | '/question/$id'
     | '/docs/'
     | '/context/new'
     | '/definitions/new'
     | '/observability/$section'
+    | '/shared/$id'
     | '/context/'
     | '/definitions/'
     | '/inbox/'
@@ -336,10 +358,12 @@ export interface FileRouteTypes {
     | '/help'
     | '/connect/approve'
     | '/docs/$slug'
+    | '/question/$id'
     | '/docs'
     | '/context/new'
     | '/definitions/new'
     | '/observability/$section'
+    | '/shared/$id'
     | '/context'
     | '/definitions'
     | '/inbox'
@@ -365,10 +389,12 @@ export interface FileRouteTypes {
     | '/_app/help'
     | '/connect/approve'
     | '/docs/$slug'
+    | '/question/$id'
     | '/docs/'
     | '/_app/context/new'
     | '/_app/definitions/new'
     | '/_app/observability/$section'
+    | '/_app/shared/$id'
     | '/_app/context/'
     | '/_app/definitions/'
     | '/_app/inbox/'
@@ -392,6 +418,7 @@ export interface RootRouteChildren {
   SigninRoute: typeof SigninRoute
   ConnectApproveRoute: typeof ConnectApproveRoute
   DocsSlugRoute: typeof DocsSlugRoute
+  QuestionIdRoute: typeof QuestionIdRoute
   DocsIndexRoute: typeof DocsIndexRoute
 }
 
@@ -460,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/question/$id': {
+      id: '/question/$id'
+      path: '/question/$id'
+      fullPath: '/question/$id'
+      preLoaderRoute: typeof QuestionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/context/': {
       id: '/_app/context/'
       path: '/context'
@@ -514,6 +548,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings/'
       preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/shared/$id': {
+      id: '/_app/shared/$id'
+      path: '/shared/$id'
+      fullPath: '/shared/$id'
+      preLoaderRoute: typeof AppSharedIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/context/$id/': {
@@ -596,6 +637,7 @@ interface AppRouteChildren {
   AppContextNewRoute: typeof AppContextNewRoute
   AppDefinitionsNewRoute: typeof AppDefinitionsNewRoute
   AppObservabilitySectionRoute: typeof AppObservabilitySectionRoute
+  AppSharedIdRoute: typeof AppSharedIdRoute
   AppContextIndexRoute: typeof AppContextIndexRoute
   AppDefinitionsIndexRoute: typeof AppDefinitionsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
@@ -620,6 +662,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppContextNewRoute: AppContextNewRoute,
   AppDefinitionsNewRoute: AppDefinitionsNewRoute,
   AppObservabilitySectionRoute: AppObservabilitySectionRoute,
+  AppSharedIdRoute: AppSharedIdRoute,
   AppContextIndexRoute: AppContextIndexRoute,
   AppDefinitionsIndexRoute: AppDefinitionsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
@@ -645,6 +688,7 @@ const rootRouteChildren: RootRouteChildren = {
   SigninRoute: SigninRoute,
   ConnectApproveRoute: ConnectApproveRoute,
   DocsSlugRoute: DocsSlugRoute,
+  QuestionIdRoute: QuestionIdRoute,
   DocsIndexRoute: DocsIndexRoute,
 }
 export const routeTree = rootRouteImport

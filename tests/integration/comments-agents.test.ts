@@ -253,7 +253,6 @@ beforeAll(async () => {
     }),
   )
 
-  await admin.query("update tool_config set enabled=true where tool='get_related'")
   const base = await app.listen({ host: '127.0.0.1', port: 0 })
   wire = new Client(
     { name: 'comments-agents', version: '1.0.0' },
@@ -282,7 +281,8 @@ it('gives agents the item, and no word of a comment, from every tool', async () 
     { name: 'find_context', arguments: { query: 'test accounts Norway' } },
     { name: 'find_context', arguments: { query: canary } },
     { name: 'read_context', arguments: { id: item } },
-    { name: 'get_related', arguments: { id: item, depth: 2 } },
+    { name: 'find_context', arguments: {} },
+    { name: 'find_context', arguments: { kind: 'rule' } },
   ]
   // Every read tool an agent is offered is called here; report and the suggestion tools write.
   const writes = ['report', 'suggest_context']

@@ -187,9 +187,9 @@ export function buildApp({
           database.transaction(personId, (tx) => publishingPermissions(tx, agentId)),
         // Each delivered item's page in Footnote, on the same address (FR-347).
         web: origins[0] ?? null,
-        // What a domain's definition source has beyond the vocabulary, for find_context, read
-        // as nobody.
-        reads: createServingReads(database),
+        // What a domain's definition source has beyond the vocabulary, for find_context, and one
+        // definition as Definitions shows it, for read_context: read as nobody.
+        reads: createServingReads(database, clock),
         ...mcp,
       },
       metrics,

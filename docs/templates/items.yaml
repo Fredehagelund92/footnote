@@ -37,9 +37,10 @@
 #   evidence       at least one source: url, a sentence quoted from it, the day you read it
 #   riskLevel      low, normal or high. Be honest, and know the cost: low needs no answer test;
 #                  normal runs a paid impact test before it can be accepted, high a full one.
-#   claimLevel     fact_only (a fact, no cause proven), or effect_stated with claimAuthority (who
-#                  states the effect) and claimQuote (their words)
-#   notToConclude  optional, the form's "What not to conclude": what someone might wrongly conclude
+#   claimLevel     fact_only (what the item says is documented, no cause proven), or
+#                  effect_stated with claimAuthority (who states the effect) and claimQuote
+#                  (their words)
+#   notToConclude  optional, the editor's "Don't conclude": what someone might wrongly conclude
 #                  from it, in one or two plain sentences. Start with "It doesn't tell you ...",
 #                  "Don't use this for ..." or "Check with ...". Left out: cause not proven.
 #

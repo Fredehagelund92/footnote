@@ -29,7 +29,7 @@ Only the hosts its manifest declares, over https, on public addresses. In produc
 
 Development and tests may use a host on the same computer.
 
-To let connectors reach an internal server, such as an artifact server, whoever runs the service names it in `FOOTNOTE_EGRESS_PRIVATE_HOSTS`. An admin in the app cannot open the private network. An allowed host is still https only, the manifest must still declare it, and Git and figures do not take this list.
+To let connectors reach an internal server, such as an artifact server, whoever runs the service names it in `FOOTNOTE_EGRESS_PRIVATE_HOSTS`. An admin in the app cannot open the private network. An allowed host is still https only, the manifest must still declare it, and Git does not take this list.
 
 ## Git
 
@@ -54,12 +54,6 @@ Requests go through a guarded fetch:
 | Time      | The limit in the connector's manifest                                                                    |
 
 No request or address goes in a log or an error. A failure names a host at most.
-
-## Figures
-
-A connector that reads figures for Ask has its own stricter fetch: GET only, to the data endpoint's origin alone, with no redirects, and 4 seconds to answer.
-
-The endpoint's token is sent only to that origin, and forgotten when the scheme, host or port changes. No person's identity goes with the request, and nothing it returns is kept.
 
 ## Secrets
 

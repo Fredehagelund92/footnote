@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { meaningLine } from '@domain/family-meaning'
+import { meaningLine } from '@domain/family-meaning-line'
 import {
   BookAIcon,
   ChevronDownIcon,
@@ -10,16 +10,22 @@ import {
   PlusIcon,
   ExternalLinkIcon,
   CircleDashedIcon,
+  LayersIcon,
   TriangleAlertIcon,
   EqualIcon,
-  InfoIcon,
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
 import { PersonAvatar } from '@/components/footnote/bits'
-import { AnotherNameFor, FamilyChip, TypeTile } from '@/components/footnote/definition'
+import { AnotherNameFor, TypeTile } from '@/components/footnote/definition'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  createTooltipHandle,
+} from '@/components/ui/tooltip'
 import { TypeGlyph } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import {
@@ -45,7 +51,6 @@ import { useSelection } from '@/hooks/use-selection'
 import { DefinitionsBulk } from '@/components/footnote/definitions-bulk'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -58,11 +63,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
-import { definitionsPageQuery } from '@/api/queries'
+import { definitionsPageQuery, familySplitsQuery } from '@/api/queries'
+import { DefinitionFamilies } from '@/components/footnote/definition-families'
 import type { DomainId } from '@/model/items'
 import {
   definitionCounts,
-  familyBy,
+  familyLines,
   typeLabel,
   toolOf,
   toolsOf,
@@ -71,15 +77,29 @@ import {
   type Definition,
   type ListIndex,
   type DefinitionType,
+  type SplitFamily,
   useDefinitions,
   useGlossary,
 } from '@/lib/definitions'
 import { WindowRows, type WindowRowsHandle } from '@/components/footnote/window-rows'
-import { closeDock, openDock, openFromRow, useDock } from '@/lib/dock'
-import { clicked, flipped, startOf, type SortKey, type Sorting } from '@/lib/sort'
-import { matches, matchesWords, usePublishOrder, useRowKeys, words, wordsIn } from '@/lib/list'
-import { href, navigate, useRoute } from '@/lib/router'
-import { useDomainList, useDomains, useFacts } from '@/lib/workspace'
+import { closeDock, openFromRow, useDock } from '@/lib/dock'
+import { clicked, flipped, sortingFrom, type SortKey, type Sorting } from '@/lib/sort'
+import {
+  listOf,
+  listTo,
+  matches,
+  matchesWords,
+  useArrivalRow,
+  useListAddress,
+  useListKeys,
+  usePublishOrder,
+  useSearchWords,
+  words,
+  wordsIn,
+} from '@/lib/list'
+import { changeQuery, href, navigate, useRoute } from '@/lib/router'
+import { useDomainList, useDomains, useFacts, useMe } from '@/lib/workspace'
+import { mayOpenSettings } from '@/lib/settings-access'
 import { APP_URL } from '@/lib/brand'
 import { TruncatedText } from '@/components/footnote/truncated'
 import { SourceText, sourceWords } from '@/components/footnote/source-text'
@@ -90,7 +110,6 @@ import { plainText } from '@/lib/mentions'
 import { LoadError, RefreshError, useLoadPhase } from '@/components/footnote/load-state'
 import { TableBodySkeleton } from '@/components/footnote/list-skeleton'
 import { heldRows, useRowsAfterFirstFrame } from '@/lib/loading'
-import { useFigures } from '@/lib/figures'
 import { useLeavingRows } from '@/lib/presence'
 
 // Definitions: the data glossary, laid out like the Footnote app's catalogue. Views with counts (All,
@@ -99,7 +118,16 @@ import { useLeavingRows } from '@/lib/presence'
 // column: Definition changed, and No context yet with Write one. Metrics and dimensions come from
 // their tool; terms are the business's own words, written here.
 
-type View = 'all' | DefinitionType
+type View = 'all' | DefinitionType | 'family'
+/** A view as its switch says it: "Metrics", "Families". */
+const VIEW_LABELS: Record<View, string> = {
+  all: 'All',
+  metric: 'Metrics',
+  family: 'Families',
+  dimension: 'Dimensions',
+  term: 'Terms',
+}
+const viewLabel = (v: View) => VIEW_LABELS[v]
 type Cue = 'conflict' | 'changed' | 'none'
 type Group = 'domain' | 'type' | 'group' | 'none'
 /** The ways to group, in words: a view's group is its tool's, named when there is one tool. */
@@ -126,6 +154,27 @@ const CUES: Record<Cue, string> = {
   changed: 'Definition changed',
   none: 'No context yet',
 }
+/** Each status as the address says it: `status=no-context`. */
+const CUE_OF = {
+  'two-meanings': 'conflict',
+  changed: 'changed',
+  'no-context': 'none',
+} as const satisfies Record<string, Cue>
+const CUE_KEYS = Object.keys(CUE_OF) as (keyof typeof CUE_OF)[]
+/** Each view as the address says it: `show=metrics`; All is the list without one. */
+const VIEW_OF = {
+  all: 'all',
+  metrics: 'metric',
+  families: 'family',
+  dimensions: 'dimension',
+  terms: 'term',
+} as const satisfies Record<string, View>
+const VIEW_KEYS = Object.keys(VIEW_OF) as (keyof typeof VIEW_OF)[]
+const VIEW_KEY = Object.fromEntries(
+  Object.entries(VIEW_OF).map(([k, v]) => [v, k === 'all' ? undefined : k]),
+) as Record<View, string | undefined>
+/** The groupings the address names; by domain is the list without one. */
+const GROUP_KEYS = ['type', 'group', 'none'] as const
 const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 const plural = (n: number, one: string) =>
@@ -145,6 +194,7 @@ function cueFor(d: Definition, index: ListIndex, synonymRows: boolean): Cue | un
 }
 
 const NO_DEFINITIONS: Definition[] = []
+const NO_SPLITS: SplitFamily[] = []
 /** A line of the list: a group's heading, or a definition. */
 type Line = { heading: string; rows: Definition[]; open: boolean } | Definition
 const NO_LINES: Line[] = []
@@ -180,6 +230,25 @@ function useShownColumns(tableRef: React.RefObject<HTMLTableElement | null>, all
     [tableRef],
   )
   return [shown, ref] as const
+}
+
+/**
+ * A family's meaning for its row: an article before a slot and the axis word repeated after it
+ * drop, so "through the {Channel} channel" reads "through each channel".
+ */
+function tidyMeaning(words: string, by: readonly string[]): string {
+  const folded = words
+    .replace(/\{([^{}]+)\}\s+\1\b/gi, (slot, axis: string) =>
+      by.includes(axis) ? `{${axis}}` : slot,
+    )
+    .replace(
+      /(\b(?:the|a|an)\s+)?\{([^{}]+)\}/gi,
+      (slot, article: string | undefined, axis: string) =>
+        by.includes(axis)
+          ? `${/^[TA]/.test(article ?? '') ? 'Each' : 'each'} ${axis.toLowerCase()}`
+          : slot,
+    )
+  return meaningLine(folded, by)
 }
 
 /**
@@ -247,28 +316,45 @@ export function DefinitionsPage() {
   React.useEffect(() => {
     if (setup) navigate(definitionsConnectHref(), { setup: '1' })
   }, [setup])
-  const figures = useFigures()
-  const [view, setView] = React.useState<View>('all')
-  const [text, setText] = React.useState('')
-  // A domain page links here filtered to its domain.
-  const [domain, setDomain] = React.useState<DomainId[]>(() =>
-    query.get('domain') ? [query.get('domain') as DomainId] : [],
-  )
-  const [cues, setCues] = React.useState<Cue[]>([])
+  // The list's view is in the address (lib/list.ts), so a reload, a link and Back from a
+  // definition keep it: a split from a family's page lands on Families (?show=families), a domain
+  // page links here filtered to its domain.
+  useListAddress('/definitions')
+  const view = VIEW_OF[listOf(query.get('show'), VIEW_KEYS)[0] ?? 'all']
+  const setView = (next: View) => changeQuery({ show: VIEW_KEY[next] })
+  const splits = useQuery(familySplitsQuery()).data ?? NO_SPLITS
+  const [text, setText] = useSearchWords()
+  const domain: DomainId[] = query.get('domain')?.split(',').filter(Boolean) ?? []
+  const setDomain = (next: DomainId[]) => changeQuery({ domain: listTo(next) })
+  const cues = listOf(query.get('status'), CUE_KEYS).map((c) => CUE_OF[c])
+  const setCues = (next: Cue[]) =>
+    changeQuery({ status: listTo(CUE_KEYS.filter((c) => next.includes(CUE_OF[c]))) })
   // Synonyms fold into their definition's row as tags; this shows them as rows of their own, to audit them.
-  const [synonymRows, setSynonymRows] = React.useState(false)
-  const [group, setGroup] = React.useState<Group>('domain')
-  const [folded, setFolded] = React.useState<string[]>([])
-  const [chosenSort, setSort] = React.useState<Sorting<Sort> | null>(null)
+  const synonymRows = query.get('synonyms') === 'rows'
+  const setSynonymRows = (on: boolean) => changeQuery({ synonyms: on ? 'rows' : undefined })
+  const group: Group = listOf(query.get('group'), GROUP_KEYS)[0] ?? 'domain'
+  const setGroup = (next: Group) => changeQuery({ group: next === 'domain' ? undefined : next })
+  // The groups folded by hand, in the grouping they were folded in.
+  const [foldedIn, setFoldedIn] = React.useState({ group, keys: [] as string[] })
+  const folded = foldedIn.group === group ? foldedIn.keys : []
   const reduced = useReducedMotion()
   // A pointer change of what the list shows (the view, a filter, the sort, the grouping) moves the
   // rows on screen to their new places in one view transition; the keyboard and reduced motion
   // change the list at once (lib/list-motion.ts). Typing in Search changes it at once too, as a
   // search must keep up with the hand.
-  const move = (press: Press, change: () => void) => moveRows(change, reduced || !byPointer(press))
+  const move = (press: Press, change: () => void | Promise<unknown>) =>
+    moveRows(change, reduced || !byPointer(press))
 
   // Led by coverage: what agents would hear Not found for comes first.
-  const sorting = chosenSort ?? startOf(SORTS, text.trim() ? 'best' : 'coverage')
+  // Families are read by name: coverage is a metric's question.
+  const sorting = sortingFrom<Sort>(
+    SORTS,
+    query,
+    text.trim() ? 'best' : view === 'family' ? 'name' : 'coverage',
+  )
+  // A sort chosen stays when a search starts, so it is in the address even when it is the first.
+  const setSort = (next: Sorting<Sort>) =>
+    changeQuery({ sort: next.key, dir: flipped(SORTS, next) ? next.dir : undefined })
   const sort = sorting.key
   const way = flipped(SORTS, sorting) ? -1 : 1
   // The tool the metrics and dimensions come from, when one; neutral words when none or several.
@@ -277,6 +363,10 @@ export function DefinitionsPage() {
   const tools = toolsOf(all)
   const reader = connectorById(connectorOf(all))
   const source = reader ?? connectorByTool(tool)
+  const me = useMe()
+  // A term is written by an owner of its domain or an admin: the service refuses anyone else.
+  const mayWriteTerms = me.admin || me.owns.length > 0
+  const toolPage = integrationHref(reader?.id)
   const GROUPS = groupsOf(tool)
   // Each row's other names and context, worked out once for the list, not once a row: a search
   // must keep up with the hand at 5,000 rows.
@@ -327,7 +417,7 @@ export function DefinitionsPage() {
     return variantHits.get(d.name)! > 0
   }
   const pass = (d: Definition, skip?: 'view' | 'domain' | 'cue') =>
-    (skip === 'view' || view === 'all' || d.type === view) &&
+    (skip === 'view' || view === 'all' || (view === 'family' ? !!d.family : d.type === view)) &&
     (skip === 'domain' || !domain.length || (d.domain && domain.includes(d.domain))) &&
     (skip === 'cue' || !cues.length || cues.includes(cueOfRow(d)!)) &&
     (!asked.length || found(d))
@@ -400,6 +490,8 @@ export function DefinitionsPage() {
     return [...(g.key ? [{ heading: g.key, rows: g.rows, open }] : []), ...(open ? g.rows : [])]
   })
   const drawn = React.useRef<WindowRowsHandle>(null)
+  // Every family row's stack shares one tooltip, so thousands of rows hold one, not one each.
+  const [familyTip] = React.useState(() => createTooltipHandle<string[]>())
   usePublishOrder('definitions', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
@@ -412,16 +504,32 @@ export function DefinitionsPage() {
   const uncovered = measurable.filter((d) => about(d) === 0)
   const filters = domain.length + cues.length + Number(synonymRows)
   // Each view's count, in one pass over the rows.
-  const byView: Record<View, number> = { all: 0, metric: 0, dimension: 0, term: 0 }
+  const byView: Record<View, number> = { all: 0, metric: 0, family: 0, dimension: 0, term: 0 }
   for (const d of rows)
     if (pass(d, 'view')) {
       byView.all++
       byView[d.type]++
+      if (d.family) byView.family++
     }
   const typeCount = (t: View) => byView[t]
-  const rowKeys = useRowKeys({
-    rows: { order, reveal: (name, then) => drawn.current?.reveal(name, then) },
-    onMove: (name) => peeked && openDock('def', name),
+  // Families is a view of its own once a family is in Definitions, or one was split.
+  const views: View[] = [
+    'all',
+    'metric',
+    ...(byView.family > 0 || splits.length > 0 || view === 'family' ? (['family'] as const) : []),
+    'dimension',
+    'term',
+  ]
+  useListKeys({
+    list: table,
+    order,
+    current: peeked,
+    docked: !!peeked,
+    reveal: (name, then) => drawn.current?.reveal(name, then),
+    // With the peek open the cursor's row opens in it; stepped from the peek, the peek keeps the
+    // focus. A cursor move takes the place of the address.
+    onMove: (name, from) =>
+      peeked && openFromRow('def', name, undefined, { focus: from.panel, replace: true }),
     // Escape closes the peek first, then clears the selection.
     onEscape: () => {
       if (peeked) closeDock()
@@ -430,13 +538,20 @@ export function DefinitionsPage() {
       return true
     },
   })
-  const clearAll = () => {
-    setSynonymRows(false)
-    setDomain([])
-    setCues([])
-    setText('')
-    setView('all')
-  }
+  // Back from a definition's page, or a reload with its panel open: its row takes the focus, in view.
+  useArrivalRow({
+    itemPath: '/definitions/',
+    idOf: (part) => decodeURIComponent(part),
+    peeked,
+    ready: rowsShown,
+    focus: (name) =>
+      drawn.current?.reveal(name, (row) => {
+        row.querySelector<HTMLElement>('[data-row-open]')?.focus({ preventScroll: true })
+        row.scrollIntoView({ block: 'nearest' })
+      }),
+  })
+  const noFilters = { domain: undefined, status: undefined, synonyms: undefined }
+  const clearAll = () => void changeQuery({ ...noFilters, q: undefined, show: undefined })
 
   /** A flag only when something needs a look: a conflict, a definition its tool changed, or no description in it. */
   const foldedConflict = (d: Definition) =>
@@ -469,16 +584,25 @@ export function DefinitionsPage() {
     const n = about(d)
     const family = d.family
     // A family's meaning, each value it varies by said as its axis ("in each currency"); with
-    // none, what writing about it does.
+    // none, the words its quick view says.
     const subject = family ? undefined : glossary.meaningOf(d)
     const meaning = family
       ? family.meaning?.words
-        ? meaningLine(family.meaning.words, family.by)
-        : `Context about it applies to all ${family.variants.length.toLocaleString('en-GB')} variants.`
+        ? tidyMeaning(family.meaning.words, family.by)
+        : 'No meaning yet: no words speak for all its variants.'
       : plainText(subject?.definition ?? '')
+    // A tool's words hold its Markdown: a family's meaning is its variants' words.
+    const marked = !!family?.meaning?.words || !!subject?.synced
     // Found by its variants' words alone, a family says how many, never which (FR-142): its quick
     // view names the first.
     const matched = family && text.trim() ? (variantHits.get(d.name) ?? 0) : 0
+    const tip = family && familyLines(family)
+    const matchedWords =
+      matched === 1
+        ? '1 variant matches'
+        : matched > 1
+          ? `${matched.toLocaleString('en-GB')} variants match`
+          : null
     const open = () =>
       openFromRow('def', d.name, matched ? { variant: variantFirst.get(d.name) } : undefined)
     const rowFacts = [
@@ -532,7 +656,6 @@ export function DefinitionsPage() {
         data-vt-move
         className={cn(
           'group/row h-row cursor-pointer border-b text-sm row-fade hover:bg-muted/50 has-[[data-row-open]:focus-visible]:ring-3 has-[[data-row-open]:focus-visible]:ring-ring/50 has-[[data-row-open]:focus-visible]:ring-inset data-peeked:bg-muted data-peeked:shadow-peeked data-[state=selected]:bg-muted @max-xl/main:h-auto',
-          family && 'h-auto',
         )}
         onMouseDown={sel.onMouseDown}
         onClick={(e) => sel.rowClick(d.name, e) || open()}
@@ -551,72 +674,57 @@ export function DefinitionsPage() {
           />
         </td>
         {/* The name with its type tile, its other names as tags (or, in the audit view, a synonym's Another name for); the rest are short facts. */}
-        <td
-          className={cn(
-            'max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5',
-            family && 'py-1.5',
-          )}
-        >
-          {family ? (
-            // A family's mark: the stack, "Family · 250 variants" and what tells them apart, the
-            // same at every width (FR-142). The name has its line to itself, so names that start
-            // alike ("Partner net revenue…") stay told apart with a panel open or on a phone.
-            <span className="flex min-w-0 items-center gap-2.5">
+        <td className="max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5">
+          <span className="flex min-w-0 items-center gap-2.5">
+            {tip ? (
+              // A family is marked by its stack alone; what tells its variants apart is in its
+              // tooltip and its quick view (FR-142). The row is a metric's, at a metric's height.
+              <TooltipTrigger
+                handle={familyTip}
+                payload={tip}
+                render={<span className="inline-flex shrink-0" />}
+              >
+                <TypeTile d={d} label={tip.join('. ')} />
+              </TooltipTrigger>
+            ) : (
               <TypeTile d={d} />
-              <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="flex min-w-0 items-center gap-2">
-                  {name}
-                  <AlsoCalledChips names={otherNames(d)} conflicts={[]} matched={matchedBy(d)} />
+            )}
+            <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
+              {name}
+              {target && <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />}
+              <AlsoCalledChips
+                names={otherNames(d)}
+                conflicts={
+                  family
+                    ? []
+                    : index
+                        .alsoCalled(d)
+                        .filter((x) => index.conflictOf(x))
+                        .map((x) => x.name)
+                }
+                matched={matchedBy(d)}
+              />
+              {matchedWords && (
+                <span className="hidden shrink-0 text-xs whitespace-nowrap text-muted-foreground @xl/main:inline">
+                  {matchedWords}
                 </span>
-                {/* What does not fit beside the chip goes on a line of its own, never cut. */}
-                <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                  <FamilyChip family={family} />
-                  <span className="min-w-0">
-                    {familyBy(family)}
-                    {rowFacts.map((fact) => (
-                      <span key={String(fact)} className="@xl/main:hidden">
-                        {' '}
-                        · {fact}
-                      </span>
-                    ))}
-                    {matched > 0 &&
-                      ` · ${matched === 1 ? '1 variant matches' : `${matched.toLocaleString('en-GB')} variants match`}`}
-                  </span>
-                </span>
+              )}
+              {/* On a phone the short facts go on a second line, led by why a family is found. */}
+              <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
+                {matchedWords && <span>{matchedWords}</span>}
+                {rowFacts.map((fact) => (
+                  <span key={String(fact)}>{fact}</span>
+                ))}
               </span>
             </span>
-          ) : (
-            <span className="flex min-w-0 items-center gap-2.5">
-              <TypeTile d={d} />
-              <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
-                {name}
-                {target && (
-                  <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />
-                )}
-                <AlsoCalledChips
-                  names={otherNames(d)}
-                  conflicts={index
-                    .alsoCalled(d)
-                    .filter((x) => index.conflictOf(x))
-                    .map((x) => x.name)}
-                  matched={matchedBy(d)}
-                />
-                {/* On a phone the short facts go on a second line. */}
-                <span className="flex gap-2 text-xs text-muted-foreground @xl/main:hidden">
-                  {rowFacts.map((fact) => (
-                    <span key={String(fact)}>{fact}</span>
-                  ))}
-                </span>
-              </span>
-            </span>
-          )}
+          </span>
         </td>
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
           <TruncatedText
-            text={(subject?.synced ? sourceWords(meaning) : meaning) || 'No meaning written yet'}
+            text={(marked ? sourceWords(meaning) : meaning) || 'No meaning written yet'}
           >
-            {meaning ? subject?.synced ? <SourceText text={meaning} /> : meaning : '–'}
+            {meaning ? marked ? <SourceText text={meaning} /> : meaning : '–'}
           </TruncatedText>
         </td>
         <td
@@ -701,14 +809,16 @@ export function DefinitionsPage() {
       <SiteHeader title="Definitions" icon={<BookAIcon />}>
         {/* With a definition's quick view open, its own action (Write context) is the one solid blue button. */}
         {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
-        <Button
-          variant={dock?.kind === 'def' ? 'outline' : 'default'}
-          className="max-sm:size-7 max-sm:px-0"
-          onClick={() => navigate('/definitions/new')}
-        >
-          <PlusIcon data-icon="inline-start" />
-          <span className="max-sm:sr-only">New term</span>
-        </Button>
+        {mayWriteTerms && (
+          <Button
+            variant={dock?.kind === 'def' ? 'outline' : 'default'}
+            className="max-sm:size-7 max-sm:px-0"
+            onClick={() => navigate('/definitions/new')}
+          >
+            <PlusIcon data-icon="inline-start" />
+            <span className="max-sm:sr-only">New term</span>
+          </Button>
+        )}
       </SiteHeader>
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
       <div className="@container/main flex min-h-0 flex-1 flex-col overflow-y-auto *:mx-auto *:w-full *:max-w-wide @min-[80rem]/main:*:border-x">
@@ -734,7 +844,7 @@ export function DefinitionsPage() {
                     />
                   }
                 >
-                  {view === 'all' ? 'All' : `${typeLabel[view]}s`}
+                  {viewLabel(view)}
                   <span className="text-xs text-muted-foreground tabular-nums">
                     {typeCount(view).toLocaleString('en-GB')}
                   </span>
@@ -745,11 +855,9 @@ export function DefinitionsPage() {
                     value={view}
                     onValueChange={(v, e) => move(e.event, () => setView(v as View))}
                   >
-                    {(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => (
+                    {views.map((v) => (
                       <DropdownMenuRadioItem key={v} value={v}>
-                        <FilterValue count={typeCount(v)}>
-                          {v === 'all' ? 'All' : `${typeLabel[v]}s`}
-                        </FilterValue>
+                        <FilterValue count={typeCount(v)}>{viewLabel(v)}</FilterValue>
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>
@@ -761,12 +869,14 @@ export function DefinitionsPage() {
                 className="pl-1 text-sm @max-md/main:hidden"
                 value={view}
                 onChange={(v, press) => move(press, () => setView(v))}
-                options={(['all', 'metric', 'dimension', 'term'] as View[]).map((v) => ({
+                options={views.map((v) => ({
                   value: v,
-                  label: v === 'all' ? 'All' : `${typeLabel[v]}s`,
+                  label: viewLabel(v),
                   count: typeCount(v),
                   icon:
-                    v !== 'all' ? (
+                    v === 'family' ? (
+                      <LayersIcon aria-hidden className="text-current" />
+                    ) : v !== 'all' ? (
                       <TypeGlyph d={{ type: v }} className="text-current" />
                     ) : undefined,
                 }))}
@@ -792,9 +902,7 @@ export function DefinitionsPage() {
                       <DropdownMenuCheckboxItem
                         key={c}
                         checked={cues.includes(c)}
-                        onCheckedChange={(_, e) =>
-                          move(e.event, () => setCues((x) => toggle(x, c)))
-                        }
+                        onCheckedChange={(_, e) => move(e.event, () => setCues(toggle(cues, c)))}
                       >
                         <FilterValue
                           count={all.filter((d) => cueOfRow(d) === c && pass(d, 'cue')).length}
@@ -827,7 +935,7 @@ export function DefinitionsPage() {
                         key={d}
                         checked={domain.includes(d)}
                         onCheckedChange={(_, e) =>
-                          move(e.event, () => setDomain((x) => toggle(x, d)))
+                          move(e.event, () => setDomain(toggle(domain, d)))
                         }
                       >
                         <FilterValue
@@ -848,34 +956,31 @@ export function DefinitionsPage() {
                 narrow="@max-5xl/main:sr-only"
                 className="w-56"
               />
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="ghost" className={barButton} />}>
-                  <ListTreeIcon />
-                  <span className={cn(group === 'none' ? 'sr-only' : '@max-5xl/main:sr-only')}>
-                    {group === 'none' ? 'Group' : GROUPS[group]}
-                  </span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-44">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>Group by</DropdownMenuLabel>
-                    <DropdownMenuRadioGroup
-                      value={group}
-                      onValueChange={(v, e) =>
-                        move(e.event, () => {
-                          setGroup(v as Group)
-                          setFolded([])
-                        })
-                      }
-                    >
-                      {(Object.keys(GROUPS) as Group[]).map((g) => (
-                        <DropdownMenuRadioItem key={g} value={g}>
-                          {GROUPS[g]}
-                        </DropdownMenuRadioItem>
-                      ))}
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {view !== 'family' && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger render={<Button variant="ghost" className={barButton} />}>
+                    <ListTreeIcon />
+                    <span className={cn(group === 'none' ? 'sr-only' : '@max-5xl/main:sr-only')}>
+                      {group === 'none' ? 'Group' : GROUPS[group]}
+                    </span>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-44">
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Group by</DropdownMenuLabel>
+                      <DropdownMenuRadioGroup
+                        value={group}
+                        onValueChange={(v, e) => move(e.event, () => setGroup(v as Group))}
+                      >
+                        {(Object.keys(GROUPS) as Group[]).map((g) => (
+                          <DropdownMenuRadioItem key={g} value={g}>
+                            {GROUPS[g]}
+                          </DropdownMenuRadioItem>
+                        ))}
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <BarSpacer>
                 <SearchField value={text} onChange={setText} placeholder="Search definitions" />
               </BarSpacer>
@@ -896,34 +1001,30 @@ export function DefinitionsPage() {
                 )}
               </Count>
             </ListBar>
-            <FilterRow
-              count={filters}
-              onClear={() => (setDomain([]), setCues([]), setSynonymRows(false))}
-            >
+            <FilterRow count={filters} onClear={() => void changeQuery(noFilters)}>
               {cues.length > 0 && (
                 <FilterChip
                   field="Status"
                   values={cues.map((c) => CUES[c])}
-                  onRemove={() => setCues([])}
+                  onRemove={() => void setCues([])}
                 />
               )}
               {synonymRows && (
                 <FilterChip
                   field="Another name"
                   values={['shown as rows']}
-                  onRemove={() => setSynonymRows(false)}
+                  onRemove={() => void setSynonymRows(false)}
                 />
               )}
               {domain.length > 0 && (
                 <FilterChip
                   field="Domain"
-                  values={domain.map((d) => domains[d]!.name)}
-                  onRemove={() => setDomain([])}
+                  values={domain.map((d) => domains[d]?.name ?? d)}
+                  onRemove={() => void setDomain([])}
                 />
               )}
             </FilterRow>
-            {/* Where the definitions come from, in one line under the toolbar. Who hears about a
-                figure that looks wrong is an info button at its end, when the source has a contact. */}
+            {/* Where the definitions come from, in one line under the toolbar. */}
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
               <span className="min-w-0">
@@ -931,38 +1032,24 @@ export function DefinitionsPage() {
                 {tools.length > 1
                   ? `${tools.slice(0, -1).join(', ')} and ${tools.at(-1)}`
                   : (tool ?? 'your definitions tool')}{' '}
-                - change them there. Terms are written here by their domain owner.{' '}
-                <a
-                  href={integrationHref(reader?.id)}
-                  className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  {tool ?? 'Integrations'}
-                  {tool && ' in Integrations'}
-                </a>
-                {reader?.figures && (
-                  <Popover>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="-my-1 ms-1 inline-flex size-6 align-middle text-muted-foreground"
-                          aria-label="Who hears about a wrong figure"
-                        />
-                      }
+                - change them there. Terms are written here by their domain owner.
+                {/* The tool's page is in an admin's Settings: anyone else reads the line alone. */}
+                {mayOpenSettings(toolPage, me) && (
+                  <>
+                    {' '}
+                    <a
+                      href={toolPage}
+                      className="font-medium text-foreground underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                     >
-                      <InfoIcon />
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="text-pretty">
-                      A figure that looks wrong goes to {figures.contact(reader.id)}, the data
-                      contact.
-                    </PopoverContent>
-                  </Popover>
+                      {tool ?? 'Integrations'}
+                      {tool && ' in Integrations'}
+                    </a>
+                  </>
                 )}
               </span>
             </p>
             {/* Coverage first: how much of what agents can be asked has nothing written down. */}
-            {uncovered.length > 0 && (
+            {view !== 'family' && uncovered.length > 0 && (
               <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-6">
                 <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="min-w-0 flex-1">
@@ -975,173 +1062,197 @@ export function DefinitionsPage() {
                   </span>
                 </span>
                 {!cues.includes('none') && (
-                  <Button
-                    variant="outline"
-
-                    onClick={() => setCues(['none'])}
-                  >
+                  <Button variant="outline" onClick={() => void setCues(['none'])}>
                     Show only these
                   </Button>
                 )}
               </p>
             )}
-            <div className="min-w-0 shrink-0">
-              <table ref={tableRef} className="w-full table-fixed border-collapse">
-                <thead className="sticky top-0 z-raised">
-                  <tr>
-                    <th
-                      className={cn(
-                        thClass,
-                        'hidden w-9.5 min-w-9.5 pr-0 pl-4 md:w-11.5 md:min-w-11.5 md:pl-6 @xl/main:table-cell',
-                      )}
-                    >
-                      <Checkbox
-                        aria-label="Select all definitions shown"
-                        checked={sel.allShown}
-                        indeterminate={sel.count > 0 && !sel.allShown}
-                        onCheckedChange={sel.toggleAll}
+            {view === 'family' ? (
+              <DefinitionFamilies
+                rows={rowsShown ? shown : NO_DEFINITIONS}
+                loading={!rowsShown}
+                onClear={clearAll}
+                splits={splits}
+                meaningOf={(d) =>
+                  d.family?.meaning?.words ? tidyMeaning(d.family.meaning.words, d.family.by) : null
+                }
+                dueOf={(d) =>
+                  index.contextAbout(d).filter((f) => f.status === 'Due for a check').length
+                }
+              />
+            ) : (
+              <div className="min-w-0 shrink-0">
+                <table ref={tableRef} className="w-full table-fixed border-collapse">
+                  <thead className="sticky top-0 z-raised">
+                    <tr>
+                      <th
+                        className={cn(
+                          thClass,
+                          'hidden w-9.5 min-w-9.5 pr-0 pl-4 md:w-11.5 md:min-w-11.5 md:pl-6 @xl/main:table-cell',
+                        )}
+                      >
+                        <Checkbox
+                          aria-label="Select all definitions shown"
+                          checked={sel.allShown}
+                          indeterminate={sel.count > 0 && !sel.allShown}
+                          onCheckedChange={sel.toggleAll}
+                        />
+                      </th>
+                      <SortTh
+                        keys={SORTS}
+                        sorting={sorting}
+                        by="name"
+                        onSort={onSort}
+                        className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
                       />
-                    </th>
-                    <SortTh
-                      keys={SORTS}
-                      sorting={sorting}
-                      by="name"
-                      onSort={onSort}
-                      className="pr-2 pl-4 md:pl-6 @xl/main:pl-1.5 @min-[48rem]/main:w-1/3"
-                    />
-                    <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
-                    <Th
-                      className={cn(
-                        'hidden w-32 px-2',
-                        group !== 'domain' && '@min-[60rem]/main:table-cell',
-                      )}
-                    >
-                      Domain
-                    </Th>
-                    <SortTh
-                      keys={SORTS}
-                      sorting={sorting}
-                      by="context"
-                      onSort={onSort}
-                      className="hidden w-20 min-w-20 px-2 text-right @xl/main:table-cell"
-                    />
-                    <Th className="w-8 min-w-6 px-1">
-                      <span className="sr-only">Needs a look</span>
-                    </Th>
-                    <Th className="w-8 min-w-7 px-1">
-                      <span className="sr-only">Source</span>
-                    </Th>
-                    <Th className="w-11 min-w-9 pr-2 md:min-w-11 md:pr-4">
-                      <span className="sr-only">Actions</span>
-                    </Th>
-                  </tr>
-                </thead>
-                <WindowRows
-                  handle={drawn}
-                  entries={rowsShown ? lines : NO_LINES}
-                  keyOf={keyOfLine}
-                  estimate={heightOfLine}
-                  colSpan={cols}
-                  keep={[peeked]}
-                  onKeyDown={(e) => {
-                    sel.onKeyDown(e)
-                    rowKeys(e)
-                  }}
-                  before={
-                    <>
-                      {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
-                      {(phase === 'skeleton' || (ready && !showRows)) && (
-                        <TableBodySkeleton colSpan={cols} />
-                      )}
-                      {rowsShown && shown.length === 0 && (
-                        <tr>
-                          <td colSpan={cols} className="px-6 py-10 text-center text-sm">
-                            <p className="font-medium">No definitions match</p>
-                            <p className="mt-1 text-muted-foreground">
-                              {[
-                                text.trim() && `Searching for “${text.trim()}”`,
-                                view !== 'all' && `${typeLabel[view]}s only`,
-                                cues.length && `Status is ${cues.map((c) => CUES[c]).join(' or ')}`,
-                                domain.length &&
-                                  `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
-                              ]
-                                .filter(Boolean)
-                                .join(', ')}
-                              .
-                            </p>
-                            <Button variant="outline" className="mt-3" onClick={clearAll}>
-                              Clear search and filters
-                            </Button>
-                          </td>
-                        </tr>
-                      )}
-                    </>
-                  }
-                  render={(l, measure) =>
-                    'heading' in l ? (
-                      <GroupRow
-                        {...measure}
-                        label={l.heading}
-                        detail={definitionCounts(l.rows)}
-                        open={l.open}
-                        colSpan={cols}
-                        onToggle={() => setFolded((x) => toggle(x, l.heading))}
+                      <Th className="hidden px-2 @min-[48rem]/main:table-cell">Meaning</Th>
+                      <Th
+                        className={cn(
+                          'hidden w-32 px-2',
+                          group !== 'domain' && '@min-[60rem]/main:table-cell',
+                        )}
+                      >
+                        Domain
+                      </Th>
+                      <SortTh
+                        keys={SORTS}
+                        sorting={sorting}
+                        by="context"
+                        onSort={onSort}
+                        className="hidden w-20 min-w-20 px-2 text-right @xl/main:table-cell"
                       />
-                    ) : (
-                      row(l, measure)
-                    )
-                  }
-                  after={
-                    rowsShown && (
-                      <AddRow
-                        label="New term"
-                        colSpan={cols}
-                        onClick={() => navigate('/definitions/new')}
+                      <Th className="w-8 min-w-6 px-1">
+                        <span className="sr-only">Needs a look</span>
+                      </Th>
+                      <Th className="w-8 min-w-7 px-1">
+                        <span className="sr-only">Source</span>
+                      </Th>
+                      <Th className="w-11 min-w-9 pr-2 md:min-w-11 md:pr-4">
+                        <span className="sr-only">Actions</span>
+                      </Th>
+                    </tr>
+                  </thead>
+                  <WindowRows
+                    handle={drawn}
+                    entries={rowsShown ? lines : NO_LINES}
+                    keyOf={keyOfLine}
+                    estimate={heightOfLine}
+                    colSpan={cols}
+                    keep={[peeked]}
+                    onKeyDown={sel.onKeyDown}
+                    before={
+                      <>
+                        {/* Hundreds of rows draw in a render of their own: their skeleton holds the place. */}
+                        {(phase === 'skeleton' || (ready && !showRows)) && (
+                          <TableBodySkeleton colSpan={cols} />
+                        )}
+                        {rowsShown && shown.length === 0 && (
+                          <tr>
+                            <td colSpan={cols} className="px-6 py-10 text-center text-sm">
+                              <p className="font-medium">No definitions match</p>
+                              <p className="mt-1 text-muted-foreground">
+                                {[
+                                  text.trim() && `Searching for “${text.trim()}”`,
+                                  view !== 'all' && `${viewLabel(view)} only`,
+                                  cues.length &&
+                                    `Status is ${cues.map((c) => CUES[c]).join(' or ')}`,
+                                  domain.length &&
+                                    `Domain is ${domain.map((d) => domains[d]?.name).join(' or ')}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(', ')}
+                                .
+                              </p>
+                              <Button variant="outline" className="mt-3" onClick={clearAll}>
+                                Clear search and filters
+                              </Button>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    }
+                    render={(l, measure) =>
+                      'heading' in l ? (
+                        <GroupRow
+                          {...measure}
+                          label={l.heading}
+                          detail={definitionCounts(l.rows)}
+                          open={l.open}
+                          colSpan={cols}
+                          onToggle={() => setFoldedIn({ group, keys: toggle(folded, l.heading) })}
+                        />
+                      ) : (
+                        row(l, measure)
+                      )
+                    }
+                    after={
+                      rowsShown &&
+                      mayWriteTerms && (
+                        <AddRow
+                          label="New term"
+                          colSpan={cols}
+                          onClick={() => navigate('/definitions/new')}
+                        />
+                      )
+                    }
+                  />
+                  {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
+                  <tfoot
+                    className={cn(
+                      'z-raised bg-background',
+                      !sel.count && 'sticky bottom-0',
+                      !rowsShown && 'hidden',
+                    )}
+                  >
+                    <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
+                      <td className="hidden @xl/main:table-cell" />
+                      <td className="h-bar pr-2 pl-4 md:pl-6 @xl/main:pl-1.5">
+                        {definitionCounts(shown) || plural(0, 'definition')}
+                        {/* Each context item once, however many of these it is about. */}
+                        <span className="hidden @xl/main:inline">
+                          , with{' '}
+                          {new Set(
+                            shown.flatMap((d) =>
+                              d.sameAs ? [] : index.contextAbout(d).map((f) => f.id),
+                            ),
+                          ).size.toLocaleString('en-GB')}{' '}
+                          context items about them
+                        </span>
+                      </td>
+                      <td className="hidden px-2 @min-[48rem]/main:table-cell" />
+                      <td
+                        className={cn(
+                          'hidden px-2',
+                          group !== 'domain' && '@min-[60rem]/main:table-cell',
+                        )}
                       />
-                    )
-                  }
-                />
-                {/* While rows are picked the bar's band holds the foot, so the totals stop sticking over the last rows. */}
-                <tfoot
-                  className={cn(
-                    'z-raised bg-background',
-                    !sel.count && 'sticky bottom-0',
-                    !rowsShown && 'hidden',
-                  )}
-                >
-                  <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
-                    <td className="hidden @xl/main:table-cell" />
-                    <td className="h-bar pr-2 pl-4 md:pl-6 @xl/main:pl-1.5">
-                      {definitionCounts(shown) || plural(0, 'definition')}
-                      {/* Each context item once, however many of these it is about. */}
-                      <span className="hidden @xl/main:inline">
-                        , with{' '}
-                        {new Set(
-                          shown.flatMap((d) =>
-                            d.sameAs ? [] : index.contextAbout(d).map((f) => f.id),
-                          ),
-                        ).size.toLocaleString('en-GB')}{' '}
-                        context items about them
-                      </span>
-                    </td>
-                    <td className="hidden px-2 @min-[48rem]/main:table-cell" />
-                    <td
-                      className={cn(
-                        'hidden px-2',
-                        group !== 'domain' && '@min-[60rem]/main:table-cell',
-                      )}
-                    />
-                    <td className="hidden px-2 @xl/main:table-cell" />
-                    <td colSpan={3} className="pr-4 pl-1 text-right md:pr-6">
-                      {shown.filter((d) => flagOf(d)).length.toLocaleString('en-GB')} to look at
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                      <td className="hidden px-2 @xl/main:table-cell" />
+                      <td colSpan={3} className="pr-4 pl-1 text-right md:pr-6">
+                        {shown.filter((d) => flagOf(d)).length.toLocaleString('en-GB')} to look at
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
           </>
         )}
       </div>
+      {/* What a family's stack stands for, on hover: the quick view's first line. */}
+      <Tooltip handle={familyTip}>
+        {({ payload }) =>
+          payload && (
+            <TooltipContent side="top" align="start" className="flex-col items-start gap-0.5">
+              {payload.map((line, i) => (
+                <span key={line} className={i === 0 ? 'font-medium' : 'opacity-80'}>
+                  {line}
+                </span>
+              ))}
+            </TooltipContent>
+          )
+        }
+      </Tooltip>
       {/* Picked rows get their bar in a band of its own under the list, never over a row. */}
       <DefinitionsBulk sel={sel} defs={all} />
     </div>

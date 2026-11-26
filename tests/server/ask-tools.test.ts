@@ -32,6 +32,7 @@ const noReads: ToolReads = {
   index: unread,
   readable: unread,
   records: unread,
+  pending: () => Promise.resolve([]),
   areas: unread,
   people: unread,
   catalogue: unread,
@@ -64,6 +65,17 @@ describe("Ask's tool registry", () => {
     }
   })
 
+  it('says the searches read published context only, never that nothing is written', () => {
+    for (const name of ['find_context', 'get_context'] as const) {
+      const { description } = askToolDefinitions[name]
+      expect(description, name).toContain('published items only, never drafts')
+      expect(description, name).toContain('say that nothing published covers it')
+      expect(description.replace('never that nothing is written', ''), name).not.toMatch(
+        /nothing is written/,
+      )
+    }
+  })
+
   it('leaves every MCP tool as agents have it (FR-718.5)', () => {
     // A deliberate change to an MCP tool changes these; Ask's tools never do.
     expect(toolNames).toEqual([
@@ -72,10 +84,9 @@ describe("Ask's tool registry", () => {
       'read_context',
       'report',
       'suggest_context',
-      'get_related',
     ])
     expect(toolSchemaDigest).toBe(
-      '61b55c26aff9cf102bba3fd5e486ed6dbeeb359b60bd05886bfa56cb379b2261',
+      '861fd80b15d6ea1b1f13db6d503993aba5e05f0750828f6ea091f58b7a8fa510',
     )
     // No Ask tool writes, reports or suggests: none is an agent tool that is not a read.
     expect(askToolNames.filter((n) => ['report', 'suggest_context'].includes(n))).toEqual([])
@@ -97,6 +108,19 @@ describe("Ask's tool registry", () => {
     expect(
       await refusal('find_context', { words: 'orders', widen: { without: 'market' } }),
     ).toMatch(/widen\.without/)
+    // Other names come as a list of up to three, each one name: never one phrase of them all.
+    expect(
+      await refusal('find_context', {
+        words: 'accounting',
+        widen: { other_words: 'general ledger bookkeeping entries' },
+      }),
+    ).toMatch(/widen\.other_words/)
+    expect(
+      await refusal('find_context', {
+        words: 'accounting',
+        widen: { other_words: ['bookkeeping', 'ledger', 'books', 'accounts'] },
+      }),
+    ).toMatch(/widen\.other_words/)
   })
 })
 
@@ -320,6 +344,7 @@ describe('a family of metrics in Ask (FR-142)', () => {
     family: {
       by: ['Currency', 'Channel'],
       derivations: [],
+      conversions: [],
       // The USD variant's source says how it is worked out from the EUR one.
       variants: variants.map((key) => ({
         key,
@@ -340,7 +365,6 @@ describe('a family of metrics in Ask (FR-142)', () => {
       meaning: {
         source: 'none',
         words: null,
-        member: null,
         common: null,
         base: null,
         differing: ['metric:revenue_usd_web'],
@@ -444,6 +468,8 @@ describe('a family of metrics in Ask (FR-142)', () => {
       meaning: 'Money taken in each currency via each channel.',
       own: [{ values: ['USD', 'web'], words: 'Money taken in USD (EUR × row fx_usd) via web.' }],
       more: 0,
+      // Where its meaning comes from (C1): the words 3 of its variants share.
+      source: { kind: 'common', agree: 3 },
     })
   })
 
@@ -461,6 +487,64 @@ describe('a family of metrics in Ask (FR-142)', () => {
         },
       ],
       more: 0,
+      source: { kind: 'none' },
+    })
+  })
+
+  it('says where its meaning comes from: the words of its base, or words an owner wrote (C1, C4)', async () => {
+    const shownWith = async (meaning: object, people: { id: string; name: string }[] = []) => {
+      const withMeaning = createAskTools({
+        ...reads,
+        people: () => Promise.resolve(people),
+        catalogue: () =>
+          Promise.resolve({
+            terms: [
+              {
+                ...family,
+                family: { ...family.family, meaning: { ...family.family.meaning, ...meaning } },
+              },
+            ],
+          }),
+      } as unknown as ToolReads)
+      const result = await withMeaning.run('definitions', { names: ['Revenue'] })
+      return (result as { definitions: { family?: { source?: unknown } }[] }).definitions[0]!
+        .family!.source
+    }
+    // The others are converted from EUR web: its words speak for the family.
+    expect(
+      await shownWith({
+        source: 'common',
+        words: 'Money taken in {Currency} via {Channel}.',
+        common: { words: 'Money taken in {Currency} via {Channel}.', agree: 1 },
+        base: 'metric:revenue_eur_web',
+        differing: [],
+      }),
+    ).toEqual({
+      kind: 'base',
+      values: ['EUR', 'web'],
+      converted: [
+        ['AED', 'app'],
+        ['USD', 'web'],
+      ],
+    })
+    expect(
+      await shownWith(
+        {
+          source: 'written',
+          words: 'Money taken for paid orders.',
+          chosen: {
+            choice: 'written',
+            words: 'Money taken for paid orders.',
+            personId: 'p1',
+            at: '2026-10-20T09:00:00Z',
+          },
+          differing: [],
+        },
+        [{ id: 'p1', name: 'Sofia Brandt' }],
+      ),
+    ).toEqual({ kind: 'written', by: 'Sofia Brandt', on: '2026-10-20' })
+    expect(await shownWith({ source: 'declared', words: 'Money taken.', differing: [] })).toEqual({
+      kind: 'declared',
     })
   })
 
@@ -742,5 +826,130 @@ describe('the definitions tool by other names', () => {
     const result = await tools.run('definitions', { names: ['Takings'] })
     expect(result).toMatchObject({ found: 2, notFound: [] })
     expect(JSON.stringify(result)).toContain('Revenue after returns and discounts.')
+  })
+})
+
+describe('get_context and the words people wrote (FR-718.7)', () => {
+  const edition = bundle()
+  const written = (
+    id: string,
+    name: string,
+    meaning: string | null,
+    sameAs: string | null = null,
+  ) => ({
+    id,
+    name,
+    meaning,
+    sameAs,
+    areaId: 'finance',
+    writtenOn: '2026-09-16',
+    writtenAs: 'owner' as const,
+    conflict: false,
+  })
+  const commission = '0190f3a2-0000-7000-8000-00000000000a'
+  const terms = [
+    written(commission, 'Marketplace commission', 'The share of each marketplace sale it keeps.'),
+    written('0190f3a2-0000-7000-8000-00000000000b', 'Cut', null, `term:${commission}`),
+    written('0190f3a2-0000-7000-8000-00000000000c', 'Purchases', null, 'metric:orders'),
+  ]
+  const toolsWith = (words: typeof terms, vocabulary = edition.terms) =>
+    createAskTools({
+      ...noReads,
+      bundle: () => Promise.resolve({ ...edition, terms: vocabulary, written: words }),
+      readable: () => Promise.resolve(edition.items.map((i) => ({ ...i, status: 'accepted' }))),
+      areas: () => Promise.resolve([{ id: 'finance', name: 'Finance', ownerIds: [] }]),
+      people: () => Promise.resolve([]),
+      catalogue: () => Promise.resolve({ terms: [] }),
+      glossary: () => Promise.resolve({ terms: [] }),
+      records: () => Promise.resolve([]),
+    } as unknown as ToolReads)
+  const look = (words: typeof terms, about: string, vocabulary = edition.terms) =>
+    toolsWith(words, vocabulary).run('get_context', { about, no_period: true }) as Promise<
+      Record<string, unknown>
+    >
+
+  it('gives what each term the words use means, as written in Definitions', async () => {
+    const read = await look(terms, 'Orders in Norway after the marketplace commission')
+    expect(read.terms).toEqual([
+      {
+        id: `term:${commission}`,
+        word: 'marketplace commission',
+        name: 'Marketplace commission',
+        meaning: 'The share of each marketplace sale it keeps.',
+        domain: 'Finance',
+        from: 'written in Definitions',
+      },
+    ])
+    // A synonym of a term is that term, once; a synonym of a metric reads as the metric.
+    const again = await look(
+      terms,
+      'Purchases in Norway after the cut and the marketplace commission',
+    )
+    expect((again.terms as { word: string }[]).map((t) => t.word)).toEqual(['cut'])
+    // A term alone names no metric: the read is not looked up, and still says what it means.
+    const alone = await look(terms, 'marketplace commission')
+    expect(alone).toMatchObject({ state: null, terms: [{ name: 'Marketplace commission' }] })
+  })
+
+  it('gives a term the words use after five other names of metrics', async () => {
+    const orders = edition.terms.find((t) => t.key === 'metric:orders')!
+    const metrics = ['Refunds', 'Visits', 'Baskets', 'Signups', 'Reviews'].map((name, i) => ({
+      ...orders,
+      key: `metric:m${i}`,
+      name,
+    }))
+    const others = metrics.map((m, i) =>
+      written(`0190f3a2-0000-7000-8000-00000000001${i}`, `Other ${m.name}`, null, m.key),
+    )
+    const read = await look(
+      [...terms, ...others],
+      'Other refunds, other visits, other baskets, other signups, other reviews and the marketplace commission',
+      [...edition.terms, ...metrics],
+    )
+    expect((read.terms as { name: string }[]).map((t) => t.name)).toEqual([
+      'Marketplace commission',
+    ])
+  })
+
+  it('reads as before when the words use no term', async () => {
+    const before = await look([], 'Orders in Norway')
+    const after = await look(terms, 'Orders in Norway')
+    expect(after).not.toHaveProperty('terms')
+    expect(JSON.stringify(after)).toBe(JSON.stringify(before))
+  })
+})
+
+describe('read_context in Ask', () => {
+  it('lists 20 items that mention the item, reading past the conflicts that sort first', async () => {
+    const data = bundle(),
+      item = data.items[0]!
+    const added = (prefix: string, rel: string, count: number) =>
+      Array.from({ length: count }, (_, n) => {
+        const id = `itm_${prefix}${String(n).padStart(4, '0')}`
+        data.items.push({ ...item, id })
+        data.links.push({
+          from_item: id,
+          rel,
+          to_kind: 'item',
+          to_id: item.id,
+          label: item.title,
+        })
+        return id
+      })
+    added('conflict', 'conflicts_with', 5)
+    const mentions = added('mention', 'mentions', 25)
+    const reads = {
+      ...noReads,
+      bundle: () => Promise.resolve(data),
+      readable: () => Promise.resolve(data.items),
+      catalogue: () => Promise.resolve({ terms: [] }),
+      areas: () => Promise.resolve([]),
+      people: () => Promise.resolve([]),
+      itemHistory: () => Promise.resolve([]),
+    } as unknown as ToolReads
+    const result = (await createAskTools(reads).run('read_context', { id: item.id })) as {
+      item: { linkedFrom: { id: string }[] }
+    }
+    expect(result.item.linkedFrom.map((l) => l.id)).toEqual(mentions.slice(0, 20))
   })
 })

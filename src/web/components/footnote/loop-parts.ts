@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   ArrowLeftRightIcon,
   ArrowRightIcon,
@@ -6,17 +6,22 @@ import {
   AtSignIcon,
   BellIcon,
   BookOpenIcon,
+  BotIcon,
   CalendarClockIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   CircleDashedIcon,
   CircleStopIcon,
+  ClockIcon,
   FlagIcon,
+  FolderIcon,
   GitPullRequestArrowIcon,
   GlobeIcon,
+  InboxIcon,
   LayersIcon,
   PencilIcon,
+  PlugIcon,
   RefreshCwIcon,
   SearchIcon,
   SigmaIcon,
@@ -24,6 +29,8 @@ import {
   TableIcon,
   TagIcon,
   TriangleAlertIcon,
+  UserPlusIcon,
+  UsersIcon,
 } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
@@ -37,16 +44,17 @@ import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
 import { useWrite } from '@/api/queries'
 import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
-import { docHref } from '@/lib/doc-links'
-import { openDock } from '@/lib/dock'
+import { docHref, docTitle } from '@/lib/doc-links'
+import { closeDock, openDock, openFromButton, useDock } from '@/lib/dock'
+import { open as openOverlay } from '@/lib/events'
 import { ANSWER_LINES } from '@/lib/help-content'
 import { href } from '@/lib/router'
-import { answerKey, keepShown } from '@/lib/shown-answers'
+import { answerKey, keepShown, useReportSent } from '@/lib/shown-answers'
 import { chipTone, domainHue } from '@/lib/tones'
 import { cn } from '@/lib/utils'
 import { useDomains, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useReadAhead, useReadCitedAhead } from '@/lib/read-ahead'
-import { askedOf } from '@/model/ask'
+import { askedOf, searchWordsOf } from '@/model/ask'
 import { isLive } from '@/model/ask-turn'
 
 /**
@@ -63,17 +71,22 @@ export const loopParts = {
   AtSignIcon,
   BellIcon,
   BookOpenIcon,
+  BotIcon,
   CalendarClockIcon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   CircleDashedIcon,
   CircleStopIcon,
+  ClockIcon,
   FlagIcon,
+  FolderIcon,
   GitPullRequestArrowIcon,
   GlobeIcon,
+  InboxIcon,
   LayersIcon,
   PencilIcon,
+  PlugIcon,
   RefreshCwIcon,
   SearchIcon,
   SigmaIcon,
@@ -81,6 +94,8 @@ export const loopParts = {
   TableIcon,
   TagIcon,
   TriangleAlertIcon,
+  UserPlusIcon,
+  UsersIcon,
   Button,
   Collapsible,
   CollapsibleContent,
@@ -98,13 +113,19 @@ export const loopParts = {
   PRODUCT,
   useDefinitions,
   docHref,
+  docTitle,
   openDock,
+  openFromButton,
+  closeDock,
+  useDock,
+  openOverlay,
   useReadAhead,
   useReadCitedAhead,
   ANSWER_LINES,
   href,
   answerKey,
   keepShown,
+  useReportSent,
   chipTone,
   domainHue,
   cn,
@@ -113,6 +134,7 @@ export const loopParts = {
   useMe,
   usePeople,
   askedOf,
+  searchWordsOf,
   isLive,
 }
 export type LoopPartsOfAsk = typeof loopParts

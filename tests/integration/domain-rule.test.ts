@@ -106,9 +106,9 @@ async function unpinnedEdition() {
   await client.query(`
     insert into areas (id,name) values ('area_commercial','Commercial'),('area_customer_value','Customer value'),
       ('area_marketing','Marketing');
-    insert into vocab_terms (key,kind,parent_key) values ('metric:orders','metric',null),
-      ('metric:active_customers','metric',null),('metric:marketing_spend','metric',null),
-      ('dim:market','dimension',null),('val:market/norway','dimension_value','dim:market')`)
+    insert into vocab_terms (key,kind) values ('metric:orders','metric'),
+      ('metric:active_customers','metric'),('metric:marketing_spend','metric'),
+      ('dim:market','dimension'),('val:market/norway','dimension_value')`)
   for (const [area, person] of [
     ['area_commercial', people.owner],
     ['area_customer_value', people.member],

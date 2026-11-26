@@ -1,38 +1,38 @@
 ---
 title: Agent tools
-line: The six tools an agent can call, what each takes and gives back, and how to read a reply.
+line: The five tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 6
-reviewed: 2026-11-20
+minutes: 10
+reviewed: 2026-11-24
 ---
 
-The six tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them. All read, apart from the two that send something to an owner after the person says yes. A suggestion waits for the owner, unless the owner lets that agent [publish without review](publish-without-review.md).
+The five tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them. All read, apart from the two that send something to an owner after the person says yes. A suggestion waits for the owner, unless the owner lets that agent [publish without review](publish-without-review.md).
 
-## The six tools
+## The five tools
 
 <!-- include tools -->
 
 ### get_context
 
-The context that applies to a question, with one sentence to relay.
+The context that applies to a question about a metric, with one sentence to relay.
 
 - Takes: The question, or a metric, markets and dates.
 - Returns: The answer line, the context items that apply, and one sentence to relay.
 
 ### find_context
 
-A word search over names, titles and summaries.
+Find context items and definitions by words, or list them by kind or domain.
 
-- Takes: A few words.
-- Returns: Matching context items and definitions, titles only.
+- Takes: A few words, a kind or a domain, all optional.
+- Returns: Each context item's title and summary, never its text, and each definition's meaning, a page at a time.
 
 ### read_context
 
-One context item in full.
+One context item or one definition in full, with its links.
 
-- Takes: A context item.
-- Returns: Its text, source, check date and don't conclude line.
+- Takes: A context item, or a definition by its name.
+- Returns: A context item's text, source, check date, Don't conclude line and what it links to and from; a definition's words, owner, family and the context items about it.
 
 ### report
 
@@ -48,16 +48,11 @@ Send a suggestion to the owner, after the person says yes.
 - Takes: The suggested text and what it applies to.
 - Returns: That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.
 
-### get_related
-
-Follow a link between context items, definitions and domains, one step at a time.
-
-- Takes: A context item, a definition or a domain.
-- Returns: What it links to and is linked from, without changing what an answer includes.
-
 <!-- /include -->
 
-> **Switching tools off.** Admins switch tools off for every agent in Agents and access, Tools and access keys, where following links has its own switch, and for one agent in its Details: see [the tools each agent may call](connect-an-agent.md#the-tools-each-agent-may-call).
+> **Switching tools off.** Admins switch tools off for every agent in Agents and access, Tools and access keys, and for one agent in its Details: see [the tools each agent may call](connect-an-agent.md#the-tools-each-agent-may-call).
+
+`get_context` is for a question about a metric, `find_context` for looking a name up or seeing what there is, and `read_context` for reading one in full. In Claude Code, `get_context` loads when a session starts, and the others load the first time the agent needs them.
 
 ## Ask about a question: get_context
 
@@ -112,17 +107,67 @@ Set `response_format` to `full` for each item's body, every source, owner and li
 
 Dates in `window` include both ends: `window.from` and `window.to`. A question with no dates is read at today.
 
-`max_items` is 20 by default and 50 at most. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. Search and link cursors end when what agents read changes.
+The items come in one order, the one Ask reads too: first those whose title, summary or `not_to_conclude` line hold the question's own words (the words that name no metric, value or domain), a rarer word weighing more; then whole matches, higher risk and newer start.
 
-## Search and read: find_context and read_context
+`max_items` is 10 by default and 50 at most. When more apply, `next_cursor` passed back as `cursor` with the same question gives the next ones. `max_bytes` limits the whole result, 100,000 by default, with links cut before items, and the reply lists the items it cut. A cursor ends when what agents read changes, and on the next day: start again without a cursor.
 
-`find_context` searches names, titles, summaries and text.
+A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). `read_as` says which words were read so.
 
-- Takes: `query`.
-- Narrows the search, if you want: `domain`, `kind`, `window` and `limit`.
-- Gives back: titles and summaries under `context`, and definitions.
+When the question names no metric, `unread` gives each word that could have named one, with the names that hold it. Ask the person which they meant, or search the word with `find_context`, and never read it as one of them yourself.
 
-`read_context` reads one context item in full. It takes `id`, the item's id, and gives back its text, every source, who checked it and its links.
+## Search or list: find_context
+
+With `query`, it searches names, titles, summaries and text, by the names people use, such as GMV. Without `query`, it lists what there is, for a request such as "show me ten of our metrics" or "what is written down about Sales". It is not for a question about the data, which `get_context` answers.
+
+- Search gives back the matching context items under `context`, each with its title and summary, and the definitions the words name.
+- A list gives back definitions first, each with a one-line meaning, then the published context items the agent may see, each with its title and summary.
+- Neither gives an item's text: `read_context` does. Suggestions and drafts are never listed.
+
+| Option   | What it does                                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------- |
+| `query`  | A few words. Leave it out to list                                                                        |
+| `kind`   | `metric`, `dimension` or `term` for definitions; `event`, `warning`, `rule` or `guide` for context items |
+| `domain` | One domain, by name                                                                                      |
+| `window` | The dates of the items that apply, when no words match                                                   |
+| `limit`  | How many on a page: 10 for a search and 25 for a list by default, 100 at most                            |
+| `cursor` | The `next_cursor` of the page before                                                                     |
+
+Both give back `total`, how many there are, and `next_cursor` for the next page, or null on the last. A list is in a fixed order: metrics, then dimensions, then terms, each A to Z, then context items A to Z by title. With a definition's `kind`, the words only narrow the names.
+
+To pick a few at random, an agent reads a page of up to 100 and picks from it, or reads on with the next cursor. A cursor ends when what agents read changes, and on the next day: start again without a cursor.
+
+## Read one: read_context
+
+`read_context` reads one context item in full. It takes `id`, the item's id, and gives back its text, every source, who checked it, its links and the terms it uses:
+
+- `links_out`: what the item links to, such as a metric it applies to or an item it mentions, each with how it links and whether it is still there.
+- `links_in`: the items that link to it, 20 to a page with `next_cursor`: those that mention it, replace it or disagree with it.
+
+`relations` keeps only some kinds of link, out and in. It takes any of these:
+
+- `replaces` and `replaced_by`
+- `conflicts_with`
+- `applies_to` and `in_area`
+- `mentions` and `mentioned_by`
+
+To follow a link, the agent reads the linked item the same way. A link never changes what `get_context` delivers, and an item the agent may not see is left out.
+
+## Read a definition: read_context
+
+For "what does gross margin mean" or "how is ROAS defined", even when no context item is about it. Not for a question about the data, which `get_context` answers.
+
+When `id` is no context item's id, `read_context` reads it as a definition: its name, another of its names, or its key from the search or a list, such as `metric:orders`. The reply's `definition` has:
+
+- Its words whole, and where they come from: the source's own words, a family's meaning, or what a person wrote for a term. Only the first 500 characters of a source's words are kept, and `shortened` says when the source wrote more.
+- Its kind, domain and other names, and its owner as a role and a team, never a person.
+- The source tool, the definition's own name there, and the day it was last read.
+- For a family, its metrics and the values that tell them apart, how it was found, what it means and where that comes from, and its usual metric.
+- What it is built from and converted from, by name, never the calculation.
+- How many published context items about it the agent may read, with their titles, 20 to a page.
+
+Read from a version an agent is held to, a family comes back with only its metrics as that version has them: its words and values come from the live definitions, and the reply says so.
+
+Words that name several definitions come back with their keys to choose from, and words that name none with the closest names. Only published definitions are read: never a draft, a suggestion or a name waiting in the Inbox.
 
 ## Send a report: report
 
@@ -160,19 +205,3 @@ It takes `text`, at most 2,000 characters, and hints such as `title`, `kind` and
 - One person's agents can save 10 drafts in 24 hours, with 20 waiting unsent. Admins change this with `limits.agent_drafts`.
 
 An agent that can show forms asks up to four of its open questions there first. An agent that cannot gets a link and the list of questions.
-
-## Follow links: get_related
-
-- Takes: `id`, which is an item id, or one such as `metric:orders`, `term:<id>` or `area:finance`.
-- Gives back: the neighbours with their titles and summaries, and `next_cursor`.
-
-It gives each neighbour once, at its shortest distance, and never changes what `get_context` delivers.
-
-| Option      | What it does                                                                                                          |
-| ----------- | --------------------------------------------------------------------------------------------------------------------- |
-| `depth`     | `2` follows two steps. The default is one                                                                             |
-| `max_nodes` | How many on a page: 20 by default, 50 at most                                                                         |
-| `relations` | The kinds to follow: `replaces`, `replaced_by`, `conflicts_with`, `applies_to`, `mentions`, `mentioned_by`, `in_area` |
-| `window`    | The dates of neighbouring items                                                                                       |
-
-By default it follows every kind but `in_area`. `links_withheld` counts neighbours the caller may not see.

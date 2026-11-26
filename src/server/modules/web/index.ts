@@ -9,7 +9,10 @@ export {
   readableAddress,
   type PageRead,
   type PageReader,
+  isKeyParameter,
   type PageReaderOptions,
+  type ReadOptions,
   type ReadFailure,
 } from './read.ts'
+export { linkReaderFor, linkRefusal, pastedLink, type LinkReader } from './link-reads.ts'
 export { charsetOf, decodeEntities, decodePage, pageText } from './page-text.ts'

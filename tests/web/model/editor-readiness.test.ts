@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { holdLine, readinessOf, SUMMARY_LIMIT } from '@/model/editor-readiness'
+import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/editor-readiness'
 
 // One answer to "can it go yet?" for the button, the footer and the side panel of both editors.
 // Before it, each of them worked it out alone: a red "Summary 369 of 280" sat beside a green
@@ -76,5 +76,35 @@ describe('readinessOf', () => {
     const r = readinessOf({ missing: [], tooLong: true, unchanged: false })
     expect(r.state).not.toBe('ready')
     expect(holdLine(r)).not.toBe('')
+  })
+})
+
+describe('standingLine', () => {
+  const at = { owner: 'Jon Abara', domain: 'Sales', suggests: false, draft: false } as const
+
+  it("says a draft was never published, and that agents don't have it yet", () => {
+    // A member's own draft read "agents keep getting the context item as it is": they got nothing.
+    const sent = standingLine({ ...at, mode: 'suggest', draft: true, suggests: true })
+    expect(sent).toBe(
+      "This draft was never published, so agents don't have it yet. Jon Abara, owner of Sales, decides whether to publish it once you send it.",
+    )
+    expect(sent).not.toMatch(/keep getting/)
+    expect(standingLine({ ...at, mode: 'edit', draft: true })).toBe(
+      "This draft was never published, so agents don't have it yet. Publish makes it live.",
+    )
+  })
+
+  it("names the writer of someone else's draft, who stays its writer once it is published", () => {
+    expect(standingLine({ ...at, mode: 'edit', draft: true, writer: 'Sofia Brandt' })).toBe(
+      "Sofia Brandt wrote this draft. It was never published, so agents don't have it yet. Publish makes it live, with Sofia Brandt as its writer.",
+    )
+  })
+
+  it('says agents keep the live item while a change to it is suggested, and nothing elsewhere', () => {
+    expect(standingLine({ ...at, mode: 'suggest', suggests: true })).toBe(
+      "You're suggesting a change. Jon Abara, owner of Sales, decides; agents keep getting the context item as it is until then.",
+    )
+    expect(standingLine({ ...at, mode: 'edit' })).toBe('')
+    expect(standingLine({ ...at, mode: 'new' })).toBe('')
   })
 })

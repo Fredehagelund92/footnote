@@ -10,11 +10,13 @@ import {
   EyeIcon,
   KeyboardIcon,
   ListIcon,
+  LoaderCircleIcon,
+  OctagonXIcon,
   TableIcon,
   TriangleAlertIcon,
   Undo2Icon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { and, cn, midSentence } from '@/lib/utils'
 import { Statement } from '@/components/footnote/conflict-pair'
 import { comparePair, sharedWords, type Compared } from '@/lib/differing-words'
@@ -31,6 +33,7 @@ import { Mark } from '@/components/footnote/mark'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { ResizableAside } from '@/components/resizable-aside'
 import { Panel } from '@/components/footnote/panel'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { SiteHeader } from '@/components/site-header'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
@@ -46,6 +49,7 @@ import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
+import { DontPublishDialog } from '@/components/footnote/dont-publish-dialog'
 import {
   Dialog,
   DialogClose,
@@ -60,7 +64,7 @@ import { isTyping, pageKey } from '@/lib/keys'
 import { open as openOverlay } from '@/lib/events'
 import { useOnline, useSend } from '@/lib/send'
 import type { UndoOffer } from '@/api/client'
-import { toApiError } from '@/api/errors'
+import { isSignedOut, toApiError } from '@/api/errors'
 import type { ReviewAction, ReviewActions } from '@domain/review-actions'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { flushSync } from 'react-dom'
@@ -82,7 +86,6 @@ import {
 import { placeFromKey } from '@/model/source-places'
 import { fieldRows } from '@/model/review-fields'
 import { useSideChoice } from '@/lib/side-panel'
-import { useLinksEnabled } from '@/lib/links-switch'
 import { Composer } from '@/components/templates/comment-box/composer'
 import { CommentBox } from '@/components/templates/comment-box'
 import { useCommentActions } from '@/lib/comments'
@@ -90,7 +93,8 @@ import { ChoiceMenu, TextSwitch, ViewToggle } from '@/components/footnote/switch
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { DRAFT_LABEL } from '@/model/ask'
 import { itemPageQuery, useInbox, useReviews, useSavedQuestions, useWrite } from '@/api/queries'
-import { useHeld, useUndo } from '@/lib/undo'
+import { rememberSending, useHeld, useUndo, type Sending } from '@/lib/undo'
+import { publishing, refusedWords, usePublishing } from '@/lib/publishing'
 import { checkDraft, itemOfReview, savesQuestion } from '@/lib/saved-check'
 import { SavedLine } from '@/components/obs/saved-line'
 import { careLine, clashWords, marks, readiness, type Relation, type Review } from '@/model/review'
@@ -114,12 +118,13 @@ import {
   relationText,
 } from '@/model/review-page'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { navigate } from '@/lib/router'
+import { backToList, navigate, pathNow, plainClick } from '@/lib/router'
 import { useDomains, useFacts } from '@/lib/workspace'
 import { useInboxRows } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
 import { Summary } from '@/pages/review'
 import { TruncatedText } from '@/components/footnote/truncated'
+import { useToastFloor } from '@/lib/toast-floor'
 import { plainText } from '@/lib/mentions'
 import { useWide } from '@/hooks/use-wide'
 
@@ -154,11 +159,16 @@ function QueueRail({ count, onShow }: { count: number; onShow: () => void }) {
   )
 }
 
-/** The queue of waiting suggestions, grouped by who sent them. */
+/**
+ * The queue of waiting suggestions, grouped by who sent them. A row says how its decision went:
+ * Publishing while the service decides a Publish the review moved on from, then the Inbox's word
+ * for it (Published), or Not published with the service's reason.
+ */
 function Queue({ current, onPick }: { current: string; onPick: (id: string) => void }) {
   const state = useInbox()
   const reviews = useReviews()
   const write = useWrite()
+  const sent = usePublishing()
   const senders = [...new Set(reviews.map((r) => r.from))]
   // Only what the owner has read: publishing signs their name on it.
   // Only what needs no look of its own: no claim, overlap, retirement, unchecked value or new link.
@@ -197,9 +207,18 @@ function Queue({ current, onPick }: { current: string; onPick: (id: string) => v
               <ul className="flex flex-col gap-px">
                 {items.map((r) => {
                   const done = state.done[r.id]
+                  const ahead = done ? undefined : sent[r.id]
+                  const refused = ahead?.state === 'refused' ? ahead : null
                   const care = needsCare(r)
                   const wasRead = state.reviewed[r.id]
                   const on = r.id === current
+                  const said = done
+                    ? done.label
+                    : ahead?.state === 'publishing'
+                      ? 'Publishing…'
+                      : refused
+                        ? 'Not published'
+                        : null
                   return (
                     <li key={r.id}>
                       <button
@@ -207,35 +226,63 @@ function Queue({ current, onPick }: { current: string; onPick: (id: string) => v
                         aria-current={on ? 'true' : undefined}
                         onClick={() => onPick(r.id)}
                         className={cn(
-                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50',
+                          'flex w-full flex-wrap items-center gap-x-2 rounded-md px-2 py-1.5 text-left text-sm outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50',
                           on && 'bg-muted shadow-hairline',
-                          done && 'text-muted-foreground',
+                          (done || ahead?.state === 'publishing') && 'text-muted-foreground',
                         )}
                       >
-                        {done ? (
-                          <CheckIcon aria-label="Done" className="size-3.5 shrink-0" />
-                        ) : care ? (
-                          <TriangleAlertIcon
-                            aria-label={careLine(r) ?? 'Needs care'}
-                            className="size-3.5 shrink-0 text-caution"
-                          />
-                        ) : on ? (
-                          <CircleIcon
-                            aria-label="You are here"
-                            className="size-3.5 shrink-0 fill-primary text-primary"
-                          />
-                        ) : wasRead ? (
-                          <CircleCheckIcon
-                            aria-label="Read"
-                            className="size-3.5 shrink-0 text-muted-foreground"
-                          />
-                        ) : (
-                          <CircleIcon
-                            aria-hidden
-                            className="size-3.5 shrink-0 text-muted-foreground"
-                          />
+                        <span className="flex h-5 shrink-0 items-center">
+                          {done ? (
+                            <CheckIcon aria-hidden className="size-3.5 shrink-0" />
+                          ) : ahead?.state === 'publishing' ? (
+                            <LoaderCircleIcon
+                              aria-hidden
+                              className="size-3.5 shrink-0 animate-spin"
+                            />
+                          ) : refused ? (
+                            <OctagonXIcon
+                              aria-hidden
+                              className="size-3.5 shrink-0 text-destructive"
+                            />
+                          ) : care ? (
+                            <TriangleAlertIcon
+                              aria-label={careLine(r) ?? 'Needs care'}
+                              className="size-3.5 shrink-0 text-caution"
+                            />
+                          ) : on ? (
+                            <CircleIcon
+                              aria-label="You are here"
+                              className="size-3.5 shrink-0 fill-primary text-primary"
+                            />
+                          ) : wasRead ? (
+                            <CircleCheckIcon
+                              aria-label="Read"
+                              className="size-3.5 shrink-0 text-muted-foreground"
+                            />
+                          ) : (
+                            <CircleIcon
+                              aria-hidden
+                              className="size-3.5 shrink-0 text-muted-foreground"
+                            />
+                          )}
+                        </span>
+                        <TruncatedText text={r.title} className="min-w-0 flex-1 basis-0" />
+                        {said && (
+                          <span
+                            className={cn(
+                              'shrink-0 text-xs leading-5',
+                              refused ? 'text-destructive' : 'text-muted-foreground',
+                            )}
+                          >
+                            {said}
+                          </span>
                         )}
-                        <TruncatedText text={r.title} className="flex-1" />
+                        {/* Why it was refused, on its own line under the title, in the service's words. */}
+                        {refused && (
+                          <span className="basis-full pl-5.5 text-xs text-pretty text-muted-foreground">
+                            {refusedWords(refused)}
+                          </span>
+                        )}
                       </button>
                     </li>
                   )
@@ -289,7 +336,7 @@ function PublishReady({
     undo.offer(`Published ${n}`, published.undo, {
       description:
         "Agents get them from the next question. The ones you haven't read are still waiting.",
-      onUndone: () => toast(`Back: ${n} waiting again`, { description: 'Nothing was published.' }),
+      undone: { title: `Back: ${n} waiting again`, description: 'Nothing was published.' },
     })
   }
   const button = (
@@ -776,8 +823,8 @@ function SyncedFrom({ r }: { r: Review }) {
           {s.folder} / {s.doc}, read {s.read.toLowerCase()}
         </span>
       </header>
-      <blockquote className="rounded-frame bg-muted px-3 py-2 text-sm italic">
-        “{s.quote}”
+      <blockquote className="border-l-2 pl-3 text-sm">
+        <SourcePassages text={s.quote} />
       </blockquote>
       <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-(--cols-lead-40)">
         <dt className="text-muted-foreground">Set by the document</dt>
@@ -997,24 +1044,11 @@ function ClashPair({
 }
 
 /** Try it: Footnote's answer from the context, with the draft or as published. */
-function TryItPanel({ r, now }: { r: Review; now?: string }) {
+function TryItPanel({ r }: { r: Review }) {
   const { cards } = useInbox()
   const [version, setVersion] = React.useState<'draft' | 'published'>('draft')
-  const linksOn = useLinksEnabled()
   // Links the suggestion adds or removes: whether an answer would follow them.
   const linked = r.blocks.flatMap((b) => (b.kind === 'Link' && 'mention' in b ? [b.mention] : []))
-  // Just published: the answer agents now give, in place of the draft.
-  if (now)
-    return (
-      <section className="flex flex-col gap-3 border-b p-4">
-        <h3 className="text-sm font-medium">Agents now say</h3>
-        <p className="text-sm text-muted-foreground">“{r.tryIt.question}”</p>
-        <div className="flex animate-in flex-col gap-2 rounded-frame border bg-muted/30 p-3 duration-(--dur-4) fade-in-0">
-          <StateLine state={r.tryIt.after.state} sentence />
-          <p className="text-sm leading-relaxed">{now}</p>
-        </div>
-      </section>
-    )
   const a = version === 'draft' ? r.tryIt.after : r.tryIt.before
   const same = r.tryIt.after.text === r.tryIt.before.text
   return (
@@ -1055,32 +1089,31 @@ function TryItPanel({ r, now }: { r: Review; now?: string }) {
         <p key={m.id} className="text-sm text-muted-foreground">
           {m.change === 'removed'
             ? `The answer no longer links to ${m.label}.`
-            : linksOn
-              ? `The answer would follow the new link to ${m.label}, one step, to read what it means.`
-              : `Following links is off, so the answer won't follow the new link to ${m.label}.`}
+            : `The answer would follow the new link to ${m.label}, one step, to read what it means.`}
         </p>
       ))}
     </section>
   )
 }
 
-/** What a decision just did, shown in place until the next suggestion opens, with Undo. */
+/** What a decision did, said in a toast with Undo as the review moves on. */
 type Finished = {
   outcome: string
   message: string
   description: string
   /** Takes back exactly this decision, while the service takes it. */
   undo: UndoOffer
-  now?: string
-  next?: string
   /** What Undo puts back on this screen beyond the decision: a returned note, back in the editor. */
   afterUndo?: () => void
 }
 
 type DecisionProps = {
   r: Review
-  /** Where the decision is, shared by the panel and the phone's bar. */
-  flow: DecisionState<Finished>
+  /**
+   * Where the decision is, shared by the panel and the phone's bar; a Publish the review moved on
+   * from shows here as being sent, or refused, when its suggestion is opened again.
+   */
+  flow: DecisionState
   /** What may be done now (src/domain/review-actions.ts). */
   actions: ReviewActions
   /** Offline nothing is sent. */
@@ -1095,7 +1128,6 @@ type DecisionProps = {
   sendNote: (note: JSONContent) => void
   /** Does the failed action again. */
   retry: () => void
-  onUndo: () => void
   /** The note being written, kept when it closes, so Esc never loses it. */
   draft?: JSONContent
   /** The reason a Close is given, kept the same way; a withdrawn suggestion to archive needs none. */
@@ -1104,12 +1136,6 @@ type DecisionProps = {
   onDraft: (d: JSONContent | null) => void
   /** Previous and next, for the phone bar (the header keeps them on wider screens). */
   onStep?: (d: 1 | -1) => void
-  /** The wait before the next suggestion: paused while the pointer or focus is on the outcome. */
-  onHold: (held: boolean) => void
-  paused: boolean
-  /** Reduced motion: nothing moves on its own, so the outcome offers Next instead. */
-  reduced: boolean
-  onNext: () => void
   /** The phone's bar carries the failure and its Try again, so the panel above says it only once. */
   barBelow?: boolean
   /** The panel beside or under the change; on a phone, also a bar stuck to the bottom edge. */
@@ -1159,7 +1185,9 @@ function ArchiveDialog({
 
 /**
  * A suggestion to archive its sender did not take back closes with the owner's reason: the
- * decision keeps it. Nothing changes for agents. One dialog for the whole page, as Archive's.
+ * decision keeps it. Nothing changes for agents. A new item or a change closes the same way, as
+ * Don't publish: its sender reads the reason in their Inbox. One dialog for the whole page, as
+ * Archive's.
  */
 function CloseDialog({
   r,
@@ -1169,34 +1197,52 @@ function CloseDialog({
   closeReason,
   onCloseReason,
 }: Pick<DecisionProps, 'r' | 'flow' | 'cancel' | 'press' | 'closeReason' | 'onCloseReason'>) {
-  return (
-    r.retire && (
-      <Dialog open={flow.kind === 'confirmingClose'} onOpenChange={(open) => !open && cancel()}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Close the suggestion?</DialogTitle>
-            <DialogDescription>
-              Nothing changes for agents: “{r.title}” is not archived by it. Say why you close it;
-              the reason is kept with the decision.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            aria-label="Why you close it"
-            placeholder="Why you close it"
-            rows={3}
-            value={closeReason}
-            onChange={(e) => onCloseReason(e.target.value)}
-          />
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-            <Button disabled={!closeReason.trim()} onClick={() => press('close')}>
-              Close the suggestion
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  if (!r.retire)
+    return (
+      <DontPublishDialog
+        title={r.title}
+        sender={r.synced || r.drafted ? null : r.from}
+        open={flow.kind === 'confirmingClose'}
+        onCancel={cancel}
+        reason={closeReason}
+        onReason={onCloseReason}
+        onConfirm={() => press('close')}
+      />
     )
+  return (
+    <Dialog open={flow.kind === 'confirmingClose'} onOpenChange={(open) => !open && cancel()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Close the suggestion?</DialogTitle>
+          <DialogDescription>
+            Nothing changes for agents: “{r.title}” is not archived by it. Say why you close it; the
+            reason is kept with the decision.
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          aria-label="Why you close it"
+          placeholder="Why you close it"
+          rows={3}
+          value={closeReason}
+          onChange={(e) => onCloseReason(e.target.value)}
+        />
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+          <Button disabled={!closeReason.trim()} onClick={() => press('close')}>
+            Close the suggestion
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
+}
+
+/** What Command and Z says while an action is still being sent. */
+const stillWords: Record<ReviewAction, string> = {
+  publish: 'Still publishing',
+  archive: 'Still archiving',
+  return: 'Still returning',
+  close: 'Still closing',
 }
 
 /** What a failed action is called in "Couldn't ...". */
@@ -1218,23 +1264,14 @@ function Decision({
   press,
   sendNote,
   retry,
-  onUndo,
   draft,
   onDraft,
   onStep,
-  onHold,
-  paused,
-  reduced,
-  onNext,
   barBelow = false,
   variant = 'panel',
 }: DecisionProps) {
-  const hovered = React.useRef(false)
-  const focused = React.useRef(false)
-  const hold = (which: typeof hovered, on: boolean) => {
-    which.current = on
-    onHold(hovered.current || focused.current)
-  }
+  // At the foot of the window, the decision is a floor toasts stay above.
+  const floor = useToastFloor<HTMLDivElement>()
   const state = useInbox()
   const reviews = useReviews()
   const me = useMe()
@@ -1243,8 +1280,6 @@ function Decision({
   const settled = clashOutcome(r, answers)
   const first = r.from.split(' ')[0]
   const done = state.done[r.id]
-  const finished = flow.kind === 'done' ? flow.done : null
-  const undoable = useHeld(finished?.undo)
   const returning = writingReturn(flow)
   const sending = sendingOf(flow)
   const blockedBySend = !online || sending !== null
@@ -1282,9 +1317,7 @@ function Decision({
   ) : null
   // What Command and Enter does here, if anything: the hint only shows when the key acts.
   const keyAction =
-    done || finished || flow.kind !== 'idle' || blockedBySend || !actions.ready
-      ? null
-      : actions.primary
+    done || flow.kind !== 'idle' || blockedBySend || !actions.ready ? null : actions.primary
   // Command and Enter does what the button says (the panel listens; the phone bar is the same decision).
   React.useEffect(() => {
     if (variant !== 'panel') return
@@ -1320,10 +1353,19 @@ function Decision({
       : base
   const ReadyIcon = ready.ok ? CircleCheckIcon : CircleDashedIcon
 
+  // Beside Don't publish the row holds three buttons, so it says Send back, as a phone does; its
+  // name stays Send back with a note.
+  const dontPublish = !r.retire && actions.can.includes('close')
   const returnButton = (
-    <Button size="lg" variant="outline" disabled={sending !== null} onClick={() => ask('return')}>
+    <Button
+      size="lg"
+      variant="outline"
+      disabled={sending !== null}
+      onClick={() => ask('return')}
+      {...(dontPublish ? { 'aria-label': 'Send back with a note' } : {})}
+    >
       <span>
-        Send back<span className="max-sm:hidden"> with a note</span>
+        Send back<span className={dontPublish ? 'hidden' : 'max-sm:hidden'}> with a note</span>
       </span>
     </Button>
   )
@@ -1358,14 +1400,27 @@ function Decision({
       >
         Publish anyway
       </Button>
+      {/* Three do not fit the side panel: there it takes a line of its own, under the two. */}
+      {dontPublish && (
+        <Button
+          size="lg"
+          variant="ghost"
+          className="order-last"
+          disabled={blockedBySend}
+          onClick={() => ask('close')}
+        >
+          Don't publish
+        </Button>
+      )}
       <Button
         size="lg"
         className="ml-auto"
         disabled={sending !== null}
         onClick={() => ask('return')}
+        {...(dontPublish ? { 'aria-label': 'Send back with a note' } : {})}
       >
         <span>
-          Send back<span className="max-sm:hidden"> with a note</span>
+          Send back<span className={dontPublish ? 'hidden' : 'max-sm:hidden'}> with a note</span>
         </span>
       </Button>
     </>
@@ -1383,6 +1438,12 @@ function Decision({
       ) : actions.can.includes('return') ? (
         returnButton
       ) : null}
+      {/* A new item or a change the owner does not want: closed with a reason its sender reads. */}
+      {dontPublish && (
+        <Button size="lg" variant="ghost" disabled={blockedBySend} onClick={() => ask('close')}>
+          Don't publish
+        </Button>
+      )}
       {actions.primary === 'close' ? (
         <Button
           size="lg"
@@ -1406,6 +1467,16 @@ function Decision({
           <span>
             Archive<span className="max-sm:hidden"> the context item</span>
           </span>
+        </Button>
+      ) : r.sourceless ? (
+        // Sent from a question link without a source: the editor is where the owner adds one.
+        <Button
+          size="lg"
+          className="ml-auto"
+          disabled={blockedBySend}
+          onClick={() => navigate(`/context/${r.id}/edit`)}
+        >
+          {r.sourceless === 'add' ? 'Add a source' : 'Confirm the source'}
         </Button>
       ) : (
         <Button
@@ -1435,57 +1506,16 @@ function Decision({
       offered
     )
 
-  // What just happened, in place: what agents now say, a short countdown to the next one, and Undo
-  // while the service takes it. The pointer or focus on it holds the wait, so Undo is never a race
-  // with the next one.
-  const outcome = finished && (
-    <div
-      role="status"
-      onPointerEnter={() => hold(hovered, true)}
-      // The outcome appears under a still pointer (where Publish was): moving it toward Undo holds too.
-      onPointerMove={() => !hovered.current && hold(hovered, true)}
-      onPointerLeave={() => hold(hovered, false)}
-      onFocus={() => hold(focused, true)}
-      onBlur={() => hold(focused, false)}
-      className="flex animate-in flex-col gap-2 duration-(--dur-4) fade-in-0 slide-in-from-bottom-1"
-    >
-      <p className="flex items-center gap-2 text-sm font-medium">
-        <CircleCheckIcon className="size-4 text-primary" aria-hidden />
-        {finished.message}
-        {undoable && (
-          <Button variant="ghost" className="ml-auto pointer-coarse:h-10" onClick={onUndo}>
-            <Undo2Icon data-icon="inline-start" />
-            Undo
-          </Button>
-        )}
-      </p>
-      {variant === 'panel' && (
-        <p className="line-clamp-1 text-sm text-muted-foreground">{finished.description}</p>
-      )}
-      {reduced ? (
-        <Button className="self-end pointer-coarse:h-10" onClick={onNext}>
-          {finished.next ? 'Next suggestion' : 'Back to the Inbox'}
-        </Button>
-      ) : (
-        <span aria-hidden className="h-0.5 overflow-hidden rounded-full bg-muted">
-          <span
-            className="block h-full origin-left animate-[countdown_2.6s_linear_forwards] bg-primary"
-            style={{ animationPlayState: paused ? 'paused' : 'running' }}
-          />
-        </span>
-      )}
-    </div>
-  )
-
   // On a phone: the state in words and where you are, then the two actions at full touch size.
   if (variant === 'bar') {
     if (returning) return null
     const at = reviews.findIndex((x) => x.id === r.id)
     return (
-      <div className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 pt-2.5 pb-safe-sm">
-        {finished ? (
-          outcome
-        ) : done ? (
+      <div
+        ref={floor}
+        className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 pt-2.5 pb-safe-sm"
+      >
+        {done ? (
           <p className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
             <CircleCheckIcon className="size-4" aria-hidden /> {done.label}, {midSentence(done.at)}.
           </p>
@@ -1544,9 +1574,9 @@ function Decision({
   }
 
   return (
-    <div id="decision" className="flex scroll-mt-4 flex-col">
+    <div ref={floor} id="decision" className="flex scroll-mt-4 flex-col">
       {/* Once decided, the panel says what happened, never what was true before. */}
-      <section hidden={!!done && !finished} className="flex flex-col gap-3 border-b p-4">
+      <section hidden={!!done} className="flex flex-col gap-3 border-b p-4">
         <p className="flex items-start gap-2 text-sm">
           <ReadyIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
@@ -1560,9 +1590,7 @@ function Decision({
         </p>
       </section>
       <section className="flex min-h-25 flex-col justify-center gap-3 p-4">
-        {finished ? (
-          outcome
-        ) : done ? (
+        {done ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <CircleCheckIcon className="size-4" aria-hidden /> {done.label}, {midSentence(done.at)}.
           </p>
@@ -1613,16 +1641,24 @@ function Decision({
   )
 }
 
-/** Everything in the queue decided: how it went, Undo for the last one, and the way back. */
+/**
+ * Everything in the queue decided: how it went, Undo for the last one, and the way back. A Publish
+ * still being sent counts as publishing, and one refused as not published, never as published.
+ */
 function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUndo: () => void }) {
   const undoable = useHeld(last.undo)
   const state = useInbox()
   const reviews = useReviews()
+  const sent = usePublishing()
   const tally = new Map<string, number>()
   for (const r of reviews) {
-    const o = state.done[r.id]?.label
+    const p = sent[r.id]?.state
+    const o =
+      state.done[r.id]?.label ??
+      (p === 'publishing' ? 'Publishing' : p === 'refused' ? 'Not published' : undefined)
     if (o) tally.set(o, (tally.get(o) ?? 0) + 1)
   }
+  const refused = tally.get('Not published') ?? 0
   const parts = [...tally.entries()]
     .sort((a, b) => b[1] - a[1])
     .map(([o, n]) => `${n} ${o.toLowerCase()}`)
@@ -1634,7 +1670,9 @@ function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUnd
         tabIndex={-1}
         className="text-xl font-semibold tracking-tight outline-none sm:text-2xl"
       >
-        All {reviews.length} handled
+        {refused
+          ? `${reviews.length - refused} of ${reviews.length} handled`
+          : `All ${reviews.length} handled`}
       </h2>
       <p className="text-sm text-muted-foreground">
         {parts.join(', ')}. Agents get what was published from the next question.
@@ -1649,7 +1687,7 @@ function AllDone({ last, title, onUndo }: { last: Finished; title: string; onUnd
             Undo the last one
           </Button>
         )}
-        <Button onClick={() => navigate('/inbox')}>Back to the Inbox</Button>
+        <Button onClick={() => backToList('/inbox', { card: undefined })}>Back to the Inbox</Button>
       </div>
     </div>
   )
@@ -1708,24 +1746,30 @@ export function ReviewPage({ id }: { id: string }) {
   const [closeReasons, setCloseReasons] = React.useState<Record<string, string>>({})
   // One decision for the panel and the phone bar; a new suggestion starts clean.
   const online = useOnline()
-  const [flow, step] = React.useReducer(
-    (s: DecisionState<Finished>, e: DecisionEvent<Finished>) => decide(s, e),
-    id,
-    (first): DecisionState<Finished> => idle(first),
-  )
+  const [flow, step] = React.useReducer(decide, id, idle)
   if (flow.id !== id) step({ type: 'open', id })
-  const finished = flow.kind === 'done' ? flow.done : null
-  const returning = writingReturn(flow)
+  // A Publish the review moved on from: opened again, its decision says it is being sent, or why
+  // it was refused, until the Inbox has its outcome.
+  const ahead = usePublishing()
+  const sentAhead = state.done[id] ? undefined : ahead[id]
+  const shown: DecisionState =
+    flow.kind !== 'idle' || !sentAhead
+      ? flow
+      : sentAhead.state === 'publishing'
+        ? { kind: 'sending', id, action: 'publish' }
+        : {
+            kind: 'failed',
+            id,
+            action: 'publish',
+            failure: sentAhead.failure,
+            reason: sentAhead.reason,
+          }
+  const returning = writingReturn(shown)
   const openId = React.useRef(id)
   React.useEffect(() => {
     openId.current = id
   }, [id])
   const reduced = useReducedMotion()
-  // After a decision: a short hold with Undo, then the next suggestion. A key skips it, the pointer
-  // or focus on the outcome pauses it, and with reduced motion it waits for Next.
-  const hold = React.useRef({ timer: 0, left: 0, since: 0 })
-  const [paused, setPaused] = React.useState(false)
-  React.useEffect(() => () => window.clearTimeout(hold.current.timer), [])
   // The owner's answers to a clash, over the ones the service already has; an overlap with none
   // arrives answered Unrelated, as the editor's panel reads one left alone.
   const [chosen, setChosen] = React.useState<Record<string, Relation>>({})
@@ -1744,15 +1788,18 @@ export function ReviewPage({ id }: { id: string }) {
   )
   const at = reviews.findIndex((x) => x.id === id)
   // The next suggestion crossfades in (150ms) where the browser can; with reduced motion it cuts.
+  // A step through the suggestions takes the place of the address, as a cursor move does, so Esc
+  // and Back still lead to the Inbox in one press.
   const go = React.useCallback(
     (to: string) => {
-      const open = () => navigate(`/inbox/${to}/review`)
+      const open = () => navigate(`/inbox/${to}/review`, undefined, { replace: true })
       if (reduced || !document.startViewTransition) return open()
       document.startViewTransition(() => flushSync(open))
     },
     [reduced],
   )
-  const leave = React.useCallback(() => navigate('/inbox', { card: id }), [id])
+  // Esc goes back to the Inbox it was opened from, on the card of the suggestion last open.
+  const leave = React.useCallback(() => backToList('/inbox', { card: id }), [id])
   // Opening the review is reading its new reply and any mention of you: the Inbox markers go.
   // Opening it also counts as reading it, for "Publish the ones you've read".
   React.useEffect(() => {
@@ -1763,7 +1810,6 @@ export function ReviewPage({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, me.name])
 
-  // The hold after a decision ends in the next suggestion, or the Inbox when nothing is left.
   // After the last decision: the review shows that everything is handled, with Undo for that last one.
   const [allDone, setAllDone] = React.useState<Finished | null>(null)
   const [allFor, setAllFor] = React.useState(id)
@@ -1779,61 +1825,20 @@ export function ReviewPage({ id }: { id: string }) {
     })
   }, [])
   React.useEffect(() => focusChange(), [id, focusChange])
-  const finishedRef = React.useRef(finished)
-  React.useEffect(() => {
-    finishedRef.current = finished
-  }, [finished])
-  const moveOn = React.useCallback(() => {
-    window.clearTimeout(hold.current.timer)
-    hold.current.timer = 0
-    const f = finishedRef.current
-    setPaused(false)
-    step({ type: 'finish' })
-    if (f?.next) go(f.next)
-    // The last one: the review says everything is handled, here, with Undo, instead of leaving.
-    else if (f) setAllDone(f)
-  }, [go, step])
-  const wait = (ms: number) => {
-    hold.current = { timer: window.setTimeout(moveOn, ms), left: ms, since: Date.now() }
-  }
-  const pauseWait = () => {
-    if (!hold.current.timer) return
-    window.clearTimeout(hold.current.timer)
-    hold.current = {
-      timer: 0,
-      left: Math.max(400, hold.current.left - (Date.now() - hold.current.since)),
-      since: 0,
-    }
-    setPaused(true)
-  }
-  const resumeWait = () => {
-    if (!finished || reduced || hold.current.timer) return
-    wait(hold.current.left)
-    setPaused(false)
-  }
 
   // Page keys never act while someone types (a note, a comment). Esc closes an open note first,
-  // keeping what was written; only then does it go back to the Inbox. Right after a decision any
-  // letter key (J most of all) skips the wait. "?" is the app's shortcut sheet, which lists these too.
+  // keeping what was written; only then does it go back to the Inbox. "?" is the app's shortcut
+  // sheet, which lists these too.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!pageKey(e)) return
-      if (
-        finished &&
-        e.key !== 'Escape' &&
-        e.key !== '?' &&
-        e.key !== 'k' &&
-        (e.key.length === 1 || e.key === 'ArrowDown') &&
-        e.key !== ' '
-      )
-        return moveOn()
       if (e.key === 'Escape') return returning ? step({ type: 'cancel' }) : leave()
       if (e.key === 'j' && at < reviews.length - 1) go(reviews[at + 1]!.id)
       if (e.key === 'k' && at > 0) go(reviews[at - 1]!.id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [at, go, leave, returning, finished, moveOn, reviews, step])
+  }, [at, go, leave, returning, reviews, step])
 
   if (!r) {
     // An old link: say why it is empty, and offer the next suggestion that still waits. The sender
@@ -1852,7 +1857,7 @@ export function ReviewPage({ id }: { id: string }) {
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {waiting && <Button onClick={() => go(waiting.id)}>Open the next suggestion</Button>}
-            <Button variant="outline" onClick={() => navigate('/inbox')}>
+            <Button variant="outline" onClick={() => backToList('/inbox', { card: undefined })}>
               Back to the Inbox
             </Button>
           </div>
@@ -1861,19 +1866,35 @@ export function ReviewPage({ id }: { id: string }) {
     )
   }
 
-  // A decision shows what it did in place for a moment, with Undo, then the next suggestion opens.
-  const onDone = (f: Finished) => {
-    // The person moved on while it was sending: the write stands, the outcome is not for this screen.
+  // The next suggestion that still waits: after this one, or else the first before it. One being
+  // published is not waiting; one refused is.
+  const waits = (x: Review) =>
+    x.id !== r.id && !state.done[x.id] && ahead[x.id]?.state !== 'publishing'
+  const nextWaiting = reviews.find((x, i) => i > at && waits(x)) ?? reviews.find(waits)
+  // What a decision did, in a toast with Undo while the service takes it, as Command and Z does
+  // from any screen, unless a decision made after it holds the key (`sent`). Undo opens the
+  // suggestion again, wherever the person is by then.
+  const said = (f: Finished, of: string, sent: Sending) =>
+    undo.offer(f.message, f.undo, {
+      description: f.description,
+      sent,
+      onUndone: () => {
+        f.afterUndo?.()
+        setAllDone((d) => (d?.undo.token === f.undo.token ? null : d))
+        if (pathNow() === `/inbox/${of}/review`) focusChange()
+        else go(of)
+      },
+    })
+  // A decision sent here: the review moves on once the service said yes, to the next suggestion,
+  // or says everything is handled after the last one.
+  const onDone = (f: Finished, sent: Sending) => {
+    said(f, r.id, sent)
+    // The person moved on while it was sending: the write stands, and its toast says so.
     if (openId.current !== r.id) return
+    step({ type: 'ok', id: r.id })
+    if (nextWaiting) return go(nextWaiting.id)
+    setAllDone(f)
     focusChange()
-    const next =
-      reviews.find((x, i) => i > at && !state.done[x.id]) ??
-      reviews.find((x) => x.id !== r.id && !state.done[x.id])
-    step({ type: 'ok', id: r.id, done: { ...f, next: next?.id } })
-    setPaused(false)
-    window.clearTimeout(hold.current.timer)
-    hold.current.timer = 0
-    if (!reduced) wait(2600)
   }
   const onDraft = (d: JSONContent | null) =>
     setDrafts((all) => {
@@ -1893,9 +1914,8 @@ export function ReviewPage({ id }: { id: string }) {
         return {
           undo,
           outcome: 'Published',
-          message: 'Published',
+          message: `Published “${r.title}”`,
           description: publishedWords(r, answers),
-          now: r.tryIt.after.text,
         }
       },
       archive: async () => {
@@ -1903,20 +1923,25 @@ export function ReviewPage({ id }: { id: string }) {
         return {
           undo,
           outcome: 'Archived',
-          message: 'Archived',
+          message: `Archived “${r.title}”`,
           description: 'Agents stop getting it from the next question.',
         }
       },
       // A withdrawn retirement closes as it is, any other with the owner's reason: nothing changes.
+      // A new item or a change is not published, and its sender reads why (Don't publish).
       close: async (_, reason) => {
         const { undo } = await write('closeReview', { id: r.id, ...(reason ? { reason } : {}) })
         return {
           undo,
           outcome: 'Closed',
-          message: 'Closed',
-          description: reason
-            ? 'Nothing changes for agents.'
-            : 'Nothing changes: the context item stays live.',
+          message: `Closed “${r.title}”`,
+          description: r.retire
+            ? reason
+              ? 'Nothing changes for agents.'
+              : 'Nothing changes: the context item stays live.'
+            : r.synced || r.drafted
+              ? "It won't be published, so agents never get it."
+              : `It won't be published. ${first} reads why in their Inbox.`,
         }
       },
       return: async (words) => {
@@ -1928,7 +1953,7 @@ export function ReviewPage({ id }: { id: string }) {
         return {
           undo,
           outcome: 'Returned',
-          message: `Returned to ${r.from}`,
+          message: `Returned “${r.title}” to ${first}`,
           description: `${first} sees your note in the comments. Agents don't get the change, or the note.`,
           // Undo takes the note back out of the comments and keeps it as a draft.
           afterUndo: () => onDraft(note),
@@ -1936,33 +1961,53 @@ export function ReviewPage({ id }: { id: string }) {
       },
     }
   const actions = actionsOf(r, answers)
+  // A Publish with another suggestion waiting is answered at once: the review opens that one, and
+  // this one's row says Publishing until the service says yes, or why it refused. Nothing says
+  // Published before then, and a refusal changed nothing.
+  const publishAhead = (to: string) => {
+    const { id: of, title } = r
+    publishing.start(of)
+    const waiting = rememberSending(`Still publishing “${title}”`)
+    commits.publish().then(
+      (f) => {
+        publishing.answered(of)
+        said(f, of, waiting)
+      },
+      (error: unknown) => {
+        waiting.failed()
+        const e = toApiError(error)
+        const refused = { state: 'refused', failure: e.kind, reason: reasonOf(e) } as const
+        publishing.refused(of, refused.failure, refused.reason)
+        if (isSignedOut(error)) return
+        toast.error(`Couldn't publish “${title}”`, {
+          description: refusedWords(refused),
+          action: { label: 'Open', onClick: () => go(of) },
+        })
+      },
+    )
+    go(to)
+  }
   // One way to start a write, whichever panel asked: the reducer says whether it may, and holds
   // the action and its note, so a failure is retried as itself.
-  const send = (event: Extract<DecisionEvent<Finished>, { type: 'press' | 'retry' }>) => {
-    const next = decide(flow, event)
-    if (!online || next === flow || next.kind !== 'sending') return
-    step(event)
-    commits[next.action](next.note, next.reason).then(onDone, (error: unknown) => {
-      const { kind } = toApiError(error)
-      step({ type: 'error', id: r.id, failure: kind, reason: reasonOf(toApiError(error)) })
-    })
+  const send = (event: Extract<DecisionEvent, { type: 'press' | 'retry' }>) => {
+    const next = decide(shown, event)
+    if (!online || next === shown || next.kind !== 'sending') return
+    if (next.action === 'publish' && nextWaiting) return publishAhead(nextWaiting.id)
+    // A Publish refused after the review moved on is tried again here, as a new press.
+    const again = shown !== flow
+    if (again) publishing.clear(r.id)
+    step(again ? { type: 'press', action: next.action, actions } : event)
+    const waiting = rememberSending(`${stillWords[next.action]} “${r.title}”`)
+    commits[next.action](next.note, next.reason).then(
+      (f) => onDone(f, waiting),
+      (error: unknown) => {
+        waiting.failed()
+        const { kind } = toApiError(error)
+        step({ type: 'error', id: r.id, failure: kind, reason: reasonOf(toApiError(error)) })
+      },
+    )
   }
-  const undoFinished = () => {
-    window.clearTimeout(hold.current.timer)
-    hold.current.timer = 0
-    // Exactly this decision goes back: its outcome and the context items it changed, nothing else.
-    if (!finished) {
-      step({ type: 'finish' })
-      return
-    }
-    const { afterUndo } = finished
-    void undo.takeBack(finished.undo).then((back) => {
-      if (!back) return
-      step({ type: 'finish' })
-      afterUndo?.()
-    })
-  }
-  const undoLast = () => {
+  const undoAllDone = () => {
     if (!allDone) return
     const { afterUndo } = allDone
     void undo.takeBack(allDone.undo).then((back) => {
@@ -1974,11 +2019,11 @@ export function ReviewPage({ id }: { id: string }) {
   }
   const decision = {
     r,
-    flow,
+    flow: shown,
     actions,
     online,
     ask: (action: AskedAction) => {
-      const asked: DecisionEvent<Finished> = { type: 'ask', action, actions }
+      const asked: DecisionEvent = { type: 'ask', action, actions }
       if (decide(flow, asked) === flow) return
       step(asked)
       // Returning from the phone's bar opens the note where the decision is written.
@@ -2001,15 +2046,10 @@ export function ReviewPage({ id }: { id: string }) {
     // A failed note goes again as the editor holds it now, so an edit made after the failure is sent.
     retry: () =>
       send({ type: 'retry', actions, note: drafts[r.id], reason: closeReasons[r.id] ?? '' }),
-    onUndo: undoFinished,
     draft: drafts[r.id],
     onDraft,
     closeReason: closeReasons[r.id] ?? '',
     onCloseReason: (reason: string) => setCloseReasons((all) => ({ ...all, [r.id]: reason })),
-    paused,
-    reduced,
-    onNext: moveOn,
-    onHold: (held: boolean) => (held ? pauseWait() : resumeWait()),
   }
   const queue = (
     <Queue current={r.id} onPick={(to) => (setQueueOpen(false), setQueuePeek(false), go(to))} />
@@ -2033,7 +2073,7 @@ export function ReviewPage({ id }: { id: string }) {
   const side = (
     <>
       {threadsSummary}
-      <TryItPanel key={`try-${r.id}`} r={r} now={finished?.now} />
+      <TryItPanel key={`try-${r.id}`} r={r} />
       <Decision key={`d-${r.id}`} {...decision} barBelow={isMobile} />
     </>
   )
@@ -2043,7 +2083,7 @@ export function ReviewPage({ id }: { id: string }) {
       {/* Under a finger every control is at least 40px; the phone bar's actions are 44px. */}
       <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
         <SiteHeader
-          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox' }}
+          deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox', onBack: leave }}
           more={
             <DropdownMenuItem onClick={() => setQueueOpen(true)}>
               <ListIcon />
@@ -2054,7 +2094,9 @@ export function ReviewPage({ id }: { id: string }) {
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
                 <BreadcrumbItem className="max-sm:hidden">
-                  <BreadcrumbLink href={`/inbox?card=${r.id}`}>Inbox</BreadcrumbLink>
+                  <BreadcrumbLink href={`/inbox?card=${r.id}`} onClick={plainClick(leave)}>
+                    Inbox
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="max-sm:hidden" />
                 <BreadcrumbItem className="max-sm:hidden">
@@ -2168,7 +2210,7 @@ export function ReviewPage({ id }: { id: string }) {
           )}
           <main className="@container min-w-0 flex-1 overflow-y-auto">
             {allDone ? (
-              <AllDone last={allDone} title={r.title} onUndo={undoLast} />
+              <AllDone last={allDone} title={r.title} onUndo={undoAllDone} />
             ) : (
               <>
                 {/* The next suggestion fades in after a decision or J and K, so the change is seen. */}
@@ -2213,7 +2255,7 @@ export function ReviewPage({ id }: { id: string }) {
                 footer={<Decision key={`d-${r.id}`} {...decision} barBelow={isMobile} />}
               >
                 {threadsSummary}
-                <TryItPanel key={`try-${r.id}`} r={r} now={finished?.now} />
+                <TryItPanel key={`try-${r.id}`} r={r} />
               </Panel>
             </ResizableAside>
           )}

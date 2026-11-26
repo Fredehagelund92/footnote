@@ -10,17 +10,24 @@ import { findDefinition, goesWith } from '@/lib/definitions'
 import {
   canChange,
   askDelete,
+  CONFIRM_ABOVE,
   doneLine,
+  draftReadiness,
   heldRows,
   movableTo,
   needsTyping,
   planFacts,
   planTerms,
+  PUBLISH_MAX,
+  publishedLine,
+  publishesNow,
+  publishParts,
   skippedLine,
   toCsv,
   toMarkdown,
   TYPE_ABOVE,
 } from '@/lib/bulk'
+import { leftOutLine, nextLine, nothingToPublish, publishedWhen } from '@/lib/publish-lines'
 import { reduce, start } from '@/api/mock/store'
 import type { LogEntry } from '@/model/items'
 
@@ -311,5 +318,193 @@ describe('the store', () => {
     const s = reduce(start, { type: 'viewedFact', id: 'x' })
     expect(s.viewed).toEqual({ x: true })
     expect(reduce(s, { type: 'viewedFact', id: 'x' })).toBe(s)
+  })
+})
+
+describe('publishing drafts from the list', () => {
+  const ines = { name: 'Ines Duarte', admin: false }
+  const ready: Fact = {
+    ...fact('itm_draft_black_friday'),
+    source: 'https://wiki.example/a',
+    quote: 'A sentence.',
+  }
+  const byInes: Fact = { ...ready, id: 'd_ines', domain: 'marketing', by: 'Ines Duarte' }
+
+  it('publishes the first 50 in the list order and keeps the rest for the next press, not as skipped', () => {
+    const many = Array.from({ length: PUBLISH_MAX + 6 }, (_, i) => ({ ...ready, id: `d_${i}` }))
+    const plan = planFacts('publish', [salesLive[0]!, ...many], jon, domains)
+    expect(plan.act.map((f) => f.id)).toEqual(many.slice(0, PUBLISH_MAX).map((f) => f.id))
+    expect(plan.next.map((f) => f.id)).toEqual(many.slice(PUBLISH_MAX).map((f) => f.id))
+    expect(skippedLine(plan.skipped)).toBe('1 skipped: published')
+    expect(nextLine(plan.next.length)).toBe('6 drafts are still ticked: one Publish takes 50.')
+    expect(nextLine(1)).toBe('1 draft is still ticked: one Publish takes 50.')
+    // A draft that needs a fix does not take a place in the batch.
+    const unready = { ...ready, id: 'd_unready', source: '', quote: '' }
+    const mixed = planFacts('publish', [unready, ...many], jon, domains)
+    expect(mixed.act).toHaveLength(PUBLISH_MAX)
+    expect(mixed.next).toHaveLength(6)
+    expect(planFacts('archive', many, jon, domains).next).toEqual([])
+  })
+
+  it('says why there is nothing to publish at once, by reason, with what to do next', () => {
+    const skip = (why: string, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ id: `${why}${i}`, title: 't', why, reason: 'r' }))
+    expect(nothingToPublish(skip('published', 3))).toBe(
+      'Nothing to publish: these 3 are published already.',
+    )
+    expect(nothingToPublish(skip('published', 1))).toBe(
+      'Nothing to publish: it is published already.',
+    )
+    expect(nothingToPublish([...skip('published', 21), ...skip('waiting for review', 4)])).toBe(
+      'Nothing to publish: 21 are published, 4 wait for review. Open one to decide it.',
+    )
+    expect(
+      nothingToPublish([
+        ...skip('missing a source', 1),
+        ...skip('a link to fix', 1),
+        ...skip('archived', 1),
+      ]),
+    ).toBe('Nothing to publish: 2 need a fix first, 1 is archived. Open one to fix it.')
+    expect(nothingToPublish(skip('owned by Sales', 2))).toBe(
+      'Nothing to publish: 2 are owned by Sales.',
+    )
+    expect(nothingToPublish(skip('owned by Sales', 1))).toBe(
+      'Nothing to publish: it is owned by Sales.',
+    )
+    expect(nothingToPublish(skip('waiting for review', 1))).toBe(
+      'Nothing to publish: it waits for review. Open it to decide it.',
+    )
+    expect(
+      nothingToPublish([
+        { id: 'd', title: 't', why: 'missing a source', reason: 'Add a source first.' },
+      ]),
+    ).toBe('Nothing to publish: add a source first.')
+  })
+
+  it('says what a Publish leaves alone as information, published first', () => {
+    const skip = (why: string, n: number) =>
+      Array.from({ length: n }, (_, i) => ({ id: `${why}${i}`, title: 't', why, reason: 'r' }))
+    expect(leftOutLine([])).toBe('')
+    expect(leftOutLine(skip('published', 2))).toBe('2 published items you ticked stay as they are.')
+    expect(leftOutLine(skip('published', 1))).toBe('A published item you ticked stays as it is.')
+    expect(
+      leftOutLine([
+        ...skip('published', 21),
+        ...skip('missing a source', 1),
+        ...skip('waiting for review', 4),
+      ]),
+    ).toBe(
+      '21 published items you ticked stay as they are. 5 more are not in this Publish: 1 needs a fix first, 4 wait for review.',
+    )
+    expect(leftOutLine(skip('missing a source', 2), 'card')).toBe(
+      '2 on the card are not in this Publish: 2 need a fix first.',
+    )
+  })
+
+  it('publishes only drafts that pass the editor checks, and says what is missing', () => {
+    const noSource = { ...ready, id: 'd_nosource', source: '', quote: '' }
+    const noQuote = { ...ready, id: 'd_noquote', quote: '' }
+    const badLink = { ...ready, id: 'd_link', source: 'wiki page' }
+    const long = { ...ready, id: 'd_long', summary: 'word '.repeat(80) }
+    const nowhere = { ...ready, id: 'd_nowhere', where: [] }
+    const plan = planFacts(
+      'publish',
+      [ready, noSource, noQuote, badLink, long, nowhere, salesLive[0]!],
+      jon,
+      domains,
+    )
+    expect(plan.act).toEqual([ready])
+    expect(plan.skipped.map((s) => [s.id, s.why, s.reason])).toEqual([
+      ['d_nosource', 'missing a source', 'Add a source first.'],
+      [
+        'd_noquote',
+        'missing a sentence copied from the source',
+        'Add a sentence copied from the source first.',
+      ],
+      ['d_link', 'a link to fix', 'Fix the link in Source first.'],
+      [
+        'd_long',
+        'a first paragraph too long',
+        'Shorten the first paragraph to 280 characters first.',
+      ],
+      ['d_nowhere', 'missing where it applies', 'Add where it applies first.'],
+      [salesLive[0]!.id, 'published', 'It is published already.'],
+    ])
+    expect(draftReadiness(ready, domains)).toEqual({ state: 'ready' })
+  })
+
+  it("publishes at once for an owner or an admin, and sends a writer's own draft to the owners", () => {
+    expect(publishesNow(ready, sofia, domains)).toBe(true)
+    expect(publishesNow(byInes, jon, domains)).toBe(true)
+    const mine = planFacts('publish', [byInes, ready], ines, domains)
+    expect(mine.act).toEqual([byInes])
+    expect(publishesNow(byInes, ines, domains)).toBe(false)
+    expect(mine.skipped).toEqual([
+      {
+        id: ready.id,
+        title: ready.title,
+        why: 'owned by Sales',
+        reason: 'Only owners of Sales and admins can change it.',
+      },
+    ])
+    // A writer deletes their own draft too, wherever it is.
+    expect(planFacts('delete', [byInes], ines, domains).act).toEqual([byInes])
+  })
+
+  it('sends what the bar and a draft page publish alike: patches for its domains, ids for the owners', () => {
+    const plan = planFacts('publish', [ready, byInes], ines, domains)
+    expect(publishParts(plan, ines, domains, '23 Nov 2026')).toEqual({
+      patches: {},
+      suggest: ['d_ines'],
+      to: 'Marketing',
+    })
+    const both = planFacts('publish', [ready, byInes], jon, domains)
+    expect(publishParts(both, jon, domains, '23 Nov 2026')).toEqual({
+      patches: {
+        [ready.id]: { status: 'Live', checkedBy: 'Jon Abara', checkedOn: '23 Nov 2026' },
+        d_ines: { status: 'Live', checkedBy: 'Jon Abara', checkedOn: '23 Nov 2026' },
+      },
+      suggest: [],
+      to: '',
+    })
+  })
+
+  it('says what it published and what it sent, and holds a sensible batch', () => {
+    expect(publishedLine(3, 0)).toBe('3 published')
+    expect(publishedLine(2, 1, 0, 'Marketing')).toBe(
+      '2 published, 1 sent to the owners of Marketing',
+    )
+    expect(publishedLine(0, 0, 2)).toBe('None published, 2 failed')
+    // One is "it", as on a draft's own page.
+    expect(publishedWhen(1)).toBe('Agents get it from the next question.')
+    expect(publishedWhen(3)).toBe('Agents get them from the next question.')
+    expect(publishedWhen(0, 1)).toBe('Agents get it once an owner publishes it.')
+    expect(publishedWhen(0, 2)).toBe('Agents get them once an owner publishes them.')
+    expect(CONFIRM_ABOVE).toBe(5)
+    expect(PUBLISH_MAX).toBe(50)
+  })
+
+  it('publishes a draft through the mock as the service would: it is live, the rest wait', async () => {
+    const { api } = createMockApi()
+    const draftIds = drafts.map((d) => d.id)
+    const result = await api.applyBulk({
+      action: 'publish',
+      patches: { itm_draft_black_friday: { status: 'Live' } },
+      remove: [],
+      suggest: ['itm_draft_spring_spend'],
+      entry: {
+        id: 'log-publish',
+        on: '2026-10-23',
+        who: 'Jon Abara',
+        what: 'published',
+        summary: 'Published from the Context list.',
+        items: [{ id: 'itm_draft_black_friday', title: 'Black Friday' }],
+      },
+    })
+    expect(result.done.sort()).toEqual(['itm_draft_black_friday', 'itm_draft_spring_spend'])
+    const page = await api.contextPage()
+    expect(page.find((f) => f.id === 'itm_draft_black_friday')?.status).toBe('Live')
+    expect(page.some((f) => f.id === 'itm_draft_spring_spend')).toBe(false)
+    expect(draftIds).toContain('itm_draft_spring_spend')
   })
 })

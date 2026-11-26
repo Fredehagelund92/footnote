@@ -71,7 +71,8 @@ type Plan = {
     title: string | null
     withheld: boolean
   }[]
-  drafts: { id: string; proposerId: string; author: string; title: string }[]
+  drafts: number
+  draftWriters: string[]
   team: { personId: string; name: string; role: Role }[]
   sourceMembers: number
   history: boolean
@@ -83,7 +84,7 @@ type Contents = {
   terms: { key: string; versionId: string; fate: 'retired' | 'kept'; keptVersionId?: string }[]
   sourceTerms: string[]
   openProposals: string[]
-  drafts: string[]
+  drafts: number
   team: { personId: string; role: Role }[]
 }
 
@@ -104,7 +105,7 @@ function holdingsOf(plan: Plan): AreaHoldings {
     terms: plan.terms.length + plan.sourceTerms.length,
     openProposals: plan.openProposals.length,
     sourceMembers: plan.sourceMembers,
-    drafts: plan.drafts.length,
+    drafts: plan.drafts,
     team: plan.team.length,
     history: plan.history,
   }
@@ -133,7 +134,7 @@ async function keepWithoutDomain(
 ): Promise<Map<string, string>> {
   if (!keys.length) return new Map()
   const live = await tx.query<Term & { versionId: string }>(
-    `select t.key,t.kind::text as kind,t.parent_key as "parentKey",v.name,v.aliases,v.area_id as "areaId",
+    `select t.key,t.kind::text as kind,v.parent_key as "parentKey",v.name,v.aliases,v.area_id as "areaId",
             coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C")
                         from vocab_term_refs r where r.version_id=v.id),'{}') as "definitionRefs",
             v.id::text as "versionId"
@@ -157,10 +158,10 @@ async function keepWithoutDomain(
   )
   const each = 'from jsonb_array_elements($1::jsonb) with ordinality as e(row, n)'
   const versions = await tx.query<{ id: string; key: string }>(
-    `insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,proposer_id,content_digest)
+    `insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,parent_key,proposer_id,content_digest)
      select row->>'key',
             (select max(version_no)+1 from vocab_term_versions where term_key=row->>'key'),
-            row->>'name',array(select jsonb_array_elements_text(row->'aliases')),null,null,
+            row->>'name',array(select jsonb_array_elements_text(row->'aliases')),null,row->>'parentKey',null,
             decode(row->>'digest','hex')
        ${each} order by n
      returning id::text,term_key as key`,
@@ -352,14 +353,14 @@ async function removeArea(
     }),
     sourceTerms: plan.sourceTerms.map((term) => term.key),
     openProposals: withdrawn.map((p) => p.id),
-    drafts: plan.drafts.map((draft) => draft.id),
+    drafts: plan.drafts,
     team: plan.team.map(({ personId, role }) => ({ personId, role })),
   }
   const recipients = [
     ...new Set([
       ...plan.items.map((item) => item.proposerId),
       ...plan.openProposals.map((p) => p.proposerId),
-      ...plan.drafts.map((draft) => draft.proposerId),
+      ...plan.draftWriters,
       ...plan.team.map((role) => role.personId),
     ]),
   ].filter(Boolean)
@@ -390,7 +391,7 @@ async function removeArea(
         number,
         title,
       })),
-      drafts: plan.drafts.map(({ id, title }) => ({ id, title })),
+      drafts: plan.drafts,
       roles: plan.team.map(({ personId, name, role }) => ({ personId, name, role })),
       ...why,
     },

@@ -44,11 +44,16 @@ const bannedImports = [
   { group: ['@magicui/*', 'magicui-cli'], message: 'No decorative animated component sets.' },
   ...serverOnlyImports,
 ]
+const iconImports = {
+  group: ['lucide-react', 'lucide-react/*'],
+  message: 'Import icons from "@/components/icons" so there is one icon module.',
+}
 const webBannedImports = [
   ...bannedImports,
+  iconImports,
   {
-    group: ['lucide-react', 'lucide-react/*'],
-    message: 'Import icons from "@/components/icons" so there is one icon module.',
+    regex: '^sonner$',
+    message: 'Say it with "@/lib/toast": each toast keeps its own time, with a bar and Close.',
   },
 ]
 
@@ -140,11 +145,12 @@ export default tseslint.config(
     rules: {
       ...betterTailwind.configs['correctness-error']?.rules,
       // Classes a stylesheet of the app's own styles by name rather than as a utility: the
-      // editor's (components/editor/style.css and static-renderer/style.css), the Ask composer's
-      // placeholder, a mention in the editor, and sonner's toaster.
+      // editor's (components/editor/style.css and static-renderer/style.css), Context by time's
+      // (pages/context-time.css), the Ask composer's placeholder, a mention in the editor, and
+      // sonner's toaster.
       'better-tailwindcss/no-unknown-classes': [
         'error',
-        { ignore: ['^rte-', '^ask-composer$', '^mention-node$', '^toaster$'] },
+        { ignore: ['^rte-', '^time-', '^ask-composer$', '^mention-node$', '^toaster$'] },
       ],
       'better-tailwindcss/enforce-consistent-class-order': 'error',
       'better-tailwindcss/no-duplicate-classes': 'error',
@@ -197,6 +203,11 @@ export default tseslint.config(
     // The one place in the app that may import the icon library.
     files: ['src/web/components/icons.ts'],
     rules: { 'no-restricted-imports': ['error', { patterns: bannedImports }] },
+  },
+  {
+    // The two places that may import the toast library: the toaster, and the toasts.
+    files: ['src/web/lib/toast.tsx', 'src/web/components/ui/sonner.tsx'],
+    rules: { 'no-restricted-imports': ['error', { patterns: [...bannedImports, iconImports] }] },
   },
   {
     files: webDockFiles,

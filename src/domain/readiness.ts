@@ -6,8 +6,10 @@
   only then.
 
   It also decides two rules of publishing:
-  - only a clash with no answer holds Publish (FR-225): a detail to compare, a draft or a
-    withdrawn retirement may still be published, by an owner who knows it is right;
+  - only a clash with no answer, or a version with no source, holds Publish (FR-225): a detail
+    to compare, a draft or a withdrawn retirement may still be published, by an owner who knows it
+    is right; a suggestion sent from a question link without a source waits until its owner adds
+    or confirms one;
   - "Publish the N you've read" takes only plain changes (FR-226): never a draft, a claim, a
     clash, a retirement, an unchecked value or a new link.
 
@@ -33,9 +35,16 @@ export type ReadinessInput = {
   withdrawn: boolean
   /** Made by a read of a document, never by a person. */
   synced: boolean
+  /**
+   * Sent from a question link without a source: its owner adds one, or confirms the link its
+   * sender gave without a sentence from it.
+   */
+  needsSource?: 'add' | 'confirm'
 }
 
 export const readinessStates = [
+  'no_source',
+  'confirm_source',
   'draft',
   'claims',
   'clash',
@@ -57,7 +66,7 @@ export type Readiness = {
   ok: boolean
   /** It may go out with "Publish the N you've read" (FR-226). */
   bulk: boolean
-  /** Publish is open: only a clash with no answer holds it (FR-225). */
+  /** Publish is open: only a clash with no answer, or no source, holds it (FR-225). */
   publishable: boolean
   /** Claims the copied sentence does not plainly say. */
   claimsToCheck: number
@@ -95,6 +104,7 @@ export type ReadinessFacts = {
   newLink: boolean
   only: DocDiff['only']
   synced: boolean
+  needsSource?: 'add' | 'confirm'
 }
 
 /** The facts of one suggestion, read from its difference and the rest of its input. */
@@ -110,6 +120,7 @@ export function readinessFacts(input: ReadinessInput): ReadinessFacts {
     newLink: newLink(diff),
     only: diff.only,
     synced: input.synced,
+    ...(input.needsSource ? { needsSource: input.needsSource } : {}),
   }
 }
 
@@ -128,6 +139,11 @@ export function readinessFrom(facts: ReadinessFacts): Readiness {
     ok,
     bulk,
   })
+  if (facts.needsSource)
+    return {
+      ...out(facts.needsSource === 'add' ? 'no_source' : 'confirm_source', false),
+      publishable: false,
+    }
   if (facts.drafted) return out('draft', false)
   if (facts.claimsToCheck) return out('claims', false)
   if (facts.clash) return relation ? out('related', true) : out('clash', false)
@@ -159,10 +175,22 @@ export function readinessWords(
     diff?: Pick<DocDiff, 'counts'>
     /** How many live items it clashes with: each needs its own answer. */
     clashes?: number
+    /** Who sent it, by name. */
+    from?: string
   } = {},
 ): { title: string; text: string } {
   const n = r.claimsToCheck
   switch (r.state) {
+    case 'no_source':
+      return {
+        title: 'Add a source first',
+        text: `${context.from ?? 'Its sender'} sent what they know without a link to where it is written. Edit it to add one, then publish.`,
+      }
+    case 'confirm_source':
+      return {
+        title: 'Confirm the source first',
+        text: `${context.from ?? 'Its sender'} gave a link without a sentence from it. Edit it: open the link, copy the sentence that says this, then publish.`,
+      }
     case 'draft':
       return {
         title: 'A draft to check',

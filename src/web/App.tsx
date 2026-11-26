@@ -16,18 +16,20 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
+import { UndoKey } from '@/lib/undo'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { familyParts } from '@/components/footnote/family-parts'
+import { reportParts } from '@/components/footnote/report-parts'
 import { DockLeaving, pictureOf, setLeavingDock, useLeavingDock } from '@/components/dock-leaving'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/footnote/definition-peek'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { Toaster } from '@/components/ui/sonner'
-import { useBulkBarShown } from '@/lib/bulk-bar-presence'
-import { SharePanel } from '@/components/footnote/share-answer'
+import { Toaster, useSonner } from '@/components/ui/sonner'
+import { allFloors, floorUnder, useFloorsVersion } from '@/lib/toast-floor'
+import { ShareChatPanel } from '@/components/footnote/share-chat'
 import { WherePanel } from '@/components/footnote/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -97,6 +99,11 @@ const ConflictDock = React.lazy(() =>
   import('@/pages/conflicts').then((m) => ({ default: m.ConflictDock })),
 )
 
+// Something wrong? opens from Bad answer or More under an answer; its form comes with its own code.
+const ReportPanel = React.lazy(() =>
+  import('@/components/footnote/report-panel').then((m) => ({ default: m.ReportPanel })),
+)
+
 // A context item's quick view opens from a click, so its code is not on the first load: it is
 // fetched once the browser is idle after the first page (main.tsx), before anything is clicked.
 const FactPeek = React.lazy(() =>
@@ -144,6 +151,7 @@ function SafeDock() {
     >
       <InDock.Provider value>
         <div
+          data-slot="dock"
           className="h-full dock-swap"
           onKeyDown={(e) => {
             // A list row's peek closes on Escape from inside; a field, menu or dialog in it keeps its own Escape.
@@ -201,7 +209,13 @@ function DockContent() {
         </React.Suspense>
       )
     case 'share':
-      return <SharePanel id={dock.id!} />
+      return <ShareChatPanel chat={dock.id ?? ''} />
+    case 'report':
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.report} />}>
+          <ReportPanel id={dock.id!} parts={reportParts} />
+        </React.Suspense>
+      )
     case 'where':
       return <WherePanel id={dock.id!} />
     case 'conflict':
@@ -409,9 +423,10 @@ function Gate() {
   const route = useRoute()
   useInAppLinks()
   React.useEffect(() => {
-    // The documentation is a public site: it needs nobody signed in. An agent's consent page asks
-    // a person who is not signed in to sign in there, and stays.
-    if (!user && !['signin', 'docs', 'connect'].includes(route.parts[0] ?? '')) navigate('/signin')
+    // The documentation is a public site: it needs nobody signed in. An agent's consent page and a
+    // question link's page ask a person who is not signed in to sign in there, and stay.
+    if (!user && !['signin', 'docs', 'connect', 'question'].includes(route.parts[0] ?? ''))
+      navigate('/signin')
     // Signed in, there is nobody to pick: a sign-in that just finished, or /signin opened again,
     // lands where the app opens (routes/index.tsx).
     if (user && route.parts[0] === 'signin') redirectTo('/')
@@ -451,9 +466,10 @@ function Loaded({ children }: { children: React.ReactNode }) {
     queries: laterQueries().map((q) => ({ ...q, enabled: signedIn })),
   })
   const { parts } = useRoute()
-  // The sign-in page and an agent's consent page wait for the session alone; anything else waits
-  // in the shape it will have.
-  const waiting = ['signin', 'connect'].includes(parts[0] ?? '') ? null : <ShellSkeleton />
+  // The sign-in page, an agent's consent page and a question link's page wait for the session
+  // alone; anything else waits in the shape it will have.
+  const alone = ['signin', 'connect', 'question'].includes(parts[0] ?? '')
+  const waiting = alone ? null : <ShellSkeleton />
   // Opened at the Inbox, the shell waits for the reviews too, the page's own read: the page draws
   // with it, never later under a search or a click already started. Once drawn, the shell stays,
   // and a move to the Inbox waits in the page's own frame.
@@ -465,25 +481,50 @@ function Loaded({ children }: { children: React.ReactNode }) {
   return children
 }
 
+/** How far a toast sits from the window's right and bottom edges, and above a floor, in px. */
+const TOAST_EDGE = 16
+const TOAST_ABOVE = 8
+
 /**
- * Toasts never cover a primary action: clear of the Ask box wherever Ask is open, above the
- * 48px action bars at the foot of panes, and in the review at the bottom right above the decision
- * panel, so it covers neither the change nor its buttons; on a phone above the decision bar.
+ * Toasts sit in the bottom right corner, and never cover what is at the foot of the window under
+ * them: a card's decisions, a list's count or selection bar, the Ask box (`useToastFloor`). Then
+ * they sit just above it. In the review a narrower toast stays inside the decision's column.
  */
 function AppToaster() {
-  const { parts, query } = useRoute()
-  const ask = parts[0] === 'ask' || /^(ask|try)/.test(query.get('dock') ?? '')
+  const { parts } = useRoute()
   const review = parts[0] === 'inbox' && parts[2] === 'review'
-  // A list's selection bar sits in a band at its foot: a toast about what the bar did sits above it
-  // and its line. With no bar on screen, the toast is in the corner.
-  const bar = useBulkBarShown()
+  const width = review ? 300 : 356
+  const shown = useSonner().toasts.length > 0
+  const floors = useFloorsVersion()
+  const [lift, setLift] = React.useState(0)
+  React.useLayoutEffect(() => {
+    if (!shown) return
+    // Sonner gives a phone (under 600px) the whole width.
+    const measure = () => {
+      const w = window.innerWidth
+      const left = w < 600 ? 0 : w - TOAST_EDGE - width
+      setLift(floorUnder({ left, right: w }))
+    }
+    measure()
+    const sizes = new ResizeObserver(measure)
+    for (const el of allFloors()) {
+      sizes.observe(el)
+      el.addEventListener('transitionend', measure)
+    }
+    window.addEventListener('resize', measure)
+    return () => {
+      sizes.disconnect()
+      for (const el of allFloors()) el.removeEventListener('transitionend', measure)
+      window.removeEventListener('resize', measure)
+    }
+  }, [shown, floors, width])
+  const bottom = lift ? lift + TOAST_ABOVE : TOAST_EDGE
   return (
     <Toaster
       position="bottom-right"
-      offset={{ bottom: ask ? 152 : bar ? 112 : review ? 300 : 64, right: 24 }}
-      // In the review a narrower toast stays inside the decision's column, clear of the change.
-      style={review ? ({ '--width': '300px' } as React.CSSProperties) : undefined}
-      mobileOffset={{ bottom: ask ? 168 : review ? 148 : bar ? 124 : 64 }}
+      offset={{ bottom, right: TOAST_EDGE }}
+      mobileOffset={{ bottom, left: TOAST_EDGE, right: TOAST_EDGE }}
+      style={{ '--width': `${width}px` } as React.CSSProperties}
     />
   )
 }
@@ -513,6 +554,7 @@ export default function App() {
               <ConnectAgentOnOpen />
               <ShortcutsDialog />
               <ReportDialog />
+              <UndoKey />
             </SignedIn>
           </Loaded>
           <AppToaster />

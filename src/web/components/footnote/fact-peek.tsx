@@ -14,7 +14,7 @@ import {
   PencilIcon,
   TriangleAlertIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { DockFrame, DockMissing, PeekBar } from '@/components/dock'
 import { DockStepper } from '@/components/footnote/list'
 import {
@@ -216,12 +216,20 @@ export function FactPeek({ id }: { id: string }) {
       quietTitle
       actions={
         <PeekBar onExpand={() => navigate(page)}>
-          <DockStepper list="context" id={fact.id} onGo={(next) => openDock('context', next)} />
+          <DockStepper list="context" kind="context" id={fact.id} />
         </PeekBar>
       }
       footer={
-        owner ? (
-          <Button nativeButton={false} render={<a href={href(`${page}/edit`)} />}>
+        // Waiting for review is decided on its page; a draft's writer edits it, as an owner does.
+        fact.status === 'Waiting' ? (
+          <Button nativeButton={false} render={<a href={href(page)} />}>
+            {owner && fact.by !== me.name ? 'Open to decide' : 'Open'}
+          </Button>
+        ) : owner || (fact.status === 'Draft' && fact.by === me.name) ? (
+          <Button
+            nativeButton={false}
+            render={<a href={href(`${page}/${owner ? 'edit' : 'suggest'}`)} />}
+          >
             <PencilIcon data-icon="inline-start" />
             Edit
           </Button>
@@ -248,6 +256,16 @@ export function FactPeek({ id }: { id: string }) {
             {fact.status === 'Archived' ? (
               <PeekFact icon={ArchiveIcon}>
                 <b>{domains[fact.domain]?.name}</b> - archived, agents don't get it
+              </PeekFact>
+            ) : fact.status === 'Waiting' ? (
+              <PeekFact icon={ClockIcon}>
+                <b>{domains[fact.domain]?.name}</b> - waiting for review
+                {fact.by && (
+                  <>
+                    , sent by <b>{fact.by}</b>
+                  </>
+                )}
+                , agents don't get it until it is published
               </PeekFact>
             ) : fact.status === 'Draft' ? (
               <PeekFact icon={CircleDashedIcon}>

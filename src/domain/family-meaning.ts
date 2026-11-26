@@ -4,13 +4,19 @@
 
   1. Declared in the source: the words the variants' `meta.footnote.family_description` writes
      for the family, read as written. Nothing written here replaces them.
-  2. An owner's choice: one variant's own words, or words written here for the family, each kept
-     with its history.
-  3. The variants' common words: the description most of them share once each variant's values
-     are written as what they stand for ("in {Currency} via {Channel}"), a note on how a value is
-     converted from another ("in USD (EUR × the row's rate)") with it. When no description is
-     most of theirs, the one most of them hold within their own words, saying more around it.
-  4. The base variant's words: the one the others are converted from (D2), its values as slots.
+  2. Written by an owner: words written here for the family, as written.
+  3. Worked out from its variants: the description more than half of them share once each
+     variant's values are written as what they stand for ("in {Currency} via {Channel}"), a
+     currency's name like its code, a note on how a value is converted from another ("in USD
+     (EUR × the row's rate)") with it. When no description is most of theirs, the one most of
+     them hold within their own words, saying more around it. A value is a slot only where the
+     variants' words differ: a word another variant, holding another value, writes beside the
+     same word is a word ("a free trial" beside a plan named Free).
+     A variant that says how it is worked out from another (it is converted from one, or its
+     words name a rate and another variant's value, or, by Currency, it is the only one whose words
+     name a rate, and they name its own currency) has no say: when one variant is left, the
+     one the others are converted from, its words are the meaning. Words that still name a value
+     read as one variant, so they are never the family's ("in euros" of a EUR and USD family).
 
   Else the family has no meaning yet. The variants whose own words say something else than the
   meaning are always named, never hidden: agents read their words beside the meaning. With no
@@ -18,28 +24,9 @@
 
   Pure: the catalogue and the mock binding work out the same meaning from the same variants.
 */
-import { normalizeName } from './vocabulary.ts'
-
-/** Where a family's meaning comes from, in the order above; `none` when nothing gives one. */
-export const familyMeaningSources = [
-  'declared',
-  'member',
-  'written',
-  'common',
-  'base',
-  'none',
-] as const
-export type FamilyMeaningSource = (typeof familyMeaningSources)[number]
-
-/**
- * What an owner chose a family's meaning to be: worked out by the rule (`auto`), one variant's own
- * words, or words written here for the family.
- */
-export const familyMeaningChoices = ['auto', 'member', 'written'] as const
-export type FamilyMeaningChoice = (typeof familyMeaningChoices)[number]
-
-/** The longest meaning an owner may write for a family. */
-export const FAMILY_WORDS_MAX = 1000
+import { isCurrencyCode } from './currencies.ts'
+import { meaningLine, type FamilyMeaningSource, type MeaningChosen } from './family-meaning-line.ts'
+import { normalizeName } from './normalize-name.ts'
 
 /** A variant as its family's meaning reads it: its key, its values and its source's own words. */
 export type MeaningVariant = {
@@ -49,36 +36,24 @@ export type MeaningVariant = {
   description: string | null
 }
 
-/** What an owner chose last; null when no owner has chosen. */
-export type MeaningChosen = {
-  choice: FamilyMeaningChoice
-  /** The variant whose words were chosen, by key. */
-  member: string | null
-  /** The words written for the family. */
-  words: string | null
-}
-
 export type FamilyMeaning = {
   source: FamilyMeaningSource
   /**
-   * The family's meaning. The common words and the base variant's write each value as what it
-   * stands for, in braces, by the family's `by` ("{Currency}"); every other source's words are as
-   * written. Null for none.
+   * The family's meaning. The common words write each value as what it stands for, in braces, by
+   * the family's `by` ("{Currency}"); every other source's words are as written. Null for none.
    */
   words: string | null
-  /** The variant whose words are the meaning, by key: of `member` and `base`; else null. */
-  member: string | null
   /**
    * The words most variants share, values aside, and how many share them: the same words, else
-   * words most of them hold within their own. Null when most don't.
+   * words most of them hold within their own. Null when most don't, or the words name a value.
    */
   common: { words: string; agree: number } | null
-  /** The variant the others are converted from, by key; null when there is no one such variant. */
-  base: string | null
   /**
-   * The words the rule gives, any declared words or owner's choice aside: the common words, else
-   * the base variant's with its values as slots. Null when it gives none.
+   * The variant the others are converted from, by key, when the common words are its alone: each
+   * other variant is converted from one or says how it is worked out from another. Else null.
    */
+  base: string | null
+  /** The words the rule gives, any declared words or owner's choice aside. Null when none. */
   automatic: string | null
   /** The variants whose own words say something else than the meaning, by key. */
   differing: string[]
@@ -87,43 +62,216 @@ export type FamilyMeaning = {
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /** Words that say a value is worked out from another one at a rate. */
-const RATE_WORDS =
+export const RATE_WORDS =
   /(?<![\p{L}\p{N}])(?:rates?|fx|exchange|convert(?:ed|s)?|conversion)(?![\p{L}\p{N}])/iu
+
+/** Words that say a variant is converted from another, which a bare "rate" does not. */
+const CONVERTED_WORDS = /(?<![\p{L}\p{N}])(?:convert(?:ed|s)?|fx|exchange)(?![\p{L}\p{N}])/iu
+
+/** Words people write for a currency in place of its code: a question that says one names it. */
+const CURRENCY_WORDS: Readonly<Record<string, readonly string[]>> = {
+  EUR: ['euro', 'euros', '€'],
+  USD: ['dollar', 'dollars', 'us dollar', 'us dollars', '$'],
+  GBP: ['pound', 'pounds', 'pounds sterling', 'sterling', '£'],
+  JPY: ['yen', '¥'],
+  CHF: ['franc', 'francs'],
+  SEK: ['krona', 'kronor'],
+  NOK: ['krone', 'kroner'],
+  DKK: ['krone', 'kroner'],
+  AED: ['dirham', 'dirhams'],
+}
+
+/** A currency's names in words ("euros" of EUR), longest first; none for any other value. */
+const namesOf = (value: string) =>
+  (CURRENCY_WORDS[value.trim().toUpperCase()] ?? []).filter((name) => /^\p{L}/u.test(name))
+
+/** A value written as a code, in capitals: "EUR", "IN", "EMEA". */
+const isCode = (value: string) => /^\p{Lu}[\p{Lu}\p{N}]+$/u.test(value.trim())
+
+/** A whole word or words, never part of a longer word; `_` joins words into an id. */
+const whole = (text: string, flags: string, ids = false) =>
+  new RegExp(
+    ids
+      ? `(?<![\\p{L}\\p{N}])${escape(text)}(?![\\p{L}\\p{N}])`
+      : `(?<![\\p{L}\\p{N}_{])${escape(text)}(?![\\p{L}\\p{N}_}])`,
+    flags,
+  )
+
+/**
+ * Whether words name a value of another variant, as a variant that says how it is worked out from
+ * that one does: a code as written ("EUR"), or in lower case in an id (`amount_eur`); any other
+ * value in any case; a currency by its name ("from euros").
+ */
+function mentions(words: string, value: string) {
+  const v = value.trim()
+  if (!v) return false
+  const code = isCode(v)
+  return (
+    whole(v, code ? 'u' : 'iu', true).test(words) ||
+    (code && new RegExp(`_${escape(v.toLowerCase())}(?![\\p{L}\\p{N}])`, 'u').test(words)) ||
+    namesOf(v).some((name) => whole(name, 'iu', true).test(words))
+  )
+}
+
+/**
+ * Whether words still name a value, so they would read as one variant: a code as written, or a
+ * currency's name, outside an id such as `refunds_eur`. A word that is a value too ("free", "in")
+ * is a word.
+ */
+const namesOne = (words: string, value: string) =>
+  (isCode(value) && whole(value.trim(), 'u').test(words)) ||
+  namesOf(value).some((name) => whole(name, 'iu').test(words))
+
+/**
+ * The variants whose words say how they are worked out from another: a rate, and a value another
+ * variant holds ("The EUR amount multiplied by the row's exchange rate", of the USD one). The
+ * source's words, never Footnote's guess. `axes` are each axis's values (`axisValues`).
+ */
+export function worksOut(
+  variant: { values: readonly string[]; description: string | null },
+  axes: readonly (readonly string[])[],
+): boolean {
+  const words = variant.description?.trim()
+  if (!words || !RATE_WORDS.test(words)) return false
+  return axes.some((values, i) =>
+    values.some(
+      (value) =>
+        normalizeName(value) !== normalizeName(variant.values[i] ?? '') && mentions(words, value),
+    ),
+  )
+}
+
+/**
+ * The variants of a family worked out from another, which have no say in its meaning: those
+ * converted from one (`conversions`), those whose words name a rate and another variant's value
+ * (`worksOut`), and, in a family by Currency (an axis whose values are all currency codes), the one
+ * variant whose own words say it is converted and name its own currency when no other's do ("Payouts converted to USD at each month's rate", C3).
+ * `axes` are each axis's values (`axisValues`).
+ */
+export function workedOut(
+  family: {
+    by: readonly string[]
+    variants: readonly { key: string; values: readonly string[]; description: string | null }[]
+    conversions: readonly { to: string }[]
+  },
+  axes: readonly (readonly string[])[] = axisValues(family.by, family.variants),
+): Set<string> {
+  const converted = new Set(family.conversions.map((c) => c.to))
+  const derived = new Set(
+    family.variants
+      .filter((variant) => converted.has(variant.key) || worksOut(variant, axes))
+      .map((variant) => variant.key),
+  )
+  const currency = axes.findIndex((values) => values.length > 0 && values.every(isCurrencyCode))
+  if (currency < 0) return derived
+  const free = family.variants.filter((variant) => !derived.has(variant.key))
+  const rated = free.filter((variant) => CONVERTED_WORDS.test(variant.description ?? ''))
+  const [own] = rated
+  if (free.length >= 2 && rated.length === 1 && own?.values[currency])
+    if (mentions(own.description!, own.values[currency])) derived.add(own.key)
+  return derived
+}
+
+/** A text's words as runs, each run the words written one after another with only spaces between. */
+const runsOf = (text: string) =>
+  text
+    .split(/[^\p{L}\p{N}_\s]+/u)
+    .map((run) => run.toLowerCase().split(/\s+/).filter(Boolean))
+    .filter((run) => run.length)
+
+/**
+ * The words variants write beside a value of each axis, and which values those variants hold:
+ * "a free" of a plan named Plus, whose words say "including those on a free trial", is written
+ * by a variant holding Plus. A value its variant writes beside a word another one writes beside
+ * it, holding another value, is a word, not a slot.
+ */
+type Beside = Map<string, Set<string>>[]
+
+function besideOf(
+  by: readonly string[],
+  variants: readonly MeaningVariant[],
+  axes: readonly (readonly string[])[],
+): Beside {
+  return by.map((_, i) => {
+    // Each form of the axis's values by its first word, as words in lower case.
+    const forms = new Map<string, string[][]>()
+    for (const value of axes[i] ?? [])
+      for (const form of [value, ...namesOf(value)]) {
+        const words = form.trim().toLowerCase().split(/\s+/).filter(Boolean)
+        if (words.length) forms.set(words[0]!, [...(forms.get(words[0]!) ?? []), words])
+      }
+    const beside = new Map<string, Set<string>>()
+    const add = (phrase: string, holds: string) =>
+      beside.set(phrase, (beside.get(phrase) ?? new Set()).add(holds))
+    for (const variant of variants) {
+      if (!variant.description?.trim()) continue
+      const holds = normalizeName(variant.values[i] ?? '')
+      for (const run of runsOf(variant.description))
+        run.forEach((word, at) => {
+          for (const form of forms.get(word) ?? []) {
+            if (!form.every((w, k) => run[at + k] === w)) continue
+            const said = form.join(' ')
+            if (at > 0) add(`${run[at - 1]} ${said}`, holds)
+            if (at + form.length < run.length) add(`${said} ${run[at + form.length]}`, holds)
+          }
+        })
+    }
+    return beside
+  })
+}
 
 /**
  * A variant's words with each of its values written as what it stands for, in braces: "Money
  * taken in EUR via web" of the EUR web variant is "Money taken in {Currency} via {Channel}". A
- * value is a whole word, in any case, never part of a name such as `fees_eur`; the longest is
- * placed first, so "USD" never splits "USDT".
+ * value is a whole word, in any case, or a currency's name ("in euros"), never part of a name such
+ * as `fees_eur`; the longest is placed first, so "USD" never splits "USDT".
  * A note in brackets right after a value that names another value of its axis (`axes`, each
  * axis's values in the order of `by`) or a rate says how the value is converted, and goes with
  * it: "in USD (EUR × row exchange_rate_usd)" is "in {Currency}".
+ * Given what the family's variants write beside each axis's values (`beside`), a value another
+ * variant holding another value writes beside the same word stays a word.
  */
 export function slotted(
   description: string,
   values: readonly string[],
   by: readonly string[],
   axes: readonly (readonly string[])[] = [],
+  beside: Beside = [],
 ): string {
   const order = values
-    .map((value, i) => ({ value: value.trim(), axis: by[i], others: axes[i] ?? [] }))
-    .filter(
-      (v): v is { value: string; axis: string; others: readonly string[] } =>
-        !!v.value && v.axis !== undefined,
+    .flatMap((value, i) =>
+      value.trim() && by[i] !== undefined
+        ? [value.trim(), ...namesOf(value)].map((form) => ({
+            form,
+            value: value.trim(),
+            axis: by[i]!,
+            i,
+          }))
+        : [],
     )
-    .sort((a, b) => b.value.length - a.value.length)
+    .sort((a, b) => b.form.length - a.form.length)
   let words = description.replace(/\s+/g, ' ').trim()
-  for (const { value, axis, others } of order) {
+  for (const { form, value, axis, i } of order) {
+    const others = axes[i] ?? []
     const converts = (note: string) =>
       RATE_WORDS.test(note) ||
       others.some((other) => other.trim() && other !== value && namesValue(note, other))
+    const holds = normalizeName(value)
+    const elsewhere = (phrase: string) =>
+      [...(beside[i]?.get(phrase.toLowerCase()) ?? [])].some((other) => other !== holds)
     words = words.replace(
       new RegExp(
-        `(?<![\\p{L}\\p{N}_{])${escape(value)}(?![\\p{L}\\p{N}_}])(\\s*\\([^()]*\\))?`,
+        `(?<![\\p{L}\\p{N}_{])${escape(form)}(?![\\p{L}\\p{N}_}])(\\s*\\([^()]*\\))?`,
         'giu',
       ),
-      (_all, note: string | undefined) =>
-        note && !converts(note) ? `{${axis}}${note}` : `{${axis}}`,
+      (all: string, note: string | undefined, at: number, text: string) => {
+        const said = all.slice(0, all.length - (note?.length ?? 0))
+        const before = /([\p{L}\p{N}_]+)\s+$/u.exec(text.slice(0, at))?.[1]
+        const after = /^\s+([\p{L}\p{N}_]+)/u.exec(text.slice(at + said.length))?.[1]
+        if ((before && elsewhere(`${before} ${said}`)) || (after && elsewhere(`${said} ${after}`)))
+          return all
+        return note && !converts(note) ? `{${axis}}${note}` : `{${axis}}`
+      },
     )
   }
   return words
@@ -156,20 +304,27 @@ const sentences = (words: string) => words.split(/(?<=[.!?])\s+/)
 const holds = (all: readonly string[], run: readonly string[]) =>
   all.some((_, at) => run.every((sentence, i) => all[at + i] === sentence))
 
-/**
- * The variant the others are converted from: the one every conversion starts at, never converted
- * itself. Null when the family has no conversion, or they start at more than one variant.
- */
-export function baseVariant(conversions: readonly { from: string; to: string }[]): string | null {
-  const to = new Set(conversions.map((c) => c.to))
-  const from = new Set(conversions.map((c) => c.from).filter((key) => !to.has(key)))
-  return from.size === 1 ? [...from][0]! : null
+/** Each variant with words of its own, its values as slots. */
+function saidOf(
+  family: { by: readonly string[]; variants: readonly MeaningVariant[] },
+  axes = axisValues(family.by, family.variants),
+): Said[] {
+  const beside = besideOf(family.by, family.variants, axes)
+  return family.variants.flatMap((variant): Said[] => {
+    const own = variant.description?.trim()
+    if (!own) return []
+    const words = slotted(own, variant.values, family.by, axes, beside)
+    const cut = words.endsWith('…')
+    return [
+      { key: variant.key, own, words, same: normalizeName(cut ? words.slice(0, -1) : words), cut },
+    ]
+  })
 }
 
 /**
  * A family's meaning (M1) from its variants and what tells them apart: declared in the source,
- * else an owner's choice, else the words most variants share, else the base variant's words.
- * `declared` is the source's words for the family; null when it writes none.
+ * else words an owner wrote, else the words most variants share. `declared` is the source's words
+ * for the family; null when it writes none.
  */
 export function familyMeaning(family: {
   by: readonly string[]
@@ -179,17 +334,15 @@ export function familyMeaning(family: {
   chosen: MeaningChosen | null
 }): FamilyMeaning {
   const axes = axisValues(family.by, family.variants)
-  const described = family.variants.flatMap((variant): Said[] => {
-    const own = variant.description?.trim()
-    if (!own) return []
-    const words = slotted(own, variant.values, family.by, axes)
-    const cut = words.endsWith('…')
-    return [
-      { key: variant.key, own, words, same: normalizeName(cut ? words.slice(0, -1) : words), cut },
-    ]
-  })
-  // Most variants: more than half of them all, so a family of two needs both.
-  const most = (n: number) => n >= 2 && n * 2 > family.variants.length
+  // A variant converted from another, or whose words say how it is worked out from one, has no say.
+  const derived = workedOut(family, axes)
+  const described = saidOf(family, axes).filter((variant) => !derived.has(variant.key))
+  // The variants that have a say: all but those worked out from another.
+  const pool = family.variants.length - derived.size
+  // The one left when every other is worked out from another speaks for the family.
+  const alone = pool === 1 && derived.size > 0
+  // Most variants: more than half of those that have a say, so a family of two needs both.
+  const most = (n: number) => (n >= 2 || alone) && n * 2 > pool
   // Each wording once, with how many variants write it, a whole copy over one cut short: a family
   // of hundreds writes a few, so each wording is compared with each other one, not each variant.
   const wordings = new Map<string, { said: Said; count: number; sentences: string[] }>()
@@ -212,46 +365,60 @@ export function familyMeaning(family: {
     (a, b) => b.agree - a.agree || a.said.same.length - b.said.same.length,
   )[0]
   const shared = alike && most(alike.agree) ? alike : within && most(within.agree) ? within : null
-  const common = shared && { words: shared.said.words, agree: shared.agree }
-  const base = baseVariant(family.conversions)
-  const ownOf = (key: string | null) => described.find((variant) => variant.key === key)
-  const chosen = family.chosen
-  const picked = chosen?.choice === 'member' ? ownOf(chosen.member) : undefined
-  const written = chosen?.choice === 'written' ? chosen.words?.trim() : undefined
+  // Words that still name a value read as one variant: no meaning for the family.
+  const named = shared && axes.flat().some((value) => namesOne(shared.said.words, value))
+  const common = shared && !named ? { words: shared.said.words, agree: shared.agree } : null
+  const written = family.chosen?.choice === 'written' ? family.chosen.words?.trim() : undefined
   const declared = family.declared?.trim()
-  const automatic: Pick<FamilyMeaning, 'source' | 'words' | 'member'> = common
-    ? { source: 'common', words: common.words, member: null }
-    : ownOf(base)
-      ? { source: 'base', words: ownOf(base)!.words, member: base }
-      : { source: 'none', words: null, member: null }
-  const meaning: Pick<FamilyMeaning, 'source' | 'words' | 'member'> = declared
-    ? { source: 'declared', words: declared, member: null }
-    : picked
-      ? { source: 'member', words: picked.own, member: picked.key }
-      : written
-        ? { source: 'written', words: written, member: null }
-        : automatic
-  // A variant says something else when its words, values aside, are not those of the variant that
-  // speaks for the family, else not the common words. With no meaning, none does.
-  const against = ownOf(meaning.member) ?? shared?.said
-  const differing = meaning.words
-    ? described
-        .filter(
-          (variant) => variant.key !== meaning.member && !(against && sameAs(variant, against)),
-        )
-        .map((variant) => variant.key)
-    : []
-  return { ...meaning, common, base, automatic: automatic.words, differing }
+  const meaning: Pick<FamilyMeaning, 'source' | 'words'> = declared
+    ? { source: 'declared', words: declared }
+    : written
+      ? { source: 'written', words: written }
+      : common
+        ? { source: 'common', words: common.words }
+        : { source: 'none', words: null }
+  // A variant says something else when its words, values aside, are not those most of them share.
+  // With no meaning, none does; nor with words declared or written for the family when most share
+  // none: those words speak for every variant.
+  const differing =
+    meaning.words && shared
+      ? described.filter((variant) => !sameAs(variant, shared.said)).map((variant) => variant.key)
+      : []
+  return {
+    ...meaning,
+    common,
+    base: shared && common && alone ? shared.said.key : null,
+    automatic: common?.words ?? null,
+    differing,
+  }
 }
 
 /**
- * A family's meaning as one plain line, each value it varies by said as what it stands for:
- * "Money taken in each currency via each channel". Braces that name no axis stay as written.
+ * What a family's variants say, each wording once, for an owner to start the family's own words
+ * from: the first variant's values and own words, the words as one plain line, and how many
+ * variants write them. Most first.
  */
-export function meaningLine(words: string, by: readonly string[]): string {
-  return words.replace(/\{([^{}]+)\}/g, (slot, axis: string) =>
-    by.includes(axis) ? `each ${axis.toLowerCase()}` : slot,
-  )
+export function familyWordings(family: {
+  by: readonly string[]
+  variants: readonly MeaningVariant[]
+}): { values: readonly string[]; words: string; line: string; count: number }[] {
+  const wordings = new Map<
+    string,
+    { values: readonly string[]; words: string; line: string; count: number }
+  >()
+  const values = new Map(family.variants.map((variant) => [variant.key, variant.values]))
+  for (const said of saidOf(family)) {
+    const seen = wordings.get(said.same)
+    if (seen) seen.count++
+    else
+      wordings.set(said.same, {
+        values: values.get(said.key) ?? [],
+        words: said.own,
+        line: meaningLine(said.words, family.by),
+        count: 1,
+      })
+  }
+  return [...wordings.values()].sort((a, b) => b.count - a.count)
 }
 
 /**
@@ -265,19 +432,6 @@ export function axisValues(
   return by.map((_, i) => [
     ...new Set(variants.flatMap((variant) => (variant.values[i] ? [variant.values[i]] : []))),
   ])
-}
-
-/** Words people write for a currency in place of its code: a question that says one names it. */
-const CURRENCY_WORDS: Readonly<Record<string, readonly string[]>> = {
-  EUR: ['euro', 'euros', '€'],
-  USD: ['dollar', 'dollars', 'us dollar', 'us dollars', '$'],
-  GBP: ['pound', 'pounds', 'sterling', '£'],
-  JPY: ['yen', '¥'],
-  CHF: ['franc', 'francs'],
-  SEK: ['krona', 'kronor'],
-  NOK: ['krone', 'kroner'],
-  DKK: ['krone', 'kroner'],
-  AED: ['dirham', 'dirhams'],
 }
 
 /** Whether the words name a value: as written, a whole word in any case, or a currency's name. */

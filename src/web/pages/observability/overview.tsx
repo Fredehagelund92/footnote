@@ -7,7 +7,7 @@ import {
   useWorkspace,
   useWrite,
 } from '@/api/queries'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   BotIcon,
   CalendarIcon,
@@ -57,9 +57,9 @@ import {
   type TopicGroup,
 } from '@/model/observability'
 import { savedCounts } from '@/model/saved-questions'
-import { openDock, useDock } from '@/lib/dock'
+import { closeDock, openFromRow, useDock } from '@/lib/dock'
 import { open } from '@/lib/events'
-import { usePublishOrder, useRowKeys } from '@/lib/list'
+import { useListKeys, usePublishOrder } from '@/lib/list'
 import {
   OBS_PURPOSE,
   ObsDrawn,
@@ -221,14 +221,30 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
 
   const all = obs.data.topics
   const rows = all.filter((t) => inView(t) && passes(t, on, obs.topicName))
-  usePublishOrder(
-    'obs-topics',
-    obs.rowOrder(rows, group, sorting).map((t) => t.id),
-  )
+  const topicOrder = obs
+    .rowOrder(
+      rows,
+      group,
+      sorting,
+      domainList.map((d) => d.id),
+    )
+    .map((t) => t.id)
+  usePublishOrder('obs-topics', topicOrder)
   const peeked = dock?.kind === 'topic' ? dock.id : undefined
-  const onKeyDown = useRowKeys({
-    onMove: (id) => peeked && openDock('topic', id),
-    onEscape: () => !!peeked,
+  const topicRows = React.useRef<HTMLTableSectionElement>(null)
+  useListKeys({
+    list: topicRows,
+    order: topicOrder,
+    current: peeked,
+    docked: !!peeked,
+    // A cursor move takes the place of the address, so Back leaves the list in one press.
+    onMove: (id, from) =>
+      peeked && openFromRow('topic', id, undefined, { focus: from.panel, replace: true }),
+    onEscape: () => {
+      if (!peeked) return false
+      closeDock()
+      return true
+    },
   })
   const said = sentence(shown, domains)
   const narrow = narrowed(on, chosen)
@@ -523,7 +539,7 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
             view={view}
             peeked={peeked}
             unread={unread}
-            onKeyDown={onKeyDown}
+            list={topicRows}
             empty={
               <>
                 <p className="font-medium">No topics match</p>

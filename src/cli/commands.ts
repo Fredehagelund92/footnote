@@ -3,8 +3,10 @@
  * same API as the web form, so drafts and imports become suggestions in the same review queue, and
  * it checks item files and edition exports offline.
  */
+import { spawn } from 'node:child_process'
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { ORPCError } from '@orpc/client'
 import { parse } from 'yaml'
@@ -38,6 +40,13 @@ Commands that use the database directly (the owner's address in DATABASE_URL_MIG
   invite <email>      Invite someone, and print the link to send them. --admin makes them an
                       Admin; --domain <id> (repeatable) makes them an owner of that domain. This
                       is how the first admin of an install that signs in with OIDC gets in.
+
+Commands that run the service's code on its database (DATABASE_URL) and model keys:
+  prove               Ask the same questions three ways (no context, one plain file, this
+                      service's tools) and print a table of what each got right. --questions <file> gives your
+                      own (docs/templates/prove-questions.yaml); --tries <n> (default 3); the
+                      scripted model unless --real --cap <dollars>, which asks for a yes first.
+                      Its own options only; docs/prove.md explains the table.
 
 Commands that use the service:
   draft <file>        Save one item as a draft suggestion. --submit sends it for review.
@@ -120,7 +129,25 @@ async function readDocument(file: string): Promise<unknown> {
   }
 }
 
+/**
+ * `prove` runs the service's own code (src/server/run-prove.ts), which this tool may not import,
+ * as a command of its own: it reads the terminal for its yes, and its output is passed on.
+ */
+function prove(args: readonly string[], io: Io): Promise<number> {
+  const entry = fileURLToPath(new URL('../server/run-prove.ts', import.meta.url))
+  return new Promise((done) => {
+    const child = spawn(process.execPath, [entry, ...args], {
+      env: io.env,
+      stdio: ['inherit', 'pipe', 'pipe'],
+    })
+    child.stdout.on('data', (chunk: Buffer) => io.stdout(chunk.toString()))
+    child.stderr.on('data', (chunk: Buffer) => io.stderr(chunk.toString()))
+    child.on('close', (code) => done(code ?? 1))
+  })
+}
+
 export async function run(argv: readonly string[], io: Io): Promise<number> {
+  if (argv[0] === 'prove') return prove(argv.slice(1), io)
   let parsed
   try {
     parsed = parseArgs({ args: [...argv], options, allowPositionals: true, strict: true })
@@ -306,7 +333,7 @@ async function draft(
     proposal = await client.proposals.submit({ id: proposal.id, revision: proposal.revision })
   print(
     [
-      `Suggestion ${proposal.number} (${proposal.id}) is ${proposal.state}, domain ${proposal.areaId}`,
+      `Suggestion ${proposal.number} (${proposal.id}) is ${proposal.state === 'submitted' ? 'waiting for review' : `a ${proposal.state}`}, domain ${proposal.areaId}`,
       ...describe(proposal.findings),
     ],
     proposal,
@@ -331,7 +358,7 @@ async function importFile(
   const outcome = report.error
     ? report.error
     : report.applied
-      ? `Imported as batch ${report.batchId}: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged${values.drafts ? ' (drafts)' : ', submitted for review'}`
+      ? `Imported as batch ${report.batchId}: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged${values.drafts ? ' (drafts)' : ', waiting for review'}`
       : counts.errors
         ? `Nothing imported: ${counts.errors} of ${report.entries.length} items have errors`
         : `Dry run: ${counts.create} new, ${counts.change} changed, ${counts.unchanged} unchanged. Run again with --apply to make the suggestions.`

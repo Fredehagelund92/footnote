@@ -15,10 +15,13 @@ import {
   heldOutUnavailable,
   noKey,
   noSealedCases,
+  noSealedProof,
   readHeldOut,
   readHeldOutKey,
+  readSealedProof,
   runHeldOut,
   seal,
+  sealProof,
   unseal,
   withHeldOut,
 } from '../../db/seed/held-out.ts'
@@ -266,6 +269,7 @@ appendFileSync(log, [buffer, (statSync(buffer).mode & 0o777).toString(8), keyed]
 const text = readFileSync(buffer, 'utf8')
 if (mode === 'retitle') writeFileSync(buffer, text.replaceAll('${canary}', 'EDITED'))
 if (mode === 'break') writeFileSync(buffer, text.replace('split: held_out', 'split: development'))
+if (mode === 'break-proof') writeFileSync(buffer, text.replace('as_of:', 'asked_on:'))
 `,
     'editor.mjs',
   )
@@ -411,6 +415,113 @@ registerHooks({
     expect(await unseal(readFileSync(sealed, 'utf8'), next)).toBe(heldText)
     await expect(unseal(readFileSync(sealed, 'utf8'), identity)).rejects.toThrow()
   })
+
+  it(
+    'works on the proof questions with --set prove: their own format, counts, edit and rotate',
+    { timeout: 60_000 },
+    async () => {
+      const identity = await key()
+      const env = { ...cleanEnv(), FOOTNOTE_HELDOUT_KEY_FILE: await keyFile(identity) }
+      const proofText = stringify({
+        questions: [
+          {
+            id: 'orders-norway-october',
+            as_of: '2026-10-23',
+            question: `Why are orders in Norway close to nothing in October 2026? ${canary}`,
+            reasons: ['itm_norway001'],
+          },
+          {
+            id: 'orders-spain-october',
+            as_of: '2026-10-23',
+            question: `Why did orders in Spain drop in October 2026? ${canary}`,
+            wrong: ['itm_norway001'],
+          },
+        ],
+      })
+      // Each set seals only its own format.
+      await expect(sealProof(heldText, identity)).rejects.toThrow(/does not fit the format/)
+      await expect(seal(proofText, identity)).rejects.toThrow(/does not fit the format/)
+      const sealed = file(await sealProof(proofText, identity))
+      expect((await readSealedProof(identity, sealed)).questions).toHaveLength(2)
+      const counted = cli(['count', '--set', 'prove', '--file', sealed], env)
+      expect(counted.status, counted.stderr).toBe(0)
+      expect(counted.stdout.trim()).toBe(
+        '2 proof questions (1 where nothing is written) are sealed.',
+      )
+      const absent = cli(['count', '--set', 'prove', '--file', join(dir, 'none-proof.age')], env)
+      expect(absent.stdout).toMatch(
+        /^No proof questions are sealed: .*none-proof\.age is absent\.$/m,
+      )
+      expect(cli(['count', '--set', 'cases', '--file', sealed], env).status).toBe(2)
+
+      const edited = cli(['edit', '--set', 'prove', '--file', sealed], {
+        ...env,
+        VISUAL: '',
+        EDITOR: editorCommand('retitle', join(dir, 'editor-proof.log')),
+      })
+      expect(edited.status, edited.stderr).toBe(0)
+      expect(edited.stdout).toMatch(
+        /^2 proof questions \(1 where nothing is written\) are sealed\.\nCommit only /m,
+      )
+      expect(edited.stdout + edited.stderr).not.toMatch(/EDITED|CANARY/)
+      expect(await unseal(readFileSync(sealed, 'utf8'), identity)).toContain('EDITED')
+      const before = readFileSync(sealed, 'utf8')
+      const broken = cli(['edit', '--set', 'prove', '--file', sealed], {
+        ...env,
+        VISUAL: '',
+        EDITOR: editorCommand('break-proof', join(dir, 'editor-proof-2.log')),
+      })
+      expect(broken.status).toBe(1)
+      expect(broken.stderr).toMatch(/do not fit the format:\n {2}questions\.0/)
+      expect(readFileSync(sealed, 'utf8')).toBe(before)
+
+      const next = join(dir, 'next-proof.key')
+      expect(cli(['keygen', '--out', next], cleanEnv()).status).toBe(0)
+      const rotated = cli(['rotate', '--set', 'prove', '--new-key', next, '--file', sealed], env)
+      expect(rotated.status, rotated.stderr).toBe(0)
+      const reopened = cli(['count', '--set', 'prove', '--file', sealed], {
+        ...cleanEnv(),
+        FOOTNOTE_HELDOUT_KEY_FILE: next,
+      })
+      expect(reopened.stdout.trim()).toBe(
+        '2 proof questions (1 where nothing is written) are sealed.',
+      )
+    },
+  )
+
+  it(
+    'prove says why it did not run without the sealed questions or the key',
+    { timeout: 30_000 },
+    async () => {
+      const identity = await key()
+      const sealed = file(
+        await sealProof(
+          stringify({
+            questions: [
+              {
+                id: 'orders-norway-october',
+                as_of: '2026-10-23',
+                question: 'Why are orders in Norway close to nothing in October 2026?',
+              },
+            ],
+          }),
+          identity,
+        ),
+      )
+      const keyless = cli(['prove', '--file', sealed], cleanEnv())
+      expect(keyless.status).toBe(1)
+      expect(keyless.stdout).toMatch(
+        /^The invented company's proof: not run\. No held-out key was given/,
+      )
+      const absent = cli(['prove', '--file', join(dir, 'none-proof.age')], {
+        ...cleanEnv(),
+        FOOTNOTE_HELDOUT_KEY: identity,
+      })
+      expect(absent.status).toBe(0)
+      expect(absent.stdout.trim()).toBe(`The invented company's proof: not run. ${noSealedProof}`)
+      expect(cli(['prove', '--tries', 'many'], cleanEnv()).status).toBe(2)
+    },
+  )
 
   it(
     'runs end to end: count, edit and rotate as docs/evaluations.md gives them',

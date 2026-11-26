@@ -4,6 +4,7 @@ import { REPOSITORY_URL } from '@domain/brand'
 import { stateLabel } from '@/model/ask'
 import { ANSWER_LINES, SHORTCUTS, supportAt, WORDS } from '@/lib/help-content'
 import { CONFLICT_KEYS } from '@/lib/conflict'
+import { GO_TO } from '@/lib/keys'
 import { kindLabel } from '@/model/items'
 import { PRODUCT } from '@/lib/brand'
 
@@ -82,11 +83,20 @@ describe('the shared help lists', () => {
     expect(mail).not.toContain('+')
   })
 
-  // Thirty with every key of the conflict view, which Help's pages send people to ? for.
-  it('keep the shortcut sheet to about thirty rows', () => {
+  // Thirty-six with every key of the conflict view, which Help's pages send people to ? for, the
+  // five go-to keys, and Command and Z.
+  it('keep the shortcut sheet to about thirty-six rows', () => {
     const rows = SHORTCUTS.flatMap((g) => g.rows)
     expect(rows.length).toBeGreaterThanOrEqual(12)
-    expect(rows.length).toBeLessThanOrEqual(30)
+    expect(rows.length).toBeLessThanOrEqual(36)
+  })
+
+  it('list the go-to keys, so the sheet cannot drift from them', () => {
+    const rows = SHORTCUTS.find((g) => g.group === 'Go to')!.rows
+    expect(rows.map((r) => [...r.keys, ...(r.then ?? [])].join(' '))).toEqual(
+      GO_TO.map((g) => `G ${g.key}`),
+    )
+    expect(rows.map((r) => r.label)).toEqual(['Inbox', 'Ask', 'Context', 'Definitions', 'Settings'])
   })
 
   it("list the conflict view's own keys, so the sheet cannot drift from them", () => {

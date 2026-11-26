@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { PlusIcon } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { Page } from '@/components/site-header'
 import {
@@ -12,7 +12,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import {
   Dialog,
@@ -24,8 +24,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { FoldTrigger } from '@/components/footnote/fold'
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { isHost, NEVER_READ_HOSTS_MAX, normalizeHost } from '@domain/never-read-hosts'
 import { GuideLink } from '@/components/footnote/guide-link'
 import { servedToAgents } from '@/model/items'
 import { useQuery } from '@tanstack/react-query'
@@ -33,7 +43,7 @@ import type { Advanced as AdvancedPage, AnswerTestRuns, Exported } from '@/api/c
 import { toApiError } from '@/api/errors'
 import { advancedPageQuery, useWrite } from '@/api/queries'
 import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
-import { useFacts, useMe, usePeople } from '@/lib/workspace'
+import { useAdminsSaid, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { listOf } from '@/model/people'
 import { answerTestWords } from '@/model/settings'
 import { useDomainList, useDomains } from '@/lib/workspace'
@@ -52,7 +62,7 @@ import {
 import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
-import { landingOf, memberSections } from '@/lib/settings-access'
+import { landingOf, mayOpenSettings } from '@/lib/settings-access'
 
 // Settings: six sections under the settings navigation (General, Domains and owners, People,
 // Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
@@ -66,6 +76,8 @@ import { landingOf, memberSections } from '@/lib/settings-access'
  * adds a domain. Arrow keys move between cells; search shows once there are more than eight.
  */
 function Domains() {
+  const me = useMe()
+  const admins = useAdminsSaid()
   const domains = useDomains()
   const domainIds = useDomainList().map((d) => d.id)
   const facts = useFacts()
@@ -180,15 +192,25 @@ function Domains() {
               </a>
             )
           })}
-          <a
-            role="listitem"
-            data-cell
-            href="/settings/domains/new"
-            className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
-          >
-            <PlusIcon aria-hidden className="size-5" />
-            Add a domain
-          </a>
+          {/* Only an admin adds a domain: anyone else reads who does, in the same place. */}
+          {me.admin ? (
+            <a
+              role="listitem"
+              data-cell
+              href="/settings/domains/new"
+              className="flex min-h-24 flex-col items-center justify-center gap-2 bg-background p-4 text-sm text-muted-foreground outline-none hover:bg-muted/40 hover:text-foreground focus-visible:z-raised focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @2xl/main:min-h-44"
+            >
+              <PlusIcon aria-hidden className="size-5" />
+              Add a domain
+            </a>
+          ) : (
+            <p
+              role="listitem"
+              className="flex min-h-24 items-center justify-center bg-background p-4 text-center text-sm text-balance text-muted-foreground @2xl/main:min-h-44"
+            >
+              An admin adds a domain{admins}.
+            </p>
+          )}
         </div>
         {q && !ids.length && (
           <p className="border-t p-4 text-sm text-muted-foreground">
@@ -216,10 +238,26 @@ function AboutHelp() {
   return (
     <>
       <ul>
-        <li>What the business is, in one or two sentences.</li>
-        <li>Words that are easy to misread here, each with what it means for you.</li>
-        <li>House rules for reading numbers, such as which calendar or currency to assume.</li>
-        <li>No figures, deals or names of customers: agents read this with every question.</li>
+        <li>
+          What the company does, in one or two sentences: what you sell, to whom, where and through
+          which channels.
+        </li>
+        <li>
+          Not the words people use: write each as a term in Definitions, with an owner. Ask and
+          agents get a term with each question that uses its word.
+        </li>
+        <li>
+          Leave out numbers, dates, deals, legal conclusions, secrets and personal data. What
+          happened goes in context items, and the rest stays out.
+        </li>
+        <li>
+          Once there are domains or definitions, Write a first version for me drafts it from them.
+          Nothing is saved until you keep it.
+        </li>
+        <li>
+          Ask reads it with every question, and an agent when it connects. An agent connected now
+          gets a change when it next connects.
+        </li>
       </ul>
       <GuideLink slug="write-context" className="mt-4" />
     </>
@@ -371,7 +409,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Tuning settings"
         level={3}
-        description={`All ${count} settings and their values now. Answer tests can be turned on here; the rest change through the API.`}
+        description={`All ${count} settings and their values now. Answer tests, links people paste and shared chats can be changed here; the rest change through the API.`}
         collapsible
       >
         <div className="space-y-2 border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
@@ -471,6 +509,8 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           rows={page.editions.map((e) => [e.label, e.sealed, e.change])}
         />
       </FrameSection>
+      {page.links && <LinkReading links={page.links} />}
+      {page.sharing && <ChatSharing sharing={page.sharing} />}
       <FrameSection
         title="Answer tests"
         level={3}
@@ -530,7 +570,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Deleted"
         level={3}
-        description="Drafts and terms that were deleted, by whom and when. Deleting is for good; published context is archived instead, so it keeps its history."
+        description="Your drafts and the terms that were deleted, by whom and when. Deleting is for good; published context is archived instead, so it keeps its history."
         collapsible
         defaultOpen={page.deleted.length > 1}
       >
@@ -553,7 +593,247 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
           </p>
         )}
       </FrameSection>
+      <LeftDrafts left={page.left} />
     </>
+  )
+}
+
+/**
+ * The drafts of people who left (FR-139): a draft is its writer's alone, so nobody reads it once
+ * they are gone. An admin deletes them by count, unread, after a confirmation; the History log
+ * says how many, and whose.
+ */
+function LeftDrafts({ left }: { left: AdvancedPage['left'] }) {
+  const write = useWrite()
+  const [asking, setAsking] = React.useState<AdvancedPage['left'][number] | null>(null)
+  const drafts = (n: number) => (n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`)
+  if (!left.length) return null
+  const clear = (person: AdvancedPage['left'][number]) =>
+    void write('clearLeftDrafts', { id: person.id }).then(
+      ({ deleted }) => toast(`Deleted ${drafts(deleted)}`, { description: person.name }),
+      (e: unknown) =>
+        toast(`Couldn't delete the drafts of ${person.name}`, {
+          description: toApiError(e).message,
+        }),
+    )
+  return (
+    <FrameSection
+      title="Drafts of people who left"
+      level={3}
+      description="Only their writer could read a draft, so nobody can now. Delete them when nobody needs them."
+    >
+      <FrameRows
+        rows={left.map((person) => ({
+          id: person.id,
+          label: person.name,
+          hint: `Left ${drafts(person.drafts)} nobody sent or published.`,
+          value: (
+            <Button variant="outline" onClick={() => setAsking(person)}>
+              Delete {drafts(person.drafts)}
+            </Button>
+          ),
+        }))}
+      />
+      <Dialog open={!!asking} onOpenChange={(open) => !open && setAsking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Delete {asking ? drafts(asking.drafts) : ''} of {asking?.name}?
+            </DialogTitle>
+            <DialogDescription>
+              Nobody reads them first, and they are gone for good. What {asking?.name} published or
+              sent stays.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (asking) clear(asking)
+                setAsking(null)
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </FrameSection>
+  )
+}
+
+/**
+ * Sharing an Ask chat as a link (FR-721): on as installed. Off, no chat is shared and no link
+ * opens, those already made too, until it is on again.
+ */
+function ChatSharing({ sharing }: { sharing: NonNullable<AdvancedPage['sharing']> }) {
+  const write = useWrite()
+  const setOn = (on: boolean) =>
+    void write('setChatSharing', { on, version: sharing.version }).then(
+      () => toast(on ? 'People can share chats' : 'Sharing chats is off'),
+      (e: unknown) =>
+        toast(on ? "Couldn't turn it on" : "Couldn't turn it off", {
+          description: toApiError(e).message,
+        }),
+    )
+  return (
+    <FrameSection
+      title="Shared chats"
+      level={3}
+      description={
+        sharing.on
+          ? 'On. People can share an Ask chat as a link, which lasts 90 days.'
+          : 'Off. No chat is shared, and no link opens.'
+      }
+      collapsible
+      defaultOpen={false}
+    >
+      <FrameRows
+        rows={[
+          {
+            id: 'share-chats',
+            label: <label htmlFor="share-chats">Share chats as links</label>,
+            hint: 'A link keeps a copy of the chat under its sender’s name, never a figure. Only people signed in open it, each source only if they may read it.',
+            value: <Switch id="share-chats" checked={sharing.on} onCheckedChange={setOn} />,
+          },
+        ]}
+      />
+    </FrameSection>
+  )
+}
+
+/**
+ * Reading the links people paste (FR-144): on as installed. Draft from text opens the public
+ * page a link points to, under the reader's rules; off, people paste the page's text. The sites an
+ * admin lists are never read, such as internal systems on public addresses, which the address
+ * rules cannot tell from the public web.
+ */
+function LinkReading({ links }: { links: NonNullable<AdvancedPage['links']> }) {
+  const write = useWrite()
+  const [editing, setEditing] = React.useState(false)
+  const [text, setText] = React.useState('')
+  const [problem, setProblem] = React.useState('')
+  const [saving, setSaving] = React.useState(false)
+  const sites = (n: number) => (n === 1 ? '1 site' : `${n.toLocaleString('en-GB')} sites`)
+  const setOn = (on: boolean) =>
+    void write('setLinkReading', { on, version: links.version }).then(
+      () => toast(on ? 'Links people paste are read' : 'Links people paste are not read'),
+      (e: unknown) =>
+        toast(on ? "Couldn't turn it on" : "Couldn't turn it off", {
+          description: toApiError(e).message,
+        }),
+    )
+  const edit = () => {
+    setText(links.hosts.join('\n'))
+    setProblem('')
+    setEditing(true)
+  }
+  const save = () => {
+    // One site a line or separated by commas; a whole address keeps only its site.
+    const hosts = [
+      ...new Set(
+        text
+          .split(/[\n,]+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((line) => {
+            const url = URL.parse(line)
+            return normalizeHost(url && /^https?:$/.test(url.protocol) ? url.hostname : line)
+          }),
+      ),
+    ]
+    const bad = hosts.find((host) => !isHost(host))
+    if (bad)
+      return setProblem(
+        `“${bad}” isn’t a site’s name. Write one a line, such as intranet.example.com.`,
+      )
+    if (hosts.length > NEVER_READ_HOSTS_MAX)
+      return setProblem(`List at most ${NEVER_READ_HOSTS_MAX.toLocaleString('en-GB')} sites.`)
+    setSaving(true)
+    void write('setNeverReadHosts', { hosts, version: links.hostsVersion })
+      .then(
+        () => {
+          setEditing(false)
+          toast(hosts.length ? `${sites(hosts.length)} never read` : 'No site listed')
+        },
+        (e: unknown) => setProblem(toApiError(e).message),
+      )
+      .finally(() => setSaving(false))
+  }
+  return (
+    <FrameSection
+      title="Links people paste"
+      level={3}
+      description={
+        links.on
+          ? 'On. Draft from text opens the public page a link points to and fills in from it.'
+          : "Off. People paste the page's text instead."
+      }
+      collapsible
+      defaultOpen={false}
+    >
+      <FrameRows
+        rows={[
+          {
+            id: 'read-links',
+            label: <label htmlFor="read-links">Read links people paste</label>,
+            hint: 'Public pages only, read once and never kept: the draft keeps the link and one sentence. A sign-in page or a link that carries a key is never opened.',
+            value: <Switch id="read-links" checked={links.on} onCheckedChange={setOn} />,
+          },
+          {
+            id: 'never-read',
+            label: 'Sites never read',
+            hint: links.hosts.length
+              ? `${
+                  links.hosts.length > 3
+                    ? `${links.hosts.slice(0, 3).join(', ')} and ${(links.hosts.length - 3).toLocaleString('en-GB')} more`
+                    : listOf(links.hosts, 'and')
+                }. Each covers its subdomains.`
+              : 'Links are read from inside your network, so list your internal sites that have public addresses. Each covers its subdomains.',
+            value: (
+              <Button variant="outline" onClick={edit}>
+                {links.hosts.length ? 'Change' : 'Add sites'}
+              </Button>
+            ),
+          },
+        ]}
+      />
+      <Dialog open={editing} onOpenChange={setEditing}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Sites never read</DialogTitle>
+            <DialogDescription>
+              A link to one of these sites, or to a site under one, is never opened. List a
+              site&apos;s address too, and no other name for it is read either. People paste the
+              page&apos;s text instead.
+            </DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel htmlFor="never-read-hosts">One site a line</FieldLabel>
+            <Textarea
+              id="never-read-hosts"
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value)
+                setProblem('')
+              }}
+              aria-invalid={problem ? true : undefined}
+              aria-describedby={problem ? 'never-read-problem' : undefined}
+              className="min-h-28 font-mono text-xs"
+              placeholder={'intranet.example.com\nwiki.example.com'}
+            />
+            <FieldError id="never-read-problem">{problem}</FieldError>
+          </Field>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
+            <Button onClick={save} loading={saving} loadingLabel="Saving…">
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </FrameSection>
   )
 }
 
@@ -668,8 +948,9 @@ export function SettingsPage({
   const current =
     section && TITLES[section] ? section : me.admin ? 'general' : landingOf(me.owns.length > 0)
   // Someone who isn't an admin uses their agents here, and an owner also the domains and the
-  // people list.
-  if (!me.admin && !memberSections(me.owns.length > 0).includes(current))
+  // people list: any other section says who to ask, and leads to their own.
+  const owner = me.owns.length > 0
+  if (!mayOpenSettings(`/settings/${current}/${sub ?? ''}`, me))
     return (
       <Page title="Settings">
         <Empty>
@@ -681,6 +962,14 @@ export function SettingsPage({
                 : 'Ask an admin if something here needs changing.'}
             </EmptyDescription>
           </EmptyHeader>
+          <EmptyContent>
+            <a
+              href={`/settings/${landingOf(owner)}`}
+              className={cn(buttonVariants({ variant: 'outline' }))}
+            >
+              {owner ? 'Open Domains and owners' : 'Open Agents and access'}
+            </a>
+          </EmptyContent>
         </Empty>
       </Page>
     )
@@ -694,7 +983,7 @@ export function SettingsPage({
           crumbs={(name) => (
             <SettingsCrumbs
               trail={[
-                { label: 'Settings', href: '/settings/general' },
+                { label: 'Settings', href: '/settings' },
                 { label: 'Domains and owners', href: '/settings/domains' },
                 { label: name },
               ]}
@@ -705,7 +994,7 @@ export function SettingsPage({
     )
   const title = (
     <SettingsCrumbs
-      trail={[{ label: 'Settings', href: '/settings/general' }, { label: TITLES[current]! }]}
+      trail={[{ label: 'Settings', href: '/settings' }, { label: TITLES[current]! }]}
     />
   )
   if (current === 'general')

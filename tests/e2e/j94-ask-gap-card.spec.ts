@@ -22,7 +22,9 @@ for (const { name, viewport } of [
     // No state: nothing it read is about the question, so it is not a Not found of a subject.
     await expect(log.getByRole('button', { name: /^(Not found|Checked|Partial)$/ })).toHaveCount(0)
     const gap = log.getByRole('region', { name: 'Not written yet: “EBITDA”' })
-    await expect(gap).toContainText('No metric, other name or context item uses this word yet.')
+    await expect(gap).toContainText(
+      'No published metric, other name or context item uses this word yet.',
+    )
     // Who can add it: the admins, by name.
     await expect(gap).toContainText(/, (an admin|the admins), can add it\./)
     await expect(gap).toContainText('Only this word is sent, never your question.')
@@ -38,7 +40,7 @@ for (const { name, viewport } of [
     await go(page, '/ask?example=loop-unknown')
     const gap = page.getByRole('log').getByRole('region', { name: 'Not written yet: “EBITDA”' })
     await expect(gap).toContainText('It is yours to add.')
-    await expect(gap.getByRole('button', { name: 'Add it to Definitions' })).toBeVisible()
+    await expect(gap.getByRole('button', { name: 'Add “EBITDA” to Definitions' })).toBeVisible()
     await expect(gap.getByRole('button', { name: /^Tell/ })).toHaveCount(0)
   })
 

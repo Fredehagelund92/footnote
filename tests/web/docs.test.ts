@@ -192,6 +192,52 @@ describe('the docs check', () => {
     expect(broken).toEqual([])
   })
 
+  it('opens its screen from every page about one, which says where to start', () => {
+    // The pages about no one screen: how agents read, what is kept, the tools and the words, and
+    // how to model metrics in the tool that defines them.
+    expect(DOC_PAGES.filter((p) => !p.open).map((p) => p.slug)).toEqual([
+      'words',
+      'privacy',
+      'metric-variants',
+      'how-agents-use-it',
+      'tools',
+    ])
+  })
+
+  it('names the quick actions a ## section explains, and refuses one it cannot place', () => {
+    const sections = docs.pages.flatMap((p) => p.sections.map((s) => ({ page: p.slug, ...s })))
+    expect(sections.find((s) => s.does?.includes('write_context'))).toMatchObject({
+      page: 'write-context',
+      id: 'add-a-context-item',
+      does: ['write_context'],
+    })
+    expect(sections.find((s) => s.id === 'families')?.does).toEqual([
+      'pick_usual_variant',
+      'family_meaning',
+    ])
+    const read = (does: string) =>
+      readDocs(
+        [
+          {
+            slug: 'privacy',
+            source: `---\ntitle: Privacy\nline: A line.\ngroup: How it works\norder: 1\nminutes: 1\nreviewed: 2026-10-01\ndoes:\n  ${does}\n---\n\nA lead.\n\n## Here\n\n### Below\n`,
+          },
+          files.find((f) => f.slug === CHANGELOG)!,
+        ],
+        (yaml) => parse(yaml),
+      )
+    const reason = (does: string) => {
+      const result = read(does)
+      return result.ok ? '' : result.reason
+    }
+    expect(reason('nowhere: write_context')).toMatch(/does: nowhere is no ## heading/)
+    expect(reason('below: write_context')).toMatch(/does: below is no ## heading/)
+    expect(reason('here: fly_away')).toMatch(/does\.here/)
+    expect(reason('here: [write_context, fly_away]')).toMatch(/does\.here/)
+    // A list of actions is read: what fails is only that What's new links past these two pages.
+    expect(reason('here: [write_context, add_domain]')).not.toMatch(/does/)
+  })
+
   it('refuses a page that links to nothing, or uses what the docs do not draw', () => {
     const page = (body: string) => ({
       slug: 'privacy',
@@ -344,7 +390,7 @@ describe('the docs search', () => {
       slug: 'connect-an-agent',
       id: 'if-nothing-signs-in',
     })
-    expect(searchDocs('get_related')[0]?.slug).toBe('tools')
+    expect(searchDocs('next_cursor')[0]?.slug).toBe('tools')
     expect(searchDocs('glossary')[0]?.slug).toBe('words')
     expect(searchDocs('words')[0]?.slug).toBe('words')
     expect(searchDocs('observability')[0]?.slug).toBe('see-what-agents-asked')

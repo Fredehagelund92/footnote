@@ -116,6 +116,51 @@ describe('reading a search query', () => {
   })
 })
 
+describe('a word joined to a name by a hyphen', () => {
+  it('reads the compound as one word of its own, never as the names joined in it', () => {
+    expect(readQuery('Orders-CPA and Revenue-CPA', terms, areas).used).toEqual({
+      domains: [],
+      terms: [],
+      words: ['orders-cpa', 'revenue-cpa'],
+      ignored: ['and'],
+      unknown_members: [],
+    })
+    // A hyphen with a space beside it joins nothing.
+    expect(readQuery('Orders - Revenue', terms, areas).used.terms).toEqual([
+      'metric:orders',
+      'metric:revenue',
+    ])
+  })
+
+  it('reads a name that is itself a compound whole', () => {
+    const vocabulary = [
+      ...terms,
+      {
+        ...terms[2]!,
+        key: 'metric:on_time_shipping_rate',
+        name: 'On-time shipping rate',
+        definitionRefs: [],
+      },
+    ]
+    expect(readQuery('On-time shipping rate in Norway', vocabulary, areas).used.terms).toEqual([
+      'metric:on_time_shipping_rate',
+      'val:market/norway',
+    ])
+  })
+
+  it('finds the compound in the words of an item, and a piece of it finds the item too', () => {
+    const items = [
+      item('itm_cpa00001', { summary: 'Orders-CPA is spend divided by first orders.' }),
+      item('itm_orders01', {
+        title: 'Orders fell in Norway',
+        scope: { metrics: ['metric:orders'], dimensions: [], dimensionValues: [] },
+      }),
+    ]
+    expect(ids('Orders-CPA', items)).toEqual([['itm_cpa00001', true]])
+    expect(ids('CPA', items)).toEqual([['itm_cpa00001', true]])
+  })
+})
+
 describe('ranking items', () => {
   const closure = item('itm_closure01', {
     title: 'Norway closure',

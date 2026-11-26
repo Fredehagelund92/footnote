@@ -7,7 +7,9 @@ test('a Not found card is a draft to review and publish', async ({ page }) => {
   await page.getByRole('button', { name: 'Check the first version', exact: true }).click()
   await expect(page.getByText('A draft to check.')).toBeVisible()
   await page.locator('#decision').getByRole('button', { name: 'Publish', exact: true }).click()
-  await expect(page.locator('#decision').getByRole('status')).toContainText('Published')
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: /^Published “Card payments in Spain/ }),
+  ).toBeVisible()
   await go(page, '/context/itm_spain_payments')
   await expect(
     page.getByRole('heading', {

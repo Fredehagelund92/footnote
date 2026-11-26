@@ -218,7 +218,7 @@ test('the list folds synonyms into their row; Terms counts only real terms', asy
   await expect(gross).toContainText('Another name')
   await expect(gross).toContainText('GMV')
   await expect(page.locator('tr').filter({ hasText: /^GMV/ })).toHaveCount(0)
-  await expect(page.getByRole('radio', { name: /Terms/ })).toContainText('5')
+  await expect(page.getByRole('radio', { name: /Terms/ })).toContainText('8')
   await page.getByPlaceholder('Search definitions').fill('turnover')
   await expect(page.locator('tr').filter({ hasText: 'Net revenue' })).toContainText(
     'matches: Turnover',
@@ -227,6 +227,8 @@ test('the list folds synonyms into their row; Terms counts only real terms', asy
   await page.getByRole('button', { name: /^Filter/ }).click()
   await page.getByRole('menuitemcheckbox', { name: /Show synonyms as rows/ }).click()
   await page.keyboard.press('Escape')
+  // The list draws only the rows in view: find the synonym's own row by its word.
+  await page.getByPlaceholder('Search definitions').fill('gmv')
   await expect(page.locator('tr').filter({ hasText: /^GMV/ })).toHaveCount(1)
 })
 

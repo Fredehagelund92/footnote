@@ -187,6 +187,8 @@ async function seedDefinitions(
       value_type: definition.valueType,
       area_hint: definition.areaHint,
       model_file: definition.modelFile,
+      built_from_refs: definition.builtFrom?.refs ?? null,
+      built_from_columns: definition.builtFrom?.columns ?? null,
       change_mark: definition.changeMark,
       first_seen_snapshot: first,
       last_seen_snapshot: latest,
@@ -203,6 +205,8 @@ async function seedDefinitions(
       value_type: member.valueType,
       area_hint: emptyDomain!.id,
       model_file: null,
+      built_from_refs: null,
+      built_from_columns: null,
       change_mark: sha256(member.ref),
       first_seen_snapshot: first,
       last_seen_snapshot: latest,
@@ -219,6 +223,8 @@ async function seedDefinitions(
       value_type: 'number',
       area_hint: null,
       model_file: null,
+      built_from_refs: null,
+      built_from_columns: null,
       change_mark: sha256(ref),
       first_seen_snapshot: first,
       last_seen_snapshot: first,
@@ -256,8 +262,8 @@ async function seedDefinitions(
       change_mark: sha256(member.ref),
     })),
   ])
-  // The demo company says what it is about: a new install starts with no text, and the
-  // demo, the golden library and the assistant evals' About arm read the retailer's worked example.
+  // The demo company says what it is about: a new install starts with no text, and the demo,
+  // the golden library and Ask's evals read the retailer's worked example.
   await client.query(
     `insert into settings_versions (key, version, value, reason)
      select 'business.about', max(version) + 1, to_jsonb($1::text), 'demo: the outdoor-gear retailer'
@@ -399,7 +405,7 @@ export async function bulkSeed(
       const areaId = termAreas[key] ?? null
       const aliases = [...ownAliases, ...(extras.aliases?.[key] ?? [])]
       const id = randomUUID()
-      terms.push({ key, kind, parent_key: parent })
+      terms.push({ key, kind })
       versions.push({
         id,
         term_key: key,
@@ -407,6 +413,7 @@ export async function bulkSeed(
         name,
         aliases,
         area_id: areaId,
+        parent_key: parent,
         // The digest the review path gives the same term (FR-125), so exports and the restore
         // drill can recompute it.
         content_digest: termDigestContent({

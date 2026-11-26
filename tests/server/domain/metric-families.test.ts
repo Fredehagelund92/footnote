@@ -7,6 +7,7 @@ import {
   declaredName,
   derivationsOf,
   familiesOf,
+  familyCounts,
   nameWithout,
   variantWords,
   type VariantMember,
@@ -192,6 +193,19 @@ describe('families on the Names card', () => {
       'group:revenue',
     ])
     expect(revenue!.definitionRefs).toHaveLength(6)
+  })
+
+  it('never takes the key of a family split back into its metrics, which keeps it', () => {
+    const [revenue] = sourceNames(
+      shop([['revenue', 'Revenue', 'a']]),
+      [],
+      none,
+      new Set(),
+      new Set(['group:revenue']),
+    )
+    expect(revenue).toMatchObject({ kind: 'metric_group', name: 'Revenue' })
+    expect(revenue!.key).not.toBe('group:revenue')
+    expect(revenue!.family?.variants.every((v) => v.parentKey === revenue!.key)).toBe(true)
   })
 
   it('never publishes a family as suggested because a plain metric has its name', () => {
@@ -651,7 +665,7 @@ describe('a family one rate works out', () => {
     expect(families.map((f) => [f.name, f.found, f.by, f.variants])).toEqual([
       [
         'Accrued share',
-        'calculation',
+        'rate',
         [{ name: 'currency', ref: null }],
         [
           { ref: 'dbt:partners.accrued_share_eur', values: ['EUR'] },
@@ -660,7 +674,7 @@ describe('a family one rate works out', () => {
       ],
       [
         'Commission',
-        'calculation',
+        'rate',
         [{ name: 'currency', ref: null }],
         [
           { ref: 'dbt:partners.commission_eur', values: ['EUR'] },
@@ -670,8 +684,8 @@ describe('a family one rate works out', () => {
     ])
     const names = sourceNames(members, [], new Map(), new Set())
     expect(names.map((n) => [n.name, n.state, n.family?.found])).toEqual([
-      ['Accrued share', 'ready', 'calculation'],
-      ['Commission', 'ready', 'calculation'],
+      ['Accrued share', 'ready', 'rate'],
+      ['Commission', 'ready', 'rate'],
     ])
   })
 
@@ -697,8 +711,8 @@ describe('a family one rate works out', () => {
       asVariants([...three('commission', 'Commission'), ...three('payout', 'Payout')]),
     )
     expect(families.map((f) => [f.name, f.found, f.variants.map((v) => v.values[0])])).toEqual([
-      ['Commission', 'calculation', ['EUR', 'GBP', 'USD']],
-      ['Payout', 'calculation', ['EUR', 'GBP', 'USD']],
+      ['Commission', 'rate', ['EUR', 'GBP', 'USD']],
+      ['Payout', 'rate', ['EUR', 'GBP', 'USD']],
     ])
   })
 
@@ -736,7 +750,7 @@ describe('a family one rate works out, whatever another way claimed first', () =
       ...twins('cost', 'Cost'),
     ]
     expect(familiesOf(asVariants(members)).map((f) => [f.name, f.found])).toEqual([
-      ['Cost', 'calculation'],
+      ['Cost', 'rate'],
       ['Revenue', 'declared'],
     ])
   })
@@ -760,6 +774,26 @@ describe('a family one rate works out, whatever another way claimed first', () =
       'dbt:partners.cost_usd',
     ])
     expect(families.find((f) => f.found === 'declared')?.variants).toHaveLength(2)
+  })
+})
+
+describe('the families counted, as Test connection says them (D5)', () => {
+  it('counts each kind in the order of trust, and names the largest trusted family', () => {
+    const members = [
+      ...twins('accrued_share', 'Accrued share'),
+      ...twins('commission', 'Commission'),
+      ...['EUR', 'USD'].map((code) => metric(`fee_${code.toLowerCase()}`, `Fee (${code})`)),
+    ]
+    expect(familyCounts(familiesOf(asVariants(members)))).toEqual({
+      families: 3,
+      metrics: 6,
+      found: { declared: 0, calculation: 0, rate: 2, names: 1 },
+      example: 'Accrued share',
+    })
+  })
+
+  it('is none when no family is found', () => {
+    expect(familyCounts([])).toBeNull()
   })
 })
 

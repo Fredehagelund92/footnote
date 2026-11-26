@@ -108,6 +108,7 @@ const ctxOf = (made: MadeRead[]): WordsContext => {
     known: new Set(made.flatMap((m) => (m.result as { ids: string[] }).ids)),
     reads: made.map((m) => ({ ref: m.ref!, tool: m.tool, result: m.result })),
     digits: new Set(JSON.stringify(made.map((m) => m.result)).match(/\d+/g) ?? []),
+    addresses: new Set(),
     items: new Map(),
   }
 }

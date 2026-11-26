@@ -22,12 +22,11 @@ import {
   getContextInput,
   readContextOutput,
   readInput,
-  readOutput,
-  relatedInput,
   reportInput,
   reportOutput,
 } from './schemas.ts'
 import { productName } from '../brand.ts'
+import type { ServingBundle } from '../modules/editions/index.ts'
 
 const read = {
   readOnlyHint: true,
@@ -47,7 +46,6 @@ const write = {
   destructiveHint: false,
   openWorldHint: false,
 }
-const prefix = 'Call get_context before answering a question about company data. '
 /** The rules every client reads first (FR-343), with the product's name the setting gives. */
 export const instructionRules = rulesFor(productName)
 export { INSTRUCTIONS_READ_BY_ALL }
@@ -58,13 +56,21 @@ export const serverInstructions = (
   calendar: Calendar = UTC_CALENDAR,
   permissions: readonly PublishPermission[] = [],
 ): string => instructionsFor(productName, dataTools, about, calendar, permissions)
+/** The data tools the definition sources name, by their own label (CON-101). */
+export function dataToolsOf(bundle: Pick<ServingBundle, 'terms'>): string[] {
+  return [...new Set(bundle.terms.flatMap((term) => (term.described ? [term.described.tool] : [])))]
+    .filter(Boolean)
+    .sort()
+}
 /** A tool's description for the model: the line people read first, then what the model needs. */
-const describe = (tool: AgentToolName, text: string, first = prefix) =>
-  `${toolWords[tool].line} ${first}${text}`
+const describe = (tool: AgentToolName, text: string) => `${toolWords[tool].line} ${text}`
 
 /**
- * The six tools of the agent contract (docs/product.md, section 10), in the order agents read
- * them. Each id, title and first line comes from src/domain/mcp-text.ts.
+ * The five tools of the agent contract (docs/product.md, section 10), in the order agents read
+ * them. Each id, title and first line comes from src/domain/mcp-text.ts. Each says what it is for
+ * and what it is not, so a question about a metric goes to get_context and a look-up of a name or
+ * a browse to find_context. Only get_context loads in Claude Code before it is searched for
+ * (`anthropic/alwaysLoad`): it is the first call for a question, and the others load when needed.
  */
 export const tools = {
   get_context: {
@@ -72,18 +78,19 @@ export const tools = {
     title: toolWords.get_context.title,
     description: describe(
       'get_context',
-      `Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.`,
+      `Call it before you answer a question about company numbers, never to browse or to look a name up (call find_context). Pass structured metrics, dimension_filters and inclusive UTC dates when known. Without window, the dates in the question are read (such as 2026, last quarter or 1 Jan to 30 Sep) and say says how; without any dates, the question is read at today and say says so. Pass period with the person's own words for the period (such as August last year or early May) to read them as people write dates; period_read gives the days every reply read and where they came from. When the question's dates can't be read, need_more_detail offers the likely days in options: confirm them with the person, then call again with them as window. The member names you just queried in the data tool work as names, and a name that isn't known comes back with the closest that is. A dimension filter with no values names the dimension for every value, as in a breakdown by market. Returns status, the answer state; say, the sentence to relay, which starts with the answer line; asked, what was looked up; defined, the first sentence of each asked metric's definition, so you say a figure as the amount or count it is; and context, each item that applies with its kind, when and where it applies, who checked it and when, its source, its not_to_conclude line, whether it may be out of date and which item it disagrees with; then reply_id, for report, and the edition. The items come in one order, the one Ask reads too: first those whose title, summary or not_to_conclude line hold the question's own words (those that name no metric, value or domain), a rarer word weighing more; then whole matches, higher risk and newer start. A reply gives max_items of them, 10 by default; when more apply, next_cursor passed back as cursor with the same question gives the next ones. A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). When the question names no metric, unread gives each word that could have named one, with the names that hold it: ask the person, or search it with find_context, and never read it as one of them yourself. A synonym written in Definitions reads as the metric or dimension it names; terms gives each word of the question a person defined there, with its meaning as written, who wrote it as a role and when: read the question by it, never as a checked source. With response_format full, each item also has its body, every source and its links. A link neither widens where an item applies nor proves a cause. Read a linked item with read_context only when it helps answer the question.`,
     ),
     inputSchema: getContextInput,
     outputSchema: contextOutput,
     annotations: read,
+    _meta: { 'anthropic/alwaysLoad': true },
   },
   find_context: {
     scope: 'read',
     title: toolWords.find_context.title,
     description: describe(
       'find_context',
-      `Find what is written down about a few words, by the names people use: metrics and their other names (such as GMV), markets, domains, member names from the data tool (such as payments.orders), and words in an item's title, summary or text. Use it for "what do we know about", "what is" or "how is it defined", and when you don't know the exact names. Filter by domain (a name such as Sales) or kind (event, warning, rule or guide). Returns the matching items, titles and summaries only, and for each metric or dimension the words name: the definition its source gives and what this context adds; and terms, each word a person defined in Definitions, with its meaning as written. When no words match, it returns the items that apply to what the words name, on the dates the window or the words give, or else today, as say says; when nothing is found, why says what to try. Read an item in full with read_context.`,
+      `Use it to look names up, to browse or to pick some, never to answer a question about a metric, market and dates (call get_context). With words, it finds what is written down by the names people use: metrics and their other names (such as GMV), markets, domains, member names from the data tool (such as payments.orders), and words in an item's title, summary or text. Use it for "what do we know about", "what is" or "how is it defined", and when you don't know the exact names. It returns the matching items, each with its title and summary, and for each metric or dimension the words name, the definition its source gives and what this context adds. When no words match, it returns the items that apply to what the words name, on the dates the window or the words give, or else today, as say says; when nothing is found, why says what to try. Without words, it lists everything there is of a kind or in a domain, in a fixed order: definitions first, metrics, dimensions and terms, each A to Z with a one-line meaning, then items A to Z by title, each with its summary. Filter by kind (metric, dimension, term, event, warning, rule or guide) and domain (a name such as Sales). Every reply says how many there are; pass next_cursor as cursor for the next page. terms gives each word of the query a person defined in Definitions, with its meaning as written. No row carries an item's text: read one in full with read_context.`,
     ),
     inputSchema: findContextInput,
     outputSchema: findContextOutput,
@@ -94,7 +101,7 @@ export const tools = {
     title: toolWords.read_context.title,
     description: describe(
       'read_context',
-      'Read one item you may see, by its id: its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line and its outgoing links, plus a page of the items that link to it, and terms, each word of it a person defined in Definitions, with its meaning as written. An edition needs a service token with edition scope. A link proves neither that an item applies nor a cause.',
+      'Read one by an id or a name another reply gave. An item comes with its text, its sources with the sentence each one gives, who checked it and when, its not_to_conclude line, and terms, each word of it a person defined in Definitions, with its meaning as written; then links_out, what it links to, and links_in, a page of the items that link to it, each with how it links (relations keeps only those kinds). Read a linked item the same way to follow a link, only when it helps answer the question: a link neither widens where an item applies nor proves a cause. A definition, by its name, another of its names or its key from find_context, is for when the person asks what something means or how it is defined: its words whole, as its source or a person wrote them, where they come from, its owner as a role, its other names, its family with what the family means and its usual metric, what it is built from, and the titles of the published items about it, even when there are none; never to answer a question about the data, which get_context does. An edition needs a service token with edition scope.',
     ),
     inputSchema: readInput,
     outputSchema: readContextOutput,
@@ -106,7 +113,6 @@ export const tools = {
     description: describe(
       'report',
       "Ask the person first. kind says what: missing, wrong, unclear, or helped. Pass the reply_id of the get_context reply it is about, and context_id when it is about one item; for something missing with no reply, pass the question's metrics, markets and dates instead. It records what was reported and where, so the owner of the domain sees it, and never who asked. The question is read in memory only. Never put question text, personal data or secrets in the optional short note.",
-      '',
     ),
     inputSchema: reportInput,
     outputSchema: reportOutput,
@@ -123,22 +129,10 @@ export const tools = {
       `Call it only after the person says yes to sending it. It sends a suggestion, a new item or a change to one, as the signed-in person, to the owner of its domain, who checks it and publishes it: nothing changes until they do. The one exception is an owner who lets this agent publish without review in their domain: a new low-risk item that clashes with nothing is then published at once, as their decision, and the reply says so. Only what can be worked out is filled in, and every field is marked for the owner. If the review checks find a problem, it is kept as the person's draft and the reply says why. ` +
         agentTreatmentSentence() +
         ` Pass the words and names: they're matched to the vocabulary, so never invent a metric key or a link, and give a date the person is unsure of only with window.uncertain. Don't include names of customers or staff, personal data, secrets, question text or a transcript. If your agent can show forms, the person may be asked its open questions there before it is sent; their answers are marked as confirmed. If it lists possible duplicates, ask the person, then call again with item_id or new_item. For a law or a regulation, suggest an event: the window from the day it takes effect as its text says, evidence from the official text, and not_to_conclude saying that it is not legal advice and whether the measure is provisional. Tell the person what the reply says, that it waits for the owner or that it was published, and give them the link. ${draftingGuide}`,
-      '',
     ),
     inputSchema: draftInput,
     outputSchema: draftOutput,
     annotations: write,
-  },
-  get_related: {
-    scope: 'read',
-    title: toolWords.get_related.title,
-    description: describe(
-      'get_related',
-      "Follow links from an item's id, a vocabulary key such as metric:orders, a term written in Definitions (term:<id>), or a domain. Returns neighbours one or two steps away with their kind of link, never bodies; a term comes with what it means, as a person wrote it, which is background for reading words and never a checked source. A link shows what a text refers to: it neither widens where an item applies nor proves a cause, and it never changes what get_context includes. Call it only when a link helps answer the question; read a neighbour with read_context. Follow next_cursor for another page.",
-    ),
-    inputSchema: relatedInput,
-    outputSchema: readOutput,
-    annotations: read,
   },
 } as const satisfies Record<AgentToolName, unknown>
 export type ToolName = AgentToolName
@@ -158,6 +152,7 @@ const definitionOf = (name: ToolName) => {
     inputSchema: z.toJSONSchema(listed.inputSchema, { io: 'input' }),
     ...(output ? { outputSchema: z.toJSONSchema(output) } : {}),
     annotations: listed.annotations,
+    ...('_meta' in listed ? { _meta: listed._meta } : {}),
   }
 }
 export const toolDefinitions = toolNames.map(definitionOf)
@@ -173,7 +168,7 @@ export function isToolName(value: unknown): value is ToolName {
   return typeof value === 'string' && Object.hasOwn(tools, value)
 }
 
-/** What the tool service runs, by name: the six tools but suggest_context, which the draft tool writes. */
+/** What the tool service runs, by name: the five tools but suggest_context, which the draft tool writes. */
 export type ServedToolName = Exclude<ToolName, 'suggest_context'>
 
 /** A tool's output schema for the MCP server, when it declares one. */

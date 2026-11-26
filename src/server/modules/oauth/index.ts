@@ -11,6 +11,7 @@ export { loadKeyRing, type KeyRing } from './keys.ts'
 export { registerLoginRoutes } from './routes.ts'
 export {
   fetchMetadataDocument,
+  blockedRanges,
   isPublicAddress,
   metadataDocumentProblem,
   publicLookup,

@@ -114,6 +114,7 @@ export function logLine(e: Pick<LogEntry, 'what' | 'summary' | 'items'>) {
     owners: 'Changed the owners of',
     checked: 'Checked',
     settled: 'Settled the conflict between',
+    published: 'Published',
   }[e.what]
   const detail =
     e.what === 'moved'

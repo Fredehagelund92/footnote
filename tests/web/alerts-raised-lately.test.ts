@@ -11,7 +11,8 @@ import type { RaisedPage } from '@/model/alerts'
 // Raised lately as a person reads it: another rule's page loading never wears the old rule's count
 // or a negative Show more, and a read that fails says so with Retry instead of "nothing raised".
 
-vi.mock('@/lib/workspace', () => ({ useDomains: () => ({}) }))
+const world = vi.hoisted(() => ({ me: { admin: true, owns: [] as string[] } }))
+vi.mock('@/lib/workspace', () => ({ useDomains: () => ({}), useMe: () => world.me }))
 const { RaisedLately } = await import('@/pages/observability/alerts')
 
 declare global {
@@ -176,5 +177,32 @@ describe('Raised lately', () => {
     await flush()
     expect(asked.at(-1)).toEqual({ domain: 'sales' })
     expect(radio(/^All/).getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('draws a raise that points into Settings as a link for an admin, as plain words for an owner', () => {
+    const settings = { ...first, raised: [{ ...row('s1'), href: '/settings/integrations/cube' }] }
+    const show = (me: { admin: boolean; owns: string[] }) => {
+      world.me = me
+      bindApi({} as unknown as FootnoteApi)
+      host = document.body.appendChild(document.createElement('div'))
+      root = createRoot(host)
+      const client = new QueryClient()
+      act(() =>
+        root!.render(
+          React.createElement(
+            QueryClientProvider,
+            { client },
+            React.createElement(RaisedLately, { first: settings, empty: false, domain: undefined }),
+          ),
+        ),
+      )
+    }
+    show({ admin: false, owns: ['sales'] })
+    expect(text()).toContain('Card s1')
+    expect(host!.querySelectorAll('li a')).toHaveLength(0)
+    act(() => root!.unmount())
+    host!.remove()
+    show({ admin: true, owns: [] })
+    expect(host!.querySelector('li a')?.getAttribute('href')).toBe('/settings/integrations/cube')
   })
 })

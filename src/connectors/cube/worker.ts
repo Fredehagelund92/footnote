@@ -6,6 +6,8 @@ import * as z from 'zod/mini'
 import { canonicalJson } from '../../domain/canonical.ts'
 import type { RuntimeDefinition } from '../../domain/connector-runtime.ts'
 import {
+  arithmeticInputs,
+  BUILT_FROM_MAX,
   declaredFamily,
   descriptionCopy,
   domainHint,
@@ -233,6 +235,31 @@ async function compile(
     }
   }
 
+  /**
+   * What a view's measure is built from (C2), as dbt's reader says it: the measures its own
+   * calculation takes, each by the ref of the view's member that stands for it, and its cube's
+   * columns, by name. None when the calculation is not column arithmetic
+   * (`arithmeticInputs`), or takes a measure the view leaves out: what it reads is then not told.
+   */
+  function builtFromOf(
+    name: string,
+    measures: readonly { name: string }[],
+  ): RuntimeDefinition['builtFrom'] {
+    const source = sourceOf(name)
+    const sql = record(rawMembers.get(source)).sql
+    const inputs = typeof sql === 'string' ? arithmeticInputs(sql) : null
+    if (!inputs) return null
+    const cube = source.split('.')[0]!
+    const refs: string[] = []
+    for (const measure of inputs.measures) {
+      const taken = measure.includes('.') ? measure : `${cube}.${measure}`
+      const member = measures.find((other) => sourceOf(other.name) === taken)
+      if (!member) return null
+      if (!refs.includes(`cube:${member.name}`)) refs.push(`cube:${member.name}`)
+    }
+    return { refs: refs.slice(0, BUILT_FROM_MAX), columns: inputs.columns }
+  }
+
   /** A view's dimensions by the names a filter compares them by: their own, and their column. */
   function dimensionsOf(members: readonly { name: string; isVisible?: boolean }[]) {
     const byName = new Map<string, string>()
@@ -272,6 +299,13 @@ async function compile(
         // is none. A dimension's is sent too, for the core to say a family holds two kinds.
         const family = declaredFamily(member.meta, (name) => dimensions.get(name) ?? null)
         if (family === 'invalid') warnings.push({ code: 'invalid_family', target: member.name })
+        const builtFrom =
+          kind === 'metric'
+            ? builtFromOf(
+                member.name,
+                config.measures.filter((other) => other.isVisible !== false),
+              )
+            : null
         definitions.push({
           ref: `cube:${member.name}`,
           kind,
@@ -287,6 +321,7 @@ async function compile(
           modelFile: containerFiles.get(config.name) ?? null,
           ...(variant ? { variant } : {}),
           ...(family && family !== 'invalid' ? { family } : {}),
+          ...(builtFrom ? { builtFrom } : {}),
           // Type, calculation, description and visibility (CON-505). The domain stays out: a
           // changed domain informs the owner and never flags an item (plan 4.3, step 7). Empty
           // parts are left out, and the compiled member is its meaning only (mark version 2,

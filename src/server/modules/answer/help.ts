@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import MiniSearch from 'minisearch'
 import { parse } from 'yaml'
+import type { ActionId } from '../../../domain/actions.ts'
 import { docsFolder, type DocFile } from '../../../domain/docs.ts'
 import { readDocs } from '../../docs-read.ts'
 import { bundled } from '../../bundled.ts'
@@ -21,6 +22,8 @@ export type HelpSection = {
   /** The heading; the page's title for the words above the first heading. */
   heading: string
   text: string
+  /** The quick actions the part explains, as its page names them (`does:`). */
+  does?: ActionId[]
 }
 
 const folder = new URL(`../../../../${docsFolder}/`, import.meta.url)
@@ -46,6 +49,7 @@ export function readHelp(files: readonly DocFile[] = helpFiles()): HelpSection[]
       title: page.title,
       heading: s.id ? s.heading : page.title,
       text: s.id ? s.text : `${page.line}\n${s.text}`,
+      ...(s.does && { does: s.does }),
     })),
   )
 }
@@ -63,8 +67,16 @@ function helpIndex() {
     const built = new MiniSearch<HelpSection & { key: string }>({
       idField: 'key',
       fields: ['title', 'heading', 'text'],
-      storeFields: ['slug', 'id', 'title', 'heading', 'text'],
-      searchOptions: { boost: { title: 3, heading: 2 }, prefix: true, fuzzy: 0.2 },
+      storeFields: ['slug', 'id', 'title', 'heading', 'text', 'does'],
+      searchOptions: {
+        boost: { title: 3, heading: 2 },
+        // A word of three letters or more matches the start of a longer one too, and one of four
+        // or more a word one typo away; a shorter word only itself. As a start, "a" matched every
+        // word that begins with an a, and with a typo "add" matched "and": the part with the most
+        // of those came first, and an answer showed it as its source.
+        prefix: (term: string) => term.length >= 3,
+        fuzzy: (term: string) => (term.length >= 4 ? 0.2 : false),
+      },
     })
     built.addAll((bundled?.help ?? readHelp()).map((s) => ({ ...s, key: `${s.slug}#${s.id}` })))
     return built
@@ -81,7 +93,8 @@ export const readyHelp = (): number => helpIndex().documentCount
 
 /**
  * The help's parts that best match some words, best first, at most three: a page's title, each
- * heading and the words under it, as the docs' own search finds them (src/web/lib/docs.ts).
+ * heading and the words under it, much as the docs' own search finds them (src/web/lib/docs.ts),
+ * but for any of the words, and a short word only as itself.
  */
 export function searchHelp(words: string): HelpSection[] {
   if (!words.trim()) return []
@@ -94,5 +107,6 @@ export function searchHelp(words: string): HelpSection[] {
       title: hit.title as string,
       heading: hit.heading as string,
       text: (hit.text as string).slice(0, HELP_TEXT),
+      ...(hit.does ? { does: hit.does as ActionId[] } : {}),
     }))
 }

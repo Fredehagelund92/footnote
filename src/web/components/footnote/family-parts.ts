@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { toApiError } from '@/api/errors'
 import { namesQuery, useWrite } from '@/api/queries'
 import {
@@ -20,6 +20,7 @@ import { TypeTile } from '@/components/footnote/definition'
 import {
   MeaningDialog,
   MeaningWords,
+  VariantsOwnWords,
   meaningParts,
   meaningSource,
 } from '@/components/footnote/family-meaning'
@@ -36,6 +37,7 @@ import {
   PeekTitle,
 } from '@/components/footnote/peek'
 import { Related } from '@/components/footnote/related'
+import { SourceText } from '@/components/footnote/source-text'
 import { Button } from '@/components/ui/button'
 import {
   Command,
@@ -55,12 +57,11 @@ import {
 } from '@/components/ui/dialog'
 import { useRelated } from '@/hooks/use-related'
 import { differingWords } from '@/lib/differing-words'
-import { familyBy, useGlossary } from '@/lib/definitions'
+import { conversionLines, familyBy, useGlossary } from '@/lib/definitions'
 import { closeDock, openDock } from '@/lib/dock'
-import { useFigures } from '@/lib/figures'
 import { mentionId } from '@/lib/mentions'
 import { useReported } from '@/lib/reported'
-import { href, navigate, useRoute } from '@/lib/router'
+import { changeQuery, href, navigate, setQuery, useRoute } from '@/lib/router'
 import { useOnline } from '@/lib/send'
 import { cn } from '@/lib/utils'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -94,6 +95,7 @@ export const familyParts = {
   TypeTile,
   MeaningDialog,
   MeaningWords,
+  VariantsOwnWords,
   meaningParts,
   meaningSource,
   DockStepper,
@@ -107,6 +109,7 @@ export const familyParts = {
   PeekLink,
   PeekTitle,
   Related,
+  SourceText,
   Button,
   Command,
   CommandEmpty,
@@ -122,16 +125,18 @@ export const familyParts = {
   DialogTitle,
   useRelated,
   differingWords,
+  conversionLines,
   familyBy,
   useGlossary,
   closeDock,
   openDock,
-  useFigures,
   mentionId,
   useReported,
   href,
   navigate,
   useRoute,
+  setQuery,
+  changeQuery,
   useOnline,
   cn,
   useDomains,

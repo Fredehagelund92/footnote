@@ -8,7 +8,12 @@ import {
 } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { DockFrame, DockMissing, DockWaiting, PeekBar } from '@/components/dock'
-import { AnotherNameFor, SynonymTags, TypeTile } from '@/components/footnote/definition'
+import {
+  AnotherNameFor,
+  builtFromParts,
+  SynonymTags,
+  TypeTile,
+} from '@/components/footnote/definition'
 import { familyParts } from '@/components/footnote/family-parts'
 import { DockStepper } from '@/components/footnote/list'
 import {
@@ -25,7 +30,7 @@ import {
 } from '@/components/footnote/peek'
 import { Button } from '@/components/ui/button'
 import { kindName, useGlossary } from '@/lib/definitions'
-import { SourceText } from '@/components/footnote/source-text'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { openDock } from '@/lib/dock'
 import { href, navigate } from '@/lib/router'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -40,6 +45,8 @@ import { useRelated } from '@/hooks/use-related'
 // row, and the one action. A word that means two things is the one attention line.
 
 const FamilyPeek = React.lazy(() => import('@/components/footnote/family-peek'))
+// What a synced metric is built from: its own code, loaded when a metric's quick view first opens.
+const BuiltFromBand = React.lazy(() => import('@/components/footnote/built-from-tree'))
 
 export function DefinitionPeek({ name }: { name: string }) {
   const glossary = useGlossary()
@@ -89,7 +96,7 @@ export function DefinitionPeek({ name }: { name: string }) {
       quietTitle
       actions={
         <PeekBar onExpand={() => navigate(page)}>
-          <DockStepper list="definitions" id={d.name} onGo={(n) => openDock('def', n)} />
+          <DockStepper list="definitions" kind="def" id={d.name} />
         </PeekBar>
       }
       footer={
@@ -117,17 +124,17 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekTitle lead={<TypeTile d={d} size="lg" />}>{d.name}</PeekTitle>
           <PeekMeaning>
             {target && <AnotherNameFor target={target} className="mb-2" />}
-            <p className={cn(!subject.definition && 'text-muted-foreground')}>
-              {subject.definition ? (
-                subject.synced ? (
-                  <SourceText text={subject.definition} />
-                ) : (
+            {subject.definition && subject.synced ? (
+              <SourcePassages text={subject.definition} />
+            ) : (
+              <p className={cn(!subject.definition && 'text-muted-foreground')}>
+                {subject.definition ? (
                   <MentionText text={subject.definition} />
-                )
-              ) : (
-                'No meaning written yet.'
-              )}
-            </p>
+                ) : (
+                  'No meaning written yet.'
+                )}
+              </p>
+            )}
           </PeekMeaning>
           {conflictLine && word && (
             <PeekAttention
@@ -177,6 +184,11 @@ export function DefinitionPeek({ name }: { name: string }) {
           <PeekBand label="Another name">
             <SynonymTags d={d} canEdit={canEdit} />
           </PeekBand>
+        )}
+        {d.synced && subject.type === 'metric' && (
+          <React.Suspense fallback={null}>
+            <BuiltFromBand name={d.name} tool={d.tool ?? 'its tool'} parts={builtFromParts} />
+          </React.Suspense>
         )}
         {related.links.length > 0 && (
           <PeekBand label="Related">

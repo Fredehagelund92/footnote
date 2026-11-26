@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useLibrary, useSession, useWorkspace } from '@/api/queries'
 import type { Fact } from '@/model/items'
-import type { Domain, Domains, Invite, Person } from '@/model/people'
+import { listOf, type Domain, type Domains, type Invite, type Person } from '@/model/people'
 
 // The shared reads as the screens use them: who is signed in, the workspace's domains and people,
 // and the context items. The shell loads them once before it draws (App.tsx), so these read the
@@ -31,6 +31,18 @@ export const useDomainList = (): Domain[] => useWorkspace().domains
 
 /** The members. */
 export const usePeople = (): Person[] => useWorkspace().people
+
+/**
+ * Who does what only an admin may, to end a sentence with: ": Jon Abara or Ravi Kapoor", or nothing
+ * where the person reading is not told who the admins are (anyone but an admin, on the service).
+ */
+export function useAdminsSaid(): string {
+  const me = useMe()
+  const admins = usePeople()
+    .filter((p) => p.admin && p.name !== me.name)
+    .map((p) => p.name)
+  return admins.length ? `: ${listOf(admins, 'or')}` : ''
+}
 
 /** The open invites. */
 export const useInvites = (): Invite[] => useWorkspace().invites

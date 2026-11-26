@@ -54,3 +54,9 @@ export function fitChat<T extends ChatTurn>(turns: readonly T[]): T[] {
   while (chars > CHAT_CHARS && fitted.length > 1) chars -= charsOf(fitted.shift()!)
   return fitted
 }
+
+/**
+ * How the line of What Ask read starts that says what a search found not published yet: only the
+ * asker may know it, so a chat shared as a link leaves it out (FR-721).
+ */
+export const DRAFTS_READ = 'Searched the drafts and suggestions waiting for review you can open'

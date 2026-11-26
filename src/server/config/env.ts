@@ -199,10 +199,6 @@ const envSchema = z
     FOOTNOTE_DOMAIN_OVERRIDES: z.string().optional(),
     // A JSON file of renamed Cube members, old id to new id (CON-512).
     CUBE_RENAMES_FILE: z.string().optional(),
-    // A JSON file of figure settings, by source and then by view or measure, for what a tool's
-    // model leaves unsaid (FR-716): the date a view's figures are read by, whether a measure adds
-    // up over days, and how its value is written.
-    FOOTNOTE_FIGURE_OVERRIDES: z.string().optional(),
     // A JSON file of the Cube views the model folder is read for, an allow list; unset, every view.
     CUBE_VIEWS_FILE: z.string().optional(),
     // How long Cube's compiler may take on the model, and the memory it may use; a large model
@@ -398,8 +394,6 @@ export interface Config {
   serverFolders: Readonly<Record<string, string>>
   domainOverridesFile: string | undefined
   renamesFile: string | undefined
-  /** The figure settings file (`FOOTNOTE_FIGURE_OVERRIDES`), read when the service starts. */
-  figureOverridesFile: string | undefined
   /** The Cube views the model folder is read for (`CUBE_VIEWS_FILE`); unset, every view. */
   cubeViewsFile: string | undefined
   /** Cube's compile limits, when the server sets them. */
@@ -486,7 +480,6 @@ export function loadConfig(environment: Record<string, string | undefined>): Con
     serverFolders: env.FOOTNOTE_SERVER_FOLDERS ?? {},
     domainOverridesFile: env.FOOTNOTE_DOMAIN_OVERRIDES,
     renamesFile: env.CUBE_RENAMES_FILE,
-    figureOverridesFile: env.FOOTNOTE_FIGURE_OVERRIDES,
     cubeViewsFile: env.CUBE_VIEWS_FILE,
     cubeCompile: {
       ...(env.CUBE_COMPILE_TIMEOUT_SECONDS === undefined

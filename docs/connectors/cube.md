@@ -37,7 +37,7 @@ An admin adds it in Settings, Integrations:
 | Model folder address    | The folder in the host's web view, for links to each model file                  |
 | Domain names            | Each `meta.domain` value and the domain it means, when the two differ            |
 
-**Test connection** reaches the repository, counts the model files, then reads the model once and keeps nothing.
+**Test connection** reaches the repository, counts the model files, then reads the model once and keeps nothing. Under Connection, on Cube's page, it tests Cube as it is saved, with the views it reads looked for in the model and each file a read skips named.
 
 Each read fetches one commit and removes it afterwards. See [how Git is reached](security.md#git).
 
@@ -61,6 +61,8 @@ CUBE_MODEL_DIR=/path/to/cube/model npm run connectors:sync
 ```
 
 The command reads `.env.local`, prints what it found and flagged, and exits with 1 on a failed read.
+
+In the app, **Test connection** on Cube's page reads the folder as it is set, and keeps nothing: a server folder has no other test there.
 
 ### Domain overrides
 
@@ -97,7 +99,7 @@ Every public view and public cube is read until you keep a list of the views to 
 
 Name a view as the model names it. A public cube is read only when it is listed by its own name. Cube still compiles the whole model, since a view needs the cubes it includes, but only the members of the listed views become definitions: a cube that two listed views include is read through each of them, so taking one of the views out keeps the other's members.
 
-The list applies everywhere the definitions do: the names waiting in the Inbox, Definitions, and figures in Ask, where a metric of a view that is not read gets no figure and says why. A listed view the model does not have is named in the read (`group_not_found`), and the other views are read.
+The list applies everywhere the definitions do: the names waiting in the Inbox, Definitions and Ask. A listed view the model does not have is named in the read (`group_not_found`), and the other views are read.
 
 Taking a view out of the list marks its definitions missing at the next read. Each item that relies on one is marked **Due for a check** for its owners, and nothing is unpublished or deleted.
 
@@ -160,6 +162,12 @@ measures:
           currency: EUR
 ```
 
+A measure whose `sql` is column arithmetic says what it is built from: the columns it reads and the measures it takes. A USD measure that reads the EUR one's column and a rate, such as `{CUBE}.amount_eur * {CUBE}.exchange_rate_usd`, is converted from it, and the EUR words then speak for the family.
+
+The names inside `NULLIF`, `COALESCE`, `ROUND` and `CAST` count, so a ratio guarded against dividing by zero is built from both of its measures.
+
+Any other function, a keyword or a text literal in the `sql` says nothing, nor does a measure that takes a dimension or a member the view leaves out. Only the names are kept, never the `sql`.
+
 ## Links to model files
 
 Set the model folder's address to link each view to its file. On the Cube source's page, set **Model folder address**, for example:
@@ -195,90 +203,3 @@ A model of 10,000 members takes about 45 seconds. An empty or unreadable model f
 | `too_many_records` | The folder holds too many files             |
 | `group_not_found`  | A listed view is not in the model           |
 | `no_groups_chosen` | The list of views is empty: nothing is read |
-
-## Figures in Ask
-
-Off by default. With it on, Ask shows one figure read from Cube, and keeps it nowhere. No MCP server is needed.
-
-1. On Cube's page in Integrations, press **Set up figures**. Give the address of Cube's REST API, such as `https://cube.example.com/cubejs-api/v1/load`, and a read-only token. The token is sent only to that address's origin.
-2. Press **Try a figure**. It reads one measure for the last 7 days with the settings as saved, and says what came back.
-3. Name a **Data contact**.
-4. Switch on **Show figures in Ask**.
-
-The figure comes from the integration that defines the metric, and the query is a fixed template, never words a person or a model wrote. There is no figure when more than one integration defines the metric, or when its view has no time dimension.
-
-"Data as of" is Cube's `lastRefreshTime`.
-
-No person's identity is passed to Cube. A refused token, a host that cannot be reached and a slow query each say so in Ask, within 4 seconds.
-
-The token reads what Cube's access policies let it read. A measure an `access_policy` hides from the token's groups says so in Ask and in **Try a figure**: Cube answers it with an error, which reads as "not allowed", not "unreachable". Rows are filtered by Cube itself, as its row-level rules say.
-
-### Which date
-
-A view with one time dimension reads its figures by it. A view with several reads them by the one the model names, in this order:
-
-1. `meta.default_time_dimension` on the measure.
-2. `meta.default_time_dimension` on its view.
-3. The server's figure settings, below.
-
-The name is the view's own (`invoice_day`) or in full (`sales.invoice_day`). A name the view does not have is skipped. When nothing names one, Ask shows no figure, lists the view's dates and asks which one figures use: the date is never guessed. The query in words says the date used, such as "by invoice day".
-
-```yaml
-views:
-  - name: sales
-    meta:
-      default_time_dimension: invoice_day
-```
-
-### Measures that do not add up over days
-
-A snapshot, such as a balance or stock on hand, is a value on a day: added up over a month it means nothing. Mark it with `meta.non_additive_dimension` on the measure, the date it is taken on, as dbt's semantic models name it:
-
-```yaml
-measures:
-  - name: units_on_hand
-    type: sum
-    sql: units
-    meta:
-      non_additive_dimension: stock_day
-```
-
-Its figure is then read on the last of the days only, and so is the one it is compared with. Ask says it is the value as of that day, and that it can't be added up over a period. It is still added up across the values the question names, such as two markets on that day.
-
-When Cube cannot say whether a measure adds up (its model could not be read) and the server's figure settings do not say either, the figure is not read, rather than risk adding up a snapshot.
-
-### How the value is written
-
-The value is written as the model says:
-
-| In the model                                   | Written as              |
-| ---------------------------------------------- | ----------------------- |
-| `format: currency` and `currency: EUR`         | Money, €43,600          |
-| `currency: EUR` alone, or `meta.currency: EUR` | Money too               |
-| `format: percent`                              | A share, 0.175 as 17.5% |
-| Nothing, or `format: number`                   | A number, 43,600        |
-
-Named formats such as `currency_0` and `percent_1` count as `currency` and `percent`. A percent is the share Cube gives, as Cube's own format writes it. Money with no currency anywhere is written as a number: the currency is never guessed.
-
-### Figure settings on the server
-
-For a model you cannot change, whoever runs the service sets `FOOTNOTE_FIGURE_OVERRIDES` to a JSON file. It is by integration id, then by view or measure. A measure's own setting wins over its view's, and the model wins over both:
-
-```json
-{
-  "cube": {
-    "sales": { "date": "invoice_day" },
-    "stock.units_on_hand": { "additive": false },
-    "sales.revenue": { "currency": "EUR" }
-  }
-}
-```
-
-| Setting    | What it does                                                    |
-| ---------- | --------------------------------------------------------------- |
-| `date`     | The date the days apply to, by its name                         |
-| `additive` | `false` for a measure that does not add up over days            |
-| `format`   | `currency`, `percent` or `number`, when the model has no format |
-| `currency` | The currency of money, such as `EUR`, when the model names none |
-
-The file is read when the service starts. A file that is not JSON, or holds a setting not in this table, stops the start.

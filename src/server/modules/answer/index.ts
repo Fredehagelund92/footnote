@@ -42,6 +42,7 @@ export { readHelp, readyHelp, searchHelp, type HelpSection } from './help.ts'
 export {
   ASK_BACK,
   askLoop,
+  readAboutBusiness,
   readAssistantModel,
   cachedThrough,
   EARLIER_TURNS,

@@ -511,6 +511,20 @@ describe('scope extraction', () => {
       'need_more_detail',
     )
   })
+  it('never reads a name joined to another word by a hyphen, unless the compound is one', () => {
+    // "Orders-CPA" is a word of its own: reading Orders in it would answer for another metric.
+    expect(readQuestion('Orders-CPA and Revenue-CPA', terms, '2026-08-05').terms).toEqual([])
+    expect(
+      readQuestion('Orders-CPA in Norway', terms, '2026-08-05').terms.map((t) => t.key),
+    ).toEqual(['val:market/norway'])
+    const vocabulary = [
+      ...terms,
+      { ...terms[2]!, key: 'metric:on_time', name: 'On-time shipping rate', definitionRefs: [] },
+    ]
+    expect(
+      extractScope('On-time shipping rate August 2026', vocabulary, '2026-08-05'),
+    ).toMatchObject({ status: 'resolved', scope: { metrics: ['metric:on_time'] } })
+  })
   it('normalizes idempotently and re-extracts its own resolved scope unchanged', () => {
     fc.assert(
       fc.property(fc.string(), (value) => {
@@ -710,15 +724,35 @@ describe('a question that names no metric, on a metric per currency', () => {
     metric('revenue_aed', 'Revenue (AED)'),
   ]
 
-  it('offers the metrics its words name first, the plain one before Net revenue', () => {
+  it('offers the metrics its words name, the plain one before Net revenue, and no other', () => {
     const read = extractScope('What should I know about revenue?', shop, '2026-10-08')
     expect(read).toMatchObject({ status: 'need_more_detail' })
     expect(read.status === 'need_more_detail' && read.issues[0]!.options).toEqual([
       'metric:revenue_aed',
       'metric:revenue_eur',
       'metric:net_revenue_aed',
-      'metric:chargebacks_aed',
-      'metric:chargebacks_eur',
     ])
+  })
+})
+
+describe('a name as written, inside a longer question', () => {
+  const metric = (key: string, name: string): Term => ({
+    key: `metric:${key}`,
+    kind: 'metric',
+    name,
+    aliases: [],
+    parentKey: null,
+    areaId: null,
+    definitionRefs: [],
+  })
+  const shop = [
+    metric('net_revenue', 'Net revenue'),
+    metric('refunds_net', 'Revenue net of refunds'),
+  ]
+
+  it('is read whole: no other name is read in another order from its words', () => {
+    const read = extractScope('revenue net of refunds last week', shop, '2026-10-08')
+    expect(read.status === 'resolved' && read.scope.metrics).toEqual(['metric:refunds_net'])
+    expect(read.loose ?? []).toEqual([])
   })
 })

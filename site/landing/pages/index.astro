@@ -92,7 +92,7 @@ const shot = (name: string) => {
       </div>
       <div data-s="missing" id="p-missing">
         <p class="ask">Why did returns in Sweden jump in March 2023?</p>
-        <p class="state-line"><b>Not found</b> Nothing is written about this yet.</p>
+        <p class="state-line"><b>Not found</b> Nothing published about this yet.</p>
         <p class="ans">Nothing is written down for Returns in Sweden in March 2023.<small>That's not the same as there being no reason.</small></p>
       </div>
     </div>
@@ -144,7 +144,7 @@ const shot = (name: string) => {
         <p class="q">Why did returns in Sweden jump in March 2023?</p>
         <p class="tool">called <b>get_context</b></p>
         <p class="kv"><span class="k">"status":</span> "no_match"</p>
-        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Not found.</span> Nothing is written about this yet. Nothing is written down for Returns in Sweden in March 2023. Nothing else was looked up."</span></p>
+        <p class="kv"><span class="k">"say":</span> <span class="say">"<span class="hl">Not found.</span> Nothing published about this yet. Nothing is written down for Returns in Sweden in March 2023. Nothing else was looked up."</span></p>
         <p class="kv"><span class="k">"context":</span> []</p>
       </div>
     </div>
@@ -238,7 +238,7 @@ const shot = (name: string) => {
           <div><h3>Drafts stay drafts</h3><p>The database role that answers agents can't read the versions table at all. That's a permission, not a setting someone can flip by accident.</p></div>
           <div><h3>A review before it goes live</h3><p>The review holds the claims up against the source. It also replays the questions agents asked against the draft, so the owner sees what will change before it does.</p></div>
           <div><h3>Nothing filled in</h3><p>When nothing is written, the answer says Not found and stops. It doesn't reach for a likely story.</p></div>
-          <div><h3>What not to conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.</p></div>
+          <div><h3>Don't conclude</h3><p>An item can say what not to read into it. The Norway one says fewer orders there doesn't mean fewer customers, and the agent gets that line with the item.</p></div>
           <div><h3>When a definition changes</h3><p>If a definition an item relies on changes or disappears in Cube or dbt, the item is flagged for its owner, and answers say Outdated until they've looked.</p></div>
           <div><h3>Topics, not words</h3><p>When an agent asks something, we keep what it was about and how often. We don't keep the words. Your own chats in Ask stay in your browser.</p></div>
         </div>
@@ -251,13 +251,12 @@ const shot = (name: string) => {
   <section class="agents" id="agents" aria-labelledby="h-agents">
     <div class="inner">
       <div>
-        <h2 id="h-agents">Six MCP tools, and no model on our side.</h2>
+        <h2 id="h-agents">Five MCP tools, and no model on our side.</h2>
         <p class="lede">Your agent connects over MCP and signs in as you. Footnote doesn't run a model for agents, so the same question gets the same items until an owner publishes a change.</p>
         <ul class="tools">
           <li><code>get_context</code><span>The items that apply to a question about a metric, a market or some dates, with the answer line first.</span></li>
-          <li><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV.</span></li>
-          <li><code>read_context</code><span>One item in full, with its source and its owner.</span></li>
-          <li><code>get_related</code><span>Follow the links from an item, a metric or a domain. A link is not proof of a cause.</span></li>
+          <li><code>find_context</code><span>Look up what's written about a few words, using the names people actually say, like GMV, or list what there is.</span></li>
+          <li><code>read_context</code><span>One item or definition in full, with its source, its owner and its links. A link is not proof of a cause.</span></li>
           <li><code>report<i>asks first</i></code><span>Tell the owner an item looks wrong or unclear, after the person says yes.</span></li>
           <li><code>suggest_context<i>asks first</i></code><span>Send the owner a suggestion. Nothing goes live until they've checked it.</span></li>
         </ul>
@@ -268,12 +267,12 @@ const shot = (name: string) => {
         <h3>One line in your AGENTS.md</h3>
         <p>When you connect an agent, the prompt the app gives you adds one line to the project's instructions file: CLAUDE.md if you have one, otherwise AGENTS.md. That's all you write.</p>
         <div class="file"><p class="bar"><b>AGENTS.md</b><span>the line you add</span></p><pre><span># Footnote</span>
-Before you answer a question about company data, call get_context first and use what it returns.</pre></div>
+Before you answer a question about a company metric, call get_context first and use what it returns.</pre></div>
         <div class="file"><p class="bar"><b>get_context reply</b><span>sent every time</span></p><ol>
-          <li>State the documented fact with its source and dates.</li>
+          <li>State what the item says, with its source and dates.</li>
           <li>Say "might be related" only when the dates overlap and the metric is in scope, and say the context does not prove a cause.</li>
           <li>Never say "caused by" unless the item states the effect.</li>
-          <li>When an item has not_to_conclude, never conclude what it rules out.</li>
+          <li>When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out.</li>
           <li>Suggest a check that would test the effect.</li>
         </ol></div>
         <p class="after">How to explain the why isn't left to that file. Footnote sends the rules with every reply, so each agent gets the same ones, and they change with the server rather than in every repository.</p>

@@ -8,10 +8,11 @@ import type { Definition } from '@/lib/definitions'
 // of its own that two semantic models share, the second's model name long; and a description over
 // the 500 characters Footnote keeps, cut as a read cuts it.
 
-const dbt = (): Pick<Definition, 'synced' | 'tool' | 'connector' | 'sourceNames'> => ({
+const dbt = (): Pick<Definition, 'synced' | 'tool' | 'connector' | 'source' | 'sourceNames'> => ({
   synced: true,
   tool: 'dbt',
   connector: 'dbt-metricflow',
+  source: 'dbt-metricflow',
   sourceNames: [],
 })
 

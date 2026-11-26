@@ -99,6 +99,7 @@ const reads: ToolReads = {
   readable: () =>
     Promise.resolve(helpDesk().items.map((i) => ({ id: i.id, status: 'accepted', kind: i.kind }))),
   records: unread,
+  pending: () => Promise.resolve([]),
   areas: () => Promise.resolve([{ id: 'area_support', name: 'Support', ownerIds: ['p_ada'] }]),
   people: () => Promise.resolve([{ id: 'p_ada', name: 'Ada Okafor' }]),
   catalogue: () =>

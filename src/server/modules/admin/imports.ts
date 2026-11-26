@@ -116,7 +116,7 @@ export async function importItems(
         field: error.code === 'NOT_FOUND' ? 'id' : 'areaId',
         message:
           error.code === 'NOT_FOUND'
-            ? "We couldn't find an accepted fact with this id."
+            ? "We couldn't find an accepted context item with this id."
             : error.message,
         severity: 'error',
       })

@@ -60,7 +60,7 @@ beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
     await client.query(
-      `insert into vocab_terms(key,kind,parent_key) select 'val:market/'||m,'dimension_value','dim:market'
+      `insert into vocab_terms(key,kind) select 'val:market/'||m,'dimension_value'
          from unnest($1::text[]) m`,
       [markets],
     )
@@ -136,6 +136,7 @@ const markets = [
   'bulgaria',
   'luxembourg',
   'andorra',
+  'monaco',
 ]
 const inMarket = (market: string) => ({
   scope: {
@@ -626,7 +627,7 @@ describe('what the review offers is what the service allows', () => {
       ...inMarket('luxembourg'),
     })
     const open = await sheet(plain.id)
-    expect(offered(open).can).toEqual(['publish', 'return'])
+    expect(offered(open).can).toEqual(['publish', 'return', 'close'])
     expect(mayDo(offered(open), 'publish')).toBe(open.canPublish)
     await ok<Published>(publish(plain.id, plain.revision))
   })
@@ -797,6 +798,102 @@ describe('a suggestion to archive taken back in the comments (P9c)', () => {
     // Archive anyway: the owner disagrees, and archives it after all.
     await ok<Published>(publish(proposal.id, back.proposal.revision))
     expect(await served(itemId)).toBeNull()
+  })
+})
+
+describe("Don't publish: an owner closes a new item or a change with a reason", () => {
+  it('offers it beside Publish and Return, needs a reason, and tells its sender, until Undo', async () => {
+    const p = await submitted({
+      title: 'Payout journal holds partner payouts',
+      ...inMarket('malta'),
+    })
+    const s = await sheet(p.id)
+    expect(
+      reviewActions({
+        mode: s.mode,
+        withdrawn: false,
+        stale: false,
+        clashes: 0,
+        claimsToCheck: 0,
+        drafted: false,
+      }).can,
+    ).toEqual(['publish', 'return', 'close'])
+    const bare = await call('POST', `/review/${p.id}/close`, 'owner', { revision: p.revision })
+    expect(bare.statusCode).toBe(422)
+    expect(bare.json<{ message: string }>().message).toBe(
+      "Write why you don't publish it. Its sender reads the reason.",
+    )
+    // Its sender withdraws it instead; only an owner or an admin closes it.
+    expect(
+      (
+        await call('POST', `/review/${p.id}/close`, 'author', {
+          revision: p.revision,
+          reason: 'Not mine to close',
+        })
+      ).statusCode,
+    ).toBe(403)
+    const closed = await ok<{ proposal: { state: string }; undo: { token: string } }>(
+      call('POST', `/review/${p.id}/close`, 'owner', {
+        revision: p.revision,
+        reason: 'The journal is not used for payouts.',
+      }),
+    )
+    expect(closed.proposal.state).toBe('rejected')
+    expect(await served(p.itemId!)).toBeNull()
+
+    // The sender reads who closed it and why, under All, until they open it.
+    const told = (await feed('author', 'all')).waiting.find((w) => w.proposalId === p.id)
+    expect(told).toMatchObject({
+      title: 'Payout journal holds partner payouts',
+      returned: null,
+      closed: { by: 'owner', reason: 'The journal is not used for payouts.', read: false },
+    })
+    await ok(call('POST', '/inbox/cards/read', 'author', { cards: [`closed:${p.id}`] }))
+    const read = (await feed('author', 'all')).waiting.find((w) => w.proposalId === p.id)
+    expect(read?.closed?.read).toBe(true)
+    // The owner's Done row says Closed.
+    const done = (await feed('owner', 'all')).cards.find((c) => c.id === `proposal:${p.id}`)
+    expect(done?.done?.outcome).toBe('Closed')
+
+    await ok(call('POST', '/decisions/undo', 'owner', { token: closed.undo.token }))
+    const back = await ok<ProposalRecord>(call('GET', `/proposals/${p.id}`, 'author'))
+    expect(back.state).toBe('submitted')
+    expect(back.submittedAt).not.toBeNull()
+    const waits = (await feed('author', 'all')).waiting.find((w) => w.proposalId === p.id)
+    expect(waits?.closed).toBeNull()
+  })
+
+  it('lets an owner edit a waiting suggestion and publish it as itself, keeping its sender', async () => {
+    const p = await submitted({ title: 'Settlement ledger closes late', ...inMarket('cyprus') })
+    const edited = draft({
+      title: 'Settlement ledger closes on the fifth working day',
+      ...inMarket('cyprus'),
+    })
+    // Its sender cannot change it while it waits: they withdraw it first.
+    const own = await call('POST', '/items/publish', 'author', { draft: edited, draftId: p.id })
+    expect(own.statusCode).toBe(409)
+    const published = await ok<{
+      published: boolean
+      itemId: string
+      proposalId: string
+      undo: { token: string }
+    }>(call('POST', '/items/publish', 'owner', { draft: edited, draftId: p.id }))
+    expect(published).toMatchObject({ published: true, proposalId: p.id, itemId: p.itemId })
+    const after = await ok<ProposalRecord>(call('GET', `/proposals/${p.id}`, 'owner'))
+    expect(after).toMatchObject({ state: 'accepted', proposerId: p.proposerId })
+    expect(after.title).toBe('Settlement ledger closes on the fifth working day')
+    // The version agents get names its writer and who edited it.
+    const [version] = (
+      await client.query<{ proposer: string; editor: string }>(
+        `select v.proposer_id::text as proposer, v.edited_by::text as editor
+           from item_version_service s join item_versions v on v.id=s.version_id
+          where s.item_id=$1 and upper_inf(s.editions)`,
+        [p.itemId],
+      )
+    ).rows
+    expect(version).toEqual({ proposer: p.proposerId, editor: people.owner })
+    // Taken back, so the next tests' items do not clash with this one.
+    await ok(call('POST', '/decisions/undo', 'owner', { token: published.undo.token }))
   })
 })
 
@@ -1432,7 +1529,7 @@ describe('named reports from Ask (FR-622)', () => {
         link: 'https://wiki.example/latvia',
       }),
     )
-    expect(Object.keys(report).sort()).toEqual(['at', 'id'])
+    expect(Object.keys(report).sort()).toEqual(['at', 'id', 'suggestion'])
     expect((await mine('author')).find((r) => r.id === report.id)).toMatchObject({
       question: asked,
       itemId: item,
@@ -1449,6 +1546,7 @@ describe('named reports from Ask (FR-622)', () => {
       question: asked,
       correction: 'Latvia orders leave gift cards out.',
       link: 'https://wiki.example/latvia',
+      suggestion: report.suggestion,
       items: [{ id: item, title: 'Latvia orders count gift cards' }],
       done: null,
     })
@@ -1482,6 +1580,168 @@ describe('named reports from Ask (FR-622)', () => {
     await expect(
       client.query("update reports set what='changed' where id=$1", [report.id]),
     ).rejects.toThrow()
+  })
+
+  it('sends the right words for an item to its owners as a suggestion, which its card leads to while it waits', async () => {
+    const words = 'Latvia orders leave gift cards out since 1 October 2026.'
+    const what = 'They stopped counting gift cards in October.'
+    const before = await served(item)
+    const report = await ok<SentReport>(
+      send('member', { question: asked, itemId: item, part: 'item', what, correction: words }),
+    )
+    expect(report.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+    const proposal = await ok<ProposalRecord>(
+      call('GET', `/proposals/${report.suggestion}`, 'member'),
+    )
+    expect(proposal).toMatchObject({
+      itemId: item,
+      action: 'change',
+      state: 'submitted',
+      reason: what,
+    })
+    expect(proposal.draft).toMatchObject({
+      summary: words,
+      title: 'Latvia orders count gift cards',
+    })
+    // It waits like any other suggestion: in the owner's Inbox, and under the sender's own.
+    expect((await feed('owner')).cards.map((c) => c.id)).toContain(`proposal:${proposal.id}`)
+    expect((await feed('member', 'all')).waiting.map((w) => w.proposalId)).toContain(proposal.id)
+    expect(await card(report.id)).toMatchObject({ correction: words, suggestion: proposal.id })
+    // Agents keep the item as it is until an owner publishes it.
+    expect(await served(item)).toBe(before)
+    // Nobody names a suggestion of someone else's on their report.
+    await client.query('begin')
+    try {
+      await client.query(`set local role ${identifier(localRoles.api)}`)
+      await client.query("select set_config('cl.person_id', $1, true)", [people.stranger])
+      await expect(
+        client.query(
+          `insert into reports (person_id,area_id,item_id,part,question,what,correction,proposal_id)
+           values (cl_person(),'finance',$1,'item','Q','W','C',$2)`,
+          [item, proposal.id],
+        ),
+      ).rejects.toThrow(/row-level security/)
+    } finally {
+      await client.query('rollback')
+    }
+    // Words that are the item's already, or longer than a summary, make no suggestion.
+    const same = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what,
+        correction: draft().summary,
+      }),
+    )
+    expect(same.suggestion).toBeNull()
+    const reports = (await mine('member')).length
+    const long = await send('member', {
+      question: asked,
+      itemId: item,
+      part: 'item',
+      what,
+      correction: 'word '.repeat(80),
+    })
+    expect(long.statusCode).toBe(400)
+    expect((await mine('member')).length).toBe(reports)
+    // Once an owner decides it, the card no longer leads to it.
+    await ok<Published>(publish(proposal.id, (await sheet(proposal.id)).proposal.revision))
+    expect(await card(report.id, 'owner', 'all')).toMatchObject({ suggestion: null })
+  })
+
+  it('files the report with its right words when what is wrong is too long or names a person', async () => {
+    const words = 'Latvia orders leave gift cards out, as of 1 October 2026.'
+    const long = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what: 'x'.repeat(900),
+        correction: words,
+      }),
+    )
+    expect(long.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+    const proposal = await ok<ProposalRecord>(
+      call('GET', `/proposals/${long.suggestion}`, 'member'),
+    )
+    expect(proposal.reason).toBeNull()
+    expect(proposal.draft.summary).toBe(words)
+    const named = await ok<SentReport>(
+      send('member', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what: 'Ask someone@example.com, they know.',
+        correction: 'Latvia orders leave gift cards out, from October.',
+      }),
+    )
+    expect(named.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+  })
+
+  it('refuses an email address in the right words in words for that field, and files nothing', async () => {
+    const before = (await mine('stranger')).length
+    const refused = await send('stranger', {
+      question: asked,
+      itemId: item,
+      part: 'item',
+      what: 'Gift cards are left out.',
+      correction: 'Latvia orders leave gift cards out, ask someone@example.com.',
+    })
+    expect(refused.statusCode).toBe(422)
+    expect(refused.json<{ message: string }>().message).toBe(
+      'Take the email address, phone number or secret out of the right words.',
+    )
+    expect((await mine('stranger')).length).toBe(before)
+  })
+
+  it('takes right words for an item whose live version replaced another item', async () => {
+    const old = await live({ title: 'Monaco orders count vouchers', ...inMarket('monaco') })
+    const replacer = await live({
+      title: 'Monaco orders count credits',
+      ...inMarket('monaco'),
+      replaces: [old],
+    })
+    const report = await ok<SentReport>(
+      send('stranger', {
+        question: asked,
+        itemId: replacer,
+        part: 'item',
+        what: 'Credits are not counted.',
+        correction: 'Monaco orders leave credits out.',
+      }),
+    )
+    expect(report.suggestion).toMatch(/^[0-9a-f-]{36}$/)
+    const proposal = await ok<ProposalRecord>(
+      call('GET', `/proposals/${report.suggestion}`, 'stranger'),
+    )
+    expect(proposal.draft.replaces ?? []).toEqual([])
+  })
+
+  it('refuses a report that names its own suggestion on a different item', async () => {
+    const report = await ok<SentReport>(
+      send('stranger', {
+        question: asked,
+        itemId: item,
+        part: 'item',
+        what: 'Gift cards are left out.',
+        correction: 'Latvia orders leave gift cards out entirely.',
+      }),
+    )
+    await client.query('begin')
+    try {
+      await client.query(`set local role ${identifier(localRoles.api)}`)
+      await client.query("select set_config('cl.person_id', $1, true)", [people.stranger])
+      await expect(
+        client.query(
+          `insert into reports (person_id,area_id,item_id,part,question,what,correction,proposal_id)
+           values (cl_person(),'finance',$1,'item','Q','W','C',$2)`,
+          [due, report.suggestion],
+        ),
+      ).rejects.toThrow(/row-level security/)
+    } finally {
+      await client.query('rollback')
+    }
   })
 
   it('tells its sender what the owners did: closed as not a problem, undone, then the item checked again', async () => {

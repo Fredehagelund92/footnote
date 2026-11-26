@@ -8,6 +8,7 @@ import { SEARCH_GROUP_MAX } from '../../../contract/index.ts'
 import type { ContextItem } from '../../../domain/item.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { livePairs } from '../conflicts/index.ts'
 import { forReader } from './audience.ts'
 
@@ -79,10 +80,16 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
           order by d.item_version_id, d.decided_at desc, d.id desc),
        names as materialized (
          select t.key, t.name from serving_vocabulary((select seq from live_edition)) t),
+       -- A family split back into its metrics reads as them, which it still applies to (FR-142).
        keys as (
-         select 1 as part, l.version_id,
-                case when m.id like 'group:%' then m.id else 'metric:' || m.id end as key, m.id
+         select 1 as part, l.version_id, k.key,
+                case when k.key like 'metric:%' then substr(k.key, 8) else k.key end as id
            from listed l, jsonb_array_elements_text(l.entry->'scope'->'metrics') m(id)
+           cross join lateral (
+             select unnest(coalesce(
+                      (select x.variants from ${standingSplits(liveSeq)} x
+                        where x.family_key = m.id),
+                      array[case when m.id like 'group:%' then m.id else 'metric:' || m.id end])) as key) k
          union all
          select 2, l.version_id, 'dim:' || d.id, d.id
            from listed l, jsonb_array_elements_text(l.entry->'scope'->'dimensions') d(id)
@@ -94,6 +101,17 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
                 jsonb_agg(coalesce(n.name, k.id) order by k.part, k.key collate "C") as names
            from keys k left join names n on n.key = k.key
           group by k.version_id),
+       -- Each value with its dimension, as the vocabulary names both (the ids when it has no name).
+       vals as (
+         select l.version_id,
+                jsonb_agg(jsonb_build_object(
+                  'dimension', coalesce(dn.name, v->>'dimension'),
+                  'name', coalesce(vn.name, v->>'value'))
+                  order by ((v->>'dimension') || '/' || (v->>'value')) collate "C") as pairs
+           from listed l, jsonb_array_elements(l.entry->'scope'->'dimensionValues') v
+           left join names dn on dn.key = 'dim:' || (v->>'dimension')
+           left join names vn on vn.key = 'val:' || (v->>'dimension') || '/' || (v->>'value')
+          group by l.version_id),
        pairs as materialized (select p.holder, p.other from ${livePairs} p),
        partners as (
          select x.id, jsonb_agg(x.other order by x.other collate "C") as ids
@@ -116,6 +134,7 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
                               when (l.entry->>'reviewDate')::date < $1::date then 'date'
                               else null end,
                 'chips', coalesce(ch.names, '[]'),
+                'values', coalesce(vs.pairs, '[]'),
                 'owners', coalesce(o.ids, '[]'),
                 'conflicts', coalesce(pt.ids, '[]'),
                 'opened', exists (select 1 from item_reads r
@@ -124,6 +143,7 @@ export function createLibraryService(database: Queryable, clock: Clock): Library
          from listed l
          left join checked c on c.version_id = l.version_id
          left join chips ch on ch.version_id = l.version_id
+         left join vals vs on vs.version_id = l.version_id
          left join partners pt on pt.id = l.id
          left join (select item_id, jsonb_agg(person_id::text order by person_id) as ids
                       from item_owners group by item_id) o on o.item_id = l.id`,

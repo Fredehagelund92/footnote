@@ -407,9 +407,11 @@ export const phrasings: Phrasing[] = [
     state: 'missing',
   },
   {
+    // A word only one metric's name holds reads as that metric, and the reply says so (names-read.ts,
+    // 23 November 2026): here the wrong one, since a count of purchases is Orders.
     kind: 'synonym',
     question: 'Number of purchases in Poland last week',
-    topic: '||val:market/poland|2026-10',
+    topic: 'area_customer_value|metric:repeat_purchase_rate|val:market/poland|2026-10',
     state: 'missing',
   },
   {

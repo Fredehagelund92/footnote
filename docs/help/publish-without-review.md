@@ -8,6 +8,8 @@ reviewed: 2026-11-20
 open:
   label: Open Agents and access
   href: /settings/agents
+does:
+  let-an-agent-publish-in-your-domain: open_domain
 ---
 
 An owner can let one named agent publish some of its suggestions in their domain without a review round. Each one is published as the owner's own decision, under their name, and anyone who owns the domain can undo it from its history. It is off until an admin switches it on.

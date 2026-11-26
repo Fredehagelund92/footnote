@@ -3,8 +3,8 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 5
-reviewed: 2026-11-21
+minutes: 7
+reviewed: 2026-11-23
 ---
 
 Some models keep a metric for each currency or sales channel, such as Revenue (EUR) web and Revenue (USD) app. Model them as one metric, Revenue, with currency and channel as dimensions. Agents then find what your team wrote about revenue, whatever the currency.
@@ -18,9 +18,11 @@ Some models keep a metric for each currency or sales channel, such as Revenue (E
 
 ## What Test connection says
 
-When many of the metrics a read would hold look like variants of a few, Test connection in [Integrations](integrations.md) says so before anything is published. It says how many, how many metrics they look like, and the words they are split by, such as eur, usd and gbp.
+When a read would find families, Test connection in [Integrations](integrations.md), when you connect a tool or on its page, leads with them, before anything is published. It says how many of the metrics are variants, how many families they make, and how each family was found. After the first read, an owner of its domain, or an admin, confirms each one in the Inbox, under Families. Nothing is published before.
 
-It reads only the names, so now and then it is wrong. It only warns: you can still go on.
+When many metrics only look like variants of a few, and the families found do not cover most of them, it says so too. It says how many, how many metrics they look like, and the words they are split by, such as eur, usd and gbp. It reads only the names, so now and then it is wrong. It only warns: you can still go on.
+
+Either way, a currency or a channel kept as a dimension needs no family at all.
 
 ## How to model them
 
@@ -43,14 +45,28 @@ A read groups near-identical metrics into a family, such as Revenue, with 250 va
 3. Found from a rate. A metric worked out from another with one more column, such as Accrued share (USD) from Accrued share (EUR) and the column `exchange_rate_usd`. When that column does this for several pairs, each pair is a family by Currency.
 4. Suggested by the names alone. Metrics whose names are one name in other currencies, such as Shipping fee (EUR) and Shipping fee (USD), wait under Look alike on the Names card. They are never a family until you say so.
 
-- On the Names card a family is one name, marked declared in your tool or found from the calculation. Publish it, and its variants are published with it.
+- The Names card has two parts: Families and Names. Families shows the families waiting, counted by how each was found. Those that look alike or need another name come first. The ready ones follow, grouped as declared in your tool, from the calculation or from a rate. Publish one, or all the ready ones at once, and its variants are published with it.
+- A source's page in Integrations counts its families the same way, and Review families opens the Families part of the Names card.
 - Select a family's name on the Names card to see what it would mean, the values its variants hold and who owns it. There, Keep them separate publishes each metric by its own name. A family your tool declares is changed in your tool instead.
 - Under Look alike, choose Publish as a family, or Keep them separate to publish each metric by its own name.
-- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked Family · 250 variants. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants, says how the family was found, and which variant is converted from which.
+- [Definitions](definitions-and-synonyms.md#families) lists the family once, marked by a stack of tiles. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants, says how the family was found, and which variant is converted from which.
 - A context item about the family applies to every variant, and agents get it for a question about revenue.
 - When any variant changes, the item is due for a check once, not once for each variant.
 
 A source that gives only the names of its metrics, not how they are worked out, makes families only from what it declares. The other metrics whose names look alike wait under Look alike.
+
+## Split a family into separate metrics
+
+A family a read found can be split back into its metrics from the family's own page. An owner of its domain, or an admin, chooses Split into 2 metrics. One dialog says what happens first:
+
+- Each variant becomes a metric in Definitions, under the name it has. The family goes, and its history, meaning and usual variant are kept.
+- No word of a context item about the family changes. Each keeps reaching agents for every former variant, due for a check, and its owner gets a card in the Inbox. Keep for both points it at each of them, and Edit points it at some of them.
+- A question that names only the family then names no metric, so agents ask which one is meant.
+- The next read keeps them apart. Undo, or Make them one family again under Families in Definitions, joins them again.
+
+Anyone else reads who decides: the owners of the family's domain, by name.
+
+A family your tool declares is never split here. Its page says where it is declared, under `meta.footnote.family`, links its model file when the source names one, and copies the key. Change it in your tool, and the next read follows.
 
 ## Declare a family in your tool
 

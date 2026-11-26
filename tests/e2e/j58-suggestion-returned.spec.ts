@@ -18,7 +18,9 @@ test('a returned suggestion waits on its sender, who edits it and sends it again
       .getByRole('textbox', { name: 'A note for Ines Duarte' })
       .pressSequentially('Which page says 340?')
     await decide.getByRole('button', { name: 'Return to Ines' }).click()
-    await expect(decide.getByText('Returned to Ines Duarte')).toBeVisible()
+    await expect(
+      page.locator('[data-sonner-toast]').filter({ hasText: `Returned “${title}” to Ines` }),
+    ).toBeVisible()
 
     await signInAs(page, 'Ines Duarte')
     await go(page, '/inbox')
@@ -79,6 +81,7 @@ test('an owner closes a suggestion to archive that its sender did not take back,
       .getByRole('textbox', { name: 'Why you close it' })
       .fill('The January data is still being reloaded')
     await close.click()
-    await expect(decide.getByText('Nothing changes for agents.', { exact: true })).toBeVisible()
+    const said = page.locator('[data-sonner-toast]').filter({ hasText: /^Closed “/ })
+    await expect(said).toContainText('Nothing changes for agents.')
   })
 })

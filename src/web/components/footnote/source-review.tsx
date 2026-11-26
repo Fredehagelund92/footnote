@@ -7,6 +7,8 @@ import {
   PlusIcon,
 } from '@/components/icons'
 import { MentionText } from '@/components/footnote/mention-chip'
+import { Marks, SourceText, answerCode } from '@/components/footnote/source-text'
+import { safeHref } from '@/lib/host'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -25,7 +27,6 @@ import {
 import {
   passageDiff,
   passageStats,
-  safeHref,
   type LinkChange,
   type Look,
   type Move,
@@ -233,7 +234,12 @@ function SourceValue({
       )}
       {source.quote && (
         <q className="text-muted-foreground italic">
-          {quote ? <Whole text={source.quote} side={side} marked /> : source.quote}
+          {/* A changed quote is compared character by character; one that stays reads drawn. */}
+          {quote ? (
+            <Whole text={source.quote} side={side} marked />
+          ) : (
+            <SourceText text={source.quote} />
+          )}
         </q>
       )}
     </div>
@@ -753,16 +759,16 @@ function RunView({
   side: 'before' | 'after'
   plain?: boolean
 }) {
-  let node: React.ReactNode = run.mention ? <MentionText text={run.mention} /> : run.text
-  if (run.marks.includes('code'))
-    node = <code className="rounded-xs bg-muted px-1 font-mono text-sm">{node}</code>
-  if (run.marks.includes('strike')) node = <s>{node}</s>
-  if (run.marks.includes('italic')) node = <em>{node}</em>
-  if (run.marks.includes('bold')) node = <strong className="font-semibold">{node}</strong>
-  if (run.href)
+  let node: React.ReactNode = (
+    <Marks marks={run.marks} code={answerCode}>
+      {run.mention ? <MentionText text={run.mention} /> : run.text}
+    </Marks>
+  )
+  const href = safeHref(run.href)
+  if (href)
     node = (
       <a
-        href={run.href}
+        href={href}
         target="_blank"
         rel="noreferrer"
         className="underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"

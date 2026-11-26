@@ -1,3 +1,4 @@
+import type { ProofArmResult } from '../../../domain/proof.ts'
 import type {
   Agreement,
   CellScore,
@@ -8,7 +9,13 @@ import type {
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { toolSchemaDigest } from '../../mcp/tools.ts'
-import { enabledTools, loadServingBundle, type ServingBundle } from '../editions/index.ts'
+import {
+  enabledTools,
+  loadServingBundle,
+  loadServingPolicy,
+  type ServingBundle,
+  type ServingPolicy,
+} from '../editions/index.ts'
 import {
   differentFamily,
   testRunRefusal,
@@ -44,8 +51,11 @@ import { readEvalSettings, type EvalSettings } from './settings.ts'
  * model that calls tools, and its judge asks for JSON text when it cannot keep to a JSON schema.
  */
 export type EvalDeps = { port: ModelPort; clock: Clock; checks?: ModelChecks }
-/** `held_out`: the sealed held-out questions of an area, run with nothing of them kept. */
-export type RunKind = 'full' | 'scheduled' | 'links' | 'held_out'
+/**
+ * `held_out`: the sealed held-out questions of an area, run with nothing of them kept. `proof`:
+ * the questions of `footnote prove`, asked three ways, also with nothing of them kept (proof.ts).
+ */
+export type RunKind = 'full' | 'scheduled' | 'held_out' | 'proof'
 export type RunState =
   'awaiting_approval' | 'queued' | 'running' | 'finished' | 'failed' | 'cancelled' | 'incomplete'
 /** Why a full run was queued without a person: a change that bypasses the review gate. */
@@ -57,6 +67,12 @@ export type RunSummary = {
   estimate: { cells: number; cached: number; micros: number }
   /** The tools each side offered. */
   tools: ArmTools
+  /**
+   * About our business and the calendar the eval client's server instructions said when the run
+   * was planned: its cells are keyed on them, so its arms say the same however the settings
+   * change before the run is worked or resumed.
+   */
+  policy: PlannedPolicy
   /** A run a person started themself counts against their daily limit. */
   manual?: boolean
   trigger?: RunTrigger
@@ -68,7 +84,22 @@ export type RunSummary = {
   resumes?: number
   /** A held-out run (withheld.ts): the area and how many questions, never which. */
   heldOut?: { area: string; questions: number }
+  /** A proof run (proof.ts): whose questions, their digest and how many, never which. */
+  proof?: ProofSummary
   result?: RunResult
+}
+/** What a proof run keeps: counts and digests, never a question's words. */
+export type ProofSummary = {
+  /** Whose questions and items, in words without a question in them. */
+  about: string
+  /** The question set's digest (`proofDigest`), so a result can be matched to its questions. */
+  digest: string
+  questions: number
+  /** Questions where nothing is written. */
+  nothing: number
+  tries: number
+  /** Each way's counts by try, once the run ended. */
+  result?: ProofArmResult[]
 }
 /**
  * Why a run ended incomplete: answers the provider or the tool server kept from being made
@@ -93,21 +124,8 @@ export type QuestionResult = {
 export type RunResult = {
   questions: QuestionResult[]
   scorecard?: Scorecard
-  links?: LinkResult
   /** Judge against code, per side; absent on a run with no questions. */
   agreement?: { baseline: Agreement; candidate: Agreement | null }
-}
-/**
- * A links run (FR-523): the same questions on the same edition with get_related off (baseline)
- * and on (candidate). It shows a gain when some answers pass only with it, none fail because of
- * it, and following links brings no new cause claims (mentions research, section 4.10). Calls and
- * cost per answer show over-following (R20). The tool stays off until an administrator decides.
- */
-export type LinkResult = {
-  gained: string[]
-  lost: string[]
-  arms: Record<ArmName, { answers: number; calls: number; costMicros: number; causeClaims: number }>
-  gain: boolean
 }
 export type Scorecard = {
   edition: string
@@ -243,23 +261,10 @@ export async function sidesFor(
   return { baseline: await loadServingBundle(tx, head) }
 }
 
-/** A links run compares the live edition with itself; only the tools differ. */
-export function sidesOfRun(
-  kind: RunKind,
-  sides: Partial<Record<ArmName, ServingBundle>>,
-): Partial<Record<ArmName, ServingBundle>> {
-  return kind === 'links' ? { baseline: sides.baseline!, candidate: sides.baseline! } : sides
-}
-
-/**
- * The tools switched on now; a links run takes get_related off and on. The `eval` client's own
- * policy still applies on top, in the gateway.
- */
-export async function armTools(tx: Queryable, kind: RunKind): Promise<ArmTools> {
+/** The tools switched on now. The `eval` client's own policy still applies on top, in the gateway. */
+export async function armTools(tx: Queryable): Promise<ArmTools> {
   const on = await enabledTools(tx)
-  if (kind !== 'links') return { baseline: on, candidate: on }
-  const off = on.filter((tool) => tool !== 'get_related')
-  return { baseline: off, candidate: [...off, 'get_related'].sort() }
+  return { baseline: on, candidate: on }
 }
 
 export async function insertRun(
@@ -311,36 +316,41 @@ export async function insertRun(
   return row!
 }
 
-/** An area run's kind: the whole set on its own, or a links run with get_related off and on. */
-export type AreaRunKind = 'full' | 'scheduled' | 'links'
+/** An area run's kind: the whole set, started by hand or by a change, or scheduled. */
+export type AreaRunKind = 'full' | 'scheduled'
+
+export type PlannedPolicy = Pick<ServingPolicy, 'about' | 'calendar'>
+
+/** What of the eval client's policy a run fixes when it is planned (`RunSummary.policy`). */
+export async function plannedPolicy(tx: Queryable): Promise<PlannedPolicy> {
+  const { about, calendar } = await loadServingPolicy(tx, evalClient)
+  return { about, calendar }
+}
 
 /** Plans an area's whole active set on the live edition, without saving anything (FR-516). */
-export async function planArea(
-  tx: Queryable,
-  deps: EvalDeps,
-  area: string,
-  kind: AreaRunKind = 'full',
-) {
+export async function planArea(tx: Queryable, deps: EvalDeps, area: string) {
   const head = await liveHead(tx)
   if (!head) return null
   const settings = await readEvalSettings(tx)
   const models = modelsFor(deps.port, settings)
   const { questions, setAside } = await loadActiveQuestions(tx, [area])
-  const tools = await armTools(tx, kind)
+  const tools = await armTools(tx)
+  const policy = await plannedPolicy(tx)
   const planned = await planQuestions(
     questions,
-    sidesOfRun(kind, await sidesFor(tx, head)),
+    await sidesFor(tx, head),
     deps.clock,
     models,
     tools,
+    policy,
   )
   const cost = await estimate(tx, planned, settings.tries, models)
-  return { head, settings, models, planned, setAside, cost, tools }
+  return { head, settings, models, planned, setAside, cost, tools, policy }
 }
 
 /**
- * A run of an area's whole active set on the live edition: scheduled weekly, started by hand,
- * queued by a change that bypasses the review gate, or a links run (FR-523).
+ * A run of an area's whole active set on the live edition: scheduled weekly, started by hand, or
+ * queued by a change that bypasses the review gate.
  */
 export async function queueAreaRun(
   tx: Queryable,
@@ -351,7 +361,7 @@ export async function queueAreaRun(
   trigger?: RunTrigger,
   options: { passRule?: PassRule; costCeilingMicros?: number | null } = {},
 ): Promise<RunRow | null> {
-  const planned = await planArea(tx, deps, area, kind)
+  const planned = await planArea(tx, deps, area)
   if (!planned) return null
   const { head, settings, models, cost } = planned
   const run = await insertRun(tx, {
@@ -367,6 +377,7 @@ export async function queueAreaRun(
       plan: { questions: planned.planned, setAside: planned.setAside },
       estimate: cost,
       tools: planned.tools,
+      policy: planned.policy,
       manual,
       ...(trigger ? { trigger } : {}),
       ...(options.passRule && options.passRule !== 'majority'
@@ -385,7 +396,7 @@ async function person(tx: Queryable): Promise<string | null> {
   return row?.id ?? null
 }
 
-/** Records the links result (links runs) or the scorecard and baseline (area runs). */
+/** Records the scorecard and, for a scheduled run, the baseline. */
 export async function finishRun(
   tx: Queryable,
   run: RunRow,
@@ -393,24 +404,20 @@ export async function finishRun(
   agreement?: NonNullable<RunResult['agreement']>,
 ): Promise<RunRow> {
   const result: RunResult = { questions, ...(agreement ? { agreement } : {}) }
-  if (run.kind === 'links') {
-    result.links = await linkResult(tx, run, questions)
-  } else {
-    result.scorecard = await scorecard(tx, run, questions)
-    if (agreement) result.scorecard.agreement = agreement.baseline
-    if (run.kind === 'scheduled') {
-      // FR-518: only a finished full scheduled run on the live edition moves the baseline.
-      await tx.query('insert into eval_baselines(area_id,run_id,edition_seq) values($1,$2,$3)', [
-        run.area_id,
-        run.id,
-        run.baseline_edition_seq,
-      ])
-      await tx.query(
-        `insert into outbox_events(topic,area_id,aggregate_type,aggregate_id,payload)
-         values('eval.scorecard',$1,'eval_run',$2,$3)`,
-        [run.area_id, run.id, JSON.stringify(result.scorecard)],
-      )
-    }
+  result.scorecard = await scorecard(tx, run, questions)
+  if (agreement) result.scorecard.agreement = agreement.baseline
+  if (run.kind === 'scheduled') {
+    // FR-518: only a finished full scheduled run on the live edition moves the baseline.
+    await tx.query('insert into eval_baselines(area_id,run_id,edition_seq) values($1,$2,$3)', [
+      run.area_id,
+      run.id,
+      run.baseline_edition_seq,
+    ])
+    await tx.query(
+      `insert into outbox_events(topic,area_id,aggregate_type,aggregate_id,payload)
+       values('eval.scorecard',$1,'eval_run',$2,$3)`,
+      [run.area_id, run.id, JSON.stringify(result.scorecard)],
+    )
   }
   const [row] = await tx.query<RunRow>(
     `update eval_runs set state='finished',finished_at=now(),started_at=coalesce(started_at,now()),
@@ -419,50 +426,6 @@ export async function finishRun(
     [run.id, JSON.stringify(result)],
   )
   return row!
-}
-
-async function linkResult(
-  tx: Queryable,
-  run: RunRow,
-  questions: QuestionResult[],
-): Promise<LinkResult> {
-  // A cell reused from the cache cost nothing now; its original answer's cost is what it costs.
-  const cells = await tx.query<{
-    arm: ArmName
-    calls: number | null
-    cost: string
-    cause: boolean
-  }>(
-    `select c.arm::text as arm,(c.scores->>'calls')::int as calls,
-            coalesce(o.cost_micros,c.cost_micros,0)::text as cost,
-            coalesce(c.scores->'checks'->>'no_cause_claim','true')='false' as cause
-       from eval_cells c left join eval_cells o on o.id=c.reused_from
-      where c.run_id=$1 and c.state='finished' and c.passed is not null`,
-    [run.id],
-  )
-  const arm = (name: ArmName) => {
-    const own = cells.filter((c) => c.arm === name)
-    const mean = (values: number[]) =>
-      values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0
-    return {
-      answers: own.length,
-      calls: Math.round(mean(own.map((c) => c.calls ?? 0)) * 100) / 100,
-      costMicros: Math.round(mean(own.map((c) => Number(c.cost)))),
-      causeClaims: own.filter((c) => c.cause).length,
-    }
-  }
-  const arms = { baseline: arm('baseline'), candidate: arm('candidate') }
-  const gained = questions.filter((q) => q.flip === 'fail_to_pass').map((q) => q.id)
-  const lost = questions.filter((q) => q.flip === 'pass_to_fail').map((q) => q.id)
-  return {
-    gained,
-    lost,
-    arms,
-    gain:
-      gained.length > 0 &&
-      lost.length === 0 &&
-      arms.candidate.causeClaims <= arms.baseline.causeClaims,
-  }
 }
 
 async function scorecard(
@@ -612,9 +575,9 @@ export async function stopRun(
  * The kinds the worker never takes: the held-out questions are worked by the command that runs
  * them. Queued again, such a run would wait for nobody.
  */
-export const commandKinds: readonly string[] = ['held_out']
+export const commandKinds: readonly string[] = ['held_out', 'proof']
 const commandRunNotResumed =
-  'This test run is worked only by the command that started it, so it is not resumed. Run that command again (for held-out cases, npm run held-out -- eval --area <domain id>).'
+  'This test run is worked only by the command that started it, so it is not resumed. Run that command again (for held-out cases, npm run held-out -- eval --area <domain id>; for a proof, npm run footnote -- prove).'
 
 /**
  * Whether a run may be queued again, and why not (#194): only a run that stopped before it

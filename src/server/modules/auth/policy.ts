@@ -82,6 +82,7 @@ export const policies = {
   'sources.update': 'admin',
   'sources.groups': 'admin',
   'sources.test': 'admin',
+  'sources.check': 'admin',
   'sources.leftOut': 'admin',
   'sources.read': 'admin',
   'sources.remove': 'admin',
@@ -100,9 +101,12 @@ export const policies = {
   'terms.history': 'read',
   'definitions.related': 'read',
   'definitions.relations': 'read',
+  'definitions.builtFrom': 'read',
   // What a family means: the service checks who owns its domain.
   'definitions.setFamilyMeaning': 'propose',
   'definitions.setFamilyUsual': 'propose',
+  'definitions.splitFamily': 'propose',
+  'definitions.joinFamily': 'propose',
   'definitions.familyMeaningHistory': 'read',
   // Conflicts: anyone signed in reads a pair they may read; settling is checked against the item each
   // way changes (an owner of it, or an admin) in the service.
@@ -119,12 +123,20 @@ export const policies = {
   'items.changes': 'read',
   'items.deleted': 'admin',
   'drafts.fromText': 'propose',
+  'drafts.save': 'propose',
+  'drafts.left': 'admin',
+  'drafts.clearLeft': 'admin',
   // The Inbox of Footnote v1: the service narrows every card to the domains the person owns.
   'inbox.feed': 'read',
   'inbox.names': 'read',
   'inbox.decideNames': 'propose',
   'cards.markRead': 'read',
   'cards.decide': 'propose',
+  // Ask someone who knows: the service keeps copying a link to the owners of the card's domain and
+  // the admins; anyone signed in who has a link reads its question and answers as themselves.
+  'questions.copy': 'propose',
+  'questions.read': 'read',
+  'questions.answer': 'propose',
   // Comments (FR-817): anyone signed in, on what they may read; the service and row security keep
   // edits and deletes to the author, and taking a suggestion to archive back to its sender. Anyone
   // who may read a suggestion resolves a thread on one of its lines or fields.
@@ -148,6 +160,7 @@ export const policies = {
   'workspace.get': 'read',
   'settings.list': 'admin',
   'settings.set': 'admin',
+  'about.draft': 'admin',
   'models.checks': 'admin',
   'tools.set': 'admin',
   'clients.list': 'admin',
@@ -159,12 +172,12 @@ export const policies = {
   'connect.get': 'read',
   'connect.pending': 'read',
   'tryIt.read': 'read',
-  'figures.list': 'read',
-  'figures.set': 'admin',
-  'figures.read': 'read',
-  'figures.try': 'admin',
   'reports.create': 'read',
   'reports.mine': 'read',
+  'sharedChats.create': 'read',
+  'sharedChats.mine': 'read',
+  'sharedChats.read': 'read',
+  'sharedChats.stop': 'read',
   'ask.lookup': 'read',
   'ask.asked': 'read',
   'ask.rate': 'read',

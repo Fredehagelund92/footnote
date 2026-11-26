@@ -192,14 +192,12 @@ to the interface later answers not available on the service until its pull reque
 The golden job specs run in both modes. `npm run test:e2e` runs every one on the mock build;
 `npm run test:e2e:golden-http` runs those whose screens are wired (the Inbox, the review, the
 setup checklist, People, Context, Definitions, the editor, Related, Observability, comments with their
-reactions and mentions, Settings' domains and agents, and figures in Ask so far) on an http mode
-build against the service, with its own login server for an agent that signs in, and a stand-in
-Cube over a seeded demo warehouse for figures (`tests/web/http/demo-figures.ts`), one at a time, each on its
+reactions and mentions, and Settings' domains and agents so far) on an http mode
+build against the service, with its own login server for an agent that signs in, one at a time, each on its
 own copy of the demo week seeded once into a template database; a journey that starts as a new
 install (`?demo=setup`, or Observability's `?state=empty`) gets a copy of an empty workspace
 instead, and `?demo=week` brings it back to the demo week; Quality's `?quality=failed` makes the
-last check of the saved questions one that stopped part way; `?figures=on|off` switches Cube's
-figures, and Ask's `?example=` asks the example's question in the composer. It needs a local PostgreSQL 18 and a
+last check of the saved questions one that stopped part way, and Ask's `?example=` asks the example's question in the composer. It needs a local PostgreSQL 18 and a
 superuser's connection in
 `GOLDEN_DATABASE_URL` (default: `TEST_DATABASE_URL`, then the local server); it serves the app
 on port 4175 and the service on 3110, or on `PW_GOLDEN_WEB_PORT` and `PW_GOLDEN_API_PORT` when
@@ -288,7 +286,7 @@ belongs to both sides. The service lives in `src/server`, next to `src/web`, wit
 | `npm run dev:http`                        | The web app in http mode: it reads the Footnote service through `/api/v1` instead of the mock.                                                                                                                  |
 | `npm run dev:server`                      | The service at http://127.0.0.1:3000, restarted on change. Loads `.env.local` if it exists.                                                                                                                     |
 | `npm run api:generate`                    | Rewrites `docs/api/openapi.json` and `src/web/api/contract.json` from `src/contract`                                                                                                                            |
-| `npm run footnote -- <command>`           | The command-line tool: validate, import and draft items, export editions and the history log (`--help`)                                                                                                         |
+| `npm run footnote -- <command>`           | The command-line tool: validate, import and draft items, export editions and the history log, and run the proof (`--help`)                                                                                      |
 | `npm run db:new-migration -- <name>`      | Adds the next numbered migration in `db/migrations`, empty, and names it in `db/migrations/latest.txt`; `npm run db:renumber` moves your branch's migrations after `main`'s after a rebase                      |
 | `npm run db:migrate`                      | Gets the database ready: roles and database when missing, migrations, grants, and the demo with `SEED_DEMO=on` (see [Run the service from source](#run-the-service-from-source))                                |
 | `npm run seed`                            | Loads the demo into an empty local database by hand; `-- --items-only` and `--library golden` are the variants the tests use (see [db/README.md](../db/README.md))                                              |
