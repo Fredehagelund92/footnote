@@ -57,6 +57,14 @@ Name only what the proxy connects from. Anything else that can connect from an a
 
 The web image's nginx does not help here. It overwrites `X-Forwarded-For` and `X-Forwarded-Proto` with what it sees, so behind another proxy it hides the caller's address and the https. That is why `/api/v1/` goes to the service directly.
 
+## Links people paste
+
+Draft from text opens a page a person links, to fill in from it. The service makes that request itself, from inside your network. It reads public https pages on port 443 only. It refuses private and special addresses, a sign-in page, and a link that carries a key, at every redirect too.
+
+Some internal systems have public addresses and trust your network's own address. Address rules cannot tell them from the public web. List them in Settings, Advanced, Links people paste, under Sites never read. A name covers its subdomains. List a system's address too, and no other name that leads there is read.
+
+The reader connects directly and never through an outbound proxy, so the address it checked is the one it reaches. `HTTPS_PROXY` and `NODE_USE_ENV_PROXY` do not change that. Where traffic can leave only through a proxy, every link fails, and people paste the page's text. Turn reading off there, in the same place.
+
 ## The web image
 
 What the `web` image does for a browser:

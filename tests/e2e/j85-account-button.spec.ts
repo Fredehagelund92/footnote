@@ -31,6 +31,11 @@ async function ownEight(page: Page) {
     await page.getByRole('textbox', { name: 'Name' }).fill(name)
     await page.getByRole('button', { name: 'Add the domain' }).click()
     await expect(page).toHaveURL(/\/settings\/domains\/(?!new)/)
+    // On a phone its toast sits over the foot of the list, where the next add starts.
+    await page
+      .locator('[data-sonner-toast]', { hasText: name })
+      .getByRole('button', { name: 'Close' })
+      .click()
   }
   // Each add says so in a toast; the menu is looked at once they have gone.
   await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 20_000 })

@@ -3,7 +3,8 @@ import type { Outcome } from '@/model/inbox'
 import { setupSteps } from '@/lib/setup'
 import { cards } from './data/inbox'
 import { reviews } from './data/review'
-import { ABOUT_BUSINESS, facts as seedFacts } from './data/world'
+import { ABOUT_BUSINESS_STARTER } from '@domain/about-business'
+import { facts as seedFacts } from './data/world'
 
 const reviewIds = () => reviews.map((r) => r.id)
 
@@ -68,6 +69,7 @@ export type Action =
   /** An undone change that only had its line in History (a term's deletion): the line goes. */
   | { type: 'unlog'; entry: string }
   | { type: 'addFact'; fact: Fact }
+  | { type: 'addFacts'; facts: Fact[] }
   | { type: 'setupStep'; step: string }
   | { type: 'about'; text: string }
 
@@ -83,7 +85,7 @@ export const start: State = {
   published: {},
   edits: {},
   added: [],
-  about: ABOUT_BUSINESS,
+  about: ABOUT_BUSINESS_STARTER,
   viewed: {},
   deleted: {},
   log: [],
@@ -199,6 +201,10 @@ export function reduce(s: State, a: Action): State {
       return { ...s, log: s.log.filter((e) => e.id !== a.entry) }
     case 'addFact':
       return { ...s, added: [a.fact, ...s.added.filter((f) => f.id !== a.fact.id)] }
+    case 'addFacts': {
+      const ids = new Set(a.facts.map((f) => f.id))
+      return { ...s, added: [...a.facts, ...s.added.filter((f) => !ids.has(f.id))] }
+    }
     case 'setupStep': {
       const setup = { ...s.setup, [a.step]: true }
       const finished = setupSteps.every((st) => setup[st.id])

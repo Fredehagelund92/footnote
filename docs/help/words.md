@@ -4,7 +4,7 @@ line: The glossary of the ten words the screens and these pages use, each in one
 group: Start
 order: 4
 minutes: 2
-reviewed: 2026-11-20
+reviewed: 2026-11-23
 ---
 
 The glossary: the ten words the screens and these pages use, each in one sentence.
@@ -14,7 +14,7 @@ The glossary: the ten words the screens and these pages use, each in one sentenc
 - Context item: One thing agents should know about the numbers: an event, a warning, a rule or a guide. It has a source and a check date.
 - Domain: An area of the business, such as Sales or Marketing. Every context item belongs to one.
 - Owner: The person who publishes and checks a domain's context. Agents read only what an owner has published.
-- Suggestion: A change someone else sends to an owner, from the editor or through their agent. Nothing changes until the owner publishes it.
+- Suggestion: A change someone else sends to an owner, from the editor or through their agent. It waits for review until the owner publishes it, sends it back or closes it.
 - Definition: A metric is a number you track, such as Orders. A dimension is a way to split a number, such as by market. A term is a word your company uses, such as Peak season.
 - Synonym: Another name for a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.
 - Not found: A question agents asked several times and found nothing written down for. Its card brings a draft.

@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
   threads: [] as unknown[],
 }))
 
-vi.mock('sonner', () => ({ toast: Object.assign(mocks.toast, { error: mocks.toastError }) }))
+vi.mock('@/lib/toast', () => ({ toast: Object.assign(mocks.toast, { error: mocks.toastError }) }))
 vi.mock('@/lib/comments', () => ({
   useComments: () => mocks.threads,
   useSubjectReactions: () => [],

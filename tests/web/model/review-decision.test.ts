@@ -15,8 +15,8 @@ import { reviewActions, type ReviewActionsInput } from '@domain/review-actions'
 // One row of the decision's transition table per test: the panel and the phone's bar are two views
 // of this state, so what a failure retries is the state's own business.
 
-type S = DecisionState<string>
-type E = DecisionEvent<string>
+type S = DecisionState
+type E = DecisionEvent
 
 const actionsFor = (patch: Partial<ReviewActionsInput>) =>
   reviewActions({
@@ -99,8 +99,13 @@ describe('the decision', () => {
       ...sending('close'),
       reason,
     })
-    // Close is not offered on a change, so it has no step there.
-    expect(run(at, { type: 'ask', action: 'close', actions: edit })).toBe(at)
+    // A change closes as Don't publish, only through its own step, where it takes the reason.
+    const closing = run(at, { type: 'ask', action: 'close', actions: edit })
+    expect(closing).toEqual({ kind: 'confirmingClose', id: 'a' })
+    expect(run(at, { type: 'press', action: 'close', actions: edit })).toBe(at)
+    expect(
+      run(closing, { type: 'press', action: 'close', actions: edit, reason: 'Not ours' }),
+    ).toEqual({ ...sending('close'), reason: 'Not ours' })
   })
 
   it('failed close: retry sends the reason as it is written now', () => {
@@ -118,12 +123,8 @@ describe('the decision', () => {
     expect(run(busy, { type: 'cancel' })).toBe(busy)
   })
 
-  it('sending: ok is done, an error is failed with the action and the service’s reason', () => {
-    expect(run(sending('publish'), { type: 'ok', id: 'a', done: 'Published' })).toEqual({
-      kind: 'done',
-      id: 'a',
-      done: 'Published',
-    })
+  it('sending: ok is idle again (a toast says what it did), an error is failed with the action and the service’s reason', () => {
+    expect(run(sending('publish'), { type: 'ok', id: 'a' })).toEqual(at)
     expect(
       run(sending('close'), {
         type: 'error',
@@ -144,7 +145,7 @@ describe('the decision', () => {
   it('an answer for a suggestion the person has left is not theirs to see', () => {
     const away = run(sending('publish'), { type: 'open', id: 'b' })
     expect(away).toEqual(idle('b'))
-    expect(run(away, { type: 'ok', id: 'a', done: 'Published' })).toBe(away)
+    expect(run(away, { type: 'ok', id: 'a' })).toBe(away)
     expect(run(away, { type: 'error', id: 'a', failure: 'failed', reason: null })).toBe(away)
     // Opening the same suggestion again changes nothing.
     expect(run(sending('publish'), { type: 'open', id: 'a' })).toEqual(sending('publish'))
@@ -202,13 +203,6 @@ describe('the decision', () => {
     })
     const closing = failed('close')
     expect(run(closing, { type: 'ask', action: 'return', actions: withdrawn })).toBe(closing)
-  })
-
-  it('done: finish goes back to idle, and other events leave it alone', () => {
-    const done: S = { kind: 'done', id: 'a', done: 'Published' }
-    expect(run(done, { type: 'finish' })).toEqual(at)
-    expect(run(done, { type: 'press', action: 'publish', actions: edit })).toBe(done)
-    expect(run(done, { type: 'retry', actions: edit })).toBe(done)
   })
 
   it('does not send twice', () => {

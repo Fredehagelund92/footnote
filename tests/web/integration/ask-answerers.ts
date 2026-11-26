@@ -20,16 +20,29 @@ const askedWords = ({ again, question, parts, scope }: Answer) =>
 /**
  * What Ask's loop read for a reply, as text: each read, the chat's earlier reads made again
  * included, as the tool, what it was asked and what it returned. A number in the reply must be in
- * it, as in any tool result. The ids are left out: an id is no evidence of a number.
+ * it, as in any tool result. The ids are left out: an id is no evidence of a number. An Inbox
+ * read adds how many groups it returned: the page counts them for its headline ("17 cards wait on
+ * you in your Inbox, in 6 groups"), and no tool result holds that count.
  */
 export function evidenceOfReads(reads: readonly MadeRead[]): string[] {
   const withoutIds = (key: string, value: unknown) =>
     key === 'ids' || (key === 'id' && typeof value === 'string' && value.startsWith('itm_'))
       ? undefined
       : value
-  return reads.map(
-    (r) =>
+  const groupsOf = (r: MadeRead) =>
+    r.tool === 'inbox' &&
+    typeof r.result === 'object' &&
+    r.result !== null &&
+    'groups' in r.result &&
+    Array.isArray(r.result.groups)
+      ? [`${r.result.groups.length} groups`]
+      : []
+  return reads.map((r) =>
+    [
       `${r.tool} ${JSON.stringify(r.input, withoutIds)}: ${JSON.stringify(r.result, withoutIds)}`,
+      // The page reports its own group count, and that count moves with the real clock.
+      ...groupsOf(r),
+    ].join('\n'),
   )
 }
 

@@ -21,7 +21,6 @@ import {
 import { ApiError } from '@/api/errors'
 import { reportSignedOut } from '@/api/query-client'
 import type { AskInput } from '@/model/ask'
-import type { FigureAsk } from '@/model/figures'
 import type { Source } from '@/model/integrations'
 
 // Reads and writes as the screens use them: one query factory per read, keyed in one place, and
@@ -57,10 +56,13 @@ export const queryKeys = {
   comments: ['getComments'] as const,
   definitions: ['getDefinitions'] as const,
   definitionsPage: ['definitionsPage'] as const,
+  familySplits: ['getFamilySplits'] as const,
   definitionPage: (name: string) => ['definitionPage', name.toLowerCase()] as const,
   definitionPages: ['definitionPage'] as const,
   definitionRelations: (name: string) => ['getDefinitionRelations', name.toLowerCase()] as const,
   definitionRelationLists: ['getDefinitionRelations'] as const,
+  builtFrom: (name: string) => ['getBuiltFrom', name.toLowerCase()] as const,
+  builtFromLists: ['getBuiltFrom'] as const,
   definitionHistory: (name: string) => ['getDefinitionHistory', name.toLowerCase()] as const,
   definitionHistories: ['getDefinitionHistory'] as const,
   inbox: ['getInbox'] as const,
@@ -73,7 +75,6 @@ export const queryKeys = {
   savedViews: ['getSavedViews'] as const,
   settings: ['getSettings'] as const,
   advancedPage: ['advancedPage'] as const,
-  integrations: ['getIntegrations'] as const,
   integrationsPage: ['integrationsPage'] as const,
   integrationPage: (id: string) => ['integrationPage', id] as const,
   integrationPages: ['integrationPage'] as const,
@@ -81,14 +82,13 @@ export const queryKeys = {
   integrationLeftOut: (id: string, readsAll: boolean, views: readonly string[]) =>
     ['integrationLeftOut', id, readsAll, [...views].sort()] as const,
   connectForms: ['connectForm'] as const,
-  figure: (asked: FigureAsk) => ['readFigure', asked] as const,
-  figures: ['readFigure'] as const,
   agentConnections: ['listAgentConnections'] as const,
   autoPublish: ['getAutoPublish'] as const,
   domainPolicies: (domain: string) => ['getDomainPolicies', domain] as const,
   allDomainPolicies: ['getDomainPolicies'] as const,
   connectReview: ['getConnectReview'] as const,
   connectRequest: ['getConnectRequest'] as const,
+  question: (id: string) => ['getQuestion', id] as const,
   observabilityPage: (input: ObsPageInput) => ['observabilityPage', input] as const,
   observabilityPages: ['observabilityPage'] as const,
   obsDimensions: (input: ObsFilterView) => ['obsDimensions', input] as const,
@@ -104,6 +104,9 @@ export const queryKeys = {
   askedWeek: ['askedThisWeek'] as const,
   chats: ['listChats'] as const,
   myReports: ['getMyReports'] as const,
+  chatShares: ['getChatShares'] as const,
+  sharedChat: (id: string) => ['getSharedChat', id] as const,
+  sharedChats: ['getSharedChat'] as const,
 }
 
 export const sessionQuery = () =>
@@ -227,6 +230,9 @@ export const definitionsQuery = () =>
 export const definitionsPageQuery = () =>
   queryOptions({ queryKey: queryKeys.definitionsPage, queryFn: () => api.definitionsPage() })
 
+export const familySplitsQuery = () =>
+  queryOptions({ queryKey: queryKeys.familySplits, queryFn: () => api.getFamilySplits() })
+
 export const definitionPageQuery = (name: string) =>
   queryOptions({
     queryKey: queryKeys.definitionPage(name),
@@ -237,6 +243,12 @@ export const definitionRelationsQuery = (name: string) =>
   queryOptions({
     queryKey: queryKeys.definitionRelations(name),
     queryFn: () => api.getDefinitionRelations({ name }),
+  })
+
+export const builtFromQuery = (name: string) =>
+  queryOptions({
+    queryKey: queryKeys.builtFrom(name),
+    queryFn: () => api.getBuiltFrom({ name }),
   })
 
 export const definitionHistoryQuery = (name: string) =>
@@ -262,9 +274,6 @@ export const settingsQuery = () =>
 /** Settings, Advanced's own read. */
 export const advancedPageQuery = () =>
   queryOptions({ queryKey: queryKeys.advancedPage, queryFn: () => api.advancedPage() })
-
-export const integrationsQuery = () =>
-  queryOptions({ queryKey: queryKeys.integrations, queryFn: () => api.getIntegrations() })
 
 /**
  * While a tool waits for its read (queued, or being read), its row and its page ask again every
@@ -306,9 +315,6 @@ export const integrationLeftOutQuery = (id: string, readsAll: boolean, views: re
     queryFn: () => api.integrationLeftOut({ id, readsAll, views: [...views] }),
   })
 
-export const figureQuery = (asked: FigureAsk) =>
-  queryOptions({ queryKey: queryKeys.figure(asked), queryFn: () => api.readFigure(asked) })
-
 export const agentConnectionsQuery = () =>
   queryOptions({
     queryKey: queryKeys.agentConnections,
@@ -342,6 +348,15 @@ export const connectRequestQuery = (id: string) =>
     retry: false,
   })
 
+/** The one question a link asks, for its page: read once while it is open. */
+export const questionQuery = (id: string) =>
+  queryOptions({
+    queryKey: queryKeys.question(id),
+    queryFn: () => api.getQuestion({ id }),
+    staleTime: Infinity,
+    retry: false,
+  })
+
 export const savedViewsQuery = () =>
   queryOptions({ queryKey: queryKeys.savedViews, queryFn: () => api.getSavedViews() })
 
@@ -371,6 +386,14 @@ export const chatsQuery = () =>
 /** The person's own reports from Ask, with what the owners did after each. */
 export const myReportsQuery = () =>
   queryOptions({ queryKey: queryKeys.myReports, queryFn: () => api.getMyReports() })
+
+/** Whether chats may be shared now, and the person's own live links (FR-721). */
+export const chatSharesQuery = () =>
+  queryOptions({ queryKey: queryKeys.chatShares, queryFn: () => api.getChatShares() })
+
+/** A shared chat as the person signed in opens it. */
+export const sharedChatQuery = (id: string) =>
+  queryOptions({ queryKey: queryKeys.sharedChat(id), queryFn: () => api.getSharedChat({ id }) })
 
 /** What a question is read as: the same words always read the same, so it is kept. */
 export const readQuestionQuery = (question: string) =>
@@ -455,7 +478,6 @@ export const sharedQueries = () => [
   askExamplesQuery(),
   chatsQuery(),
   settingsQuery(),
-  integrationsQuery(),
   agentConnectionsQuery(),
   connectReviewQuery(),
 ]
@@ -499,7 +521,6 @@ export const useSavedViews = () => useSuspenseQuery(useSharedRead(savedViewsQuer
 export const useAskExamples = () => useSuspenseQuery(useSharedRead(askExamplesQuery())).data
 export const useChats = () => useSuspenseQuery(useSharedRead(chatsQuery())).data
 export const useSettings = () => useSuspenseQuery(useSharedRead(settingsQuery())).data
-export const useIntegrations = () => useSuspenseQuery(useSharedRead(integrationsQuery())).data
 export const useAgentConnections = () =>
   useSuspenseQuery(useSharedRead(agentConnectionsQuery())).data
 
@@ -532,14 +553,18 @@ const items: QueryKey[] = [
   // A change to an item may start or end a conflict, or bring a kept pair back.
   queryKeys.conflictLists,
   queryKeys.conflictPairs,
+  // A split family counts the items still about it.
+  queryKeys.familySplits,
 ]
 /** What a change to comments makes stale: the threads, and the Inbox's mentions. */
 const comments: QueryKey[] = [queryKeys.comments, queryKeys.inbox, queryKeys.inboxPage]
 const definitions: QueryKey[] = [
   queryKeys.definitions,
   queryKeys.definitionsPage,
+  queryKeys.familySplits,
   queryKeys.definitionPages,
   queryKeys.definitionRelationLists,
+  queryKeys.builtFromLists,
   queryKeys.definitionHistories,
   queryKeys.relateds,
   // A synonym changes how a question is read.
@@ -574,6 +599,8 @@ export const invalidations: {
   // 401 requests from a signed-out browser, and they count against the service's per-address limit.
   signOut: () => [queryKeys.session],
   setAbout: () => workspace,
+  // A first version is only shown: nothing changes until it is kept.
+  draftAbout: () => [],
   // A finished checklist ends the new install.
   completeSetupStep: () => [...workspace, queryKeys.session],
   updateDomain: () => workspace,
@@ -591,9 +618,14 @@ export const invalidations: {
   restoreAsDraft: () => items,
   // A published item may answer a Not found card, and be the setup checklist's first item.
   saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
-  applyBulk: () => [...live, queryKeys.advancedPage],
-  sendSuggestion: () => [...inbox, queryKeys.scopeSearches],
-  withdrawSuggestion: () => inbox,
+  // A draft saved from a Not found card is that card's draft.
+  saveDraft: () => [...items, ...inbox],
+  // Published or sent from the list or the Inbox's drafts card, drafts leave that card too.
+  applyBulk: () => [...live, ...inbox, queryKeys.advancedPage],
+  clearLeftDrafts: () => [queryKeys.advancedPage],
+  // A new item sent waits for review in Context too, until it is decided or withdrawn.
+  sendSuggestion: () => [...inbox, ...items, queryKeys.scopeSearches],
+  withdrawSuggestion: () => [...inbox, ...items],
   undo: () => everything,
   // Settling archives an item, publishes a version or keeps both: the items, the Inbox's alert and
   // the comment that tells the other owners all move.
@@ -612,6 +644,21 @@ export const invalidations: {
   // What a family means is what Ask reads for it too.
   setFamilyMeaning: () => definitions,
   setFamilyUsual: () => definitions,
+  // The items about a split family are due for a check, each with a card for its owners.
+  splitFamily: () => [
+    ...definitions,
+    ...live,
+    ...inbox,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+  ],
+  joinFamily: () => [
+    ...definitions,
+    ...live,
+    ...inbox,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+  ],
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
@@ -626,8 +673,8 @@ export const invalidations: {
   publishReview: () => decision,
   publishReviews: () => decision,
   archiveReview: () => decision,
-  closeReview: () => inbox,
-  returnReview: () => [...inbox, ...comments],
+  closeReview: () => decision,
+  returnReview: () => [...decision, ...comments],
   saveQuestion: () => [queryKeys.savedQuestions],
   removeSavedQuestion: () => [queryKeys.savedQuestions],
   keepNewAnswer: () => [queryKeys.savedQuestions],
@@ -636,15 +683,23 @@ export const invalidations: {
   saveView: () => [queryKeys.savedViews],
   saveChat: () => [queryKeys.chats],
   reportAnswer: () => [queryKeys.myReports, ...inbox],
+  shareChat: () => [queryKeys.chatShares],
+  stopSharing: () => [queryKeys.chatShares, queryKeys.sharedChats],
   // Feedback counts the ratings.
   rateAnswer: () => [queryKeys.observabilityPages],
   takeBackRating: () => [queryKeys.observabilityPages],
   tellOwner: () => inbox,
-  // Related says whether agents follow links.
-  setLinks: () => [queryKeys.settings, queryKeys.relateds],
   setTool: () => [queryKeys.settings, queryKeys.agentConnections, queryKeys.allDomainPolicies],
   setPause: () => [queryKeys.settings, queryKeys.advancedPage],
   setAutomaticRuns: () => [queryKeys.settings, queryKeys.advancedPage],
+  setLinkReading: () => [queryKeys.settings, queryKeys.advancedPage],
+  setChatSharing: () => [
+    queryKeys.settings,
+    queryKeys.advancedPage,
+    queryKeys.chatShares,
+    queryKeys.sharedChats,
+  ],
+  setNeverReadHosts: () => [queryKeys.settings, queryKeys.advancedPage],
   // A new key is listed on Connected agents; the history log notes it.
   createAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
   renameAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
@@ -658,22 +713,13 @@ export const invalidations: {
   checkHistory: () => [],
   exportHistory: () => [],
   exportContext: () => [],
-  setFigures: () => [queryKeys.settings, queryKeys.figures, queryKeys.integrations],
-  setDataContact: () => [queryKeys.settings, queryKeys.figures, queryKeys.integrations],
-  setFigureConnection: () => [queryKeys.settings, queryKeys.figures, queryKeys.integrations],
   // Connecting the definitions tool can be the setup checklist's last step.
   connectIntegration: () => [queryKeys.settings, ...integrations, ...workspace, queryKeys.session],
   changeIntegration: () => integrations,
   // A content tool's open suggestions leave the Inbox with it.
   disconnectIntegration: () => [queryKeys.settings, ...integrations, ...inbox],
   readIntegration: () => integrations,
-  // A paused tool's figures are held in Ask, and back once it is resumed.
-  pauseIntegration: () => [
-    ...integrations,
-    queryKeys.integrations,
-    queryKeys.figures,
-    queryKeys.advancedPage,
-  ],
+  pauseIntegration: () => [...integrations, queryKeys.advancedPage],
   // A revoked app's policies end with it.
   revokeAgent: () => [
     queryKeys.agentConnections,
@@ -702,6 +748,10 @@ export const invalidations: {
   ],
   // A yes adds a connected agent; the page then leaves for the agent.
   answerConnectRequest: () => [queryKeys.agentConnections],
+  // The card says the day its link was copied.
+  copyQuestionLink: () => inbox,
+  // An answer to a gap is a suggestion in its owners' Inbox; one to a check lands on its card.
+  answerQuestion: () => [...inbox, ...items],
   renameChat: () => [queryKeys.chats],
   deleteChat: () => [queryKeys.chats],
   removeView: () => [queryKeys.savedViews],
@@ -828,6 +878,7 @@ export function useWrite() {
   return async <K extends WriteOperation>(
     operation: K,
     input: WriteInput<K>,
+    answered?: (result: WriteResult<K>) => void,
   ): Promise<WriteResult<K>> => {
     let result: WriteResult<K>
     try {
@@ -846,6 +897,7 @@ export function useWrite() {
         )
       throw error
     }
+    answered?.(result)
     await invalidateAfter(queryClient, operation, input, result)
     return result
   }

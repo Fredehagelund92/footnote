@@ -1,13 +1,16 @@
 import { and, cn } from '@/lib/utils'
-import { ContextText, MentionText } from '@/components/footnote/mention-chip'
+import { MentionText } from '@/components/footnote/mention-chip'
+import { ContextText } from '@/components/footnote/context-text'
 import {
   ArchiveIcon,
   CircleCheckIcon,
   CircleDashedIcon,
+  ClockIcon,
   ExternalLinkIcon,
 } from '@/components/icons'
 import { DetailsBody, detailsSummary } from '@/components/footnote/details-body'
 import { PeekFact, PeekFacts } from '@/components/footnote/peek'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { DocFold, prose } from '@/components/footnote/doc'
 import { Badge } from '@/components/ui/badge'
 import type { Fact } from '@/model/items'
@@ -51,8 +54,8 @@ export function ItemDocument({
         </p>
         {fact.body && <ContextText text={fact.body} />}
         {fact.quote && (
-          <blockquote className="mt-2 border-l-2 pl-4 text-muted-foreground italic">
-            “{fact.quote}”
+          <blockquote className="mt-2 border-l-2 pl-4 text-muted-foreground">
+            <SourcePassages text={fact.quote} code="text-sm" />
           </blockquote>
         )}
       </div>
@@ -62,16 +65,20 @@ export function ItemDocument({
             <PeekFact icon={ArchiveIcon}>
               <b>{domains[fact.domain]?.name}</b> - archived, agents don't get it
             </PeekFact>
-          ) : fact.status === 'Draft' ? (
-            <PeekFact icon={CircleDashedIcon}>
-              <b>{domains[fact.domain]?.name}</b> - a draft
+          ) : fact.status === 'Waiting' ? (
+            <PeekFact icon={ClockIcon}>
+              <b>{domains[fact.domain]?.name}</b> - waiting for review
               {fact.by && (
                 <>
-                  {' '}
-                  by <b>{fact.by}</b>
+                  , sent by <b>{fact.by}</b>
                 </>
               )}
               , agents don't get it until it is published
+            </PeekFact>
+          ) : fact.status === 'Draft' ? (
+            <PeekFact icon={CircleDashedIcon}>
+              <b>{domains[fact.domain]?.name}</b> - your draft, only you can see it. Agents don't
+              get it until it is published
             </PeekFact>
           ) : (
             <PeekFact icon={CircleCheckIcon}>

@@ -189,13 +189,11 @@ describe('the switches', () => {
         [
           { tool: 'get_context', enabled: true },
           { tool: 'suggest_context', enabled: false },
-          { tool: 'get_related', enabled: true },
           { tool: 'a_retired_tool', enabled: true },
         ],
         [{ scope: 'area', areaId: 'area_marketing' }],
       ),
     ).toEqual({
-      links: true,
       tools: {
         get_context: true,
         find_context: false,
@@ -427,6 +425,20 @@ describe('Settings, Advanced', () => {
     reason: null,
     source: null,
     ...over,
+  })
+
+  it('says how many drafts of someone who left an admin deleted, never which', () => {
+    const cleared = (drafts: number) =>
+      historyLine(
+        entry({
+          action: 'drafts.cleared',
+          subjectType: 'person',
+          subjectId: '00000000-0000-4000-8000-000000000003',
+          details: { drafts, name: 'Ines Duarte' },
+        }),
+      )
+    expect(cleared(4)).toEqual({ what: 'Deleted 4 drafts of Ines Duarte, who left' })
+    expect(cleared(1)).toEqual({ what: 'Deleted 1 draft of Ines Duarte, who left' })
   })
 
   it('names the agent: a tool switched for it, a key renamed, and what it did for a person', () => {

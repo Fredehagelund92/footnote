@@ -75,7 +75,7 @@ export const ANSWER_LINES: readonly AnswerLine[] = [
     status: 'no_match',
     label: 'Not found',
     long: 'Nothing written down',
-    sentence: 'Nothing is written about this yet.',
+    sentence: 'Nothing published about this yet.',
     means: 'Nobody has written anything down for this. It does not mean there is no explanation.',
     todo: 'Write context, or tell the owner.',
   },
@@ -121,9 +121,13 @@ export function stateOfStatus(status: string): AnswerState | null {
 export type StateInput = {
   /** The resolver's status (src/domain/resolver.ts). */
   status: 'matched' | 'conflict' | 'no_match' | 'need_more_detail' | 'check_failed'
-  /** The items the reply gives. */
+  /**
+   * Every item that applies, the reply's own and those a cut or a later page holds: what is
+   * written decides Partial, so a page of partial items over a whole one says Checked. Only an item
+   * the reply gives counts as unverified, since only those are the reader's to check.
+   */
   items: readonly { match: 'exact' | 'partial'; unverified: boolean }[]
-  /** The metrics and values asked that no item given covers in full (`uncoveredParts`). */
+  /** The metrics and values asked that no item that applies covers in full (`uncoveredParts`). */
   uncovered: { metrics: readonly string[]; values: readonly string[] }
   /** The question gave no dates and no window, so the server read it at today. */
   assumed: boolean

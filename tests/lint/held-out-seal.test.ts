@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import {
+  proofSealedPath,
   sealedPath,
   sealProblems,
   visiblePath,
@@ -24,7 +25,7 @@ const input = (over: Partial<SealInput> = {}): SealInput => ({
   changes: [],
   added: {},
   sealedBefore: true,
-  sealedAfter: armored,
+  sealedAfter: { [sealedPath]: armored, [proofSealedPath]: null },
   visibleAfter: 'cases:\n  - id: gs-visible\n    split: development\n',
   ...over,
 })
@@ -37,7 +38,12 @@ describe('the held-out seal', () => {
   })
 
   it('fails a change to the sealed cases or their code together with src/', () => {
-    for (const seal of [sealedPath, 'db/seed/held-out.ts', 'scripts/check-held-out-seal.ts']) {
+    for (const seal of [
+      sealedPath,
+      proofSealedPath,
+      'db/seed/held-out.ts',
+      'scripts/check-held-out-seal.ts',
+    ]) {
       const [problem, ...rest] = sealProblems(
         input({ changes: modified(seal, 'src/server/mcp/tools.ts') }),
       )
@@ -69,26 +75,33 @@ describe('the held-out seal', () => {
     ).toEqual([])
   })
 
-  it('fails deleting or moving the sealed file', () => {
+  it('fails deleting or moving a sealed file', () => {
+    const none = { [sealedPath]: null, [proofSealedPath]: null }
     expect(
-      sealProblems(input({ sealedAfter: null, changes: [{ status: 'D', path: sealedPath }] })),
+      sealProblems(input({ sealedAfter: none, changes: [{ status: 'D', path: sealedPath }] })),
     ).toEqual([expect.stringMatching(/deletes or moves db\/seed\/golden-held-out\.age/)])
     expect(
       sealProblems(
         input({
-          sealedAfter: null,
+          sealedAfter: none,
           changes: [{ status: 'R090', path: 'db/x.age', from: sealedPath }],
         }),
       ),
     ).toEqual([expect.stringMatching(/deletes or moves/)])
+    expect(
+      sealProblems(input({ sealedAfter: none, changes: [{ status: 'D', path: proofSealedPath }] })),
+    ).toEqual([
+      'It deletes or moves db/seed/prove-questions.age, which holds the sealed proof questions.',
+    ])
   })
 
   it('fails a sealed file that is not an age file, even in the armor, and a committed key', () => {
     const plain = 'cases:\n  - id: gs-held\n    split: held_out\n'
-    for (const sealedAfter of [plain, armor(plain)])
-      expect(sealProblems(input({ sealedAfter }))).toEqual([
-        expect.stringMatching(/is not an age file/),
-      ])
+    for (const text of [plain, armor(plain)])
+      for (const path of [sealedPath, proofSealedPath])
+        expect(
+          sealProblems(input({ sealedAfter: { [sealedPath]: armored, [path]: text } })),
+        ).toEqual([`${path} is not an age file: sealed cases are never committed in plain text.`])
     // Built here, so no key-shaped text is in this file.
     const key = ['AGE', 'SECRET', 'KEY', `1${'Q'.repeat(58)}`].join('-')
     expect(
@@ -112,6 +125,8 @@ describe('the held-out seal', () => {
       "import { Decrypter } from 'age-encryption'",
       'await runHeldOut((held) => held.cases, run)',
       'await checkHeldOut(set, checks)',
+      "readFileSync('db/seed/prove-questions.age')",
+      'const { questions } = await readSealedProof(identity)',
     ]
     for (const line of opens)
       expect(
@@ -161,6 +176,10 @@ describe('the held-out seal', () => {
   it('lets a runner take counts, the seal open the cases, and the docs name the key', () => {
     const counts = [
       "import { heldOutArea, heldOutL1 } from '../../db/seed/held-out-runs.ts'",
+      // The proof's sealed questions come as a source that runs them silenced.
+      'const opened = await sealedProofSource(process.env)',
+      // The opened questions, committed with the published result, are no sealed file.
+      "const file = 'db/seed/prove-questions.yml'",
       "console.log(formatHeldOut('agent cases', await heldOutL1(tx)))",
       // The eval area runner's held-out path: counts by type, the cases opened by the seal.
       "console.log(formatHeldOut('area cases', await heldOutArea(database, deps, options)))",

@@ -27,13 +27,8 @@ test('Definitions says where metrics come from in words that are true', async ({
   await expect(
     main.getByText('change them there. Terms are written here by their domain owner.'),
   ).toBeVisible()
-  // Who hears about a wrong figure is behind the note's info button, not in the note.
-  await expect(main.getByText(/looks wrong/)).toHaveCount(0)
-  await main.getByRole('button', { name: 'Who hears about a wrong figure' }).click()
-  await expect(
-    page.getByText('A figure that looks wrong goes to Ravi Kapoor, the data contact.'),
-  ).toBeVisible()
-  await page.keyboard.press('Escape')
+  // Nobody is named for a wrong figure: Footnote reads no figures.
+  await expect(main.getByText(/looks wrong|data contact/i)).toHaveCount(0)
   await expect(main.getByText(/synced/i)).toHaveCount(0)
   await expect(main.getByText(/read today at/i)).toHaveCount(0)
   // Another name is one name, in the filter and in a row.

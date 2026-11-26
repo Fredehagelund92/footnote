@@ -1,36 +1,43 @@
 import * as React from 'react'
-import { EqualIcon, LockIcon, PencilIcon, TriangleAlertIcon, UserIcon } from '@/components/icons'
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  EqualIcon,
+  LockIcon,
+  PencilIcon,
+  TriangleAlertIcon,
+} from '@/components/icons'
 import { termWord } from '@domain/terms'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
 import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
 import type { Fact } from '@/model/items'
 import {
   familyMeaning,
+  listIndex,
   parseTags,
   kindName,
+  type BuiltFromMetric,
   type Conflict,
   type Definition,
   useGlossary,
 } from '@/lib/definitions'
-import { openDock } from '@/lib/dock'
+import { openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
 import { mentionId, plainText } from '@/lib/mentions'
 import { MentionText } from '@/components/footnote/mention-chip'
-import { SourceText } from '@/components/footnote/source-text'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { Related } from '@/components/footnote/related'
 import { useRelated } from '@/hooks/use-related'
-import { PeekFact, PeekFacts } from '@/components/footnote/peek'
-import { useFigures } from '@/lib/figures'
+import { PeekBand, PeekFact, PeekFacts, PeekLabel } from '@/components/footnote/peek'
 import { MoreProperties, Property } from '@/components/footnote/doc'
 import { VersionHistory } from '@/components/footnote/version-history'
 import { useQuery } from '@tanstack/react-query'
-import { definitionHistoryQuery, useWrite } from '@/api/queries'
+import { builtFromQuery, definitionHistoryQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -39,10 +46,13 @@ import { ShowMoreButton } from '@/components/footnote/show-more'
 export function TypeTile({
   d,
   size = 'md',
+  label,
   className,
 }: {
   d: Pick<Definition, 'type' | 'sameAs' | 'family'>
   size?: 'md' | 'lg'
+  /** What it says to a screen reader in place of its kind, when a tooltip beside it says the same. */
+  label?: string
   className?: string
 }) {
   const Glyph = glyphs[kindOf(d)]
@@ -50,8 +60,8 @@ export function TypeTile({
   const tile = (
     <span
       role="img"
-      aria-label={kindName(d)}
-      title={kindName(d)}
+      aria-label={label ?? kindName(d)}
+      title={label ? undefined : kindName(d)}
       className={cn(
         'relative inline-flex shrink-0 items-center justify-center border bg-muted text-foreground',
         size === 'md' ? 'size-6 [&>svg]:size-3.5' : 'size-7 [&>svg]:size-4',
@@ -64,31 +74,19 @@ export function TypeTile({
   )
   if (!d.family) return tile
   // A family is its metric's tile with two more behind it, each a step up and to the right: a
-  // stack of variants.
-  const behind = cn('absolute border bg-background', size === 'md' ? 'size-6' : 'size-7', corner)
+  // stack of variants. Their edges are the muted ink, so the stack reads in light and dark alike.
+  const behind = cn(
+    'absolute border border-muted-foreground/35 bg-muted',
+    size === 'md' ? 'size-6' : 'size-7',
+    corner,
+  )
   return (
     // The stack takes no room of its own: the name beside it starts where a metric's would.
     <span className={cn('relative -mt-1 -mr-1 inline-flex shrink-0 pt-1 pr-1', className)}>
-      <span aria-hidden className={cn(behind, 'top-0 right-0')} />
+      <span aria-hidden className={cn(behind, 'top-0 right-0 opacity-60')} />
       <span aria-hidden className={cn(behind, 'top-0.5 right-0.5')} />
       {tile}
     </span>
-  )
-}
-
-/** A family's mark beside its name: "Family · 250 variants", the same at every width. */
-export function FamilyChip({
-  family,
-  className,
-}: {
-  family: NonNullable<Definition['family']>
-  className?: string
-}) {
-  const n = family.variants.length.toLocaleString('en-GB')
-  return (
-    <Badge variant="outline" className={cn('shrink-0 text-muted-foreground', className)}>
-      Family · {n} {family.variants.length === 1 ? 'variant' : 'variants'}
-    </Badge>
   )
 }
 
@@ -521,9 +519,6 @@ export function DefinitionDetails({
   const about = glossary.contextAbout(d, facts)
   const subject = target ? glossary.meaningOf(d) : d
   const related = useRelated(mentionId(d.type, d.name))
-  const figures = useFigures()
-  // The figure-capable integration a synced definition comes from: its data contact answers for its figures.
-  const source = figures.sourceOf(d.tool)
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
   const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
   const mentioned = related.links.length > 0
@@ -554,14 +549,22 @@ export function DefinitionDetails({
       ) : target ? (
         <div className="flex flex-col items-start gap-2">
           <AnotherNameFor target={target} />
-          <p className="max-w-reading text-base leading-7 text-muted-foreground">
-            {plainText(glossary.meaningOf(d).definition)}
-          </p>
+          {subject.synced ? (
+            <SourcePassages
+              text={subject.definition}
+              code="text-sm"
+              className="max-w-reading text-base leading-7 text-muted-foreground"
+            />
+          ) : (
+            <p className="max-w-reading text-base leading-7 text-muted-foreground">
+              {plainText(subject.definition)}
+            </p>
+          )}
         </div>
       ) : d.definition ? (
         <div className="max-w-reading text-base leading-7">
           {d.synced ? (
-            <SourceText text={d.definition} code="text-sm" />
+            <SourcePassages text={d.definition} code="text-sm" />
           ) : (
             <MentionText text={d.definition} />
           )}
@@ -594,13 +597,6 @@ export function DefinitionDetails({
           ) : (
             <PeekFact icon={PencilIcon}>
               <b>{domain}</b> - written by <b>{d.by}</b> - {d.updated}
-            </PeekFact>
-          )}
-          {/* A metric's figures have a person to ask, named in its integration's settings. */}
-          {d.synced && d.type === 'metric' && source && (
-            <PeekFact icon={UserIcon}>
-              Data contact <b>{figures.contact(source)}</b>, who hears about a figure that looks
-              wrong
             </PeekFact>
           )}
         </PeekFacts>
@@ -671,3 +667,43 @@ export function DefinitionDetails({
     </div>
   )
 }
+
+/**
+ * What the tree of what a metric is built from (built-from-tree.tsx) takes from the first load,
+ * handed to it rather than imported, so its own code loads apart without splitting the first load
+ * into more files (as family-parts.ts does for a family's quick view). Here, since this module
+ * already imports all of it: a module of its own split the first load into twice the files.
+ */
+export const builtFromParts = {
+  /** What a metric is built from, once read; null while it is read, or when it is built from no metric. */
+  useBuiltFrom: (name: string) => {
+    const metrics = useQuery(builtFromQuery(name)).data
+    return metrics?.[0]?.from.length ? metrics : null
+  },
+  /** For each line: the definition it names, and how many published items about it the person may read. */
+  useLines: () => {
+    const glossary = useGlossary()
+    const facts = useFacts()
+    const index = React.useMemo(() => listIndex(glossary.all, facts), [glossary, facts])
+    return (m: BuiltFromMetric) => {
+      const d = m.linked ? glossary.find(m.name) : undefined
+      return { d, count: d ? index.contextAbout(d).length : 0 }
+    }
+  },
+  /** The definition the side panel shows, by name. */
+  usePeeked: () => {
+    const dock = useDock()
+    return dock?.kind === 'def' ? dock.id : undefined
+  },
+  openMetric: (name: string) => openDock('def', name),
+  useShowMore,
+  cn,
+  TypeTile,
+  ShowMoreButton,
+  PeekBand,
+  PeekLabel,
+  ChevronDownIcon,
+  ChevronRightIcon,
+}
+
+export type BuiltFromParts = typeof builtFromParts

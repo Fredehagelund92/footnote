@@ -70,7 +70,7 @@ export const ACCESS_KEY = 'Access key'
 export const toolsOn = (r: Pick<Connected, 'tools'>) =>
   r.tools.filter((t) => t.on && t.allowed).map((t) => t.tool)
 
-/** What an agent's row says of its tools: "All 6 tools", "4 of 6 tools" or "Off". */
+/** What an agent's row says of its tools: "All 5 tools", "4 of 5 tools" or "Off". */
 export function toolsLine(r: Pick<Connected, 'tools'>) {
   const on = toolsOn(r).length
   const all = r.tools.filter((t) => t.allowed).length

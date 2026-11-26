@@ -32,7 +32,14 @@ import { OfflineBanner } from '@/components/footnote/load-state'
 import { ProfileLabel } from '@/components/footnote/profile-label'
 import { ViewAs, ViewAsChoices, useViewAs } from '@/components/view-as'
 import { pageTitle } from '@/lib/page-title'
+import { plainClick } from '@/lib/router'
 import { useSession } from '@/api/queries'
+
+/**
+ * A way back, left of the title. With `onBack` a plain click goes back as the page's Esc does,
+ * such as back in history to the list it came from; the link still opens elsewhere.
+ */
+export type WayBack = { href: string; label: string; onBack?: () => void }
 
 /** The nav's toggle, always in the same spot, saying what it will do and its shortcut. */
 function NavToggle() {
@@ -65,7 +72,16 @@ function NavToggle() {
  * this: everything else it would hold (the page's own menu, Ask, the nav, search, the theme and the
  * demo's person) behind one More button, so the title keeps its room.
  */
-function PhoneMore({ ask, children }: { ask?: () => void; children?: ReactNode }) {
+function PhoneMore({
+  ask,
+  nav = true,
+  children,
+}: {
+  ask?: () => void
+  /** Whether it opens the nav: a page that keeps its nav toggle has no need. */
+  nav?: boolean
+  children?: ReactNode
+}) {
   const { toggleSidebar } = useSidebar()
   const viewAs = useViewAs()
   return (
@@ -87,10 +103,12 @@ function PhoneMore({ ask, children }: { ask?: () => void; children?: ReactNode }
               Ask about this
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onClick={toggleSidebar}>
-            <PanelLeftIcon />
-            Open the menu
-          </DropdownMenuItem>
+          {nav && (
+            <DropdownMenuItem onClick={toggleSidebar}>
+              <PanelLeftIcon />
+              Open the menu
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => open('palette')}>
             <SearchIcon />
             Search
@@ -130,6 +148,8 @@ export function SiteHeader({
   bare,
   ask,
   more,
+  fold,
+  views,
 }: {
   /**
    * The page's name, or a breadcrumb that leads to it. A breadcrumb's current page is the page's
@@ -141,24 +161,32 @@ export function SiteHeader({
   children?: ReactNode
   className?: string
   /** A way back, left of the title (an editor goes back to what it edits). */
-  back?: { href: string; label: string }
+  back?: WayBack
   /**
    * A page reached from a list or a link (an item, a definition, a review, a conflict). On a phone
    * its crumbs are gone, so it gets the way back, and everything but the page's main action moves
    * into one More menu (search, the theme, the nav and the person, with `ask` and `more`) so the
    * title keeps room to be read. A laptop's header is unchanged.
    */
-  deep?: { href: string; label: string }
+  deep?: WayBack
   /** On a phone, the page's Ask, in the More menu. The page draws its own button on a laptop. */
   ask?: () => void
   /** On a phone, the page's own menu items, first in the More menu. */
   more?: ReactNode
   /** Leaves out search and the theme: the page's own More menu has them, so the title keeps its room. */
   bare?: boolean
+  /**
+   * On a phone, search and the theme in one More menu: a page with more header buttons than one
+   * (Ask's History and New chat) keeps them a tap away and the install's label its words.
+   */
+  fold?: boolean
+  /** Other views of the page, after its title: Context's List and By time. */
+  views?: ReactNode
 }) {
   const { isMobile } = useSidebar()
   const { profileLabel } = useSession()
   const lean = !!deep && isMobile
+  const folded = !!fold && isMobile && !lean && !bare
   const way = back ?? (lean ? deep : undefined)
   // The tab says the page's heading: the header's, or the page's own under it (an item's title).
   const ref = React.useRef<HTMLElement>(null)
@@ -208,7 +236,7 @@ export function SiteHeader({
                     aria-label={way.label}
                     className="pointer-coarse:min-w-11"
                     nativeButton={false}
-                    render={<a href={way.href} />}
+                    render={<a href={way.href} onClick={way.onBack && plainClick(way.onBack)} />}
                   />
                 }
               >
@@ -230,10 +258,11 @@ export function SiteHeader({
               <span className="min-w-0 truncate">{title}</span>
             </div>
           )}
+          {views}
         </div>
         <div data-header-actions className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* On a phone the sidebar is a sheet, so search lives here, as a magnifier. */}
-          {isMobile && !bare && !lean && (
+          {isMobile && !bare && !lean && !folded && (
             <Button
               variant="outline"
               size="icon"
@@ -257,10 +286,11 @@ export function SiteHeader({
           </span>
         )}
         <div data-header-actions className="flex shrink-0 items-center gap-2 empty:hidden sm:gap-3">
-          {!bare && !lean && <ThemeMenu />}
+          {!bare && !lean && !folded && <ThemeMenu />}
           {/* The demo's switch between its people, in the corner: nothing anywhere else. */}
-          {!bare && !lean && <ViewAs />}
+          {!bare && !lean && !folded && <ViewAs />}
           {lean && <PhoneMore ask={ask}>{more}</PhoneMore>}
+          {folded && <PhoneMore nav={false} />}
         </div>
       </header>
       {/* Offline, one quiet line right under the header, so the header keeps its line with the sidebar. */}
@@ -285,7 +315,7 @@ export function Page({
   icon?: ReactNode
   actions?: ReactNode
   /** See SiteHeader. */
-  deep?: { href: string; label: string }
+  deep?: WayBack
   ask?: () => void
   more?: ReactNode
   children: ReactNode

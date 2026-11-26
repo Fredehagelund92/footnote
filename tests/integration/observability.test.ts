@@ -138,9 +138,9 @@ beforeAll(async () => {
   )
   await client.query(
     `insert into areas (id, name) values ('tiny', 'Tiny'), ('unasked', 'Unasked');
-     insert into vocab_terms (key, kind, parent_key) values
-       ('metric:net_revenue', 'metric', null), ('val:market/sweden', 'dimension_value', 'dim:market'),
-       ('val:market/germany', 'dimension_value', 'dim:market');
+     insert into vocab_terms (key, kind) values
+       ('metric:net_revenue', 'metric'), ('val:market/sweden', 'dimension_value'),
+       ('val:market/germany', 'dimension_value');
      insert into vocab_term_versions (term_key, version_no, name, content_digest) values
        ('metric:orders', 1, 'Orders', sha256('o')), ('metric:net_revenue', 1, 'Net revenue', sha256('n')),
        ('val:market/norway', 1, 'Norway', sha256('no')), ('val:market/sweden', 1, 'Sweden', sha256('se')),

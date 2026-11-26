@@ -7,8 +7,10 @@
  * (`obs.replay`), and the editor and the review count who would get a draft (`engine.reach`).
  */
 import * as z from 'zod/mini'
+import { actionIds } from '../domain/actions.ts'
 import { answerStates, leftOutReasons } from '../domain/answer.ts'
 import { chosenPeriodNames } from '../domain/dates.ts'
+import { marks } from '../domain/markdown-blocks.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 import { CHAT_LINE, CHAT_SOURCES, CHAT_TURNS, LOOP_READS, LOOP_REPLY } from '../domain/ask-chat.ts'
 import { itemKinds } from '../domain/item.ts'
@@ -145,10 +147,16 @@ export type AnswerResult = z.infer<typeof answerSchema>
 
 /** A word Ask asks about, and its meanings in the order the question says them. */
 
-/** One read of Ask's loop: the tool, by its name, and its input, as the model gave it. */
+/**
+ * One read of Ask's loop: the tool, by its name, and its input, as the model gave it; then the step
+ * of its turn it was sent in, counted among the reads sent back, and the words the model wrote in that step before it, on the step's
+ * first read. A follow-up sends the turn again so, step by step, and its prompt cache holds.
+ */
 export const loopReadSchema = z.strictObject({
   tool: z.string().check(z.minLength(1), z.maxLength(40)),
   input: z.record(z.string().check(z.maxLength(40)), z.unknown()),
+  step: z.optional(z.number().check(z.int(), z.minimum(0), z.maximum(LOOP_READS))),
+  before: z.optional(z.string().check(z.maxLength(LOOP_REPLY))),
 })
 export type LoopRead = z.infer<typeof loopReadSchema>
 
@@ -160,10 +168,29 @@ const loopNounSchema = z.object({
   of: z.nullable(z.object({ id: z.string(), name: z.string() })),
   /** A dimension's value type, as its source gives it ("time"): what picks its icon. */
   type: z.nullable(z.string()),
+  /**
+   * A metric group that is no family (FR-142): a name its tool puts metrics under, with no
+   * definition of its own, so its chip opens no definition.
+   */
+  plainGroup: z.optional(z.literal(true)),
 })
-/** A run of an answer's words: plain words, a noun, a citation, a count with what it is out of, a day. */
+/** Where words of an answer link: a web or mail address, or a help page at one of its parts. */
+const loopLinkSchema = z.union([
+  z.object({ url: z.string() }),
+  z.object({ slug: z.string(), id: z.string() }),
+])
+export type LoopLink = z.infer<typeof loopLinkSchema>
+/**
+ * A run of an answer's words: plain words, a noun, a citation, a count with what it is out of, a
+ * day. Plain words carry the marks and the link the model wrote them with, in Markdown.
+ */
 const loopRunSchema = z.union([
-  z.object({ t: z.literal('text'), text: z.string() }),
+  z.object({
+    t: z.literal('text'),
+    text: z.string(),
+    marks: z.optional(z.array(z.enum(marks))),
+    link: z.optional(loopLinkSchema),
+  }),
   z.object({ t: z.literal('noun'), id: z.string() }),
   z.object({ t: z.literal('cite'), n: z.number() }),
   z.object({ t: z.literal('count'), value: z.string(), of: z.nullable(z.string()) }),
@@ -171,12 +198,19 @@ const loopRunSchema = z.union([
 ])
 export type LoopRun = z.infer<typeof loopRunSchema>
 /**
- * A block of an answer's words: a paragraph, a short list the model wrote, or the items of a read
- * as code lists them (`[list:r1]`), by id, with how many more the read found.
+ * A block of an answer's words: a paragraph, a short list the model wrote (numbered from `start`
+ * when it numbered it), a short table it wrote, its first row the heads, the lines it wrote as code,
+ * or the items of a read as code lists them (`[list:r1]`), by id, with how many more the read found.
  */
 const loopBlockSchema = z.union([
   z.object({ t: z.literal('p'), runs: z.array(loopRunSchema) }),
-  z.object({ t: z.literal('ul'), items: z.array(z.array(loopRunSchema)) }),
+  z.object({
+    t: z.literal('ul'),
+    items: z.array(z.array(loopRunSchema)),
+    start: z.optional(z.number()),
+  }),
+  z.object({ t: z.literal('table'), rows: z.array(z.array(z.array(loopRunSchema))) }),
+  z.object({ t: z.literal('code'), text: z.string() }),
   z.object({ t: z.literal('list'), rows: z.array(z.string()), more: z.number() }),
 ])
 export type LoopBlock = z.infer<typeof loopBlockSchema>
@@ -243,6 +277,10 @@ export type LoopOverview = z.infer<typeof overviewSchema>
  * none), and the own words of its variants that say something else or how they are worked out
  * from another (of every variant, with no meaning), by their values: at most a few, and how many
  * more have words of their own. Only the page reads it; Ask's model reads the definition's words.
+ * `source` is where the meaning comes from (C1): words declared for the family in its tool,
+ * written by an owner (by name, and the day), the words most of its variants share (how many), or
+ * the words of its base, the variant the others are converted from (its values, and each other
+ * variant's); `none` for no meaning. A turn written before it has none.
  */
 export const familyShownSchema = z.object({
   by: z.array(z.string()),
@@ -250,6 +288,19 @@ export const familyShownSchema = z.object({
   meaning: z.nullable(z.string()),
   own: z.array(z.object({ values: z.array(z.string()), words: z.string() })),
   more: z.number(),
+  source: z.optional(
+    z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('declared') }),
+      z.object({ kind: z.literal('written'), by: z.string(), on: z.string() }),
+      z.object({ kind: z.literal('common'), agree: z.number() }),
+      z.object({
+        kind: z.literal('base'),
+        values: z.array(z.string()),
+        converted: z.array(z.array(z.string())),
+      }),
+      z.object({ kind: z.literal('none') }),
+    ]),
+  ),
 })
 export type FamilyShown = z.infer<typeof familyShownSchema>
 
@@ -272,6 +323,8 @@ const definitionCardSchema = z.object({
   owners: z.array(z.string()),
   context: z.object({ count: z.number(), items: z.array(z.string()) }),
   inWords: z.boolean(),
+  /** The words its read looked it up by, when they are none of its names and its own words say them. */
+  mentions: z.optional(z.string()),
 })
 export type DefinitionCard = z.infer<typeof definitionCardSchema>
 
@@ -370,6 +423,64 @@ export const loopTurnSchema = z.object({
    * there are none.
    */
   unknown: z.optional(z.array(z.string())),
+  /**
+   * The quick actions the answer offers to open (FR-719.10), at most two: each one its words mark
+   * as what they explain how to do, that a read of the chat offered, with the family the read was
+   * about. The page draws a button for each the person may do (src/domain/actions.ts), and says
+   * who does it in place of one they may not. Left out when there are none.
+   */
+  actions: z.optional(
+    z.array(
+      z.object({
+        id: z.enum(actionIds),
+        family: z.optional(
+          z.object({
+            name: z.string(),
+            domain: z.nullable(z.string()),
+            owners: z.array(z.string()),
+          }),
+        ),
+      }),
+    ),
+  ),
+  /**
+   * What is not published yet that the person may open and that matches every word of a search
+   * that found nothing published (FR-718.2): their own drafts and the suggestions waiting for
+   * review they sent or decide for, in a block of its own under the answer, never a source. Each
+   * row with what opens it (src/domain/actions.ts); the one sentence the model may write about
+   * them, if they are published as written, drawn by code and kept out of the answer's words; and
+   * the words searched. Left out when there are none.
+   */
+  drafts: z.optional(
+    z.object({
+      words: z.array(z.string()),
+      found: z.number(),
+      more: z.number(),
+      rows: z.array(
+        z.object({
+          id: z.string(),
+          state: z.enum(['draft', 'waiting']),
+          /** A change to a published item, not a new one. */
+          change: z.boolean(),
+          title: z.string(),
+          /** Its domain, as a noun's id when a read named it. */
+          domain: z.nullable(z.string()),
+          by: z.nullable(z.string()),
+          on: z.string(),
+          action: z.object({
+            id: z.enum(['open_draft', 'review_suggestion']),
+            draft: z.object({
+              id: z.string(),
+              domain: z.nullable(z.string()),
+              mine: z.boolean(),
+              owners: z.array(z.string()),
+            }),
+          }),
+        }),
+      ),
+      sentence: z.nullable(z.array(loopRunSchema)),
+    }),
+  ),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /**

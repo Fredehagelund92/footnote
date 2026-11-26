@@ -1,4 +1,4 @@
-import { rankItems, readQuery, stem, type ReadQuery } from '../../domain/context-search.ts'
+import { rankItems, readQuery, type ReadQuery } from '../../domain/context-search.ts'
 import {
   domainReadAs,
   domainReadAsInstruction,
@@ -22,11 +22,13 @@ import { assumedDate, extractScope, unknownName } from '../../domain/scope.ts'
 import { UTC_CALENDAR, type Calendar } from '../../domain/dates.ts'
 import { acceptedByRole, ownerRole } from '../../domain/served-review.ts'
 import { shiftDate } from '../../domain/validity.ts'
+import { questionWords } from '../../domain/question-order.ts'
 import {
   memberNames,
   memberTokens,
   nameSimilarity,
   normalizeName,
+  phrasesIn,
   suggestTerms,
 } from '../../domain/vocabulary.ts'
 import type { ServingBundle, ServingItem, ServingTerm } from '../modules/editions/index.ts'
@@ -260,7 +262,7 @@ const heldWords: Record<string, [string, string]> = {
  * the resolver delivers for their own scope (FR-314); the others are held back, counted by why.
  * A search's domain or kind never narrows them: they describe the term.
  */
-function termItems(bundle: ServingBundle, term: ServingTerm, today: string) {
+export function termItems(bundle: ServingBundle, term: ServingTerm, today: string) {
   const given: ServingItem[] = []
   const held = new Map<string, number>()
   let about = 0
@@ -386,8 +388,11 @@ export function definitionOf(
   bundle: ServingBundle,
   term: ServingTerm,
   today: string,
-  /** The words name it only in part ("retention" for Retention rate). */
-  inPart = false,
+  /**
+   * How the words name it: by a name, only in part ("retention" for Retention rate), or not at
+   * all, its description saying them (`mentions`, the words it says).
+   */
+  named: { by: 'exactly' | 'in part' } | { by: 'in text'; mentions: string } = { by: 'exactly' },
 ) {
   const items = termItems(bundle, term, today)
   const about = items.given
@@ -463,12 +468,17 @@ export function definitionOf(
       : ''
   return {
     term: term.name,
-    named: inPart ? 'in part' : 'exactly',
-    ...(inPart
+    named: named.by,
+    ...(named.by === 'in part'
       ? {
           named_note: `The words name ${term.name} only in part. Check that it is what was meant before answering with this definition, and say so if it may not be.`,
         }
-      : {}),
+      : named.by === 'in text'
+        ? {
+            mentions: named.mentions,
+            named_note: `The words are no name of ${term.name}: its description says “${named.mentions}”. Check that it is what was meant before answering with this definition, and say so if it may not be.`,
+          }
+        : {}),
     key: term.key,
     kind,
     ...(term.aliases.length ? { other_names: term.aliases } : {}),
@@ -495,22 +505,6 @@ export function definitionOf(
 }
 
 const definedKinds = new Set(['metric', 'metric_group', 'dimension'])
-/**
- * Metrics and dimensions a query names by part of their name: a word that is in the name of one
- * of them only ("retention" for Retention rate, "active customer" for Active customers). A word in
- * several names ("rate") names none of them.
- */
-function partlyNamed(bundle: ServingBundle, read: ReadQuery): string[] {
-  const terms = bundle.terms.filter((term) => definedKinds.has(term.kind))
-  const stems = (name: string) => normalizeName(name).split(/\s+/).map(stem)
-  return read.used.words.flatMap((word) => {
-    const wanted = stem(normalizeName(word))
-    const hits = terms.filter((term) =>
-      [term.name, ...term.aliases].some((name) => stems(name).includes(wanted)),
-    )
-    return hits.length === 1 ? [hits[0]!.key] : []
-  })
-}
 
 /** The terms a query names, as Footnote reads them: "Net revenue (metric), Spain (Market)". */
 function readAs(bundle: ServingBundle, read: ReadQuery) {
@@ -654,7 +648,8 @@ function nothingFound(
  * find_context (FR-338): the items whose words or names match, best first; when no words match,
  * the items that apply to the scope the words name (as get_context matches them), on the dates
  * given or today. It also says what the definition source gives for each metric or dimension the
- * words name, where that definition comes from, and what Footnote adds. When nothing is found it says
+ * words name, where that definition comes from, and what Footnote adds; words that name none give
+ * the definitions whose description says them (`named: 'in text'`). When nothing is found it says
  * why and what to try.
  */
 export function findContext(
@@ -675,9 +670,12 @@ export function findContext(
   const pool = bundle.items.filter(fits)
   const readable = pool.filter((item) => canRead(bundle, item, today))
   const read = readQuery(args.query, bundle.terms, bundle.areas)
-  let found: { item: ServingItem; match: string }[] = rankItems(read, readable, bundle.terms).map(
-    ({ item, all }) => ({ item, match: all ? 'all' : 'some' }),
-  )
+  let found: { item: ServingItem; match: string }[] = rankItems(
+    read,
+    readable,
+    bundle.terms,
+    today,
+  ).map(({ item, all }) => ({ item, match: all ? 'all' : 'some' }))
   let scoped: Record<string, unknown> | null = null
   let assumed: ReturnType<typeof assumedDate> | null = null
   if (!found.length) {
@@ -686,6 +684,7 @@ export function findContext(
     const scope = extractScope(args.query, bundle.terms, today, {
       ...(window ? { window } : {}),
       calendar,
+      domains: bundle.areas.map((area) => area.name),
     })
     if (scope.status === 'resolved') {
       assumed = scope.assumed ? assumedDate(scope.assumed) : null
@@ -696,6 +695,7 @@ export function findContext(
         hiddenMetrics: [],
         sizeLimit: Number.MAX_SAFE_INTEGER,
         dependenciesAvailable: true,
+        words: questionWords(args.query, bundle.terms, bundle.areas),
       })
       const byId = new Map(pool.map((item) => [item.id, item]))
       found = resolution.items.flatMap((match) => {
@@ -715,15 +715,43 @@ export function findContext(
       }
     }
   }
-  const exact = new Set(read.used.terms)
-  const definitions = [...new Set([...read.used.terms, ...partlyNamed(bundle, read)])]
+  // A name read by a word of it names it only in part ("retention" for Retention rate).
+  const inPart = new Set(read.loose.filter((hit) => hit.by === 'part').map((hit) => hit.key))
+  const shownDefined = (term: ServingTerm | undefined): term is ServingTerm =>
+    !!term && definedKinds.has(term.kind) && termShown(bundle, term)
+  const nameDefined = [...new Set(read.used.terms)]
     .map((key) => bundle.terms.find((term) => term.key === key))
-    .filter(
-      (term): term is ServingTerm =>
-        !!term && definedKinds.has(term.kind) && termShown(bundle, term),
-    )
-    .slice(0, 5)
-    .map((term) => definitionOf(bundle, term, today, !exact.has(term.key)))
+    .filter(shownDefined)
+  // Words that name nothing an agent may see, a domain, a term or a word written in Definitions,
+  // find the definitions whose own words say them, as a whole phrase.
+  const mentions = read.used.words.join(' ')
+  const names =
+    read.used.domains.length ||
+    read.used.terms.some((key) => {
+      const term = bundle.terms.find((t) => t.key === key)
+      return !!term && termShown(bundle, term)
+    }) ||
+    bundle.written.some((w) => normalizeName(w.name) === normalizeName(mentions))
+  const inText =
+    nameDefined.length || names || !mentions
+      ? []
+      : bundle.terms.filter(
+          (term) =>
+            shownDefined(term) &&
+            term.kind !== 'metric_group' &&
+            !!term.described?.description &&
+            phrasesIn(normalizeName(term.described.description), [mentions]).found.length > 0,
+        )
+  const definitions = [
+    ...nameDefined
+      .slice(0, 5)
+      .map((term) =>
+        definitionOf(bundle, term, today, { by: inPart.has(term.key) ? 'in part' : 'exactly' }),
+      ),
+    ...inText
+      .slice(0, 5)
+      .map((term) => definitionOf(bundle, term, today, { by: 'in text', mentions })),
+  ]
   // How Footnote read words for a domain that are not its stored name, once per domain.
   const readAs = [
     ...(domain.readAs && area ? [{ id: area.id, note: domain.readAs }] : []),

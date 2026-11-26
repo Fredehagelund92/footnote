@@ -23,16 +23,20 @@ vi.mock('@/api/queries', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   useWrite: () => vi.fn(),
 }))
-vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
-vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/figures', () => ({
-  useFigures: () => ({
-    enabled: () => false,
-    contact: () => 'the data team',
-    sourceOf: () => undefined,
-  }),
+vi.mock('@/lib/dock', () => ({
+  openDock: vi.fn(),
+  openFromButton: vi.fn(),
+  closeDock: vi.fn(),
+  useDock: () => null,
 }))
-vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
+vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
+vi.mock('@/lib/shown-answers', () => ({
+  answerKey: () => 'k',
+  keepShown: () => {},
+  markReportSent: () => {},
+  useReportSent: () => false,
+  useShownAnswer: () => undefined,
+}))
 vi.mock('@/lib/router', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   useRoute: () => ({ path: '/ask', query: new URLSearchParams() }),
@@ -86,9 +90,15 @@ describe('a follow-up that reads nothing', () => {
         ),
       ),
     )
-    await act(() => new Promise((r) => setTimeout(r, 50)))
-    expect(host.querySelector('[data-answer-words]')?.textContent).toBe(
-      'Jon Abara owns Net revenue.',
+    // The loop answer's own code loads with its first answer: on a busy machine that takes a while.
+    await vi.waitFor(
+      async () => {
+        await act(() => new Promise((r) => setTimeout(r, 50)))
+        expect(host!.querySelector('[data-answer-words]')?.textContent).toBe(
+          'Jon Abara owns Net revenue.',
+        )
+      },
+      { timeout: 10_000 },
     )
   })
 })

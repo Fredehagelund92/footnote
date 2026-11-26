@@ -343,8 +343,9 @@ export const returnResultSchema = z.object({
 })
 
 /**
- * Closes a suggestion to archive: nothing changes. One its sender took back in the comments needs
- * no reason; any other is closed with the owner's reason, kept with the decision.
+ * Closes a suggestion: nothing changes. A suggestion to archive its sender took back in the
+ * comments needs no reason; any other is closed with the owner's reason, kept with the decision.
+ * A new item or a change closed is not published, and its sender reads the reason in their Inbox.
  */
 export const closeInputSchema = z.strictObject({
   id: z.string().check(z.uuid()),

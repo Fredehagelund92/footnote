@@ -96,7 +96,7 @@ async function pilotMetrics() {
     )
   ).rows as [{ id: string }, { id: string }]
   await client.query(
-    "insert into vocab_terms (key,kind,parent_key) select key,'metric',null from unnest($1::text[]) key",
+    "insert into vocab_terms (key,kind) select key,'metric' from unnest($1::text[]) key",
     [keys],
   )
   const versions = await client.query<{ id: string }>(

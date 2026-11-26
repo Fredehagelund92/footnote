@@ -30,9 +30,28 @@ A change applies at once, and the history log keeps it with who made it.
 | `limits.mcp_requests_per_minute` | Agent calls, by person and by client label    |
 | `limits.mcp_rate_per_minute`     | Agent calls to each tool                      |
 | `limits.agent_drafts`            | Drafts one person's agents can save           |
+| `limits.link_reads`              | Links people can read, failed reads too       |
 | `limits.undo_seconds`            | How long a decision can be undone             |
 | `privacy.min_count`              | The smallest count shown                      |
 | `retention.delivery_days`        | How long what agents asked about is kept      |
+
+## Links people paste
+
+Draft from text opens the public page a pasted link points to. Three settings govern it, and Settings, Advanced changes the first two:
+
+| Setting                  | What it does                                                    |
+| ------------------------ | --------------------------------------------------------------- |
+| `links.read_pages`       | On as installed. Off, people paste the page's text instead      |
+| `links.never_read_hosts` | Hosts never read: a name with its subdomains, or an address     |
+| `limits.link_reads`      | Reads a person may make in an hour and a day, and the workspace |
+
+The limits are counted in the database, so every service process keeps the same ones. The count keeps who and when, never an address, for two days. What the reader refuses, and why it never uses a proxy, is in [Links people paste](run-in-production.md#links-people-paste).
+
+## Shared chats
+
+A person can share an Ask chat as a link: a copy of each turn's question, what Ask read, its answer line, its words and its sources, under their name. Only people signed in open it, and each source shows only to those who may read it. A link lasts 90 days, and its sender stops it from History.
+
+`ask.share_chats` is on as installed, and Settings, Advanced, Shared chats turns it off. Off, no link is made and none opens, the ones already made too. A link pasted into another tool shows only "A chat from Footnote".
 
 ## Switch a tool off for every agent
 
@@ -116,3 +135,10 @@ npm run footnote -- audit --format csv --as per_ravi@example.test
 | `--origin` | `FOOTNOTE_ORIGIN` | The first of `FOOTNOTE_WEB_ORIGINS`, else the service's default |
 
 `--json` prints the result as JSON, for scripts and coding agents. The exit status is 0 when done, 1 when the file has problems or the service refused, and 2 for wrong usage.
+
+`footnote prove` is the one command that runs the service's own code on its database (`DATABASE_URL`) and model keys, rather than calling the service. It asks the same questions three ways and prints a table, as [Run the proof](prove.md) explains:
+
+```sh
+npm run footnote -- prove --questions my-questions.yaml                  # the scripted model, free
+npm run footnote -- prove --questions my-questions.yaml --real --cap 5   # a real agent, after a yes
+```

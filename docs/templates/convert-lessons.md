@@ -47,7 +47,6 @@ Write the file as lessons.yaml. After it, list the lessons you left out, each wi
 ## Then
 
 1. Read the file. Fix any wording that is not yours, and remove anything the data rule forbids.
-2. Check it: Administration › Import facts, paste it and choose **Check the file** (or
-   `npm run footnote -- import lessons.yaml --as <your email>`). Fix what it names.
-3. **Make proposals** (or `--apply`). Each item waits for its domain's owner; nothing is
-   accepted by an import.
+2. Check it: `npm run footnote -- import lessons.yaml --as <your email>`. Fix what it names.
+3. Send it with `--apply`. Each item waits for its domain's owner; nothing is accepted by an
+   import.

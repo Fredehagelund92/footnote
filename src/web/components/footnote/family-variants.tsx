@@ -11,6 +11,7 @@ import {
 import type { Family } from '@/lib/definitions'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
+import { SourceText } from '@/components/footnote/source-text'
 import { useRoute } from '@/lib/router'
 
 /**
@@ -116,7 +117,7 @@ export function FamilyVariants({ family }: { family: Family }) {
                 {/* What it says, beside the family's meaning, when that is what is compared. */}
                 {other && v.description && (
                   <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                    {v.description}
+                    <SourceText text={v.description} />
                   </span>
                 )}
               </td>

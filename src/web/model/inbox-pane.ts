@@ -22,7 +22,7 @@ export const ANSWER_SIDES = {
  */
 export type PaneState = {
   label: string
-  icon: CardType | 'conflict' | 'mention' | 'waiting' | 'returned'
+  icon: CardType | 'conflict' | 'mention' | 'waiting' | 'returned' | 'closed'
   tone: 'neutral' | 'warn'
 }
 

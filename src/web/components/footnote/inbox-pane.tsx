@@ -4,8 +4,10 @@ import {
   BellIcon,
   CalendarClockIcon,
   CircleDashedIcon,
+  CircleXIcon,
   ClockIcon,
   CornerUpLeftIcon,
+  FilePenLineIcon,
   FlagIcon,
   GitPullRequestArrowIcon,
   TagIcon,
@@ -45,10 +47,12 @@ export const cardIcon = {
   check: CalendarClockIcon,
   look: TriangleAlertIcon,
   alert: BellIcon,
+  drafts: FilePenLineIcon,
   conflict: TriangleAlertIcon,
   mention: AtSignIcon,
   waiting: ClockIcon,
   returned: CornerUpLeftIcon,
+  closed: CircleXIcon,
 } satisfies Record<PaneState['icon'], unknown>
 
 /** The card's state as Footnote's one chip: its icon and its word, tinted only when it needs care. */
@@ -120,12 +124,22 @@ export function PaneFoot({
   follows?: React.ReactNode
   children: React.ReactNode
 }) {
+  // Three decisions and more leave the line no room beside them: it takes a row of its own.
+  const crowded = React.Children.toArray(children).length > 2
   return (
-    <div className="flex min-h-bar flex-wrap items-center gap-x-3 gap-y-2 px-4 py-1.5 @max-md:py-3 @md:pl-7 @max-md:[&>button]:min-w-fit @max-md:[&>button]:flex-1">
+    <div
+      className={cn(
+        'flex min-h-bar flex-wrap items-center gap-x-3 gap-y-2 px-4 py-1.5 @max-md:py-3 @md:pl-7 @max-md:[&>button]:min-w-fit @max-md:[&>button]:flex-1',
+        crowded && 'justify-end py-3',
+      )}
+    >
       {follows ? (
         <p
           title={typeof follows === 'string' ? follows : undefined}
-          className="min-w-0 flex-1 truncate text-sm text-muted-foreground @max-md:basis-full @max-md:whitespace-normal"
+          className={cn(
+            'min-w-0 flex-1 truncate text-sm text-muted-foreground @max-md:basis-full @max-md:whitespace-normal',
+            crowded && 'basis-full whitespace-normal',
+          )}
         >
           {follows}
         </p>

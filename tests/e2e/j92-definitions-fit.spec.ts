@@ -5,7 +5,8 @@ import { expect, go, test } from './go.ts'
 // name with brackets of its own is drawn whole while its row has room; a twin name a second view
 // shares keeps its whole start and gives way at its view's name first, with the panel open too; a
 // description cut at 500 characters ends on a word with an ellipsis; and on a phone the install's
-// label beside the page's action keeps its words, on Definitions and on Ask's touch header too.
+// label beside the page's action keeps its words, on Definitions and on Ask's touch header too,
+// where search and the theme fold into More.
 
 const TWIN = 'Search clicks (reported) (search_console_keyword_rankings_joined)'
 const LONG = 'Net revenue after refunds'
@@ -123,10 +124,11 @@ test.describe('390', () => {
     test.use({ hasTouch: true, isMobile: true })
 
     for (const scheme of ['light', 'dark'] as const)
-      test(`Ask's header keeps the install's name beside its three buttons (${scheme})`, async ({
+      test(`Ask's header keeps the install's label whole, its search and theme in More (${scheme})`, async ({
         page,
       }) => {
-        // It once shrank to "Northwind C…": the touch gaps sat beside the label too (F3).
+        // It once shrank to "Northwind C…" (F3), then to "Northwind Cube, l…" beside History and
+        // New chat while Definitions showed it whole: on a phone Ask folds search and the theme.
         await page.emulateMedia({ colorScheme: scheme })
         await page.goto('/ask?label=Northwind%20Cube%2C%20local')
         const header = page.locator('header').first()
@@ -134,23 +136,29 @@ test.describe('390', () => {
         await expect(label).toContainText('Northwind Cube, local')
         const fit = await header.evaluate((h) => {
           const words = h.querySelector('[data-profile-label] .truncate')!
-          const range = document.createRange()
-          range.setStart(words.firstChild!, 0)
-          range.setEnd(words.firstChild!, 'Northwind Cube,'.length)
           const buttons = [...h.querySelectorAll('button')].map((b) => b.getBoundingClientRect())
           return {
             visible: words.clientWidth,
-            name: range.getBoundingClientRect().width,
+            whole: words.scrollWidth,
             pitches: buttons.slice(1).map((b, i) => b.left - buttons[i]!.left),
             wide: h.scrollWidth > h.clientWidth,
           }
         })
-        // The view's name shows whole; only the end of the label gives way.
-        expect(fit.visible).toBeGreaterThanOrEqual(fit.name)
+        // The label shows whole, as on Definitions.
+        expect(fit.visible).toBeGreaterThanOrEqual(fit.whole)
         // No two buttons' 44px tap areas overlap, and nothing runs off the screen.
         for (const pitch of fit.pitches) expect(pitch).toBeGreaterThanOrEqual(44)
         expect(fit.wide).toBe(false)
+        await expect(header.getByRole('button', { name: 'History' })).toBeVisible()
         await expect(header.getByRole('button', { name: 'New chat' })).toBeVisible()
+        await expect(header.getByRole('button', { name: 'Search' })).toHaveCount(0)
+        // Search and the theme are one tap into More.
+        await header.getByRole('button', { name: 'More' }).click()
+        const more = page.getByRole('menu')
+        await expect(more.getByRole('menuitem', { name: 'Open the menu' })).toHaveCount(0)
+        await expect(more.getByRole('menuitemradio', { name: 'Dark' })).toBeVisible()
+        await more.getByRole('menuitem', { name: 'Search' }).click()
+        await expect(page.getByRole('dialog')).toBeVisible()
       })
   })
 })

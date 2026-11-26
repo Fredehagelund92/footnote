@@ -11,7 +11,7 @@ import {
   UserIcon,
   WholeWordIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { RichTextEditor } from '@/components/editor'
 import { useSideChoice } from '@/lib/side-panel'
 import { useSend } from '@/lib/send'
@@ -89,7 +89,8 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
   const write = useWrite()
   const { query } = useRoute()
   const preset = query.get('sameAs') ?? undefined
-  const [title, setTitle] = React.useState(original?.name ?? '')
+  // A new term opened for a word Ask found no definition of starts with that word.
+  const [title, setTitle] = React.useState(original?.name ?? query.get('name') ?? '')
   const [target, setTarget] = React.useState<string | undefined>(original?.sameAs ?? preset)
   const synonym = !!target
   const [domain, setDomain] = React.useState<DomainId | undefined>(original?.domain ?? me.owns[0])

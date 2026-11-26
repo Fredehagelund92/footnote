@@ -15,7 +15,7 @@ import {
   TriangleAlertIcon,
   WifiOffIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,7 +47,8 @@ import { OBS_PURPOSE, useDomainChoice, useObsPageQuery, useObsView } from '@/lib
 import { href } from '@/lib/router'
 import { useDelayedBusy } from '@/lib/loading'
 import { useOnline } from '@/lib/send'
-import { useDomains, useMe } from '@/lib/workspace'
+import { useAdminsSaid, useDomains, useMe } from '@/lib/workspace'
+import { mayOpenSettings } from '@/lib/settings-access'
 import { ObsPage } from '@/pages/observability'
 
 // Quality: the one list of saved questions and how each answers after the last change. Needs a look
@@ -86,6 +87,8 @@ export function QualityPage() {
 function Quality({ first }: { first: SavedCheck }) {
   const view = useObsView()
   const me = useMe()
+  const admins = useAdminsSaid()
+  const mayAddKey = mayOpenSettings('/settings/advanced', me)
   const online = useOnline()
   const all = useSavedQuestions()
   const write = useWrite()
@@ -334,16 +337,22 @@ function Quality({ first }: { first: SavedCheck }) {
                 Check the wording, with and without context, and compare models
               </p>
               <p className="text-xs text-muted-foreground">
-                Needs a model key. The free check above already runs after every change.
+                {mayAddKey
+                  ? 'Needs a model key.'
+                  : `Needs a model key, which an admin adds${admins}.`}{' '}
+                The free check above already runs after every change.
               </p>
             </div>
-            <a
-              href="/settings/advanced"
-              className={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}
-            >
-              <ArrowUpRightIcon data-icon="inline-start" />
-              Settings, Advanced
-            </a>
+            {/* The key is in an admin's Settings: anyone else is told who adds it, with no link. */}
+            {mayAddKey && (
+              <a
+                href="/settings/advanced"
+                className={cn(buttonVariants({ variant: 'outline' }), 'shrink-0')}
+              >
+                <ArrowUpRightIcon data-icon="inline-start" />
+                Settings, Advanced
+              </a>
+            )}
           </div>
         </div>
       </div>

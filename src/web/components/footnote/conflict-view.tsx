@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import {
   AtSignIcon,
   CheckIcon,
@@ -20,6 +20,7 @@ import { kindIcons } from '@/components/footnote/kind-icons'
 import { Statement } from '@/components/footnote/conflict-pair'
 import { Loadable } from '@/components/footnote/load-state'
 import { markText } from '@/components/footnote/mark'
+import { SourcePassages } from '@/components/footnote/source-text'
 import { DomainDot } from '@/components/footnote/tag-chip'
 import { Button } from '@/components/ui/button'
 import {
@@ -159,8 +160,8 @@ function Provenance({ s }: { s: ConflictSide }) {
         </a>
       )}
       {s.source?.quote && (
-        <blockquote className="border-l-2 pl-3 text-sm text-muted-foreground italic">
-          “{s.source.quote}”
+        <blockquote className="border-l-2 pl-3 text-sm text-muted-foreground">
+          <SourcePassages text={s.source.quote} />
         </blockquote>
       )}
     </div>
@@ -675,14 +676,18 @@ export function ConflictView({
           done: { conflict: c, decision: result.decision, undo: result.undo },
         })
         const left = heldWords(result.undo)
-        toast(
+        const message =
           outcome === 'kept_one'
             ? 'Kept one, archived the other'
             : outcome === 'kept_both'
               ? 'Kept both'
-              : 'Not a conflict',
-          left ? { description: `You can undo this for ${left}.` } : {},
-        )
+              : 'Not a conflict'
+        toast(message, left ? { description: `You can undo this for ${left}.` } : {})
+        // Undo is on the page; Command and Z takes it back too, from any screen.
+        undo.remember(message, result.undo, {
+          undone: { title: 'Undone', description: 'Both items are as they were.' },
+          onUndone: () => dispatch({ type: 'finish' }),
+        })
       },
       (error: unknown) =>
         // A newer version of either holds the decision, as Publish does: see what changed first.

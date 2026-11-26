@@ -25,7 +25,7 @@ export type Said = { say: string; next?: string }
 
 /**
  * The words a reply speaks in: what one written thing is called, and the tools it points to. The
- * six tools of the agent contract point at each other and start with the answer line
+ * tools of the agent contract point at each other and start with the answer line
  * (`contextVoice`), and call a written thing by the glossary's name (src/domain/words.ts), so they
  * follow when it changes. What a person reads (`peopleVoice`) speaks the same words, with the
  * answer line drawn apart.
@@ -52,7 +52,7 @@ export const contextVoice: Voice = {
   find: 'find_context',
   read: 'read_context',
   report: 'if the person agrees, call report with kind missing',
-  cuts: 'Call again with a higher max_bytes to get them.',
+  cuts: 'Call again with cursor set to next_cursor for the rest, or with a higher max_items (at most 50).',
   appliesField: 'applies',
   disagreesField: 'disagrees_with',
   stateFirst: true,
@@ -392,13 +392,90 @@ function contestedNext({ meanings }: ContestedAsk) {
   return `Ask the person which one they mean, then call again with ${field} (${list(keys, 'or')}). Never choose one yourself.`
 }
 
+/** A word of the question that named nothing, as a reply says it: the names that hold it. */
+export type UnreadSaid = { word: string; closest: readonly string[]; domain?: string }
+
+/**
+ * The words that could have named a metric and named none: '"sales" names no metric here: Gross
+ * sales has the word, and Sales is a domain.', '"EBITDA" is not a name here.'
+ */
+function unreadWordsSay(unread: readonly UnreadSaid[]) {
+  return unread
+    .slice(0, 3)
+    .map((w) => {
+      const holding =
+        w.closest.length > 3
+          ? `${count(w.closest.length, 'name has', 'names have')} the word, such as ${list(w.closest.slice(0, 3), 'or')}`
+          : w.closest.length
+            ? `${list(w.closest)} ${w.closest.length === 1 ? 'has' : 'have'} the word`
+            : null
+      const parts = [
+        ...(holding ? [holding] : []),
+        ...(w.domain ? [`${w.domain} is a domain`] : []),
+      ]
+      return parts.length
+        ? `"${w.word}" names no metric here: ${list(parts)}.`
+        : `"${w.word}" is not a name here.`
+    })
+    .join(' ')
+}
+
+/** The AI agent's way on from words that named nothing: the person says which, or it is missing. */
+function unreadNext(unread: readonly UnreadSaid[], voice: Voice) {
+  const named = unread.filter((w) => w.closest.length)
+  const none = unread.filter((w) => !w.closest.length)
+  return [
+    ...(named.length
+      ? [
+          `If the person meant ${list(
+            [...new Set(named.flatMap((w) => w.closest.slice(0, 3)))],
+            'or',
+          )}, call again with that name in the question; ask them when it is unclear, and never read it as one yourself.`,
+        ]
+      : []),
+    ...(none.length
+      ? [
+          `Search ${list(
+            none.map((w) => `"${w.word}"`),
+            'and',
+          )} with ${voice.find}; if nothing is written about it, say so plainly and, ${voice.report}.`,
+        ]
+      : []),
+  ].join(' ')
+}
+
 /** A reply whose question could not be read (`need_more_detail`): what to fix, and that it read nothing. */
-export function unreadSaid(bundle: Names, issues: readonly ScopeIssue[], question?: string): Said {
+export function unreadSaid(
+  bundle: Names,
+  issues: readonly ScopeIssue[],
+  question?: string,
+  /** The words that could have named a metric, when the question names none. */
+  unread: readonly UnreadSaid[] = [],
+): Said {
   const contested = issues.find((issue) => issue.meanings)
   if (contested) {
     const ask = { word: contested.word ?? contested.input, meanings: contested.meanings! }
     return { say: `${notLookedUp} ${contestedQuestion(ask, bundle)}`, next: contestedNext(ask) }
   }
+  // A question that names nothing says its words that could have, one by one, not a metric it
+  // never named: that issue alone goes, never one about a name it did give, such as a member.
+  const named = unread.length
+    ? issues.filter((issue) => !(issue.field === 'scope' && issue.message === undefined))
+    : issues
+  if (unread.length)
+    return {
+      say: [
+        notLookedUp,
+        ...(named.length ? [issueSay(bundle, named, question)] : []),
+        unreadWordsSay(unread),
+      ].join(' '),
+      next: [
+        ...(named.length
+          ? [`Fix it from options and call again. ${issueWords(bundle, named)}`]
+          : []),
+        unreadNext(unread, contextVoice),
+      ].join(' '),
+    }
   return {
     say: `${notLookedUp} ${issueSay(bundle, issues, question)}`,
     next: `Fix it from options and call again. ${issueWords(bundle, issues)}`,
@@ -477,8 +554,17 @@ export type ContextSay = {
   partial: number
   /** Facts given that need checking: their source changed or their check date passed. */
   unverified?: number
-  /** Facts that apply but were left out to fit the size limit. */
+  /** Facts that apply but were left out, past max_items or to fit the size limit. */
   cut: number
+  /** How the AI agent gets what was left out, when the reply says it; else the voice's own. */
+  cutNext?: string
+  /**
+   * The words that could have named a metric and named none (names-read.ts), each with the names
+   * that hold it as a word and the domain it names: said, never dropped.
+   */
+  unread?: readonly UnreadSaid[]
+  /** The words read as a name they are not exactly, and how (names-read.ts). */
+  readAs?: readonly { words: string; name: string; by: 'form' | 'initials' | 'part' }[]
   /** Why each held-back fact isn't given, in the resolver's reasons (FR-314). */
   withheld: readonly string[]
   /** The sentence of `assumed_date`, when the question gave no dates. */
@@ -506,7 +592,8 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     const failed = failedSaid('The checks could not run. Try again shortly.')
     return voice.stateFirst ? { ...failed, say: `${stateWords('failed')} ${failed.say}` } : failed
   }
-  if (c.status === 'need_more_detail' || !c.scope) return unreadSaid(bundle, c.issues, c.question)
+  if (c.status === 'need_more_detail' || !c.scope)
+    return unreadSaid(bundle, c.issues, c.question, c.unread)
   const scope = scopeWords(bundle, c.scope, {
     show: !c.assumed,
     readsAs: c.readsAs ?? null,
@@ -535,7 +622,7 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     say.push(
       `${sentence(applies(c.cut))} to ${scope}, but ${c.cut === 1 ? "it doesn't" : "they don't"} fit in this reply.`,
     )
-    next.push(`${voice.cuts} Never say nothing is written down.`)
+    next.push(`${c.cutNext ?? voice.cuts} Never say nothing is written down.`)
   } else {
     say.push(`${sentence(applies(c.delivered))} to ${scope}.`, onlyThat)
     if (c.partial === c.delivered)
@@ -558,9 +645,17 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
     if (c.partial) next.push(`${voice.appliesField} says which part each partial ${one} covers.`)
     if (c.status === 'conflict')
       next.push(`Give both sides of ${voice.disagreesField} and say they disagree.`)
-    if (c.cut) next.push(voice.cuts)
+    if (c.cut) next.push(c.cutNext ?? voice.cuts)
     if (c.about)
       next.push(`Each ${one} names the metrics it is about (about): answer for each metric apart.`)
+  }
+  // A word read as the one metric whose name holds it is said: it may mean something else.
+  for (const read of c.readAs?.filter((r) => r.by === 'part') ?? [])
+    say.push(`"${read.words}" was read as ${read.name}, the one metric whose name holds the word.`)
+  // A word that could have named a metric is said, so no answer stands on the rest alone.
+  if (c.unread?.length) {
+    say.push(unreadWordsSay(c.unread))
+    next.push(unreadNext(c.unread, voice))
   }
   // What a group asked for holds, right after what was read for it and how far that went.
   const grouped = groupWords(c.groups ?? [])
@@ -586,6 +681,8 @@ export function findSaid(
     withheld: number
     definitions: readonly string[]
     area: string | null
+    /** Where the page starts: 0 on the first page. */
+    offset?: number
   },
 ): Said {
   // The words are the caller's own: the sentence never repeats them, nor what they may probe.
@@ -595,8 +692,14 @@ export function findSaid(
   const scope = c.scope
     ? scopeWords(bundle, c.scope, { show: !c.assumed, readsAs: c.readsAs ?? null })
     : null
-  const shown = c.shown < c.total ? ` ${c.shown} are shown.` : ''
-  const more = c.shown < c.total ? ' Raise limit for more.' : ''
+  const offset = c.offset ?? 0
+  const paged = offset > 0 || c.shown < c.total
+  const shown = !paged
+    ? ''
+    : offset
+      ? ` ${(offset + 1).toLocaleString('en')} to ${(offset + c.shown).toLocaleString('en')} are shown.`
+      : ` ${c.shown} are shown.`
+  const more = offset + c.shown < c.total ? ' Pass next_cursor as cursor for the next page.' : ''
   const defined = c.definitions.length
     ? `The definition of ${list(c.definitions)} is here too, in its source's own words.`
     : null
@@ -636,12 +739,12 @@ export function findSaid(
  * item by that id may be read, in the same words for one the caller may not see as for one that
  * does not exist (FR-334). `kind` is the kind as the reply names it.
  */
-export const readSaid = (item: { kind: string; version: number } | null): Said => {
+export const readSaid = (item: { kind: string; version: number; more?: boolean } | null): Said => {
   const [one, many] = contextVoice.item
   return item
     ? {
         say: `This is the full ${item.kind}, version ${item.version}.`,
-        next: `A link shows what a ${one} mentions: it does not mean the ${one} applies to the question.`,
+        next: `links_out and links_in show what it links to and what links to it: read one with ${contextVoice.read} only when it helps answer the question. A link does not mean the ${one} applies to the question, nor prove a cause.${item.more ? ' Pass next_cursor as cursor for more of links_in.' : ''}`,
       }
     : {
         say: `There's no ${one} by that id that you can read.`,
@@ -649,17 +752,82 @@ export const readSaid = (item: { kind: string; version: number } | null): Said =
       }
 }
 
-/** get_related's two sentences: what links to the start, or that it may not be read (FR-334). */
-export const relatedSaid = (c: { shown: number; total: number; depth: number } | null): Said =>
-  c
-    ? {
-        say: `${sentence(c.shown < c.total ? `${c.shown} of ${count(c.total, 'linked thing', 'linked things')}` : count(c.total, 'thing is', 'things are'))}${c.shown < c.total ? ' are shown' : ' linked to it'}, up to ${count(c.depth, 'step', 'steps')} away.`,
-        next: `A link shows what a text refers to: it doesn't mean an item applies to the question, nor prove a cause.${c.shown < c.total ? ' next_cursor gives the next page.' : ''}`,
-      }
-    : {
-        say: "There's nothing by that id that you can read.",
-        next: 'That says nothing about what else is written down.',
-      }
+/**
+ * read_context's sentences for one definition (FR-353): what it is and how many published context
+ * items are about it. A term's words are a person's, never a checked source.
+ */
+export const definitionReadSaid = (d: { name: string; kind: string; items: number }): Said => {
+  const [one, many] = contextVoice.item
+  return {
+    say: `This is the whole definition of ${d.name}, a ${d.kind}. ${
+      d.items
+        ? `${sentence(count(d.items, `published ${one} is`, `published ${many} are`))} about it.`
+        : `No published ${one} is about it.`
+    }`,
+    next: `${d.kind === 'term' ? 'Its words are what a person wrote: say whose words they are, but never give them as a checked source. ' : ''}Read a ${one} about it in full with read_context, by its id; for a question about the data, call ${contextVoice.get}.`,
+  }
+}
+/** read_context's sentences for words that name no definition (FR-353): the closest, if any. */
+export const unknownDefinitionSaid = (closest: readonly string[]): Said => ({
+  say: `There's no ${peopleConcepts.definition.name} or ${contextVoice.item[0]} by that name or id that you can read.`,
+  next: `${closest.length ? 'Call again with one of options, the closest names, or find' : 'Find'} it with ${contextVoice.find}.`,
+})
+/** read_context's sentences for words that name several definitions (FR-353). */
+export const severalDefinitionsSaid = (n: number): Said => ({
+  say: `Those words name ${count(n, peopleConcepts.definition.name, `${peopleConcepts.definition.name}s`)}.`,
+  next: 'Call again with one key from options.',
+})
+
+/** One page of what find_context lists without words: how many of each, and which it shows. */
+type ListPage = { definitions: number; items: number; offset: number; shown: number }
+const definitionWords = [
+  peopleConcepts.definition.name,
+  `${peopleConcepts.definition.name}s`,
+] as const
+/** "22 definitions and 1,500 published context items you can read". */
+function listedWords(c: ListPage) {
+  const [one, many] = contextVoice.item
+  return list([
+    ...(c.definitions ? [count(c.definitions, ...definitionWords)] : []),
+    ...(c.items
+      ? [count(c.items, `published ${one} you can read`, `published ${many} you can read`)]
+      : []),
+  ])
+}
+/** A domain that names none: nothing was found or listed. The words are the agent's: never repeated. */
+export const unknownDomainSaid: Said = {
+  say: "There's no domain by that name, so nothing was found.",
+  next: 'Call again with a domain from options, or without domain.',
+}
+
+/**
+ * find_context's sentences without words (FR-338): how many definitions and published context
+ * items there are with the filters, which of them the page shows, and the next page.
+ */
+export function listSaid(c: ListPage): Said {
+  const [one, many] = contextVoice.item
+  const total = c.definitions + c.items
+  const there = `There ${total === 1 ? 'is' : 'are'} ${listedWords(c)}`
+  if (!total)
+    return {
+      say: `There's no ${definitionWords[0]} or published ${one} you can read with these filters.`,
+      next: `That proves nothing about a question: call ${contextVoice.get} with its metrics, markets and dates.`,
+    }
+  if (!c.shown)
+    return {
+      say: `This page starts past the end of the list. ${there} now.`,
+      next: 'Call again without cursor to start over from the first page.',
+    }
+  const shown =
+    c.shown === total
+      ? `${there}.`
+      : `${there}; ${(c.offset + 1).toLocaleString('en')} to ${(c.offset + c.shown).toLocaleString('en')} are shown.`
+  const more = c.offset + c.shown < total ? ' Pass next_cursor as cursor for the next page.' : ''
+  return {
+    say: shown,
+    next: `They come in a fixed order: definitions first, metrics, then dimensions, then terms, each A to Z, then ${many} A to Z by title.${more} Read one in full with ${contextVoice.read}, by its id or key; for what applies to a question about a metric, call ${contextVoice.get}.`,
+  }
+}
 
 /**
  * report's sentence: what was sent, and to which owner when the report names a context item or a

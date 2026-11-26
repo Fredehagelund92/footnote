@@ -6,7 +6,7 @@ import {
   FolderInputIcon,
   Trash2Icon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { BulkBar, BulkButton, type BulkNote } from '@/components/footnote/bulk-bar'
 import { DeleteDialog } from '@/components/footnote/delete-dialog'
 import {

@@ -16,19 +16,22 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
   --header "Authorization: Bearer $(npm run --silent token:dev)"
 ```
 
-### The six tools (the agent contract)
+### The five tools (the agent contract)
 
-The server offers six tools ([the product page](../product.md#10-what-agents-get)), described in
+The server offers five tools ([the product page](../product.md#10-what-agents-get)), described in
 one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
-`read_context`, `report`, `suggest_context` and `get_related`. A call by any other id is refused
-as an unknown tool. The review's delivery check and the evals read `get_context`'s full reply,
+`read_context`, `report` and `suggest_context`. A call by any other id is refused as an unknown
+tool. Each description says what the tool is for and what it is not: only `get_context` says to
+call it before answering, and only for a question about a metric. `get_context` carries
+`_meta: { "anthropic/alwaysLoad": true }`, so Claude Code loads it when a session starts, while
+its tool search loads the others when they are needed. The review's delivery check and the evals read `get_context`'s full reply,
 made by the same code with nothing recorded.
 
 Footnote's server instructions (FR-343) tell the agent what Footnote holds and what the data tool holds,
-to call `get_context` first, how to read each status and its answer state (FR-349), to pass on a
+to call `get_context` first for a metric, how to read each status and its answer state (FR-349), to pass on a
 result's `say`, which starts with the answer line, and to follow its `next`, the step for the agent
 (every read result has them, FR-344, so they reach a client that drops the instructions), how to
-speak about a fact with people, how dates in a question's words are read and that a question
+speak about a context item with people, how dates in a question's words are read and that a question
 without dates is read at today, that the reply is short by default, when to `report` and when to
 `suggest_context` (after the person says yes), and never to put question text or personal data in
 a note. The call-first and absence rules come first, within the first 512 characters, since some
@@ -138,17 +141,36 @@ they are built from the served edition only.
 **`find_context`** (FR-338) finds what is written down
 about a few words: names and other names (Net sales), domains, member names and words in an item's
 title, summary or text. It falls back to the items that apply to the scope the words name, gives
-each named metric's or dimension's definition with where it comes from and what Footnote adds, and says
-why when nothing is found. It takes a `domain` (a name or an id), a `kind` (`event`, `warning`,
+each named metric's or dimension's definition with where it comes from and what Footnote adds (when
+the words name none, the definitions whose description says them as a whole phrase, marked
+`named: "in text"` with `mentions`; a word joined to a name by a hyphen is read as a name only when
+the whole compound is one), and says why when nothing is found. It takes a `domain` (a name or an id), a `kind` (`event`, `warning`,
 `rule`, `guide`), a `window` and a `limit`, and lists titles and summaries under `context`, never a
 body. An unknown domain comes back with the closest match and every valid choice (FR-341); a
 domain named by another spelling is read as that domain (`src/domain/domain-match.ts`). The words
-of the query a person defined come back in `terms`, as for `get_context`.
+of the query a person defined come back in `terms`, as for `get_context`. A search gives 10 to a
+page by default, at most 100, with `total` and `next_cursor`. Without `query`, it lists what there
+is (the browse that was `list_definitions` and `list_context`): the definitions agents may see
+(metrics and families, then dimensions, then terms, each A to Z, each with its owner as a role and
+a one-line meaning) and then the published items the caller may read (FR-314), A to Z by title,
+each with its title and summary and never its text. `kind` takes `metric`, `dimension` or `term`
+too, which lists only those definitions, by the words of their names when `query` is given. A list
+gives 25 to a page by default, at most 100, with `total` and `next_cursor`.
 
-**`read_context`** reads one item in full (`context`): its text, every source, who checked it, its
-What not to conclude line and its outgoing links, with a page of the items that link to it. The
-words of its title, summary and text that a person defined come back in `terms`, as for
-`get_context`.
+**`read_context`** reads one item in full (`context`): its text, every source, who checked it and
+its Don't conclude line, with its links one step: `links_out`, the links it writes (FR-331), and
+`links_in`, a page of 20 of the items the caller may read that mention it, replace it or conflict
+with it, with `next_cursor`. `relations` keeps only some kinds (`replaces`, `replaced_by`,
+`conflicts_with`, `applies_to`, `mentions`, `mentioned_by`, `in_area`). A link the caller may not
+see is counted in `links_withheld`, and an item the caller may not see is "Not found", exactly like
+one that does not exist (FR-334). A link never changes what `get_context` delivers. The words of
+its title, summary and text that a person defined come back in `terms`, as for `get_context`. An `id` that is no item's id names a definition (FR-353,
+`src/server/mcp/read-definition.ts`): its name, another name, its key or its member name in the
+source. It reads one definition in full (`definition`) from the live edition, with what
+Definitions shows of it (family, meaning, usual metric, read date, relations), read as nobody
+through `ServingReads.definition`, and a page of the titles of the published items about it.
+Words that name several come back as `need_more_detail` with their keys in `options`, and words
+that name none as `no_match` with the closest.
 
 **`report`** takes what the person says, after they say yes: `kind` is `missing`, `wrong`,
 `unclear` or `helped`, with the `reply_id` of a `get_context` reply, a `context_id` when it is about
@@ -158,22 +180,6 @@ missing, wrong and unclear into a gap for the reply's topic (FR-606, case 3). So
 no reply takes the question's metrics, markets and dates instead and is recorded as a gap.
 The reply says who will see it (`to`, "the owner of Sales") and never keeps who
 asked (FR-602).
-
-`get_related` (FR-332) follows links from an item id, a vocabulary key such as `metric:orders`,
-a term written in Definitions (`term:<id>`, FR-138) or a domain (`area:finance`): the neighbours one step away (`depth: 2` for two), each listed once
-at its shortest distance, in a fixed order (distance, kind of link, higher risk, newer start, id),
-at most 50 a page (`max_nodes`, default 20) with `next_cursor`, and the stored links among them
-as `edges`. `relations` narrows the kinds (`replaces`, `replaced_by`, `conflicts_with`,
-`applies_to`, `mentions`, `mentioned_by`, `in_area`; all but `in_area` by default) and `window`
-the dates of neighbour items. Neighbours carry titles and summaries, never bodies; a retired or
-replaced item shows only the author's words. A term comes with its word and what it means (`meaning`), as
-a person wrote it (a synonym with what it is another name for, `same_as`), read as it is now:
-terms are not sealed in an edition, so a deleted term reads as `retired` with the author's words,
-and a term that means something else now as `unresolved`. A neighbour the caller may not see is counted in
-`links_withheld`, never listed or counted in `counts`, and a start the caller may not see is "Not
-found", exactly like one that does not exist. A link never changes what `get_context` delivers.
-The pure resolver is `src/domain/links.ts`. **It is on by default**, with its own switch
-(`POST /tools/get_related`).
 
 **`suggest_context`** (FR-121) lets an agent send a suggestion, as the person it acts for, after
 the person says yes. **It is on by default**, and the `propose` scope is granted at consent (the
@@ -279,7 +285,7 @@ records. Questions, bearer tokens, addresses and incoming RPC ids never enter th
 Tool descriptions, schemas and annotations have a snapshot and SHA-256 digest, exposed in
 `X-Footnote-Tool-Digest` and each tool result's `_meta` and stored with deliveries. What serves a cache
 or an audit stays out of what a model reads (FR-346): `tool_schema_digest`, `overlay` and, on
-paged replies (`read_context`, `get_related`), `ttlMs: 0` and `cacheScope:
+paged replies (`read_context`, `find_context` without words), `ttlMs: 0` and `cacheScope:
 "private"` travel in `_meta`, which clients keep from the model (ChatGPT documents it as hidden).
 The text and `structuredContent` carry `say`, `next`, the status, `edition` and the items. A cache keys on
 `edition` and `_meta.overlay`, as before under the same names.
@@ -299,7 +305,9 @@ views it reads and the domain of each (every view, or only those listed, with
 (`POST /api/v1/sources/{id}/disconnect`). The views a definitions source reads are the
 organisation's approved set, for the server's own sources too: `GET /api/v1/sources/{id}` gives a
 server source's set (`origin: server`, with no settings or secrets), `POST /api/v1/sources/test`
-with its id reads it as the server set it, with every view, and `PUT /api/v1/sources/{id}/groups`
+with its id reads it as the server set it, with every view, `POST /api/v1/sources/{id}/check` tests
+any definitions source as it is saved (its check, one read of every view, the views it reads looked
+for in the model as `chosen`, and the files a read skipped among the warnings), keeping nothing, and `PUT /api/v1/sources/{id}/groups`
 chooses the views and their domains for any definitions source, with a reason, keeping one line in
 the history log. A view a change leaves out keeps the domain it had (`kept`). See
 [the connector contract](connector-contract.md) for what a connector declares and reports, the
@@ -357,8 +365,9 @@ and a concurrent request using the same key returns 409. A rolled-back request c
   `{ rows, total, limit, offset }` for every kind of proposal the person may read (item, retire,
   recheck and vocabulary), newest first by actual timestamp. `total` counts the readable matches
   before pagination. `GET /proposals/{id}` reads a proposal under row security; `draft` holds
-  item form content only and is empty for the other kinds. Every mutation checks `revision`; a
-  stale write returns 409 with the current record.
+  item form content only and is empty for the other kinds. `submittedAt` is when it was last sent
+  for review, null for a draft never sent. Every mutation checks `revision`; a stale write returns
+  409 with the current record.
 - `POST /proposals/{id}/submit` takes `{ revision }`. The proposer submits an immutable version,
   scope, evidence, references, mention rows, digests and format checks in one transaction with
   the proposal state, audit and outbox records. Resubmit creates another version, still written
@@ -468,10 +477,11 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   no answer is 422. `POST /review/{id}/return` takes `{ revision, note, body? }`: the suggestion
   goes back to its writer, and the note is its first comment, marked returned (`body` is the
   note as the comment box wrote it, with its mentions; without it the comment is the note's
-  words). `POST /review/{id}/close` takes `{ revision, reason? }` and closes a suggestion to
-  archive: nothing changes, and the answer has a token that undoes it. One its sender took back in
-  the comments needs no reason; any other needs the owner's `reason`, kept with the decision (422
-  without one).
+  words). `POST /review/{id}/close` takes `{ revision, reason? }` and closes a suggestion:
+  nothing changes, and the answer has a token that undoes it. A suggestion to archive its sender
+  took back in the comments needs no reason; any other needs the owner's `reason`, kept with the
+  decision (422 without one). A new item or a change closes as Don't publish (`rejected`): its
+  sender reads who closed it and the reason in their Inbox feed (`waiting[].closed`).
 - `POST /review/{id}/read` takes `{ itemVersionId }` and records that the person read that
   version (FR-226); a version that is no longer the one under review is 409.
   `POST /review/publish-read` takes `{ ids }` (up to 50) and publishes each suggestion the
@@ -487,19 +497,24 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   The decision stays as history, and a person may decide the same version again once they undid
   it.
 - `GET /inbox/feed?tab=needs|all` lists the person's cards by need: Not found (`gap`), Reported
-  (`flag`), Mentioned you (`mention`), Due for a check (`check`), then suggestions. An owner gets
+  (`flag`), Mentioned you (`mention`), Due for a check (`check`), suggestions, then the person's
+  own drafts (`drafts`, named `drafts:yours`): one card for every draft they imported and every
+  other one they have not saved for 30 days, with each draft's id, domain and whether it was
+  imported, oldest first; nobody else hears of them (FR-230). An owner gets
   those of their domains, an administrator every domain, anyone else none; a Mentioned you card
   is the person's own, in any domain: one for each thread with a comment that mentions them and
   that they haven't read, named `mention:<subject>`. Reported cards are the anonymous wrong or unclear
   reports of the last 90 days, with no person; each names the context the reported answer gave
   (`items`), the version agents got and only one the person may read. Beside them come the named
   reports from Ask of the last 90 days (`source: ask`, named `report:<id>`), with who sent each
-  (`by`), the question, what is wrong (`note`), the correct version and the link they gave, and
-  the item they are about; one waits until an owner closes it or checks, changes or archives its
+  (`by`), the question, what is wrong (`note`), the right words (`correction`) and the link they
+  gave, the suggestion the words became while it waits (`suggestion`, its id), and the item they
+  are about; one waits until an owner closes it or checks, changes or archives its
   item, and is then done with that outcome. A Not found card's title
   names what agents asked about and the month: "Orders in Spain, October 2026". Under All come what the person sent that waits
-  on an owner, and what an owner returned to them with a note (`returned`, who and when), and
-  what was done in the last 14 days. A suggestion's card says whether the
+  on an owner, what an owner returned to them with a note (`returned`, who and when), what an
+  owner closed in the last 14 days (`closed`: who, when, the reason, and `read` once the person
+  marked the card `closed:<proposal id>` read), and what was done in the last 14 days. A suggestion's card says whether the
   person read the version under review (`read`), so it may go out with the others they read.
   `week` counts this week's agent questions, each hidden under `privacy.min_count` (FR-614).
 - `POST /inbox/cards/read` takes `{ cards }`: the person opened them (a Mentioned you card:
@@ -519,15 +534,19 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
 A person tells the owners from Ask that an answer is wrong, with their name (FR-622; docs/product.md,
 section 9), through these operations, typed in `src/contract/reports.ts`. A report keeps only what
 the person sent on purpose: the question, the part that is wrong (one context item of the answer,
-or the answer itself, filed on its first item), what is wrong and, optionally, the correct version
-and a web address. It is filed in the item's domain and reaches that domain's owners as a Reported
+or the answer's wording, filed on its first item), what is wrong and, optionally, the right words
+and a web address. The right words for one item (`part: item`) are its summary as the person
+would write it, and go to its owners as a suggestion on the item too, made in the same write. It
+waits like any other suggestion, so agents keep the item as it is until an owner publishes it. It is filed in the item's domain and reaches that domain's owners as a Reported
 card. Its sender, the owners of its domain and administrators read it; nobody else does, and
 agents never read it: the serving role has no grant on it, and nothing an edition holds is built
 from it.
 
 - `POST /reports` takes `{ question, itemId, part, what, correction?, link? }` (`part` is `item`
-  or `answer`; texts up to 2,000 characters) and answers `{ id, at }` only, so the answer a retry
-  replays never holds the words. An item the person may not read is not found. A person's reports
+  or `answer`; texts up to 2,000 characters, the right words for an item up to a summary's 280)
+  and answers `{ id, at, suggestion }` only, so the answer a retry replays never holds the words.
+  `suggestion` is the id of the suggestion the right words became, or null when there were none
+  or they are the item's words already. An item the person may not read is not found. A person's reports
   share the per-minute limit of their gap reports (FR-408). Writes need the session cookie,
   `Origin`, `x-footnote-csrf` and an `Idempotency-Key`.
 - `GET /reports/mine` lists the person's own reports of the last 90 days, newest first, each with
@@ -610,20 +629,28 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   page. Mark as checked takes only items the person opened.
 - `POST /items/bulk` takes `{ action, rows, areaId?, kind?, personId? }`
   (FR-139), up to 200 rows: published items by id and drafts by their proposal's id. `action` is
-  `archive`, `delete` (drafts only), `domain`, `kind`, `owner_add`, `owner_set` or `check`.
-  Owners of an item's domain and admins change it, and a domain is moved into only by its owners
-  and admins (403 otherwise). It names the rows it acts on and each other row with a code
-  (`not_found`, `not_allowed`, `archived`, `draft`, `published`, `same_domain`, `same_kind`,
-  `not_owner_there`, `already_owner`, `only_owner`, `not_opened`), a few words (`why`) and a
-  sentence (`message`). The change does each row it may in full or not at all: an archive is a
-  retire decision, a move or a new kind is a change its owner publishes through the review's
-  checks and gate, a check is a recheck, and a deletion discards the draft. A row that fails
-  stays as it was, in `failed` with why, to try again. One `change:<id>` token undoes the whole
-  change within `limits.undo_seconds`, for its maker only.
+  `archive`, `delete` (drafts only), `domain`, `kind`, `owner_add`, `owner_set`, `check` or
+  `publish` (drafts only, up to 50; 422 above that). Owners of an item's domain and admins change
+  it, and a domain is moved into only by its owners and admins (403 otherwise). A draft is its
+  writer's alone (FR-230): row security finds only the person's own, which they publish or delete,
+  and anyone else's is `not_found`. It names the rows
+  it acts on and each other row with a code (`not_found`, `not_allowed`, `archived`, `draft`,
+  `published`, `same_domain`, `same_kind`, `not_owner_there`, `already_owner`, `only_owner`,
+  `not_opened`, `not_ready`), a few words (`why`) and a sentence (`message`). The change does
+  each row it may in full or not at all: an archive is a retire decision, a move or a new kind is
+  a change its owner publishes through the review's checks and gate, a check is a recheck, and a
+  deletion discards the draft. A publish is the editor's one step (`POST /items/publish`): sent,
+  checked and published at once by an owner of the draft's domain or an admin, as its writer's;
+  a writer's own draft for another domain goes to its owners, and `sent` names those. A draft the
+  checks refuse is skipped as `not_ready` with their first reason. A row that fails stays as it
+  was, in `failed` with why, to try again. One `change:<id>` token undoes the whole change within
+  `limits.undo_seconds`, for its maker only; Undo of a publish makes each draft a draft again,
+  its writer's.
 - `GET /context/changes` is the History log: each change to many items, newest first, with what
   it did in one sentence. An item the audience rule hides from the reader is counted in
   `withheld`, never named, and then the sentence says only how many items changed. `GET /context/deleted` lists the drafts that were deleted, with who
-  deleted them and when (admins). Published context is archived, never deleted.
+  deleted them and when (admins), of those row security lets them read: their own drafts. Published
+  context is archived, never deleted.
 - `POST /items/{id}/restore-draft` takes `{ version }` (FR-140): an owner of the item's domain or
   an admin gets a draft of a change with that version's words, dates and sources. What agents
   get does not change until the draft is published.
@@ -632,15 +659,14 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   table reads a version (`fields`, with the domain and the owner by name) and as its stored text
   (`source`). A mention of an item hidden from the reader reads as its words.
 - `GET /items/{id}/related` is Related on a context item: its neighbours one step away, as
-  `get_related` follows them on what agents get now, with how each relates to the item itself
+  agents follow them on what they get now, with how each relates to the item itself
   (`mentions`, `mentioned_by`, `replaces`, `replaced_by`, `conflicts_with`, `applies_to`).
   Neighbours the person may not see are counted in `withheld`, never named. A retired or replaced
   item is named by its title, as the Context list shows it, where agents get only the words that
   linked to it. A term written in Definitions is a `term` node, by `term:<id>` and its word. A
   metric the text mentions is a `mentions` link even when the item also applies to it.
   `areaId` is the item's domain and each neighbour's, a metric's or a dimension's as
-  Definitions shows it; `following` says whether agents follow links now (the `get_related`
-  switch).
+  Definitions shows it.
 - `POST /items/publish` takes `{ draft, itemId?, version?, reason?, draftId?, relations? }` (FR-137). An
   owner of the draft's domain (and, for a change, of the item's domain now) or an admin publishes
   it in one step, through the same checks and clash gate as the review; anyone else's goes to the
@@ -649,17 +675,30 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   owner answered in the editor: a clash left unanswered reads as `unrelated`, and an answer
   for an item it does not clash with is left out. `draftId` names the person's own draft it
   finishes, or their suggestion an owner returned: it takes the words and is sent as itself,
-  changing the item it was started from, if any; only its writer sends it (403 otherwise). A publish the checks refuse keeps
+  changing the item it was started from, if any. Someone else's draft is 404: only its writer reads
+  it (FR-230). A suggestion waiting for review may be finished by an owner of its domain or an
+  admin (Edit then publish): their words are a new version that supersedes the one
+  sent, names them as its editor and keeps its writer; its sender gets 409 and withdraws it
+  instead, and another owner's claim on it is 409. A returned suggestion is its writer's alone (403 otherwise). A publish the checks refuse keeps
   nothing. A change to an item (`itemId`) may name the `version` it was written from (else the
   version agents get now): the change stays written from it, and once someone has published other words since, it is refused when it is sent with 409 and
   `data.stale.version`, the version agents get now, so an older view never takes away a newer
   change. A check since then changes no words and does not count.
+- `POST /drafts` is Save as draft (FR-230): it takes `{ draft, itemId?, version?, draftId?,
+reason?, gapId? }` and keeps the words as the person's own draft, which only they read and agents
+  never get: a new item, a change to the published item named (written from `version`), or, with
+  `draftId`, a draft of theirs saved again in place (404 for anything else). `gapId` makes it the
+  draft of that Not found card. It answers `{ proposalId, revision }`.
+- `GET /drafts/left` (admins) lists the people who left with drafts they never sent, each with how
+  many: counted, never read. `POST /drafts/left/{personId}/clear` deletes them all, unread, and
+  answers `{ deleted }`; each draft's history says so, and the History log says how many and whose
+  (`drafts.cleared`). Someone still in the workspace is 409.
 - `POST /drafts/from-text` takes `{ text }`: a draft read from pasted text, or from the page a
   single link points to, with no model. It fills the words, a kind and dates by rule and where
   it applies by the vocabulary's names, and lists in `unsure` what it guessed.
 
 A context item's kind belongs to each version, so Change kind keeps its id,
-history and links. In a change to many items, an owner of a draft's domain may delete it, and
+history and links. In a change to many items, a draft's writer deletes it, and
 Mark as checked records a check even when nothing else moved, for an owner of the domain or an
 admin.
 
@@ -779,7 +818,8 @@ topic, Asked this week, the reach of a draft and the free check of saved questio
 takes what is asked (a question's words with the names sent beside them, a typed scope, or a
 topic's scope) and one edition bundle: the live edition, the edition before it, or the live
 edition with a draft in it. It reads the scope as `get_context` does, resolves it with the agent's
-audience, gives at most 20 items (`max_items`'s default), and says the same sentences (FR-344). On
+audience, orders what applies by the question's own words (`src/domain/question-order.ts`), gives
+the same 10 items by default (Ask's reads ask for 20), and says the same sentences (FR-344). On
 every case of the golden set its status, items, cut and sentences equal `get_context`'s
 (`tests/integration/golden-set.test.ts`), and it answers in under 50 ms at the 95th percentile
 on the demo library.
@@ -1155,33 +1195,3 @@ the contract is in `src/contract/alerts.ts`.
   page, `total` and `rules` count every raise the person may read, in all and by each rule that
   raised any, whatever the page, so Alerts says "20 of 198" and lists one rule by itself.
   Administrators read every raise; an owner those about a domain they own.
-
-## Figures in Ask
-
-Figures in Ask on the service (FR-716, CON-612, golden plan P11a). A definitions integration whose
-connector reads figures (Cube) has figures settings, off by default; the connector side is in
-[the connector contract](connector-contract.md#figures-in-ask) and
-[the Cube connector](cube-connector.md#figures-in-ask). The app's http binding words them for
-Ask and the integration's page (`src/web/api/http-figures.ts`).
-
-- `GET /figures`: each integration that reads figures, with Show figures in Ask (`enabled`) and
-  its data contact, for everyone signed in; for administrators also `connection`, the data
-  endpoint, its declared host and whether its token is set. Never the token, or any of it.
-- `PUT /figures/{id}` (administrators): `enabled`, `dataContactId` (a person in the workspace, or
-  null), `endpoint` (Cube's `/v1/load`) and `token`, each optional, with a `reason`. The token goes
-  to the secret store and is sent only to the endpoint's origin; an endpoint at another scheme,
-  host or port forgets it. Switching on needs the endpoint, its token and a data contact (422
-  otherwise). The history log records `figures.changed` with what changed, and of the token only
-  whether it was set, replaced or removed.
-- `POST /figures/read`: one figure for an answer, `{ metric, values, from, to, items? }` with the
-  metric's key, the dimension values' keys and the days, both included. It answers `off` (with the
-  tool's address to link to, when its endpoint is set and the reader is an administrator), `none`
-  with a reason (`undefined`, `ambiguous`, `no_date`, `no_split`, `no_value`, or `failed` with a
-  code), or `figure`: the value
-  and its format, the same for the days just before, when the tool last refreshed its data, the
-  query in words, the data contact, and `against`, a context item someone said the figure doesn't
-  fit while their report is open. It is read within 4 seconds, kept a minute in the server's
-  memory, and stored nowhere; no person's identity is passed on.
-- `POST /reports` takes `part: 'figure'` with `figure: { source, metric, values, from, to, route }`:
-  the figure doesn't fit the item, to the item's owners, the data contact, or both (`route`). The
-  data contact reads it in their Inbox and may close it as not a problem.

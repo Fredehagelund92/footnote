@@ -8,7 +8,8 @@
  * The groups, in the order of need: the names a read made first, since nothing can be written
  * about a metric until it has one, then what agents couldn't answer, then what people reported,
  * saved questions that answer worse, what an alert rule raised, comments that mention the person,
- * items due for a check, and suggestions last. Under All: what the person sent that waits on others, and what is done.
+ * items due for a check, suggestions, and last the person's own drafts that wait for them. Under
+ * All: what the person sent that waits on others, and what is done.
  */
 export const cardGroups = [
   'names',
@@ -19,6 +20,7 @@ export const cardGroups = [
   'mention',
   'check',
   'suggestion',
+  'drafts',
   'waiting',
   'done',
 ] as const
@@ -52,14 +54,35 @@ export const cardKey = {
   alert: (raiseId: string) => `alert:${raiseId}`,
   /** The names a read made, one card however many sources made them (FR-141). */
   names: () => 'names:waiting',
+  /** The person's own suggestion an owner closed (Don't publish), as their Inbox tells them. */
+  closed: (proposalId: string) => `closed:${proposalId}`,
+  /** The person's own drafts that were imported or left for a while: one card for all of them. */
+  drafts: () => 'drafts:yours',
 }
 
+/**
+ * A draft its writer has not saved for this many days waits on their Inbox's drafts card, as an
+ * imported one does at once (FR-139): a draft only they can see is easily forgotten.
+ */
+export const DRAFT_OLD_DAYS = 30
+
 type CardKind =
-  'proposal' | 'gap' | 'feedback' | 'report' | 'check' | 'mention' | 'look' | 'alert' | 'names'
+  | 'proposal'
+  | 'gap'
+  | 'feedback'
+  | 'report'
+  | 'check'
+  | 'mention'
+  | 'look'
+  | 'alert'
+  | 'names'
+  | 'closed'
+  | 'drafts'
 
 /** What a card's name says it is, or null for a name that is none of them. */
 export function parseCardKey(key: string): { kind: CardKind; id: string } | null {
-  const match = /^(proposal|gap|feedback|report|check|mention|look|alert|names):(.+)$/.exec(key)
+  const match =
+    /^(proposal|gap|feedback|report|check|mention|look|alert|names|closed|drafts):(.+)$/.exec(key)
   return match ? { kind: match[1] as CardKind, id: match[2]! } : null
 }
 

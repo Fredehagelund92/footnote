@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { ChevronsUpDownIcon } from '@/components/icons'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { Button } from '@/components/ui/button'

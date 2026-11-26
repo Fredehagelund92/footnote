@@ -3,7 +3,9 @@ import type {
   IndexedItem,
   CatalogueDefinition,
   CatalogueSource,
+  CatalogueSplit,
   CatalogueTerm,
+  DefinitionBuiltFrom,
   DefinitionRelations,
 } from '../../../contract/index.ts'
 import type { SourceConfig } from '../../../contract/sources.ts'
@@ -20,6 +22,7 @@ import type { DeclaredFamily, VariantValue } from '../../../domain/definition-he
 import {
   conversionsOf,
   relationsOf,
+  treeOf,
   type BuiltFrom,
   type RelationMember,
 } from '../../../domain/definition-relations.ts'
@@ -32,10 +35,11 @@ import {
   familyAxes,
 } from '../../../domain/metric-families.ts'
 import { modelFileUrl, viewOf } from '../../../domain/source-views.ts'
-import { memberName } from '../../../domain/term-candidates.ts'
+import { memberName, viewWords } from '../../../domain/term-candidates.ts'
 import { metricKeyOf } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { connectorType, connectorTypes, modelFolderOf } from '../connectors/index.ts'
 import { libraryIndexItems } from '../library/index.ts'
 
@@ -68,6 +72,11 @@ export interface CatalogueService {
    * definition is hidden from the person (CON-509).
    */
   relations(key: string): Promise<DefinitionRelations | null>
+  /**
+   * What the metric a live term names is built from, at every depth (FR-143): refs and names
+   * only, each metric once; null as for `relations`. It changes nothing an agent is given.
+   */
+  builtFrom(key: string): Promise<DefinitionBuiltFrom | null>
 }
 
 type VocabularyRow = {
@@ -151,8 +160,7 @@ export function createCatalogueService(
       settings: { key: string; value: unknown }[]
       meanings: {
         key: string
-        choice: 'auto' | 'member' | 'written'
-        member: string | null
+        choice: 'auto' | 'written'
         words: string | null
         revision: number
         personId: string
@@ -166,6 +174,7 @@ export function createCatalogueService(
         at: string
       }[]
       mentions: { key: string; items: number }[]
+      splits: (Omit<CatalogueSplit, 'metrics'> & { metrics: string[] })[]
       gaps: string[][]
       items: IndexedItem[]
     }>(
@@ -253,13 +262,20 @@ export function createCatalogueService(
          (select coalesce(json_agg(s order by s.id collate "C"), '[]') from sources s) as sources,
          (select coalesce(json_agg(m), '[]') from mentions m) as mentions,
          (select coalesce(json_agg(json_build_object(
-                   'key', f.family_key, 'choice', f.choice, 'member', f.member_key, 'words', f.words,
+                   'key', f.family_key, 'choice', f.choice, 'words', f.words,
                    'revision', f.revision, 'personId', f.updated_by::text, 'at', ${iso('f.updated_at')})), '[]')
             from family_meanings f) as meanings,
          (select coalesce(json_agg(json_build_object(
                    'key', f.family_key, 'member', f.member_key, 'revision', f.revision,
                    'personId', f.updated_by::text, 'at', ${iso('f.updated_at')})), '[]')
             from family_usual f) as usuals,
+         (select coalesce(json_agg(json_build_object(
+                   'key', x.family_key, 'name', x.name, 'areaId', x.area_id, 'metrics', x.variants,
+                   'items', (select count(distinct s.item_id)::int from item_version_service s
+                               join item_version_metrics m on m.version_id = s.version_id
+                              where upper_inf(s.editions) and m.metric_key = x.family_key),
+                   'personId', t.split_by::text, 'at', ${iso('x.split_at')}) order by x.split_at desc), '[]')
+            from ${standingSplits(liveSeq)} x join family_splits t on t.id = x.id) as splits,
          (select coalesce(json_agg(s), '[]') from (
             select distinct on (key) key, value from settings_versions
              where key = any($2::text[]) order by key, version desc) s) as settings,
@@ -269,7 +285,8 @@ export function createCatalogueService(
          ${libraryIndexItems} as items`,
       [groups, linkSettings],
     )
-    const { vocabulary, definitions, familyMembers, mentions, meanings, usuals, items } = row!
+    const { vocabulary, definitions, familyMembers, mentions, meanings, usuals, splits, items } =
+      row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
     const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
@@ -289,6 +306,7 @@ export function createCatalogueService(
       mentions,
       meanings,
       usuals,
+      splits,
       gaps,
       items,
     }
@@ -453,9 +471,8 @@ export function createCatalogueService(
         id: row.key.slice(row.key.indexOf(':') + 1),
         name: row.name,
         aliases: row.aliases,
-        group: view
-          ? { key: `view:${view}`, name: `${view.charAt(0).toUpperCase()}${view.slice(1)}` }
-          : null,
+        // Its view, in words: `booked_revenue` is "Booked revenue".
+        group: view ? { key: `view:${view}`, name: viewWords(view) } : null,
         family: {
           by,
           // A family an owner published from names that look alike was found by its names.
@@ -487,7 +504,6 @@ export function createCatalogueService(
             chosen: chosen
               ? {
                   choice: chosen.choice,
-                  member: chosen.member,
                   words: chosen.words,
                   personId: chosen.personId,
                   at: chosen.at,
@@ -495,6 +511,10 @@ export function createCatalogueService(
               : null,
             revision: chosen?.revision ?? 0,
           },
+          declared:
+            found?.found === 'declared'
+              ? (said.find((entry) => entry.declared)?.declared?.name ?? null)
+              : null,
           // A usual variant that has left the family is no usual variant.
           usual: {
             member: members.some((member) => member.key === usual?.member)
@@ -615,7 +635,77 @@ export function createCatalogueService(
     return row!
   }
 
+  /**
+   * The metric's definition and every metric below it, walked through what each is built from:
+   * one a person may not see, or that left its source, is read but not walked through. With the
+   * live terms that name any of them, in one statement.
+   */
+  async function readTree(key: string) {
+    type Row = Omit<RelationMember, 'name'> & {
+      name: string | null
+      known: boolean
+      missing: boolean
+      visible: boolean
+    }
+    const [row] = await database.query<{
+      own: string | null
+      metrics: Row[]
+      terms: { key: string; name: string; refs: string[] }[]
+    }>(
+      `with recursive vocabulary as materialized (
+         select t.key, t.name, t.definition_refs as refs
+           from serving_vocabulary((select seq from live_edition)) t where t.kind = 'metric'),
+       own as (
+         select d.ref from definitions d
+          where d.ref = (select v.refs[1] from vocabulary v where v.key = $2)
+            and d.kind = 'metric' and ${visibleTo}),
+       walk(ref) as (
+         select ref from own
+         union
+         select input from walk w
+           join definitions d on d.ref = w.ref
+                and d.missing_since_snapshot is null and ${visibleTo}
+           cross join unnest(d.built_from_refs) as input)
+       select
+         (select ref from own) as own,
+         (select coalesce(json_agg(json_build_object(
+                   'ref', w.ref, 'name', d.name, 'known', d.ref is not null,
+                   'missing', coalesce(d.missing_since_snapshot is not null, false),
+                   'visible', d.ref is null or ${visibleTo},
+                   'builtFrom', case when d.built_from_refs is null then null
+                                     else json_build_object('refs', d.built_from_refs, 'columns', '[]'::json)
+                                end)), '[]')
+            from walk w left join definitions d on d.ref = w.ref) as metrics,
+         (select coalesce(json_agg(json_build_object('key', v.key, 'name', v.name, 'refs', v.refs)), '[]')
+            from vocabulary v where v.refs && array(select ref from walk)) as terms`,
+      [groups, key],
+    )
+    return row!
+  }
+
   return {
+    async builtFrom(key) {
+      const { own, metrics, terms } = await readTree(key)
+      const root = metrics.find((metric) => metric.ref === own)
+      if (!root) return null
+      const termOf = new Map(terms.flatMap((term) => term.refs.map((ref) => [ref, term] as const)))
+      const stored = new Map(metrics.map((metric) => [metric.ref, metric]))
+      const targetOf = (ref: string) => {
+        const definition = stored.get(ref)
+        if (!definition?.known) return undefined
+        if (!definition.visible) return null
+        const term = termOf.get(ref)
+        return {
+          name: term?.name ?? definition.name!,
+          key: term?.key ?? null,
+          missing: definition.missing,
+        }
+      }
+      const known = metrics.filter(
+        (metric): metric is typeof metric & { name: string } => metric.known,
+      )
+      return { metrics: treeOf({ ...root, name: root.name! }, known, targetOf) }
+    },
     async relations(key) {
       const { own, peers, targets, terms } = await readRelations(key)
       if (!own) return null
@@ -642,8 +732,16 @@ export function createCatalogueService(
       const data = await read()
       const { today, terms } = build(data)
       const metrics = terms('metric')
+      const nameOf = new Map(data.vocabulary.map((row) => [row.key, row.name]))
       return {
         terms: [...metrics, ...terms('dimension')],
+        splits: data.splits.map((split) => ({
+          ...split,
+          metrics: split.metrics.flatMap((key) => {
+            const name = nameOf.get(key)
+            return name ? [{ key, name }] : []
+          }),
+        })),
         sources: data.sources.filter((source) => !source.removed).map(withoutRemoved),
         coverage: {
           metrics: metrics.length,

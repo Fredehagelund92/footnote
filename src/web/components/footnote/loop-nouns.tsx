@@ -5,15 +5,15 @@ import { dimensionHue, nounKindOf } from '@domain/ask-nouns'
 import type { Domain } from '@/model/people'
 import type { Kind, Status } from '@/model/items'
 import type { AnswerActions, ReportLine, SomethingWrong } from '@/components/footnote/answer'
-import type { AnswerFigure } from '@/components/footnote/answer-figure'
 import type { LoopPartsOfAsk } from '@/components/footnote/loop-parts'
+import { Marks, answerCode } from '@/components/footnote/source-text'
+import { safeHref } from '@/lib/host'
 
 /** What the loop's answer uses of Ask, handed to it by Ask (loop-parts.ts). */
 export type LoopParts = LoopPartsOfAsk & {
   AnswerActions: typeof AnswerActions
   ReportLine: typeof ReportLine
   SomethingWrong: typeof SomethingWrong
-  AnswerFigure: typeof AnswerFigure
 }
 export const PartsContext = React.createContext<LoopParts | null>(null)
 /** Ask's parts, as the answer was given them. */
@@ -31,7 +31,10 @@ export function useParts(): LoopParts {
   a day words with a dotted underline; a count bold with what it is out of; a context item a
   number where it is cited. Every hue comes from an id, never a name: no dimension, domain or
   person is special. Each opens its own card on hover, on keyboard focus and on a press; Escape
-  closes it and focus comes back.
+  closes it and focus comes back. A metric's, a dimension's and a value's press opens the
+  definition in the pane instead (a value's, its dimension's): a value has no page of its own. A
+  metric group that is no family has no definition, so it is drawn as a group, whose card names
+  its metrics.
 */
 
 type Noun = LoopTurn['nouns'][number]
@@ -66,9 +69,10 @@ export function dayText(day: string, short = false) {
   return short ? dayMonthYear(day) : dayMonthYearLong(day)
 }
 
-// 24px tall at the least, so each is a target a pointer can hit (WCAG 2.5.8).
+// 24px tall at the least, so each is a target a pointer can hit (WCAG 2.5.8). The arrow, not the
+// text cursor: a chip is a name with a card, and only one whose press opens something points.
 const chip =
-  'inline-flex min-h-6 max-w-full items-center gap-1 rounded-sm px-1.5 py-px align-baseline text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
+  'inline-flex min-h-6 max-w-full cursor-default items-center gap-1 rounded-sm px-1.5 py-px align-baseline text-sm font-medium whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50'
 
 /**
  * A trigger with its card: hover opens it after a moment, keyboard focus opens it at once, a press
@@ -186,8 +190,13 @@ export function NounChip({
   const domain = useDomainOf(kind === 'domain' ? id : null)
   const name = noun?.name ?? (kind === 'domain' ? domain?.name : undefined) ?? key(id)
   // Its name as shown, then what it is, said to a screen reader: "Orders, metric".
-  const said = told ? null : <span className="sr-only">, {kind ? kindWords[kind] : 'name'}</span>
-  const button = (className: string, style?: React.CSSProperties, body?: React.ReactNode) => (
+  const said = told ? null : ((kind && kindWords[kind]) ?? 'name')
+  const button = (
+    className: string,
+    style?: React.CSSProperties,
+    body?: React.ReactNode,
+    what: string | null = said,
+  ) => (
     <span
       role={still ? undefined : 'button'}
       tabIndex={still ? undefined : 0}
@@ -195,12 +204,30 @@ export function NounChip({
       className={P.cn(chip, className, snug && 'pr-0.5')}
     >
       {body}
-      {said}
+      {what && <span className="sr-only">, {what}</span>}
     </span>
   )
   switch (kind) {
     case 'metric': {
       const tone = P.chipTone('metric')
+      if (noun?.plainGroup)
+        return (
+          <HoverCard
+            label={name}
+            still={still}
+            trigger={button(
+              tone.className,
+              tone.style,
+              <>
+                <P.FolderIcon aria-hidden className="size-3 shrink-0" />
+                <span className="min-w-0 truncate">{name}</span>
+              </>,
+              told ? null : 'metric group',
+            )}
+          >
+            <GroupCard name={name} />
+          </HoverCard>
+        )
       return (
         <HoverCard
           label={name}
@@ -227,6 +254,8 @@ export function NounChip({
         '--chip-h': dimensionHue(dimension?.id ?? id),
         borderColor: 'oklch(0.62 0.14 var(--chip-h))',
       } as React.CSSProperties
+      // A value has no page of its own: its dimension's definition lists it.
+      const defined = kind === 'value' ? dimension?.name : name
       return (
         <HoverCard
           label={name}
@@ -235,6 +264,7 @@ export function NounChip({
             P.cn(
               'border bg-transparent text-chip-foreground',
               kind === 'dimension' && 'border-dashed',
+              defined && 'cursor-pointer',
             ),
             style,
             <>
@@ -242,6 +272,7 @@ export function NounChip({
               <span className="min-w-0 truncate">{name}</span>
             </>,
           )}
+          onOpen={defined ? () => P.openDock('def', defined) : undefined}
         >
           <p className="text-xs text-muted-foreground">
             {kind === 'value' ? `A value of ${dimension?.name ?? 'a dimension'}` : 'A dimension'}
@@ -252,6 +283,11 @@ export function NounChip({
               ? `What context items apply to when they name ${name}.`
               : `Every value of ${name}.`}
           </p>
+          {defined && (
+            <OpenDefinition name={defined}>
+              {kind === 'value' ? `Open ${defined}` : 'Open the definition'}
+            </OpenDefinition>
+          )}
         </HoverCard>
       )
     }
@@ -350,13 +386,50 @@ function MetricCard({ name }: { name: string }) {
           {d?.sourceNames.length ? ` · also called ${d.sourceNames.join(', ')}` : ''}
         </p>
       )}
-      <button
-        type="button"
-        onClick={() => P.openDock('def', name)}
-        className="w-fit rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        Open the definition
-      </button>
+      <OpenDefinition name={name}>Open the definition</OpenDefinition>
+    </>
+  )
+}
+
+/** A card's way to a definition: it opens in the pane. */
+function OpenDefinition({ name, children }: { name: string; children: React.ReactNode }) {
+  const P = useParts()
+  return (
+    <button
+      type="button"
+      onClick={() => P.openDock('def', name)}
+      className="w-fit rounded-sm text-sm font-medium text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      {children}
+    </button>
+  )
+}
+
+/**
+ * A metric group's card, for one that is no family: what it is and the metrics its tool puts in
+ * it, by name. It has no definition of its own, so nothing opens one.
+ */
+function GroupCard({ name }: { name: string }) {
+  const P = useParts()
+  const metrics = P.useDefinitions().filter((d) => d.type === 'metric' && d.group === name)
+  const tool = metrics.find((d) => d.tool)?.tool
+  // Six by name at most, then how many more: "A, B and 3 more".
+  const named = metrics.slice(0, 6).map((d) => d.name)
+  if (metrics.length > named.length)
+    named.push(`${(metrics.length - named.length).toLocaleString('en-GB')} more`)
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">Metric group{tool ? ` · in ${tool}` : ''}</p>
+      <p className="text-sm font-medium">{name}</p>
+      <p className="text-sm text-muted-foreground">
+        A group {tool ?? 'its tool'} puts metrics under, with no definition of its own.
+      </p>
+      {named.length > 0 && (
+        <p className="text-sm text-muted-foreground">
+          Its metrics:{' '}
+          {named.length < 2 ? named[0] : `${named.slice(0, -1).join(', ')} and ${named.at(-1)}`}.
+        </p>
+      )}
     </>
   )
 }
@@ -421,7 +494,7 @@ export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
   const P = useParts()
   const { lit } = React.useContext(LitSource)
   const marker =
-    'relative ml-0.5 mr-px inline-flex h-6 min-w-6 -translate-y-px items-center justify-center rounded-md bg-muted px-1.5 align-middle text-xs font-medium text-foreground tabular-nums outline-none transition-colors after:absolute after:-inset-[13px] hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50'
+    'relative ml-0.5 mr-px inline-flex h-6 min-w-6 -translate-y-px cursor-default items-center justify-center rounded-md bg-muted px-1.5 align-middle text-xs font-medium text-foreground tabular-nums outline-none transition-colors after:absolute after:-inset-[13px] hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50'
   const shown = P.cn(marker, lit === n && 'bg-foreground text-background hover:bg-foreground')
   if (!item)
     return (
@@ -437,7 +510,8 @@ export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
           role="button"
           tabIndex={0}
           aria-label={`Source ${n}: ${item.title}`}
-          className={shown}
+          // A press opens the item.
+          className={P.cn(shown, 'cursor-pointer')}
         >
           {n}
         </span>
@@ -586,9 +660,13 @@ export function Runs({
       {runs.map((r, i) => {
         const from = i ? ends[i - 1]! : 0
         // Plain words go a word at a time, the same spans from the first word to the last, so a
-        // word that is in never fades in again.
+        // word that is in never fades in again; their mark and their link come with the first.
         if (upTo !== undefined && r.t === 'text')
-          return <Typed key={i} text={r.text} upTo={upTo - from} />
+          return upTo - from < (/^\s*\S+/.exec(r.text)?.[0].length ?? 0) ? null : (
+            <Styled key={i} run={r}>
+              <Typed text={r.text} upTo={upTo - from} />
+            </Styled>
+          )
         if (upTo !== undefined && ends[i]! > upTo) return null
         const drawn = run(r, i)
         return upTo === undefined ? (
@@ -605,7 +683,11 @@ export function Runs({
   function run(r: LoopRun, i: number) {
     switch (r.t) {
       case 'text':
-        return <React.Fragment key={i}>{r.text}</React.Fragment>
+        return (
+          <Styled key={i} run={r}>
+            {r.text}
+          </Styled>
+        )
       case 'noun': {
         if (seen?.has(r.id))
           return <React.Fragment key={i}>{nouns.get(r.id)?.name ?? key(r.id)}</React.Fragment>
@@ -641,6 +723,47 @@ export function Runs({
         )
     }
   }
+}
+
+/**
+ * Plain words as the model set them in Markdown: bold, italic, struck through or as code, and on
+ * their link, which opens in a new tab as the help's own links do. A link only ever goes to a web
+ * or mail address or a help page that exists; any other is plain words.
+ */
+function Styled({
+  run,
+  children,
+}: {
+  run: Extract<LoopRun, { t: 'text' }>
+  children: React.ReactNode
+}) {
+  const P = useParts()
+  let node = (
+    <Marks marks={run.marks ?? []} code={answerCode}>
+      {children}
+    </Marks>
+  )
+  const link = run.link
+  const href = !link
+    ? null
+    : 'url' in link
+      ? safeHref(link.url)
+      : P.docTitle(link.slug)
+        ? P.docHref(link.slug, link.id)
+        : null
+  if (href)
+    node = (
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="rounded-xs text-primary underline underline-offset-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {node}
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+    )
+  return <>{node}</>
 }
 
 /**

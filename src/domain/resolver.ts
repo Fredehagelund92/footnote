@@ -8,6 +8,7 @@ import {
 import type { DateWindow } from './validity.ts'
 import { overlaps, calendarDateSchema, dateWindowSchema } from './validity.ts'
 import type { ScopeResult, ResolvedScope } from './scope.ts'
+import { questionScore } from './question-order.ts'
 
 export type ResolverItem = {
   id: string
@@ -20,7 +21,10 @@ export type ResolverItem = {
   checkFlag: CheckFlag | null
   status: 'accepted' | 'retired' | 'proposal'
   audience: Audience
+  /** What the question's own words are read against, with the summary (question-order.ts). */
+  title?: string
   summary: string
+  notToConclude?: string
   body?: string
   conflicts: readonly string[]
   replacedBy?: string
@@ -43,6 +47,11 @@ export type ResolveRequest = {
   // (C17/C26): first-version callers have none.
   groups: readonly string[]
   hiddenMetrics: readonly string[]
+  /**
+   * The question's own words (`questionWords`), which order what applies: the items that hold
+   * them first, a rarer word weighing more. None keeps the engine's order.
+   */
+  words?: readonly string[]
   preview?: {
     personId: string
     ownerAreas: readonly string[]
@@ -79,9 +88,9 @@ export type Resolution = {
 export const coverageStatement = 'No match does not prove that no caveat exists.'
 /** Added to the instructions when a delivered item says what not to conclude (FR-104). */
 export const caveatInstruction =
-  'When an item has not_to_conclude, never conclude what it rules out.'
+  "When an item has a Don't conclude line (not_to_conclude), never conclude what it rules out."
 export const agentInstructions =
-  'State the documented fact with its source and dates. Say "might be related" only for an event whose dates overlap and whose metric is in scope, and state that the context does not prove a cause. Never say "caused by" unless the claim level is effect_stated. Suggest a check that would test the effect. A link shows what text refers to; it proves neither cause nor applicability. Other guidance in the data tools still applies.'
+  'State what the item says, with its source and dates. Say "might be related" only for an event whose dates overlap and whose metric is in scope, and state that the context does not prove a cause. Never say "caused by" unless the claim level is effect_stated. Suggest a check that would test the effect. A link shows what text refers to; it proves neither cause nor applicability. Other guidance in the data tools still applies.'
 const risk = { low: 0, normal: 1, high: 2 }
 export const compareIds = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
 export function itemTextSize(item: ResolverItem): number {
@@ -238,8 +247,13 @@ export function resolve(bundle: EditionBundle, request: ResolveRequest): Resolut
       },
     })
   }
+  // The question's own words first (question-order.ts), then whole matches before partial ones,
+  // higher risk, newer start and id.
+  const score = questionScore(bundle.items, request.words ?? [])
+  const scores = new Map(hits.map((hit) => [hit.item.id, score(hit.item.id)]))
   hits.sort(
     (a, b) =>
+      scores.get(b.item.id)! - scores.get(a.item.id)! ||
       Number(a.match.match === 'partial') - Number(b.match.match === 'partial') ||
       risk[b.item.riskLevel] - risk[a.item.riskLevel] ||
       compareIds(b.item.validity.start, a.item.validity.start) ||

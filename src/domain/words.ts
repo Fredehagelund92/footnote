@@ -102,7 +102,7 @@ export const concepts = {
   suggestion: {
     name: 'suggestion',
     definition:
-      'A change sent to an owner, from the editor or by an agent. Nothing changes until the owner publishes it.',
+      'A change sent to an owner, from the editor or by an agent. It waits for review until the owner publishes it, sends it back or closes it.',
     internal: ['proposal'],
   },
   publish: {
@@ -189,8 +189,7 @@ export const concepts = {
   },
   integration: {
     name: 'integration',
-    definition:
-      'A connected tool: where definitions live, where documents live, where figures come from.',
+    definition: 'A connected tool: where definitions live, or where documents live.',
     internal: ['source', 'connector'],
   },
   agent: {
@@ -258,7 +257,7 @@ export const answerLines = {
   },
   missing: {
     label: 'Not found',
-    sentence: 'Nothing is written about this yet.',
+    sentence: 'Nothing published about this yet.',
     long: 'Nothing written down',
   },
   conflict: {

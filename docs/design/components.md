@@ -105,21 +105,21 @@ Unused primitives in the mockup (about seven) are not imported.
 
 ### The state line and Ask
 
-| Part            | File                                                                              | Job                                                                                                                              |
-| --------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Answer          | `components/footnote/answer.tsx`                                                  | One turn: the state badge and its card, the words with citation markers, source chips, What agents get, the action row with More |
-| State help      | `components/footnote/state-help.tsx`                                              | The answer line's card: what it means and what to do                                                                             |
-| Answer lines    | `lib/help-content.ts` (`ANSWER_LINES`)                                            | The six labels, sentences and long forms, from one list                                                                          |
-| Reading         | `components/footnote/reading.tsx`, `lib/stages.ts`                                | The staged look-up where an agent works                                                                                          |
-| Figure          | `components/footnote/answer-figure.tsx`                                           | One figure, apart from the context, never changing the state                                                                     |
-| Asked this week | `components/footnote/asked-week.tsx`, `asked-week-list.tsx`, `data/asked-week.ts` | A bar of the topics by state, then each topic with its state now and a count                                                     |
-| Suggestions     | `components/footnote/suggestions.tsx`                                             | Questions to ask as soft chips: the empty page's starters only, never in the thread                                              |
-| Records answer  | `components/footnote/records-answer.tsx`, `domain/records.ts`                     | A question about the records: the Records chip, one sentence, five rows or a table of counts                                     |
-| Where           | `components/footnote/where-panel.tsx`, `lib/where.ts`                             | "Show me where it says that"                                                                                                     |
-| Share           | `components/footnote/share-answer.tsx`, `lib/share.ts`                            | A Slack message or a card, with state and sources                                                                                |
-| Composer        | `pages/ask-composer.tsx`, `lib/surfaces.ts`                                       | The soft input surface shared with the comment box                                                                               |
-| Ask page        | `pages/ask.tsx`, `lib/threads.ts`                                                 | The thread, history, search, the empty page                                                                                      |
-| Agent reply     | `lib/agent-reply.ts`                                                              | The reply an agent gets, built from published context only                                                                       |
+| Part            | File                                                                                  | Job                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Answer          | `components/footnote/answer.tsx`                                                      | One turn: the state badge and its card, the words with citation markers, source chips, What agents get, the action row with More |
+| State help      | `components/footnote/state-help.tsx`                                                  | The answer line's card: what it means and what to do                                                                             |
+| Answer lines    | `lib/help-content.ts` (`ANSWER_LINES`)                                                | The six labels, sentences and long forms, from one list                                                                          |
+| Reading         | `components/footnote/reading.tsx`, `lib/stages.ts`                                    | The staged look-up where an agent works                                                                                          |
+| Figure          | `components/footnote/answer-figure.tsx`                                               | One figure, apart from the context, never changing the state                                                                     |
+| Asked this week | `components/footnote/asked-week.tsx`, `asked-week-list.tsx`, `data/asked-week.ts`     | A bar of the topics by state, then each topic with its state now and a count                                                     |
+| Suggestions     | `components/footnote/suggestions.tsx`                                                 | Questions to ask as soft chips: the empty page's starters only, never in the thread                                              |
+| Records answer  | `components/footnote/records-answer.tsx`, `domain/records.ts`                         | A question about the records: the Records chip, one sentence, five rows or a table of counts                                     |
+| Where           | `components/footnote/where-panel.tsx`, `lib/where.ts`                                 | "Show me where it says that"                                                                                                     |
+| Share chat      | `components/footnote/share-chat.tsx`, `pages/shared-chat.tsx`, `model/shared-chat.ts` | One link to a copy of the whole chat, and the page it opens                                                                      |
+| Composer        | `pages/ask-composer.tsx`, `lib/surfaces.ts`                                           | The soft input surface shared with the comment box                                                                               |
+| Ask page        | `pages/ask.tsx`, `lib/threads.ts`                                                     | The thread, history, search, the empty page                                                                                      |
+| Agent reply     | `lib/agent-reply.ts`                                                                  | The reply an agent gets, built from published context only                                                                       |
 
 ### Editor, properties and documents
 
@@ -142,28 +142,32 @@ Unused primitives in the mockup (about seven) are not imported.
 | Peek              | `components/footnote/peek.tsx`                                                                | The quick view frame: note, one closed Details, the toolbar under it                                                            |
 | Context peek      | `components/footnote/fact-peek.tsx`                                                           | The context item quick view                                                                                                     |
 | Definition peek   | `components/footnote/definition-peek.tsx`                                                     | The definition quick view                                                                                                       |
+| Built-from tree   | `components/footnote/built-from-tree.tsx`, `lib/built-from.ts`                                | What a metric is built from at every depth, with the published context counted on each line; on its page and in its quick view  |
 | Details body      | `components/footnote/details-body.tsx`                                                        | A context item's Details in lines of words: peek, page, Preview, Inbox item fold; each leaves out what it shows or its page has |
 | Context page      | `pages/fact.tsx`, `components/footnote/item-document.tsx`                                     | A context item as a document with Details, History, Related, comments; the document is also the review's Preview                |
 | Version history   | `components/footnote/version-history.tsx`, `history-comparison.tsx`                           | One line until opened, then rows by month; a version opens compared with any other, as review compares, with Restore for owners |
-| Related           | `components/footnote/related.tsx`, `lib/links.ts`, `hooks/use-related.ts`                     | What `get_related` can follow: Links to and Linked from, one line per link                                                      |
+| Related           | `components/footnote/related.tsx`, `lib/links.ts`, `hooks/use-related.ts`                     | What agents can follow with `read_context`: Links to and Linked from, one line per link                                         |
 | Definitions pages | `pages/definitions.tsx`, `definition-page.tsx`, `definition-editor.tsx`, `lib/definitions.ts` | The list, a page and the term and synonym editor                                                                                |
 | Domain page       | `pages/domain-page.tsx`, `lib/domains.ts`                                                     | A domain as its own document                                                                                                    |
 
 ### Lists and bulk
 
-| Part               | File                                              | Job                                                                              |
-| ------------------ | ------------------------------------------------- | -------------------------------------------------------------------------------- |
-| List parts         | `components/footnote/list.tsx`                    | The filter bar, the thin header row, rows of one line at one density, the cursor |
-| Sorting            | `lib/sort.ts`                                     | A key and a direction; `SortMenu` and `SortTh` in the list parts flip it         |
-| Columns            | `components/footnote/columns.tsx`                 | Design B: kind icon, scope, status icon, when, freshness dot                     |
-| Context list       | `pages/context.tsx`                               | The Context list                                                                 |
-| Selection          | `hooks/use-selection.ts`, `lib/selection.ts`      | One picking model for every list                                                 |
-| Bulk bar           | `components/footnote/bulk-bar.tsx`, `lib/bulk.ts` | The one bar in its own band, with skips and reasons                              |
-| Context actions    | `components/footnote/context-bulk.tsx`            | Archive, Delete, Change domain, kind, owners, Mark as checked, Export            |
-| Definition actions | `components/footnote/definitions-bulk.tsx`        | Terms only; synced items are left alone                                          |
-| Delete dialog      | `components/footnote/delete-dialog.tsx`           | The one confirmation before a delete                                             |
-| Suggest list       | `components/footnote/suggest-list.tsx`            | The one list a text box offers while typing                                      |
-| Switches           | `components/footnote/switches.tsx`                | `ViewToggle`, `TextSwitch`, `ChoiceMenu`                                         |
+| Part                 | File                                              | Job                                                                               |
+| -------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| List parts           | `components/footnote/list.tsx`                    | The filter bar, the thin header row, rows of one line at one density, the cursor  |
+| Sorting              | `lib/sort.ts`                                     | A key and a direction; `SortMenu` and `SortTh` in the list parts flip it          |
+| Columns              | `components/footnote/columns.tsx`                 | Design B: kind icon, scope, status icon, when, freshness dot                      |
+| Context list         | `pages/context.tsx`                               | The Context list                                                                  |
+| Selection            | `hooks/use-selection.ts`, `lib/selection.ts`      | One picking model for every list                                                  |
+| Bulk bar             | `components/footnote/bulk-bar.tsx`, `lib/bulk.ts` | The one bar in its own band, with skips and reasons                               |
+| Context actions      | `components/footnote/context-bulk.tsx`            | Publish, Archive, Delete, Change domain, kind, owners, Mark as checked, Export    |
+| Definition actions   | `components/footnote/definitions-bulk.tsx`        | Terms only; synced items are left alone                                           |
+| Delete dialog        | `components/footnote/delete-dialog.tsx`           | The one confirmation before a delete                                              |
+| Publish dialog       | `components/footnote/publish-dialog.tsx`          | The one question before more than five drafts are published                       |
+| Don't publish dialog | `components/footnote/dont-publish-dialog.tsx`     | The reason an owner gives to close a new item or a change, which its sender reads |
+| Waiting decision     | `components/footnote/waiting-decision.tsx`        | Publish, Send back and Don't publish of a waiting item, from its page             |
+| Suggest list         | `components/footnote/suggest-list.tsx`            | The one list a text box offers while typing                                       |
+| Switches             | `components/footnote/switches.tsx`                | `ViewToggle`, `TextSwitch`, `ChoiceMenu`                                          |
 
 ### The Inbox and the review
 

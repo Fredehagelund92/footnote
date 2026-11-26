@@ -283,7 +283,7 @@ describe("a source's activity", () => {
       when: 'Today, 06:00',
       tone: 'ok',
       what: 'First read',
-      detail: '27 definitions added',
+      detail: '27 definitions read',
     })
     expect(
       activityOf(read({ definitions: { seen: 27, added: 0, changed: 0, gone: 0 } }), tool, now),
@@ -679,6 +679,7 @@ describe('the connect flow, on the manifests', () => {
       steps: [],
       scopes: [],
       failure: "It couldn't be read: the key was refused.",
+      fix: 'Check that the token can read it, then replace it under Change settings.',
     })
     const said = connectTestOf({
       ...failed,
@@ -710,10 +711,62 @@ describe('the connect flow, on the manifests', () => {
     expect(connectTestOf(check, 'dbt-metricflow').read?.variants).toEqual({
       title: 'Many metrics look like variants of a few',
       detail:
-        "4,980 of 5,000 metrics look like 20 metrics, each split by web, app, store and 2 more, and by eur, usd, gbp and 47 more. Agents find what is written about them only by each one's exact name. One metric each, with these as dimensions, works best.",
+        '4,980 of 5,000 metrics look like 20 metrics, each split by web, app, store and 2 more, and by eur, usd, gbp and 47 more. One metric each, with these as dimensions, works best.',
     })
     const { variants: _, ...dimensions } = check
     expect(connectTestOf(dimensions, 'dbt-metricflow').read).not.toHaveProperty('variants')
+  })
+
+  it('leads with the families a read would find, in place of the look of variants (D5)', () => {
+    const families = {
+      families: 37,
+      metrics: 94,
+      found: { declared: 8, calculation: 6, rate: 18, names: 5 },
+      example: 'Accrued share',
+    }
+    const check: SourceCheck = {
+      ok: true,
+      steps: [],
+      version: 'abc',
+      complete: true,
+      views: 1,
+      metrics: 97,
+      dimensions: 4,
+      warnings: [],
+      variants: { variants: 94, metrics: 97, bases: 37, splits: [{ words: 2, examples: ['eur'] }] },
+      families,
+    }
+    const read = connectTestOf(check, 'dbt-metricflow').read
+    expect(read?.families).toEqual(families)
+    expect(read).not.toHaveProperty('variants')
+  })
+
+  it('keeps the look of variants when the families found cover under half of them', () => {
+    const check: SourceCheck = {
+      ok: true,
+      steps: [],
+      version: 'abc',
+      complete: true,
+      views: 1,
+      metrics: 310,
+      dimensions: 4,
+      warnings: [],
+      variants: {
+        variants: 300,
+        metrics: 310,
+        bases: 10,
+        splits: [{ words: 3, examples: ['web'] }],
+      },
+      families: {
+        families: 1,
+        metrics: 2,
+        found: { declared: 0, calculation: 0, rate: 0, names: 1 },
+        example: 'Revenue',
+      },
+    }
+    const read = connectTestOf(check, 'dbt-metricflow').read
+    expect(read?.families?.families).toBe(1)
+    expect(read?.variants?.title).toBe('Many metrics look like variants of a few')
   })
 
   it("sends the settings written, and keeps a source's settings the form doesn't draw", () => {
@@ -805,6 +858,25 @@ describe('a tool whose file lives in a place you choose', () => {
       'This signature can do more than read. Make a shared access signature with read permission only: sp=r.',
     )
     expect(failedWith('timed_out')).toBe("It couldn't be read: it took too long.")
+    expect(failedWith('folder_missing')).toBe(
+      "It couldn't be read: the folder it reads isn't there.",
+    )
+    // With what to do about it, apart, when there is something to do.
+    const fixed = (code: string) =>
+      connectTestOf({
+        ok: false,
+        steps: [],
+        version: null,
+        complete: false,
+        views: 0,
+        metrics: 0,
+        dimensions: 0,
+        warnings: [{ code, target: 'folder' }],
+      }).fix
+    expect(fixed('folder_missing')).toBe(
+      'Check the folder in its settings. A folder on the server is set by the person who hosts this app.',
+    )
+    expect(fixed('something_new')).toBeUndefined()
     expect(failedWith('unreadable_file')).toBe("It couldn't be read: it is too large, or not text.")
     expect(failedWith('fetch_failed')).toBe(
       "It couldn't be read: the site that keeps it did not send it.",
@@ -856,5 +928,34 @@ describe('a tool whose file lives in a place you choose', () => {
         { title: 'something new', count: 1 },
       ],
     })
+  })
+
+  it('names the files a read skipped, and says what the source reads against the model', () => {
+    const test = connectTestOf(
+      {
+        ok: true,
+        steps: [],
+        version: 'abc',
+        complete: true,
+        views: 7,
+        metrics: 22,
+        dimensions: 5,
+        warnings: [
+          { code: 'unsupported_file', target: 'cube/model/currencies.yml.jinja' },
+          { code: 'unsupported_file', target: 'cube/model/rates.py' },
+        ],
+        chosen: { all: false, groups: 3, missing: ['segments'] },
+      },
+      'cube',
+    )
+    expect(test.read?.warnings).toEqual([
+      {
+        title: 'A file was skipped',
+        detail: 'It is not plain YAML, so nothing in it is read. Jinja and Python are never run.',
+        count: 2,
+        files: ['cube/model/currencies.yml.jinja', 'cube/model/rates.py'],
+      },
+    ])
+    expect(test.chosen).toEqual({ all: false, groups: 3, missing: ['segments'] })
   })
 })

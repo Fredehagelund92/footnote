@@ -1,4 +1,4 @@
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { hasEmoji } from '@/lib/emoji'
 
 // Text agents read (context, definitions, titles) takes no emoji list. When someone pastes an emoji

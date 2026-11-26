@@ -3,7 +3,9 @@ import type { Page } from '@playwright/test'
 
 // J60: keyboard focus in the Context and Definitions lists (UX audit P13). The row in focus
 // shows a ring, not just the grey the pointer draws; Enter opens the side panel and focus goes
-// into it; Escape closes it from inside; and focus comes back to the row it opened from.
+// into it; Escape closes it from inside; and focus comes back to the row it opened from. J steps
+// the panel on and keeps focus in it, so a second J and Escape still work, and Escape then goes
+// back to the row of the item the panel shows.
 
 const lists = [
   { name: 'Context', path: '/context', dock: 'dock=context.', panel: 'Context' },
@@ -51,6 +53,34 @@ for (const list of lists) {
       await expect(first).not.toBeFocused()
       await page.keyboard.press('Escape')
       await expect(page).not.toHaveURL(new RegExp(`${list.dock}`))
+      await expect(panel).toHaveCount(0)
+      await expect(page.locator(`[data-row-open="${id}"]`)).toBeFocused()
+    })
+
+    test('J steps the panel on with focus kept in it; Escape goes to the row it stepped to', async ({
+      page,
+    }) => {
+      await go(page, list.path)
+      await focusFirstRow(page)
+      await page.keyboard.press('Enter')
+      const panel = page.getByRole('region', { name: list.panel, exact: true })
+      const shown = () => new URL(page.url()).searchParams.get('dock')
+      await expect(panel).toBeVisible()
+      await expect
+        .poll(() => panel.evaluate((el) => el.contains(document.activeElement)))
+        .toBe(true)
+      const opened = shown()
+      for (const _ of [1, 2]) {
+        const before = shown()
+        await page.keyboard.press('j')
+        await expect.poll(shown).not.toBe(before)
+        await expect
+          .poll(() => panel.evaluate((el) => el.contains(document.activeElement)))
+          .toBe(true)
+      }
+      expect(shown()).not.toBe(opened)
+      const id = shown()!.slice(shown()!.indexOf('.') + 1)
+      await page.keyboard.press('Escape')
       await expect(panel).toHaveCount(0)
       await expect(page.locator(`[data-row-open="${id}"]`)).toBeFocused()
     })

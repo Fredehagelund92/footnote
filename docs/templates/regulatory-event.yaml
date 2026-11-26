@@ -23,11 +23,11 @@
 #   riskLevel      high: legal and regulatory matters are high risk (two approvals and the full
 #                  answer tests); the owner confirms it.
 #   claimLevel     fact_only: the item records that the measure exists, not what it caused.
-#   notToConclude  ("What not to conclude" in the form) that it is not legal advice, that the
+#   notToConclude  ("Don't conclude" in the editor) that it is not legal advice, that the
 #                  measure alone does not prove why numbers changed, and whether it is
 #                  provisional or contested.
 #
-# Footnote records a documented fact for AI agents to read. It is not a legal reading of the measure.
+# Footnote records a documented context item for AI agents to read. It is not a legal reading of the measure.
 
 items:
   # An invented example: Freeland's provisional customs order on webshop parcels, read on

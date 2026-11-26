@@ -411,8 +411,11 @@ describe('the audience rule on every read path', () => {
       ['find_context', { query: 'harbour holidays' }],
       ['read_context', { id: hidden.id }],
       ['read_context', { id: linking.id }],
-      ['get_related', { id: linking.id }],
-      ['get_related', { id: `item:${hidden.id}` }],
+      ['read_context', { id: linking.id, relations: ['mentions', 'mentioned_by'] }],
+      // Listing what there is never names an item outside its audience (FR-338).
+      ['find_context', {}],
+      ['find_context', { kind: 'rule' }],
+      ['find_context', { kind: 'metric', query: 'Vaultsunrise harbour' }],
     ]
     // Every tool that reads is swept.
     const reads = toolNames.filter((name) => mcpTools[name].scope === 'read')
@@ -460,7 +463,7 @@ describe('the audience rule on every read path', () => {
     const asTools = askToolsAs(database, clock)
     const calls: [AskToolName, object][] = [
       ['find_context', { words: 'Vaultsunrise harbour Zephyrledger' }],
-      ['find_context', { words: 'harbour holidays', widen: { other_words: 'Quokkamarble' } }],
+      ['find_context', { words: 'harbour holidays', widen: { other_words: ['Quokkamarble'] } }],
       ['get_context', { about: 'orders on holidays', widen: { without: 'period' } }],
       ['get_context', { about: 'orders' }],
       ['read_context', { id: hidden.id }],

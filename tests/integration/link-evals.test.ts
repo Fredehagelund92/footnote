@@ -3,11 +3,7 @@ import { afterAll, beforeAll, expect, it } from 'vitest'
 import type { EvalRun } from '../../src/contract/evals.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
-import {
-  createEvalsService,
-  queueAreaRun,
-  workEvaluations,
-} from '../../src/server/modules/evals/index.ts'
+import { queueAreaRun, workEvaluations } from '../../src/server/modules/evals/index.ts'
 import { createModelPort } from '../../src/server/modules/models/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
@@ -16,9 +12,8 @@ import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
   S19 link-follow evaluation (FR-523): a question whose caveat lives only in a linked item, and a
-  question that forbids a retired link target, run as a links run: the same live edition with
-  get_related off (baseline) and on (candidate), through the real MCP wire with the scripted
-  model. The run shows the gain and the cost of following links; the tool stays off.
+  question that forbids a retired link target, run on the live edition through the real MCP wire
+  with the scripted model, which follows a link by reading it with read_context.
 */
 
 const { client, url } = testDatabase()
@@ -177,20 +172,12 @@ it('refuses a link target that is both reachable and forbidden', async () => {
   ])
 })
 
-it('estimates a links run as both sides of every question', async () => {
-  const estimate = await database.transaction(people.owner, (tx) =>
-    createEvalsService(tx, { port: models, clock }).runs.estimate('finance', 'links'),
-  )
-  // Two questions, two wordings, three tries, two sides.
-  expect(estimate).toMatchObject({ kind: 'links', questions: 2, cells: 24 })
-})
-
-it('shows that following links helps, what it costs, and leaves the switch as it was', async () => {
+it('reaches the linked caveat by reading the link, and never reads the retired target', async () => {
   const queued = await database.transaction(people.owner, (tx) =>
-    queueAreaRun(tx, { port: models, clock }, 'finance', 'links', true),
+    queueAreaRun(tx, { port: models, clock }, 'finance', 'full', true),
   )
   const run = (await call('GET', `/evals/runs/${queued!.id}`, 'owner')).json<{ run: EvalRun }>().run
-  expect(run).toMatchObject({ kind: 'links', state: 'queued', questions: 2 })
+  expect(run).toMatchObject({ kind: 'full', state: 'queued', questions: 2 })
   await workEvaluations(
     database,
     { port: models, clock },
@@ -205,13 +192,7 @@ it('shows that following links helps, what it costs, and leaves the switch as it
   expect(detail.statusCode, detail.body).toBe(200)
   const result = detail.json<{
     run: EvalRun
-    results: { id: string; baseline: string; candidate: string; flip: string | null }[]
-    links: {
-      gained: string[]
-      lost: string[]
-      gain: boolean
-      arms: Record<'baseline' | 'candidate', { answers: number; calls: number }>
-    }
+    results: { id: string; baseline: string; candidate: string | null; flip: string | null }[]
     cells: { id: string; questionId: string; arm: string }[]
   }>()
   expect(result.run.state).toBe('finished')
@@ -219,48 +200,31 @@ it('shows that following links helps, what it costs, and leaves the switch as it
   expect(result.results).toEqual([
     {
       id: 'link-refund-rule',
-      baseline: 'fail',
-      candidate: 'pass',
-      flip: 'fail_to_pass',
-      // Without links the item is never reached (code) and its caveat never stated (judge).
-      layers: {
-        baseline: { code: 'fail', judge: 'fail', failedChecks: ['caveat', 'linked'] },
-        candidate: passing,
-      },
+      baseline: 'pass',
+      candidate: null,
+      flip: null,
+      layers: { baseline: passing, candidate: null },
     },
     {
       id: 'stale-old-rule',
       baseline: 'pass',
-      candidate: 'pass',
+      candidate: null,
       flip: null,
-      layers: { baseline: passing, candidate: passing },
+      layers: { baseline: passing, candidate: null },
     },
   ])
-  expect(result.links).toMatchObject({ gained: ['link-refund-rule'], lost: [], gain: true })
-  // One get_context call without links; with them, one more get_related call per answer.
-  expect(result.links.arms.baseline.calls).toBe(1)
-  expect(result.links.arms.candidate.calls).toBe(2)
-  expect(result.links.arms.candidate.answers).toBe(result.links.arms.baseline.answers)
 
-  const transcript = async (arm: string) => {
-    const cell = result.cells.find((c) => c.questionId === 'link-refund-rule' && c.arm === arm)!
-    const [row] = (
-      await client.query<{ toolCalls: { tool: string; items: string[] }[] }>(
-        `select t.tool_calls as "toolCalls" from eval_cells c
-           join eval_transcripts t on t.cell_id = coalesce(c.reused_from, c.id) where c.id = $1`,
-        [cell.id],
-      )
-    ).rows
-    return row!
-  }
-  expect((await transcript('baseline')).toolCalls.map((c) => c.tool)).toEqual(['get_context'])
-  const followed = (await transcript('candidate')).toolCalls
-  expect(followed.map((c) => c.tool)).toEqual(['get_context', 'get_related'])
-  // The retired rule is a marker with the author's words: never read, never cited.
-  expect(followed[1]!.items).toEqual([ids.refunds])
-
-  const tools = await client.query<{ enabled: boolean }>(
-    "select enabled from tool_config where tool = 'get_related'",
-  )
-  expect(tools.rows).toEqual([{ enabled: true }])
+  const cell = result.cells.find((c) => c.questionId === 'link-refund-rule')!
+  const [row] = (
+    await client.query<{ toolCalls: { tool: string; input: { id?: string }; items: string[] }[] }>(
+      `select t.tool_calls as "toolCalls" from eval_cells c
+         join eval_transcripts t on t.cell_id = coalesce(c.reused_from, c.id) where c.id = $1`,
+      [cell.id],
+    )
+  ).rows
+  // The delivered item read in full, then the item it links to: the retired rule is a marker
+  // with the author's words, never read and never cited.
+  expect(row!.toolCalls.map((c) => c.tool)).toEqual(['get_context', 'read_context', 'read_context'])
+  expect(row!.toolCalls.map((c) => c.input.id)).toEqual([undefined, ids.closure, ids.refunds])
+  expect(row!.toolCalls[2]!.items).toEqual([ids.refunds])
 })

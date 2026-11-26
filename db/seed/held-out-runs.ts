@@ -2,6 +2,9 @@ import type { Queryable } from '../../src/server/db/database.ts'
 import {
   estimateWithheld,
   goldenL1,
+  planProof,
+  proofDigest,
+  runProof,
   runWithheld,
   type EvalDeps,
   type WithheldOptions,
@@ -11,11 +14,24 @@ import type { Database } from '../../src/server/db/database.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { goldenQuestionSchema, type GoldenQuestion } from '../../src/domain/golden-question.ts'
 import { toQuestion, type GoldenCase } from '../../src/domain/golden-set.ts'
-import { openingKey, readHeldOut, runHeldOut, sealedFile, type HeldOutRun } from './held-out.ts'
+import type { ProofSource } from '../../src/server/run-prove.ts'
+import {
+  openingKey,
+  proofSealedFile,
+  proofWords,
+  readHeldOut,
+  readSealedProof,
+  runHeldOut,
+  sealedFile,
+  silenced,
+  type HeldOutRun,
+} from './held-out.ts'
 
 /*
-  The held-out cases through the golden L1 pass and the eval area runner (FR-525). A caller gets counts by type and never the cases: these functions open the sealed file
-  themselves, and the code they hand a case to runs silenced (held-out.ts).
+  The held-out cases through the golden L1 pass and the eval area runner (FR-525), and the
+  invented company's sealed proof questions through the proof (`footnote prove`). A caller gets
+  counts and never the cases or questions: these functions open the sealed file themselves, and
+  the code they hand a case to runs silenced (held-out.ts).
 */
 
 /** The golden L1 pass of the held-out agent cases, on the live edition the caller reads. */
@@ -128,4 +144,38 @@ export async function heldOutArea(
     file,
   )
   return { ...run, ...outcome }
+}
+
+/**
+ * The invented company's sealed proof questions as the proof's source (src/server/run-prove.ts):
+ * the command plans and asks them through it, and gets back counts, a digest and the table's
+ * results, never a question. Without the sealed file or the key it says why.
+ */
+export async function sealedProofSource(
+  env: NodeJS.ProcessEnv = process.env,
+  file: URL | string = proofSealedFile,
+): Promise<{ ran: false; reason: string } | { ran: true; source: ProofSource }> {
+  const opened = await openingKey(env, file, proofWords)
+  if (!opened.ran) return opened
+  const { questions } = await readSealedProof(opened.identity, file)
+  return {
+    ran: true,
+    source: {
+      sealed: true,
+      questions: "the invented company's, sealed",
+      plan: (database, deps, tries) =>
+        silenced(async () => ({
+          ...(await planProof(database, deps, questions, tries)),
+          digest: await proofDigest(questions),
+        })),
+      run: (database, deps, options) =>
+        silenced(() =>
+          runProof(database, deps, {
+            ...options,
+            questions,
+            logger: createLogger({ level: 'silent' }),
+          }),
+        ),
+    },
+  }
 }

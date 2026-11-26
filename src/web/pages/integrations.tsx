@@ -24,7 +24,8 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
+import { clockTime } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { listOf } from '@/model/people'
@@ -42,6 +43,9 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { CopiedIcon, useCopied } from '@/components/footnote/copied-icon'
 import { Checkbox } from '@/components/ui/checkbox'
 import { GuideLink } from '@/components/footnote/guide-link'
+import { FamiliesFound, type FoundCounts } from '@/components/footnote/families-found'
+import { familyFoundKinds, foundKindWords, type FamilyFound } from '@domain/family-found'
+import { FamilyGlyph } from '@/components/footnote/type-glyph'
 import { useSelection, type RowSelection } from '@/hooks/use-selection'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -65,7 +69,6 @@ import {
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -86,10 +89,10 @@ import {
   type Connector,
   type ConnectScope,
   type ConnectStep,
+  type ConnectTest,
   type ConnectValues,
   firstReadWords,
   type DocState,
-  type FigureConnection,
   type Health,
   type IntegrationsView,
   type LeftOutView,
@@ -111,11 +114,9 @@ import {
 } from '@/model/connect-flow'
 import { sourceHealth } from '@domain/source-state'
 import type { DomainId } from '@/model/items'
-import type { FigureTry } from '@/model/figures'
 import { useConnectActions } from '@/lib/integrations'
 import { readFailureLines } from '@/lib/read-failure'
-import { tryFailureWords, useFigureActions, useFigures } from '@/lib/figures'
-import { navigate, setQuery, useRoute } from '@/lib/router'
+import { href, navigate, setQuery, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
 import { api, toApiError } from '@/api'
 import {
@@ -123,15 +124,16 @@ import {
   integrationLeftOutQuery,
   integrationPageQuery,
   integrationsPageQuery,
-  useIntegrations,
+  namesQuery,
   useWrite,
 } from '@/api/queries'
 import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
-import { useDomainList, useDomains, usePeople } from '@/lib/workspace'
+import { useDomainList, useDomains } from '@/lib/workspace'
 import { useDefinitions } from '@/lib/definitions'
 import { SettingsCrumbs } from '@/pages/settings'
 import {
   Frame,
+  FrameBody,
   FrameNumbers,
   FramePage,
   FrameScroll,
@@ -224,6 +226,195 @@ function PanelSection(props: React.ComponentProps<typeof FrameSection>) {
 }
 
 const Numbers = FrameNumbers
+
+/** How a family stands on a source's page: published, waiting in the Inbox, or a look alike. */
+const familyState = {
+  published: { words: 'Published', dot: 'bg-good', text: '' },
+  waiting: {
+    words: 'Waits in the Inbox',
+    dot: 'bg-muted-foreground',
+    text: 'text-muted-foreground',
+  },
+  alike: { words: 'Look alike: waits for a yes', dot: 'bg-caution', text: 'text-caution' },
+} as const
+
+/**
+ * How a family is made in the tool, as its model writes it: open while the source holds none, so
+ * the page answers where a family is set. Nothing for a tool whose model cannot say.
+ */
+function MakeFamily({ c, open }: { c: Connector; open: boolean }) {
+  if (!c.familyExample) return null
+  return (
+    <Collapsible defaultOpen={open} className="border-t">
+      <FoldTrigger label={`Make a family in ${c.name}`} className="px-4 md:px-5" />
+      <CollapsibleContent className="flex flex-col gap-3 px-4 pb-4 text-sm md:px-5">
+        <Recipe
+          recipe={{
+            lead: "Under each variant's meta, name the family and the value that tells it apart. Two metrics are enough. The next read finds it, and an owner publishes it in the Inbox.",
+            code: c.familyExample,
+          }}
+        />
+        <GuideLink slug="metric-variants" />
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+/**
+ * The families of metrics a definitions source holds (FR-142, D1), always shown (A): those its
+ * reads found that wait for an owner on the Names card, and those published, each with how it was
+ * found, and where they are decided. With none, what a family is, and how to make one in the tool.
+ */
+function SourceFamilies({ source, c, metrics }: { source: string; c: Connector; metrics: number }) {
+  const names = useQuery(namesQuery())
+  const definitions = useDefinitions()
+  const domains = useDomains()
+  const n = (x: number) => x.toLocaleString('en-GB')
+  const tool = c.name
+  const waiting = (names.data?.names ?? []).filter(
+    (name) =>
+      name.family && name.source === source && name.state !== 'left_out' && !name.linked.length,
+  )
+  const published = definitions.filter((d) => d.family && d.source === source)
+  const all = [
+    ...waiting.map((name) => ({ found: name.family!.found, variants: name.family!.variants })),
+    ...published.map((d) => ({ found: d.family!.found, variants: d.family!.variants.length })),
+  ]
+  const title = (
+    <span className="flex items-center gap-2">
+      <FamilyGlyph className="size-4" />
+      Families
+    </span>
+  )
+  if (!all.length)
+    return (
+      <PanelSection
+        title={title}
+        description={`Metrics that are one metric with variants, such as Revenue in each currency. ${tool} has none: ${metrics === 1 ? 'its 1 metric is' : `each of its ${n(metrics)} metrics is`} its own.`}
+      >
+        <FrameBody className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+            <p>
+              A family is found in four ways: declared in {tool}, from the calculation, from a rate,
+              or by names that look alike. The last waits for an owner&apos;s yes.
+            </p>
+            <p>A currency or a channel kept as a dimension needs no family at all.</p>
+          </div>
+        </FrameBody>
+        <MakeFamily c={c} open />
+      </PanelSection>
+    )
+  const found = Object.fromEntries(
+    familyFoundKinds.map((kind) => [kind, all.filter((f) => f.found === kind).length]),
+  ) as FoundCounts
+  const inFamilies = all.reduce((sum, f) => sum + f.variants, 0)
+  const alike = waiting.filter(
+    (name) => name.state === 'flagged' && name.family!.found === 'names',
+  ).length
+  const ready = waiting.filter((name) => name.state === 'ready').length
+  const look = waiting.length - alike - ready
+  const owners = [...new Set(waiting.flatMap((name) => (name.areaId ? [name.areaId] : [])))]
+  const ownerOf = `an owner of ${listOf(owners.map((id) => domains[id]?.name ?? id))}`
+  const whose = !owners.length
+    ? 'an admin'
+    : waiting.every((name) => name.areaId)
+      ? ownerOf
+      : `${ownerOf} or an admin`
+  const familyCount = (x: number) => (x === 1 ? '1 family' : `${n(x)} families`)
+  const parts = [
+    alike && `${n(alike)} ${alike === 1 ? 'looks' : 'look'} alike`,
+    look && `${n(look)} ${look === 1 ? 'needs' : 'need'} a look first`,
+  ].filter(Boolean)
+  const rest = parts.length
+    ? ` ${parts.join(' and ')}; ${ready ? `${n(ready)} ${ready === 1 ? 'is' : 'are'} ready.` : 'none is ready yet.'}`
+    : ready === waiting.length
+      ? waiting.length === 1
+        ? ' It is ready to publish.'
+        : ' All are ready to publish.'
+      : ''
+  const variantsBy = (count: number, by: readonly string[]) =>
+    `${n(count)}${by.length ? ` by ${listOf([...by])}` : ''}`
+  const foundWords = (kind: FamilyFound | undefined) =>
+    kind ? capitalized(foundKindWords(kind, tool)) : 'Not said'
+  const rows = [
+    ...published.map((d) => ({
+      key: `d:${d.name}`,
+      name: d.name,
+      page: href(`/definitions/${encodeURIComponent(d.name)}`),
+      found: foundWords(d.family!.found),
+      variants: variantsBy(d.family!.variants.length, d.family!.by),
+      state: familyState.published,
+    })),
+    ...waiting.map((name) => ({
+      key: `n:${name.name}`,
+      name: name.name,
+      page: null,
+      found: foundWords(name.family!.found),
+      variants: variantsBy(name.family!.variants, name.family!.by),
+      state:
+        name.state === 'flagged' && name.family!.found === 'names'
+          ? familyState.alike
+          : familyState.waiting,
+    })),
+  ]
+  return (
+    <PanelSection
+      title={title}
+      description={`${familyCount(all.length)} in ${n(inFamilies)} of ${n(metrics)} metrics. Each is one metric in Definitions and for agents, with its variants.`}
+      action={
+        published.length > 0 ? (
+          <Button variant="outline" onClick={() => navigate('/definitions', { show: 'families' })}>
+            See them in Definitions
+          </Button>
+        ) : undefined
+      }
+    >
+      <FrameBody className="flex flex-col gap-4">
+        <FamiliesFound found={found} tool={tool} />
+        {waiting.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-frame bg-primary/8 px-4 py-3 text-sm">
+            <p className="min-w-0 flex-1 basis-64">
+              {waiting.length === all.length
+                ? `${waiting.length === 1 ? 'It waits' : `All ${n(waiting.length)} wait`}`
+                : `${familyCount(waiting.length)} ${waiting.length === 1 ? 'waits' : 'wait'}`}{' '}
+              in the Inbox for {whose}. Nothing is published before.{rest}
+            </p>
+            <Button onClick={() => navigate('/inbox', { card: 'names:waiting', show: 'families' })}>
+              Review families
+            </Button>
+          </div>
+        )}
+      </FrameBody>
+      <DataTable
+        head={['Family', 'How it was found', 'Variants', 'State']}
+        rows={rows.map((row) => [
+          <span key="n" className="flex items-center gap-2 font-medium">
+            <FamilyGlyph className="size-4 shrink-0 text-muted-foreground" />
+            {row.page ? (
+              <a
+                href={row.page}
+                className="rounded-sm underline decoration-foreground/25 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                {row.name}
+              </a>
+            ) : (
+              row.name
+            )}
+          </span>,
+          <span key="f" className="text-muted-foreground">
+            {row.found}
+          </span>,
+          row.variants,
+          <span key="s" className={cn('inline-flex items-center gap-1.5', row.state.text)}>
+            <span aria-hidden className={cn('size-1.5 rounded-full', row.state.dot)} />
+            {row.state.words}
+          </span>,
+        ])}
+      />
+      <MakeFamily c={c} open={false} />
+    </PanelSection>
+  )
+}
 
 function DataTable({
   head,
@@ -321,9 +512,12 @@ function ActivityList({ items }: { items: Activity[] }) {
 function Connection({
   rows,
   actions,
+  after,
 }: {
   rows: [string, React.ReactNode][]
   actions: React.ReactNode
+  /** What Test connection found, under the actions. */
+  after?: React.ReactNode
 }) {
   return (
     <>
@@ -339,449 +533,8 @@ function Connection({
         ))}
       </dl>
       <div className="flex flex-wrap items-center gap-2 border-t px-4 py-3 md:px-5">{actions}</div>
+      {after}
     </>
-  )
-}
-
-/**
- * Where an integration's figures are read: its data endpoint and a token for it. The token is kept
- * in the secret store, sent only to the endpoint's address and never shown again, so the field
- * starts empty every time.
- */
-function FigureConnectionDialog({
-  c,
-  open,
-  onOpenChange,
-  endpoint,
-}: {
-  c: Connector
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  endpoint: string | null
-}) {
-  const { setConnection } = useFigureActions()
-  const [saving, setSaving] = React.useState(false)
-  const id = `figures-${c.id}`
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <form
-          className="contents"
-          onSubmit={(e) => {
-            e.preventDefault()
-            const form = new FormData(e.currentTarget)
-            const value = (name: string) => {
-              const v = form.get(name)
-              return typeof v === 'string' ? v.trim() : ''
-            }
-            setSaving(true)
-            setConnection(c.id, value('endpoint'), value('token'))
-              .then(() => {
-                onOpenChange(false)
-                toast(`Figures from ${c.name} are set up`, {
-                  description:
-                    'The token is kept in the secret store and never shown again. Try a figure to see that they work.',
-                })
-              })
-              .catch((error: unknown) =>
-                toast.error("Couldn't set up figures", {
-                  description: toApiError(error).message,
-                }),
-              )
-              .finally(() => setSaving(false))
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {endpoint ? 'Replace the token' : `Set up figures from ${c.name}`}
-            </DialogTitle>
-            <DialogDescription>
-              Figures have a connection of their own: {c.name}&apos;s data API, with a read-only
-              token for it. The token is sent only to the endpoint&apos;s address, and a new address
-              needs its token again. No MCP server and no warehouse login are needed.
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor={`${id}-endpoint`}>Data endpoint</FieldLabel>
-              <Input
-                id={`${id}-endpoint`}
-                name="endpoint"
-                type="url"
-                required
-                defaultValue={endpoint ?? ''}
-                placeholder={c.endpointExample ?? 'https://data.example.com/api/load'}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor={`${id}-token`}>{c.name} token</FieldLabel>
-              <Input
-                id={`${id}-token`}
-                name="token"
-                type="password"
-                autoComplete="off"
-                required
-                minLength={8}
-              />
-              <FieldDescription>
-                A token is a long password for a program. This one is read only. Shown nowhere once
-                saved.
-              </FieldDescription>
-            </Field>
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={saving}>
-              Save
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/** Try a figure as the dialog shows it: reading, what was read, or why nothing was. */
-type Trying = { running: boolean; result?: FigureTry; error?: string }
-
-/** Try a figure from a tool: reads now, and says how the read went. */
-function useTryFigure(c: Connector) {
-  const [trying, setTrying] = React.useState<Trying>({ running: false })
-  const run = async () => {
-    setTrying({ running: true })
-    try {
-      setTrying({ running: false, result: await api.tryFigure({ source: c.id }) })
-    } catch (e: unknown) {
-      setTrying({ running: false, error: toApiError(e).message })
-    }
-  }
-  return { trying, run }
-}
-
-/**
- * Try a figure: one figure read now from the integration's data API, with the endpoint and token
- * as saved, so an admin sees they work before switching figures on. It reads one measure of the
- * tool's first view with a single date, for the last 7 days, and keeps nothing.
- */
-function TryFigureDialog({
-  c,
-  open,
-  onOpenChange,
-  trying,
-  onRetry,
-}: {
-  c: Connector
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  trying: Trying
-  onRetry: () => void
-}) {
-  const result = trying.result
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Try a figure from {c.name}</DialogTitle>
-          <DialogDescription>
-            Reads one measure (a number such as Orders) for the last 7 days, with the address and
-            key as saved. Nothing is kept, and Show figures in Ask stays as it is.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="rounded-frame border p-4 text-sm" aria-live="polite">
-          {trying.running ? (
-            <p className="flex items-center gap-2 text-muted-foreground">
-              <LoaderCircleIcon aria-hidden className="size-4 animate-spin" />
-              Reading one figure from {c.name}…
-            </p>
-          ) : trying.error ? (
-            <p className="flex items-start gap-2">
-              {stepLook.failed}
-              <span>{trying.error}</span>
-            </p>
-          ) : result?.kind === 'figure' ? (
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex">{stepLook.ok}</span>
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="font-medium">
-                  {result.label}:{' '}
-                  {result.value ?? (
-                    <span className="font-normal text-muted-foreground">
-                      nothing for those days
-                    </span>
-                  )}
-                </p>
-                <p className="text-muted-foreground">
-                  From {c.name}, data as of {result.asOf}. Answered in{' '}
-                  {(result.took / 1000).toFixed(1)} seconds.
-                </p>
-                <p className="text-muted-foreground">The data endpoint and its token work.</p>
-              </div>
-            </div>
-          ) : result?.kind === 'failed' ? (
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 flex">{stepLook.failed}</span>
-              <div className="flex min-w-0 flex-col gap-1">
-                <p className="font-medium">{tryFailureWords(result.failure, c.name).title}.</p>
-                <p className="text-muted-foreground">
-                  {tryFailureWords(result.failure, c.name).fix}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Code: <code className="font-mono">{result.failure}</code>
-                </p>
-              </div>
-            </div>
-          ) : null}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button disabled={trying.running} onClick={onRetry}>
-            Try again
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-/**
- * The figures connection, an integration's second one when its tool can read figures: its own data
- * endpoint, its own token (masked, never any of it shown), the one host it may call, who to ask
- * about a figure, Try a figure, and the switch for Show figures in Ask, off by default (Ask then
- * links into the tool). The definition decides which integration answers a metric.
- */
-function FiguresSection({ c, paused }: { c: Connector; paused: boolean }) {
-  const f = useFigures()
-  const { setFigures, setDataContact } = useFigureActions()
-  const people = usePeople()
-  const { figureConnections } = useIntegrations()
-  const [connecting, setConnecting] = React.useState(false)
-  const [tryOpen, setTryOpen] = React.useState(false)
-  const { trying, run } = useTryFigure(c)
-  const fromTool = useDefinitions().filter(
-    (d) => d.type === 'metric' && d.synced && d.tool === c.name,
-  ).length
-  // Shown only for an integration that can answer figures, which says how it is reached.
-  const conn: FigureConnection = figureConnections[c.id] ?? {
-    endpoint: null,
-    host: null,
-    secretSet: false,
-    contact: '',
-    state: 'not_set_up',
-  }
-  const on = f.enabled(c.id)
-  // Switched on, but there is no token to read with or nobody to ask: say what to fix.
-  const broken =
-    conn.state !== 'broken'
-      ? ''
-      : !conn.secretSet || conn.endpoint === null
-        ? ' Figures are off in Ask: its token is gone. Set up the connection again.'
-        : ' Figures are off in Ask: its data contact has left. Name another data contact.'
-  const switchId = `figures-${c.id}`
-  const notSet = <span className="text-muted-foreground">Not set</span>
-  const ready = conn.endpoint !== null && conn.secretSet
-  return (
-    <PanelSection
-      title="Figures connection"
-      description={`The second of ${c.name}'s two connections, with its own address and key, for figures. Off, an answer links into ${c.name} instead. On, an answer can show one figure from it: read when asked, never stored, and never called checked.${paused ? ` Reading ${c.name} is paused, so figures are off in Ask until it is resumed, whatever this switch says.` : ''}${broken}`}
-      action={
-        <span className="flex items-center gap-2">
-          <label htmlFor={switchId} className="text-sm">
-            Show figures in Ask
-          </label>
-          <Switch
-            id={switchId}
-            checked={on}
-            onCheckedChange={(v) => {
-              setFigures(c.id, v)
-                .then(() =>
-                  toast(v ? `Figures from ${c.name} are on` : `Figures from ${c.name} are off`, {
-                    description: v
-                      ? 'Answers show one figure for the metric they ask about.'
-                      : `Answers link into ${c.name} instead.`,
-                  }),
-                )
-                .catch((error: unknown) =>
-                  toast.error(
-                    v ? `Couldn't switch figures from ${c.name} on` : `Couldn't switch figures off`,
-                    { description: toApiError(error).message },
-                  ),
-                )
-            }}
-          />
-        </span>
-      }
-    >
-      <Collapsible className="border-t">
-        <FoldTrigger
-          variant="inline"
-          label="Connection details"
-          className="mx-3 my-1 px-1 text-xs text-muted-foreground md:mx-4"
-        />
-        <CollapsibleContent>
-          <dl className="border-t">
-            {(
-              [
-                [
-                  'Data endpoint',
-                  conn.endpoint ? (
-                    <code key="e" className="font-mono text-xs break-all">
-                      {conn.endpoint}
-                    </code>
-                  ) : (
-                    notSet
-                  ),
-                ],
-                [
-                  'Token',
-                  conn.secretSet ? (
-                    <span key="s">
-                      <code className="font-mono text-xs" aria-label="Token, set">
-                        {'••••••••••••'}
-                      </code>
-                      <span className="block text-xs text-muted-foreground">
-                        Its own, not the definitions token. Only used for reading.
-                      </span>
-                    </span>
-                  ) : (
-                    notSet
-                  ),
-                ],
-                [
-                  'Declared host',
-                  conn.host ? (
-                    <span key="h">
-                      <code className="font-mono text-xs">{conn.host}</code>
-                      <span className="block text-xs text-muted-foreground">
-                        The only host called for a figure. Read only, with a 4 second limit.
-                      </span>
-                    </span>
-                  ) : (
-                    notSet
-                  ),
-                ],
-              ] as [string, React.ReactNode][]
-            ).map(([k, v]) => (
-              <div
-                key={k}
-                className="grid gap-1 border-t px-4 py-3 text-sm first:border-t-0 sm:grid-cols-(--cols-lead-44) md:px-5"
-              >
-                <dt className="text-muted-foreground">{k}</dt>
-                <dd className="min-w-0 break-words">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </CollapsibleContent>
-      </Collapsible>
-      <dl className="border-t">
-        {(
-          [
-            [
-              'Data contact',
-              <span key="c" className="flex flex-wrap items-center gap-2">
-                <PersonAvatar name={f.contact(c.id)} size={20} />
-                <Select
-                  value={f.contact(c.id)}
-                  onValueChange={(v) =>
-                    void setDataContact(c.id, v as string).catch((error: unknown) =>
-                      toast.error("Couldn't change the data contact", {
-                        description: toApiError(error).message,
-                      }),
-                    )
-                  }
-                >
-                  <SelectTrigger size="sm" aria-label="Data contact" className="min-w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {people.map((p) => (
-                        <SelectItem key={p.name} value={p.name}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <span className="text-xs text-muted-foreground">
-                  Who hears about a figure that looks wrong.
-                </span>
-              </span>,
-            ],
-            ...(conn.asOf
-              ? [
-                  [
-                    'Data as of',
-                    <span key="a">
-                      {conn.asOf}, the last time {c.name} refreshed its data
-                    </span>,
-                  ],
-                ]
-              : []),
-          ] as [string, React.ReactNode][]
-        ).map(([k, v]) => (
-          <div
-            key={k}
-            className="grid gap-1 border-t px-4 py-3 text-sm first:border-t-0 sm:grid-cols-(--cols-lead-44) md:px-5"
-          >
-            <dt className="text-muted-foreground">{k}</dt>
-            <dd className="min-w-0 break-words">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="flex items-start gap-2 border-t bg-band px-4 py-3 text-sm md:px-5">
-        <InfoIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-        <p>
-          <span className="font-medium">Which integration answers:</span>{' '}
-          <span className="text-muted-foreground">
-            the one a metric&apos;s definition comes from, never a guess.{' '}
-            {fromTool === 0
-              ? `No published metric comes from ${c.name} yet.`
-              : fromTool === 1
-                ? `1 published metric comes from ${c.name}, so ${c.name} answers it.`
-                : `${fromTool.toLocaleString('en-GB')} published metrics come from ${c.name}, so ${c.name} answers them.`}
-          </span>
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t px-4 py-3 md:px-5">
-        <Button variant="outline" onClick={() => setConnecting(true)}>
-          {conn.secretSet ? 'Replace token' : 'Set up figures'}
-        </Button>
-        <Button
-          variant="outline"
-          aria-disabled={!ready || undefined}
-          aria-describedby={`${switchId}-try`}
-          onClick={() => {
-            if (!ready) return
-            setTryOpen(true)
-            void run()
-          }}
-        >
-          Try a figure
-        </Button>
-        <span id={`${switchId}-try`} className="text-xs text-muted-foreground">
-          {ready
-            ? 'Reads one measure for the last 7 days. Nothing is kept.'
-            : 'Set up figures first: the data endpoint and its token.'}
-        </span>
-      </div>
-      <FigureConnectionDialog
-        c={c}
-        open={connecting}
-        onOpenChange={setConnecting}
-        endpoint={conn.endpoint}
-      />
-      <TryFigureDialog
-        c={c}
-        open={tryOpen}
-        onOpenChange={setTryOpen}
-        trying={trying}
-        onRetry={() => void run()}
-      />
-    </PanelSection>
   )
 }
 
@@ -1014,9 +767,7 @@ export function IntegrationsPage() {
           </Loadable>
         </Panel>
         <p className="text-xs text-muted-foreground">
-          Your workspace keeps no numbers. Where a definitions tool can also read figures and an
-          admin switches them on, Ask reads one figure when someone asks, from the tool the
-          metric&apos;s definition comes from, and keeps it nowhere.
+          Your workspace keeps no numbers: a tool is read for what it defines, never for its data.
         </p>
       </FramePage>
     </Page>
@@ -1185,25 +936,51 @@ const docLabel: Record<DocState, string> = {
 }
 
 /**
- * What pausing a definitions tool does to its figures in Ask: a paused tool answers none, whatever
- * its Show figures in Ask switch says, because Ask reads figures only from the tools that are on.
- * What is published stays.
+ * Test connection on a definitions tool's page (T2): the tool as it is saved, set up here or on
+ * the server, checked and read once, for an admin to see it works or what to fix. Nothing is kept,
+ * and an answer to an older test is dropped.
  */
-function useFiguresOff(c: Connector) {
-  const f = useFigures()
-  const on = c.figures === true && f.enabled(c.id)
-  return {
-    on,
-    pausing: on
-      ? `Figures from ${c.name} are off in Ask while it is paused. What's published stays.`
-      : "Agents keep getting what's published.",
+function useSourceTest(id: string) {
+  const [test, setTest] = React.useState<(Testing & { at: Date }) | null>(null)
+  const runs = React.useRef(0)
+  const run = async () => {
+    const at = ++runs.current
+    const started = { run: at, of: id, running: true, result: null, error: null, at: new Date() }
+    setTest(started)
+    try {
+      const result = await api.checkIntegration({ id })
+      if (runs.current === at) setTest({ ...started, running: false, result, at: new Date() })
+    } catch (e: unknown) {
+      if (runs.current === at)
+        setTest({ ...started, running: false, error: toApiError(e).message, at: new Date() })
+    }
   }
+  return { test, run }
+}
+
+/** What Test connection found on a tool's page, under its Connection section. */
+function SourceTested({
+  test,
+  c,
+}: {
+  test: NonNullable<ReturnType<typeof useSourceTest>['test']>
+  c: Connector
+}) {
+  return (
+    <div className="flex flex-col gap-2 border-t px-4 py-3 md:px-5">
+      {!test.running && (
+        <p className="text-xs text-muted-foreground">
+          Tested at {clockTime(test.at)}. Nothing was kept, and nothing changed.
+        </p>
+      )}
+      <Checks test={test} tool={c.name} saved group={groupOf(c)} />
+    </div>
+  )
 }
 
 /** Pauses reading a tool, or lets it go on, and says so. */
 function usePauseReading(source: Source, c: Connector) {
   const write = useWrite()
-  const figures = useFiguresOff(c)
   return (paused: boolean) =>
     void write('pauseIntegration', { id: source.id, paused }).then(
       () =>
@@ -1211,8 +988,8 @@ function usePauseReading(source: Source, c: Connector) {
           description: paused
             ? c.kind === 'context'
               ? 'Open suggestions stay in the Inbox. Resume from this menu.'
-              : `${figures.pausing} Resume from this menu.`
-            : `It is queued to be read${figures.on ? ', and its figures are back in Ask' : ''}.`,
+              : "Agents keep getting what's published. Resume from this menu."
+            : 'It is queued to be read.',
         }),
       (e: unknown) =>
         toast(paused ? `Couldn't pause ${c.label}` : `Couldn't resume ${c.label}`, {
@@ -1231,7 +1008,6 @@ function ConnectorMenu({
   onDisconnect: () => void
 }) {
   const pause = usePauseReading(source, c)
-  const figures = useFiguresOff(c)
   const paused = isPaused(source)
   // Whoever runs the server set its own tools up: their settings are theirs to change.
   const own = source.added === null
@@ -1242,17 +1018,10 @@ function ConnectorMenu({
       >
         <EllipsisIcon />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className={figures.on && !paused ? 'w-64' : 'w-48'}>
-        <DropdownMenuItem className="items-start" onClick={() => pause(!paused)}>
-          {paused ? <PlayIcon className="mt-0.5" /> : <PauseIcon className="mt-0.5" />}
-          <span className="flex flex-col">
-            {paused ? 'Resume reading' : 'Pause reading'}
-            {!paused && figures.on && (
-              <span className="text-xs text-muted-foreground">
-                Also switches off its figures in Ask.
-              </span>
-            )}
-          </span>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => pause(!paused)}>
+          {paused ? <PlayIcon /> : <PauseIcon />}
+          {paused ? 'Resume reading' : 'Pause reading'}
         </DropdownMenuItem>
         {!own && (
           <>
@@ -1277,14 +1046,9 @@ function ConnectorMenu({
 /** Pause reading, or Resume reading while paused, as a button of the Connection section. */
 function PauseButton({ source, c }: { source: Source; c: Connector }) {
   const pause = usePauseReading(source, c)
-  const figures = useFiguresOff(c)
   const paused = isPaused(source)
   return (
-    <Button
-      variant="outline"
-      title={!paused && figures.on ? `Also switches off figures from ${c.name} in Ask` : undefined}
-      onClick={() => pause(!paused)}
-    >
+    <Button variant="outline" onClick={() => pause(!paused)}>
       {paused ? <PlayIcon data-icon="inline-start" /> : <PauseIcon data-icon="inline-start" />}
       {paused ? 'Resume reading' : 'Pause reading'}
     </Button>
@@ -1471,12 +1235,11 @@ export function ConnectorPage({ id }: { id: string }) {
 function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
   const domains = useDomains()
   const [leaving, setLeaving] = React.useState(false)
-  const { figureConnections } = useIntegrations()
   const { source, views, folders, documents, activity, connection } = page
+  const check = useSourceTest(source.id)
   const view = sourceView(c.kind, source, page.changedOn)
   const failure = readFailureLines(source)
   const h = view.health
-  const figures = useFiguresOff(c)
   const isDefinitions = c.kind === 'definitions'
   // A tool read with a key file someone uploads shares folders with an account of its own: its
   // page says who connected it, and changes its folders and its key apart.
@@ -1618,10 +1381,8 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
             <p className="flex items-start gap-2">
               <PauseIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
               <span>
-                <span className="font-medium">{view.banner.words}</span>{' '}
-                {figures.on
-                  ? `Figures from ${c.name} are off in Ask, and nothing is read until an admin resumes it. What's published stays.`
-                  : "Agents keep getting what's published, and nothing is read until an admin resumes it."}
+                <span className="font-medium">{view.banner.words}</span> Agents keep getting
+                what&apos;s published, and nothing is read until an admin resumes it.
               </span>
             </p>
           </div>
@@ -1660,6 +1421,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
 
         {isDefinitions && (
           <>
+            <SourceFamilies source={source.id} c={c} metrics={d?.metrics ?? 0} />
             <PanelSection
               title="What it reads"
               action={
@@ -1732,18 +1494,21 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
             <PanelSection title="Activity" description="Every read, newest first.">
               <ActivityList items={activity} />
             </PanelSection>
-            <PanelSection
-              title={c.figures ? 'Definitions connection' : 'Connection'}
-              description={
-                c.figures
-                  ? `The first of ${c.name}'s two connections: its definition${own ? ' files, read from a folder on the server' : c.git ? ' files, read from Git' : 's, read'} ${source.every}, never ${c.name}'s data. Figures have their own connection below.`
-                  : undefined
-              }
-            >
+            <PanelSection title="Connection">
               <Connection
                 rows={shownRows}
                 actions={
                   <>
+                    <Button
+                      variant="outline"
+                      aria-disabled={check.test?.running || undefined}
+                      onClick={() => {
+                        if (!check.test?.running) void check.run()
+                      }}
+                    >
+                      <PlugIcon data-icon="inline-start" />
+                      Test connection
+                    </Button>
                     {!own && (
                       <Button
                         variant="outline"
@@ -1758,6 +1523,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                     {disconnect}
                   </>
                 }
+                after={check.test && <SourceTested test={check.test} c={c} />}
               />
             </PanelSection>
           </>
@@ -1893,9 +1659,6 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
             </PanelSection>
           </>
         )}
-
-        {/* Figures show where the integration says how it is reached for one. */}
-        {c.figures && figureConnections[c.id] && <FiguresSection c={c} paused={h === 'paused'} />}
       </Panel>
       <DisconnectDialog source={source} c={c} open={leaving} onOpenChange={setLeaving} />
     </FramePage>
@@ -1948,8 +1711,52 @@ const stepLook: Record<ConnectStep['status'], React.ReactNode> = {
   skipped: <span aria-hidden className="size-4 shrink-0 rounded-full border" />,
 }
 
+/**
+ * The families a test's read would find (D5): how many of its metrics are variants, by how each
+ * family is found, and where an owner confirms them. The advice to keep a variant as a dimension
+ * is one line under it.
+ */
+function FamiliesRead({
+  families,
+  tool,
+  saved,
+}: {
+  families: NonNullable<ConnectRead['families']>
+  tool: string
+  /** A test of the tool as it is saved, on its page: the families are confirmed as they come. */
+  saved: boolean
+}) {
+  const n = (x: number) => x.toLocaleString('en-GB')
+  return (
+    <section
+      aria-labelledby="test-families"
+      className="flex flex-col gap-3 rounded-frame border px-4 py-3.5"
+    >
+      <h3 id="test-families" className="flex items-center gap-2 font-medium">
+        <FamilyGlyph />
+        {n(families.metrics)} of them are variants:{' '}
+        {families.families === 1 ? '1 family' : `${n(families.families)} families`}
+      </h3>
+      <p>
+        Each family is one metric here, such as {families.example}, so what people write about it
+        reaches agents through every variant.
+      </p>
+      <FamiliesFound found={families.found} tool={tool} untilSaid />
+      <p className="text-muted-foreground">
+        {saved
+          ? 'An owner of its domain, or an admin, confirms each new one in the Inbox, under Families. Nothing is published before.'
+          : 'After the first read, an owner of its domain, or an admin, confirms each one in the Inbox, under Families. Nothing is published before.'}
+      </p>
+      <p className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+        A currency or a channel kept as a dimension needs no family at all.
+        <GuideLink slug="metric-variants" className="text-xs" />
+      </p>
+    </section>
+  )
+}
+
 /** What a test's read found: what it would hold and what it warns of. Nothing of it is kept. */
-function ReadFound({ read }: { read: ConnectRead }) {
+function ReadFound({ read, tool, saved }: { read: ConnectRead; tool: string; saved: boolean }) {
   return (
     <li className="mt-1 flex flex-col gap-2 border-t pt-3">
       <p>
@@ -1957,8 +1764,11 @@ function ReadFound({ read }: { read: ConnectRead }) {
           A read would hold {plural(read.metrics, 'metric')} and{' '}
           {plural(read.dimensions, 'dimension')}.
         </span>{' '}
-        <span className="text-muted-foreground">Nothing is saved until you finish.</span>
+        <span className="text-muted-foreground">
+          {saved ? 'Nothing of it was kept.' : 'Nothing is saved until you finish.'}
+        </span>
       </p>
+      {read.families && <FamiliesRead families={read.families} tool={tool} saved={saved} />}
       {read.warnings.map((warning) => (
         <p key={warning.title} className="flex items-start gap-2">
           <span className="mt-0.5 flex">
@@ -1972,6 +1782,13 @@ function ReadFound({ read }: { read: ConnectRead }) {
             {warning.title}
             {warning.count > 1 && (
               <span className="text-muted-foreground tabular-nums"> ({warning.count})</span>
+            )}
+            {warning.files && (
+              <span className="block font-mono text-xs break-all text-muted-foreground">
+                {warning.files.join(', ')}
+                {warning.count > warning.files.length &&
+                  ` and ${(warning.count - warning.files.length).toLocaleString('en-GB')} more`}
+              </span>
             )}
             {warning.detail && (
               <span className="block text-muted-foreground">{warning.detail}</span>
@@ -1996,8 +1813,62 @@ function ReadFound({ read }: { read: ConnectRead }) {
   )
 }
 
+/**
+ * What a test of a tool as it is saved says of the groups it reads: every one, those chosen all in
+ * the model, or those the model no longer has, each named.
+ */
+function ChosenFound({
+  chosen,
+  group,
+}: {
+  chosen: NonNullable<ConnectTest['chosen']>
+  group: { one: string; many: string }
+}) {
+  const missing = chosen.missing.length
+  const [look, title, detail, fix] = chosen.all
+    ? ([
+        'ok',
+        `It reads every ${group.one} in the model`,
+        groupCount(chosen.groups, group),
+      ] as const)
+    : missing === 0
+      ? ([
+          'ok',
+          chosen.groups === 1
+            ? `The ${group.one} chosen here is in the model`
+            : `All ${groupCount(chosen.groups, group)} chosen here are in the model`,
+        ] as const)
+      : ([
+          'warning',
+          `${missing === 1 ? `1 chosen ${group.one} is` : `${groupCount(missing, group)} chosen are`} not in the model`,
+          chosen.missing.join(', '),
+          `Nothing is read for ${missing === 1 ? 'it' : 'them'}. Choose ${group.many} again, or add ${missing === 1 ? 'it' : 'them'} back to the model.`,
+        ] as const)
+  return (
+    <li className="flex items-start gap-2">
+      <span className="mt-0.5 flex">{stepLook[look]}</span>
+      <span className="min-w-0">
+        {title}
+        {detail && <span className="text-muted-foreground">. {detail}</span>}
+        {fix && <span className="block text-muted-foreground">{fix}</span>}
+      </span>
+    </li>
+  )
+}
+
 /** What Test connection says: its checks while they run, then each step in the tool's words. */
-function Checks({ test }: { test: Testing }) {
+function Checks({
+  test,
+  tool,
+  saved = false,
+  group = { one: 'view', many: 'views' },
+}: {
+  test: Testing
+  tool: string
+  /** A test of the tool as it is saved, on its page, rather than of the connect form. */
+  saved?: boolean
+  group?: { one: string; many: string }
+}) {
   return (
     <ul className="flex flex-col gap-2 rounded-frame border p-4 text-sm" aria-live="polite">
       {test.running ? (
@@ -2025,10 +1896,16 @@ function Checks({ test }: { test: Testing }) {
           {test.result?.failure && (
             <li className="flex items-start gap-2">
               <span className="mt-0.5 flex">{stepLook.failed}</span>
-              {test.result.failure}
+              <span className="min-w-0">
+                {test.result.failure}
+                {test.result.fix && (
+                  <span className="block text-muted-foreground">{test.result.fix}</span>
+                )}
+              </span>
             </li>
           )}
-          {test.result?.read && <ReadFound read={test.result.read} />}
+          {test.result?.chosen && <ChosenFound chosen={test.result.chosen} group={group} />}
+          {test.result?.read && <ReadFound read={test.result.read} tool={tool} saved={saved} />}
         </>
       )}
     </ul>
@@ -2146,7 +2023,7 @@ function ServerSet({ c }: { c: Connector | undefined }) {
             Back to {c.name}
           </a>
         )}
-        <a href="/settings/integrations" className={buttonVariants({ variant: 'outline' })}>
+        <a href="/settings/integrations" className={cn(buttonVariants({ variant: 'outline' }))}>
           Integrations
         </a>
       </div>
@@ -2430,7 +2307,7 @@ function ConnectSteps({
                   </span>
                 )}
               </div>
-              {test.run > 0 && <Checks test={test} />}
+              {test.run > 0 && <Checks test={test} tool={c.name} />}
             </div>
           </>
         )}
@@ -2581,14 +2458,14 @@ function ConnectSteps({
                     </span>
                   )}
                 </div>
-                {test.run > 0 && <Checks test={test} />}
+                {test.run > 0 && <Checks test={test} tool={c.name} />}
               </div>
             )}
           </>
         )}
         {at >= 3 && (
           <>
-            <Checks test={test} />
+            <Checks test={test} tool={c.name} />
             {!test.running && (
               <p className="text-sm text-muted-foreground">
                 Go back to Connect, check the settings and test again.

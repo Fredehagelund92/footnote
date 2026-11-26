@@ -4,6 +4,7 @@ import { armor, Decrypter, Encrypter, identityToRecipient } from 'age-encryption
 import { parse, YAMLParseError } from 'yaml'
 import * as z from 'zod/mini'
 import { goldenCaseSchema, type GoldenCase, type GoldenSet } from '../../src/domain/golden-set.ts'
+import { proofProblems, proofSetSchema, type ProofSet } from '../../src/domain/proof.ts'
 
 /*
   The sealed held-out cases of the golden set (output test plan, "How it stays honest"; FR-525).
@@ -17,6 +18,13 @@ import { goldenCaseSchema, type GoldenCase, type GoldenSet } from '../../src/dom
   with a new key (`npm run held-out -- edit`). Without it, every runner says plainly that the
   held-out cases did not run, counts none and fails nothing.
 
+  The invented company's proof questions (`footnote prove`, src/domain/proof.ts) are sealed the
+  same way, with the same key, in prove-questions.age, until its first funded run: the key holder
+  writes them (`npm run held-out -- edit --set prove`) and runs them (`npm run held-out -- prove`),
+  which prints the same table as `footnote prove` and nothing of a question. With the published
+  result the key holder commits them opened, as prove-questions.yml, so anyone can ask the same
+  questions again; the digest each run prints shows they are the same.
+
   Only the seal's own files open the sealed file (`sealFiles` in scripts/check-held-out-seal.ts,
   which fails a change that opens it anywhere else). A runner gets the held-out results from
   held-out-runs.ts, which runs them through runHeldOut, and a whole-set check goes through
@@ -27,6 +35,9 @@ import { goldenCaseSchema, type GoldenCase, type GoldenSet } from '../../src/dom
 /** The sealed file, in the repository next to the visible golden set. */
 export const sealedFile = new URL('./golden-held-out.age', import.meta.url)
 
+/** The invented company's sealed proof questions. */
+export const proofSealedFile = new URL('./prove-questions.age', import.meta.url)
+
 /** What a command reads the key from: the key itself, or a file that holds it. */
 export const keyVariables = ['FOOTNOTE_HELDOUT_KEY', 'FOOTNOTE_HELDOUT_KEY_FILE'] as const
 
@@ -36,6 +47,18 @@ export const noKey = `No held-out key was given (${keyVariables.join(' or ')}), 
 /** Why the held-out part did not run without a sealed file, as every runner says it. */
 export const noSealedCases =
   'There are no sealed held-out cases (db/seed/golden-held-out.age is absent), so the held-out cases did not run: only the visible ones did.'
+
+/** Why the invented company's proof did not run without its sealed questions. */
+export const noSealedProof =
+  "There are no sealed proof questions (db/seed/prove-questions.age is absent): the key holder writes and seals the invented company's questions with npm run held-out -- edit --set prove."
+
+/** Why a sealed file was not opened: it is absent, or no key was given. */
+export type UnavailableWords = { absent: string; keyless: string }
+const heldOutWords: UnavailableWords = { absent: noSealedCases, keyless: noKey }
+export const proofWords: UnavailableWords = {
+  absent: noSealedProof,
+  keyless: `No held-out key was given (${keyVariables.join(' or ')}), so the invented company's sealed proof questions did not run.`,
+}
 
 /** A held-out failure whose message never quotes a case. */
 export class HeldOutError extends Error {
@@ -67,9 +90,10 @@ export const heldOutKeyGiven = (env: NodeJS.ProcessEnv = process.env) =>
 export function heldOutUnavailable(
   env: NodeJS.ProcessEnv = process.env,
   file: URL | string = sealedFile,
+  words: UnavailableWords = heldOutWords,
 ): string | null {
-  if (!existsSync(file)) return noSealedCases
-  return heldOutKeyGiven(env) ? null : noKey
+  if (!existsSync(file)) return words.absent
+  return heldOutKeyGiven(env) ? null : words.keyless
 }
 
 /**
@@ -129,6 +153,26 @@ export function heldOutProblems(text: string): string[] {
     : parsed.error.issues.map((i) => `${i.path.join('.') || '(top)'}: ${i.message}`)
 }
 
+/** Where a text fails the proof question format: paths and rules only, never the values. */
+export function proofSetProblems(text: string): string[] {
+  let value: unknown
+  try {
+    value = parse(text)
+  } catch (error) {
+    const line = error instanceof YAMLParseError ? error.linePos?.[0]?.line : undefined
+    return [`Not valid YAML${line ? ` at line ${line}` : ''}`]
+  }
+  return proofProblems(value)
+}
+
+/** The proof questions a decrypted text holds, checked against the format. */
+export function parseSealedProof(text: string): ProofSet {
+  const problems = proofSetProblems(text)
+  if (problems.length)
+    throw new HeldOutError(`The sealed file does not fit the format: ${problems.join('; ')}`)
+  return proofSetSchema.parse(parse(text))
+}
+
 /** The cases a decrypted text holds, checked against the format. */
 export function parseHeldOut(text: string): HeldOutSet {
   const problems = heldOutProblems(text)
@@ -137,12 +181,23 @@ export function parseHeldOut(text: string): HeldOutSet {
   return heldOutSetSchema.parse(parse(text))
 }
 
-/** A text of held-out cases, checked and encrypted to the key, as the armored file holds it. */
-export async function seal(text: string, identity: string): Promise<string> {
-  parseHeldOut(text)
+/** A text encrypted to the key, as the armored file holds it. */
+async function encrypt(text: string, identity: string): Promise<string> {
   const encrypter = new Encrypter()
   encrypter.addRecipient(await identityToRecipient(identity))
   return armor.encode(await encrypter.encrypt(text))
+}
+
+/** A text of held-out cases, checked and encrypted to the key, as the armored file holds it. */
+export async function seal(text: string, identity: string): Promise<string> {
+  parseHeldOut(text)
+  return encrypt(text, identity)
+}
+
+/** A text of proof questions, checked and encrypted to the key. */
+export async function sealProof(text: string, identity: string): Promise<string> {
+  parseSealedProof(text)
+  return encrypt(text, identity)
 }
 
 /**
@@ -152,14 +207,20 @@ export async function seal(text: string, identity: string): Promise<string> {
 export async function openingKey(
   env: NodeJS.ProcessEnv = process.env,
   file: URL | string = sealedFile,
+  words: UnavailableWords = heldOutWords,
 ): Promise<{ ran: true; identity: string } | { ran: false; reason: string }> {
-  const reason = heldOutUnavailable(env, file)
+  const reason = heldOutUnavailable(env, file, words)
   return reason ? { ran: false, reason } : { ran: true, identity: (await readHeldOutKey(env))! }
 }
 
 /** The sealed cases, opened with the key. */
 export async function readHeldOut(identity: string, file: URL | string = sealedFile) {
   return parseHeldOut(await unseal(readFileSync(file, 'utf8'), identity))
+}
+
+/** The sealed proof questions, opened with the key. */
+export async function readSealedProof(identity: string, file: URL | string = proofSealedFile) {
+  return parseSealedProof(await unseal(readFileSync(file, 'utf8'), identity))
 }
 
 /** The whole golden set: the visible cases and the held-out ones. An id is used once. */
@@ -183,7 +244,7 @@ function restore(target: object, key: string, own: PropertyDescriptor | undefine
  * Runs `work` with nothing printed: console and both standard streams are muted, so code given a
  * held-out case cannot show it, and a failure is reported by its kind alone.
  */
-async function silenced<T>(work: () => Promise<T>): Promise<T> {
+export async function silenced<T>(work: () => Promise<T>): Promise<T> {
   const methods = ['log', 'info', 'warn', 'error', 'debug', 'trace', 'dir', 'table'] as const
   const streams = [process.stdout, process.stderr]
   const saved = methods.map((m) => Object.getOwnPropertyDescriptor(console, m))

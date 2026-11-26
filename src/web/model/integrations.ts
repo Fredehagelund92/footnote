@@ -1,6 +1,6 @@
 import { fieldVisible } from '@domain/connector-config'
 import type { ConnectorManifest, ManifestField } from '@domain/connector-manifest'
-import type { FiguresState } from '@domain/figures-state'
+import type { FamilyFound } from '@domain/family-found'
 import type { SourceHealth, SourceLast, SourceRead, SourceRetry } from '@domain/source-state'
 import cube from '@/assets/logos/cube.svg'
 import dbt from '@/assets/logos/dbt.svg'
@@ -11,10 +11,7 @@ import type { DomainId } from './items'
 
 // The tools Footnote reads, from the settings and integrations design (round 3, all picks adopted).
 // Definitions (what exists: metrics and dimensions) and context (what people know: documents).
-// Figures for Ask are not a kind of their own: a definitions tool that can read them has a second
-// connection for them, off until an admin switches it on, because the tool a metric's definition
-// comes from is the one that answers it. Footnote stores no numbers: it reads one when an answer asks
-// for it. A sync never publishes: definitions are a read-only copy that flags the context relying
+// Footnote reads no numbers and keeps none. A sync never publishes: definitions are a read-only copy that flags the context relying
 // on them, documents become suggestions in the owners' Inbox, one per document.
 //
 // The catalogue itself is drawn from the connectors' manifests in catalogue.ts, which only the
@@ -43,11 +40,6 @@ export type Connector = {
   icon?: ConnectorIcon
   /** One line on the catalog cell. */
   blurb: string
-  /**
-   * It can also read a figure for Ask, through a second connection of its own: a data endpoint and
-   * a token (opt-in, off until an admin switches it on).
-   */
-  figures?: true
   /** The secret the connect flow takes as a key file someone uploads, not as words typed in. */
   keyFile?: string
   /** It reads from a Git repository. */
@@ -73,8 +65,11 @@ export type Connector = {
   domainField?: string
   /** The server setting that names where it reads from, when the server's operator sets it. */
   serverSetting?: string
-  /** An example of its data endpoint, shown in the empty field where figures are set up. */
-  endpointExample?: string
+  /**
+   * A metric of its model that names its family (`meta.footnote`), as its files write it: what
+   * the source's page shows under Make a family.
+   */
+  familyExample?: string
   /** The words of its own warnings, by code. */
   warnings?: ConnectorManifest['warnings']
 }
@@ -260,27 +255,6 @@ export type SourcePage = {
   connection: { label: string; value: string; code?: boolean }[]
 }
 
-/**
- * How a figure-capable integration is reached: its data endpoint, the one host it calls, and
- * whether its secret is set. The secret itself, or any part of it, is never shown.
- */
-export type FigureConnection = {
-  endpoint: string | null
-  host: string | null
-  secretSet: boolean
-  contact: string
-  /**
-   * How its figures in Ask are: off, on, held while it is paused, or broken (switched on with no
-   * token, or with nobody to ask).
-   */
-  state: FiguresState
-  /** When the integration last refreshed its data, when known. */
-  asOf?: string
-}
-
-/** How a figure-capable integration is set up, before its state is worked out. */
-export type FigureSetup = Omit<FigureConnection, 'state'>
-
 /* ---------- the connect flow (Pick, Connect, Choose, Map, Schedule) and Change settings ---------- */
 
 /**
@@ -406,20 +380,44 @@ export type ConnectTest = {
   scopes: ConnectScope[]
   /** Why it could not read, in words, when no step says. */
   failure?: string
+  /** What to do about it, when there is something to do. */
+  fix?: string
   /** What the test's read found, for a definitions tool: nothing of it is kept. */
   read?: ConnectRead
+  /**
+   * A test of a tool as it is saved, on its page: the views it reads against those the read
+   * found. `all` when it reads every view, with how many the model has.
+   */
+  chosen?: { all: boolean; groups: number; missing: string[] }
 }
 
 /** What a test's read found: how many definitions, and its warnings, each once with a count. */
 export type ConnectRead = {
   metrics: number
   dimensions: number
-  warnings: { title: string; detail?: string; level?: 'warning' | 'info'; count: number }[]
+  warnings: {
+    title: string
+    detail?: string
+    level?: 'warning' | 'info'
+    count: number
+    /** The files a warning about a file names, the first few. */
+    files?: string[]
+  }[]
   /**
-   * When many metrics look like variants of a few, such as a metric per currency: what it says,
-   * with the page on modelling them as a dimension.
+   * When many metrics look like variants of a few, such as a metric per currency, and the read
+   * finds no family of them: what it says, with the page on modelling them as a dimension.
    */
   variants?: { title: string; detail: string }
+  /**
+   * The families of metrics the first read would find (FR-142, D5): how many, the metrics in
+   * them, each kind's count in the order of trust, and the family with the most variants.
+   */
+  families?: {
+    families: number
+    metrics: number
+    found: Record<FamilyFound, number>
+    example: string
+  }
 }
 
 /** A view or folder chosen to read, and the domain it maps to (none: a view left shared). */

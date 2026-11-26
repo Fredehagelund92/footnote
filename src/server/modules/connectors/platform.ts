@@ -11,7 +11,6 @@ import { connectorConfigDomains, parseConnectorConfig } from '../../../domain/co
 import { declaredFamilyProblems } from '../../../domain/metric-families.ts'
 import {
   checkReportSchema,
-  figureResultSchema,
   runtimeMessageSchema,
   scopeSchema,
   SourceError,
@@ -19,8 +18,6 @@ import {
   type ChosenScope,
   type ConnectorModule,
   type ConnectorRuntime,
-  type FigureQuery,
-  type FigureResult,
   type GuardedFetch,
   type RuntimeContext,
   type Scope,
@@ -144,106 +141,6 @@ export interface RegisteredConnector {
   check(stored: StoredSource): Promise<CheckReport>
   /** The scopes an administrator may choose, each with a suggested domain; changes nothing. */
   discover?(stored: StoredSource): Promise<Scope[]>
-  /**
-   * One figure from the data endpoint an administrator set, with its token, within the signal's
-   * time; only a connector whose manifest declares figures. A failure is a `FigureReadError`.
-   */
-  figure?(
-    connection: FigureConnection,
-    query: FigureQuery,
-    signal: AbortSignal,
-  ): Promise<FigureResult>
-}
-
-/** Where a source's figures are read: the data endpoint an administrator set, and its token. */
-export interface FigureConnection {
-  endpoint: string
-  token: string
-}
-
-/** The codes a figure's read fails with: what Ask and the integration's page say. */
-export const figureFailureCodes = [
-  'unauthorized',
-  'not_found',
-  'rate_limited',
-  'unreachable',
-  'timed_out',
-  'private_address',
-  'invalid_output',
-  /** The tool does not let the token read the measure: its model's access rules hide it. */
-  'not_allowed',
-  /** The view has several dates and neither the model nor the settings name one. */
-  'several_dates',
-] as const
-export type FigureFailureCode = (typeof figureFailureCodes)[number]
-
-/** Why a figure could not be read: a code only, never what the tool said. */
-export class FigureReadError extends Error {
-  override name = 'FigureReadError'
-  readonly code: FigureFailureCode
-  constructor(code: FigureFailureCode) {
-    super(`Figure not read: ${code}`)
-    this.code = code
-  }
-}
-
-/**
- * The fetch a figure gets: GET only, to the data endpoint's own origin (its scheme, host and port:
- * the declared host) at an address Footnote may fetch (https to a public host in production), the
- * host's name looked up once and the connection pinned to an answer that is public (no DNS
- * rebinding), no redirect followed, within the figure's time limit. The token goes nowhere else.
- */
-export function figureFetch(endpoint: string, signal: AbortSignal): GuardedFetch {
-  const declared = URL.parse(endpoint)?.origin
-  return async (address, init = {}) => {
-    const url = URL.parse(address)
-    const fetchable =
-      url !== null &&
-      !url.username &&
-      !url.password &&
-      !url.hash &&
-      isFetchableAddress(`${url.origin}${url.pathname}`)
-    if (!url || !fetchable || !declared || url.origin !== declared)
-      throw new SourceError({
-        code: 'private_address',
-        target: url?.host ?? 'address',
-        class: 'config',
-      })
-    if ((init.method ?? 'GET') !== 'GET' || init.body !== undefined)
-      throw new SourceError({ code: 'invalid_output', target: 'fetch', class: 'source' })
-    return pinnedRequest(url, { ...(init.headers ? { headers: init.headers } : {}), signal })
-  }
-}
-
-/** A runtime's figure, run and checked: a known code says why it failed, anything else nothing. */
-async function figureOf(
-  runtime: ConnectorRuntime,
-  connection: FigureConnection,
-  query: FigureQuery,
-  signal: AbortSignal,
-): Promise<FigureResult> {
-  const known = (code: string): code is FigureFailureCode =>
-    (figureFailureCodes as readonly string[]).includes(code)
-  try {
-    const result = await runtime.figure!(
-      {
-        endpoint: connection.endpoint,
-        token: connection.token,
-        fetch: figureFetch(connection.endpoint, signal),
-        signal,
-        now: () => new Date(),
-      },
-      query,
-    )
-    const checked = figureResultSchema.safeParse(result)
-    if (!checked.success) throw new FigureReadError('invalid_output')
-    return checked.data
-  } catch (error) {
-    if (error instanceof FigureReadError) throw error
-    if (signal.aborted) throw new FigureReadError('timed_out')
-    if (error instanceof SourceError && known(error.code)) throw new FigureReadError(error.code)
-    throw new FigureReadError('invalid_output')
-  }
 }
 
 /** Why the registry would not start: every problem with every connector it was given. */
@@ -262,14 +159,7 @@ export class ConnectorRegistryError extends Error {
  * What this build can run, beyond what a manifest may say: the definitions pipeline takes full
  * listings only, so a connector that sends tombstones waits for the next interface minor.
  */
-function buildProblems(manifest: ConnectorManifest, runtime: ConnectorRuntime): ManifestProblem[] {
-  if (manifest.capabilities.figures && typeof runtime.figure !== 'function')
-    return [
-      {
-        path: 'capabilities.figures',
-        message: 'The runtime reads no figure. Give it a figure function, or leave figures out.',
-      },
-    ]
+function buildProblems(manifest: ConnectorManifest): ManifestProblem[] {
   if (manifest.kind === 'definitions' && manifest.capabilities.deletions !== 'full-listing')
     return [
       {
@@ -887,12 +777,6 @@ export function fromModule(
           discover: (stored: StoredSource) => discoverOf(running, stored),
         }
       : {}),
-    ...(manifest.capabilities.figures && runtime.figure
-      ? {
-          figure: (connection: FigureConnection, query: FigureQuery, signal: AbortSignal) =>
-            figureOf(runtime, connection, query, signal),
-        }
-      : {}),
     async check(stored) {
       const signal = AbortSignal.timeout(timeLimitMs(running))
       if (stored.secrets === null && manifest.secrets.length)
@@ -929,7 +813,7 @@ export function registerConnectors(
       problems.push(...checked.problems.map((problem) => ({ id, problem })))
       continue
     }
-    const unsupported = buildProblems(checked.manifest, module.runtime)
+    const unsupported = buildProblems(checked.manifest)
     if (unsupported.length) {
       problems.push(...unsupported.map((problem) => ({ id, problem })))
       continue

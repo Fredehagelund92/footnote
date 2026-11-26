@@ -107,6 +107,31 @@ describe('the Inbox', () => {
     expect(cards[0]?.suggestion?.agent).toBeUndefined()
   })
 
+  it("reads the person's own drafts card: how many, and why they wait (FR-230)", () => {
+    const drafts: Card = {
+      ...base,
+      id: 'drafts:yours',
+      group: 'drafts',
+      areaId: null,
+      drafts: [
+        { id: 'd1', areaId: 'area_sales', imported: true },
+        { id: 'd2', areaId: 'area_sales', imported: true },
+        { id: 'd3', areaId: 'area_sales', imported: false },
+      ],
+    }
+    const { cards } = inboxOf(feed([drafts]), 'Ines Duarte', domains, now)
+    expect(cards[0]).toMatchObject({
+      id: 'drafts:yours',
+      type: 'drafts',
+      domain: '',
+      for: 'Ines Duarte',
+      title: '3 drafts waiting for you',
+      line: 'Only you can see them. Agents get them once they are published.',
+      secondary: ['See them in Context'],
+      drafts: { ids: ['d1', 'd2', 'd3'], imported: 2, old: 1 },
+    })
+  })
+
   it('names the tool a read came from, and its connector, which draws its logo', () => {
     const { cards } = inboxOf(
       feed([
@@ -201,6 +226,7 @@ describe('the Inbox', () => {
       times: 9,
       told: 0,
       draft: 'p9',
+      asked: null,
     }
     const inbox = inboxOf(
       feed([gap, suggestion({ id: 'proposal:p9', proposalId: 'p9', opened: true, read: true })]),
@@ -223,6 +249,29 @@ describe('the Inbox', () => {
     // With no draft yet, the card keeps the service's name and writes context from the editor.
     const [blank] = inboxOf(feed([{ ...gap, draft: null }]), 'Jon Abara', domains, now).cards
     expect(blank).toMatchObject({ id: 'gap:g1', primary: 'Write context' })
+    // Ask someone who knows sits between the card's two decisions, and its link keeps its day.
+    expect(blank!.secondary).toEqual(['Not something we write down', 'Ask someone who knows'])
+    const [asked] = inboxOf(
+      feed([{ ...gap, draft: null, asked: { copiedOn: '2026-10-25' } }]),
+      'Jon Abara',
+      domains,
+      now,
+    ).cards
+    expect(asked!.asked).toEqual({ on: '25 Oct', answers: [] })
+    // A card about words Ask could not find has no topic to pass on.
+    const [words] = inboxOf(
+      feed([
+        {
+          ...gap,
+          draft: null,
+          scope: { metrics: [], values: [], dimensions: [], month: '2026-10' },
+        },
+      ]),
+      'Jon Abara',
+      domains,
+      now,
+    ).cards
+    expect(words!.secondary).toEqual(['Not something we write down'])
     // Someone pressed Tell the owner in Ask: the card says so, and what agents found when they asked.
     const line = (times: number | null, told: number) =>
       inboxOf(feed([{ ...gap, draft: null, times, told }]), 'Jon Abara', domains, now).cards[0]!
@@ -275,6 +324,7 @@ describe('the Inbox', () => {
       question: null,
       correction: null,
       link: null,
+      suggestion: null,
       items: [],
     }
     expect(inboxOf(feed([flag]), 'Jon Abara', domains, now).cards[0]).toMatchObject({
@@ -300,6 +350,7 @@ describe('the Inbox', () => {
       question: null,
       correction: null,
       link: null,
+      suggestion: null,
       items: [
         { id: 'itm_lag0001', title: 'Orders lags by one day in the source tool' },
         { id: 'itm_other01', title: 'Another item' },
@@ -317,7 +368,7 @@ describe('the Inbox', () => {
     })
   })
 
-  it('names who sent a named report from Ask, by their name', () => {
+  it('names who sent a named report from Ask, by their name, with the question they asked', () => {
     const flag: Card = {
       ...base,
       id: 'report:r1',
@@ -330,6 +381,7 @@ describe('the Inbox', () => {
       question: 'Do Norway orders include gift-card money?',
       correction: null,
       link: null,
+      suggestion: null,
       items: [{ id: 'itm_gift0001', title: 'Norway orders count store credit' }],
     }
     const name = (id: string) => (id === 'per_maria' ? 'Maria Lindqvist' : 'Someone')
@@ -339,7 +391,37 @@ describe('the Inbox', () => {
       title: 'Norway orders count store credit',
       line: 'Reported wrong: “Gift cards are paid out separately since October.”',
       factId: 'itm_gift0001',
-      flag: { by: 'Maria Lindqvist', via: 'Ask' },
+      flag: {
+        by: 'Maria Lindqvist',
+        via: 'Ask',
+        question: 'Do Norway orders include gift-card money?',
+      },
+    })
+    expect(
+      inboxOf(feed([flag]), 'Jon Abara', domains, now, name).cards[0]?.flag,
+    ).not.toHaveProperty('correction')
+  })
+
+  it('gives the owners the right words and the link a report was sent with, and its suggestion', () => {
+    const flag: Card = {
+      ...base,
+      id: 'report:r2',
+      group: 'flag',
+      source: 'ask',
+      feedbackId: 'r2',
+      verdict: 'wrong',
+      note: 'Gift cards are paid out separately since October.',
+      by: 'per_maria',
+      question: 'Do Norway orders include gift-card money?',
+      correction: 'Norway orders leave gift cards out since October.',
+      link: 'https://wiki.example/norway-orders',
+      suggestion: 'b1c2d3e4-0000-4000-8000-000000000001',
+      items: [{ id: 'itm_gift0001', title: 'Norway orders count store credit' }],
+    }
+    expect(inboxOf(feed([flag]), 'Jon Abara', domains, now).cards[0]?.flag).toMatchObject({
+      correction: 'Norway orders leave gift cards out since October.',
+      link: 'https://wiki.example/norway-orders',
+      suggestion: 'proposal:b1c2d3e4-0000-4000-8000-000000000001',
     })
   })
   it('says since when a check is due, and who checked it last', () => {
@@ -351,7 +433,10 @@ describe('the Inbox', () => {
       title: 'Returns changed definition on 28 April 2026',
       reason: 'date',
       changed: [],
+      families: [],
       lastChecked: { on: '2026-07-02', by: 'Jon Abara' },
+      asked: null,
+      answers: [],
       ...patch,
     })
     const [due, changed] = inboxOf(
@@ -374,13 +459,52 @@ describe('the Inbox', () => {
       line: 'Its check date passed on 2 Oct 2026. Agents are told it may be out of date.',
       detail: 'Last checked by you, 2 Jul 2026.',
       primary: 'Still true',
-      secondary: ['Edit', 'Archive'],
+      secondary: ['Edit', 'Archive', 'Ask someone who knows'],
       factId: 'itm_a',
     })
-    expect(changed).toMatchObject({ when: 'Today', detail: 'Not checked yet.', due: 'source' })
+    expect(due?.changed).toEqual([])
+    // The definitions that changed, by name, which the card opens.
+    expect(changed).toMatchObject({
+      when: 'Today',
+      detail: 'Not checked yet.',
+      due: 'source',
+      changed: ['Gross margin'],
+    })
     expect(changed?.line).toBe(
       'The definition of Gross margin changed in its tool on 7 Oct 2026, after this context item was checked.',
     )
+  })
+
+  it('says a family the item is about was split, and keeps it for each metric at one press', () => {
+    const [split] = inboxOf(
+      feed([
+        {
+          ...base,
+          id: 'check:itm_c',
+          group: 'check',
+          itemId: 'itm_c',
+          title: 'Accrued share restated',
+          reason: 'family',
+          changed: [],
+          families: [
+            { name: 'Accrued share', metrics: ['Accrued share (EUR)', 'Accrued share (USD)'] },
+          ],
+          lastChecked: { on: null, by: null },
+          asked: null,
+          answers: [],
+        },
+      ]),
+      'Jon Abara',
+      domains,
+      now,
+    ).cards
+    expect(split).toMatchObject({
+      due: 'family',
+      splitInto: ['Accrued share (EUR)', 'Accrued share (USD)'],
+      line: 'Its family Accrued share was split into Accrued share (EUR) and Accrued share (USD). No word of it changed: it reaches agents for both until you say which it is about.',
+      primary: 'Keep for both',
+      secondary: ['Edit', 'Archive', 'Ask someone who knows'],
+    })
   })
 
   it('reads the saved-question alert as one card for the domain, with its questions', () => {
@@ -478,6 +602,7 @@ describe('the Inbox', () => {
             sentAt: at(20),
             waitingFor: ['Jon Abara', 'Sofia Brandt'],
             returned: null,
+            closed: null,
           },
         ],
       }),
@@ -509,6 +634,7 @@ describe('the Inbox', () => {
             sentAt: at(20),
             waitingFor: ['Jon Abara'],
             returned: { by: 'Jon Abara', at: at(21, 14, 5) },
+            closed: null,
           },
         ],
       }),
@@ -521,6 +647,35 @@ describe('the Inbox', () => {
       card: 'p6',
       returned: { by: 'Jon Abara', when: '21 Oct' },
     })
+  })
+
+  it('says who closed a suggestion the person sent and why, opened once they read it', () => {
+    const closed = (read: boolean) =>
+      inboxOf(
+        feed([], {
+          waiting: [
+            {
+              proposalId: 'p7',
+              title: 'Payout journal holds partner payouts',
+              areaId: 'area_sales',
+              sentAt: at(19),
+              waitingFor: [],
+              returned: null,
+              closed: { by: 'Jon Abara', at: at(21, 9, 30), reason: 'Not used for payouts.', read },
+            },
+          ],
+        }),
+        'Ines Duarte',
+        domains,
+        now,
+      )
+    expect(closed(false).waiting[0]).toMatchObject({
+      id: 'closed:p7',
+      card: 'p7',
+      closed: { by: 'Jon Abara', when: '21 Oct', reason: 'Not used for payouts.' },
+    })
+    expect(closed(false).opened['closed:p7']).toBeUndefined()
+    expect(closed(true).opened['closed:p7']).toBe(true)
   })
 
   it('passes the week’s counts on, hidden ones as they are', () => {

@@ -1,9 +1,8 @@
 import type { Locator, Page } from '@playwright/test'
 import { card, expect, go, mode, moveTo, onMockOnly, signInAs, test } from './go.ts'
 
-// J28: the Ask ideas to try first. A shared answer travels with its state and its sources; the
-// empty page shows what is asked this week; the box docks once a question is asked; and nothing in
-// the chat suggests what to ask.
+// J28: the Ask ideas to try first. The empty page shows what is asked this week; the box docks once
+// a question is asked; and nothing in the chat suggests what to ask. Sharing a chat is J121.
 
 /** Asks a question from an empty Ask, as typed. */
 async function ask(page: Page, question: string) {
@@ -23,46 +22,6 @@ const missing = 'How did orders in Spain change in October 2026?'
 
 /** The six state words, as a line says one. */
 const STATE = /^(Checked|Partial|Not found|Conflict|Outdated|Not looked up)$/
-
-test('Share copies an answer for Slack with its state and sources, or as a card; a link is for later', async ({
-  page,
-}) => {
-  await ask(page, checked)
-  await page.getByRole('button', { name: 'More' }).last().click()
-  await page.getByRole('menuitem', { name: 'Share' }).click()
-  // It opens beside the answer, in the right panel, so the answer stays in view.
-  await expect(page).toHaveURL(/dock=share\./)
-  const share = page.getByRole('region', { name: 'Share this answer' })
-  const tabs = share.getByRole('tablist', { name: 'Share as' })
-  await expect(tabs.getByRole('tab', { name: /Slack message/ })).toHaveAttribute(
-    'aria-selected',
-    'true',
-  )
-  await expect(tabs.getByRole('tab', { name: /Link/ })).toHaveAttribute('aria-disabled', 'true')
-  const message = share.getByRole('tabpanel', { name: 'Slack message' })
-  await expect(message).toContainText('Checked (1 item)')
-  await expect(message).toContainText(
-    // Who checked it is the workspace's own: the mock and the demo week name different people.
-    /1 Units sold excludes test accounts - [A-Z][a-z]+ [A-Z][a-z]+, checked 2 Jul 2026/,
-  )
-  await expect(share.getByRole('button', { name: 'Copy for Slack' })).toBeFocused()
-  await tabs.getByRole('tab', { name: /Card/ }).click()
-  await expect(share.getByRole('tabpanel', { name: 'Card' })).toContainText(
-    'Larchwood Outdoor - answered 23 Oct 2026',
-  )
-  await share.getByRole('button', { name: 'Copy card' }).click()
-  await expect(page.getByText('Card copied')).toBeVisible()
-
-  // Nothing written down travels as Not found, with no list of sources.
-  await ask(page, missing)
-  await page.getByRole('button', { name: 'More' }).last().click()
-  await page.getByRole('menuitem', { name: 'Share' }).click()
-  const nothing = page
-    .getByRole('region', { name: 'Share this answer' })
-    .getByRole('tabpanel', { name: 'Slack message' })
-  await expect(nothing).toContainText('Not found. Nothing is written about this yet.')
-  await expect(nothing.getByRole('listitem')).toHaveCount(0)
-})
 
 test('Asked this week: topics with the state Ask gives now and a count; an owner gets the waiting draft', async ({
   page,
@@ -186,7 +145,7 @@ test('Asked this week: one line per topic, the state in its own column, the coun
   const sentence = {
     Checked: 'This is written down and checked.',
     Partial: 'Only part of this is written down.',
-    'Not found': 'Nothing is written about this yet.',
+    'Not found': 'Nothing published about this yet.',
     Conflict: 'Two items say different things.',
     Outdated: 'Some of this may be old.',
     'Not looked up': 'Ask could not look this up just now.',

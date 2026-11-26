@@ -9,18 +9,25 @@ import * as z from 'zod/mini'
 import { alertCardRules } from '../domain/alerts.ts'
 import { cardGroups, cardActions, setupSteps } from '../domain/inbox.ts'
 import { familyFoundKinds } from '../domain/family-found.ts'
-import { familyMeaningSources } from '../domain/family-meaning.ts'
+import { familyMeaningSources } from '../domain/family-meaning-line.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
 import { proposalActions } from '../domain/proposal.ts'
+import { checkAnswers } from '../domain/questions.ts'
 import { syncedSchema } from './review-path.ts'
 import { undoOfferSchema } from './undo.ts'
 
 /** A count from agents: null when it is above zero and under the minimum (FR-614). */
 const shownCount = z.nullable(z.number())
 
+/**
+ * Ask someone who knows: the day the card's link was last copied, never who opened it; null until
+ * an owner copies one.
+ */
+const askedSchema = z.nullable(z.object({ copiedOn: z.string() }))
+
 const cardBase = {
-  /** The card's own name, stable across reads: "proposal:<id>", "gap:<id>", "feedback:<id>", "check:<item>", "look:<domain>", "alert:<raise>". */
+  /** The card's own name, stable across reads: "proposal:<id>", "gap:<id>", "feedback:<id>", "check:<item>", "look:<domain>", "alert:<raise>", "drafts:yours". */
   id: z.string(),
   areaId: z.string(),
   /** When what it shows happened. */
@@ -32,7 +39,7 @@ const cardBase = {
 
 /**
  * One card, by what happened (the Inbox's groups: Names, Not found, Reported, Saved questions,
- * Alerts, Mentioned you, Due for a check, Suggestions).
+ * Alerts, Mentioned you, Due for a check, Suggestions, Your drafts).
  */
 export const cardSchema = z.union([
   z.object({
@@ -43,6 +50,8 @@ export const cardSchema = z.union([
     /** The names Accept all takes, the ones that need a look first, and the tools that gave them. */
     ready: z.number(),
     flagged: z.number(),
+    /** Of the names that wait, the families of near-identical metrics (FR-142). */
+    families: z.number(),
     tools: z.array(z.string()),
   }),
   z.object({
@@ -86,6 +95,7 @@ export const cardSchema = z.union([
     told: z.number(),
     /** The draft started from it, if any. */
     draft: z.nullable(z.string()),
+    asked: askedSchema,
   }),
   z.object({
     ...cardBase,
@@ -98,10 +108,12 @@ export const cardSchema = z.union([
     note: z.nullable(z.string()),
     /** Who sent a named report; null for an agent's feedback, which keeps nobody. */
     by: z.nullable(z.string()),
-    /** A named report's question, correct version and link, as its sender wrote them. */
+    /** A named report's question, right words and link, as its sender wrote them. */
     question: z.nullable(z.string()),
     correction: z.nullable(z.string()),
     link: z.nullable(z.string()),
+    /** The suggestion its right words became, while it waits for an owner: its id. */
+    suggestion: z.nullable(z.string()),
     /** The context the reported answer gave, as agents got it, first first; empty when unknown. */
     items: z.array(z.object({ id: z.string(), title: z.string() })),
   }),
@@ -136,19 +148,56 @@ export const cardSchema = z.union([
   }),
   z.object({
     ...cardBase,
+    group: z.literal('drafts'),
+    /** The domain of the drafts, when they share one. */
+    areaId: z.nullable(z.string()),
+    /**
+     * The person's own drafts that wait for them, oldest first (FR-139): each one imported, or not
+     * saved for DRAFT_OLD_DAYS days. Only they can see them; they send or publish them all at once.
+     */
+    drafts: z.array(z.object({ id: z.string(), areaId: z.string(), imported: z.boolean() })),
+  }),
+  z.object({
+    ...cardBase,
     group: z.literal('check'),
     itemId: z.string(),
     title: z.string(),
-    /** Its check date passed, or a definition it relies on changed at its source. */
-    reason: z.enum(['date', 'source']),
+    /**
+     * Its check date passed, a definition it relies on changed at its source, or a family of
+     * metrics it is about was split back into its metrics (FR-142).
+     */
+    reason: z.enum(['date', 'source', 'family']),
     /** The definitions that changed at their source since the item was checked, with the day each changed; empty for a date. */
     changed: z.array(z.object({ name: z.string(), on: z.string() })),
+    /**
+     * The families it is about that were split, each with the metrics it still reaches agents
+     * through, by name; empty for any other reason.
+     */
+    families: z.array(z.object({ name: z.string(), metrics: z.array(z.string()) })),
     lastChecked: z.object({ on: z.nullable(z.string()), by: z.nullable(z.string()) }),
+    asked: askedSchema,
+    /**
+     * What people answered on its link since it was last checked, newest first, each under their
+     * name: the owner reads it and still does the check.
+     */
+    answers: z.array(
+      z.object({
+        by: z.nullable(z.string()),
+        answer: z.enum(checkAnswers),
+        endedOn: z.nullable(z.string()),
+        words: z.nullable(z.string()),
+        link: z.nullable(z.string()),
+        at: z.string(),
+      }),
+    ),
   }),
 ])
 export type Card = z.infer<typeof cardSchema>
 
-/** A suggestion the person sent that waits on an owner, or that an owner returned to them. */
+/**
+ * A suggestion the person sent that waits on an owner, that an owner returned to them, or that an
+ * owner closed in the last two weeks.
+ */
 export const waitingSchema = z.object({
   proposalId: z.string(),
   title: z.string(),
@@ -160,6 +209,13 @@ export const waitingSchema = z.object({
    * again. The note is the first comment of its discussion. Null while it waits on an owner.
    */
   returned: z.nullable(z.object({ by: z.nullable(z.string()), at: z.string() })),
+  /**
+   * Closed by an owner, who said why: it is not published. `read` once the person opened it in
+   * their Inbox (card `closed:<proposal id>`). Null for anything else.
+   */
+  closed: z.nullable(
+    z.object({ by: z.nullable(z.string()), at: z.string(), reason: z.string(), read: z.boolean() }),
+  ),
 })
 
 export const feedInputSchema = z.object({
@@ -218,14 +274,16 @@ export const sourceNameSchema = z.object({
   description: z.nullable(z.string()),
   /** The tool that gave it, as people say it ("dbt"). */
   tool: z.string(),
+  /** The source that read it, by its id in Integrations: its page counts its families. */
+  source: z.string(),
   state: z.enum(nameStates),
   flags: z.array(z.object({ code: z.enum(nameFlagCodes), message: z.string() })),
   /** An owner left it out; otherwise it is a date or an id, which stay out by themselves. */
   leftByOwner: z.boolean(),
   /**
    * A family's variants, counted, what tells them apart in words (["Currency", "Channel"]), and how
-   * it was found (D1): declared in the tool, found from the calculation, or suggested by the names
-   * alone. They go live with it, and are never listed one by one, but for a family the names alone
+   * it was found (D1, D6): declared in the tool, found from the calculation, found from a rate, or
+   * suggested by the names alone. They go live with it, and are never listed one by one, but for a family the names alone
    * suggest: its variants' names (`names`), as the owner publishes them as one family or apart.
    * Null for any other name.
    */
@@ -249,6 +307,8 @@ export const sourceNameSchema = z.object({
           source: z.enum(familyMeaningSources),
           words: z.nullable(z.string()),
           agree: z.number(),
+          /** The variant the others are converted from, as the card shows variants; else null. */
+          base: z.nullable(z.string()),
           differing: z.number(),
         }),
       ),

@@ -4,7 +4,13 @@ line: Who publishes what, how to add a domain, the sandbox, and inviting people.
 group: Set up
 order: 1
 minutes: 2
-reviewed: 2026-11-03
+reviewed: 2026-11-22
+open:
+  label: Open Domains and owners
+  href: /settings/domains
+does:
+  add-a-domain: add_domain
+  people: invite_people
 ---
 
 Who publishes what, how to add a domain, the sandbox, and inviting people.
@@ -16,6 +22,8 @@ Who publishes what, how to add a domain, the sandbox, and inviting people.
 An area of the business, such as Sales or Marketing. Every context item belongs to one.
 
 <!-- /include -->
+
+Admins and owners open **Settings**, then **Domains and owners**, to see the domains. Choose one to open its page.
 
 ## Add a domain
 
@@ -43,7 +51,7 @@ The person who publishes and checks a domain's context. Agents read only what an
 
 Everyone is an Admin or a Member. Owning a domain isn't a role: it's set on the domain, and shows on both the domain's page and People.
 
-- **Invite people** in Settings, People: their addresses, Admin or Member, and the domains they own from the start. An owner who isn't an admin invites from their own domain's page.
+- To invite a colleague, choose **Invite people** in Settings, People: their addresses, Admin or Member, and the domains they own from the start. An owner who isn't an admin invites from their own domain's page.
 - Each invite gives a link to copy and send them. It works for 7 days. Make a new link gives a new one, and the old one stops working.
 - A person's row opens what they did lately: the context they checked last, newest first, of what you may read.
 - Removing someone waits until no domain has them as its only owner. What they published stays, with their name, and Undo brings them back.

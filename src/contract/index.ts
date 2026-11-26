@@ -19,6 +19,11 @@ import {
   definitionRelatedInputSchema,
   deletedDraftSchema,
   draftFromTextInputSchema,
+  clearLeftDraftsInputSchema,
+  clearedDraftsSchema,
+  leftDraftsSchema,
+  saveDraftInputSchema,
+  savedDraftSchema,
   draftFromTextSchema,
   itemBulkInputSchema,
   itemBulkResultSchema,
@@ -187,15 +192,19 @@ import {
   sourceRowSchema,
   sourceSettingsSchema,
   testSourceSchema,
+  checkSourceSchema,
   updateSourceSchema,
 } from './sources.ts'
 import {
   catalogueSchema,
   definitionRelationsInputSchema,
   definitionRelationsSchema,
+  definitionBuiltFromSchema,
+  familyJoinedSchema,
   familyKeyInputSchema,
   familyMeaningInputSchema,
   familyMeaningVersionSchema,
+  familySplitSchema,
   familyUsualInputSchema,
   familyUsualSchema,
 } from './catalogue.ts'
@@ -238,15 +247,21 @@ import {
   takenBackSchema,
 } from './reports.ts'
 import {
-  figureReadSchema,
-  figureSourceSchema,
-  figureSourcesSchema,
-  figureTrySchema,
-  readFigureInputSchema,
-  setFiguresInputSchema,
-  tryFigureInputSchema,
-} from './figures.ts'
+  myShareSchema,
+  mySharesSchema,
+  shareChatInputSchema,
+  sharedChatIdSchema,
+  sharedChatSchema,
+} from './shared-chats.ts'
 import { connectInfoSchema, tryItReadInputSchema, tryItReadingSchema } from './connect.ts'
+import {
+  answeredSchema,
+  answerQuestionSchema,
+  copyQuestionLinkSchema,
+  questionIdSchema,
+  questionLinkSchema,
+  questionSchema,
+} from './questions.ts'
 import {
   adminDisconnectedSchema,
   adminDisconnectSchema,
@@ -291,6 +306,7 @@ import {
   saveClientSchema,
   setSettingSchema,
   settingSchema,
+  aboutDraftSchema,
   workspaceSchema,
   setToolSchema,
   toolSwitchSchema,
@@ -359,14 +375,18 @@ export type {
   Catalogue,
   CatalogueDefinition,
   CatalogueSource,
+  CatalogueSplit,
   CatalogueTerm,
   CatalogueValue,
   CatalogueVariant,
   DefinitionRelation,
   DefinitionRelations,
+  DefinitionBuiltFrom,
+  FamilyJoined,
   FamilyMeaningData,
   FamilyMeaningInput,
   FamilyMeaningVersion,
+  FamilySplit,
   FamilyUsualData,
   FamilyUsualInput,
 } from './catalogue.ts'
@@ -632,7 +652,7 @@ export const contract = {
         path: '/review/{id}/close',
         tags: ['review'],
         summary:
-          'Closes a suggestion to archive: nothing changes. One its sender took back in the comments closes as it is, any other with a reason from the owner; answers with a token that undoes it',
+          "Closes a suggestion, so nothing changes: a suggestion to archive its sender took back in the comments closes as it is, any other with a reason from the owner. A new item or a change closes as Don't publish, its sender told the reason in their Inbox; answers with a token that undoes it",
       })
       .input(closeInputSchema)
       .output(closeResultSchema),
@@ -1006,7 +1026,7 @@ export const contract = {
         path: '/items/{id}/related',
         tags: ['library'],
         summary:
-          'Context related to an item, one step away, as get_related follows it: what people see in Related',
+          'Context related to an item, one step away, as agents follow it: what people see in Related',
       })
       .errors(notFound)
       .input(itemId)
@@ -1082,6 +1102,36 @@ export const contract = {
       })
       .input(draftFromTextInputSchema)
       .output(draftFromTextSchema),
+    save: proposal
+      .route({
+        method: 'POST',
+        path: '/drafts',
+        tags: ['library'],
+        summary:
+          'Save as draft: the words kept as your own draft, which only you can read and agents never get, to finish later (FR-139)',
+      })
+      .errors(notFound)
+      .input(saveDraftInputSchema)
+      .output(savedDraftSchema),
+    left: admin
+      .route({
+        method: 'GET',
+        path: '/drafts/left',
+        tags: ['library'],
+        summary:
+          'The people who left with drafts they never sent, each with how many: counted, never read (FR-139)',
+      })
+      .output(z.array(leftDraftsSchema)),
+    clearLeft: admin
+      .route({
+        method: 'POST',
+        path: '/drafts/left/{personId}/clear',
+        tags: ['library'],
+        summary:
+          'Delete every draft of someone who left, without reading them: their history says so, and the History log how many (FR-139)',
+      })
+      .input(clearLeftDraftsInputSchema)
+      .output(clearedDraftsSchema),
   },
   library: {
     index: read
@@ -1208,7 +1258,7 @@ export const contract = {
         path: '/definitions/related',
         tags: ['library'],
         summary:
-          'Context related to a metric or a dimension, one step away, as get_related follows it: what people see in Related',
+          'Context related to a metric or a dimension, one step away, as agents follow it: what people see in Related',
       })
       .errors(notFound)
       .input(definitionRelatedInputSchema)
@@ -1224,6 +1274,17 @@ export const contract = {
       .errors(notFound)
       .input(definitionRelationsInputSchema)
       .output(definitionRelationsSchema),
+    builtFrom: read
+      .route({
+        method: 'GET',
+        path: '/definitions/built-from',
+        tags: ['library'],
+        summary:
+          "What a metric is built from at every depth, from its source's structure: refs and names, never a calculation (FR-143)",
+      })
+      .errors(notFound)
+      .input(definitionRelationsInputSchema)
+      .output(definitionBuiltFromSchema),
     setFamilyMeaning: read
       .meta({ scope: 'propose' })
       .route({
@@ -1259,6 +1320,35 @@ export const contract = {
       })
       .input(familyUsualInputSchema)
       .output(familyUsualSchema),
+    splitFamily: read
+      .meta({ scope: 'propose' })
+      .route({
+        method: 'POST',
+        path: '/definitions/families/{key}/split',
+        tags: ['library'],
+        summary:
+          'Split a family of metrics back into its variants, each a metric of its own: an owner of its domain or an admin, never a family its tool declares (FR-142)',
+      })
+      .errors({
+        ...familyNotFound,
+        CONFLICT: { message: 'Its tool declares this family: split it there.' },
+      })
+      .input(familyKeyInputSchema)
+      .output(familySplitSchema),
+    joinFamily: read
+      .meta({ scope: 'propose' })
+      .route({
+        method: 'POST',
+        path: '/definitions/families/{key}/join',
+        tags: ['library'],
+        summary: 'Make a split family one family again, of the metrics it had (FR-142)',
+      })
+      .errors({
+        NOT_FOUND: { message: 'This family is not split.' },
+        CONFLICT: { message: 'Its metrics changed since it was split.' },
+      })
+      .input(familyKeyInputSchema)
+      .output(familyJoinedSchema),
     familyMeaningHistory: read
       .route({
         method: 'GET',
@@ -1480,6 +1570,21 @@ export const contract = {
           "Run the connector's check and read a source once with these settings, keeping nothing and changing nothing",
       })
       .input(testSourceSchema)
+      .output(sourceCheckSchema),
+    // Test connection on a definitions source's page (T2): the settings as saved, for every way a
+    // source is set up, the server's own folder included.
+    check: admin
+      .errors({
+        NOT_FOUND: { message: "We couldn't find this source among the definitions sources." },
+      })
+      .route({
+        method: 'POST',
+        path: '/sources/{id}/check',
+        tags: ['sources'],
+        summary:
+          "Test a definitions source as it is saved: the connector's check, then one read of every group it has, with the groups it reads found or not in it and the families the read would find; keeping nothing and changing nothing",
+      })
+      .input(checkSourceSchema)
       .output(sourceCheckSchema),
     // What a change of the groups a definitions source reads would stop reading, and the live
     // items that rely on it: shown before the change is saved, which then needs acceptLeftOut.
@@ -1733,6 +1838,38 @@ export const contract = {
       .input(decideCardSchema)
       .output(decideCardResultSchema),
   },
+  questions: {
+    copy: review
+      .route({
+        method: 'POST',
+        path: '/questions/links',
+        tags: ['inbox'],
+        summary:
+          "Ask someone who knows: the link of a Nothing written yet or a Due for a check card, for its domain's owners and the admins to paste where the company talks. Made once and copied again on a new day; it keeps that day, never who opens it, and nothing is sent to anyone",
+      })
+      .input(copyQuestionLinkSchema)
+      .output(questionLinkSchema),
+    read: read
+      .route({
+        method: 'GET',
+        path: '/questions/{id}',
+        tags: ['inbox'],
+        summary:
+          'The one question a link asks, for anyone signed in who has it: the topic in words (metric, market and dates, never the words of a question), how often agents found nothing (hidden under the minimum, FR-614), and the owners who get the answer',
+      })
+      .input(questionIdSchema)
+      .output(questionSchema),
+    answer: proposal
+      .route({
+        method: 'POST',
+        path: '/questions/answer',
+        tags: ['inbox'],
+        summary:
+          "An answer to a link's question, as the person: for a Nothing written yet card, a suggestion under their name that may come without a source, which its owner adds or confirms before publishing; for a Due for a check card, still true, it ended on a day, or I don't know, which the owner reads on the card. Agents get nothing of it before a publish",
+      })
+      .input(answerQuestionSchema)
+      .output(answeredSchema),
+  },
   comments: {
     list: read
       .route({
@@ -1951,6 +2088,23 @@ export const contract = {
       .input(setSettingSchema)
       .output(settingSchema),
   },
+  about: {
+    draft: admin
+      .errors({
+        UNPROCESSABLE_CONTENT: {
+          status: 422,
+          message: 'A first version could not be written. Write the text yourself.',
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/about/draft',
+        tags: ['admin'],
+        summary:
+          "A first version of About our business, written by the assistant's model from the domains, metrics and definitions; nothing is saved",
+      })
+      .output(aboutDraftSchema),
+  },
   models: {
     checks: admin
       .route({
@@ -2101,60 +2255,6 @@ export const contract = {
       .input(tryItReadInputSchema)
       .output(tryItReadingSchema),
   },
-  figures: {
-    list: read
-      .route({
-        method: 'GET',
-        path: '/figures',
-        tags: ['sources'],
-        summary:
-          'The integrations that can read a figure for Ask (FR-716, CON-612): whether Show figures in Ask is on (off by default) and the data contact; for administrators also the data endpoint, its declared host and whether its token is set, never the token',
-      })
-      .output(figureSourcesSchema),
-    set: sourceSettings
-      .errors({
-        NOT_FOUND: { message: "We couldn't find this integration, or it doesn't read figures." },
-      })
-      .route({
-        method: 'PUT',
-        path: '/figures/{id}',
-        tags: ['sources'],
-        summary:
-          "Change an integration's figures settings: Show figures in Ask, the data endpoint, its token (kept in the secret store, sent only to the endpoint's origin, and forgotten when the scheme, host or port changes) and the data contact; switching figures on needs all three. Recorded in the history log, never the token",
-      })
-      .input(setFiguresInputSchema)
-      .output(figureSourceSchema),
-    read: read
-      .errors({
-        UNPROCESSABLE_CONTENT: {
-          status: 422,
-          message: 'Check the days: the last one comes after the first.',
-          data: z.optional(z.object({ findings: z.array(findingSchema) })),
-        },
-      })
-      .route({
-        method: 'POST',
-        path: '/figures/read',
-        tags: ['sources'],
-        summary:
-          "One figure for an answer in Ask, from the integration the metric's definition comes from, for the days and values asked, compared with the days just before, within 4 seconds; a link into the tool while figures are off; or why there is none. Kept nowhere, and no person's identity is passed on",
-      })
-      .input(readFigureInputSchema)
-      .output(figureReadSchema),
-    try: admin
-      .errors({
-        NOT_FOUND: { message: "We couldn't find this integration, or it doesn't read figures." },
-      })
-      .route({
-        method: 'POST',
-        path: '/figures/{id}/try',
-        tags: ['sources'],
-        summary:
-          "Try a figure: one measure of the integration's first view with a single date, for the last 7 days, read with the figures settings as they are saved and the same 4 second limit as Ask, whether Show figures in Ask is on or off. The value and when the data is from, or a failure code; kept nowhere, and no person's identity is passed on",
-      })
-      .input(tryFigureInputSchema)
-      .output(figureTrySchema),
-  },
   reports: {
     create: read
       .errors({
@@ -2182,6 +2282,52 @@ export const contract = {
           "The person's own named reports of the last 90 days, newest first, each with what the owners did after it, for Ask to show in the chat",
       })
       .output(myReportsSchema),
+  },
+  sharedChats: {
+    create: read
+      .errors({
+        PRECONDITION_FAILED: { message: 'An admin has turned off sharing chats.' },
+      })
+      .route({
+        method: 'POST',
+        path: '/shared-chats',
+        tags: ['assistant'],
+        summary:
+          "Share an Ask chat as a link (FR-721): a copy of each turn's question, what Ask read, its state, its words and its sources by id, under the sender's name, for 90 days; a turn that rests on a draft is kept as left out, with no words, and no figure is kept",
+      })
+      .input(shareChatInputSchema)
+      .output(myShareSchema),
+    mine: read
+      .route({
+        method: 'GET',
+        path: '/shared-chats',
+        tags: ['assistant'],
+        summary:
+          "Whether chats may be shared now, and the person's own live links, newest first, each with the chat it copies and until when it lasts",
+      })
+      .output(mySharesSchema),
+    read: read
+      .errors({
+        NOT_FOUND: { message: "This link has stopped, or it isn't one of this workspace's." },
+      })
+      .route({
+        method: 'GET',
+        path: '/shared-chats/{id}',
+        tags: ['assistant'],
+        summary:
+          'Open a shared chat, as the person signed in: each source is read as them, and a turn that rests on a source they may not read keeps its question and state without its words',
+      })
+      .input(sharedChatIdSchema)
+      .output(sharedChatSchema),
+    stop: read
+      .route({
+        method: 'DELETE',
+        path: '/shared-chats/{id}',
+        tags: ['assistant'],
+        summary: 'Stop a link the person shared: the copy is deleted, and the link opens nothing',
+      })
+      .input(sharedChatIdSchema)
+      .output(z.object({ stopped: z.boolean() })),
   },
   ask: {
     lookup: read

@@ -150,6 +150,8 @@ export function AskComposer({
       mentionExtension({
         kinds: SCOPE_KINDS,
         empty: 'Mention a domain, a definition, a context item or a market.',
+        // Ask reads a family as one metric.
+        families: true,
       }),
       // Low-key here: no button, only ':', for someone who types emoji anyway.
       emojiExtension(),

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { MailIcon, SearchIcon, UserPlusIcon } from '@/components/icons'
-import { toast } from 'sonner'
+import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 import { PersonAvatar } from '@/components/footnote/bits'
 import { Frame, FrameSection } from '@/components/footnote/frame'

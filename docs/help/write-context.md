@@ -1,13 +1,25 @@
 ---
 title: Write context
-line: What a context item is, what to put in it, its source and its check date.
+line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 3
-reviewed: 2026-11-20
+minutes: 7
+reviewed: 2026-11-24
+open:
+  label: Write context
+  href: /context/new
+does:
+  add-a-context-item: write_context
+  about-our-business: about_business
 ---
 
-What a context item is, what to put in it, and the line that stops an agent from reading a cause into it.
+How to add a context item, what to put in it, and the line that stops an agent from reading a cause into it.
+
+## Add a context item
+
+To create one, open **Context** and choose **Write context**. The editor opens on a new item, with its first question: What should agents know?
+
+When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 
 ## What a context item is
 
@@ -42,6 +54,24 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
 
+## Save as draft
+
+Not finished yet? Choose **Save as draft** in the editor. A draft is yours alone: only you see it in Context, with the chip Draft, and agents don't get it. Open it to finish it, then publish it, or send it to the domain's owners, from its page. You can also delete it there.
+
+Drafts you imported, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
+
+Open a draft on the card to read it in the card's place. The bar says where you are, such as 5 of 21, and J and K go to the next draft and the one before. Esc, or the arrow beside 21 drafts, goes back to the list where you left it.
+
+Publish it with Enter, Edit it, or choose Don't publish, which deletes it at once with Undo. Then the next draft opens.
+
+When someone leaves the workspace, nobody can read their drafts any more. An admin can delete them in **Settings**, then **Advanced**, by how many there are.
+
+## Waiting for review
+
+A new item you send is Waiting for review until an owner decides. Context lists it with the chip Waiting, who sent it, how long ago and who decides. Only you, the owners of its domain and admins see it, and agents don't get it yet. Filter by Waiting for review to see them all.
+
+While it waits, you can withdraw it from its page. If an owner closes it, your Inbox says Closed by them, with their reason.
+
 ## An example
 
 The demo's item about the stop in Norway, owned by Sales, has every part. Here its dates leave out the year.
@@ -69,6 +99,20 @@ The same news, written weakly:
 | Source                  | Nothing                       | A link anyone can open, so an owner can check it                      |
 | Don't conclude          | Nothing                       | The line that stops an agent from blaming the drop on customers       |
 
+## Publish many drafts at once
+
+In **Context**, filter by Draft to see your drafts, and tick the ones you have read, or tick them all. Publish, on the bar that appears, publishes them at once in a domain you own, or in any domain for an admin. Each goes through the same checks as in the editor. A draft that is missing something, such as a source, stays ticked and says what.
+
+More than five asks once first, because agents get them from the next question. It says how many go, their domains and kinds, and a few of their titles. One Publish takes the first 50 as the list shows them, and says so first; the rest stay ticked, and the line above the bar offers Publish next for them. Undo makes them drafts again.
+
+Your own draft for a domain you don't own goes to its owners as a suggestion, so the button says Suggest. When nothing you ticked can be published, the line above the bar says why, such as Nothing to publish: these 3 are published already.
+
 ## About our business
 
-A short text every agent reads first, in Settings, General: what the business is, words that are easy to misread, and house rules for reading numbers. No figures or customer names.
+One or two sentences on what the company does: what you sell, to whom, where and through which channels. Ask reads it with every question, and an agent when it connects, as background, never as a source. An agent connected now gets a change when it next connects. An admin writes it in **Settings**, then **General**, under About our business, in up to 500 characters.
+
+Leave out numbers, dates, deals, legal conclusions, secrets and personal data. Figures, deals, dates and what happened in a market are context items, and the rest stays out.
+
+The words people use and what they mean go in Definitions, as terms with an owner, not here: Ask and agents get a term with each question that uses its word. Under the text, a line that defines a word Definitions already has says so.
+
+Once there are domains or definitions, **Write a first version for me** drafts the text from your domains, metrics and definitions, with the model Ask uses. The draft is not saved: change what is wrong, then **Keep it**, or **Discard** it. Ask and agents read nothing of it until you keep it.

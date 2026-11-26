@@ -6,12 +6,13 @@ import { identifier, localRoles } from '../../../src/server/db/roles.ts'
 import { createLogger } from '../../../src/server/observability/logger.ts'
 import { createEditionSource } from '../../../src/server/modules/editions/index.ts'
 import { createAnonymousStore } from '../../../src/server/mcp/store.ts'
+import { createPageReader } from '../../../src/server/modules/web/index.ts'
 import { withAgents } from '../../../src/server/mcp/auth.ts'
 import { servingAgentCheck } from '../../../src/server/modules/access-keys/index.ts'
 import { idleJobs } from '../../server/idle-jobs.ts'
 import { devPeople, TODAY } from '../../web/http/demo-week.ts'
 import { demoLoginServer } from '../../web/http/login.ts'
-import { demoSecrets } from '../../web/http/demo-figures.ts'
+import { memorySecrets } from '../../web/http/secrets.ts'
 import {
   ConnectorRegistry,
   createWorkspaceSources,
@@ -35,7 +36,6 @@ export const harness = () => {
   return {
     admin: env('GOLDEN_ADMIN_URL'),
     template: env('GOLDEN_TEMPLATE'),
-    cubeToken: env('GOLDEN_CUBE_TOKEN'),
     apiPort: Number(env('GOLDEN_API_PORT')),
     webOrigin: env('GOLDEN_WEB_ORIGIN'),
   }
@@ -65,7 +65,7 @@ export async function freshService(
   workspace: 'week' | 'empty' = 'week',
 ): Promise<{ close: () => Promise<void> }> {
   await stopService()
-  const { admin: adminUrl, template: week, apiPort, webOrigin, cubeToken } = harness()
+  const { admin: adminUrl, template: week, apiPort, webOrigin } = harness()
   const template = workspace === 'empty' ? emptyName(week) : week
   const work = workName(week)
   const admin = new pg.Client({ connectionString: adminUrl })
@@ -108,12 +108,14 @@ export async function freshService(
     clock: systemClock(TODAY),
     devPeople: devPeople(),
     origins: [webOrigin],
-    // Figures in Ask read the stand-in Cube the global setup started, with the token it invented.
     workspaceSources: createWorkspaceSources({
-      secrets: demoSecrets(cubeToken),
+      secrets: memorySecrets(),
       registry: new ConnectorRegistry([]),
     }),
     login,
+    // A link pasted into Draft from text is a page a journey serves on this machine, read as the
+    // service reads one with FOOTNOTE_WEB_READ_LOOPBACK=on (J116).
+    readPage: createPageReader({ loopback: true }),
     // An agent that signed in reads over MCP with the login server's tokens.
     mcp: {
       source: createEditionSource(serving),
@@ -155,6 +157,30 @@ export async function failedCheck(checked: number) {
          from saved_questions where removed_at is null`,
       [checked],
     )
+  } finally {
+    await client.end()
+  }
+}
+
+/**
+ * A copy of a draft, as another of the demo's people wrote it, never sent: the demo week's drafts
+ * are all an owner's. Its proposal id, as the item page and the editor name it.
+ */
+export async function draftFor(proposalId: string, name: string) {
+  const { admin: adminUrl, template } = harness()
+  const url = new URL(adminUrl)
+  url.pathname = `/${workName(template)}`
+  const client = new pg.Client({ connectionString: url.href })
+  await client.connect()
+  try {
+    const { rows } = await client.query<{ id: string }>(
+      `insert into proposals (action, area_id, proposer_id, channel, draft, draft_saved_at)
+       select action, area_id, (select id from people where display_name = $2), channel, draft, now()
+         from proposals where id = $1
+       returning id::text`,
+      [proposalId, name],
+    )
+    return rows[0]!.id
   } finally {
     await client.end()
   }

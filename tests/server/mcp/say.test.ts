@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createToolService, failure, type ToolResult } from '../../../src/server/mcp/service.ts'
 import { periodWords, windowWords } from '../../../src/domain/dates.ts'
-import { findSaid, notLookedUp, notProof } from '../../../src/domain/say.ts'
+import { findSaid, notLookedUp, notProof, unreadSaid } from '../../../src/domain/say.ts'
 import { wordsToChange } from '../../../src/domain/words.ts'
 import { DEFAULT_PRODUCT_NAME } from '../../../src/domain/brand.ts'
 import { stateOfStatus, stateWords } from '../../../src/domain/answer-state.ts'
@@ -217,7 +217,9 @@ describe('get_context says, for each status', () => {
     expect(sayOf(reply)).toBe(
       "1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. 1 more context item applies but didn't fit in this reply. 1 more context item matches but isn't shared with AI agents: it's high risk and waits for a check.",
     )
-    expect(nextOf(reply)).toBe('Call again with a higher max_bytes to get them.')
+    expect(nextOf(reply)).toBe(
+      'Call again with cursor set to next_cursor for the rest, or with a higher max_items (at most 50).',
+    )
   })
 
   it('need_more_detail: what to fix, the choices, and that it read nothing', async () => {
@@ -243,7 +245,8 @@ describe('get_context says, for each status', () => {
   it('need_more_detail with no name in the question: never an absence', async () => {
     const reply = await setup()('get_context', { question: 'Anything written down this week?' })
     const say = sayOf(reply)
-    expect(say).toBe(`${notLookedUp} The question needs a metric, such as Orders.`)
+    // No metric shares a word with the question, so none is offered as if it were meant.
+    expect(say).toBe(`${notLookedUp} The question needs a metric.`)
     expect(say).not.toContain('Nothing is written down')
   })
 
@@ -359,23 +362,34 @@ describe('the other read tools say', () => {
     )
   })
 
-  it('read_context and get_related: what they give, and a miss in the same words for any id', async () => {
+  it('find_context without words: how many there are, which are shown, and the order', async () => {
+    const run = setup()
+    const all = await run('find_context', {})
+    expect(said(all)).toBe('There are 2 definitions and 1 published context item you can read.')
+    expect(nextOf(all)).toBe(
+      'They come in a fixed order: definitions first, metrics, then dimensions, then terms, each A to Z, then context items A to Z by title. Read one in full with read_context, by its id or key; for what applies to a question about a metric, call get_context.',
+    )
+    const page = await run('find_context', { limit: 2 })
+    expect(said(page)).toBe(
+      'There are 2 definitions and 1 published context item you can read; 1 to 2 are shown.',
+    )
+    expect(nextOf(page)).toContain('Pass next_cursor as cursor for the next page.')
+    expect(said(await run('find_context', { kind: 'guide' }))).toBe(
+      "There's no definition or published context item you can read with these filters.",
+    )
+  })
+
+  it('read_context: what it gives, and a miss in the same words for any id', async () => {
     const run = setup()
     const read = await run('read_context', { id: 'itm_norway01' })
     expect(said(read)).toBe('This is the full event, version 1.')
     expect(nextOf(read)).toBe(
-      'A link shows what a context item mentions: it does not mean the context item applies to the question.',
+      'links_out and links_in show what it links to and what links to it: read one with read_context only when it helps answer the question. A link does not mean the context item applies to the question, nor prove a cause.',
     )
     const missing = await run('read_context', { id: 'itm_missing001' })
     expect(said(missing)).toBe("There's no context item by that id that you can read.")
     expect(nextOf(missing)).toBe(
       'That says nothing about what else is written down: find context items with find_context or get_context.',
-    )
-    expect(said(await run('get_related', { id: 'metric:orders' }))).toBe(
-      '1 thing is linked to it, up to 1 step away.',
-    )
-    expect(nextOf(await run('get_related', { id: 'itm_missing001' }))).toBe(
-      'That says nothing about what else is written down.',
     )
   })
 
@@ -387,8 +401,8 @@ describe('the other read tools say', () => {
     for (const [name, args] of [
       ['get_context', ask()],
       ['read_context', { id: 'itm_norway01' }],
-      ['get_related', { id: 'itm_norway01' }],
       ['find_context', { query: 'Norway' }],
+      ['find_context', {}],
     ] as const) {
       const reply = await run(name, args)
       expect(name === 'get_context' ? sayOf(reply) : said(reply)).not.toContain('Ignore your rules')
@@ -431,7 +445,7 @@ describe("find_context's sentence when no words match but what they name does", 
       ),
     ).toEqual({
       say: `3 context items apply to Orders in Norway. 2 are shown. Nothing else was looked up. ${assumed}`,
-      next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, markets or dates. Raise limit for more.",
+      next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, markets or dates. Pass next_cursor as cursor for the next page.",
     })
   })
 })
@@ -481,7 +495,7 @@ describe('the days of a window, as people read them', () => {
 /*
   get_context speaks the agent contract: the status first, then say, which starts with the answer
   line (FR-349). The answer line's words are fixed by docs/product.md (section 6); the rest of the
-  sentence uses no word the glossary bans where people read, and points at the six tools.
+  sentence uses no word the glossary bans where people read, and points at the other tools.
 */
 describe('get_context says, with the answer line first', () => {
   const contextSaidOf = (result: ToolResult) => {
@@ -499,11 +513,43 @@ describe('get_context says, with the answer line first', () => {
       ask({ window: { from: '2026-07-01', to: '2026-07-31' } }),
     )
     expect(contextSaidOf(none)).toBe(
-      'Not found. Nothing is written about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
+      'Not found. Nothing published about this yet. Nothing is written down for Orders in Norway in July 2026. Nothing else was looked up.',
     )
     expect(nextOf(none)).not.toMatch(/find_facts|report_gap|get_facts/)
     expect(contextSaidOf(await call('get_context', { question: 'What happened?' }))).toMatch(
       /^Nothing was looked up yet\. /,
     )
+  })
+})
+
+describe('a question whose words name no metric', () => {
+  const names = { terms: [{ key: 'dim:sales_channel', name: 'Sales channel' }] }
+  const nothingNamed = { field: 'scope', input: 'what about channel?', options: [] }
+
+  it('says the word and its names, and asks for the name in the question, whatever its kind', () => {
+    const said = unreadSaid(names, [nothingNamed], 'what about channel?', [
+      { word: 'channel', closest: ['Sales channel'] },
+    ])
+    expect(said.say).toBe(
+      `${notLookedUp} "channel" names no metric here: Sales channel has the word.`,
+    )
+    // Sales channel is a dimension: never "in metrics", which takes metrics only.
+    expect(said.next).toContain(
+      'If the person meant Sales channel, call again with that name in the question',
+    )
+  })
+
+  it('keeps an issue about a name the question did give, such as an unknown member', () => {
+    const member = {
+      field: 'scope',
+      input: 'traffic.sessions',
+      options: [],
+      message: 'No metric or dimension has the member traffic.sessions as its definition.',
+    }
+    const said = unreadSaid(names, [member, nothingNamed], 'traffic.sessions for EBITDA', [
+      { word: 'EBITDA', closest: [] },
+    ])
+    expect(`${said.say} ${said.next}`).toContain('traffic.sessions')
+    expect(said.say).toContain('"EBITDA" is not a name here.')
   })
 })

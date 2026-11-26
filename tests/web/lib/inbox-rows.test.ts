@@ -53,3 +53,35 @@ describe('dueScope', () => {
     expect(dueScope({ admin: false })).toBe('in your domains')
   })
 })
+
+describe('a suggestion an owner closed', () => {
+  const closedRow = {
+    id: 'p-closed',
+    for: jon.name,
+    title: 'Retention window',
+    waitingFor: 'Mira Voss, owner of Support',
+    domain: 'support',
+    sent: 'Today',
+    card: 'p-closed',
+    closed: { by: 'Mira Voss', when: 'Today', reason: 'Out of date.' },
+  }
+  const withClosed = (opened: Record<string, boolean>) =>
+    inboxRows(inbox({ cards: [], waiting: [closedRow], opened }), jon.name, {})
+
+  it('needs the sender until they open it, and not after', () => {
+    expect(withClosed({}).needing).toHaveLength(1)
+    expect(withClosed({ 'p-closed': true }).needing).toHaveLength(0)
+  })
+
+  it('stays a row under All but is not one waiting on others', () => {
+    const rows = withClosed({ 'p-closed': true })
+    expect(rows.rows).toHaveLength(1)
+    expect(rows.waiting).toHaveLength(0)
+  })
+
+  it('counts a suggestion still waiting on an owner', () => {
+    const { closed: _closed, ...open } = closedRow
+    const rows = inboxRows(inbox({ cards: [], waiting: [open] }), jon.name, {})
+    expect(rows.waiting).toHaveLength(1)
+  })
+})

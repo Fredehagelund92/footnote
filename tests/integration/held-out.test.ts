@@ -6,10 +6,11 @@ import { generateIdentity } from 'age-encryption'
 import { afterAll, beforeAll, expect, it } from 'vitest'
 import { stringify } from 'yaml'
 import { loadGoldenSet } from '../../db/seed/golden-set.ts'
-import { formatHeldOut, seal } from '../../db/seed/held-out.ts'
-import { heldOutArea, planHeldOutArea } from '../../db/seed/held-out-runs.ts'
+import { formatHeldOut, seal, sealProof } from '../../db/seed/held-out.ts'
+import { heldOutArea, planHeldOutArea, sealedProofSource } from '../../db/seed/held-out-runs.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { createModelPort } from '../../src/server/modules/models/index.ts'
+import { createLogger } from '../../src/server/observability/logger.ts'
 import { apiDatabase, testDatabase } from './support.ts'
 
 /*
@@ -47,7 +48,25 @@ const agentCases = [
   marked('test-held-out-area', 'gs-baseline-orders-united-kingdom'),
   marked('test-held-out-talk', 'gs-conversation-orders-and-spain'),
 ]
+// Proof questions about notes of the demo library, with the canary in their words.
+const proofQuestions = [
+  {
+    id: 'orders-united-kingdom-october',
+    as_of: '2026-10-23',
+    question: `Why are United Kingdom orders higher than usual from 5 to 11 October 2026? ${canary}`,
+    reasons: ['itm_7wqlcaps'],
+    wrong: ['itm_kqxeychp'],
+  },
+  {
+    id: 'orders-france-may',
+    as_of: '2026-06-30',
+    question: `Why were some orders in France booked twice from 12 to 18 May 2026? ${canary}`,
+    reasons: ['itm_spe2w9kh'],
+    wrong: ['itm_v54xt0c3'],
+  },
+]
 let areaFile: string
+let proofFile: string
 let env: NodeJS.ProcessEnv
 
 beforeAll(async () => {
@@ -55,6 +74,8 @@ beforeAll(async () => {
   env = { FOOTNOTE_HELDOUT_KEY: identity }
   areaFile = join(dir, 'golden-held-out-area.age')
   writeFileSync(areaFile, await seal(stringify({ cases: agentCases }), identity))
+  proofFile = join(dir, 'prove-questions.age')
+  writeFileSync(proofFile, await sealProof(stringify({ questions: proofQuestions }), identity))
 })
 
 /** Every row of every table of the database, as text. */
@@ -110,6 +131,71 @@ it('runs the held-out cases of an area through the eval runner, counts them and 
   for (const word of [canary, 'test-held-out-area', 'test-held-out-talk'])
     expect(rows).not.toContain(word)
 })
+
+it('asks the sealed proof questions three ways and gives back counts and a digest only', async () => {
+  const deps = { port: createModelPort({ mode: 'mock' }), clock: systemClock('2026-11-25') }
+  expect(await sealedProofSource({}, proofFile)).toMatchObject({ ran: false })
+  const opened = await sealedProofSource(env, proofFile)
+  expect(opened.ran).toBe(true)
+  if (!opened.ran) return
+  const { source } = opened
+  expect(source).toMatchObject({ sealed: true, questions: "the invented company's, sealed" })
+  const plan = await source.plan(database, deps, 1)
+  expect(plan).toMatchObject({ questions: 2, nothing: 0, tries: 1, answers: 6, unserved: [] })
+  expect(plan.digest).toMatch(/^[0-9a-f]{16}$/)
+  const run = await source.run(database, deps, {
+    tries: 1,
+    about: "Items: the invented company. Questions: the invented company's, sealed.",
+    person: null,
+    ceilingMicros: null,
+    signal: new AbortController().signal,
+    logger: createLogger({ level: 'silent' }),
+  })
+  expect(run.state).toBe('finished')
+  expect(run.results.map((r) => r.arm)).toEqual(['none', 'file', 'footnote'])
+  expect(run.results.every((r) => r.tries.length === 1)).toBe(true)
+  const [record] = (
+    await client.query<{ kind: string; cells: number }>(
+      `select kind::text,(select count(*)::int from eval_cells where run_id=r.id) as cells
+         from eval_runs r where id=$1`,
+      [run.runId],
+    )
+  ).rows
+  expect(record).toEqual({ kind: 'proof', cells: 0 })
+  const rows = await everyRow()
+  for (const word of [canary, 'orders-united-kingdom-october', 'orders-france-may'])
+    expect(rows).not.toContain(word)
+})
+
+it("prints the proof's table from the key holder's command (npm run held-out -- prove)", () => {
+  const ran = spawnSync(
+    process.execPath,
+    ['scripts/held-out.ts', 'prove', '--tries', '1', '--file', proofFile],
+    {
+      encoding: 'utf8',
+      env: {
+        ...withoutKey(),
+        ...env,
+        DATABASE_URL: url,
+        FOOTNOTE_FIXED_TODAY: '2026-11-25',
+        LOG_LEVEL: 'silent',
+      },
+      timeout: 240_000,
+    },
+  )
+  expect(ran.stderr).toBe('')
+  expect(ran.status).toBe(0)
+  expect(ran.stdout).toMatch(
+    /^2 questions about a period and a market, asked three ways, 1 try each: 6 answers\.$/m,
+  )
+  expect(ran.stdout).toMatch(
+    /^Questions: the invented company's, sealed \(digest [0-9a-f]{16}\)\.$/m,
+  )
+  expect(ran.stdout).toMatch(/^No context +\d of 2 +- +-$/m)
+  expect(ran.stdout).toMatch(/^Footnote +\d of 2 +\d of 2 +-$/m)
+  for (const word of [canary, 'orders-united-kingdom-october', 'itm_'])
+    expect(ran.stdout).not.toContain(word)
+}, 300_000)
 
 it('runs nothing for an area without the key, and says so', async () => {
   const deps = { port: createModelPort({ mode: 'mock' }), clock: systemClock('2026-10-08') }

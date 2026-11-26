@@ -11,7 +11,7 @@ import {
 const key = `hak_${'x'.repeat(43)}`
 const digest = createHash('sha256').update(key).digest('hex')
 const agentId = '00000000-0000-4000-8000-0000000000a1'
-const keyTools = ['get_context', 'find_context', 'read_context', 'report', 'get_related'] as const
+const keyTools = ['get_context', 'find_context', 'read_context', 'report'] as const
 const open = { state: 'open' as const, agentId, tools: keyTools }
 
 const reason = (verifier: TokenVerifier, token: string) =>

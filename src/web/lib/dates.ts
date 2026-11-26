@@ -115,3 +115,47 @@ export function parseDay(text: string, year?: number): number | null {
   const y = m.groups.y ? Number(m.groups.y) : year
   return month < 0 || !y ? null : Date.UTC(y, month, Number(m.groups.d))
 }
+
+const padded = (n: number) => String(n).padStart(2, '0')
+const isoDay = (d: string, month: string, year: string) => {
+  const m = monthOfName(month)
+  return m < 0 ? null : `${year}-${padded(m + 1)}-${padded(Number(d))}`
+}
+
+/**
+ * The days an answer names, as the service reads them, both included: "1 to 31 Aug 2026", "1 Jul
+ * to 30 Sep 2026", "30 Dec 2025 to 2 Jan 2026", "14 Oct 2026", or "from 9 May 2026" (to today).
+ * Null for anything else.
+ */
+export function daysOfDates(
+  dates: string | undefined,
+  today: string,
+): { from: string; to: string } | null {
+  if (!dates) return null
+  const words = dates.trim()
+  let m = /^(\d{1,2}) to (\d{1,2}) ([A-Z][a-z]{2}) (\d{4})$/.exec(words)
+  if (m) {
+    const from = isoDay(m[1]!, m[3]!, m[4]!)
+    const to = isoDay(m[2]!, m[3]!, m[4]!)
+    return from && to ? { from, to } : null
+  }
+  m = /^(\d{1,2}) ([A-Z][a-z]{2}) to (\d{1,2}) ([A-Z][a-z]{2}) (\d{4})$/.exec(words)
+  if (m) {
+    const from = isoDay(m[1]!, m[2]!, m[5]!)
+    const to = isoDay(m[3]!, m[4]!, m[5]!)
+    return from && to ? { from, to } : null
+  }
+  m = /^(\d{1,2}) ([A-Z][a-z]{2}) (\d{4}) to (\d{1,2}) ([A-Z][a-z]{2}) (\d{4})$/.exec(words)
+  if (m) {
+    const from = isoDay(m[1]!, m[2]!, m[3]!)
+    const to = isoDay(m[4]!, m[5]!, m[6]!)
+    return from && to ? { from, to } : null
+  }
+  m = /^(from )?(\d{1,2}) ([A-Z][a-z]{2}) (\d{4})$/.exec(words)
+  if (m) {
+    const from = isoDay(m[2]!, m[3]!, m[4]!)
+    if (!from) return null
+    return { from, to: m[1] ? today : from }
+  }
+  return null
+}

@@ -23,6 +23,8 @@ export type EditionChange = {
   vocabulary?: readonly string[]
   /** Terms to retire, by key: only deleting a domain retires one. */
   retire?: readonly string[]
+  /** Families of metrics split back into their variants, by key (FR-142). */
+  closeFamilies?: readonly string[]
 }
 
 export const editionFields = `e.seq::float8 as seq,e.label,e.reason::text as reason,e.actor_id::text as "actorId",e.note,
@@ -128,6 +130,11 @@ export async function publishEdition(
       'select edition_close_vocab_term($1,k) from unnest($2::text[]) with ordinality as x(k,n)',
       [seq, change.retire],
     )
+  if (change.closeFamilies?.length)
+    await tx.query(
+      'select edition_close_family($1,k) from unnest($2::text[]) with ordinality as x(k,n)',
+      [seq, change.closeFamilies],
+    )
   // Every edition carries the domains the definition source gives its terms now (CON-206).
   const [pinned] = await tx.query<{ changed: number }>(
     'select edition_pin_source_domains($1) as changed',
@@ -139,7 +146,12 @@ export async function publishEdition(
   await announce(tx, edition, 'edition.published', areaId)
   // When the area map changed, a topic seen before its metrics had a domain takes the one they
   // have now.
-  if (pinned!.changed > 0 || change.vocabulary?.length || change.retire?.length)
+  if (
+    pinned!.changed > 0 ||
+    change.vocabulary?.length ||
+    change.retire?.length ||
+    change.closeFamilies?.length
+  )
     await tx.query('select cl_topics_adopt_domains()')
   // A recheck or a newer version with current marks clears its flag in the same edition.
   await reconcileSourceFlags(tx, {

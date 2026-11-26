@@ -33,16 +33,21 @@ import {
 } from '../modules/editions/index.ts'
 import { createEvalsService } from '../modules/evals/index.ts'
 import {
+  clearLeftDrafts,
+  draftAbout,
   exportAudit,
   exportEdition,
   importItems,
+  leftDrafts,
   knownTools,
   listClients,
   listSettings,
   plainReason,
+  readAboutFacts,
   readCalendar,
   readWorkspace,
   saveClient,
+  scriptedAboutModel,
   searchAudit,
   setSetting,
   setTool,
@@ -91,6 +96,7 @@ import {
   createKeptReads,
   liveEditionKey,
   liveServingBundle,
+  readAboutBusiness,
   readLoopLimits,
   readAssistantModel,
   scriptedLoopModel,
@@ -111,12 +117,14 @@ import { createContextService } from '../modules/context/index.ts'
 import { createTermsService } from '../modules/terms/index.ts'
 import { createInboxFeedService } from '../modules/inbox/index.ts'
 import { createCommentsService } from '../modules/comments/index.ts'
+import { createQuestionsService } from '../modules/questions/index.ts'
 import {
   createReportsService,
   rateAnswer,
   ratingsPerMinute,
   takeBackRating,
 } from '../modules/reports/index.ts'
+import { createSharedChatsService } from '../modules/shared-chats/index.ts'
 import {
   can,
   checkMutation,
@@ -139,7 +147,11 @@ import {
   type SignIn,
 } from '../modules/auth/index.ts'
 import { createAlertsService } from '../modules/alerts/index.ts'
-import { createCatalogueService, createFamilyMeaningService } from '../modules/catalogue/index.ts'
+import {
+  createCatalogueService,
+  createFamilyMeaningService,
+  createFamilySplitService,
+} from '../modules/catalogue/index.ts'
 import {
   createWorkspaceSources,
   noSecretStore,
@@ -159,7 +171,12 @@ import {
 } from '../modules/saved-questions/index.ts'
 import { createVocabularyService } from '../modules/vocabulary/index.ts'
 import type { LoginServer } from '../modules/oauth/index.ts'
-import type { PageReader } from '../modules/web/index.ts'
+import {
+  createPageReader,
+  linkReaderFor,
+  pastedLink,
+  type PageReader,
+} from '../modules/web/index.ts'
 import { productName } from '../brand.ts'
 import { footnoteVersion } from '../version.ts'
 
@@ -184,12 +201,14 @@ export interface ApiServices {
   sources?: Pick<ConnectorRegistry, 'list'>
   /** The sources administrators add, with the secret store that keeps their tokens. */
   workspaceSources?: WorkspaceSources
-  /** Opens a web page a link in a draft points at; the public web only by default. */
+  /** Opens a web page a person links, to draft from it; the public web only by default. */
   readPage?: PageReader
   /** FOOTNOTE_PROFILE_LABEL: the name the header and the sign-in page show; none by default. */
   profileLabel?: string | null
 }
 type RequestContext = { request: FastifyRequest; reply: FastifyReply }
+/** For work in a transaction of its own, which keeps nothing outside the database. */
+const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
 /** A retry key of 128 random bits: 32 hex digits or a version 4 UUID (the web binding's). */
 const randomRetryKey =
   /^(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i
@@ -208,13 +227,11 @@ export function requestServices(
     clock,
     answerBundles,
     models,
-    readPage,
     hooks,
   }: {
     clock: Clock
     answerBundles: BundleCache
     models: ModelPort
-    readPage?: PageReader | undefined
     hooks: TransactionHooks
   },
 ) {
@@ -232,15 +249,15 @@ export function requestServices(
     comments,
   )
   const library = createLibraryService(tx, clock)
+  const context = createContextService(tx, clock, answerBundles, {
+    library,
+    proposals,
+    review,
+    path: reviewPath,
+  })
   return {
     library,
-    context: createContextService(tx, clock, answerBundles, {
-      library,
-      proposals,
-      review,
-      path: reviewPath,
-      readPage,
-    }),
+    context,
     conflicts: createConflictsService(tx, clock, answerBundles, {
       library,
       proposals,
@@ -250,6 +267,7 @@ export function requestServices(
     }),
     catalogue: createCatalogueService(tx, clock),
     familyMeaning: createFamilyMeaningService(tx),
+    familySplit: createFamilySplitService(tx),
     terms: createTermsService(tx),
     areas: createAreasService(tx),
     people: createPeopleService(tx),
@@ -263,10 +281,13 @@ export function requestServices(
       gaps,
       comments,
       names,
+      context,
     }),
     names,
     comments,
     reports: createReportsService(tx),
+    questions: createQuestionsService(tx, clock, answerBundles, { proposals, review }),
+    sharedChats: createSharedChatsService(tx),
     gaps,
     evals: createEvalsService(tx, { port: models, clock }),
     observability: createObservabilityService(tx, clock),
@@ -314,7 +335,7 @@ export function createRouter({
     secrets: noSecretStore,
     registry: new ConnectorRegistry([...(sources?.list() ?? [])]),
   }),
-  readPage,
+  readPage = createPageReader(),
   askTrace,
   modelChecks,
   profileLabel = null,
@@ -327,6 +348,36 @@ export function createRouter({
   // Whether Ask answers with an AI model, or with the scripted reader (MODELS=mock), for the page.
   const modelConnected = models.mode === 'live'
   const os = implement(contract).$context<RequestContext>()
+  /**
+   * Who is asking, and whether they may: their session, the operation's permission and, for a
+   * change, its origin and CSRF token. Names the person in the transaction (`cl.person_id`).
+   */
+  const admit = async (tx: Queryable, context: RequestContext, path: readonly string[]) => {
+    const session = await signIn.currentSession(tx, context.request.headers.cookie)
+    const operation = path.join('.')
+    labelOperation(context.request, operation)
+    if (!can(session?.person ?? null, operation))
+      throw new ORPCError(session ? 'FORBIDDEN' : 'UNAUTHORIZED', {
+        message: session ? refusals.forbidden : refusals.signedOut,
+      })
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(context.request.method)) {
+      checkMutation(context.request, session, origins, operation === 'auth.signIn')
+    }
+    await tx.query("select set_config('cl.person_id',$1,true)", [session?.person.id ?? ''])
+    return session
+  }
+  /**
+   * A signed-in operation that waits on the network, outside any transaction: it is admitted in a
+   * short one, and opens its own, so no connection is held while it waits and it never asks the
+   * pool for a second connection while holding one.
+   */
+  const signedIn = os.use(async ({ context, next, path }) => {
+    const session = await database.transaction(null, (tx) => admit(tx, context, path), {
+      requestId: context.request.id,
+    })
+    if (!session) throw new ORPCError('UNAUTHORIZED', { message: refusals.signedOut })
+    return next({ context: { person: session.person.id } })
+  })
   const authorized = os.use(async ({ context, next, path }) => {
     // Work outside the database that must follow the transaction's outcome, such as a secret
     // file written for a source: kept on commit, removed on rollback.
@@ -351,17 +402,7 @@ export function createRouter({
       result = await database.transaction(
         null,
         async (tx) => {
-          const session = await signIn.currentSession(tx, context.request.headers.cookie)
-          const operation = path.join('.')
-          labelOperation(context.request, operation)
-          if (!can(session?.person ?? null, operation))
-            throw new ORPCError(session ? 'FORBIDDEN' : 'UNAUTHORIZED', {
-              message: session ? refusals.forbidden : refusals.signedOut,
-            })
-          if (!['GET', 'HEAD', 'OPTIONS'].includes(context.request.method)) {
-            checkMutation(context.request, session, origins, operation === 'auth.signIn')
-          }
-          await tx.query("select set_config('cl.person_id',$1,true)", [session?.person.id ?? ''])
+          const session = await admit(tx, context, path)
           return next({
             context: {
               tx,
@@ -370,7 +411,6 @@ export function createRouter({
                 clock,
                 answerBundles,
                 models,
-                readPage,
                 hooks,
               }),
             },
@@ -460,6 +500,7 @@ export function createRouter({
     if (live && modelChecks)
       void modelChecks.of(await readAssistantModel(context.tx, models), 'assistant')
     const { steps, seconds } = await readLoopLimits(context.tx)
+    const about = await readAboutBusiness(context.tx)
     const model =
       askTrace?.loopModel ??
       (live ? await readAssistantModel(context.tx, models) : scriptedLoopModel())
@@ -469,7 +510,6 @@ export function createRouter({
     // The workspace's calendar, read once a turn: every read of the turn counts on the same today.
     const calendar = await readCalendar(context.tx)
     const log = context.request.log
-    const noHooks: TransactionHooks = { onCommit: () => {}, onRollback: () => {} }
     // What the turn reads of the person's workspace, read once for all its transactions, and
     // what their last turn read of it while it has not changed.
     const kept = keptReads.turn(person, edition)
@@ -482,7 +522,7 @@ export function createRouter({
             tx,
             clock,
             answerBundles,
-            requestServices(tx, person, { clock, answerBundles, models, readPage, hooks: noHooks }),
+            requestServices(tx, person, { clock, answerBundles, models, hooks: noHooks }),
             calendar,
             kept,
           ),
@@ -492,6 +532,7 @@ export function createRouter({
           admin: scope.admin,
           owns: areas.filter((a) => scope.areas.includes(a.id)).map((a) => a.name),
         },
+        about,
         today: todayIn(clock, calendar.timeZone),
         timeZone: calendar.timeZone,
         steps,
@@ -516,7 +557,9 @@ export function createRouter({
         void modelChecks.of(choice, role).catch(() => {})
     })
   }
-  return authorized.router({
+  // Each procedure names its own middleware: almost all run in one transaction as the person
+  // (authorized), and the few that wait on the network open their own (signedIn).
+  return os.router({
     proposals: {
       create: authorized.proposals.create.handler(({ context, input }) =>
         retryWrite(
@@ -912,8 +955,30 @@ export function createRouter({
       deleted: authorized.items.deleted.handler(({ context }) => context.context.deleted()),
     },
     drafts: {
-      fromText: authorized.drafts.fromText.handler(({ input, context }) =>
-        context.context.draftFromText(input.text),
+      // A pasted link is read first, with no transaction open: the page can take 15 seconds.
+      fromText: signedIn.drafts.fromText.handler(async ({ input, context }) => {
+        const db = forRequest(database, context.request.id)
+        const link = pastedLink(input.text)
+        const page = link ? await linkReaderFor(db, readPage, context.person)(link) : undefined
+        return db.transaction(context.person, (tx) =>
+          requestServices(tx, context.person, {
+            clock,
+            answerBundles,
+            models,
+            hooks: noHooks,
+          }).context.draftFromText(input.text, page),
+        )
+      }),
+      save: authorized.drafts.save.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'drafts.save', input, () =>
+          context.context.saveDraft(input),
+        ),
+      ),
+      left: authorized.drafts.left.handler(({ context }) => leftDrafts(context.tx)),
+      clearLeft: authorized.drafts.clearLeft.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'drafts.clearLeft', input, () =>
+          clearLeftDrafts(context.tx, input.personId),
+        ),
       ),
     },
     library: {
@@ -964,6 +1029,9 @@ export function createRouter({
       relations: authorized.definitions.relations.handler(async ({ input, context }) =>
         found(await context.catalogue.relations(input.key)),
       ),
+      builtFrom: authorized.definitions.builtFrom.handler(async ({ input, context }) =>
+        found(await context.catalogue.builtFrom(input.key)),
+      ),
       setFamilyMeaning: authorized.definitions.setFamilyMeaning.handler(({ input, context }) =>
         retryWrite(context.tx, idempotencyKey(context), 'definitions.setFamilyMeaning', input, () =>
           context.familyMeaning.set(input),
@@ -972,6 +1040,16 @@ export function createRouter({
       setFamilyUsual: authorized.definitions.setFamilyUsual.handler(({ input, context }) =>
         retryWrite(context.tx, idempotencyKey(context), 'definitions.setFamilyUsual', input, () =>
           context.familyMeaning.setUsual(input),
+        ),
+      ),
+      splitFamily: authorized.definitions.splitFamily.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'definitions.splitFamily', input, () =>
+          context.familySplit.split(input.key),
+        ),
+      ),
+      joinFamily: authorized.definitions.joinFamily.handler(({ input, context }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'definitions.joinFamily', input, () =>
+          context.familySplit.join(input.key),
         ),
       ),
       familyMeaningHistory: authorized.definitions.familyMeaningHistory.handler(
@@ -1064,6 +1142,9 @@ export function createRouter({
       }),
       test: authorized.sources.test.handler(({ context, input }) =>
         workspaceSources.test(context.tx, input),
+      ),
+      check: authorized.sources.check.handler(({ context, input }) =>
+        workspaceSources.check(context.tx, input.id),
       ),
       leftOut: authorized.sources.leftOut.handler(({ context, input }) =>
         workspaceSources.leftOut(context.tx, input),
@@ -1166,6 +1247,19 @@ export function createRouter({
       decide: authorized.cards.decide.handler(({ context, input }) =>
         retryWrite(context.tx, idempotencyKey(context), 'cards.decide', input, () =>
           context.cards.decide(input),
+        ),
+      ),
+    },
+    questions: {
+      copy: authorized.questions.copy.handler(({ context, input }) =>
+        context.questions.copy(input.card),
+      ),
+      read: authorized.questions.read.handler(({ context, input }) =>
+        context.questions.read(input.id),
+      ),
+      answer: authorized.questions.answer.handler(({ context, input }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'questions.answer', input, () =>
+          context.questions.answer(input),
         ),
       ),
     },
@@ -1285,6 +1379,29 @@ export function createRouter({
         return saved
       }),
     },
+    about: {
+      // The facts and the limits are read in a short transaction; the model is asked with none open.
+      draft: signedIn.about.draft.handler(async ({ context }) => {
+        const db = forRequest(database, context.request.id)
+        const live = models.mode === 'live'
+        const { facts, model, limits } = await db.transaction(context.person, async (tx) => ({
+          facts: await readAboutFacts(tx),
+          model: live ? await readAssistantModel(tx, models) : scriptedAboutModel(),
+          limits: live ? await readSpendLimits(tx, 'assistant') : null,
+        }))
+        const log = context.request.log
+        const text = await draftAbout({
+          database: db,
+          person: context.person,
+          facts,
+          model,
+          limits,
+          // Names the failure only, never what was sent or written.
+          onError: (error) => log.warn({ error: errorCode(error) }, 'about draft'),
+        })
+        return { text }
+      }),
+    },
     models: {
       // What each role's model check found, as this service keeps it; nothing with the mock.
       checks: authorized.models.checks.handler(async ({ context }) => {
@@ -1389,29 +1506,6 @@ export function createRouter({
         readTryItQuestion(context.tx, clock, input),
       ),
     },
-    figures: {
-      list: authorized.figures.list.handler(({ context }) =>
-        workspaceSources.figures.list(
-          context.tx,
-          context.session!.person.permissions.roles.includes('administrator'),
-        ),
-      ),
-      set: authorized.figures.set.handler(({ context, input }) =>
-        retryWrite(context.tx, idempotencyKey(context), 'figures.set', input, () =>
-          workspaceSources.figures.set(context.tx, input, context.hooks),
-        ),
-      ),
-      read: authorized.figures.read.handler(({ context, input }) =>
-        workspaceSources.figures.read(
-          context.tx,
-          input,
-          context.session!.person.permissions.roles.includes('administrator'),
-        ),
-      ),
-      try: authorized.figures.try.handler(({ context, input }) =>
-        workspaceSources.figures.try(context.tx, input, clock.today()),
-      ),
-    },
     reports: {
       create: authorized.reports.create.handler(async ({ context, input }) => {
         // FR-408: a person's reports share the tighter limit of their own; the key lives in memory
@@ -1429,11 +1523,35 @@ export function createRouter({
             data: { retryAfterSeconds: retry },
           })
         }
-        return retryWrite(context.tx, idempotencyKey(context), 'reports.create', input, () =>
-          context.reports.create(input),
+        // The right words for an item are a suggestion on it too, made first: a report never changes.
+        return retryWrite(context.tx, idempotencyKey(context), 'reports.create', input, async () =>
+          context.reports.create(
+            input,
+            input.part === 'item' && input.correction
+              ? await context.context.suggestWords({
+                  itemId: input.itemId,
+                  summary: input.correction,
+                  reason: input.what,
+                })
+              : null,
+          ),
         )
       }),
       mine: authorized.reports.mine.handler(({ context }) => context.reports.mine()),
+    },
+    sharedChats: {
+      // No retry record: it would keep the chat's title beside the person after its link stops. A
+      // retried share makes a second link, which its sender stops like the first.
+      create: authorized.sharedChats.create.handler(({ context, input }) =>
+        context.sharedChats.create(input),
+      ),
+      mine: authorized.sharedChats.mine.handler(({ context }) => context.sharedChats.mine()),
+      read: authorized.sharedChats.read.handler(({ context, input }) =>
+        context.sharedChats.read(input.id),
+      ),
+      stop: authorized.sharedChats.stop.handler(({ context, input }) =>
+        context.sharedChats.stop(input.id),
+      ),
     },
     ask: {
       // FR-712: a rating names no one, so it has no retry record either (it would keep the person

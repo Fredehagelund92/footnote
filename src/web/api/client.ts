@@ -12,16 +12,20 @@
  */
 import type { JSONContent } from '@tiptap/core'
 import type { ConnectRequest } from '@contract/connections'
+import type { AnswerQuestion, Question, QuestionLink } from '@contract/questions'
+import type { MyShare, MyShares, ShareChatInput, SharedChat } from '@contract/shared-chats'
 import type { AgentToolName } from '@domain/agents'
-import type { FamilyMeaningChoice } from '@domain/family-meaning'
+import type { FamilyMeaningChoice } from '@domain/family-meaning-line'
 import type { ObsFilter, TopicSum, ValueGroup, ValueSort } from '@domain/obs-filters'
 import type { ScopeSearchResult } from '@contract/scope'
 import type { ReactionEmoji } from '@/components/templates/comment-box/types'
-import type { FactAction } from '@/lib/bulk'
+import type { FactAction, Skip } from '@/lib/bulk'
 import type {
+  BuiltFromMetric,
   Definition,
   DefinitionRelation,
   DefinitionType,
+  SplitFamily,
   SynonymCheck,
 } from '@/lib/definitions'
 import type { Link } from '@/lib/links'
@@ -34,7 +38,6 @@ import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
 import type { Conflict, ConflictDecision, ConflictRow, SettleConflict } from '@/model/conflicts'
 import type { InboxCard, Outcome, Waiting } from '@/model/inbox'
 import type { Alerts, RaisedPage, RuleId } from '@/model/alerts'
-import type { FigureAsk, FigureReport, FigureTry, FigureView } from '@/model/figures'
 import type {
   ConnectChoice,
   LeftOutView,
@@ -42,7 +45,6 @@ import type {
   ConnectForm,
   ConnectTest,
   ConnectValues,
-  FigureConnection,
   IntegrationsView,
   SourcePage,
 } from '@/model/integrations'
@@ -84,7 +86,7 @@ export type Workspace = {
   people: Person[]
   /** The open invites: nobody here yet, and never anyone's stand-in as a domain's owner. */
   invites: Invite[]
-  /** What the business is about, in its own words: every agent reads it first. */
+  /** What the company does, in its own words: Ask and agents read it as background. */
   about: string
   /** What Start from the guide fills in: a worked example of that text. */
   aboutTemplate: string
@@ -253,29 +255,15 @@ export type Settings = {
    * Null where this workspace serves no agents.
    */
   mcpAddress: string | null
-  /** Let agents follow links (get_related). */
-  links: boolean
-  /** Which of the other tools agents may call, by name: on unless an admin switched it off. */
+  /** Which tools agents may call, by name: on unless an admin switched it off. */
   tools: Record<string, boolean>
   /**
    * Pause sharing, for an emergency: agents get no context at all, or none of one domain's.
    * `domain` is the domain paused, or null.
    */
   pause: { all: boolean; domain: DomainId | null }
-  /** Whether Ask shows figures, per figure-capable integration: off until an admin turns it on. */
-  figures: Record<string, boolean>
-  /** Who answers for each integration's data, by name. */
-  contacts: Record<string, string>
-  /** The tool each figure-capable integration reads, as people say it ("Cube"), by its id. */
-  figureTools: Record<string, string>
   /** The integrations connected. */
   connected: string[]
-}
-
-/** What the figures read: how each figure-capable integration is reached, its second connection. */
-export type Integrations = {
-  /** How each figure-capable integration is reached. */
-  figureConnections: Record<string, FigureConnection>
 }
 
 export type { Relation } from '@/model/review'
@@ -286,6 +274,11 @@ export type Advanced = {
   settings: SettingGroup[]
   /** Drafts and terms deleted for good, newest first, each with who, when and its domain. */
   deleted: { key: string; title: string; hint: string; domain: DomainId | null }[]
+  /**
+   * The people who left with drafts they never sent, each with how many (FR-139): only their
+   * writer could read them, so an admin deletes them by count, unread.
+   */
+  left: { id: string; name: string; drafts: number }[]
   /** The history log's latest entries, newest first. `href` opens what an entry names. */
   history: { key: string; when: string; who: string; what: string; href?: string }[]
   /** What runs on its own: each job, when it last ran and how it went; null when unread. */
@@ -294,7 +287,20 @@ export type Advanced = {
   editions: { label: string; sealed: string; change: string }[]
   /** Whether answer tests run on their own, and what a run would cost; null when unread. */
   answerTests: AnswerTestRuns | null
+  /** Whether links people paste are read, and the hosts never read; null when unread. */
+  links: LinkReading | null
+  /** Whether people may share an Ask chat as a link; null when unread. */
+  sharing: ChatSharing | null
 }
+
+/** Sharing an Ask chat as a link (FR-721): on as installed, and the setting's version. */
+export type ChatSharing = { on: boolean; version: number }
+
+/**
+ * Reading the links people paste (FR-144): on as installed, and the hosts an admin listed never
+ * to read, each covering its subdomains. Each setting's version, which a change names.
+ */
+export type LinkReading = { on: boolean; version: number; hosts: string[]; hostsVersion: number }
 
 /**
  * Whether answer tests run on their own (decision 6), and what one run of every domain's active
@@ -331,11 +337,11 @@ export type ItemPage = {
 }
 
 /**
- * Related: what an agent can follow from a context item or a definition with get_related, one
+ * Related: what an agent can follow from a context item or a definition with read_context, one
  * step, as people see it. The links in the text both ways and the owners' relations, in the order
- * agents follow them, and whether agents follow links now (the switch in Agents and access).
+ * agents follow them.
  */
-export type Related = { links: Link[]; following: boolean }
+export type Related = { links: Link[] }
 
 /**
  * A change to many items at once: what it does, their edits, the drafts it deletes, and its line in
@@ -352,6 +358,8 @@ export type BulkChange = {
   person?: string
   patches: Record<string, Partial<Fact>>
   remove: string[]
+  /** Publish: the drafts that go to their domain's owners as suggestions, leaving the list. */
+  suggest?: string[]
   entry: LogEntry
 }
 
@@ -400,6 +408,11 @@ export interface FootnoteApi {
   /** What someone did lately: the context they checked. */
   getActivity: (input: { name: string }) => Promise<Activity[]>
   setAbout: (input: { text: string }) => Promise<void>
+  /**
+   * Write a first version for me: About our business drafted from the domains, metrics and
+   * definitions, for the editor to show. Nothing is saved.
+   */
+  draftAbout: () => Promise<{ text: string }>
   completeSetupStep: (input: { step: string }) => Promise<void>
 
   // Domains and people
@@ -480,13 +493,25 @@ export interface FootnoteApi {
     gap?: string
     setup?: boolean
   }) => Promise<{ id: string }>
+  /**
+   * Save as draft (FR-139): the words kept as the person's own draft, which only they can see and
+   * agents don't get, to finish later. `fact` is a new item, a change to a published one, or a
+   * draft of theirs saved again; `gap` is the Not found card it was written for. Its id is the
+   * draft's.
+   */
+  saveDraft: (input: { fact: Fact; isNew: boolean; gap?: string }) => Promise<{ id: string }>
+  /** Deletes every draft of someone who left, unread, and says how many (FR-139). */
+  clearLeftDrafts: (input: { id: string }) => Promise<{ deleted: number }>
   /** A draft made from pasted text or a link: every field filled in, for the writer to check. */
   draftFromText: (input: { text: string }) => Promise<Fact>
   /**
    * Changes many items at once, with its line in History. It acts on every row it can; `failed`
-   * names the rows a failure left unchanged, to try again.
+   * names the rows a failure left unchanged, to try again, and `skipped` the drafts a Publish left
+   * alone because the service's checks refused them, each with why.
    */
-  applyBulk: (input: BulkChange) => Promise<{ done: string[]; failed: string[] } & Undoable>
+  applyBulk: (
+    input: BulkChange,
+  ) => Promise<{ done: string[]; failed: string[]; skipped?: Skip[] } & Undoable>
   /**
    * A suggestion sent from the editor to the owners: `fact` is the version it suggests. It waits,
    * visibly, until they decide. `gap` is the Not found card it answers, as for `saveItem`.
@@ -551,14 +576,18 @@ export interface FootnoteApi {
   /** What a synced metric is built from and what is built from it; none for anything else. */
   getDefinitionRelations: (input: { name: string }) => Promise<DefinitionRelation[]>
   /**
-   * Chooses what a family of metrics means, by an owner of its domain or an admin: worked out by
-   * the rule again, one variant's own words (by its name), or words written for the family.
-   * `revision` is the meaning's as the person read it.
+   * What a synced metric is built from at every depth: the metric first, then each metric below it
+   * once. None for anything else.
+   */
+  getBuiltFrom: (input: { name: string }) => Promise<BuiltFromMetric[]>
+  /**
+   * Chooses what a family of metrics means, by an owner of its domain or an admin: worked out from
+   * its variants again, or words written for the family. `revision` is the meaning's as the
+   * person read it.
    */
   setFamilyMeaning: (input: {
     name: string
     choice: FamilyMeaningChoice
-    member?: string
     words?: string
     revision: number
   }) => Promise<void>
@@ -572,6 +601,16 @@ export interface FootnoteApi {
     member: string | null
     revision: number
   }) => Promise<void>
+  /**
+   * Splits a family back into its metrics, each a metric of its own under the name it has, by an
+   * owner of its domain or an admin; never one its tool declares. The context items about it keep
+   * reaching agents through each, and are due for a check by their owners.
+   */
+  splitFamily: (input: { name: string }) => Promise<{ metrics: string[]; items: number }>
+  /** Makes a split family one family again, of the metrics it had: Undo, and later too. */
+  joinFamily: (input: { name: string }) => Promise<void>
+  /** The families split back into their metrics, newest first. */
+  getFamilySplits: () => Promise<SplitFamily[]>
   /** Saves a term; a renamed one replaces the old entry. Synced definitions are never saved here. */
   saveTerm: (input: { previous?: string; term: Definition }) => Promise<void>
   /** Another name for a definition, refused when the word already means something. */
@@ -645,8 +684,10 @@ export interface FootnoteApi {
   deleteChat: (input: { id: string }) => Promise<Undoable>
   /**
    * Tells the owners what is wrong with an answer, with the person's name (FR-622): the question,
-   * the part (a source's item id, or `answer` for the answer itself, filed on its first source),
-   * what is wrong and, optionally, the correct version and a link. Nothing else of the chat is sent.
+   * the part (a source's item id, or `answer` for the answer's wording, filed on its first source),
+   * what is wrong and, optionally, the right words and a link. Nothing else of the chat is sent.
+   * The right words for a source are its summary as the person would write it: they wait as a
+   * suggestion on it too, whose id comes back as `suggestion`.
    */
   reportAnswer: (input: {
     question: string
@@ -655,14 +696,20 @@ export interface FootnoteApi {
     what: string
     correction?: string
     link?: string
-    /**
-     * For `part: 'figure'`: the figure that doesn't fit the context item (`sources[0]`), as the
-     * answer named it, and who hears: the item's owners, the integration's data contact, or both.
-     */
-    figure?: FigureReport
-  }) => Promise<{ id: string }>
+  }) => Promise<{ id: string; suggestion?: string }>
   /** The person's own reports from Ask, newest first, each with what the owners did after it. */
   getMyReports: () => Promise<SentReport[]>
+  /**
+   * Shares a chat as a link (FR-721): a copy of each turn's question, what Ask read, its state, its
+   * words and its sources by id, under the person's name, for 90 days. No figure is ever sent.
+   */
+  shareChat: (input: ShareChatInput) => Promise<MyShare>
+  /** Whether chats may be shared now, and the person's own live links, newest first. */
+  getChatShares: () => Promise<MyShares>
+  /** A shared chat as the person signed in opens it, each source as they may read it. */
+  getSharedChat: (input: { id: string }) => Promise<SharedChat>
+  /** Stops the person's own links: each copy is deleted. */
+  stopSharing: (input: { ids: string[] }) => Promise<void>
   /**
    * Marks an answer of Ask good or wrong (FR-712), with the metrics it read, for its domain: only
    * the verdict, the domain and the hour are kept, never who rated. The id it gives back is the
@@ -728,7 +775,6 @@ export interface FootnoteApi {
 
   // Settings, integrations and agents
   getSettings: () => Promise<Settings>
-  setLinks: (input: { on: boolean }) => Promise<void>
   /** Switches one tool agents call on or off, for every agent. */
   setTool: (input: { name: string; on: boolean }) => Promise<void>
   /**
@@ -748,6 +794,12 @@ export interface FootnoteApi {
   advancedPage: () => Promise<Advanced>
   /** Turns answer tests that run on their own on or off, at the version read. */
   setAutomaticRuns: (input: { on: boolean; version: number }) => Promise<void>
+  /** Turns reading the links people paste on or off, at the version read. Admins only. */
+  setLinkReading: (input: { on: boolean; version: number }) => Promise<void>
+  /** Turns sharing Ask chats as links on or off, at the version read. Admins only. */
+  setChatSharing: (input: { on: boolean; version: number }) => Promise<void>
+  /** Sets the hosts links are never read on, at the version read. Admins only. */
+  setNeverReadHosts: (input: { hosts: string[]; version: number }) => Promise<void>
   /**
    * Checks the history log's hash chain end to end: whether it is whole, and how many entries it
    * checked when the binding counts them (null when it doesn't).
@@ -757,13 +809,6 @@ export interface FootnoteApi {
   exportHistory: () => Promise<Exported>
   /** What agents get now, every context item and term, as one file for a backup or a move. */
   exportContext: () => Promise<Exported>
-  setFigures: (input: { source: string; on: boolean }) => Promise<void>
-  setDataContact: (input: { source: string; name: string }) => Promise<void>
-  /**
-   * Where an integration's figures are read: its data endpoint and a token for it, which is kept
-   * in the secret store, sent only to the endpoint's origin and never shown again.
-   */
-  setFigureConnection: (input: { source: string; endpoint: string; token: string }) => Promise<void>
   /**
    * The connect flow's form, by the address's id: a connected tool's settings to change (its
    * page's id), or a tool of the catalog to connect anew; null for neither, or for a tool whoever
@@ -777,6 +822,11 @@ export interface FootnoteApi {
   testIntegration: (
     input: { connector: string; source?: string } & ConnectValues,
   ) => Promise<ConnectTest>
+  /**
+   * Test connection on a definitions tool's page: the tool as it is saved, set up in the app or by
+   * whoever runs the server, checked and read once. It keeps nothing and changes nothing.
+   */
+  checkIntegration: (input: { id: string }) => Promise<ConnectTest>
   /**
    * Connects a tool with the form's settings, what was chosen to read with each one's domain, and
    * why (kept in the history log). Nothing is published by a read.
@@ -819,7 +869,6 @@ export interface FootnoteApi {
    * content tool's open suggestions are withdrawn. What it read, and what owners published, stays.
    */
   disconnectIntegration: (input: { id: string }) => Promise<void>
-  getIntegrations: () => Promise<Integrations>
   /** Settings › Integrations: the tools connected, each with how it is, and what can be connected. */
   integrationsPage: () => Promise<IntegrationsView>
   /** One connected tool's page, by its id; null for none connected by that id. */
@@ -828,13 +877,6 @@ export interface FootnoteApi {
   readIntegration: (input: { id: string }) => Promise<void>
   /** Pauses reading a tool, or lets it go on; what was published stays as it is. */
   pauseIntegration: (input: { id: string; paused: boolean }) => Promise<void>
-  /** What an answer shows of the data: one figure line, a link into the tool, or why there is none. */
-  readFigure: (input: FigureAsk) => Promise<FigureView | null>
-  /**
-   * Try a figure: one figure read now with the integration's figures settings as they are saved,
-   * on or off, so an admin sees the endpoint and its token work. Kept nowhere.
-   */
-  tryFigure: (input: { source: string }) => Promise<FigureTry>
   /**
    * The agents, by name, the last used first (FR-420): an admin sees every agent, anyone else the
    * apps they signed in with.
@@ -892,6 +934,17 @@ export interface FootnoteApi {
   /** The person's answer on the consent page: where the browser goes back to the agent. */
   answerConnectRequest: (input: { id: string; allow: boolean }) => Promise<{ redirectTo: string }>
 
+  // Ask someone who knows
+  /**
+   * The link of a Nothing written yet or a Due for a check card ("gap:<id>", "check:<item>"), for
+   * its owner to paste: the same link copied on a new day after the first time.
+   */
+  copyQuestionLink: (input: { card: string }) => Promise<QuestionLink>
+  /** The one question a link asks, for anyone signed in who has it. */
+  getQuestion: (input: { id: string }) => Promise<Question>
+  /** The person's answer, as themselves: a suggestion for a gap, an answer for a check. */
+  answerQuestion: (input: AnswerQuestion) => Promise<{ proposalId: string | null }>
+
   // Saved questions
   getSavedQuestions: () => Promise<SavedQuestion[]>
   /** Where the check of every saved question stands. */
@@ -926,6 +979,7 @@ export const footnoteApiMethods = [
   'getVocabulary',
   'getActivity',
   'setAbout',
+  'draftAbout',
   'completeSetupStep',
   'updateDomain',
   'addDomain',
@@ -949,6 +1003,8 @@ export const footnoteApiMethods = [
   'editItem',
   'draftFromText',
   'saveItem',
+  'saveDraft',
+  'clearLeftDrafts',
   'applyBulk',
   'sendSuggestion',
   'withdrawSuggestion',
@@ -971,9 +1027,13 @@ export const footnoteApiMethods = [
   'definitionsPage',
   'definitionPage',
   'getDefinitionRelations',
+  'getBuiltFrom',
   'getDefinitionHistory',
   'setFamilyMeaning',
   'setFamilyUsual',
+  'splitFamily',
+  'joinFamily',
+  'getFamilySplits',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -1003,6 +1063,10 @@ export const footnoteApiMethods = [
   'deleteChat',
   'reportAnswer',
   'getMyReports',
+  'shareChat',
+  'getChatShares',
+  'getSharedChat',
+  'stopSharing',
   'rateAnswer',
   'takeBackRating',
   'tellOwner',
@@ -1020,32 +1084,29 @@ export const footnoteApiMethods = [
   'muteAlert',
   'setAlertThreshold',
   'getSettings',
-  'setLinks',
   'setTool',
   'setPause',
   'createAccessKey',
   'renameAccessKey',
   'advancedPage',
   'setAutomaticRuns',
+  'setLinkReading',
+  'setChatSharing',
+  'setNeverReadHosts',
   'checkHistory',
   'exportHistory',
   'exportContext',
-  'setFigures',
-  'setDataContact',
-  'setFigureConnection',
   'connectForm',
   'testIntegration',
+  'checkIntegration',
   'connectIntegration',
   'changeIntegration',
   'integrationLeftOut',
   'disconnectIntegration',
-  'getIntegrations',
   'integrationsPage',
   'integrationPage',
   'readIntegration',
   'pauseIntegration',
-  'readFigure',
-  'tryFigure',
   'listAgentConnections',
   'setAgentTool',
   'revokeAgent',
@@ -1058,6 +1119,9 @@ export const footnoteApiMethods = [
   'getConnectReview',
   'getConnectRequest',
   'answerConnectRequest',
+  'copyQuestionLink',
+  'getQuestion',
+  'answerQuestion',
   'getSavedQuestions',
   'getSavedCheck',
   'checkSavedQuestions',
@@ -1098,7 +1162,9 @@ export const readMethods = [
   'definitionsPage',
   'definitionPage',
   'getDefinitionRelations',
+  'getBuiltFrom',
   'getDefinitionHistory',
+  'getFamilySplits',
   'getInbox',
   'inboxPage',
   'getReviews',
@@ -1114,22 +1180,23 @@ export const readMethods = [
   'askedThisWeek',
   'listChats',
   'getMyReports',
+  'getChatShares',
+  'getSharedChat',
   'getSettings',
   'advancedPage',
-  'getIntegrations',
   'integrationsPage',
   'integrationPage',
   'connectForm',
   'testIntegration',
+  'checkIntegration',
   'integrationLeftOut',
-  'readFigure',
-  'tryFigure',
   'listAgentConnections',
   'getAutoPublish',
   'getDomainPolicies',
   'checkConnect',
   'getConnectReview',
   'getConnectRequest',
+  'getQuestion',
   'observabilityPage',
   'obsDimensions',
   'obsValues',

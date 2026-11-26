@@ -4,7 +4,7 @@ import { relLabel, type Link } from '@/lib/links'
 import { useRelated } from '@/hooks/use-related'
 import { cn } from '@/lib/utils'
 
-// Related: what an agent can follow from here with get_related, so people see it too. Two groups,
+// Related: what an agent can follow from here with read_context, so people see it too. Two groups,
 // Links to and Linked from, one clean line per link: the relation an owner set (replaces, replaced
 // by, disagrees with), the shared mention chip with its type icon, and the word Archived when the
 // target is. Nothing else: the chip opens the target, and that view says the rest.
@@ -72,7 +72,7 @@ function LinkGroup({ name, links }: { name: string; links: Link[] }) {
 
 /** Links to and linked from, in the fixed order agents follow them; nothing when there are none. */
 export function Related({ id }: { id: string }) {
-  const { links, following } = useRelated(id)
+  const { links } = useRelated(id)
   if (!links.length) return null
   const out = links.filter((l) => l.rel !== 'mentioned_by' && l.rel !== 'replaced_by')
   const back = links.filter((l) => l.rel === 'mentioned_by' || l.rel === 'replaced_by')
@@ -80,11 +80,6 @@ export function Related({ id }: { id: string }) {
     <div className="flex min-w-0 flex-col gap-3">
       {out.length > 0 && <LinkGroup name="Links to" links={out} />}
       {back.length > 0 && <LinkGroup name="Linked from" links={back} />}
-      {!following && (
-        <p className="text-xs text-muted-foreground">
-          Agents don&apos;t follow links: it is switched off in Agents and access.
-        </p>
-      )}
     </div>
   )
 }

@@ -18,6 +18,7 @@ import {
   type ScriptedStep,
 } from '../../src/server/modules/answer/index.ts'
 import { UNCHECKED } from '../../src/server/modules/answer/loop-check.ts'
+import { ABOUT_BUSINESS_STARTER, aboutBusinessBlock } from '../../src/domain/about-business.ts'
 
 /*
   Ask's loop without a database (FR-718 to FR-720): what code writes from the reads (the citations
@@ -907,6 +908,54 @@ describe('the instructions', () => {
   })
 })
 
+describe('About our business in the instructions', () => {
+  const about = ABOUT_BUSINESS_STARTER
+  const asker = { admin: false, owns: [] }
+
+  it('follows the rules, marked as background and not a source, before the day; none without text', () => {
+    const without = loopSystem('2026-10-23', asker)
+    const withIt = loopSystem('2026-10-23', asker, 'UTC', about)
+    const block = aboutBusinessBlock(about)!
+    expect(without).not.toContain('About our business')
+    expect(loopSystem('2026-10-23', asker, 'UTC', ' \n ')).toBe(without)
+    // The same instructions, with the block between the rules and the day, as agents get it last.
+    expect(withIt.replace(`${block}\n\n`, '')).toBe(without)
+    expect(withIt.indexOf(block)).toBeGreaterThan(withIt.indexOf('End with the answer'))
+    expect(
+      withIt.endsWith(
+        `${block}\n\nToday is Friday, 23 October 2026 (UTC). The person is not an administrator. They own no domain.`,
+      ),
+    ).toBe(true)
+    expect(block).toContain(
+      'It is not a source: never cite or quote it, never take anything about a metric, a market or a date from it',
+    )
+  })
+
+  it('reaches the model of a turn when the workspace wrote it, and only then', async () => {
+    const systemOf = async (text?: string) => {
+      let sent = ''
+      await turnWith(
+        ({ prompt, results }) => {
+          sent = prompt
+            .filter((m) => m.role === 'system')
+            .map((m) => m.content)
+            .join('\n')
+          return results.length
+            ? { text: 'Germany lags [itm_germany01].' }
+            : { calls: [{ toolName: 'find_context', input: { words: 'germany' } }] }
+        },
+        text === undefined ? {} : { about: text },
+      )
+      return sent
+    }
+    const withIt = await systemOf(about)
+    const without = await systemOf()
+    expect(withIt).toContain(`${aboutBusinessBlock(about)}\n\nToday is`)
+    expect(without).not.toContain('About our business')
+    expect(await systemOf('')).toBe(without)
+  })
+})
+
 describe('a question about people', () => {
   it("answers who checked one context item, and declines one person's work with decline", () => {
     const system = loopSystem('2026-10-23', { admin: false, owns: [] })
@@ -1124,7 +1173,10 @@ describe("Ask's loop on a scripted model", () => {
       },
     ])
     expect(turn).toMatchObject({ kind: 'answer', sources: ['itm_germany01'], state: 'grounded' })
-    expect(turn.reads).toEqual([{ tool: 'find_context', input: { words: 'germany', limit: 10 } }])
+    // Sent back with the step it went in: the first, with no words before it.
+    expect(turn.reads).toEqual([
+      { tool: 'find_context', input: { words: 'germany', limit: 10 }, step: 0 },
+    ])
   })
 
   it('makes the reads of one step one after the other: one connection at a time', async () => {

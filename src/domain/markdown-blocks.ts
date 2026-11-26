@@ -54,6 +54,16 @@ const delimiters: { open: string; mark: Mark }[] = [
   { open: '_', mark: 'italic' },
 ]
 
+/** Where the bracket that closes an address starts at `from` is, past the pairs inside it ("a_(b)"); -1 when none. */
+function closingParen(s: string, from: number): number {
+  let depth = 0
+  for (let i = from; i < s.length; i++) {
+    if (s[i] === '(') depth++
+    else if (s[i] === ')' && depth-- === 0) return i
+  }
+  return -1
+}
+
 /** Inline Markdown as runs of text with their marks, link and mention. */
 export function inlineSegments(source: string): Segment[] {
   const out: Segment[] = []
@@ -79,7 +89,7 @@ export function inlineSegments(source: string): Segment[] {
       }
       if (c === '@' && s[i + 1] === '[') {
         const close = s.indexOf('](', i + 2)
-        const end = close < 0 ? -1 : s.indexOf(')', close + 2)
+        const end = close < 0 ? -1 : closingParen(s, close + 2)
         if (close > i + 2 && end > close + 2 && !s.slice(i + 2, close).includes(']')) {
           flush()
           const label = s.slice(i + 2, close)
@@ -104,7 +114,7 @@ export function inlineSegments(source: string): Segment[] {
       }
       if (c === '[' && href === null) {
         const close = s.indexOf('](', i + 1)
-        const end = close < 0 ? -1 : s.indexOf(')', close + 2)
+        const end = close < 0 ? -1 : closingParen(s, close + 2)
         if (close > i && end > close + 2 && !s.slice(i + 1, close).includes('[')) {
           flush()
           walk(s.slice(i + 1, close), active, s.slice(close + 2, end).trim())

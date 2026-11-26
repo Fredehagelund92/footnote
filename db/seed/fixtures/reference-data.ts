@@ -40,6 +40,37 @@ export const roleGrants = {
   administrators: ['per_ravi'],
 } as const
 
+/**
+ * The terms with their own meaning the demo library starts with in Definitions: the words people
+ * misread that no definition holds. The mock and its demo week have the same three, among more
+ * (src/web/api/mock/data/terms.ts).
+ */
+export const demoTerms = [
+  {
+    name: 'Marketplace commission',
+    meaning: 'The share of each marketplace sale that the marketplace keeps.',
+    areaId: 'area_sales',
+    personId: 'per_jon',
+    day: '2026-09-16',
+  },
+  {
+    name: 'Selling country',
+    meaning:
+      'The country of the store or webshop that took the order. It can differ from the market, the country or region the order ships to.',
+    areaId: 'area_sales',
+    personId: 'per_sofia',
+    day: '2026-09-16',
+  },
+  {
+    name: 'Season',
+    meaning:
+      'Spring and summer, or autumn and winter. Compare a season with the same season a year before.',
+    areaId: 'area_marketing',
+    personId: 'per_tomas',
+    day: '2026-09-18',
+  },
+] as const
+
 /** Business areas (requirements section 2.1 "Area"). Each label is a hue on the domain ring. */
 export const areas: Area[] = [
   {

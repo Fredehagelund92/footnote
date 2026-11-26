@@ -82,6 +82,12 @@ const WORDS: Record<string, number> = {
 const NUMBER = new RegExp(`\\d[\\d,]*(?:\\.\\d+)?|\\b(?:${Object.keys(WORDS).join('|')})\\b`, 'gi')
 /** A citation mark: [2], or an item's id. */
 const MARK = /\[(?:\d+|[a-z]+_[A-Za-z0-9_-]+)\]/g
+/**
+ * An id a read gives: a uuid ("term:01a212b7-6e07-..."), made afresh with the time each seed
+ * runs, or an item's ("itm_kcy01j38"). Its digits are no number a tool stated.
+ */
+const ID =
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b|\b[a-z]+_[A-Za-z0-9]+\b/gi
 
 /** The numbers a text states, as values: "1,240" is 1240, "seven" is 7. */
 export function numbersIn(text: string): string[] {
@@ -136,7 +142,9 @@ export function ungroundedNumbers(reply: Reply, ctx: GradeContext): string[] {
         ...ctx.said,
         ...ctx.earlier.flatMap((r) => [r.text, ...r.evidence]),
         ctx.fixed,
-      ].join('\n'),
+      ]
+        .join('\n')
+        .replace(ID, ' '),
     ),
   )
   // "Items 6 and 7" names sources by their place, as [6] and [7] do; "2025–26" is a span of years.

@@ -266,8 +266,6 @@ describe('a submitted version', () => {
   })
 
   it.each([
-    ['changed content', { title: 'Another title' }],
-    ['changed scope', { scope: false }],
     ['no editor', { editedBy: undefined }],
     ['another editor', { editedBy: people.member }],
     ['no link to the submitted version', { previous: undefined }],
@@ -286,6 +284,46 @@ describe('a submitted version', () => {
           await client.query("insert into item_version_metrics values ($1,'group:payments')", [
             edited.id,
           ])
+        await swap(v.proposal, edited.id)
+      }),
+    ).rejects.toThrow('version is fixed after submit')
+  })
+
+  it.each([
+    ['changed content', { title: 'Another title' }],
+    ['changed scope', { scope: false }],
+  ] as const)(
+    'takes an owner edit of the sender words (Edit then publish): %s, the sender stays its writer',
+    async (_case, change) => {
+      await transaction(client, async () => {
+        const v = await underReview()
+        const edited = await version(client, {
+          item: v.item,
+          previous: v.id,
+          risk: 'high',
+          editedBy: people.owner,
+          ...change,
+        })
+        if ('scope' in change)
+          await client.query("insert into item_version_metrics values ($1,'group:payments')", [
+            edited.id,
+          ])
+        await swap(v.proposal, edited.id)
+      })
+    },
+  )
+
+  it('refuses the sender new words in their own waiting suggestion', async () => {
+    await expect(
+      transaction(client, async () => {
+        const v = await underReview()
+        await client.query("select set_config('cl.person_id',$1,true)", [people.author])
+        const edited = await version(client, {
+          item: v.item,
+          previous: v.id,
+          title: 'Another title',
+          editedBy: people.author,
+        })
         await swap(v.proposal, edited.id)
       }),
     ).rejects.toThrow('version is fixed after submit')

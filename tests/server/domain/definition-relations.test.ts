@@ -3,10 +3,12 @@ import {
   mapDefinitions,
   parseSemanticManifest,
 } from '../../../src/connectors/dbt-metricflow/mapping.ts'
-import { columnsOf } from '../../../src/domain/definition-helpers.ts'
+import { arithmeticInputs, columnsOf } from '../../../src/domain/definition-helpers.ts'
 import {
   conversionsOf,
   relationsOf,
+  TREE_CAP,
+  treeOf,
   type RelationMember,
 } from '../../../src/domain/definition-relations.ts'
 import {
@@ -65,6 +67,96 @@ describe('the columns a calculation reads', () => {
       'x',
     ])
     expect(columnsOf('a /* b */ + c')).toEqual(['a', 'c'])
+  })
+})
+
+describe("what a Cube measure's own calculation reads (C2)", () => {
+  it('reads plain column arithmetic: its columns, and the measures it takes as written', () => {
+    expect(arithmeticInputs('{CUBE}.amount_eur * {CUBE}.exchange_rate_usd')).toEqual({
+      measures: [],
+      columns: ['amount_eur', 'exchange_rate_usd'],
+    })
+    expect(arithmeticInputs('${CUBE}.amount_eur')).toEqual({
+      measures: [],
+      columns: ['amount_eur'],
+    })
+    expect(arithmeticInputs('amount_eur')).toEqual({ measures: [], columns: ['amount_eur'] })
+    expect(arithmeticInputs('({revenue} - {CUBE.refunds}) / 100.0')).toEqual({
+      measures: ['revenue', 'refunds'],
+      columns: [],
+    })
+    expect(arithmeticInputs('{CUBE}.amount * 1e3')).toEqual({ measures: [], columns: ['amount'] })
+    expect(arithmeticInputs('{CUBE}.amount * 2.5E-3')).toEqual({
+      measures: [],
+      columns: ['amount'],
+    })
+    expect(arithmeticInputs('{orders.revenue} * fx_rate')).toEqual({
+      measures: ['orders.revenue'],
+      columns: ['fx_rate'],
+    })
+  })
+
+  it('reads the names inside NULLIF, COALESCE, ROUND and CAST, nested as written', () => {
+    // A guarded ratio is built from both of its measures.
+    expect(arithmeticInputs('{net_revenue} / NULLIF({marketing_spend}, 0)')).toEqual({
+      measures: ['net_revenue', 'marketing_spend'],
+      columns: [],
+    })
+    expect(arithmeticInputs('COALESCE({revenue}, 0) - COALESCE({CUBE.refunds}, 0)')).toEqual({
+      measures: ['revenue', 'refunds'],
+      columns: [],
+    })
+    expect(arithmeticInputs('round({net_revenue} / {marketing_spend}, 2)')).toEqual({
+      measures: ['net_revenue', 'marketing_spend'],
+      columns: [],
+    })
+    expect(
+      arithmeticInputs('100.0 * CAST({orders} AS DOUBLE PRECISION) / NULLIF({sessions}, 0)'),
+    ).toEqual({ measures: ['orders', 'sessions'], columns: [] })
+    expect(
+      arithmeticInputs(
+        'ROUND(CAST(COALESCE({orders.revenue}, 0) AS DECIMAL(18, 4)) / NULLIF(COALESCE({orders.order_count}, 0), 0), 2)',
+      ),
+    ).toEqual({ measures: ['orders.revenue', 'orders.order_count'], columns: [] })
+    expect(arithmeticInputs('COALESCE({CUBE}.amount_eur, 0) * ${CUBE}.fx_rate')).toEqual({
+      measures: [],
+      columns: ['amount_eur', 'fx_rate'],
+    })
+    expect(arithmeticInputs('-ROUND({gross_margin}, 1)')).toEqual({
+      measures: ['gross_margin'],
+      columns: [],
+    })
+  })
+
+  it('reads nothing of any other calculation: a function, a keyword, a literal or a qualified column', () => {
+    for (const sql of [
+      'SUM({CUBE}.amount_eur)',
+      'ABS({revenue}) / {orders}',
+      'CASE WHEN {sessions} > 0 THEN {orders} / {sessions} END',
+      'NULLIF({sessions}, 0, 1)',
+      'NULLIF({sessions})',
+      'ROUND({revenue}, 2, 1)',
+      'COALESCE()',
+      'COALESCE({revenue}, NULL)',
+      "COALESCE({revenue}, '0')",
+      'CAST({orders} AS numeric',
+      'CAST({orders} AS DECIMAL(scale))',
+      'CAST({orders})',
+      'ROUND {revenue}',
+      'NULLIF(orders.amount, 0)',
+      '{revenue} / ',
+      '({revenue}',
+      '(({revenue}))) + (',
+      `${'('.repeat(60)}{revenue}${')'.repeat(60)}`,
+      "CASE WHEN currency = 'EUR' THEN amount END",
+      'amount_eur * 1.1 + bonus IS NULL',
+      'orders.amount_eur * fx_rate',
+      "{CUBE}.amount || 'x'",
+      'amount_eur, fx_rate',
+      '1',
+      '',
+    ])
+      expect(arithmeticInputs(sql), sql).toBeNull()
   })
 })
 
@@ -251,5 +343,104 @@ describe('the relations of a metric', () => {
       ['converted_to', 'commission_usd'],
       ['built_from', 'commission_eur'],
     ])
+  })
+})
+
+describe('what a metric is built from, at every depth', () => {
+  const net = member('orders.net_revenue', {
+    refs: ['dbt:orders.gross_sales', 'dbt:orders.returns'],
+  })
+  const gross = member('orders.gross_sales', { columns: ['gross_amount'] })
+  const returns = member('orders.returns', { columns: ['refund_amount'] })
+  const spend = member('ads.spend', { columns: ['spend'] })
+  const roas = member('ads.roas', { refs: ['dbt:orders.net_revenue', 'dbt:ads.spend'] })
+  const seen = (ref: string) => ({
+    name: ref.split('.').at(-1)!,
+    key: `metric:${ref.split('.').at(-1)}`,
+    missing: false,
+  })
+  const said = (tree: ReturnType<typeof treeOf>) =>
+    tree.map((m) => [m.name, m.from.map((ref) => ref.split('.').at(-1))])
+
+  it('lists the metric, then each metric below it once, as first reached', () => {
+    expect(said(treeOf(roas, [net, gross, returns, spend], seen))).toEqual([
+      ['roas', ['net_revenue', 'spend']],
+      ['net_revenue', ['gross_sales', 'returns']],
+      ['spend', []],
+      ['gross_sales', []],
+      ['returns', []],
+    ])
+  })
+
+  it('lists a metric two others are built from once, and ends a loop', () => {
+    const margin = member('orders.margin', { refs: ['dbt:orders.net_revenue', 'dbt:ads.roas'] })
+    const loop = member('orders.gross_sales', { refs: ['dbt:orders.net_revenue'] })
+    expect(said(treeOf(margin, [net, loop, returns, roas, spend], seen))).toEqual([
+      ['margin', ['net_revenue', 'roas']],
+      ['net_revenue', ['gross_sales', 'returns']],
+      ['roas', ['net_revenue', 'spend']],
+      ['gross_sales', ['net_revenue']],
+      ['returns', []],
+      ['spend', []],
+    ])
+  })
+
+  it('leaves out a metric the reader may not see with all below it, and walks nothing below one gone', () => {
+    const hidden = (ref: string) =>
+      ref === 'dbt:orders.net_revenue'
+        ? null
+        : ref === 'dbt:ads.spend'
+          ? { name: 'Spend', key: 'metric:spend', missing: true }
+          : seen(ref)
+    const gone = member('ads.spend', { refs: ['dbt:ads.clicks'] })
+    expect(treeOf(roas, [net, gross, returns, gone], hidden)).toEqual([
+      {
+        ref: 'dbt:ads.roas',
+        name: 'roas',
+        key: 'metric:roas',
+        missing: false,
+        from: ['dbt:ads.spend'],
+      },
+      { ref: 'dbt:ads.spend', name: 'Spend', key: 'metric:spend', missing: true, from: [] },
+    ])
+  })
+
+  it('names an input the source never listed by its ref, with nothing below it', () => {
+    expect(treeOf(net, [], () => undefined)).toEqual([
+      {
+        ref: 'dbt:orders.net_revenue',
+        name: 'orders.net_revenue',
+        key: null,
+        missing: false,
+        from: ['dbt:orders.gross_sales', 'dbt:orders.returns'],
+      },
+      {
+        ref: 'dbt:orders.gross_sales',
+        name: 'orders.gross_sales',
+        key: null,
+        missing: false,
+        from: [],
+      },
+      { ref: 'dbt:orders.returns', name: 'orders.returns', key: null, missing: false, from: [] },
+    ])
+  })
+
+  it('reads 500 metrics below one at once, and stops at the cap with no line to a metric past it', () => {
+    const wide = (n: number) => {
+      const inputs = Array.from({ length: n }, (_, i) =>
+        member(`orders.part_${i}`, { refs: [`dbt:orders.leaf_${i}`] }),
+      )
+      const top = member('orders.total', { refs: inputs.map((m) => m.ref) })
+      return { top, inputs }
+    }
+    const small = wide(250)
+    const started = performance.now()
+    expect(treeOf(small.top, small.inputs, seen)).toHaveLength(501)
+    expect(performance.now() - started).toBeLessThan(500)
+    const large = wide(TREE_CAP)
+    const capped = treeOf(large.top, large.inputs, seen)
+    expect(capped).toHaveLength(TREE_CAP)
+    const listed = new Set(capped.map((m) => m.ref))
+    expect(capped.every((m) => m.from.every((ref) => listed.has(ref)))).toBe(true)
   })
 })

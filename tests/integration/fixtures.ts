@@ -18,9 +18,9 @@ export async function foundation(client: pg.Client) {
     ])
   }
   await client.query(`insert into areas (id,name) values ('finance','Finance'),('marketing','Marketing');
-    insert into vocab_terms (key,kind,parent_key) values
-      ('metric:orders','metric',null),('dim:market','dimension',null),
-      ('val:market/norway','dimension_value','dim:market'),('group:payments','metric_group',null);
+    insert into vocab_terms (key,kind) values
+      ('metric:orders','metric'),('dim:market','dimension'),
+      ('val:market/norway','dimension_value'),('group:payments','metric_group');
     insert into items (id,kind) values ('itm_target0001','note');
     insert into connectors (id,kind,type,name) values ('demo','definition_source','demo','Demo');
     insert into definitions (ref,connector_id,kind,name,change_mark) values ('demo:orders','demo','metric','Orders','1')`)

@@ -247,7 +247,33 @@ export const sourceCheckSchema = z.object({
       splits: z.array(z.object({ words: count, examples: z.array(z.string()) })),
     }),
   ),
+  /**
+   * The families of metrics the read would find (FR-142, D5), as a read of every view the test read would find them: how
+   * many, the metrics in them, how many of each kind in the order of trust, and the name of the
+   * family with the most variants, to say what one is. Absent when it finds none.
+   */
+  families: z.optional(
+    z.object({
+      families: count,
+      metrics: count,
+      found: z.object({ declared: count, calculation: count, rate: count, names: count }),
+      example: z.string(),
+    }),
+  ),
+  /**
+   * Test connection on a source's page (`sources.check`): the groups it reads, set in the app or
+   * by the server's configuration, against those the read found. `all` when it reads every group,
+   * with how many the read found; otherwise how many it reads and those of them the model no
+   * longer has. Absent from a test of the connect form's settings.
+   */
+  chosen: z.optional(z.object({ all: z.boolean(), groups: count, missing: z.array(z.string()) })),
 })
+
+/**
+ * Test connection on a source's page: the source as it is saved, an admin's or the server's own,
+ * read once with every group it has. Nothing is kept and nothing changes.
+ */
+export const checkSourceSchema = z.strictObject({ id: sourceId })
 
 /**
  * Disconnects a source an admin added, with why (CON-118): it is read no more, its secrets are

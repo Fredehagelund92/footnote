@@ -67,7 +67,7 @@ export async function exportEdition(tx: Queryable, label: string): Promise<Editi
       })
   }
   const vocabulary = await tx.query<ExportedTerm>(
-    `select s.term_key as key,t.kind::text as kind,t.parent_key as "parentKey",v.name,v.aliases,
+    `select s.term_key as key,t.kind::text as kind,v.parent_key as "parentKey",v.name,v.aliases,
        v.area_id as "areaId",coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C")
          from vocab_term_refs r where r.version_id=v.id),'{}') as "definitionRefs",encode(v.content_digest,'hex') as digest
      from vocab_term_service s join vocab_term_versions v on v.id=s.version_id join vocab_terms t on t.key=s.term_key

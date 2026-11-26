@@ -20,12 +20,12 @@ One sentence for the product: **agents read checked context before they answer.*
 
 ## 2. Who it is for
 
-| Who                  | What they do in Footnote                                                                                                                                         |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                             |
-| An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch. |
-| An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                           |
-| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the six tools (section 10). It reads. It may also suggest. |
+| Who                  | What they do in Footnote                                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                              |
+| An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch.  |
+| An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                            |
+| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the five tools (section 10). It reads. It may also suggest. |
 
 The data team that runs Footnote is the first reader of this page. The people it serves are in finance, marketing, operations and management. Many of them read English as a second language. They know their business. They should never need to know data or AI words. [Copy rules](design/copy.md) says how Footnote speaks to them.
 
@@ -35,7 +35,7 @@ The data team that runs Footnote is the first reader of this page. The people it
 2. **Every item has a source and a check date.** An item whose check date has passed is marked, and agents are told it may be old.
 3. **Nothing written down is said as nothing written down.** An agent never fills a gap with a guess that sounds sure.
 4. **People decide, software proposes.** An agent or an integration can suggest. Only a person publishes. An owner may decide in advance for one named agent's low-risk new items in their domain ([Publish without review](help/publish-without-review.md)); each is still their decision, under their name, and can be undone.
-5. **Footnote stores no numbers.** It reads a figure when someone asks, only if an admin switched figures on for that integration, and keeps it nowhere.
+5. **Footnote stores no numbers.** It reads what a metric means, never its data, and says so when a question needs a figure.
 6. **Footnote keeps no record of what people asked an agent.** It keeps only what a question was about and how often (section 9).
 
 ## 4. How it works
@@ -48,7 +48,7 @@ The data team that runs Footnote is the first reader of this page. The people it
 
 ## 5. The screens and their addresses
 
-The mockup writes an address after `#` (`#/inbox?demo=week`). The app uses the same paths and the same search names without the `#`. The mapping is one to one. Scenario flags such as `demo`, `state`, `example`, `figures`, `links`, `connect`, `quality`, `bulk`, `decide` and `slow` only set up a demo or a fault for tests. They are not part of the product and never reach a production build.
+The mockup writes an address after `#` (`#/inbox?demo=week`). The app uses the same paths and the same search names without the `#`. The mapping is one to one. Scenario flags such as `demo`, `state`, `example`, `links`, `connect`, `quality`, `bulk`, `decide` and `slow` only set up a demo or a fault for tests. They are not part of the product and never reach a production build.
 
 The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. At its foot: **Help**, **Observability** (admins and owners) and **Settings** (admins; owners see Domains and People). A search field sits at the top of the sidebar. The account button shows your avatar and name; the user menu it opens shows your role and every domain you own, and holds Connect an agent and Sign out. The theme menu is at the right end of every header.
 
@@ -64,9 +64,11 @@ The sidebar has four places: **Inbox**, **Ask**, **Context**, **Definitions**. A
 | Setup checklist on a new install                        | `/inbox`, shown while setup is unfinished               |
 | Connect an agent as a dialog, search, shortcuts, report | `/inbox?open=connect`, `palette`, `shortcuts`, `report` |
 
-The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note) and Due for a check. Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match; its header names whose domains it counts, and the sidebar badge says it counts the checks due with the cards waiting. One quiet sentence under the heading says what agents asked this week, in counts only, the same count as Asked this week in Ask.
+The Inbox is a list in the middle and a detail pane on the right. The dock takes the detail pane's place, so there are never two right panels. The list is ordered by need, in groups with counts, Names first, since a read's names come before anything else, then what people wait on: Mentioned you, Suggestions, then Nothing written yet, Reported, Saved questions, Alerts, Returned to you (a suggestion of yours an owner returned with a note), Due for a check and Your drafts (one card for the drafts you imported or have not saved for 30 days, which publishes each where you may and sends the rest to the owners; a draft opens in the card's place, held in the address, with its place such as 5 of 21, J and K to the next and the one before, and Publish, Edit and Don't publish, after which the next draft opens). Under All it adds Waiting on others and Done. Every group folds from its header, which keeps its count; Due for a check starts folded when it holds more than 10 rows, unless a link points into it, and a search shows every match; its header names whose domains it counts, and the sidebar badge says it counts the checks due with the cards waiting. One quiet sentence under the heading says what agents asked this week, in counts only, the same count as Asked this week in Ask.
 
 A Not found card shows a gap: a topic agents keep asking about with nothing written down for it. A gap is Open, Covered or Set aside. It is Open while agents keep asking. Publishing context written from its card, or a suggestion written for it, covers it, and the card leaves the Inbox. Not something we write down sets it aside. Undo of either opens it again. When agents ask about a covered topic again and still find nothing, a new gap opens.
+
+Ask someone who knows, on a Nothing written yet card without a draft and on a Due for a check card, copies a link to one question for the owner to paste where the company talks. Nothing is sent, and the card keeps only the day the link was copied. The link opens `/question/<id>`, outside the app's shell, for anyone signed in: the topic in large letters (metric, market, dates, never the words of a question), one answer, and one button that sends it to the owners under the person's name. On a Nothing written yet card the answer is a suggestion for the gap, which may come without a source; its owner adds or confirms one before it can be published. On a Due for a check card it is Yes, still true; It ended on a day; or I don't know, shown on the card, and the owner still does the check. Agents get none of it before a publish.
 
 ### Review
 
@@ -89,7 +91,7 @@ The quick view never publishes. The review is a full-screen page inside the app,
 
 The empty Ask shows Asked this week: a bar of its topics by state, then one line per topic with its state and how often it was asked. On a screen wide enough, the box sits under the question, with the states named under it, until the first question docks it at the bottom. Until agents have asked anything, it offers up to four first questions instead, made from what the workspace has written: the scopes of its published context items, then its metrics. A workspace with nothing written yet gets no first questions, only the empty page's words. Those first questions are the only ones Ask suggests, with one exception: every refusal (a question Ask will not answer, such as one about one person's work) ends with questions to press, "What changed this week?" and "List the conflicts", and pressing one asks it. Under any other answer nothing in the chat suggests a question to ask. A dead end (a question it could not read, section 6, or a Not found answer, which keeps its next step) says in words what Ask can answer instead.
 
-An answer arrives the way it does in other chat tools. The question shows in the chat the moment it is sent, and **Stop** takes the place of Ask until the answer is done. One quiet line says what the look-up is doing, from its real steps: "Looking up context...", then "Reading 3 context items...". The answer line, its sentence and the sources come in with the engine's answer and do not change after. When a model writes the words for the person (`models.assistant`, with real models), they then grow as they are written, a checked sentence at a time, each shown word by word. Each sentence is checked before any of it shows: it cites only the answer's items, adds no number they do not give, and is not a list, a heading or a link. The first sentence that fails ends the words there. When no sentence passes, Ask shows its own words from the items. The model never decides the state or the sources. Stop ends the look-up and the model's words: the answer finishes the sentence on screen, keeps its state and sources, and says it is not finished. A new question goes to the top of the view, and the view then stays where the reader puts it.
+An answer arrives the way it does in other chat tools. The question shows in the chat the moment it is sent, and **Stop** takes the place of Ask until the answer is done. One quiet line says what the look-up is doing, from its real steps: "Looking up context...", then "Reading 3 context items...". The answer line, its sentence and the sources come in with the engine's answer and do not change after. When a model writes the words for the person (`models.assistant`, with real models), they then grow as they are written, a checked sentence at a time, each shown word by word. Each sentence is checked before any of it shows: it cites only the answer's items and adds no number they do not give. The words may use Markdown (bold, italic, code, lists, numbered lists, short tables and links) and are drawn as that, never as raw HTML. A link goes only to a help page or to an address the reads or the question give word for word, and opens as a source link does. Copy still copies plain text. The first sentence that fails ends the words there. When no sentence passes, Ask shows its own words from the items. The model never decides the state or the sources. Stop ends the look-up and the model's words: the answer finishes the sentence on screen, keeps its state and sources, and says it is not finished. A new question goes to the top of the view, and the view then stays where the reader puts it.
 
 Ask also answers questions about the context's own records, such as "give me context created in the last 24 hours" or "who owns Sales?" (FR-718). The list is closed, and no model reads or writes them: what was created, what changed, what is due for a check, what is archived, who owns a domain (or a metric's domain) and which have no owner, how many context items or definitions there are, what agents asked this week that found nothing, which context items disagree ("list conflicts", "any conflicts in Sales?", "what is unresolved?", each pair opening its own page, as Context's Conflicts filter lists them), and what Definitions lists: the metrics and dimensions ("list 10 dimensions", "how many metrics are in Sales?") and a dimension's values ("what markets are there?"). Each is counted from what the Context list shows the person asking, never a draft and never what one person did. A records answer has no answer line: a **Records** chip, the sentence "From the app's own list of what was written and changed. Not from your sales data.", one plain sentence, and at most five rows that open in the right panel, or a small table of counts, with Context keeping the full list. Nothing found is an answer too: "Nothing was created in the last 24 hours.", with the period in UTC and when the latest one was. It ends "This answer is only for you. Agents do not get it." A question about one person's work ("what did Maria write this week?") is refused, with what Ask can say instead.
 
@@ -126,7 +128,7 @@ Conflicts is a filter of the list, not a list of its own: All or Conflicts above
 
 ### Settings
 
-Inside Settings, the app sidebar gives way to the settings menu, with Back to app on top. Six sections in three groups: Workspace (General, Domains and owners, People), Connections (Agents and access, Integrations), System (Advanced). Someone who isn't an admin has only Agents and access, where they see and disconnect the agents they connected; an owner also has Domains and owners and People.
+Inside Settings, the app sidebar gives way to the settings menu, with Back to app on top. Six sections in three groups: Workspace (General, Domains and owners, People), Connections (Agents and access, Integrations), System (Advanced). Someone who isn't an admin has only Agents and access, where they see and disconnect the agents they connected; an owner also has Domains and owners and People. Settings itself opens for everyone, on their own section; any other section says who to ask and leads to theirs. An owner reads the domains but only an admin adds one.
 
 | Screen                               | Address                                      |
 | ------------------------------------ | -------------------------------------------- |
@@ -177,7 +179,7 @@ Every answer to a question that was looked up, for an agent and for a person, st
 | ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
 | **Checked**       | (none)                               | Context applies, and its owner published it with a source and a check date.                 | Nothing.                                        |
 | **Partial**       | Only part of this is written down.   | Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
-| **Not found**     | Nothing is written about this yet.   | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
+| **Not found**     | Nothing published about this yet.    | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
 | **Conflict**      | Two items say different things.      | Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
 | **Outdated**      | Some of this may be old.             | An item's check date has passed, or a definition it relies on changed.                      | The owner checks it: Still true, or Edit.       |
 | **Not looked up** | Ask could not look this up just now. | Ask could not look this up just now. That does not mean nothing is written.                 | Ask again in a minute.                          |
@@ -207,12 +209,12 @@ The stored values are the earlier names. Screens, help and agents use the labels
 
 A context item has one of four statuses, each a circle icon with a word on hover:
 
-| Status              | Icon          | Meaning                                                                             |
-| ------------------- | ------------- | ----------------------------------------------------------------------------------- |
-| **Draft**           | Dashed circle | Started and never published. Agents never get it. Only drafts can be deleted.       |
-| **Live**            | Check         | Published. Agents get it.                                                           |
-| **Due for a check** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old. |
-| **Archived**        | Minus         | Retired. Agents no longer get it. Its history stays.                                |
+| Status              | Icon          | Meaning                                                                                                    |
+| ------------------- | ------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Draft**           | Dashed circle | Started and never published. Only its writer sees it, and agents never get it. Only drafts can be deleted. |
+| **Live**            | Check         | Published. Agents get it.                                                                                  |
+| **Due for a check** | Alert         | Published, and its check date has passed. Agents get it and are told it may be old.                        |
+| **Archived**        | Minus         | Retired. Agents no longer get it. Its history stays.                                                       |
 
 **Freshness** is one dot in the Checked column: filled up to 30 days since the last check, half full after that, and a hollow ring while the item is Due for a check (its check date passed or its source changed, checked or never). Age alone never makes an item due. A suggestion shows its state in words (waiting, published, returned, withdrawn).
 
@@ -226,24 +228,22 @@ One rule everywhere: **from agents, Footnote keeps only what a question was abou
 4. **Ask chats are the person's own.** They stay in the person's browser and are seen only by them. Ask says so, and its empty state says what is kept.
 5. **Agents never read comments, reports or saved questions.** An agent's answer is built from published context only.
 6. **Report a problem** opens a mail with the page's address when `FOOTNOTE_SUPPORT_EMAIL` is set; unset, it opens a GitHub issue with the page's path only. A person's name goes with neither, and never an agent's words.
-7. **Figures are read when asked and kept nowhere.** No person's identity is passed to the data source.
-8. **No tracking.** Footnote sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
-9. **No promise of anonymity.** Copy says what is kept, not that nobody can see.
+7. **No tracking.** Footnote sends nothing to anyone about how it is used. To learn which questions about the records people use, Ask counts which of its seven was asked each week, by its fixed name only: never the words, never who asked.
+8. **No promise of anonymity.** Copy says what is kept, not that nobody can see.
 
 ## 10. What agents get
 
-Six tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
+Five tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
 
-| Tool              | What it does                                                                                                                                       |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_context`     | The context that applies to a question, with the answer line and one sentence to relay.                                                            |
-| `find_context`    | A word search over names, titles and summaries.                                                                                                    |
-| `read_context`    | One context item in full: text, source, check date and the don't conclude line.                                                                    |
-| `report`          | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                  |
-| `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
-| `get_related`     | Follow a link between items, definitions and domains, one step at a time. It has its own switch.                                                   |
+| Tool              | What it does                                                                                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `get_context`     | The context that applies to a question about a metric, with the answer line and one sentence to relay.                                                                     |
+| `find_context`    | Find context items and definitions by words, or, without words, list them by kind or domain, a page at a time: an item's title and summary, never its text.                |
+| `read_context`    | One context item in full: text, source, check date, the don't conclude line, and what it links to and from. Or one definition in full, even with no context item about it. |
+| `report`          | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                                          |
+| `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review.                         |
 
-The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a separate, read-only tool, `get_related`, at most 50 nodes, in a fixed order. It never changes what an answer includes.
+The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a read: `read_context` gives an item's links one step out and in with every read, and never changes what an answer includes. Only `get_context` says to call it first, and only for a question about a metric; in Claude Code it loads when a session starts.
 
 ## 11. Roles
 
@@ -264,15 +264,15 @@ Every item uses the same three checks, whatever its risk.
 
 Integrations connect Footnote to where metrics are defined and where documents live. Connect one in five steps: Pick, Connect, Choose, Map, Schedule.
 
-| Integration     | For                  | Notes                                                                                         |
-| --------------- | -------------------- | --------------------------------------------------------------------------------------------- |
-| Cube            | Definitions, figures | Metrics and dimensions are a read-only copy. A figure is read on request when figures are on. |
-| Cube Cloud      | Definitions          | Read-only, from a deployment's metadata. It sees no calculations.                             |
-| Google Drive    | Context              | Through a service account an admin shares folders with. Documents become suggestions.         |
-| Markdown in Git | Context              | Documents become suggestions.                                                                 |
-| dbt             | Definitions          | Metrics and dimensions are a read-only copy, read from its semantic manifest.                 |
+| Integration     | For         | Notes                                                                                 |
+| --------------- | ----------- | ------------------------------------------------------------------------------------- |
+| Cube            | Definitions | Metrics and dimensions are a read-only copy.                                          |
+| Cube Cloud      | Definitions | Read-only, from a deployment's metadata. It sees no calculations.                     |
+| Google Drive    | Context     | Through a service account an admin shares folders with. Documents become suggestions. |
+| Markdown in Git | Context     | Documents become suggestions.                                                         |
+| dbt             | Definitions | Metrics and dimensions are a read-only copy, read from its semantic manifest.         |
 
-**A sync never publishes.** Definitions are a read-only copy that flags the context relying on them. Documents become suggestions in the owners' Inbox, one per document, grouped under the read that made them. Figures are not an integration of their own: a definitions tool that can read them has a second, labelled connection for them, with its own data endpoint and token, because the metric's definition decides which integration answers, and a tool no definition comes from could answer nothing. **Try a figure** reads one figure with the saved settings before anyone asks. Every figures connection names a data contact. "Show figures in Ask" is off by default.
+**A sync never publishes.** Definitions are a read-only copy that flags the context relying on them. Documents become suggestions in the owners' Inbox, one per document, grouped under the read that made them.
 
 ## 13. The first day
 
@@ -314,7 +314,7 @@ The job specs, one line each:
 | J8  | Loading, a failed load, offline, and a Publish that fails and works on Retry.                                                                                                                                                                             |
 | J9  | Domains are documents; an empty one can be deleted, one with context cannot.                                                                                                                                                                              |
 | J10 | People: invites with roles and domains; the last owner cannot leave; owners add owners to their own domain.                                                                                                                                               |
-| J11 | Figures in Ask: off by default, one figure with source and freshness when on, the definition decides.                                                                                                                                                     |
+| J11 | Removed on 24 Nov 2026, with figures in Ask.                                                                                                                                                                                                              |
 | J12 | Connect an agent: prompt, live line, hint after 2 minutes, stop at 10, Keep waiting.                                                                                                                                                                      |
 | J13 | The review's keys never act while you type; Esc order; the key hint shows only where the key acts.                                                                                                                                                        |
 | J14 | Deciding with no connection: Publish waits and says why; a failed try changes nothing; a returned note is kept.                                                                                                                                           |
@@ -324,14 +324,14 @@ The job specs, one line each:
 | J18 | After a decision: a key skips the wait, the pointer holds it, reduced motion waits for Next.                                                                                                                                                              |
 | J19 | The Source review as the comparison: the bar, the Fields table with its switch, the text in two columns, only the changed words marked, a new look, a move and a link marked as what they are; S for the lines; N and P; Preview; the gate in both views. |
 | J20 | Synonyms as tags: a word with another meaning says who has it and is never saved.                                                                                                                                                                         |
-| J21 | Following links (`get_related`): Related, relations, the switch in Settings.                                                                                                                                                                              |
+| J21 | Following links: Related and relations, what agents follow with `read_context`.                                                                                                                                                                           |
 | J22 | Help: one menu, the keys, the Help page, the documentation, the answer line's card, Report a problem.                                                                                                                                                     |
 | J23 | Focus moves after J, K and a decision; the last decision says everything is handled, with Undo.                                                                                                                                                           |
 | J24 | Picking several rows works the same in every list (Shift range, Cmd toggle, X, Cmd A, Esc).                                                                                                                                                               |
 | J25 | Bulk actions from one bar: Archive with Undo, Delete for drafts only, skips with reasons, Retry.                                                                                                                                                          |
 | J26 | Emoji where people talk (`:` opens the list), the five reactions; none in context text.                                                                                                                                                                   |
 | J27 | Observability: its menu, range and domain, Overview with its topics, Quality, Feedback, Usage, Alerts.                                                                                                                                                    |
-| J28 | Ask ideas: Share with state and sources, Show me where it says that, Asked this week.                                                                                                                                                                     |
+| J28 | Ask ideas: Show me where it says that, Asked this week.                                                                                                                                                                                                   |
 | J29 | Motion and loading: decisions do not wait, loading waits 150 ms and takes the page's shape, nothing moves unasked. Also run with reduced motion.                                                                                                          |
 | J30 | Topics: an exact scope with its month; a month under 5 is never given away; a gap counts across a month edge.                                                                                                                                             |
 | J33 | Threads on the source: C or + comments on a line or a field; reply, react, resolve, reopen; the rail counts them live.                                                                                                                                    |
@@ -344,34 +344,35 @@ The first plan for the web app named J1 to J29. J30 (topics) was added after tha
 
 One name for each thing, in every screen, help page, agent reply and demo text. The full rules are in [Copy](design/copy.md). The code keeps its own words (item, area, retire, edition, scope); [`src/domain/words.ts`](../src/domain/words.ts) maps one to the other.
 
-| On screen             | Means                                                                                                                                              | Code and specification       |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Context**           | The area of the app and the whole body of what agents read.                                                                                        | the library                  |
-| **Context item**      | One entry: an event, a warning, a rule or a guide, with a source and a check date.                                                                 | item, fact                   |
-| **Definition**        | A metric, a dimension or a term, and what it means here. Metrics and dimensions are read-only copies from the definitions source.                  | catalogue entry              |
-| **Term**              | A word with its own meaning, written here (Peak season).                                                                                           | person-written definition    |
-| **Synonym**           | Another name for a metric or a dimension (GMV for Gross sales). Agents read it as that definition. One word has one meaning in the workspace.      | alias                        |
-| **Domain**            | An area of the business, such as Sales. Every context item belongs to one. A domain is a document with owners and house rules.                     | area                         |
-| **Owner**             | A person who publishes and checks a domain's context. Ownership belongs to the domain, not to a role.                                              | steward                      |
-| **Admin**, **Member** | The two roles (section 11).                                                                                                                        | administrator                |
-| **Suggestion**        | A change sent to an owner, from the editor or by an agent. Nothing changes until the owner publishes it.                                           | proposal                     |
-| **Publish**           | An owner makes context available to agents.                                                                                                        | accept                       |
-| **Archive**           | Take a published item out of what agents get, keeping its history.                                                                                 | retire                       |
-| **Inbox**             | What needs the person, ordered by need.                                                                                                            | notifications, queue         |
-| **Card**              | One row in the Inbox: Not found, Reported, Saved questions, Alert, Mentioned you, Due for a check, or a Suggestion.                                | inbox item                   |
-| **Not found**         | A question agents asked several times and found nothing written for. Its card brings a draft. Also an answer state.                                | gap                          |
-| **Reported**          | Someone said a context item is wrong or unclear.                                                                                                   | flag                         |
-| **Due for a check**   | A context item whose check date has passed.                                                                                                        | review due                   |
-| **Saved question**    | A question an owner or admin keeps, and Footnote checks again after every change. Result: Same, Changed or Needs a look.                           | saved view, test question    |
-| **Try it**            | What agents would say for a question, on a draft or on live context, without asking an AI.                                                         |                              |
-| **Ask**               | The page where a person asks and sees the same answer line an agent gets.                                                                          | assistant                    |
-| **Records**           | What the workspace keeps about its context: when items were created, changed, checked or archived, and who owns each domain. Ask counts from them. | library index                |
-| **Topic**             | The exact scope agents asked about: domain, metric, market and the month. Grouped for reading only.                                                | topic                        |
-| **Edition**           | A sealed snapshot of what agents get. Shown only in Settings, Advanced, and in the agent reply. Never in success copy.                             | edition                      |
-| **Don't conclude**    | A line on an item that stops an agent from reading a cause into it.                                                                                | caveat, what not to conclude |
-| **Integration**       | A connected tool: where definitions live, where documents live, where figures come from.                                                           | source, connector            |
-| **Agent**             | Software outside Footnote that reads context over MCP. Never a person.                                                                             | AI app, client               |
-| **What agents get**   | The text an agent receives for an item or a question.                                                                                              | served, delivered            |
+| On screen              | Means                                                                                                                                              | Code and specification       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **Context**            | The area of the app and the whole body of what agents read.                                                                                        | the library                  |
+| **Context item**       | One entry: an event, a warning, a rule or a guide, with a source and a check date.                                                                 | item, fact                   |
+| **Definition**         | A metric, a dimension or a term, and what it means here. Metrics and dimensions are read-only copies from the definitions source.                  | catalogue entry              |
+| **Term**               | A word with its own meaning, written here (Peak season).                                                                                           | person-written definition    |
+| **Synonym**            | Another name for a metric or a dimension (GMV for Gross sales). Agents read it as that definition. One word has one meaning in the workspace.      | alias                        |
+| **Domain**             | An area of the business, such as Sales. Every context item belongs to one. A domain is a document with owners and house rules.                     | area                         |
+| **Owner**              | A person who publishes and checks a domain's context. Ownership belongs to the domain, not to a role.                                              | steward                      |
+| **Admin**, **Member**  | The two roles (section 11).                                                                                                                        | administrator                |
+| **Suggestion**         | A change sent to an owner, from the editor or by an agent. It waits for review until the owner publishes it, sends it back or closes it.           | proposal                     |
+| **Waiting for review** | A suggestion that was sent and waits for an owner's decision (chip Waiting). Agents don't get it yet.                                              | submitted, in review         |
+| **Publish**            | An owner makes context available to agents.                                                                                                        | accept                       |
+| **Archive**            | Take a published item out of what agents get, keeping its history.                                                                                 | retire                       |
+| **Inbox**              | What needs the person, ordered by need.                                                                                                            | notifications, queue         |
+| **Card**               | One row in the Inbox: Not found, Reported, Saved questions, Alert, Mentioned you, Due for a check, a Suggestion, or Your drafts.                   | inbox item                   |
+| **Not found**          | A question agents asked several times and found nothing written for. Its card brings a draft. Also an answer state.                                | gap                          |
+| **Reported**           | Someone said a context item is wrong or unclear.                                                                                                   | flag                         |
+| **Due for a check**    | A context item whose check date has passed.                                                                                                        | review due                   |
+| **Saved question**     | A question an owner or admin keeps, and Footnote checks again after every change. Result: Same, Changed or Needs a look.                           | saved view, test question    |
+| **Try it**             | What agents would say for a question, on a draft or on live context, without asking an AI.                                                         |                              |
+| **Ask**                | The page where a person asks and sees the same answer line an agent gets.                                                                          | assistant                    |
+| **Records**            | What the workspace keeps about its context: when items were created, changed, checked or archived, and who owns each domain. Ask counts from them. | library index                |
+| **Topic**              | The exact scope agents asked about: domain, metric, market and the month. Grouped for reading only.                                                | topic                        |
+| **Edition**            | A sealed snapshot of what agents get. Shown only in Settings, Advanced, and in the agent reply. Never in success copy.                             | edition                      |
+| **Don't conclude**     | A line on an item that stops an agent from reading a cause into it.                                                                                | caveat, what not to conclude |
+| **Integration**        | A connected tool: where definitions live, or where documents live.                                                                                 | source, connector            |
+| **Agent**              | Software outside Footnote that reads context over MCP. Never a person.                                                                             | AI app, client               |
+| **What agents get**    | The text an agent receives for an item or a question.                                                                                              | served, delivered            |
 
 Words that no screen uses: fact (for an item), gap, flag, approver, auditor, steward, caveat, AI app, Users (write People), anonymous, "Based on checked context" and the other old answer labels (kept only as the long form).
 

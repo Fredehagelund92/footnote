@@ -1,18 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import { declaredFamily } from '../../../src/domain/definition-helpers.ts'
 import {
-  baseVariant,
+  axisValues,
   familyMeaning,
-  meaningLine,
+  familyWordings,
   slotted,
   usualVariant,
+  workedOut,
+  worksOut,
   type MeaningVariant,
 } from '../../../src/domain/family-meaning.ts'
-import { declaredFamilyProblems, declaredWords } from '../../../src/domain/metric-families.ts'
+import { meaningLine } from '../../../src/domain/family-meaning-line.ts'
+import {
+  declaredFamilyProblems,
+  declaredWords,
+  derivationsOf,
+  derivedVariants,
+} from '../../../src/domain/metric-families.ts'
 
 /*
-  What a family of metrics means (FR-142, M1): declared in the source, else an owner's choice,
-  else the words most variants share, else the base variant's words. Every name is invented.
+  What a family of metrics means (FR-142, M1): declared in the source, else words an owner wrote,
+  else the words most variants share, those worked out from another aside. Every name is invented;
+  family-meaning-sets.test.ts holds the rule on families shaped like real ones.
 */
 
 const by = ['Currency', 'Channel']
@@ -47,8 +56,17 @@ const meaning = (
 
 describe('a variant’s words with its values as slots', () => {
   it('writes each value as the axis it stands for, as a whole word in any case', () => {
-    expect(slotted('Money taken in eur via Web, not in EURO.', ['EUR', 'web'], by)).toBe(
-      'Money taken in {Currency} via {Channel}, not in EURO.',
+    expect(slotted('Money taken in eur via Web, not in EUROPE.', ['EUR', 'web'], by)).toBe(
+      'Money taken in {Currency} via {Channel}, not in EUROPE.',
+    )
+  })
+
+  it('writes a currency’s name as its code is (T1)', () => {
+    expect(slotted('Net sales in US dollars, after returns.', ['USD'], ['Currency'])).toBe(
+      'Net sales in {Currency}, after returns.',
+    )
+    expect(slotted('Euros booked, in euros.', ['EUR'], ['Currency'])).toBe(
+      '{Currency} booked, in {Currency}.',
     )
   })
 
@@ -83,21 +101,155 @@ describe('a variant’s words with its values as slots', () => {
   })
 })
 
-describe('the base variant', () => {
-  it('is the one every conversion starts at', () => {
-    expect(
-      baseVariant([...conversion, { from: 'metric:accrued_eur', to: 'metric:accrued_gbp' }]),
-    ).toBe('metric:accrued_eur')
+describe('a value its variants write as a word (T2)', () => {
+  const plan = (value: string) => ({
+    key: `metric:users_${value.toLowerCase()}`,
+    values: [value],
+    description: `Users on the ${value} plan, including those on a free trial.`,
+  })
+  const plans = [plan('Free'), plan('Plus'), plan('Pro')]
+
+  it('stays a word where a variant holding another value writes it beside the same word', () => {
+    const axes = axisValues(['Plan'], plans)
+    const words = familyWordings({ by: ['Plan'], variants: plans })
+    // "a free trial" is in every variant's words: a word, not the Free plan.
+    expect(words).toEqual([
+      {
+        values: ['Free'],
+        words: 'Users on the Free plan, including those on a free trial.',
+        line: 'Users on each plan, including those on a free trial.',
+        count: 3,
+      },
+    ])
+    // Without what the others write beside it, it would be the plan.
+    expect(slotted(plans[0]!.description, ['Free'], ['Plan'], axes)).toBe(
+      'Users on the {Plan} plan, including those on a {Plan} trial.',
+    )
   })
 
-  it('is none without conversions, or when they start at two variants', () => {
-    expect(baseVariant([])).toBeNull()
+  it('so a family whose metric’s name holds a value says nothing else (side bug 1)', () => {
+    const fees = ['web', 'marketplace'].map((channel) => ({
+      key: `metric:fees_${channel}`,
+      values: [channel],
+      description: `Marketplace fees for orders paid through the ${channel} channel.`,
+    }))
     expect(
-      baseVariant([
-        { from: 'metric:a', to: 'metric:b' },
-        { from: 'metric:c', to: 'metric:d' },
+      familyMeaning({
+        by: ['Channel'],
+        variants: fees,
+        conversions: [],
+        declared: null,
+        chosen: null,
+      }),
+    ).toMatchObject({
+      words: 'Marketplace fees for orders paid through the {Channel} channel.',
+      common: { agree: 2 },
+      differing: [],
+    })
+  })
+})
+
+describe('a variant worked out from another (T3)', () => {
+  const axes = [['EUR', 'USD', 'GBP']]
+  const usd = (description: string) => ({ values: ['USD'], description })
+
+  it('says a rate and a value another variant holds, as a code, in an id or by its name', () => {
+    expect(worksOut(usd("The EUR amount multiplied by the row's exchange rate."), axes)).toBe(true)
+    expect(worksOut(usd('amount_eur multiplied by fx_rate_usd.'), axes)).toBe(true)
+    expect(worksOut(usd('Converted from euros at the daily rate.'), axes)).toBe(true)
+  })
+
+  it('needs both: a rate alone, another value alone or its own value is not enough', () => {
+    expect(worksOut(usd('Seller payouts converted to USD at the monthly rate.'), axes)).toBe(false)
+    expect(worksOut(usd('Revenue in USD, as the EUR one is.'), axes)).toBe(false)
+    // A code is written in capitals: "in" is no country coded IN.
+    expect(
+      worksOut({ values: ['DE'], description: 'Conversion rate of sessions in DE.' }, [
+        ['DE', 'IN'],
       ]),
-    ).toBeNull()
+    ).toBe(false)
+  })
+
+  it('is what a family’s page and Ask say is worked out from another (side bug 2)', () => {
+    const variants = [
+      { values: ['EUR'], description: 'Fees in EUR.' },
+      usd("The EUR amount multiplied by the row's rate."),
+      // Another value without a rate says nothing of how it is worked out.
+      { values: ['GBP'], description: 'Fees in GBP, like the EUR ones.' },
+    ]
+    expect(derivedVariants(variants)).toEqual([variants[1]])
+  })
+})
+
+describe('a variant whose words say it is converted, naming only its own currency (C3)', () => {
+  const variant = (key: string, values: string[], description: string | null) => ({
+    key,
+    values,
+    description,
+  })
+  const eur = variant('payouts_eur', ['EUR'], 'Payouts we send partners in EUR, on the day sent.')
+  const usd = variant(
+    'payouts_usd',
+    ['USD'],
+    'Partner payouts converted to USD at each month’s rate.',
+  )
+  const family = (by: string[], ...variants: ReturnType<typeof variant>[]) => ({
+    by,
+    variants,
+    conversions: [],
+  })
+
+  it('is worked out from another in a family by Currency, the only one whose words name a rate', () => {
+    expect(workedOut(family(['Currency'], eur, usd))).toEqual(new Set(['payouts_usd']))
+    // Its currency by its name counts, as a code does.
+    const dollars = variant('payouts_usd', ['USD'], 'Payouts converted into US dollars monthly.')
+    expect(workedOut(family(['Currency code'], eur, dollars))).toEqual(new Set(['payouts_usd']))
+    // So its words have no say: the EUR ones speak for the family.
+    expect(
+      familyMeaning({ ...family(['Currency'], eur, usd), declared: null, chosen: null }),
+    ).toMatchObject({ source: 'common', base: 'payouts_eur' })
+  })
+
+  it('is none when the family is by something else, two variants name a rate, or its words name no currency of its own', () => {
+    expect(
+      workedOut(family(['Region'], { ...eur, values: ['EU'] }, { ...usd, values: ['US'] })),
+    ).toEqual(new Set())
+    const gbp = variant('payouts_gbp', ['GBP'], 'Payouts converted to GBP at the weekly rate.')
+    expect(workedOut(family(['Currency'], eur, usd, gbp))).toEqual(new Set())
+    const unnamed = variant(
+      'payouts_usd',
+      ['USD'],
+      'Partner payouts converted at each month’s rate.',
+    )
+    expect(workedOut(family(['Currency'], eur, unnamed))).toEqual(new Set())
+    // Alone, it has none to be converted from.
+    expect(workedOut(family(['Currency'], usd))).toEqual(new Set())
+  })
+
+  it('needs words that say it is converted: a bare rate or a conversion rate is none', () => {
+    const share = variant('refunds_eur', ['EUR'], 'Share of EUR orders refunded within 30 days.')
+    const rate = variant('refunds_usd', ['USD'], 'Refund rate of USD orders within 30 days.')
+    expect(workedOut(family(['Currency'], share, rate))).toEqual(new Set())
+    expect(
+      familyMeaning({ ...family(['Currency'], share, rate), declared: null, chosen: null }),
+    ).toMatchObject({ source: 'none', base: null })
+    const conversion = variant('sessions_usd', ['USD'], 'Conversion rate of USD sessions.')
+    expect(workedOut(family(['Currency'], share, conversion))).toEqual(new Set())
+  })
+
+  it('is decided by the values of the axis, not its name', () => {
+    expect(workedOut(family(['Currency (orders)'], eur, usd))).toEqual(new Set(['payouts_usd']))
+    expect(workedOut(family(['Order currency'], eur, usd))).toEqual(new Set(['payouts_usd']))
+    const eu = { ...eur, values: ['EU'] }
+    const us = { ...usd, values: ['US'] }
+    expect(workedOut(family(['Currency'], eu, us))).toEqual(new Set())
+  })
+
+  it('is one of the lines a family’s page gives on how its variants are worked out', () => {
+    expect(derivedVariants([eur, usd])).toEqual([usd])
+    expect(derivationsOf([eur, usd].map((v) => ({ ...v, said: v.key })))).toEqual([
+      `payouts_usd: ${usd.description}`,
+    ])
   })
 })
 
@@ -107,7 +259,6 @@ describe('a family’s meaning (M1)', () => {
       source: 'common',
       words:
         'Money taken for paid orders in {Currency} via {Channel}, after discounts and before tax.',
-      member: null,
       common: {
         words:
           'Money taken for paid orders in {Currency} via {Channel}, after discounts and before tax.',
@@ -120,7 +271,7 @@ describe('a family’s meaning (M1)', () => {
     })
   })
 
-  it('is the common words of a variant whose words say how it is converted (R1)', () => {
+  it('is the words of the one variant whose words say nothing of a conversion (R1, T3)', () => {
     // A source that writes the converted variant's words with a note on its rate, as one
     // generated model does for every pair.
     const pair: MeaningVariant[] = [
@@ -143,10 +294,12 @@ describe('a family’s meaning (M1)', () => {
       declared: null,
       chosen: null,
     })
+    // The USD one says it is the EUR one at a rate: it has no say, and says nothing else.
     expect(found).toMatchObject({
       source: 'common',
       words: 'Fees partners report on referred users in {Currency}. See the glossary > Fees.',
-      common: { agree: 2 },
+      common: { agree: 1 },
+      base: 'metric:partner_fees_eur',
       differing: [],
     })
   })
@@ -225,7 +378,7 @@ describe('a family’s meaning (M1)', () => {
     expect(meaning(half).source).toBe('none')
   })
 
-  it('is the base variant’s words when the variants say different things', () => {
+  it('is the words of the variant the others are converted from, as no one variant (T3)', () => {
     const found = familyMeaning({
       by: ['Currency'],
       variants: accrued,
@@ -233,13 +386,63 @@ describe('a family’s meaning (M1)', () => {
       declared: null,
       chosen: null,
     })
+    // "in euros" is the EUR variant's currency (T1): the family reads as each currency.
     expect(found).toMatchObject({
-      source: 'base',
-      words: accrued[0]!.description,
-      member: 'metric:accrued_eur',
+      source: 'common',
+      words: "The share of a contract's value booked in its first three months, in {Currency}.",
+      common: { agree: 1 },
       base: 'metric:accrued_eur',
-      differing: ['metric:accrued_usd'],
+      differing: [],
     })
+  })
+
+  it('has no say for a variant converted from another, so the others decide (C5)', () => {
+    const found = familyMeaning({
+      by: ['Currency'],
+      variants: [
+        {
+          key: 'metric:net_eur',
+          values: ['EUR'],
+          description: 'Net revenue in EUR after refunds.',
+        },
+        { key: 'metric:net_usd', values: ['USD'], description: "EUR amount × the row's USD rate." },
+        { key: 'metric:net_gbp', values: ['GBP'], description: "EUR amount × the row's GBP rate." },
+      ],
+      conversions: [
+        { from: 'metric:net_eur', to: 'metric:net_usd' },
+        { from: 'metric:net_eur', to: 'metric:net_gbp' },
+      ],
+      declared: null,
+      chosen: null,
+    })
+    expect(found).toMatchObject({
+      words: 'Net revenue in {Currency} after refunds.',
+      base: 'metric:net_eur',
+    })
+  })
+
+  it('is none for words that still name a value, which would read as one variant (T4)', () => {
+    const copied = (description: string) =>
+      familyMeaning({
+        by: ['Currency'],
+        variants: ['EUR', 'USD'].map((code) => ({
+          key: `metric:bookings_${code.toLowerCase()}`,
+          values: [code],
+          description,
+        })),
+        conversions: [],
+        declared: null,
+        chosen: null,
+      })
+    expect(copied('Gross bookings from confirmed orders, in euros.')).toMatchObject({
+      source: 'none',
+      common: null,
+      automatic: null,
+      differing: [],
+    })
+    expect(copied('Gross revenue in EUR from paid orders.').source).toBe('none')
+    // An id is a name, not a value: `refunds_eur` stays.
+    expect(copied('Bookings in each currency. See `refunds_eur`.').source).toBe('common')
   })
 
   it('writes the base variant’s values as slots, so the family reads as no one variant (R4)', () => {
@@ -254,7 +457,7 @@ describe('a family’s meaning (M1)', () => {
       chosen: null,
     })
     expect(found).toMatchObject({
-      source: 'base',
+      source: 'common',
       words: "The share of a contract's value booked early, in {Currency}.",
       automatic: "The share of a contract's value booked early, in {Currency}.",
     })
@@ -266,53 +469,68 @@ describe('a family’s meaning (M1)', () => {
   it('is none when nothing gives one, and then no variant says something else (R2)', () => {
     const found = familyMeaning({
       by: ['Currency'],
-      variants: accrued,
+      variants: [
+        accrued[0]!,
+        // Written apart, and not converted: words that say it is converted would speak (C3).
+        { ...accrued[1]!, description: 'The value of each contract by the month it was signed.' },
+      ],
       conversions: [],
       declared: null,
       chosen: null,
     })
-    expect(found).toMatchObject({ source: 'none', words: null, member: null, automatic: null })
+    expect(found).toMatchObject({ source: 'none', words: null, base: null, automatic: null })
     // With no meaning, there is nothing to say something else than.
     expect(found.differing).toEqual([])
   })
 
-  it('is an owner’s chosen variant over the common words', () => {
-    const found = meaning(many, {
-      chosen: { choice: 'member', member: 'metric:revenue_usd_app', words: null },
-    })
-    expect(found).toMatchObject({
-      source: 'member',
-      words: many[3]!.description,
-      member: 'metric:revenue_usd_app',
-      // What the rule gives stays, for the owner to go back to.
-      automatic:
-        'Money taken for paid orders in {Currency} via {Channel}, after discounts and before tax.',
-    })
-    // Against that variant's words, the three others say something else.
-    expect(found.differing).toHaveLength(3)
-  })
-
   it('is the owner’s written words, as written', () => {
     const found = meaning(many, {
-      chosen: { choice: 'written', member: null, words: '  Money taken for paid orders.  ' },
+      chosen: { choice: 'written', words: '  Money taken for paid orders.  ' },
     })
     expect(found).toMatchObject({ source: 'written', words: 'Money taken for paid orders.' })
     expect(found.differing).toEqual(['metric:revenue_usd_app'])
   })
 
-  it('falls back to the rule for a chosen variant that has gone or has no words', () => {
-    expect(
-      meaning(many, { chosen: { choice: 'member', member: 'metric:gone', words: null } }).source,
-    ).toBe('common')
-    expect(meaning(many, { chosen: { choice: 'auto', member: null, words: null } }).source).toBe(
-      'common',
-    )
+  it('is words written or declared for a family whose variants share none, which none says something else than (S3)', () => {
+    const apart = {
+      by: ['Currency'],
+      variants: [
+        {
+          key: 'metric:planned_eur',
+          values: ['EUR'],
+          description: 'Forecast revenue from the planning model, in EUR.',
+        },
+        {
+          key: 'metric:planned_usd',
+          values: ['USD'],
+          description: 'Planned sales as the board approved them.',
+        },
+      ],
+      conversions: [],
+      declared: null,
+      chosen: null,
+    }
+    expect(familyMeaning(apart)).toMatchObject({ source: 'none', differing: [] })
+    const words = 'Revenue the planning model forecasts, in each currency.'
+    expect(familyMeaning({ ...apart, chosen: { choice: 'written', words } })).toMatchObject({
+      source: 'written',
+      words,
+      differing: [],
+    })
+    expect(familyMeaning({ ...apart, declared: words })).toMatchObject({
+      source: 'declared',
+      differing: [],
+    })
+  })
+
+  it('is the rule again once an owner chose it to be worked out', () => {
+    expect(meaning(many, { chosen: { choice: 'auto', words: null } }).source).toBe('common')
   })
 
   it('is the source’s declared words over any owner’s choice', () => {
     const found = meaning(many, {
       declared: 'Money taken for paid orders.',
-      chosen: { choice: 'written', member: null, words: 'Something else.' },
+      chosen: { choice: 'written', words: 'Something else.' },
     })
     expect(found).toMatchObject({ source: 'declared', words: 'Money taken for paid orders.' })
   })
@@ -323,6 +541,36 @@ describe('a meaning as one plain line', () => {
     expect(meaningLine('Taken in {Currency} via {Channel} for {customers}.', by)).toBe(
       'Taken in each currency via each channel for {customers}.',
     )
+  })
+
+  it('says "the {Channel} channel" as each channel, never "the each channel channel"', () => {
+    expect(meaningLine('Fees paid in {Currency} through the {Channel} channel.', by)).toBe(
+      'Fees paid in each currency through each channel.',
+    )
+    expect(meaningLine('The {Plan} plan, {Region} region.', ['Plan', 'Region'])).toBe(
+      'Each plan, each region.',
+    )
+    expect(meaningLine('Orders via the {Channel}.', by)).toBe('Orders via each channel.')
+  })
+})
+
+describe('what a family’s variants say, for an owner to start from', () => {
+  it('gives each wording once, most first, with its first variant’s values and words', () => {
+    expect(familyWordings({ by, variants: many })).toEqual([
+      {
+        values: ['EUR', 'web'],
+        words: 'Money taken for paid orders in EUR via web, after discounts and before tax.',
+        line: 'Money taken for paid orders in each currency via each channel, after discounts and before tax.',
+        count: 3,
+      },
+      {
+        values: ['USD', 'app'],
+        words:
+          'Money taken for paid orders in USD via app, before marketplace fees and before tax.',
+        line: 'Money taken for paid orders in each currency via each channel, before marketplace fees and before tax.',
+        count: 1,
+      },
+    ])
   })
 })
 

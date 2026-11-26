@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { settingKeys } from '@contract/admin'
+import { ABOUT_BUSINESS_MAX } from '@domain/about-business'
 import { agentToolNames } from '@domain/agents'
 import { toolsOn } from '@/lib/connect'
 import { ApiError } from '@/api/errors'
@@ -26,6 +27,7 @@ import { readiness } from '@/model/review'
 import { findDefinition, meaningOf, type Definition } from '@/lib/definitions'
 import { emailOf } from '@/model/people'
 import { connectorById } from '@/model/catalogue'
+import { shareTurnsOf } from '@/model/shared-chat'
 
 /** Two names for the same word: case aside. */
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
@@ -108,7 +110,9 @@ export function describeFootnoteApi(
         expect(new Set(items.map((f) => f.id)).size).toBe(items.length)
         for (const f of items) {
           expect(['event', 'issue', 'note', 'guide'], f.id).toContain(f.kind)
-          expect(['Draft', 'Live', 'Due for a check', 'Archived'], f.id).toContain(f.status)
+          expect(['Draft', 'Waiting', 'Live', 'Due for a check', 'Archived'], f.id).toContain(
+            f.status,
+          )
           expect(f.when, f.id).toBe(whenLabel(f.valid))
           expect(f.title, f.id).not.toBe('')
           for (const name of f.where) expect(name, f.id).not.toBe('')
@@ -358,7 +362,6 @@ export function describeFootnoteApi(
         const to = (r: Related, id: string) => r.links.find((l) => l.to.id === id)
         // A metric another domain owns, written in the text: Orders is Sales's.
         const campaign = await related('Norway launch campaign started on 24 March 2026')
-        expect(campaign.following).toBe(true)
         expect(to(campaign, 'metric:Orders')).toMatchObject({
           rel: 'mentions',
           to: { label: 'Orders', retired: false },
@@ -436,7 +439,7 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'getLibrary', 'contextPage'))(
-      "lists the Context page: the library's items and the drafts, each once, a draft by who started it",
+      "lists the Context page: the library's items and the person's own drafts, each once",
       async () => {
         const live = await signedIn()
         const rows = await live.contextPage()
@@ -445,7 +448,7 @@ export function describeFootnoteApi(
         )
         const drafts = rows.filter((f) => f.status === 'Draft')
         expect(drafts.length).toBeGreaterThan(0)
-        for (const d of drafts) expect(d.by, d.id).toBeTruthy()
+        for (const d of drafts) expect(d.by, d.id).toBe(person)
       },
     )
 
@@ -632,6 +635,27 @@ export function describeFootnoteApi(
         })
       },
     )
+
+    it.skipIf(
+      lacks('signIn', 'getWorkspace', 'getLibrary', 'contextPage', 'itemPage', 'saveDraft'),
+    )('saves a draft that only its writer sees, and saves it again in place (FR-230)', async () => {
+      const live = await signedIn()
+      const { fact } = await newItem(live, 'Conformance: a draft only its writer sees', '05')
+      const { id } = await live.saveDraft({ fact: { ...fact, status: 'Draft' }, isNew: true })
+      expect((await live.contextPage()).find((f) => f.id === id)).toMatchObject({
+        title: fact.title,
+        status: 'Draft',
+        by: person,
+      })
+      const again = { ...(await live.itemPage({ id }))!.item, title: `${fact.title}, again` }
+      expect(await live.saveDraft({ fact: again, isNew: false })).toEqual({ id })
+      expect((await live.itemPage({ id }))!.item.title).toBe(again.title)
+      // Nobody else sees it: not in their list, and its page is not found.
+      await api().signIn({ name: colleague })
+      expect((await api().contextPage()).some((f) => f.id === id)).toBe(false)
+      expect(await api().itemPage({ id })).toBeNull()
+      await api().signIn({ name: person })
+    })
 
     it.skipIf(lacks('signIn', 'searchScope'))(
       'searches what an item applies to without listing every value of a dimension (FR-107)',
@@ -842,6 +866,30 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'getInbox', 'copyQuestionLink', 'getQuestion'))(
+      "passes a card's question on as a link: copied again it is the same link, and its day shows",
+      async () => {
+        const live = await signedIn()
+        const card = (await live.getInbox()).cards.find((c) =>
+          c.secondary.includes('Ask someone who knows'),
+        )
+        expect(card).toBeDefined()
+        const first = await live.copyQuestionLink({ card: card!.id })
+        expect((await live.copyQuestionLink({ card: card!.id })).id).toBe(first.id)
+        const question = await live.getQuestion({ id: first.id })
+        expect(question).toMatchObject({
+          id: first.id,
+          kind: card!.type === 'gap' ? 'gap' : 'check',
+          open: true,
+        })
+        expect(question.topic).not.toBe('')
+        expect((await live.getInbox()).cards.find((c) => c.id === card!.id)?.asked?.on).toBeTruthy()
+        await expect(
+          live.getQuestion({ id: '00000000-0000-4000-8000-0000000000ff' }),
+        ).rejects.toMatchObject({ kind: 'not-found' })
+      },
+    )
+
     it.skipIf(
       lacks(
         'signIn',
@@ -1002,22 +1050,26 @@ export function describeFootnoteApi(
       },
     )
 
-    it.skipIf(lacks('signIn', 'getSettings', 'setLinks', 'setTool'))(
-      'switches a tool agents call off and on again, links among them',
+    it.skipIf(lacks('signIn', 'getSettings', 'setTool'))(
+      'switches a tool agents call off and on again',
       async () => {
         const live = await signedIn()
         const before = await live.getSettings()
-        expect(Object.keys(before.tools)).toEqual(
-          expect.arrayContaining(['get_context', 'find_context', 'read_context', 'report']),
-        )
+        expect(Object.keys(before.tools).sort()).toEqual([
+          'find_context',
+          'get_context',
+          'read_context',
+          'report',
+          'suggest_context',
+        ])
         await live.setTool({ name: 'suggest_context', on: false })
         expect((await live.getSettings()).tools.suggest_context).toBe(false)
         await live.setTool({ name: 'suggest_context', on: true })
         expect((await live.getSettings()).tools.suggest_context).toBe(true)
-        await live.setLinks({ on: !before.links })
-        expect((await live.getSettings()).links).toBe(!before.links)
-        await live.setLinks({ on: before.links })
-        expect((await live.getSettings()).links).toBe(before.links)
+        await live.setTool({ name: 'read_context', on: false })
+        expect((await live.getSettings()).tools.read_context).toBe(false)
+        await live.setTool({ name: 'read_context', on: true })
+        expect((await live.getSettings()).tools.read_context).toBe(true)
       },
     )
 
@@ -1037,158 +1089,6 @@ export function describeFootnoteApi(
         expect((await live.getSettings()).pause.domain).toBe(second!.id)
         await live.setPause({ domain: null })
         expect((await live.getSettings()).pause).toEqual({ all: false, domain: null })
-      },
-    )
-
-    // Figures in Ask (FR-716): Cube in the demo week reads figures from the demo warehouse.
-    const orders = {
-      metric: 'Orders',
-      markets: ['Norway'],
-      dates: '1 to 31 Aug 2026',
-      state: 'grounded',
-      sources: [],
-    }
-
-    it.skipIf(lacks('signIn', 'getSettings', 'getIntegrations', 'readFigure', 'setFigures'))(
-      'shows no figure until figures are on for Cube, then one, with its source and query in words',
-      async () => {
-        const live = await signedIn()
-        const settings = await live.getSettings()
-        expect(settings.figures.cube).toBe(false)
-        expect(settings.contacts.cube).toBe('Ravi Kapoor')
-        expect(settings.connected).toContain('cube')
-        // Reached at one host, its secret set, and none of the secret shown.
-        const cube = (await live.getIntegrations()).figureConnections.cube!
-        expect(cube).toMatchObject({ secretSet: true, contact: 'Ravi Kapoor' })
-        expect(cube.endpoint).toMatch(/\/v1\/load$/)
-        expect(cube.host).toBeTruthy()
-        expect(JSON.stringify(cube)).not.toMatch(/secretTail|token/i)
-        // Off: the answer links into the tool.
-        expect(await live.readFigure(orders)).toMatchObject({
-          kind: 'link',
-          source: 'cube',
-          scope: 'Orders in Norway, 1 to 31 Aug 2026',
-        })
-        await live.setFigures({ source: 'cube', on: true })
-        try {
-          expect((await live.getSettings()).figures.cube).toBe(true)
-          const figure = await live.readFigure(orders)
-          expect(figure).toMatchObject({
-            kind: 'line',
-            source: 'cube',
-            asOf: 'today at 06:00',
-            figure: {
-              label: 'Orders in Norway, 1 to 31 Aug 2026',
-              value: '€43,600',
-              change: 'down 89% from July (€412,600)',
-              words:
-                'Orders, added up for Norway from 1 to 31 Aug 2026, and the same for 1 to 31 Jul 2026 to compare.',
-            },
-          })
-          // An answer read as keys asks for its values by key: the same figure for Norway.
-          expect(await live.readFigure({ ...orders, values: ['val:market/norway'] })).toMatchObject(
-            { kind: 'line', figure: { label: 'Orders in Norway, 1 to 31 Aug 2026' } },
-          )
-          // Footwear orders in August are never the orders of every product: the demo's Orders
-          // splits by market only, so there is no figure, and it says why.
-          expect(
-            await live.readFigure({ ...orders, markets: [], values: ['val:product/footwear'] }),
-          ).toEqual({
-            kind: 'none',
-            why: 'Cube can\'t split "Orders" the way the question does, so no figure is read for it.',
-            closest: [],
-          })
-          // A figure that can't be read for the question is no figure, never a guess.
-          expect(await live.readFigure({ ...orders, dates: undefined })).toBeNull()
-          expect(await live.readFigure({ ...orders, state: 'failed' })).toBeNull()
-        } finally {
-          await live.setFigures({ source: 'cube', on: false })
-        }
-        expect((await live.getSettings()).figures.cube).toBe(false)
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'getSettings', 'getIntegrations', 'tryFigure'))(
-      "tries a figure from Cube's figures connection as saved, with figures off, keeping nothing",
-      async () => {
-        const live = await signedIn()
-        expect((await live.getSettings()).figures.cube).toBe(false)
-        // The first of Cube's views by name with a single date is Marketing, and its first measure
-        // by name is Conversion rate: the demo warehouse has nothing for it in the last 7 days,
-        // which still says the endpoint and its token work.
-        const tried = await live.tryFigure({ source: 'cube' })
-        expect(tried).toEqual({
-          kind: 'figure',
-          source: 'cube',
-          label: 'Conversion rate, 17 to 23 Oct 2026',
-          value: null,
-          asOf: 'today at 06:00',
-          took: expect.any(Number) as number,
-        })
-        expect(JSON.stringify(tried)).not.toMatch(/token|secret/i)
-        // Trying changes nothing: figures stay off, and the connection is as it was.
-        expect((await live.getSettings()).figures.cube).toBe(false)
-        expect((await live.getIntegrations()).figureConnections.cube).toMatchObject({
-          secretSet: true,
-        })
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'getSettings', 'setDataContact', 'getIntegrations'))(
-      'names who hears about a figure that looks wrong',
-      async () => {
-        const live = await signedIn()
-        await live.setDataContact({ source: 'cube', name: colleague })
-        try {
-          expect((await live.getSettings()).contacts.cube).toBe(colleague)
-          expect((await live.getIntegrations()).figureConnections.cube?.contact).toBe(colleague)
-        } finally {
-          await live.setDataContact({ source: 'cube', name: 'Ravi Kapoor' })
-        }
-        expect((await live.getSettings()).contacts.cube).toBe('Ravi Kapoor')
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'getLibrary', 'reportAnswer'))(
-      'reports a figure that does not fit a context item, to its owners and the data contact',
-      async () => {
-        const live = await signedIn()
-        const [item] = (await live.getLibrary()).items.filter((f) => f.status === 'Live')
-        const sent = await live.reportAnswer({
-          question: 'Why did orders in Norway drop in August?',
-          part: 'figure',
-          sources: [item!.id],
-          what: "The figure doesn't fit this context item.",
-          figure: {
-            source: 'cube',
-            to: 'both',
-            metric: 'Orders',
-            markets: ['Norway'],
-            dates: '1 to 31 Aug 2026',
-          },
-        })
-        expect(sent.id).toBeTruthy()
-      },
-    )
-
-    it.skipIf(lacks('signIn', 'setFigureConnection', 'getIntegrations'))(
-      "sets where an integration's figures are read, and shows the token as set, never what it is",
-      async () => {
-        const live = await signedIn()
-        const token = 'conformance-figures-token-7a1e'
-        await live.setFigureConnection({
-          source: 'cube',
-          endpoint: 'https://cube.example.test/cubejs-api/v1/load',
-          token,
-        })
-        const cube = (await live.getIntegrations()).figureConnections.cube!
-        expect(cube).toMatchObject({
-          endpoint: 'https://cube.example.test/cubejs-api/v1/load',
-          host: 'cube.example.test',
-          secretSet: true,
-        })
-        expect(JSON.stringify(await live.getIntegrations())).not.toContain(token)
-        expect(JSON.stringify(await live.getSettings())).not.toContain(token)
       },
     )
 
@@ -1660,6 +1560,20 @@ export function describeFootnoteApi(
         expect(workspace.about).toBe(text)
         expect(workspace.setup.done.about).toBe(true)
         expect(workspace.aboutTemplate).toMatch(/outdoor-gear retailer/)
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'getWorkspace', 'getVocabulary', 'draftAbout'))(
+      'writes a first version of what the business is about from its names, and saves nothing',
+      async () => {
+        const live = await signedIn()
+        const before = (await live.getWorkspace()).about
+        const { text } = await live.draftAbout()
+        expect([...text].length).toBeGreaterThan(0)
+        expect([...text].length).toBeLessThanOrEqual(ABOUT_BUSINESS_MAX)
+        const { metrics } = await live.getVocabulary()
+        expect(metrics.some((m) => text.includes(m.name))).toBe(true)
+        expect((await live.getWorkspace()).about).toBe(before)
       },
     )
 
@@ -2201,18 +2115,19 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'inboxPage', 'getReviews', 'closeReview'))(
-      'closes nothing its sender did not take back',
+      'closes nothing without its reason',
       async () => {
         await api().signIn({ name: person })
         const inbox = await api().inboxPage()
         const plain = (await api().getReviews()).find(
           (r) =>
             r.mode !== 'retire' &&
+            !r.drafted &&
             inbox.cards.some((c) => c.id === r.id && c.for === person && !inbox.done[c.id]),
         )
         expect(plain, `a suggestion for ${person}`).toBeDefined()
         await expect(api().closeReview({ id: plain!.id })).rejects.toMatchObject({
-          kind: 'conflict',
+          kind: 'invalid',
         })
         expect((await api().inboxPage()).done[plain!.id]).toBeUndefined()
       },
@@ -2407,6 +2322,69 @@ export function describeFootnoteApi(
           link: 'https://wiki.example/norway-orders',
         })
         expect((await a.getMyReports())[0]?.id).toBe(itself.id)
+        // Only the right words for a source are a suggestion; the answer's wording keeps its words.
+        expect(id).toBeTypeOf('string')
+        expect(itself.suggestion).toBeUndefined()
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'ask', 'reportAnswer', 'getInbox'))(
+      'sends the right words for a source as a suggestion on it, which waits for an owner',
+      async () => {
+        const a = await signedIn()
+        const answer = await a.ask({ question: 'Do Norway orders include gift-card money?' })
+        const item = answer.sources[0]!
+        const sent = await a.reportAnswer({
+          question: answer.question,
+          part: item,
+          sources: answer.sources,
+          what: 'Gift cards are paid out separately since October.',
+          correction: 'Norway orders leave gift cards out since 1 October 2026.',
+        })
+        expect(sent.suggestion).toBeTypeOf('string')
+        const inbox = await a.getInbox()
+        expect([...inbox.waiting.map((w) => w.card), ...inbox.sent.map((x) => x.id)]).toContain(
+          sent.suggestion,
+        )
+        // Words longer than a summary are refused, and nothing is sent.
+        await expect(
+          a.reportAnswer({
+            question: answer.question,
+            part: item,
+            sources: answer.sources,
+            what: 'Too long.',
+            correction: 'word '.repeat(80),
+          }),
+        ).rejects.toMatchObject({ kind: 'invalid' })
+      },
+    )
+
+    it.skipIf(lacks('signIn', 'ask', 'shareChat', 'getChatShares', 'getSharedChat', 'stopSharing'))(
+      'shares a chat as one link that a colleague opens, and only its sender stops it',
+      async () => {
+        const a = await signedIn()
+        const answer = await a.ask({ question: 'Do Norway orders include gift-card money?' })
+        const turns = shareTurnsOf([answer])
+        expect(turns).toHaveLength(1)
+        const chat = `chat-${Date.now()}`
+        const link = await a.shareChat({ chat, title: answer.question, turns })
+        expect(link).toMatchObject({ chat, title: answer.question, turns: 1, left: 0 })
+        const mine = await a.getChatShares()
+        expect(mine.on).toBe(true)
+        expect(mine.links[0]).toEqual(link)
+
+        await a.signIn({ name: colleague })
+        const shared = await a.getSharedChat({ id: link.id })
+        expect(shared).toMatchObject({ id: link.id, mine: false, by: { name: person } })
+        expect(shared.turns).toEqual([{ kind: 'turn', ...turns[0] }])
+        expect((await a.getChatShares()).links.some((l) => l.id === link.id)).toBe(false)
+        // Not theirs to stop: the link stays.
+        await a.stopSharing({ ids: [link.id] })
+        await a.signIn({ name: person })
+        expect((await a.getChatShares()).links.some((l) => l.id === link.id)).toBe(true)
+        await a.stopSharing({ ids: [link.id] })
+        expect((await a.getChatShares()).links.some((l) => l.id === link.id)).toBe(false)
+        await expect(a.getSharedChat({ id: link.id })).rejects.toMatchObject({ kind: 'not-found' })
       },
     )
 

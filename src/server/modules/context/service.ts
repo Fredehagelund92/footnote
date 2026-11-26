@@ -9,18 +9,24 @@ import type {
   ItemVersionEntry,
   PublishItemResult,
   RelatedContext,
+  SavedDraft,
 } from '../../../contract/context.ts'
 import { deriveAgentDraft } from '../../../domain/agent-draft.ts'
 import {
   changeAction,
   changeSummary,
   planBulk,
+  PUBLISH_MAX,
+  publishesNow,
+  publishSummary,
   type BulkInput,
   type BulkPerson,
   type BulkRow,
   type BulkRowSkip,
 } from '../../../domain/context-bulk.ts'
 import type { Draft } from '../../../domain/draft.ts'
+import { limits } from '../../../domain/proposal-rules.ts'
+import type { Scope } from '../../../domain/item.ts'
 import type { ItemVersion } from '../../../domain/item-version.ts'
 import { termDomain } from '../../../domain/catalogue.ts'
 import { related } from '../../../domain/links.ts'
@@ -28,17 +34,24 @@ import type { ClashRelation } from '../../../domain/readiness.ts'
 import { kinds, type Kind } from '../../../domain/words.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
+import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { undoOffer } from '../../db/undo.ts'
 import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { conflictsOfItem } from '../conflicts/index.ts'
-import { enabledTools } from '../editions/index.ts'
 import { createGapsService } from '../gaps/index.ts'
 import type { LibraryService } from '../library/index.ts'
 import { draftVocabulary } from '../../mcp/draft-tool.ts'
-import { proposalEvent, readVersions, type ProposalsService } from '../proposals/index.ts'
+import {
+  changeReason,
+  checkDraft,
+  proposalEvent,
+  readVersions,
+  rejectSensitive,
+  type ProposalsService,
+} from '../proposals/index.ts'
 import { draftOf, type ReviewPath, type ReviewService } from '../review/index.ts'
-import { readableAddress, type PageReader } from '../web/index.ts'
-import { missing, signedOutKept } from '../../../contract/refusals.ts'
+import { linkRefusal, pastedLink, type PageRead } from '../web/index.ts'
+import { missing, notAllowed, signedOutKept } from '../../../contract/refusals.ts'
 
 /**
  * Context for people (docs/product.md, section 3): a context item's page and its history, the
@@ -56,18 +69,25 @@ export type ContextDeps = {
   proposals: ProposalsService
   review: ReviewService
   path: ReviewPath
-  readPage?: PageReader | undefined
 }
 
 /** The words a change records as its reason, where the rules ask for one. */
 const reasons = {
   archive: 'Archived from the Context list.',
+  publish: 'Published from the Context list.',
+  unsent: 'Undone from the Context list: back to a draft.',
   check: 'Checked from the Context list: still true.',
   restored: (version: number) => `Restored from version ${version}.`,
 }
 
 const kindName = (kind: string) => kinds[kind as Kind].label
 const isItemId = (id: string) => /^itm_[a-z0-9]{8,16}$/.test(id)
+/** Why the checks refused a draft, in their first sentence; '' for any other failure. */
+function notReady(error: unknown) {
+  if (!(error instanceof ORPCError) || error.code !== 'UNPROCESSABLE_CONTENT') return ''
+  const data = error.data as { findings?: { severity: string; message: string }[] } | undefined
+  return data?.findings?.find((f) => f.severity === 'error')?.message ?? error.message
+}
 const plainError = (error: unknown) =>
   error instanceof ORPCError ? error.message : "It couldn't be changed."
 
@@ -79,13 +99,15 @@ type UndoRecord = {
   drafts?: string[]
   /** The owners each item had before, by item. */
   owners?: Record<string, string[]>
+  /** Drafts it sent, published or to the owners: Undo makes them drafts again, their writers'. */
+  sent?: string[]
 }
 
 export function createContextService(
   tx: Queryable,
   clock: Clock,
   cache: BundleCache,
-  { library, proposals, review, path, readPage }: ContextDeps,
+  { library, proposals, review, path }: ContextDeps,
 ) {
   async function person(id: string | null): Promise<BulkPerson | null> {
     const [row] = await tx.query<BulkPerson>(
@@ -121,7 +143,8 @@ export function createContextService(
 
   /**
    * The rows of a change, as the rule reads them, in the order asked: published items the person
-   * may read, and drafts row security lets them see. A row that is neither is not found.
+   * may read, and their own drafts, the only ones row security lets them see (FR-139). A row that
+   * is neither is not found.
    */
   async function rowsOf(ids: readonly string[]): Promise<{ rows: BulkRow[]; missing: string[] }> {
     const itemIds = ids.filter(isItemId)
@@ -137,7 +160,8 @@ export function createContextService(
     )
     const drafts = await tx.query<Omit<BulkRow, 'owners'>>(
       `select p.id::text, coalesce(nullif(p.draft->>'title', ''), 'Untitled draft') as title,
-              coalesce(p.draft->>'kind', 'note') as kind, p.area_id as "areaId", 'draft' as status
+              coalesce(p.draft->>'kind', 'note') as kind, p.area_id as "areaId", 'draft' as status,
+              p.proposer_id::text as writer
          from proposals p
         where p.id = any($1::uuid[]) and p.subject = 'item' and p.state = 'draft'
           and p.discarded_at is null and p.area_id is not null`,
@@ -223,6 +247,10 @@ export function createContextService(
   async function plan(input: ItemBulkInput) {
     const mine = await me()
     const read = await inputOf(input, mine)
+    if (input.action === 'publish' && new Set(input.rows).size > PUBLISH_MAX)
+      throw new ORPCError('UNPROCESSABLE_CONTENT', {
+        message: `Publish up to ${PUBLISH_MAX} drafts at once. Tick fewer, then publish the rest.`,
+      })
     const { rows, missing } = await rowsOf(input.rows)
     const names = await domainNames()
     const result = planBulk(rows, read, mine, {
@@ -249,6 +277,41 @@ export function createContextService(
     const current = await proposals.get(submitted.id)
     const published = await path.publish({ id: current.id, revision: current.revision })
     return published.undo.token.slice('decision:'.length)
+  }
+
+  /**
+   * Points a live item about a family that was split back into its metrics at each of them
+   * (FR-142), published by its owner in one step: the ready change its Inbox card offers, which
+   * ends the flag the split raised. Returns the decision, or null when it is about no such family.
+   */
+  async function pointAtSplitMetrics(itemId: string): Promise<string | null> {
+    const [live] = await tx.query<{ scope: Scope; splits: { key: string; variants: string[] }[] }>(
+      `select jsonb_build_object(
+                'metrics', coalesce((select jsonb_agg(m.metric_key order by m.metric_key)
+                                       from item_version_metrics m where m.version_id = s.version_id), '[]'),
+                'dimensions', coalesce((select jsonb_agg(d.dimension_key order by d.dimension_key)
+                                          from item_version_dimensions d where d.version_id = s.version_id), '[]'),
+                'dimensionValues', coalesce((select jsonb_agg(jsonb_build_object('dimension', d.dimension_key,
+                                                'value', d.value_key) order by d.value_key)
+                                               from item_version_dimension_values d
+                                              where d.version_id = s.version_id), '[]')) as scope,
+              coalesce((select jsonb_agg(jsonb_build_object('key', x.family_key, 'variants', x.variants))
+                          from item_version_metrics m
+                          join ${standingSplits(liveSeq)} x on x.family_key = m.metric_key
+                         where m.version_id = s.version_id), '[]') as splits
+         from item_version_service s
+        where s.item_id = $1 and s.editions @> (select seq from live_edition)`,
+      [itemId],
+    )
+    if (!live?.splits.length) return null
+    const metrics = [
+      ...new Set(
+        live.scope.metrics.flatMap(
+          (key) => live.splits.find((split) => split.key === key)?.variants ?? [key],
+        ),
+      ),
+    ]
+    return publishChange(itemId, { scope: { ...live.scope, metrics } })
   }
 
   async function lastDecision(itemId: string, outcome: 'retire' | 'accept'): Promise<string> {
@@ -279,9 +342,35 @@ export function createContextService(
       )
   }
 
+  /**
+   * The person's own draft published as from the editor: sent, through the checks, and published
+   * at once where they own its domain or are an admin. Anywhere else it waits for the domain's
+   * owners.
+   */
+  async function publishDraft(row: BulkRow, mine: BulkPerson, undo: UndoRecord) {
+    const [draft] = await tx.query<{ revision: number }>(
+      'select revision from proposals where id = $1',
+      [row.id],
+    )
+    const submitted = await proposals.submit(row.id, draft!.revision)
+    await review.checkSubmitted(submitted.id)
+    ;(undo.sent ??= []).push(row.id)
+    if (!publishesNow(row, mine)) return
+    const current = await proposals.get(submitted.id)
+    // The editor's rule: an overlap nobody answered is unrelated.
+    const published = await path.publish(
+      { id: current.id, revision: current.revision, reason: reasons.publish },
+      { clashesOnly: true },
+    )
+    ;(undo.decisions ??= []).push(published.undo.token.slice('decision:'.length))
+  }
+
   /** One row of a change, done in full or not at all; what Undo needs goes into `undo`. */
   async function applyRow(row: BulkRow, read: BulkInput, mine: BulkPerson, undo: UndoRecord) {
     switch (read.action) {
+      case 'publish':
+        await publishDraft(row, mine, undo)
+        return
       case 'archive':
         await review.retire(row.id, reasons.archive)
         ;(undo.decisions ??= []).push(await lastDecision(row.id, 'retire'))
@@ -291,7 +380,7 @@ export function createContextService(
           'select revision from proposals where id = $1',
           [row.id],
         )
-        await proposals.discard(row.id, draft!.revision, { byDomainOwners: true })
+        await proposals.discard(row.id, draft!.revision)
         ;(undo.drafts ??= []).push(row.id)
         return
       }
@@ -329,6 +418,11 @@ export function createContextService(
         return
       }
       case 'check': {
+        const pointed = await pointAtSplitMetrics(row.id)
+        if (pointed) {
+          ;(undo.decisions ??= []).push(pointed)
+          return
+        }
         const checked = await review.recheck(row.id, reasons.check)
         const [decision] = await tx.query<{ id: string }>(
           `select id::text from decisions where proposal_id = $1 order by decided_at desc, id desc limit 1`,
@@ -345,6 +439,7 @@ export function createContextService(
     const done: BulkRow[] = []
     const failed: ItemBulkResult['failed'] = []
     const undo: UndoRecord = {}
+    const sent: string[] = []
     for (const row of act) {
       await tx.query('savepoint item_change')
       // What Undo needs for this row joins the change's only once the row is done.
@@ -356,17 +451,35 @@ export function createContextService(
         undo.decisions = [...(undo.decisions ?? []), ...(own.decisions ?? [])]
         undo.drafts = [...(undo.drafts ?? []), ...(own.drafts ?? [])]
         undo.owners = { ...undo.owners, ...own.owners }
+        undo.sent = [...(undo.sent ?? []), ...(own.sent ?? [])]
+        if (read.action === 'publish' && !publishesNow(row, mine)) sent.push(row.id)
       } catch (error) {
         await tx.query('rollback to savepoint item_change')
-        failed.push({ id: row.id, title: row.title, message: plainError(error) })
+        // A draft the checks refuse is left alone with their reason, as the editor says it.
+        const refused = read.action === 'publish' ? notReady(error) : ''
+        if (refused)
+          skipped.push({
+            id: row.id,
+            title: row.title,
+            code: 'not_ready',
+            why: 'not ready',
+            message: refused,
+          })
+        else failed.push({ id: row.id, title: row.title, message: plainError(error) })
       }
     }
-    if (!done.length) return { done: [], skipped, failed, change: null, undo: null }
-    const summary = changeSummary(
-      read,
-      done.map((r) => r.title),
-      names,
-    )
+    if (!done.length) return { done: [], sent: [], skipped, failed, change: null, undo: null }
+    const summary =
+      read.action === 'publish'
+        ? publishSummary(
+            done.filter((r) => !sent.includes(r.id)).map((r) => r.title),
+            done.filter((r) => sent.includes(r.id)).map((r) => r.title),
+          )
+        : changeSummary(
+            read,
+            done.map((r) => r.title),
+            names,
+          )
     const [change] = await tx.query<{ id: string }>(
       `insert into item_changes (action, made_by, summary, items, undo)
        values ($1, cl_person(), $2, $3, $4) returning id::text`,
@@ -379,6 +492,7 @@ export function createContextService(
     )
     return {
       done: done.map((r) => r.id),
+      sent,
       skipped,
       failed,
       change: { id: change!.id, summary },
@@ -411,9 +525,35 @@ export function createContextService(
       throw new ORPCError('CONFLICT', {
         message: 'It is too late to undo this change. Change them again instead.',
       })
-    const { decisions = [], drafts = [], owners = {} } = change.undo
+    const { decisions = [], drafts = [], owners = {}, sent = [] } = change.undo
     // The decisions first: a move undone puts each item back in its domain, where its owners were.
     const undone = decisions.length ? await path.undoDecisions(decisions) : { edition: null }
+    // Each draft it sent is a draft again, its writer's, with its words: the suggestion is
+    // withdrawn and its draft comes back beside it, as a check undone goes.
+    for (const sentId of sent) {
+      const [withdrawn] = await tx.query<Parameters<typeof proposalEvent>[1]>(
+        `update proposals set state = 'withdrawn', closed_at = now(), reason = $2
+          where id = $1 and state in ('submitted', 'in_review')
+          returning id::text, area_id as "areaId", state::text as state, revision`,
+        [sentId, reasons.unsent],
+      )
+      if (!withdrawn) continue
+      await proposalEvent(tx, withdrawn, 'withdrawn', { reason: reasons.unsent })
+      // An imported draft comes back as one of its import, so its writer's Inbox still counts it,
+      // and a source's keeps the read it came from.
+      const [back] = await tx.query<Parameters<typeof proposalEvent>[1]>(
+        `insert into proposals (subject, action, area_id, item_id, proposer_id, channel, draft,
+                                draft_saved_at, provenance, agent_id, agent_name, base_version_id,
+                                import_batch_id, source_id, source_read_id, source_document_id)
+         select subject, action, area_id, case when action = 'change' then item_id end,
+                proposer_id, channel, draft, now(), provenance, agent_id, agent_name, base_version_id,
+                import_batch_id, source_id, source_read_id, source_document_id
+           from proposals where id = $1
+         returning id::text, area_id as "areaId", state::text as state, revision`,
+        [sentId],
+      )
+      await proposalEvent(tx, back!, 'restored', { change: id, from: sentId })
+    }
     for (const [itemId, before] of Object.entries(owners)) await setOwners(itemId, before)
     for (const draft of drafts) {
       const [back] = await tx.query<Parameters<typeof proposalEvent>[1]>(
@@ -688,6 +828,7 @@ export function createContextService(
       reviewDate: _due,
       changeMarks: _marks,
       references: _refs,
+      replaces: _replaces,
       ...words
     } = draftOf(stored.version)
     const created = await proposals.create({
@@ -696,6 +837,101 @@ export function createContextService(
       reason: reasons.restored(input.version),
     })
     return { proposalId: created.id }
+  }
+
+  function reasonFor(text: string | undefined) {
+    try {
+      return text && [...text.trim()].length <= limits.changeReason
+        ? changeReason(text, 'change')
+        : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
+   * The right words from a report in Ask (FR-622): the item as agents get it now, with the summary
+   * the person wrote, sent to its owners as a suggestion that waits like any other, whoever sent
+   * it. Null when the words are the summary it has already: there is nothing to suggest.
+   */
+  async function suggestWords(input: {
+    itemId: string
+    summary: string
+    reason?: string | undefined
+  }): Promise<string | null> {
+    const row = await library.getIndexRow(input.itemId)
+    if (!row) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
+    if (row.status !== 'accepted')
+      throw new ORPCError('CONFLICT', {
+        message: 'It is archived, so it takes no suggestion. Send the report without new words.',
+      })
+    const summary = input.summary.trim()
+    if ([...summary].length > limits.summary)
+      throw new ORPCError('BAD_REQUEST', {
+        message: `The right words fit in ${limits.summary} characters, as a summary does.`,
+      })
+    try {
+      rejectSensitive(summary)
+    } catch (error) {
+      if (error instanceof ORPCError && error.code === 'UNPROCESSABLE_CONTENT')
+        throw new ORPCError('UNPROCESSABLE_CONTENT', {
+          message: 'Take the email address, phone number or secret out of the right words.',
+          data: error.data,
+        })
+      throw error
+    }
+    const [version] = await tx.query<{ id: string }>(
+      `select v.id::text from item_versions v
+        where v.item_id = $1 and v.version_no = $2
+          and exists (select 1 from item_version_service s where s.version_id = v.id)`,
+      [input.itemId, row.version],
+    )
+    const stored = version ? (await readVersions(tx, [version.id]))[0] : undefined
+    if (!stored) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
+    if (stored.version.summary.trim() === summary) return null
+    // The words of the version agents get, with the person's summary in plain text: a mention it
+    // had there goes with its words, and the owner sees that in the review.
+    const {
+      reviewDate: _due,
+      changeMarks: _marks,
+      references: _refs,
+      replaces: _replaces,
+      ...words
+    } = draftOf(stored.version)
+    const created = await proposals.create({
+      itemId: input.itemId,
+      version: row.version,
+      draft: {
+        ...words,
+        summary,
+        summaryMarkup: summary.replace(/[\\@]/g, '\\$&'),
+        areaId: row.areaId,
+        kind: row.kind,
+        ownerId: row.ownerId,
+      },
+      reason: reasonFor(input.reason),
+    })
+    const checks = await checkDraft(
+      tx,
+      created.draft,
+      created.proposerId,
+      created.channel,
+      created.itemId,
+    )
+    const errors = checks.findings.filter((f) => f.severity === 'error')
+    if (!checks.version || errors.length) {
+      if (!checks.version || errors.some((f) => f.field === 'summary'))
+        throw new ORPCError('BAD_REQUEST', {
+          message: "The right words can't be sent as they are. Write them in plain text.",
+        })
+      await proposals.discard(created.id, created.revision)
+      return null
+    }
+    const submitted = await proposals.submit(created.id, created.revision, {
+      byDomainOwners: false,
+    })
+    await review.checkSubmitted(submitted.id)
+    return submitted.id
   }
 
   /**
@@ -721,16 +957,14 @@ export function createContextService(
   }
 
   /**
-   * Related context, one step away, as get_related follows it on what agents get now: from an
-   * item the person may read, or from a metric or a dimension by its key. Whether agents follow
-   * links at all is the get_related switch (FR-407), which people see in Related too.
+   * Related context, one step away, as agents follow it with read_context on what they get now:
+   * from an item the person may read, or from a metric or a dimension by its key.
    */
   async function relatedOf(id: string): Promise<RelatedContext | null> {
     const item = id.startsWith('itm_')
     const row = item ? await library.getIndexRow(id) : null
     if (item && !row) return null
-    const [bundle, tools] = await Promise.all([liveServingBundle(tx, cache), enabledTools(tx)])
-    const following = tools.includes('get_related')
+    const bundle = await liveServingBundle(tx, cache)
     const graph = related(bundle, { id, depth: 1, today: clock.today() })
     const termArea = await termAreas(bundle.terms, [
       ...(item ? [] : [id]),
@@ -739,8 +973,7 @@ export function createContextService(
     const areaId = item ? row?.areaId : termArea(id)
     // An item the person may read that agents are not given has nothing to follow; a definition
     // that is not in the vocabulary agents read is not found.
-    if (!graph.found)
-      return item ? { ...(areaId ? { areaId } : {}), nodes: [], withheld: 0, following } : null
+    if (!graph.found) return item ? { ...(areaId ? { areaId } : {}), nodes: [], withheld: 0 } : null
     // Each node once, by the start's own link to it that comes first in the fixed order, read
     // from the start's side. Links among the neighbours are not how they relate to the start. A
     // metric the text mentions and the item applies to is a link people follow: the mention wins.
@@ -783,7 +1016,6 @@ export function createContextService(
         }
       }),
       withheld: graph.withheld,
-      following,
     }
   }
 
@@ -819,12 +1051,18 @@ export function createContextService(
           )
         )[0]!.revision
       : created.revision
-    // A draft that was started from an item changes that item.
-    const itemId = input.draftId ? (created.itemId ?? undefined) : input.itemId
-    const submitted = await proposals.submit(created.id, revision)
+    // A draft that was started from an item changes that item. A new item waiting for review has
+    // one already, which agents don't get yet.
+    const itemId = input.draftId
+      ? created.action === 'change'
+        ? (created.itemId ?? undefined)
+        : undefined
+      : input.itemId
+    const mine = await me()
+    const theirs = created.proposerId !== mine.id
+    const submitted = await proposals.submit(created.id, revision, { byDomainOwners: theirs })
     await review.checkSubmitted(submitted.id)
     const areaId = submitted.areaId!
-    const mine = await me()
     // A change to an item is the person's to publish only where they own both its domain now and
     // the one it goes to, as a move in the Context list is.
     // It fails closed: a change whose item agents don't get now waits as a suggestion.
@@ -838,6 +1076,7 @@ export function createContextService(
       )
       fromOwned = !!live && owns(live.areaId)
     }
+    if (theirs && (!owns(areaId) || !fromOwned)) notTheirsToPublish()
     if (!owns(areaId) || !fromOwned)
       return { published: false, proposalId: submitted.id, ownerIds: await domainOwners(areaId) }
     const current = await proposals.get(submitted.id)
@@ -860,40 +1099,105 @@ export function createContextService(
 
   /**
    * The person's own draft, or their suggestion an owner returned, with the words they finished it
-   * with: only its writer sends it.
+   * with: its writer sends it. A suggestion waiting for review is edited only by an owner or an
+   * admin, to publish it as itself (Edit then publish): its writer withdraws it. Someone else's
+   * draft is never found: only its writer reads it (FR-139).
    */
   async function finish(id: string, draft: Draft, reason: string | undefined) {
-    const [row] = await tx.query<{ revision: number }>(
-      `select revision from proposals where id = $1 and subject = 'item'
-          and state in ('draft','changes_requested')`,
+    const [row] = await tx.query<{
+      revision: number
+      proposerId: string | null
+      areaId: string
+      waiting: boolean
+    }>(
+      `select revision, proposer_id::text as "proposerId", area_id as "areaId",
+              state in ('submitted','in_review') as waiting from proposals
+        where id = $1 and subject = 'item' and action in ('create','change')
+          and state in ('draft','changes_requested','submitted','in_review')`,
       [id],
     )
     if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
-    return proposals.save(id, row.revision, draft, reason)
+    const mine = await me()
+    const to = draft.areaId ?? row.areaId
+    const mayPublish = mine.admin || mine.owns.includes(to)
+    if (row.waiting && row.proposerId === mine.id)
+      throw new ORPCError('CONFLICT', {
+        message: 'It is waiting for review. Withdraw it to change it, then send it again.',
+      })
+    if (row.proposerId !== mine.id && !mayPublish) notTheirsToPublish()
+    return proposals.save(id, row.revision, draft, reason, { byDomainOwners: row.waiting })
+  }
+
+  /**
+   * Save as draft (FR-139): the person's words kept as their own draft, which only they read and
+   * agents never get, to finish later. A new one, or a change to a published item written from the
+   * version it names; or the words of a draft of theirs saved again. Written from a Not found card,
+   * the draft is that card's, as its publish would cover the gap.
+   */
+  async function saveDraft(input: {
+    draft: Draft
+    itemId?: string | undefined
+    version?: number | undefined
+    reason?: string | undefined
+    draftId?: string | undefined
+    gapId?: string | undefined
+  }): Promise<SavedDraft> {
+    if (input.gapId) await createGapsService(tx).linkable(input.gapId)
+    let saved
+    if (input.draftId) {
+      const [row] = await tx.query<{ revision: number }>(
+        `select revision from proposals
+          where id = $1 and subject = 'item' and state = 'draft' and proposer_id = cl_person()`,
+        [input.draftId],
+      )
+      if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
+      saved = await proposals.save(input.draftId, row.revision, input.draft, input.reason)
+    } else
+      saved = await proposals.create({
+        draft: input.draft,
+        ...(input.itemId ? { itemId: input.itemId } : {}),
+        ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
+        ...(input.reason ? { reason: input.reason } : {}),
+      })
+    if (!input.gapId) return { proposalId: saved.id, revision: saved.revision }
+    const [linked] = await tx.query<{ revision: number }>(
+      'update proposals set source_gap_id = $2 where id = $1 returning revision',
+      [saved.id, input.gapId],
+    )
+    return { proposalId: saved.id, revision: linked!.revision }
+  }
+
+  /** Someone else's suggestion is only finished to be published: never sent on their behalf. */
+  function notTheirsToPublish(): never {
+    throw new ORPCError('FORBIDDEN', {
+      message: notAllowed('publish this draft in that domain', 'an owner of the domain'),
+    })
   }
 
   /**
    * A draft from pasted text, or from the page a link points to, with no model: the words, a kind
    * and dates by rule, and where it applies by the vocabulary's names (deriveAgentDraft). What it
-   * guessed is named, for the writer to check.
+   * guessed is named, for the writer to check. A link alone is drafted from its page, which the
+   * caller read first under the workspace's rules (FR-144), or not at all: it never becomes the
+   * draft's words or its source unread.
    */
-  async function draftFromText(text: string): Promise<DraftFromText> {
+  async function draftFromText(text: string, page?: PageRead): Promise<DraftFromText> {
     const today = clock.today()
     const trimmed = text.trim()
     let words = trimmed
     let title: string | undefined
     let evidence: Draft['evidence']
-    if (readPage && /^https?:\/\/\S+$/.test(trimmed) && readableAddress(trimmed)) {
-      const read = await readPage(trimmed).catch(() => {
+    if (pastedLink(trimmed)) {
+      if (!page)
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
-          message: "We couldn't read that page. Paste its text instead.",
+          message: linkRefusal('off'),
+          data: { reason: 'off' },
         })
-      })
-      words = read.paragraphs.join('\n\n').slice(0, 4_000)
-      title = read.title?.slice(0, 200) ?? undefined
-      const first = read.paragraphs.find((p) => p.trim()) ?? ''
+      words = page.paragraphs.join('\n\n').slice(0, 4_000)
+      title = page.title?.slice(0, 200) ?? undefined
+      const first = page.paragraphs.find((p) => p.trim()) ?? ''
       const sentence = first.match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] ?? first
-      evidence = [{ url: read.finalUrl, quote: sentence.slice(0, 500), date: today }]
+      evidence = [{ url: page.finalUrl, quote: sentence.slice(0, 500), date: today }]
     }
     if (!words)
       throw new ORPCError('UNPROCESSABLE_CONTENT', { message: 'Paste some text or a link.' })
@@ -944,12 +1248,15 @@ export function createContextService(
   return {
     page,
     markRead,
+    pointAtSplitMetrics,
     bulkApply,
     undoChange,
     compare,
     restoreAsDraft,
+    suggestWords,
     related: relatedOf,
     publish,
+    saveDraft,
     draftFromText,
     changes,
     deleted,

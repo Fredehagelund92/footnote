@@ -16,10 +16,12 @@ test('typing j and k in a note stays on the item, and Esc keeps the note', async
   await page.getByRole('button', { name: 'Send back with a note' }).first().click()
   await expect(note).toHaveText('check the jk source')
   await expect(note).toBeFocused()
-  // Command-Enter in the note posts the note; it never publishes another item.
+  // Command-Enter in the note posts the note; it never publishes the item, or another one.
   await page.keyboard.press('ControlOrMeta+Enter')
-  await expect(page.getByText('Returned to Ines Duarte')).toBeVisible()
-  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines')}/review`))
+  const toasts = page.locator('[data-sonner-toast]')
+  await expect(toasts.filter({ hasText: /^Returned “/ })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-format')}/review`))
+  await expect(toasts.filter({ hasText: /^Published/ })).toHaveCount(0)
 })
 
 test('Esc with nothing open goes back to the Inbox; ? lists the keys', async ({ page }) => {
