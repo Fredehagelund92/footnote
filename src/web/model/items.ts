@@ -67,6 +67,11 @@ export type Fact = {
    * `where` is the same scope as names.
    */
   scope?: ScopeTerm[]
+  /**
+   * The dimension values it applies to, each with its dimension, by name ("Market", "Norway"):
+   * what By time groups and filters a dimension by. `where` names them without their dimension.
+   */
+  values?: { dimension: string; name: string }[]
   /** When it applies, as stored (dates, not words). */
   valid: Validity
   /** Derived from `valid` by whenLabel: the When people read. Never typed by hand. */

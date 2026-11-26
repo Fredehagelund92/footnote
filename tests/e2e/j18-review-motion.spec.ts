@@ -1,8 +1,9 @@
 import type { Page } from '@playwright/test'
 import { cardIn, expect, go, settle, test } from './go.ts'
 
-// J18, after a decision: a key skips the short wait, the pointer on the outcome holds it, reduced
-// motion waits for Next, the Ready line stays put, and toasts keep clear of the decision.
+// J18, after a decision: nothing holds the review. Publish opens the next suggestion at once,
+// with reduced motion too, and focus is on its change; the Ready line never moves under the
+// pointer; toasts keep clear of the decision.
 
 const decide = (page: Page) => page.getByRole('complementary', { name: 'Try it and decide' })
 
@@ -17,48 +18,27 @@ async function open(page: Page, id: string) {
   await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500))
 }
 
-async function publish(page: Page) {
+test('Publish opens the next suggestion before the service answers', async ({ page }) => {
+  await open(page, 'sug-ines-link')
   await decide(page).getByRole('button', { name: 'Publish', exact: true }).click()
+  // Time is stopped, so the service has not answered: the review moved on all the same.
+  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0)
   await settle(page, 700)
-  await expect(decide(page).getByRole('button', { name: 'Undo' })).toBeVisible()
-}
-
-test('J skips the wait at once', async ({ page }) => {
-  await open(page, 'sug-ines-link')
-  await publish(page)
-  await page.keyboard.press('j')
-  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
+  await expect(page.locator('#change-heading')).toBeFocused()
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: /^Published “/ }),
+  ).toBeVisible()
 })
 
-test('the pointer on the outcome holds the wait; leaving lets it go on', async ({ page }) => {
-  await open(page, 'sug-ines-link')
-  await publish(page)
-  await decide(page).getByRole('button', { name: 'Undo' }).hover()
-  await page.clock.runFor(5000)
-  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-link')}/review`))
-  await page.mouse.move(10, 10)
-  await page.clock.runFor(3000)
-  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
-})
-
-test('with reduced motion nothing moves on its own: Next does it', async ({ page }) => {
+test('with reduced motion Publish moves on at once too: nothing waits for Next', async ({
+  page,
+}) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await open(page, 'sug-ines-link')
-  await publish(page)
-  await page.mouse.move(10, 10)
-  await page.clock.runFor(6000)
-  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-link')}/review`))
-  await decide(page).getByRole('button', { name: 'Next suggestion' }).click()
+  await decide(page).getByRole('button', { name: 'Publish', exact: true }).click()
   await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
-})
-
-test('the Ready line stays put when the outcome replaces the buttons', async ({ page }) => {
-  await open(page, 'sug-ines-link')
-  const ready = decide(page).getByText('Ready.', { exact: false }).first()
-  const before = (await ready.boundingBox())!.y
-  await publish(page)
-  expect(Math.abs((await ready.boundingBox())!.y - before)).toBeLessThanOrEqual(1)
-  await expect(decide(page).getByText('Agents now say')).toBeVisible()
+  await expect(decide(page).getByRole('button', { name: 'Next suggestion' })).toHaveCount(0)
 })
 
 test("a toast never covers the decision's buttons", async ({ page }) => {

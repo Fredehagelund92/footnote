@@ -21,6 +21,8 @@ const places = [
   '/inbox?card=sug-sofia-clash',
   '/inbox?card=gap-spain',
   '/inbox?card=check-returns',
+  // A report from Ask with the words its sender would write and their link.
+  '/inbox?card=flag-germany',
   '/inbox?dock=review.sug-sofia-clash',
   '/inbox?demo=setup',
   '/inbox?demo=names',
@@ -37,6 +39,9 @@ const places = [
   '/inbox/gap-spain/review?view=preview',
   '/context',
   '/context?dock=context.itm_norway_stop',
+  // Context by time, and an item of it open in the side panel.
+  '/context?view=time',
+  '/context?view=time&dock=context.itm_za26xpzv',
   '/context/itm_norway_stop',
   '/context/itm_norway_stop/edit',
   '/context/itm_norway_stop/suggest',
@@ -217,6 +222,39 @@ for (const { name, width, height } of widths) {
           expect(await violations(page)).toEqual([])
         })
       }
+
+      // Something wrong? beside an answer: the form with the right words open, then sent. Jon owns
+      // the item, so it is checked as Ines, who can suggest them; none of it wider than the screen.
+      test('Something wrong? beside an answer, then sent', async ({ page }) => {
+        await page.goto(withTheme('/ask?example=grounded', theme))
+        await signOut(page, width)
+        await page.getByRole('button', { name: /Ines Duarte/ }).click()
+        await expect(page).toHaveURL(/\/(inbox|ask)$/)
+        // The demo's sign-in lives in this page's memory: move inside the app, never load it again.
+        await page.evaluate(
+          (to) => {
+            const link = Object.assign(document.createElement('a'), { href: to })
+            document.body.append(link)
+            link.click()
+            link.remove()
+          },
+          withTheme('/ask?example=grounded', theme),
+        )
+        await page.getByRole('button', { name: 'Bad answer' }).last().click()
+        const panel = page.getByRole('region', { name: 'Something wrong?' })
+        await panel.getByRole('textbox', { name: "What's wrong?" }).fill('Off by four.')
+        await panel.getByRole('button', { name: 'Suggest the right words' }).click()
+        await panel
+          .getByRole('textbox', { name: 'The right words (a suggestion)' })
+          .fill('New words.')
+        expect(await violations(page)).toEqual([])
+        expect(await fitsTheScreen(page)).toBe(true)
+        await panel.getByRole('button', { name: 'Send the report and suggestion' }).click()
+        await expect(panel.getByRole('heading', { name: /^Sent to the owners of/ })).toBeVisible()
+        // Close takes Send's place under the pointer: hovered, a button is drawn lighter.
+        await page.mouse.move(0, 0)
+        expect(await violations(page)).toEqual([])
+      })
 
       // A context item's Details, open: the lines, the source block, Related and the toolbar.
       test('the Details of a context item, open', async ({ page }) => {

@@ -51,7 +51,9 @@ export const shellSearch = lenient(
     dock: z.optional(
       z
         .string()
-        .check(z.regex(/^(review|context|def|family|ask|try|topic|share|where|conflict)(\..+)?$/)),
+        .check(
+          z.regex(/^(review|context|def|family|ask|try|topic|share|report|where|conflict)(\..+)?$/),
+        ),
     ),
     flag: text,
     // A family's quick view opened from a search that found it by this variant's name.
@@ -66,6 +68,7 @@ export const shellSearch = lenient(
     done: digits,
     connect: text,
     bulk: oneOf(['fail']),
+    publish: oneOf(['fail']),
   }),
 )
 
@@ -105,6 +108,7 @@ export const contextSearch = lenient(
     ...sorting,
     group: oneOf(['domain', 'metric']),
     archived: oneOf(['shown']),
+    view: oneOf(['time']),
   }),
 )
 

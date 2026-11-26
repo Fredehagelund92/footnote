@@ -4,7 +4,17 @@ import { changeQuery, setQuery, useRoute } from '@/lib/router'
 // The dock's content lives in the address (?dock=kind.id), so Back closes it and every state has a link.
 
 export type DockKind =
-  'review' | 'context' | 'def' | 'family' | 'ask' | 'try' | 'topic' | 'share' | 'where' | 'conflict'
+  | 'review'
+  | 'context'
+  | 'def'
+  | 'family'
+  | 'ask'
+  | 'try'
+  | 'topic'
+  | 'share'
+  | 'report'
+  | 'where'
+  | 'conflict'
 export type DockState = { kind: DockKind; id?: string; width: number }
 
 /** Each dock's title, for its frame before its own content draws: while its code loads, or after it fails. */
@@ -17,6 +27,7 @@ export const DOCK_TITLE: Record<DockKind, string> = {
   try: 'Try it',
   topic: 'Answer',
   share: 'Share chat',
+  report: 'Something wrong?',
   where: 'Where it says that',
   conflict: 'Conflict',
 }
@@ -44,6 +55,9 @@ export function openDock(
   opts?: { replace?: boolean },
 ) {
   setTyped(null)
+  fromRow = undefined
+  fromButton = null
+  fromButtonId = undefined
   void changeQuery(
     {
       dock: id ? `${kind}.${id}` : kind,
@@ -78,6 +92,8 @@ export function closeDock() {
   to something else.
 */
 let fromRow: string | undefined
+let fromButton: HTMLElement | null = null
+let fromButtonId: string | undefined
 let intoPanel = false
 
 /**
@@ -92,9 +108,19 @@ export function openFromRow(
   { focus = true, replace = false } = {},
 ) {
   const already = new URLSearchParams(window.location.search).get('dock') === `${kind}.${id}`
+  openDock(kind, id, extra, { replace })
   fromRow = id
   intoPanel = focus && !already
-  openDock(kind, id, extra, { replace })
+}
+
+/**
+ * Opens a panel from a button, which gets focus back when the panel closes. If the button is gone by
+ * then (a reported answer hides its More), focus goes to the answer's report line instead.
+ */
+export function openFromButton(kind: DockKind, id: string, from: HTMLElement | null) {
+  openDock(kind, id)
+  fromButton = from
+  fromButtonId = id
 }
 
 /** A panel that has just drawn asks once whether focus should go into it. */
@@ -104,12 +130,26 @@ export function takeDockFocus() {
   return take
 }
 
-/** After the dock has closed: focus is back on the row it opened from, if it was left with nothing. */
+/**
+ * After the dock has closed: focus is back on the row or the button it opened from, if it was left
+ * with nothing.
+ */
 export function returnFromDock() {
   const id = fromRow
+  const button = fromButton
+  const buttonId = fromButtonId
   fromRow = undefined
+  fromButton = null
+  fromButtonId = undefined
   intoPanel = false
-  if (!id || (document.activeElement && document.activeElement !== document.body)) return
+  if (document.activeElement && document.activeElement !== document.body) return
+  if (button?.isConnected) return button.focus({ preventScroll: true })
+  if (buttonId) {
+    const lines = document.querySelectorAll<HTMLElement>('[data-report-line]')
+    const line = [...lines].find((l) => l.dataset.reportLine === buttonId)
+    if (line) return line.focus({ preventScroll: true })
+  }
+  if (!id) return
   const rows = document.querySelectorAll<HTMLElement>('[data-row-open]')
   ;[...rows].find((r) => r.dataset.rowOpen === id)?.focus({ preventScroll: true })
 }

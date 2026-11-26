@@ -83,6 +83,7 @@ import {
   setQuery,
   useRoute,
 } from '@/lib/router'
+import { safeHref } from '@/lib/host'
 import { useQuery } from '@tanstack/react-query'
 import {
   conflictQuery,
@@ -100,7 +101,7 @@ import {
   workspaceQuery,
 } from '@/api/queries'
 import type { UndoOffer } from '@/api/client'
-import { useUndo } from '@/lib/undo'
+import { rememberSending, useUndo } from '@/lib/undo'
 import { definitionsStep, setupHeading, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -846,6 +847,7 @@ function CardDetail({
             {card.flag?.question && (
               <ReportedQuestion by={card.flag.by} question={card.flag.question} />
             )}
+            {card.flag && <ReportedWords flag={card.flag} title={card.title} />}
             {card.changed && card.changed.length > 0 && (
               <React.Suspense fallback={null}>
                 <ChangedDefinitions names={card.changed} />
@@ -924,6 +926,56 @@ function ReportedQuestion({ by, question }: { by: string; question: string }) {
         Try this question
       </Button>
     </figure>
+  )
+}
+
+/**
+ * The right words and the link a report from Ask was sent with, as its sender wrote them, and the
+ * way to the suggestion the words became, while it waits for an owner.
+ */
+function ReportedWords({ flag, title }: { flag: NonNullable<InboxCard['flag']>; title: string }) {
+  const link = safeHref(flag.link ?? null)
+  if (!flag.correction && !link) return null
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {flag.correction && (
+        <figure className="flex flex-col gap-2">
+          <figcaption className="font-medium">
+            {flag.by ? `${flag.by} suggests these words` : 'The right words'}
+          </figcaption>
+          <blockquote className="border-l-2 pl-3 text-pretty">{flag.correction}</blockquote>
+        </figure>
+      )}
+      {link && (
+        <p>
+          <span className="font-medium">Link they sent:</span>{' '}
+          <a
+            href={link}
+            target="_blank"
+            rel="noreferrer"
+            className="break-all text-primary underline-offset-4 hover:underline"
+          >
+            {link.replace(/^https?:\/\//, '')}
+            <span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </p>
+      )}
+      {flag.suggestion && (
+        <>
+          <p className="text-muted-foreground">
+            A suggestion on “{title}”. Ask and agents keep the item as it is until an owner
+            publishes it.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-1"
+            onClick={() => navigate(`/inbox/${flag.suggestion}/review`)}
+          >
+            Review the suggestion
+          </Button>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -1714,21 +1766,23 @@ export function InboxPage() {
     let gone = false
     let saved: UndoOffer | undefined
     next()
+    // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
+    // back now when the answer is in, else when it comes. Command and Z does the same.
+    const takeBackWhenIn = () => {
+      undone = true
+      if (saved) void undo.takeBack(saved)
+    }
     const said = toast(d.message, {
       description: d.description,
       duration: Infinity,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
-          // back now when the answer is in, else when it comes.
-          undone = true
-          if (saved) void undo.takeBack(saved)
-        },
-      },
+      action: { label: 'Undo', onClick: takeBackWhenIn },
       onDismiss: () => {
         gone = true
       },
+    })
+    const waiting = rememberSending('Still saving that decision', () => {
+      toast.dismiss(said)
+      takeBackWhenIn()
     })
     void leaveThen(card.id, () =>
       React.startTransition(async () => {
@@ -1741,10 +1795,19 @@ export function InboxPage() {
           })
           saved = decided.undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
-          if (undone) await undo.takeBack(decided.undo)
-          else if (!gone)
-            undo.offer(d.message, decided.undo, { id: said, description: d.description })
+          if (undone) {
+            waiting.undone()
+            await undo.takeBack(decided.undo)
+          } else if (!gone)
+            undo.offer(d.message, decided.undo, {
+              id: said,
+              description: d.description,
+              sent: waiting,
+            })
+          // Its toast was closed: Command and Z still takes it back while the service holds it.
+          else undo.remember(d.message, decided.undo, { sent: waiting })
         } catch {
+          waiting.failed()
           toast.dismiss(said)
           if (undone) return
           toast.error("Couldn't save that decision", {

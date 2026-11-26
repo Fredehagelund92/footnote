@@ -180,6 +180,7 @@ describe('the API over HTTP', () => {
       trust: 'current',
       check: null,
       chips: ['Orders'],
+      values: [],
       owners: [],
       opened: false,
       conflicts: [],

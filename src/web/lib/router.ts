@@ -84,6 +84,9 @@ function current(): Route {
   return { path, parts: path.split('/').filter(Boolean), query }
 }
 
+/** The path as it stands, outside React: where a toast's action finds the person. */
+export const pathNow = () => current().path
+
 export function href(path: string, query?: Record<string, string | undefined>) {
   const q = new URLSearchParams()
   for (const [k, v] of Object.entries(query ?? {})) if (v) q.set(k, v)

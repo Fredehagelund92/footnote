@@ -16,10 +16,12 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
+import { UndoKey } from '@/lib/undo'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { familyParts } from '@/components/footnote/family-parts'
+import { reportParts } from '@/components/footnote/report-parts'
 import { DockLeaving, pictureOf, setLeavingDock, useLeavingDock } from '@/components/dock-leaving'
 import { useAfter } from '@/lib/loading'
 import { DefinitionPeek } from '@/components/footnote/definition-peek'
@@ -95,6 +97,11 @@ const AnswerPanel = React.lazy(() =>
 // The conflict dock opens from a list, an answer or a card; its view comes with its own code.
 const ConflictDock = React.lazy(() =>
   import('@/pages/conflicts').then((m) => ({ default: m.ConflictDock })),
+)
+
+// Something wrong? opens from Bad answer or More under an answer; its form comes with its own code.
+const ReportPanel = React.lazy(() =>
+  import('@/components/footnote/report-panel').then((m) => ({ default: m.ReportPanel })),
 )
 
 // A context item's quick view opens from a click, so its code is not on the first load: it is
@@ -203,6 +210,12 @@ function DockContent() {
       )
     case 'share':
       return <ShareChatPanel chat={dock.id ?? ''} />
+    case 'report':
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.report} />}>
+          <ReportPanel id={dock.id!} parts={reportParts} />
+        </React.Suspense>
+      )
     case 'where':
       return <WherePanel id={dock.id!} />
     case 'conflict':
@@ -541,6 +554,7 @@ export default function App() {
               <ConnectAgentOnOpen />
               <ShortcutsDialog />
               <ReportDialog />
+              <UndoKey />
             </SignedIn>
           </Loaded>
           <AppToaster />
