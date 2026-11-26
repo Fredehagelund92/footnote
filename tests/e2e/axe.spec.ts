@@ -37,6 +37,9 @@ const places = [
   '/inbox/gap-spain/review?view=preview',
   '/context',
   '/context?dock=context.itm_norway_stop',
+  // Context by time, and an item of it open in the side panel.
+  '/context?view=time',
+  '/context?view=time&dock=context.itm_za26xpzv',
   '/context/itm_norway_stop',
   '/context/itm_norway_stop/edit',
   '/context/itm_norway_stop/suggest',

@@ -36,6 +36,7 @@ const row = (patch: Partial<LibraryItem> = {}): LibraryItem => ({
   trust: 'current',
   check: null,
   chips: ['Orders', 'Norway'],
+  values: [{ dimension: 'Market', name: 'Norway' }],
   owners: [],
   opened: false,
   conflicts: [],
@@ -90,7 +91,7 @@ describe('reading the library index', () => {
     })
   })
 
-  it('reads a row as a context item: its scope by name, who checked it and when', () => {
+  it('reads a row as a context item: its scope by name, its values with their dimension, who checked it and when', () => {
     expect(factsOf([row()], names)).toEqual([
       {
         id: 'itm_norway01',
@@ -99,6 +100,7 @@ describe('reading the library index', () => {
         domain: 'area_sales',
         kind: 'event',
         where: ['Orders', 'Norway'],
+        values: [{ dimension: 'Market', name: 'Norway' }],
         valid: { from: '2026-08-04' },
         when: 'From 4 Aug 2026',
         status: 'Live',

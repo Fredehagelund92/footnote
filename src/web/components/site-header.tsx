@@ -149,6 +149,7 @@ export function SiteHeader({
   ask,
   more,
   fold,
+  views,
 }: {
   /**
    * The page's name, or a breadcrumb that leads to it. A breadcrumb's current page is the page's
@@ -179,6 +180,8 @@ export function SiteHeader({
    * (Ask's History and New chat) keeps them a tap away and the install's label its words.
    */
   fold?: boolean
+  /** Other views of the page, after its title: Context's List and By time. */
+  views?: ReactNode
 }) {
   const { isMobile } = useSidebar()
   const { profileLabel } = useSession()
@@ -255,6 +258,7 @@ export function SiteHeader({
               <span className="min-w-0 truncate">{title}</span>
             </div>
           )}
+          {views}
         </div>
         <div data-header-actions className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* On a phone the sidebar is a sheet, so search lives here, as a magnifier. */}

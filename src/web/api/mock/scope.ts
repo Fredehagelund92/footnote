@@ -112,6 +112,20 @@ export function scopeOfWhere(where: readonly string[]): ScopeTerm[] {
 export const withScope = (fact: Fact): Fact =>
   fact.scope ? fact : { ...fact, scope: scopeOfWhere(fact.where) }
 
+const valued = new WeakMap<Fact, Fact>()
+/** An item with its dimension values, each with its dimension, as the library index names them. */
+export function withValues(fact: Fact): Fact {
+  if (fact.values) return fact
+  let done = valued.get(fact)
+  if (!done) {
+    const values = withScope(fact).scope!.flatMap((t) =>
+      t.kind === 'value' ? [{ dimension: t.dimension ?? '', name: t.name }] : [],
+    )
+    valued.set(fact, (done = { ...fact, values }))
+  }
+  return done
+}
+
 /** The families of metrics as the service's terms: one group naming its variants, which are metrics in it. */
 const familyTermsOf = (families: readonly Definition[]): Term[] =>
   families.flatMap((d) => {
