@@ -1410,7 +1410,7 @@ function DraftRowLine({ row, nouns }: { row: DraftRow; nouns: Nouns }) {
     <li className="flex min-w-0 flex-col gap-0.5">
       <a
         href={P.href(`/context/${row.id}`)}
-        className="text-sm font-medium break-words underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+        className="rounded-sm text-sm font-medium break-words underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {row.title}
       </a>
