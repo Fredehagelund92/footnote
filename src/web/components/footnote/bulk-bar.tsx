@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { InfoIcon, XIcon } from '@/components/icons'
+import { InfoIcon, LoaderCircleIcon, XIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
@@ -21,6 +21,8 @@ export type BulkNote = {
   text: string
   /** Information rather than an outcome: why an action has nothing to do, led by an info mark. */
   info?: boolean
+  /** A change is under way: a spinner leads the line, and the bar's buttons wait for it. */
+  busy?: boolean
   skipped?: Skip[]
   action?: { label: string; onClick: () => void }
 }
@@ -75,6 +77,7 @@ export function BulkBar({
           <div
             role="region"
             aria-label={label}
+            aria-busy={note?.busy || undefined}
             className="flex h-11 max-w-full items-center gap-1 rounded-md bg-foreground pr-2 pl-4 text-sm text-background shadow-md max-md:h-auto max-md:min-h-14 max-md:w-full max-md:rounded-none max-md:px-2 max-md:shadow-none"
           >
             <span className="px-1 font-semibold whitespace-nowrap tabular-nums">
@@ -138,6 +141,7 @@ function NoteLine({ note }: { note: BulkNote }) {
         note.info && (listed ? 'pr-3 pl-1' : 'py-1.5 pr-3'),
       )}
     >
+      {note.busy && <LoaderCircleIcon aria-hidden className="size-3.5 shrink-0 animate-spin" />}
       {note.info && (why || <InfoIcon aria-hidden className="size-3.5 shrink-0" />)}
       <span className="min-w-0">{note.text}</span>
       {!note.info && why}
