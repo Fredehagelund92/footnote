@@ -52,6 +52,7 @@ grant select on v_topic_counts_public, v_gap_totals, mcp_requests to :readonly;
 grant insert on item_version_mentions to :api;
 grant execute on function serving_links(bigint) to :api, :serve;
 grant execute on function serving_family_splits(bigint) to :api, :serve;
+grant execute on function serving_written_as(bigint) to :api, :serve;
 grant execute on function cl_short_id(text), cl_person(), cl_is_admin_now(), cl_is_owner_now(text) to :serve;
 grant execute on function cl_strip_mentions(text) to :api;
 grant execute on function serving_metadata(bigint), serving_report_gap(text,text,text[],text[],text[],date,text) to :serve;

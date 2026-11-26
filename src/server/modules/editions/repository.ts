@@ -224,8 +224,7 @@ export async function loadServingBundle(
     // What the source says is read with the definitions, the first one's words for the term; a
     // definition limited to groups shows nothing of itself (CON-509), as the catalogue leaves it out.
     `select t.*,
-       coalesce((select v.written_as from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
-          where s.term_key = t.key and s.editions @> $1::bigint), '{}') as written_as,
+       coalesce((select w.written_as from serving_written_as($1) w where w.key = t.key), '{}') as written_as,
        coalesce((select json_agg(json_build_object('ref', d.ref,
            'missing', d.missing_since_snapshot is not null, 'renamedTo', d.renamed_to,
            'changeMark', d.change_mark) order by x.n)
