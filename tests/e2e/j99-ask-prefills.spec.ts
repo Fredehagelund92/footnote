@@ -128,7 +128,12 @@ for (const { name, viewport } of [
       // A question about a day: the gap card's Write context opens an event, in Sales.
       const gap = (await answer(page, 'loop-missing', theme)).locator('[data-gap]')
       const fill = gap.getByRole('button', { name: /^Write context for/ })
-      await expect(fill).toHaveAttribute('href', '/context/new?about=Orders%7CPoland&kind=event')
+      // It takes the question, which the item's page asks again once it is published; the days
+      // were today assumed, so none go with it.
+      await expect(fill).toHaveAttribute(
+        'href',
+        '/context/new?about=Orders%7CPoland&kind=event&q=Give+me+all+about+orders+in+poland',
+      )
       await fill.click()
       await expect(page.getByRole('button', { name: 'Domain Sales' })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Kind Event' })).toBeVisible()

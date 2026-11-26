@@ -1238,12 +1238,27 @@ export function createRouter({
     inbox: {
       feed: authorized.inbox.feed.handler(({ context, input }) => context.cards.feed(input.tab)),
       names: authorized.inbox.names.handler(async ({ context }) => {
-        const { revision, names, values } = await context.names.read()
-        return { revision, names, values }
+        const { revision, names, values, place } = await context.names.read()
+        return { revision, names, values, place }
       }),
       decideNames: authorized.inbox.decideNames.handler(({ context, input }) =>
         retryWrite(context.tx, idempotencyKey(context), 'inbox.decideNames', input, () =>
-          context.names.decide(input),
+          // Names put under a domain map their views to it, as Integrations maps them (F08).
+          context.names.decide(input, async (source, views, domain, reason) => {
+            const settings = await workspaceSources.get(context.tx, source)
+            if (!settings) return
+            const scopes = new Map(settings.scopes.map((scope) => [scope.id, scope]))
+            for (const view of views)
+              scopes.set(view, { ...(scopes.get(view) ?? { id: view, title: view }), domain })
+            await workspaceSources.chooseGroups(context.tx, {
+              id: source,
+              revision: settings.revision,
+              scopes: [...scopes.values()],
+              allGroups: settings.allGroups,
+              reason,
+            })
+            readSoon(context.hooks)
+          }),
         ),
       ),
     },
@@ -1583,8 +1598,8 @@ export function createRouter({
         takeBackRating(context.tx, input),
       ),
       lookup: authorized.ask.lookup.handler(async ({ context, input, signal }) => {
-        // The setup checklist's Ask step (FR-816): only that Ask was used, never what or by whom.
-        await context.cards.askedOnce()
+        // The setup checklist's Ask steps (FR-816): only that Ask was used and when, never what or by whom.
+        await context.cards.asked()
         return loopTurn(context, input, signal)
       }),
       asked: authorized.ask.asked.handler(({ context }) =>

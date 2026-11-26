@@ -48,6 +48,20 @@ export function scopeText(a: Pick<Answer, 'metric' | 'markets' | 'dates'>) {
   return `${what}${what && a.dates ? `, ${a.dates}` : ''}`
 }
 
+/**
+ * The question the setup asks about what an item applies to, on the item's own dates when they
+ * miss today (`questionDates`): "What should I know about Orders in Norway on 4 Aug 2026?".
+ */
+export function questionAbout(
+  read: { metric?: string | null; markets: readonly string[] } | null | undefined,
+  dates: string,
+) {
+  const scope = read && scopeText({ metric: read.metric ?? '', markets: [...read.markets] })
+  return scope
+    ? `What should I know about ${scope}${dates ? ` ${dates}` : ''}?`
+    : 'What should I know about our numbers?'
+}
+
 export type Answer = {
   id: string
   question: string

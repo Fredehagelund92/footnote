@@ -139,11 +139,11 @@ grant execute on function cl_audience_allows(text[]), cl_item_open(text), cl_ver
   cl_edition_versions(bigint) to :api;
 -- The Inbox and Undo (FR-227): a decision's undo is written once by its maker; a person keeps which
 -- cards they opened; a card closed for every owner is opened again by an undo; the setup checklist
--- marks that Ask was used, never who or what.
+-- marks that Ask was used, and once more when it is asked again, never who or what.
 grant insert on decision_undos to :api;
 grant insert, update (read_at) on card_reads to :api;
 grant insert, delete on card_states to :api;
-grant insert on setup_marks to :api;
+grant insert, update (done_at) on setup_marks to :api;
 -- Comments, reactions and mentions (FR-817): people write their own, edit and delete their own, react
 -- once with each of five, mark the mentions of them seen and keep when they last opened a thread;
 -- the sender of a suggestion to archive marks a comment of theirs as taking it back; a thread

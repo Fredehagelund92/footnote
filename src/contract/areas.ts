@@ -42,8 +42,11 @@ const descriptionFields = {
   description: areaDescriptionSchema,
 }
 
+/** A domain's name, as people read it in every picker. */
+export const areaNameSchema = line(60)
+
 const areaFields = {
-  name: line(60),
+  name: areaNameSchema,
   /** The area's hue on the ring of domain hues. */
   label: z.enum(domainHues),
   /** The review time: working days an owner has to decide a proposal. */
@@ -58,7 +61,7 @@ const areaFields = {
 /** The most owners an area may be created with. */
 export const AREA_OWNERS_MAX = 50
 
-const areaIdField = z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/))
+export const areaIdField = z.string().check(z.regex(/^[a-z][a-z0-9_]{1,39}$/))
 
 export const createAreaSchema = z.strictObject({
   /** Stays for good: items, mentions and history name the area by it. */

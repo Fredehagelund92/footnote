@@ -20,6 +20,7 @@ import { asSuggested } from '@domain/suggested-names'
 import { memberOf } from '@domain/vocabulary'
 import { familyBy } from '@/lib/definitions'
 import { cn } from '@/lib/utils'
+import { useDomainList } from '@/lib/workspace'
 import { namesWords } from '@/model/inbox'
 
 // The one card that makes a source's definitions usable (FR-141): the names a read made, what
@@ -323,6 +324,55 @@ function LookAlikeRow({
   )
 }
 
+/**
+ * The domain the names with none go under (F08): filled in with the one the card offers, which
+ * the person may change. A name a domain has already puts them there; another name makes a new
+ * domain, owned by whoever publishes. Left empty, they stay shared.
+ */
+function PlaceField({
+  names,
+  tool,
+  value,
+  onChange,
+}: {
+  names: number
+  tool: string
+  value: string
+  onChange: (name: string) => void
+}) {
+  const id = React.useId()
+  const domains = useDomainList()
+  const name = value.trim()
+  const existing = domains.find((d) => !d.sandbox && d.name.toLowerCase() === name.toLowerCase())
+  return (
+    <section aria-labelledby={`${id}-label`} className="flex flex-col gap-1.5">
+      <label id={`${id}-label`} htmlFor={id} className="font-medium">
+        Domain
+      </label>
+      <p id={`${id}-why`} className="text-xs text-muted-foreground">
+        {names === 1 ? '1 name has' : `${n(names)} names have`} no domain in {tool}. Published,{' '}
+        {names === 1 ? 'it goes' : 'they go'} under this one, so what is written about{' '}
+        {names === 1 ? 'it' : 'them'} has an owner.
+      </p>
+      <Input
+        id={id}
+        value={value}
+        maxLength={60}
+        aria-describedby={`${id}-why ${id}-what`}
+        className="max-w-sm"
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <p id={`${id}-what`} className="text-xs text-muted-foreground">
+        {!name
+          ? 'Left empty, they stay shared, and no owner is told when they change.'
+          : existing
+            ? `${existing.name} is a domain already.`
+            : 'A new domain, owned by you.'}
+      </p>
+    </section>
+  )
+}
+
 /** Which part of the card shows: the families to group, or the names of single definitions. */
 export type NamesShow = 'families' | 'names'
 
@@ -456,6 +506,15 @@ export default function NamesReview({
   const [problems, setProblems] = React.useState<Record<string, string>>({})
   const [all, setAll] = React.useState(false)
   const [picked, setPicked] = React.useState<NamesShow | undefined>(undefined)
+  const place = read.data?.place ?? null
+  // The domain the names with none go under, as the card offers it until the person types.
+  const [placeName, setPlaceName] = React.useState<string | null>(null)
+  const under = (placeName ?? place?.name ?? '').trim()
+  // A domain that exists goes by its id; any other name is a new domain, made with the names.
+  const domainList = useDomainList()
+  const existing = domainList.find(
+    (d) => !d.sandbox && d.name.toLowerCase() === under.toLowerCase(),
+  )
   const names = read.data?.names ?? []
   const values = read.data?.values ?? []
   // The definitions integration's tool: one is on at a time (CON-120).
@@ -490,6 +549,11 @@ export default function NamesReview({
     decided: { accept: string[]; leaveOut: string[] } = { accept: [], leaveOut: [] },
   ) => {
     if (!read.data) return
+    // Names with no domain among those published go under the one the card names.
+    const placing =
+      !!place &&
+      !!under &&
+      picks.some((pick) => names.some((name) => name.key === pick.key && name.areaId === null))
     setBusy(true)
     setProblems({})
     try {
@@ -498,8 +562,9 @@ export default function NamesReview({
         accept: picks,
         leaveOut,
         values: decided,
+        ...(placing ? { domain: existing ? { id: existing.id } : { name: under } } : {}),
       })
-      toast(message)
+      toast(placing ? `${message} under ${under}` : message)
       const open = names.filter(
         (name) =>
           name.state !== 'left_out' &&
@@ -626,6 +691,14 @@ export default function NamesReview({
       />
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
         {valuesSection}
+        {place && (
+          <PlaceField
+            names={place.names}
+            tool={tool}
+            value={placeName ?? place.name}
+            onChange={setPlaceName}
+          />
+        )}
         {parts && (
           <TextSwitch
             label="Families or names"

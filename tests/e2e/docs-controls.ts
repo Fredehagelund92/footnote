@@ -130,10 +130,21 @@ export const docControls: DocControl[] = [
     drawn: 'button',
     open: 'Let an agent publish without review',
   },
-  {
-    phrase: 'Say what the business is about',
+  ...[
+    'Publish your names',
+    'Ask about a number you know',
+    'Write what you know, and ask again',
+    'Ask your own agent',
+  ].map((phrase): DocControl => ({
+    phrase,
     page: 'set-up-your-workspace',
     at: '/inbox?demo=setup',
+    drawn: 'text',
+  })),
+  {
+    phrase: 'Domain',
+    page: 'set-up-your-workspace',
+    at: '/inbox?demo=setup&card=names:waiting',
     drawn: 'text',
   },
   {
@@ -155,36 +166,6 @@ export const docControls: DocControl[] = [
     drawn: 'button',
   },
   { phrase: 'Left out', page: 'set-up-your-workspace', at: '/inbox?demo=names', drawn: 'text' },
-  {
-    phrase: 'Add your first domain',
-    page: 'set-up-your-workspace',
-    at: '/inbox?demo=setup',
-    drawn: 'text',
-  },
-  {
-    phrase: 'Write your first context item',
-    page: 'set-up-your-workspace',
-    at: '/inbox?demo=setup',
-    drawn: 'text',
-  },
-  {
-    phrase: 'Ask a question about it',
-    page: 'set-up-your-workspace',
-    at: '/inbox?demo=setup',
-    drawn: 'text',
-  },
-  {
-    phrase: 'Connect your agent',
-    page: 'set-up-your-workspace',
-    at: '/inbox?demo=setup',
-    drawn: 'text',
-  },
-  {
-    phrase: 'Connect your definitions',
-    page: 'set-up-your-workspace',
-    at: '/inbox?demo=setup',
-    drawn: 'text',
-  },
   { phrase: 'Settings', page: 'domains-and-owners', at: '/inbox', drawn: 'link' },
   {
     phrase: 'Domains and owners',

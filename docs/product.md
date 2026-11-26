@@ -276,15 +276,13 @@ Integrations connect Footnote to where metrics are defined and where documents l
 
 ## 13. The first day
 
-A new workspace reaches its first answer from what the team wrote in about ten actions. A context item must say what it applies to, and it can only name what is live in Definitions, so the names come before writing:
+A new workspace reaches its first answer from what the team wrote in about ten actions, ask first: the setup runs the loop once, in the order it happens. A question and a context item name what is live in Definitions, so the names come first:
 
-1. Say what the business is about (About our business, with the guide).
-2. Add a domain.
-3. Connect where metrics are defined, and publish the names its read made, on one card.
-4. Write one context item.
-5. Ask a question about it in Ask (it is typed in for you). See Checked, with the item and its owner.
-6. Connect an agent with the prompt.
-7. Invite the people who own other domains, with their role and domains.
+1. Connect where metrics are defined, and publish the names its read made, on one card. Names with no domain go under one, filled in and made with them, owned by whoever publishes.
+2. Ask about a number you know. Nothing is written yet, so the answer is Not found, and says whose it is to write.
+3. Write what you know, and ask the same question again (it is typed in for you). See Checked, with the item and its owner.
+4. Connect your own agent with the prompt, and ask it the same question.
+5. Later: say what the business is about (About our business), and invite the people who own other domains, with their role and domains.
 
 Ask answers from what the workspace has written. An item with no Applies to is read from its own words.
 

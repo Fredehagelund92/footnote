@@ -2072,12 +2072,13 @@ function Checks({
   )
 }
 
+/** A view's domain: one of the workspace's, or none, which leaves its definitions shared. */
 function DomainPick({
   value,
   onChange,
 }: {
   value: DomainId | null
-  onChange: (d: DomainId) => void
+  onChange: (d: DomainId | null) => void
 }) {
   const domains = useDomains()
   const domainIds = useDomainList().map((d) => d.id)
@@ -2095,12 +2096,19 @@ function DomainPick({
         <ChevronDownIcon />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
-        <DropdownMenuRadioGroup value={value ?? ''} onValueChange={(v) => onChange(v as DomainId)}>
+        {/* A pick closes the menu, so the count of what is mapped below it shows at once. */}
+        <DropdownMenuRadioGroup
+          value={value ?? ''}
+          onValueChange={(v) => onChange(v ? (v as DomainId) : null)}
+        >
           {domainIds.map((d) => (
-            <DropdownMenuRadioItem key={d} value={d}>
+            <DropdownMenuRadioItem key={d} value={d} closeOnClick>
               {domains[d]?.name}
             </DropdownMenuRadioItem>
           ))}
+          <DropdownMenuRadioItem value="" closeOnClick>
+            No domain
+          </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>

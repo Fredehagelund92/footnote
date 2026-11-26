@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { definitionsStep, setupSteps } from '@/lib/setup'
 
-// The checklist's definitions step (snag 5 of the release judge): an install the server started on
-// its own model folder waits for that folder's read, says so, and never offers to connect a tool.
+// The checklist's names step (snag 5 of the release judge): an install the server started on its
+// own model folder waits for that folder's read, says so, and never offers to connect a tool.
 
 const folder = (state: 'reading' | 'read' | 'failed') => ({ id: 'cube', state })
 const own = setupSteps.find((s) => s.id === 'definitions')!
@@ -19,10 +19,20 @@ describe('the definitions step', () => {
 
   it('publishes the names the read left waiting', () => {
     expect(definitionsStep(folder('read'), 5)).toMatchObject({
+      description: 'Once published, questions and context name them.',
       action: 'Publish 5 names',
       opens: 'names',
     })
     expect(definitionsStep(folder('read'), 1).action).toBe('Publish 1 name')
+  })
+
+  it('says where names with no domain go, and what a domain is (F08)', () => {
+    expect(definitionsStep(folder('read'), 5, { id: null, name: 'Revenue' }).description).toBe(
+      'They go under Revenue, a new domain you own. A domain is a part of the business with an owner.',
+    )
+    expect(definitionsStep(null, 2, { id: 'sales', name: 'Sales' }).description).toBe(
+      'They go under Sales.',
+    )
   })
 
   it("opens the folder's page, not the connect flow, after a read that left no names waiting", () => {

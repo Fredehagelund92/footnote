@@ -9,6 +9,7 @@ import {
   type WordHolders,
 } from '@domain/source-names'
 import { familiesOf, familyCounts } from '@domain/metric-families'
+import { namesPlace } from '@domain/names-place'
 import { memberName, type CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'
@@ -19,10 +20,14 @@ import { namesWords, type InboxCard } from '@/model/inbox'
 // ?demo=names. Accepting one takes it off the list; the mock's vocabulary is the demo's own, so
 // nothing else changes. Kept until the page reloads. As on the service, a name is read and
 // decided only by an admin or an owner of its domain. The values someone added in Definitions wait
-// here too (values without figures): the demo's dimensions have no domain, so an admin decides.
+// here too (values without figures): the demo's dimensions have no domain, so an admin decides. A
+// new install's read (`load` with `placed` false) names no domain, as a first model seldom does, so
+// the card offers one for them (F08).
 
 /** Who reads the names: an admin, or the owner of some domains. */
 type Reader = { admin: boolean; owns: readonly string[] }
+/** The domains names may go under, and every id a domain has. */
+type Domains = { domains: { id: string; name: string; owned: boolean }[]; taken: Set<string> }
 
 const member = (
   name: string,
@@ -146,6 +151,7 @@ export function createMockNames(
   heldWords: WordHolders = holders,
   /** Publishes values that were waiting, as an owner's decision does. */
   publish: (values: readonly WaitingValue[]) => void = () => {},
+  domainsOf: (who: Reader) => Domains = () => ({ domains: [], taken: new Set() }),
 ) {
   let waiting = false
   let members = shop
@@ -167,6 +173,9 @@ export function createMockNames(
       : []
   const readable = (who: Reader) =>
     names().filter((n) => who.admin || (n.areaId !== null && who.owns.includes(n.areaId)))
+  /** The names with no domain, which an admin puts under one: the mock's names share no view. */
+  const unplaced = (who: Reader) =>
+    who.admin ? readable(who).filter((n) => n.state !== 'left_out' && n.areaId === null) : []
   const read = async (who: Reader): Promise<NamesRead> => {
     const shown = readable(who).map(
       ({
@@ -183,17 +192,26 @@ export function createMockNames(
       }),
     )
     const shownValues = valuesFor(who)
+    const place = namesPlace({
+      unplaced: unplaced(who).map((n) => ({ named: null, views: n.views })),
+      ...domainsOf(who),
+    })
     return {
       revision: await contentDigest({ shown, values: shownValues }),
       names: shown,
       values: shownValues,
+      place,
     }
   }
   return {
-    /** A read of a definitions tool ended; with `families`, it found a family of metrics too. */
-    load: (families = false) => {
+    /**
+     * A read of a definitions tool ended; with `families`, it found a family of metrics too. With
+     * `placed` false its members name no domain, as on a new install.
+     */
+    load: (families = false, placed = true) => {
       waiting = true
       if (families) members = [...shop, ...variants, ...foundOtherwise]
+      if (!placed) members = members.map((m) => ({ ...m, areaHint: null }))
     },
     read,
     /** Values someone added in Definitions, waiting for an owner. */
@@ -222,6 +240,11 @@ export function createMockNames(
         secondary: [],
         names: counts,
       }
+    },
+    /** The names published with no domain, of a decision, which go under its domain. */
+    placing: (input: DecideNamesInput, who: Reader) => {
+      const keys = new Set(input.accept.map((pick) => pick.key))
+      return unplaced(who).filter((n) => keys.has(n.key)).length
     },
     async decide(input: DecideNamesInput, who: Reader): Promise<NamesDecision> {
       if ((await read(who)).revision !== input.revision)

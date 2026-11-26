@@ -65,7 +65,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
 import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { scopeText } from '@/model/ask'
+import { questionAbout } from '@/model/ask'
 import { ASK_SOMEONE, type InboxCard, type Waiting } from '@/model/inbox'
 import { questionPath } from '@domain/question-link'
 import type { DomainId, Fact } from '@/model/items'
@@ -1286,8 +1286,11 @@ function DraftsDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next
 /** Where the first context item goes, as the editor starts it, and who publishes it there. */
 function whereContextGoes(me: Person, domains: Domain[]) {
   const home = homeDomain(me, domains)
+  // A new install's first domain is made with its names.
   if (!home)
-    return 'Context goes to a domain, and there is none yet: an admin adds one in Settings, under Domains and owners.'
+    return me.admin
+      ? 'Context goes to the domain your names are published under.'
+      : 'Context goes to a domain, and there is none yet: an admin adds one.'
   // Several of one's own: the editor starts on one, and the writer picks.
   const owned = domains.filter((domain) => me.owns.includes(domain.id) && !domain.sandbox).length
   if (owned > 1) return `Context goes to one of the ${owned} domains you own.`
@@ -1306,6 +1309,7 @@ function Setup({ due }: { due: number }) {
   const {
     setup: { done: setupDone, serverSource },
     domains: domainList,
+    about,
   } = useWorkspace()
   const me = useMe()
   const write = useWrite()
@@ -1347,6 +1351,7 @@ function Setup({ due }: { due: number }) {
       ? null
       : { ...serverSource, state: namesBehind ? 'reading' : serverSource.state },
     names?.length ?? 0,
+    namesRead.data?.place ?? null,
   )
   const [reviewing, setReviewing] = React.useState(false)
   const { query } = useRoute()
@@ -1354,27 +1359,23 @@ function Setup({ due }: { due: number }) {
   const askedShow = query.get('show')
   // A question about the first item, from what it applies to or, if that is empty, its own words,
   // on its own dates when they miss today: most first items are about a day that has passed.
-  // A new install has only what this visit added, newest first.
-  const item = useFacts()[0]
+  // A new install has only what this visit added, newest first: the first one published.
+  const item = useFacts().find((f) => f.status === 'Live' || f.status === 'Due for a check')
   const words = useQuery({
     ...readQuestionQuery(item ? `${item.title} ${item.summary}` : ''),
     enabled: !!item && !item.where.length,
   }).data
   const read =
     item && (item.where.length ? { metric: item.where[0], markets: item.where.slice(1) } : words)
-  const scope = read && scopeText({ metric: read.metric ?? '', markets: read.markets })
-  const dates = item ? questionDates(item.valid, today()) : ''
-  const firstQuestion = scope
-    ? `What should I know about ${scope}${dates ? ` ${dates}` : ''}?`
-    : 'What should I know about our numbers?'
+  const firstQuestion = questionAbout(read, item ? questionDates(item.valid, today()) : '')
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
   const admins = useAdminsSaid()
   // The steps done in an admin's Settings: anyone else reads who does them, and has no button.
   const inSettings: Record<string, string> = {
-    about: '/settings/general',
-    domain: '/settings/domains/new',
     ...(definitions.opens === 'names' ? {} : { definitions: '/settings/integrations' }),
   }
+  // Written and not asked again yet: the step asks the question about it for you.
+  const askAgain = !!item && !setupDone.fact
   const mayDo = (id: string) => mayOpenSettings(inSettings[id] ?? '', me)
   const first = setupSteps.find((s) => !setupDone[s.id] && mayDo(s.id))
   const go = (id: string) => {
@@ -1386,11 +1387,11 @@ function Setup({ due }: { due: number }) {
       void import('@/model/catalogue').then(({ definitionsConnectHref }) =>
         navigate(definitionsConnectHref(), { setup: '1' }),
       )
-    if (id === 'about') navigate('/settings/general', { setup: '1' })
-    if (id === 'domain') navigate('/settings/domains/new', { setup: '1' })
-    if (id === 'fact') navigate('/context/new', { setup: '1' })
-    // A question about the first item, typed in and ready to send.
-    if (id === 'ask') navigate('/ask', { setup: '1', n: 'setup', q: firstQuestion })
+    // A question in the person's own words: about a number they know, nothing written yet.
+    if (id === 'ask') navigate('/ask', { setup: '1', n: 'setup' })
+    // Once written, the same question about it again, typed in and ready to send.
+    if (id === 'fact' && askAgain) navigate('/ask', { setup: '1', n: 'setup', q: firstQuestion })
+    else if (id === 'fact') navigate('/context/new', { setup: '1' })
     if (id === 'agent') {
       void write('completeSetupStep', { step: 'agent' })
       open('connect')
@@ -1419,8 +1420,8 @@ function Setup({ due }: { due: number }) {
                 <CardTitle className="text-base">{setupHeading}</CardTitle>
                 <CardDescription>
                   Your team writes down what the numbers don't show, and every agent reads it before
-                  it answers. Name your metrics, then write: about ten minutes to your first answer.{' '}
-                  {whereContextGoes(me, domainList)}
+                  it answers. Name your metrics, ask, then write what you know: about ten minutes to
+                  your first answer. {whereContextGoes(me, domainList)}
                 </CardDescription>
                 <CardAction className="text-xs text-muted-foreground tabular-nums">
                   {doneCount} of {setupSteps.length} done
@@ -1431,7 +1432,13 @@ function Setup({ due }: { due: number }) {
                   {setupSteps.map((step, i) => {
                     const isDone = setupDone[step.id]
                     const own = step.id === 'definitions'
-                    const action = mayDo(step.id) ? (own ? definitions.action : step.action) : null
+                    const action = !mayDo(step.id)
+                      ? null
+                      : own
+                        ? definitions.action
+                        : step.id === 'fact' && askAgain
+                          ? 'Ask again'
+                          : step.action
                     return (
                       <li
                         key={step.id}
@@ -1478,10 +1485,27 @@ function Setup({ due }: { due: number }) {
                   })}
                 </ol>
               </CardContent>
-              {!setupDone.fact && (
-                <CardFooter className="rounded-none border-t bg-background px-4 py-4 text-xs text-muted-foreground @md:px-6">
-                  Until there is context, agents hear “Nothing is written down for this.” That is
-                  the honest answer, not an error.
+              {(!item || (!about.trim() && mayOpenSettings('/settings/general', me))) && (
+                <CardFooter className="flex-col items-start gap-1 rounded-none border-t bg-background px-4 py-4 text-xs text-muted-foreground @md:px-6">
+                  {!item && (
+                    <p>
+                      Until there is context, agents hear “Nothing is written down for this.” That
+                      is the honest answer, not an error.
+                    </p>
+                  )}
+                  {/* About our business left the steps: it is written from the names, once there are some. */}
+                  {!about.trim() && mayOpenSettings('/settings/general', me) && (
+                    <p>
+                      Later, say what the business is about in{' '}
+                      <a
+                        href={href('/settings/general', { setup: '1' })}
+                        className="underline underline-offset-4 hover:text-foreground"
+                      >
+                        About our business
+                      </a>
+                      . Ask and agents read it as background.
+                    </p>
+                  )}
                 </CardFooter>
               )}
             </Cell>

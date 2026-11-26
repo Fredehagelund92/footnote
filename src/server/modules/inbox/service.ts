@@ -1051,13 +1051,16 @@ export function createInboxFeedService(
      * good one, or only failed or discarded ones): the first one not read well yet, else the first.
      */
     async setup(serverSources: readonly string[] = []): Promise<Setup> {
+      // Write and ask again is done by a question in Ask after the first item was published.
       const [row] = await tx.query<Record<SetupStep, boolean>>(
-        `select coalesce(length(btrim((select value #>> '{}' from settings_current where key='business.about'))),0) > 0 as about,
-                exists(select 1 from areas where archived_at is null) as domain,
-                exists(select 1 from serving_vocabulary((select seq from live_edition)) t
+        `select exists(select 1 from serving_vocabulary((select seq from live_edition)) t
                         where t.kind in ('metric','dimension')) as definitions,
-                exists(select 1 from live_edition l join item_version_service s on s.editions @> l.seq) as fact,
                 exists(select 1 from setup_marks where step='ask') as ask,
+                exists(select 1 from live_edition l join item_version_service s on s.editions @> l.seq)
+                and exists(select 1 from setup_marks m
+                            where m.step='ask'
+                              and m.done_at >= (select min(e.created_at) from editions e
+                                                  join item_version_service s on s.editions @> e.seq)) as fact,
                 (exists(select 1 from mcp_requests where client_label<>'eval')
                  or exists(select 1 from auth.oauth_grants)) as agent`,
       )
@@ -1081,9 +1084,17 @@ export function createInboxFeedService(
       }
     },
 
-    /** Ask was used: the checklist's step that leaves no other record (no words, nobody). */
-    async askedOnce(): Promise<void> {
-      await tx.query(`insert into setup_marks (step) values ('ask') on conflict (step) do nothing`)
+    /**
+     * Ask was used: the checklist's steps that leave no other record (no words, nobody). The mark
+     * keeps the first question, and moves once more, to the first one after the first item was
+     * published, which is the one asked again. After that a question changes nothing.
+     */
+    async asked(): Promise<void> {
+      await tx.query(
+        `insert into setup_marks (step) values ('ask') on conflict (step) do update set done_at = now()
+          where setup_marks.done_at < (select min(e.created_at) from editions e
+                                         join item_version_service s on s.editions @> e.seq)`,
+      )
     },
   }
 }

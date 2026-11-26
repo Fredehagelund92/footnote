@@ -119,10 +119,10 @@ export function groupCounts<T extends { group: CardGroup; done: unknown }>(
 }
 
 /**
- * The setup checklist of a new workspace (FR-816), in the order it can be done: say what the
- * business is about, add a domain, connect where metrics are defined and accept their names, since
- * a context item must say which metric it applies to, write one, ask about it in Ask, connect an
- * agent.
+ * The setup checklist of a new workspace (FR-816), ask first: publish the names of where metrics
+ * are defined, under the first domain, since a question and a context item name a metric; ask about
+ * a number you know and get Not found; write what you know and ask again, to get Checked; then ask
+ * your own agent.
  */
-export const setupSteps = ['about', 'domain', 'definitions', 'fact', 'ask', 'agent'] as const
+export const setupSteps = ['definitions', 'ask', 'fact', 'agent'] as const
 export type SetupStep = (typeof setupSteps)[number]

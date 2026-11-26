@@ -161,21 +161,19 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/inbox')
 
-  // The checklist, in the order it can be done: a domain, then the names, then writing.
-  await expect(page.getByText('0 of 6 done')).toBeVisible()
+  // The checklist, ask first: the names, a question, then writing and the same question again.
+  await expect(page.getByText('0 of 4 done')).toBeVisible()
   await expect(page.getByText(/^Until there is context, agents hear/)).toBeVisible()
   expect(await demoWords(page), 'the Inbox').toEqual([])
   await shot('10-setup')
   const steps = page.getByRole('main').getByRole('listitem')
-  await expect(steps.nth(1)).toContainText('Add your first domain')
-  await expect(steps.nth(2)).toContainText('Connect your definitions')
-  await expect(steps.nth(3)).toContainText('Write your first context item')
-
-  await button(page, 'Add a domain').click()
-  await page.getByRole('textbox', { name: 'Name' }).fill('Sales')
-  await button(page, 'Add the domain').click()
-  await expect(page).toHaveURL(/\/inbox$/)
-  await expect(page.getByText('1 of 6 done')).toBeVisible()
+  await expect(steps.nth(0)).toContainText('Publish your names')
+  await expect(steps.nth(1)).toContainText('Ask about a number you know')
+  await expect(steps.nth(2)).toContainText('Write what you know, and ask again')
+  // No domain yet: the first is made with the names.
+  await expect(
+    page.getByText(/Context goes to the domain your names are published under\./),
+  ).toBeVisible()
 
   // Connect dbt from the checklist: the fixture's file at an address, through all five steps.
   await button(page, 'Connect').click()
@@ -191,13 +189,17 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await button(page, 'Add dbt').click()
   await expect(page).toHaveURL(/\/inbox$/)
 
-  // The read ends by itself, and its names wait for one press.
+  // The read ends by itself, and its names wait for one press, under the domain the project names
+  // for its orders (F08), which this workspace does not have yet.
   const waiting = page.getByRole('button', { name: /^Publish \d+ names$/ })
   await expect(waiting).toBeVisible({ timeout: 45_000 })
+  await expect(steps.nth(0)).toContainText('They go under Sales, a new domain you own.')
   await shot('11-names-waiting')
   await waiting.click()
   const review = page.getByRole('dialog')
   await expect(review.getByText('Net revenue', { exact: true })).toBeVisible()
+  await expect(review.getByRole('textbox', { name: 'Domain' })).toHaveValue('Sales')
+  await expect(review.getByText('A new domain, owned by you.')).toBeVisible()
   await shot('12-names-review')
   // Two definitions are called Revenue, and three semantic models have a Region: none is picked,
   // and Publish all leaves them all for a look.
@@ -210,7 +212,8 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   // Focus starts on Publish all, so the Enter it shows publishes every ready name.
   await expect(review.getByRole('button', { name: /^Publish all/ })).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page.getByText('2 of 6 done')).toBeVisible()
+  await expect(page.getByText(/^\d+ names are published under Sales$/)).toBeVisible()
+  await expect(page.getByText('1 of 4 done')).toBeVisible()
   await expect(review.getByRole('button', { name: /^Publish all/ })).toBeHidden()
   await shot('12-names-flagged')
   // The owner gives one Revenue a word of its own, and the other has nothing against it any more.
@@ -321,24 +324,17 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await button(page, 'Publish').click()
   await expect(page.getByText(/^Published just now by you/)).toBeVisible()
 
-  // The setup's next step asks about it, with the question already written: about the item's own
-  // day, which has passed, so the answer is the item, not Not found for today.
+  // Written and not asked again: the step asks it, with the question already written, about the
+  // item's own day, which has passed, so the answer is the item, not Not found for today.
   await page.goto('/inbox')
-  await button(page, 'Ask').click()
+  await expect(page.getByText('1 of 4 done')).toBeVisible()
+  await button(page, 'Ask again').click()
   await expect(page).toHaveURL(/\/ask\?/)
   const box = page.getByRole('textbox', { name: 'Ask a question' })
   const question = `What should I know about Net revenue on ${day}?`
   await expect(box).toHaveText(question)
 
-  // An agent asks the same over MCP, as a key that names nobody.
-  const { key } = await post(page, '/access-keys', { name: 'Own data journey' })
-  agentKey = key as string
-  const reply = await getContext(page, key as string, { question })
-  expect(reply).toMatchObject({ status: 'matched' })
-  expect(reply.say).toMatch(/^Checked\./)
-  expect(JSON.stringify(reply)).toContain('Checkout was down for a day')
-
-  // And the owner presses Enter.
+  // The owner presses Enter.
   await box.press('Enter')
   await expect(page.getByRole('log').getByText('Checked', { exact: true })).toBeVisible({
     timeout: 30_000,
@@ -346,9 +342,9 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByRole('log')).toContainText('Checkout was down for a day')
   await shot('15-ask')
 
-  // Setup is at 5 of 6, one step left. Ten more items rely on Net revenue, and then its
-  // calculation changes in dbt: the Inbox shows the eleven Due for a check above the checklist,
-  // without waiting for the last step.
+  // Asked again, setup is at 3 of 4, one step left: the agent. Ten more items rely on Net revenue,
+  // and then its calculation changes in dbt: the Inbox shows the eleven Due for a check above the
+  // checklist, without waiting for the last step.
   const read = async <T>(path: string) => (await page.request.get(`/api/v1${path}`)).json() as T
   const metric = (await read<{ metrics: { id: string; name: string }[] }>('/vocabulary')).metrics
   // The vocabulary names a metric by its key without its kind: a draft's scope says the kind.
@@ -382,13 +378,13 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   )
   await post(page, `/sources/${source!.id}/read`, {})
   await page.goto('/inbox')
-  await expect(page.getByText('5 of 6 done')).toBeVisible()
+  await expect(page.getByText('3 of 4 done')).toBeVisible()
   const due = page.getByRole('region', { name: 'Needs you' })
   // Each try waits for the Inbox to draw before it looks: on a loaded machine a reload takes
   // longer than the look, and every try then reloaded before the row could show.
   await expect(async () => {
     await page.reload()
-    await expect(page.getByText('5 of 6 done')).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText('3 of 4 done')).toBeVisible({ timeout: 20_000 })
     await expect(due.getByRole('link', { name: /^Due for a check 11 in all domains/ })).toBeVisible(
       { timeout: 3_000 },
     )
@@ -403,11 +399,17 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await due.getByRole('link').click()
   await expect(page).toHaveURL(/\/context\?status=due$/)
 
-  // The last step, About our business, and Jon owns Sales with Ravi: the next journey is his.
-  await page.goto('/settings/general')
-  await page.getByRole('textbox', { name: 'About our business' }).click()
-  await page.keyboard.insertText('We run an online shop, and sell to partners as well.')
-  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  // Last, an agent asks the same over MCP, as a key that names nobody: it gets the item, due for
+  // a check now that its definition changed, and the agent's step ends the setup.
+  const { key } = await post(page, '/access-keys', { name: 'Own data journey' })
+  agentKey = key as string
+  const reply = await getContext(page, key as string, { question })
+  expect(reply).toMatchObject({ status: 'stale' })
+  expect(JSON.stringify(reply)).toContain('Checkout was down for a day')
+  await page.goto('/inbox')
+  await expect(page.getByText(/ of 4 done$/)).toHaveCount(0)
+
+  // Jon owns Sales with Ravi: the next journey is his.
   const people = await read<{ id: string; name: string }[]>('/people')
   const idOf = (name: string) => people.find((p) => p.name === name)!.id
   await post(

@@ -12,6 +12,7 @@ import { familyFoundKinds } from '../domain/family-found.ts'
 import { familyMeaningSources } from '../domain/family-meaning-line.ts'
 import { nameFlagCodes, nameStates } from '../domain/source-names.ts'
 import { raiseSubjectSchema } from './alerts.ts'
+import { areaIdField, areaNameSchema } from './areas.ts'
 import { proposalActions } from '../domain/proposal.ts'
 import { checkAnswers } from '../domain/questions.ts'
 import { syncedSchema } from './review-path.ts'
@@ -348,6 +349,12 @@ export const namesSchema = z.object({
   names: z.array(sourceNameSchema),
   /** The values people added that wait for the person to publish, oldest first. */
   values: z.array(waitingValueSchema),
+  /**
+   * The domain the names with none go under when they are published (F08), for an admin: a
+   * domain that exists (`id`), or a new one of this name (`id` null), as `namesPlace` offers it.
+   * `names` is how many wait with no domain. Null when every name has one, or for anyone else.
+   */
+  place: z.nullable(z.object({ id: z.nullable(z.string()), name: z.string(), names: z.number() })),
 })
 export type NamesRead = z.infer<typeof namesSchema>
 
@@ -379,6 +386,14 @@ export const decideNamesSchema = z.strictObject({
       leaveOut: z.array(z.string().check(z.uuid())).check(z.maxLength(NAMES_MAX)),
     }),
     { accept: [], leaveOut: [] },
+  ),
+  /**
+   * The domain the names published with no domain go under (F08), by an admin: one that exists, or
+   * a new one of this name, which is made and owned by whoever publishes. Their views are mapped to
+   * it, so the reads after give it too. Left out, they stay shared, as before.
+   */
+  domain: z.optional(
+    z.union([z.strictObject({ id: areaIdField }), z.strictObject({ name: areaNameSchema })]),
   ),
 })
 export type DecideNames = z.infer<typeof decideNamesSchema>

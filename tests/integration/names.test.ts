@@ -157,7 +157,7 @@ describe('a read makes names', () => {
   it('offers every metric and dimension, leaves dates out, and nothing is live yet', async () => {
     expect(await live()).toEqual([])
     expect((await client.query('select 1 from live_edition')).rowCount).toBe(0)
-    expect(await steps()).toMatchObject({ domain: true, definitions: false })
+    expect(await steps()).toMatchObject({ definitions: false })
     const { names: all } = await names('admin')
     expect(all.filter((name) => name.state === 'ready').map((name) => name.name)).toContain(
       'Net revenue',

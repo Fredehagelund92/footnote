@@ -54,7 +54,7 @@ import { toApiError } from '@/api/errors'
 import { useSavedQuestions, useWrite } from '@/api/queries'
 import { savedCounts } from '@/model/saved-questions'
 import { plainText } from '@/lib/mentions'
-import { href, navigate, useRoute } from '@/lib/router'
+import { href, navigate } from '@/lib/router'
 import { useSideChoice } from '@/lib/side-panel'
 import { useAutosave } from '@/lib/autosave'
 import { useDomains, useFacts, useInvites, useMe, usePeople } from '@/lib/workspace'
@@ -84,7 +84,6 @@ export function DomainPage({
   const invited = useInvites().filter((i) => i.willOwn.includes(id))
   const write = useWrite()
   const me = useMe()
-  const { query } = useRoute()
   const facts = useFacts()
   const defs = useDefinitions()
   const isNew = id === 'new'
@@ -167,8 +166,7 @@ export function DomainPage({
       return void toast("Couldn't add the domain", { description: toApiError(e).message })
     }
     toast('Domain added', { description: `${name.trim()} is ready for context.` })
-    // From the setup checklist, back to the next step.
-    navigate(query.get('setup') ? '/inbox' : `/settings/domains/${newId}`)
+    navigate(`/settings/domains/${newId}`)
   }
 
   const help = (

@@ -32,12 +32,21 @@ import { useRelated } from '@/hooks/use-related'
 import { openDock } from '@/lib/dock'
 import { useSidebar } from '@/components/ui/sidebar'
 import { listHref } from '@/lib/list'
-import { href, navigate } from '@/lib/router'
+import { href, navigate, useRoute } from '@/lib/router'
 import { useQuery } from '@tanstack/react-query'
-import { itemPageQuery, useInbox, useLibrary, useWrite } from '@/api/queries'
+import {
+  itemPageQuery,
+  useInbox,
+  useLibrary,
+  useSession,
+  useWorkspace,
+  useWrite,
+} from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useCommentActions } from '@/lib/comments'
 import { useDomains, useFacts, useMe } from '@/lib/workspace'
+import { questionAbout } from '@/model/ask'
+import { questionDates } from '@/model/validity'
 import type { Fact, LogEntry } from '@/model/items'
 import { useWide } from '@/hooks/use-wide'
 import { VersionHistory } from '@/components/footnote/version-history'
@@ -69,6 +78,9 @@ export function FactPage({ id }: { id: string }) {
   const domains = useDomains()
   const me = useMe()
   const write = useWrite()
+  const { query } = useRoute()
+  const { install } = useSession()
+  const { setup } = useWorkspace()
   const undo = useUndo()
   const commentActions = useCommentActions()
   const [deleting, setDeleting] = React.useState(false)
@@ -162,6 +174,17 @@ export function FactPage({ id }: { id: string }) {
   }
   const pending = sent.find((x) => x.factId === fact.id && x.by === me.name)
   const published = publishedNow[fact.id]
+  // Ask again (FR-816): the question it was written about, or one about what it applies to, typed
+  // in Ask; while setup is unfinished it is the setup's question asked again.
+  const setupAsks = install === 'new' && !setup.done.fact
+  const again =
+    query.get('q') ??
+    (fact.where.length
+      ? questionAbout(
+          { metric: fact.where[0], markets: fact.where.slice(1) },
+          questionDates(fact.valid, today()),
+        )
+      : null)
   // The item it is in a conflict with, whichever of the two holds the flag.
   const other = facts.find(
     (f) =>
@@ -462,13 +485,31 @@ export function FactPage({ id }: { id: string }) {
               </div>
             )}
             {published && !pending && (
-              <p
-                role="status"
-                className="mb-5 flex animate-in items-center gap-2 text-sm text-muted-foreground duration-(--dur-2) fade-in-0"
-              >
-                <CircleCheckIcon className="size-4 shrink-0 text-primary" aria-hidden />
-                Published {published} by you. Agents get it from the next question.
-              </p>
+              <div className="mb-5 flex animate-in flex-wrap items-center gap-2 duration-(--dur-2) fade-in-0">
+                <p
+                  role="status"
+                  className="flex min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <CircleCheckIcon className="size-4 shrink-0 text-primary" aria-hidden />
+                  Published {published} by you. Agents get it from the next question.
+                </p>
+                {again && (
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={
+                      <a
+                        href={href('/ask', {
+                          q: again,
+                          ...(setupAsks ? { setup: '1' } : {}),
+                        })}
+                      />
+                    }
+                  >
+                    Ask again
+                  </Button>
+                )}
+              </div>
             )}
             {/* The document is the page: the item as people read it, the same view a review previews. */}
             <ItemDocument fact={fact} />

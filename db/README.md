@@ -424,8 +424,9 @@ which cards a person opened, only for that person. `card_states` keeps a card cl
 owner of its domain, such as a report that is not a problem: an owner or an administrator closes
 it as themselves, and only they open it again, inside the undo window. A report is anonymous, so
 its card is named by text (`feedback:<id>`) and nothing joins a person to the report.
-`setup_marks` keeps when a step of the setup checklist first happened when nothing else records
-it (a question in Ask), never who or what.
+`setup_marks` keeps when a step of the setup checklist happened when nothing else records it (a
+question in Ask, and once more the first question after the first published item, which is the
+one asked again), never who or what.
 
 Comments, reactions and mentions (FR-817) hang on a suggestion (`proposal_id`) or a
 context item (`item_id`), exactly one. `comments` keeps the comment box's document as JSON, checked
