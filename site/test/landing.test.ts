@@ -61,7 +61,8 @@ describe("the first screen's questions", () => {
 })
 
 describe('the definitions window', () => {
-  const demo = (key: string) => demoDefinitions.find((definition) => definition.name.endsWith(`.${key}`))
+  const demo = (key: string) =>
+    demoDefinitions.find((definition) => definition.name.endsWith(`.${key}`))
 
   it("shows the demo's own metrics: name, group, other name and definition", () => {
     for (const metric of metrics) {
@@ -81,7 +82,10 @@ describe('the definitions window', () => {
     for (const metric of metrics) {
       const definition = demo(metric.key)
       expect(definition, metric.key).toBeDefined()
-      expect(definition!.builtFrom?.refs ?? [], `${metric.key} is built from other metrics`).toEqual([])
+      expect(
+        definition!.builtFrom?.refs ?? [],
+        `${metric.key} is built from other metrics`,
+      ).toEqual([])
       expect(metric.columns, metric.key).toEqual(definition!.builtFrom?.columns ?? [])
     }
   })
