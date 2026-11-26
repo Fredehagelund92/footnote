@@ -40,6 +40,7 @@ export function evidenceOfReads(reads: readonly MadeRead[]): string[] {
   return reads.map((r) =>
     [
       `${r.tool} ${JSON.stringify(r.input, withoutIds)}: ${JSON.stringify(r.result, withoutIds)}`,
+      // The page reports its own group count, and that count moves with the real clock.
       ...groupsOf(r),
     ].join('\n'),
   )
