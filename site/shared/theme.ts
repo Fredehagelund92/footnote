@@ -1,9 +1,20 @@
 /*
-  The reader's theme, the same on the landing page and in the docs: light unless they picked dark,
-  as the landing page was approved, and kept in the browser under one key for the whole site.
+  The reader's theme, kept in the browser under one key for the whole site, so a pick on the
+  landing page holds in the docs and back. Without a pick the landing page opens dark, as it was
+  approved, and the docs open light.
 */
 
 export const themeKey = 'footnote-theme'
 
-/** Runs in the head before the page paints, so a dark page never flashes light. */
-export const themeScript = `try{document.documentElement.dataset.theme=localStorage.getItem('${themeKey}')==='dark'?'dark':'light'}catch(e){document.documentElement.dataset.theme='light'}`
+type Theme = 'light' | 'dark'
+
+const scriptFor = (fallback: Theme) => {
+  const other = fallback === 'dark' ? 'light' : 'dark'
+  return `try{document.documentElement.dataset.theme=localStorage.getItem('${themeKey}')==='${other}'?'${other}':'${fallback}'}catch(e){document.documentElement.dataset.theme='${fallback}'}`
+}
+
+/** Runs in the head before the page paints, so a page never flashes the other theme. Light without a pick, for the docs. */
+export const themeScript = scriptFor('light')
+
+/** The same, dark without a pick, for the landing page. */
+export const landingThemeScript = scriptFor('dark')

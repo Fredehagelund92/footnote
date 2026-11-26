@@ -1,6 +1,6 @@
 /*
-  The site's design tokens, from the landing page, which the docs read too (site/README.md, "The
-  design"): cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and
+  The docs' design tokens, from the landing page's earlier design, which the 404 page keeps too
+  (site/README.md, "The design"; the landing page has its own): cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and
   links, a highlighter yellow for what was checked, and the terminal an agent reads in. Schibsted
   Grotesk is Footnote talking, Source Serif 4 is what an agent says. Light unless the reader picks
   dark (shared/theme.ts).

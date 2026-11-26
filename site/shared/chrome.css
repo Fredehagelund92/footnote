@@ -1,5 +1,6 @@
 /*
-  The header, the buttons and the footer, the same on the landing page and in the docs. Only
+  The header, the buttons and the footer in the docs and on the 404 page; the landing page draws
+  the same logo, theme button and footer in its own look (landing/styles/landing.css). Only
   classes, so nothing here reaches the docs' own pages.
 */
 
