@@ -94,6 +94,7 @@ export function factsOf(rows: readonly LibraryItem[], names: Names): Fact[] {
       domain: row.areaId,
       kind: row.kind,
       where: row.chips,
+      values: row.values,
       valid,
       when: whenLabel(valid),
       status: statusOf(row),

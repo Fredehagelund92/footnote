@@ -48,7 +48,7 @@ describe('the library index on PostgreSQL', () => {
     }
   })
 
-  it('says each item’s trust by the rule the freshness counts, and its scope by name', async () => {
+  it('says each item’s trust by the rule the freshness counts, and its scope and values by name', async () => {
     const database = apiDatabase(url)
     try {
       const index = await database.transaction(null, (tx) =>
@@ -74,6 +74,16 @@ describe('the library index on PostgreSQL', () => {
           ...item.scope.dimensionValues.map((v) => `val:${v.dimension}/${v.value}`).sort(byKey),
         ]
         expect(item.chips, item.id).toEqual(keys.map((key) => names.get(key)))
+        // Each value with its dimension, by name, in the order of its chips.
+        const dimension = new Map(vocabulary.dimensions.map((d) => [d.id, d.name]))
+        expect(item.values, item.id).toEqual(
+          [...item.scope.dimensionValues]
+            .sort((a, b) => byKey(`${a.dimension}/${a.value}`, `${b.dimension}/${b.value}`))
+            .map((v) => ({
+              dimension: dimension.get(v.dimension),
+              name: names.get(`val:${v.dimension}/${v.value}`),
+            })),
+        )
         // The seed's history accepts every version on its day (versionDays).
         const accepted = versionDays(generated.get(item.id)!).at(-1)!.accepted
         expect(item.lastChecked?.on, item.id).toBe(accepted)
@@ -109,6 +119,7 @@ describe('when an item was last checked', () => {
     const first = await read()
     expect(first.lastChecked).toEqual({ on: day, personId: people.owner })
     expect(first.chips).toEqual(['Orders'])
+    expect(first.values).toEqual([])
     expect(first.trust).toBe('current')
 
     // An administrator rechecks it: "checked, still correct" is a new accepted version.

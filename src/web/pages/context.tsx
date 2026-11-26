@@ -4,9 +4,11 @@ import { ConflictBadge } from '@/components/footnote/conflict-badge'
 import { TextSwitch } from '@/components/footnote/switches'
 import {
   ArrowLeftRightIcon,
+  CalendarIcon,
   EyeIcon,
   ListChecksIcon,
   ListFilterIcon,
+  ListIcon,
   ListTreeIcon,
   NotebookTextIcon,
   PlusIcon,
@@ -176,7 +178,81 @@ const keyOfLine = (l: Line) => ('group' in l ? `group:${l.group}` : l.id)
  */
 const heightOfLine = (l: Line) => ('group' in l ? 32 : l.status === 'Waiting' ? 56 : 36)
 
+/** By time is loaded with its first visit: the list never waits for its code. */
+const ContextTime = React.lazy(() =>
+  import('@/pages/context-time').then((m) => ({ default: m.ContextTime })),
+)
+
+/** Context: the list, or the same items along a time line (`?view=time`). */
 export function ContextPage() {
+  const { query } = useRoute()
+  return query.get('view') === 'time' ? <ContextByTime /> : <ContextList />
+}
+
+/** The page's header, with its two views and Write context. */
+function ContextHeader({ view }: { view: 'list' | 'time' }) {
+  const dock = useDock()
+  return (
+    <SiteHeader
+      title="Context"
+      icon={<NotebookTextIcon />}
+      views={
+        <TextSwitch
+          label="View"
+          className="ml-1 shrink-0"
+          value={view}
+          onChange={(v) => void changeQuery({ view: v === 'time' ? 'time' : undefined })}
+          options={[
+            {
+              value: 'list',
+              label: <span className="max-md:sr-only">List</span>,
+              icon: <ListIcon />,
+            },
+            {
+              value: 'time',
+              label: <span className="max-md:sr-only">By time</span>,
+              icon: <CalendarIcon />,
+            },
+          ]}
+        />
+      }
+    >
+      {/* With a context item's quick view open, its own action (Edit) is the one solid blue button. */}
+      {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
+      <Button
+        variant={dock?.kind === 'context' ? 'outline' : 'default'}
+        className="max-sm:size-7 max-sm:px-0"
+        onClick={() => navigate('/context/new')}
+      >
+        <PlusIcon data-icon="inline-start" />
+        <span className="max-sm:sr-only">Write context</span>
+      </Button>
+    </SiteHeader>
+  )
+}
+
+/** Context by time: the same read as the list, drawn by its own code. */
+function ContextByTime() {
+  const load = useQuery({ ...contextPageQuery(), placeholderData: heldRows(useFacts()) })
+  const { phase, refreshFailed } = useLoadPhase(load)
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <ContextHeader view="time" />
+      {phase === 'failed' ? (
+        <LoadError what="the context" className="border-b" onRetry={() => void load.refetch()} />
+      ) : (
+        <>
+          {refreshFailed && <RefreshError what="the context" onRetry={() => void load.refetch()} />}
+          <React.Suspense fallback={null}>
+            <ContextTime facts={load.data ?? NO_FACTS} ready={phase === 'content'} />
+          </React.Suspense>
+        </>
+      )}
+    </div>
+  )
+}
+
+function ContextList() {
   // The shell's shared read holds these rows, so a visit draws them at once; the page's read is that
   // same library, read again only once it is stale (api/queries.ts).
   const load = useQuery({ ...contextPageQuery(), placeholderData: heldRows(useFacts()) })
@@ -494,18 +570,7 @@ export function ContextPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SiteHeader title="Context" icon={<NotebookTextIcon />}>
-        {/* With a context item's quick view open, its own action (Edit) is the one solid blue button. */}
-        {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
-        <Button
-          variant={dock?.kind === 'context' ? 'outline' : 'default'}
-          className="max-sm:size-7 max-sm:px-0"
-          onClick={() => navigate('/context/new')}
-        >
-          <PlusIcon data-icon="inline-start" />
-          <span className="max-sm:sr-only">Write context</span>
-        </Button>
-      </SiteHeader>
+      <ContextHeader view="list" />
       {/* One scroller; what it holds (the bar, the table, the totals) sits in the 80rem frame, centred. */}
       <div className="@container/main flex min-h-0 flex-1 flex-col overflow-y-auto *:mx-auto *:w-full *:max-w-wide @min-[80rem]/main:*:border-x">
         {phase === 'failed' ? (

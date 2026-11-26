@@ -106,6 +106,7 @@ export const contextSearch = lenient(
     ...sorting,
     group: oneOf(['domain', 'metric']),
     archived: oneOf(['shown']),
+    view: oneOf(['time']),
   }),
 )
 
