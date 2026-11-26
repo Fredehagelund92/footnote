@@ -1,0 +1,10 @@
+---
+/* A footnote number in the page's words: it opens its note in the list at the end, and shows it
+   on hover or focus (landing/page.ts). */
+interface Props {
+  n: number
+}
+const { n } = Astro.props
+---
+
+<a class="fn" href={`#fn-${n}`} aria-label={`Footnote ${n}`}>{n}</a>

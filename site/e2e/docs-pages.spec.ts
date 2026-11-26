@@ -84,8 +84,17 @@ test('Copy as Markdown copies the page as llms-full.txt gives it', async ({ page
   expect(full).toContain(copied.trim())
 })
 
-test("the landing page names Answer lines by the page's own title", async ({ page }) => {
+test("the landing page's footnotes name each page of the docs by its own title", async ({
+  page,
+}) => {
   await page.goto('/')
-  const title = pages.find((p) => p.slug === 'answer-lines')!.title
-  await expect(page.locator('a[href="/docs/answer-lines/"]')).toHaveText(title)
+  const named = await page
+    .locator('#footnotes a[href^="/docs/"]')
+    .evaluateAll((links) => links.map((a) => [a.getAttribute('href'), a.textContent]))
+  expect(named.length).toBeGreaterThan(0)
+  for (const [href, text] of named) {
+    const page = pages.find((p) => href === `/docs/${p.slug}/`)
+    expect(page, href!).toBeDefined()
+    expect(text).toBe(`Docs, ${page!.title}`)
+  }
 })
