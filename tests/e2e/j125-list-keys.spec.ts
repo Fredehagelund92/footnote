@@ -166,6 +166,8 @@ test('G then a letter goes to the Inbox, Ask, Context, Definitions or Settings',
   await expect(menu.getByRole('option', { name: 'Context (G then C)', exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
+  // The menu hands the focus back as it closes; until then G and its letter belong to the menu.
+  await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
 
   // A letter alone is not a way to go anywhere.
   await page.keyboard.press('c')
