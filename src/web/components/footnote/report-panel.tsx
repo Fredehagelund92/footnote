@@ -261,7 +261,7 @@ function ReportFormBody({
         'flex flex-col gap-5',
         framed
           ? 'p-4 @md:p-5'
-          : 'animate-in scroll-mb-24 rounded-surface border border-input bg-background p-4 duration-(--dur-3) fade-in-0 slide-in-from-top-1',
+          : 'animate-in scroll-my-1 rounded-surface border border-input bg-background p-4 duration-(--dur-3) fade-in-0 slide-in-from-top-1',
       )}
       onSubmit={(e) => {
         e.preventDefault()
