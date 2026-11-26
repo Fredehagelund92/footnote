@@ -444,6 +444,45 @@ function unreadNext(unread: readonly UnreadSaid[], voice: Voice) {
   ].join(' ')
 }
 
+/**
+ * A word where a value goes that names no value here, as a reply says it: the dimensions it could
+ * be a value of and the values it is close to, by name.
+ */
+export type UnknownValueSaid = {
+  word: string
+  of: readonly string[]
+  closest: readonly string[]
+}
+
+/** What an unknown value's dimensions are called in a sentence: "market", or "Team or Region". */
+const valueKind = (of: readonly string[]) =>
+  of.length === 1 ? of[0]!.toLowerCase() : `value of ${list([...of], 'or')}`
+
+/**
+ * The value words read as every value (agent-side review, finding 2): '"Denmark" is not a market
+ * here, so this is for every market.', with the closest value when one is a typo away.
+ */
+export function unknownValuesSay(values: readonly UnknownValueSaid[]) {
+  return values
+    .slice(0, 3)
+    .map((v) => {
+      const kind = valueKind(v.of)
+      const every = v.of.length === 1 ? `every ${kind}` : 'every value'
+      const near = v.closest.length ? ` The closest is ${list(v.closest.slice(0, 3), 'or')}.` : ''
+      return `"${v.word}" is not a ${kind} here, so this is for ${every}.${near}`
+    })
+    .join(' ')
+}
+
+/** The agent's step on from value words read as every value: the person says which, never the agent. */
+export function unknownValuesNext(values: readonly UnknownValueSaid[]) {
+  const near = [...new Set(values.flatMap((v) => v.closest.slice(0, 3)))]
+  return `Tell the person the answer is for every value, not for ${list(
+    values.map((v) => `"${v.word}"`),
+    'or',
+  )}.${near.length ? ` If they meant ${list(near, 'or')}, call again with that name.` : ''}`
+}
+
 /** A reply whose question could not be read (`need_more_detail`): what to fix, and that it read nothing. */
 export function unreadSaid(
   bundle: Names,
@@ -565,6 +604,8 @@ export type ContextSay = {
    * that hold it as a word and the domain it names: said, never dropped.
    */
   unread?: readonly UnreadSaid[]
+  /** The words where a value goes that name no value here: the reply is for every value. */
+  values?: readonly UnknownValueSaid[]
   /** The words read as a name they are not exactly, and how (names-read.ts). */
   readAs?: readonly { words: string; name: string; by: 'form' | 'initials' | 'part' }[]
   /** Why each held-back fact isn't given, in the resolver's reasons (FR-314). */
@@ -668,6 +709,11 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
   if (c.unread?.length) {
     say.push(unreadWordsSay(c.unread))
     next.push(unreadNext(c.unread, voice))
+  }
+  // A value word that names no value here is said: the answer is for every value (finding 2).
+  if (c.values?.length) {
+    say.push(unknownValuesSay(c.values))
+    next.push(unknownValuesNext(c.values))
   }
   // What a group asked for holds, right after what was read for it and how far that went.
   const grouped = groupWords(c.groups ?? [])
@@ -851,6 +897,8 @@ export function reportSaid(c: {
   /** What a report of something missing was about, in words, when it named a scope. */
   scope?: string | null
   assumed?: string | null
+  /** The value words the report's question names that name no value here. */
+  values?: readonly UnknownValueSaid[]
 }): Said {
   const to = c.to ?? 'the owners of the domain'
   const what =
@@ -860,6 +908,6 @@ export function reportSaid(c: {
         ? `Sent: something is missing${c.scope ? ` for ${c.scope}` : ''}. ${sentence(to)} will see it was asked.`
         : `Sent: something is ${c.kind}. ${sentence(to)} will see it.`
   return {
-    say: `${what} Who asked is not kept.${c.assumed ? ` ${c.assumed}` : ''}`,
+    say: `${what} Who asked is not kept.${c.assumed ? ` ${c.assumed}` : ''}${c.values?.length ? ` ${unknownValuesSay(c.values)}` : ''}`,
   }
 }

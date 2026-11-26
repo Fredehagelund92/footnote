@@ -83,7 +83,19 @@ export type HeldScope = Omit<ResolvedScope, 'window'> & { window: DateWindow | n
  * How the words were read beyond whole names (names-read.ts): the names read in a loose form, and,
  * when they name no metric, the words that could have named one. Only when there are some.
  */
-export type NamesRead = { loose?: LooseName[]; unread?: UnreadWord[] }
+/**
+ * A word where a value goes that names no value Footnote knows ("orders in Denmark"), as an
+ * agent's question reads it: said, and the scope reads every value (`unknownValue` asks in Ask).
+ */
+export type UnknownValueWord = {
+  /** The words as they were written. */
+  word: string
+  /** The dimensions it could be a value of, by key. */
+  dimensions: string[]
+  /** The values it is one typo from, or the short code it is written as, by key. */
+  near: string[]
+}
+export type NamesRead = { loose?: LooseName[]; unread?: UnreadWord[]; values?: UnknownValueWord[] }
 export type ScopeResult =
   | ({
       status: 'resolved'
@@ -732,10 +744,11 @@ export function extractScope(
   const dimensions = valueDimensions(terms, metrics)
   const valuesOf = (dimension: Term) =>
     terms.filter((term) => term.kind === 'dimension_value' && term.parentKey === dimension.key)
-  // A value word Footnote does not know, where a value goes, is said, never dropped: Ask's rule only
-  // (`loose`), on a question that names something to look up; agents read as before.
+  // A value word Footnote does not know, where a value goes, is said, never dropped, on a question
+  // that names something to look up: Ask (`loose`) asks which value; an agent's question reads every
+  // value and the reply says the word was not read (`values`).
+  const unknownValues: UnknownValueWord[] = []
   if (
-    structured.loose &&
     structured.filters === undefined &&
     dimensions.length &&
     (metrics.length || Object.keys(filters).length)
@@ -746,6 +759,10 @@ export function extractScope(
       // The words as the person wrote them: "Jordan", not "jordan".
       const written = found.written(span)
       const value = question.slice(written.start, written.end)
+      if (!structured.loose) {
+        unknownValues.push({ word: value, dimensions: of.map((d) => d.key), near: span.near })
+        continue
+      }
       issues.push({
         field: of.length === 1 ? of[0]!.key : 'values',
         input: value,
@@ -810,6 +827,7 @@ export function extractScope(
   const namesRead: NamesRead = {
     ...(found.loosely.length ? { loose: found.loosely.map(asWritten) } : {}),
     ...(unread.length ? { unread } : {}),
+    ...(unknownValues.length ? { values: unknownValues } : {}),
   }
   if (issues.length)
     return {

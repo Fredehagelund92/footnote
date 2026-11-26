@@ -454,13 +454,19 @@ describe('scope extraction', () => {
       })
     })
 
-    it('reads as before without loose, as an agent asks: the word is dropped', () => {
+    it('reads every value without loose, as an agent asks, and says the word it did not read', () => {
       expect(extractScope('anything on tickets closed in Payroll?', desk, today)).toMatchObject({
         status: 'resolved',
-        scope: { metrics: ['metric:tickets_closed'] },
+        scope: { metrics: ['metric:tickets_closed'], filters: {} },
+        values: [{ word: 'Payroll', dimensions: ['dim:team'], near: [] }],
       })
-      expect(extractScope('tickets closed in Billng last week', desk, today).status).toBe(
-        'resolved',
+      expect(extractScope('tickets closed in Billng last week', desk, today)).toMatchObject({
+        status: 'resolved',
+        values: [{ word: 'Billng', dimensions: ['dim:team'], near: ['val:team/billing'] }],
+      })
+      // A known value is no unknown word.
+      expect(extractScope('tickets closed in Billing last week', desk, today)).not.toHaveProperty(
+        'values',
       )
     })
 

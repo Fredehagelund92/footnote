@@ -25,6 +25,7 @@ import {
   type ResolvedScope,
   type ScopeIssue,
   type ScopeResult,
+  type UnknownValueWord,
 } from '../../domain/scope.ts'
 import {
   dateNote,
@@ -100,6 +101,7 @@ import {
   unreadSaid,
   whenWords,
   type Said,
+  type UnknownValueSaid,
 } from '../../domain/say.ts'
 import {
   definitionKinds,
@@ -277,6 +279,25 @@ export type PeriodRead = {
 }
 
 /**
+ * The value words a question names that name no value here (agent-side review, finding 2), by the
+ * names an agent is shown: the reply is for every value and says so.
+ */
+function valuesSaid(
+  bundle: ServingBundle,
+  values: readonly UnknownValueWord[] = [],
+): UnknownValueSaid[] {
+  const names = (keys: readonly string[]) =>
+    keys.flatMap((key) => {
+      const term = bundle.terms.find((t) => t.key === key)
+      return term && termShown(bundle, term) ? [term.name] : []
+    })
+  return values.flatMap((v) => {
+    const of = names(v.dimensions)
+    return of.length ? [{ word: v.word, of, closest: names(v.near) }] : []
+  })
+}
+
+/**
  * A question's scope, and the period it read (`period`, null when nothing was looked up). A
  * window stands over the person's period words, and they over the question's: words that place
  * no days need more detail, never every date.
@@ -297,7 +318,8 @@ export function scopeOf(
     : placed?.window
   const scope = extractScope(input.question, bundle.terms, today, {
     ...(input.metrics === undefined ? {} : { metrics: input.metrics }),
-    ...(input.dimension_filters === undefined ? {} : { filters }),
+    // An empty list filters nothing, so the question's words name the values, as with none.
+    ...(input.dimension_filters?.length ? { filters } : {}),
     ...(window === undefined ? {} : { window }),
     calendar,
     domains: bundle.areas.map((area) => area.name),
@@ -930,6 +952,7 @@ export function createToolService(
             readsAs: scope.dates?.reads_as ?? null,
           }),
           assumed: assumed?.note.sentence ?? null,
+          values: valuesSaid(bundle, scope.values),
         }),
       )
     }
@@ -1218,6 +1241,8 @@ export function createToolService(
           }),
           ...(w.domain ? { domain: w.domain } : {}),
         }))
+        // The value words that name no value here: the reply is for every value, and says so.
+        const values = valuesSaid(bundle, scope.values)
         const base = report(
           resolution.status,
           resolution.report.matched,
@@ -1395,6 +1420,7 @@ export function createToolService(
                 groups,
                 about: metrics.length > 1,
                 unread,
+                values,
                 readAs,
               },
               contextVoice,
@@ -1436,7 +1462,14 @@ export function createToolService(
             ...(period ? { period_read: period } : {}),
             ...(meant.length ? { defined: meant } : {}),
             ...(readAs.length ? { read_as: readAs } : {}),
-            ...(unread.length ? { unread } : {}),
+            ...(unread.length || values.length
+              ? {
+                  unread: [
+                    ...unread,
+                    ...values.map((v) => ({ word: v.word, closest: v.closest, value_of: v.of })),
+                  ],
+                }
+              : {}),
             // A reply that fits no item has no next page: only more bytes give it.
             ...(items.length && offset + items.length < resolution.items.length
               ? { next_cursor: nextCursor() }

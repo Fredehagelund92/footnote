@@ -606,11 +606,12 @@ export const contextOutput = z
           word: z.string(),
           closest: z.array(z.string()),
           domain: z.string().optional(),
+          value_of: z.array(z.string()).optional(),
         }),
       )
       .optional()
       .describe(
-        "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+        "The question's words that named nothing. A word that could have named a metric, when it names no metric: the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. A word where a value goes (value_of: the dimensions it could be a value of): it names no value, so the reply is for every value, and closest has the values it is a typo away from. Never read as one of them for the person.",
       ),
     reply_id: z
       .string()

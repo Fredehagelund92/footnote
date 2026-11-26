@@ -888,6 +888,55 @@ describe('a concise reply (FR-342)', () => {
     expect(both.say).toContain('Nobody checked 1 of them: it was published without review.')
   })
 
+  it('says a market it does not know and answers for every market (agent-side review, finding 2)', async () => {
+    const s = setup()
+    type Out = {
+      status: string
+      say: string
+      next: string
+      asked: string
+      unread?: { word: string; closest: string[]; value_of?: string[] }[]
+    }
+    const ask = async (input: Record<string, unknown>) =>
+      (await s.call('get_context', input)).structuredContent as Out
+    const denmark = await ask({ question: 'Why did orders drop in Denmark in August 2026?' })
+    // The fixture's one item is about Norway, so it covers part of every market.
+    expect(denmark).toMatchObject({
+      status: 'partial',
+      asked: 'Orders in August 2026',
+      unread: [{ word: 'Denmark', closest: [], value_of: ['Market'] }],
+    })
+    expect(denmark.say).toContain('"Denmark" is not a market here, so this is for every market.')
+    expect(denmark.next).toContain(
+      'Tell the person the answer is for every value, not for "Denmark".',
+    )
+    // A typo is said with the value it is close to, never read as it.
+    const typo = await ask({ question: 'How did orders do in Norwy in August 2026?' })
+    expect(typo.asked).toBe('Orders in August 2026')
+    expect(typo.say).toContain(
+      '"Norwy" is not a market here, so this is for every market. The closest is Norway.',
+    )
+    expect(typo.next).toContain('If they meant Norway, call again with that name.')
+    // An empty dimension_filters filters nothing: the question's words still name the market.
+    const empty = await ask({
+      question: 'How did orders do in Norway in August 2026?',
+      metrics: ['orders'],
+      dimension_filters: [],
+    })
+    expect(empty.asked).toBe('Orders in Norway in August 2026')
+    // A known market says nothing of the kind.
+    const known = await ask({ question: 'How did orders do in Norway in August 2026?' })
+    expect(known).not.toHaveProperty('unread')
+    // report files the gap for every market and says the same.
+    const report = await s.call('report', {
+      kind: 'missing',
+      question: 'Why did orders drop in Denmark in August 2026?',
+    })
+    expect((report.structuredContent as { say: string }).say).toContain(
+      '"Denmark" is not a market here, so this is for every market.',
+    )
+  })
+
   it('leaves the review out for a version with no acceptance on record', async () => {
     const s = setup()
     for (const item of s.data.items) item.review = null

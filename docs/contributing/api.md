@@ -82,7 +82,9 @@ without review has `published_without_review` (the role whose permission it was,
 place, and an answer that rests only on such items is Partial. `may_be_out_of_date: true` and
 `disagrees_with` (the ids of the items in the same reply it disagrees with, the overlap notice of
 FR-350) appear when they hold. A question about what a metric means ("What does net revenue
-mean?") also gets `definitions`. `reply_id` is what `report` takes.
+mean?") also gets `definitions`. A word where a market or another value goes that names no value
+here ("orders in Denmark") is never dropped: the reply is for every value, `say` says so, and
+`unread` lists the word with `value_of` and the closest values. `reply_id` is what `report` takes.
 
 Terms and synonyms people write in Definitions (FR-138) reach agents too. A synonym of a metric or
 a dimension ("Purchases" for Orders) is one of its other names, so a question in that word is read

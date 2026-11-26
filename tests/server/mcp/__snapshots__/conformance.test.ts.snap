@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "5e7504f807af3c4c1e67b27a84da1a97c978817309a2735aa5721a9c32ef9cee",
+  "digest": "5f0369712a5646175b3f5868e9b909c054b06e8a36d583049dc5dd3912fe277e",
   "tools": [
     {
       "_meta": {
@@ -408,7 +408,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "array",
           },
           "unread": {
-            "description": "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+            "description": "The question's words that named nothing. A word that could have named a metric, when it names no metric: the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. A word where a value goes (value_of: the dimensions it could be a value of): it names no value, so the reply is for every value, and closest has the values it is a typo away from. Never read as one of them for the person.",
             "items": {
               "additionalProperties": false,
               "properties": {
@@ -420,6 +420,12 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 },
                 "domain": {
                   "type": "string",
+                },
+                "value_of": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
                 },
                 "word": {
                   "type": "string",
