@@ -12,7 +12,9 @@ import {
   type RawLink,
   type ServingBundle,
   type ServingItem,
+  type ServingTerm,
 } from '../editions/index.ts'
+import { addedValues, dimensionOfValue } from '../../../domain/values.ts'
 import { missing } from '../../../contract/refusals.ts'
 import { UTC_CALENDAR } from '../../../domain/dates.ts'
 
@@ -56,18 +58,27 @@ export async function draftBundle(
       ? submittedVersion.version_no
       : (submittedVersion?.version_no ?? bundle.items.find((i) => i.id === id)?.version ?? 0) + 1
   return {
-    bundle: candidateBundle(bundle, { id, versionNo, proposerId: p.proposerId, version: v }),
+    bundle: candidateBundle(
+      bundle,
+      { id, versionNo, proposerId: p.proposerId, version: v },
+      addedValues(
+        { scope: v.scope, newValues: p.newValues },
+        new Set(bundle.terms.map((term) => term.key)),
+      ),
+    ),
     item: id,
   }
 }
 
 /**
  * The bundle an agent would be served if this version were accepted: the version replaces the
- * item's live version, and the items it replaces are retired and name it (FR-219).
+ * item's live version, and the items it replaces are retired and name it (FR-219). The values its
+ * writer added (`added`, values without figures) are published with it, in its domain.
  */
 export function candidateBundle(
   bundle: ServingBundle,
   candidate: { id: string; versionNo: number; proposerId: string | null; version: ItemVersion },
+  added: readonly { key: string; name: string }[] = [],
 ): ServingBundle {
   const { id, version: v } = candidate
   const item: ServingItem = {
@@ -148,8 +159,19 @@ export function candidateBundle(
       label: null,
     })),
   )
+  const values: ServingTerm[] = added.map((value) => ({
+    key: value.key,
+    kind: 'dimension_value',
+    name: value.name,
+    aliases: [],
+    parentKey: dimensionOfValue(value.key),
+    areaId: v.areaId,
+    definitionRefs: [],
+    definitions: [],
+  }))
   return {
     ...bundle,
+    ...(values.length ? { terms: [...bundle.terms, ...values] } : {}),
     refMarks: { ...bundle.refMarks, [id]: v.changeMarks },
     retired: [
       ...bundle.retired,

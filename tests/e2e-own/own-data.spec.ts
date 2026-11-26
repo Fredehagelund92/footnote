@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Page, type Request } from '@playwright/test'
+import { expect, test, type Browser, type Page, type Request } from '@playwright/test'
 import {
   legacyManifest,
   withMetric,
@@ -89,11 +89,12 @@ async function demoWords(page: Page) {
 }
 
 /** A write to the service as the signed-in person, as the app makes it. */
-async function post(page: Page, path: string, data: object) {
+async function post(page: Page, path: string, data: object, method: 'POST' | 'PUT' = 'POST') {
   const { csrfToken } = (await (await page.request.get('/api/v1/auth/session')).json()) as {
     csrfToken: string
   }
-  const answer = await page.request.post(`/api/v1${path}`, {
+  const answer = await page.request.fetch(`/api/v1${path}`, {
+    method,
     headers: {
       'x-footnote-csrf': csrfToken,
       'idempotency-key': randomUUID(),
@@ -104,6 +105,9 @@ async function post(page: Page, path: string, data: object) {
   expect(answer.ok(), await answer.text()).toBe(true)
   return answer.json() as Promise<Record<string, unknown>>
 }
+
+/** The access key the first journey made, which the next one's agent uses too. */
+let agentKey = ''
 
 /** get_context as an agent calls it: over MCP, with an access key. */
 async function getContext(page: Page, key: string, args: object) {
@@ -328,6 +332,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
 
   // An agent asks the same over MCP, as a key that names nobody.
   const { key } = await post(page, '/access-keys', { name: 'Own data journey' })
+  agentKey = key as string
   const reply = await getContext(page, key as string, { question })
   expect(reply).toMatchObject({ status: 'matched' })
   expect(reply.say).toMatch(/^Checked\./)
@@ -397,4 +402,203 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await shot('16-setup-due')
   await due.getByRole('link').click()
   await expect(page).toHaveURL(/\/context\?status=due$/)
+
+  // The last step, About our business, and Jon owns Sales with Ravi: the next journey is his.
+  await page.goto('/settings/general')
+  await page.getByRole('textbox', { name: 'About our business' }).click()
+  await page.keyboard.insertText('We run an online shop, and sell to partners as well.')
+  await expect(page.getByText('Saved', { exact: true })).toBeVisible()
+  const people = await read<{ id: string; name: string }[]>('/people')
+  const idOf = (name: string) => people.find((p) => p.name === name)!.id
+  await post(
+    page,
+    `/areas/${sales}/owners`,
+    { personIds: [idOf('Ravi Kapoor'), idOf('Jon Abara')] },
+    'PUT',
+  )
+})
+
+/**
+ * Moves to another address inside the app, as a link does, without loading it again: a load reads
+ * every shared read again, and one person may make 600 calls a minute.
+ */
+const moveTo = async (page: Page, route: string) => {
+  await page.evaluate((to) => {
+    const link = Object.assign(document.createElement('a'), { href: to })
+    document.body.append(link)
+    link.click()
+    link.remove()
+  }, route)
+  await expect(page).toHaveURL((url) => url.pathname === new URL(route, url).pathname)
+}
+
+/** A new page signed in as someone the sample file offers, by name. */
+async function signedInAs(browser: Browser, name: string) {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: 'en-GB' })
+  await page.goto('/')
+  // The picker is ready once it says so: a click before that lands on nothing.
+  await expect(page.getByText('Pick who you are.', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: new RegExp(name) }).click()
+  // The app opens on the Inbox while something waits there, and on Ask when nothing does.
+  await expect(page).toHaveURL(/\/(inbox|ask)$/, { timeout: 30_000 })
+  return page
+}
+
+/*
+  The values of a dimension on the same install, which has none (values without figures): an
+  agent's filter on a channel is read for every channel and says so; Jon, an owner of Sales, whose
+  Channel is, adds a value in Definitions and another where he writes, each published at once; a
+  contributor's pasted values and her item's new value wait for him, on the Names card and in the
+  review. It follows the journey above, on its names, its Sales domain and its access key, with
+  setup done: until then the Inbox holds the checklist and its cards wait.
+*/
+test('values people write, on an install that has none', async ({ browser }) => {
+  const page = await signedInAs(browser, 'Jon Abara')
+  const shot = (name: string, on: Page = page) =>
+    process.env.SHOTS ? on.screenshot({ path: `${process.env.SHOTS}/${name}.png` }) : null
+  const window = { from: '2026-01-01', to: '2026-12-31' }
+  const asked = (values: string[]) => ({
+    question: 'Why did net revenue drop?',
+    metrics: ['Net revenue'],
+    dimension_filters: [{ dimension: 'Channel', values }],
+    window,
+  })
+  // No value of Channel is kept, so an agent's filter on one is read for every channel, and said.
+  const key = agentKey
+  const unkept = await getContext(page, key, asked(['Partner']))
+  expect(unkept.status).not.toBe('need_more_detail')
+  expect(unkept.say).toContain(
+    "No values of Channel are kept yet, so this was read for every channel, not only 'Partner'.",
+  )
+
+  // Channel's page says it has none, and Jon, an owner of its domain, adds one, published at once.
+  await moveTo(page, '/definitions/Channel')
+  const values = page.getByRole('region', { name: /^Values/ })
+  await expect(values.getByText(/^No values yet/)).toBeVisible()
+  expect(await demoWords(page), 'a dimension with no values').toEqual([])
+  await values.getByRole('button', { name: 'Add a value' }).click()
+  await values.getByRole('textbox', { name: 'Name', exact: true }).fill('Partner')
+  await values.getByRole('textbox', { name: 'Other names' }).fill('Partners')
+  await values.getByRole('textbox', { name: 'How the data writes it' }).fill('PTR')
+  await values.getByRole('button', { name: 'Publish', exact: true }).click()
+  await expect(page.getByText('Partner is published')).toBeVisible()
+  await expect(values.getByRole('listitem')).toHaveText([
+    'Partneralso Partners · the data writes PTR',
+  ])
+  await shot('20-values-added')
+
+  // Where an item is written: a channel nobody added yet, added in Applies to.
+  await moveTo(page, '/context/new')
+  await page.getByRole('textbox', { name: 'Title' }).fill('Direct sales paused for a week')
+  await page.getByRole('textbox', { name: 'What agents should know' }).click()
+  await page.keyboard.insertText('Direct sales were paused for a week, so Net revenue reads low.')
+  await page.getByRole('button', { name: /^Applies to/ }).click()
+  const search = page.getByRole('combobox', { name: 'Search Applies to' })
+  const list = page.getByRole('listbox', { name: 'Applies to' })
+  await search.fill('Net revenue')
+  await list
+    .getByRole('option', { name: /^Net revenue/ })
+    .first()
+    .click()
+  await search.fill('Direct')
+  await expect(list.getByText('Nothing called “Direct”. Add it as a value of')).toBeVisible()
+  expect(await demoWords(page), 'the picker adding a value').toEqual([])
+  await shot('21-picker-add')
+  await list.getByRole('option', { name: 'Add Direct as a value of Channel' }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTitle('Channel: Direct (new value)')).toBeVisible()
+  await page.getByRole('button', { name: /^When/ }).click()
+  await page.getByRole('radio', { name: 'A single day' }).click()
+  await page.getByRole('button', { name: 'Go to the Previous Month' }).click()
+  await page
+    .getByRole('grid')
+    .getByRole('button', { name: /^[A-Z][a-z]+day, 12 / })
+    .click()
+  await page.getByRole('button', { name: 'Done' }).click()
+  await page.getByRole('button', { name: /Add a source/ }).click()
+  await page.locator('#fact-source').fill('https://finance.example/direct-pause')
+  await page.locator('#fact-quote').fill('Direct sales were paused for the week.')
+  await page.keyboard.press('Escape')
+  await button(page, 'Publish').click()
+  await expect(page.getByText(/^Published just now by you/)).toBeVisible()
+  // The value went live with the item, and an agent's filter on it gets the item.
+  await moveTo(page, '/definitions/Channel')
+  await expect(values.getByRole('listitem')).toHaveCount(2)
+  await expect(values).toContainText('Direct')
+  const scoped = await getContext(page, key, asked(['Direct']))
+  expect(JSON.stringify(scoped)).toContain('Direct sales paused for a week')
+  expect(scoped.say).not.toContain('No values of Channel')
+
+  // A contributor's pasted values wait for the admin, on the Names card.
+  const maria = await signedInAs(browser, 'Maria Lindqvist')
+  await moveTo(maria, '/definitions/Channel')
+  const hers = maria.getByRole('region', { name: /^Values/ })
+  await hers.getByRole('button', { name: 'Paste a list' }).click()
+  await hers.getByRole('textbox', { name: 'Values, one per line' }).fill('Wholesale\nRetail, Shops')
+  await hers.getByRole('button', { name: 'Suggest 2 values' }).click()
+  await expect(maria.getByText('2 values wait for an owner of Sales')).toBeVisible()
+  await expect(hers.getByRole('listitem')).toHaveCount(2)
+  // She writes an item about a channel nobody added yet: it goes to the owners with its value.
+  const read = async <T>(path: string) =>
+    (await maria.request.get(`/api/v1${path}`)).json() as Promise<T>
+  const vocabulary = await read<{
+    metrics: { id: string; name: string }[]
+    dimensions: { id: string; name: string }[]
+  }>('/vocabulary')
+  // A metric nothing is written about yet, so her item overlaps none.
+  const shopRevenue = vocabulary.metrics.find((m) => m.name === 'Shop revenue')!.id
+  const channel = vocabulary.dimensions.find((d) => d.name === 'Channel')!.id
+  const sales = (await read<{ id: string; name: string }[]>('/areas')).find(
+    (area) => area.name === 'Sales',
+  )!.id
+  const online = `val:${channel}/online`
+  const sent = await post(maria, '/items/publish', {
+    draft: {
+      areaId: sales,
+      kind: 'event',
+      title: 'Online orders doubled in the spring sale',
+      summary: 'Online orders doubled during the spring sale, so Shop revenue reads high.',
+      scope: {
+        metrics: [`metric:${shopRevenue.replace(/^metric:/, '')}`],
+        dimensions: [],
+        dimensionValues: [{ dimension: `dim:${channel}`, value: online }],
+      },
+      validity: { start: '2026-03-01', end: '2026-04-01' },
+      evidence: [
+        { url: 'https://finance.example/spring', quote: 'Online doubled.', date: '2026-04-02' },
+      ],
+    },
+    newValues: [{ key: online, name: 'Online' }],
+  })
+  expect(sent.published).toBe(false)
+  await maria.close()
+
+  // Jon reads it with its new value, and publishing it publishes both.
+  // Loaded again: what Maria sent in her own browser is news to this one.
+  await page.goto(`/inbox?card=${sent.proposalId as string}`)
+  await expect(
+    page.getByText('New value: Online (Channel). Publishing it publishes the value too.'),
+  ).toBeVisible()
+  await shot('22-new-value-quick-view')
+  await button(page, 'Review').click()
+  await expect(page.getByText('New value: Online (Channel).', { exact: false })).toBeVisible()
+  await shot('23-new-value-review')
+  await page.locator('#decision').getByRole('button', { name: 'Publish', exact: true }).click()
+  await expect(
+    page.locator('[data-sonner-toast]').filter({ hasText: /^Published “/ }),
+  ).toBeVisible()
+
+  await moveTo(page, '/inbox?card=names:waiting')
+  const pane = page.getByRole('region', { name: /^Values people added/ })
+  await expect(pane.getByRole('listitem')).toHaveCount(2)
+  await expect(pane).toContainText('added by Maria Lindqvist')
+  expect(await demoWords(page), 'the Names card with values').toEqual([])
+  await shot('24-names-card-values')
+  await pane.getByRole('button', { name: 'Publish 2 values' }).click()
+  await expect(page.getByText('2 values are published')).toBeVisible()
+  await moveTo(page, '/definitions/Channel')
+  await expect(values.getByRole('listitem')).toHaveCount(5)
+  await expect(values).toContainText('Online')
+  await expect(values).toContainText('Retailalso Shops')
+  await shot('25-values-all')
 })

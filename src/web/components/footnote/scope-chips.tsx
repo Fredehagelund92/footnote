@@ -29,6 +29,8 @@ export function ScopeChip({ term, onRemove }: { term: ScopeTerm; onRemove?: () =
       title={termWords(term)}
     >
       {termLabel(term)}
+      {/* A value the writer added, which goes to the owner with the item (values without figures). */}
+      {term.added && <span className="ml-1 opacity-70">new</span>}
     </TagChip>
   )
 }

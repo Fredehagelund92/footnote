@@ -35,6 +35,9 @@ export const bundleArb = fc
     all: fc.boolean(),
     areas: fc.uniqueArray(fc.constantFrom('finance', 'operations')),
     stopped: fc.uniqueArray(fc.integer({ min: 0, max: 7 })),
+    // Half the editions stop nothing: a held-back match makes an answer Partial, so without them
+    // an answer would almost never be Checked.
+    quiet: fc.boolean(),
   })
   .map((value): EditionBundle =>
     bundle(
@@ -63,11 +66,13 @@ export const bundleArb = fc
         }),
       ),
       {
-        stopped: {
-          all: value.all,
-          areas: value.areas,
-          items: value.stopped.map((i) => `itm_0000000${i}`),
-        },
+        stopped: value.quiet
+          ? { all: false, areas: [], items: [] }
+          : {
+              all: value.all,
+              areas: value.areas,
+              items: value.stopped.map((i) => `itm_0000000${i}`),
+            },
       },
     ),
   )

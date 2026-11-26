@@ -167,6 +167,11 @@ export function definitionsOf(
         }
       : {}),
     sourceNames: [...new Set(term.aliases)],
+    ...(term.kind === 'dimension'
+      ? {
+          values: term.values.map(({ name, aliases, writtenAs }) => ({ name, aliases, writtenAs })),
+        }
+      : {}),
     ...(term.domain.areaId ? { domain: term.domain.areaId } : {}),
     ...(term.group ? { group: term.group.name } : {}),
     ...(term.family

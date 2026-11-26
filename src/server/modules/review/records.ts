@@ -1,12 +1,15 @@
 import { ORPCError } from '@orpc/client'
 import type { ReviewProposal } from '../../../contract/review.ts'
 import type { Draft, FormatFinding } from '../../../domain/draft.ts'
+import type { NewValues } from '../../../domain/values.ts'
 import type { Provenance } from '../../../domain/provenance.ts'
 import type { Queryable } from '../../db/database.ts'
 import { missing } from '../../../contract/refusals.ts'
 
 export type LoadedProposal = ReviewProposal & {
   draft: Draft
+  /** The values its writer added in "Applies to" (values without figures). */
+  newValues: NewValues
   findings: FormatFinding[]
   provenance: Provenance | null
   /** The agent that sent it for the person, by its name then (FR-420); null for anything else. */
@@ -23,7 +26,7 @@ const fields = `p.id::text,p.number::float8 as number,p.subject::text as subject
   p.proposer_id::text as "proposerId",p.channel::text as channel,p.revision,p.reason,
   p.claimed_by::text as "claimedBy",p.due_at::text as "dueAt",p.submitted_at::text as "submittedAt",
   p.closed_at::text as "closedAt",p.created_at::text as "createdAt",
-  coalesce(p.draft,'{}'::jsonb) as draft,p.draft_findings as findings,p.provenance,
+  coalesce(p.draft,'{}'::jsonb) as draft,p.new_values as "newValues",p.draft_findings as findings,p.provenance,
   p.agent_name as "agentName",p.source_gap_id::text as "sourceGapId"`
 const from = `from proposals p left join item_versions v on v.id=p.item_version_id
   left join vocab_term_versions tv on tv.id=p.vocab_version_id`
@@ -31,6 +34,7 @@ const from = `from proposals p left join item_versions v on v.id=p.item_version_
 /** The public record: the draft stays with the proposal write API. */
 export function publicRecord({
   draft: _d,
+  newValues: _v,
   findings: _f,
   provenance: _p,
   agentName: _a,

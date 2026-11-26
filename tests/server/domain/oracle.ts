@@ -18,8 +18,13 @@ export function oracle(bundle: EditionBundle, request: ResolveRequest) {
       .filter(([, groups]) => groups.includes(key))
       .map(([metric]) => metric),
   ])
+  // A question that names a value and no metric reads every item that names that value.
+  const values = new Set(Object.values(scope.filters).flat())
+  const byValue = (item: (typeof bundle.items)[number]) =>
+    !asked.length && item.scope.dimensionValues.some((row) => values.has(row.value))
   const rows = bundle.items.filter((item) => {
     if (
+      !byValue(item) &&
       item.scope.metrics.length &&
       !item.scope.metrics.some((key) =>
         asked.some((metric) => metric === key || bundle.groupsOfMetric[metric]?.includes(key)),

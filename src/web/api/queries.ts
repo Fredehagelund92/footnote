@@ -659,6 +659,13 @@ export const invalidations: {
     queryKeys.vocabulary,
     queryKeys.scopeSearches,
   ],
+  addValues: () => [
+    ...definitions,
+    queryKeys.vocabulary,
+    queryKeys.scopeSearches,
+    queryKeys.names,
+    ...inbox,
+  ],
   saveTerm: () => definitions,
   addSynonym: () => definitions,
   removeTerm: () => definitions,
@@ -817,6 +824,10 @@ const later: { [K in WriteOperation]?: QueryKey[] } = {
     ...integrations,
     queryKeys.advancedPage,
   ],
+  // A value its writer added is published with the item (values without figures).
+  saveItem: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],
+  publishReview: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],
+  publishReviews: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],
 }
 
 /**

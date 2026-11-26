@@ -7,7 +7,7 @@ import { proposalEvents } from './records.ts'
 /** A term as a new version of it says it, and who accepts it in what capacity. */
 export type TermVersion = Pick<
   Term,
-  'key' | 'kind' | 'parentKey' | 'name' | 'aliases' | 'areaId' | 'definitionRefs'
+  'key' | 'kind' | 'parentKey' | 'name' | 'aliases' | 'areaId' | 'definitionRefs' | 'writtenAs'
 > & {
   /** A new term, or a new version of a live one. */
   action: 'create' | 'change'
@@ -18,11 +18,11 @@ export type TermVersion = Pick<
 
 /**
  * Stores new versions of terms the way every vocabulary change goes (FR-125): a term version, an
- * accepted proposal, a decision by an owner of its domain or an administrator, which the database
- * checks, and an edition that serves them all. The terms must exist already. `change` says what
- * else the same edition does, such as taking a family out of service.
+ * accepted proposal and a decision by an owner of its domain or an administrator, which the
+ * database checks. The terms must exist already. Nothing is served yet: the caller publishes the
+ * versions in an edition, then records that they were decided in it (`decided`).
  */
-export async function acceptTermVersions(
+export async function recordTermVersions(
   tx: Queryable,
   terms: readonly TermVersion[],
   options: {
@@ -30,11 +30,6 @@ export async function acceptTermVersions(
     reason: string
     /** The import the names came from, for a read's names. */
     batch?: string
-    change?: Omit<EditionChange, 'vocabulary' | 'reason'>
-    /** The domain the edition is announced to; null for none. */
-    areaId: string | null
-    /** Versions served again as they were, by id, such as a family's when it is joined again. */
-    serveAgain?: readonly string[]
   },
 ) {
   const rows = JSON.stringify(
@@ -50,10 +45,11 @@ export async function acceptTermVersions(
   )
   const each = 'from jsonb_array_elements($1::jsonb) with ordinality as e(row, n)'
   const versions = await tx.query<{ id: string; key: string }>(
-    `insert into vocab_term_versions(term_key,version_no,name,aliases,area_id,parent_key,proposer_id,content_digest)
+    `insert into vocab_term_versions(term_key,version_no,name,aliases,written_as,area_id,parent_key,proposer_id,content_digest)
      select row->>'key',
             (select coalesce(max(version_no),0)+1 from vocab_term_versions where term_key=row->>'key'),
-            row->>'name',array(select jsonb_array_elements_text(row->'aliases')),row->>'areaId',
+            row->>'name',array(select jsonb_array_elements_text(row->'aliases')),
+            array(select jsonb_array_elements_text(coalesce(row->'writtenAs','[]'))),row->>'areaId',
             row->>'parentKey',null,decode(row->>'digest','hex')
        ${each} order by n
      returning id::text,term_key as key`,
@@ -85,29 +81,57 @@ export async function acceptTermVersions(
     [rows, options.reason, versionOf, proposals.map((p) => p.id)],
   )
   const decisionOf = new Map(decisions.map((d) => [d.proposalId, d]))
+  return {
+    versions: versions.map((v) => v.id),
+    /** Records each accepted proposal as decided in the edition that serves its version. */
+    decided: (edition: string) =>
+      proposalEvents(
+        tx,
+        proposals.map((p) => ({
+          p: { id: p.id, areaId: p.areaId, state: 'accepted', revision: p.revision },
+          kind: 'decided',
+          data: {
+            decisionId: decisionOf.get(p.id)?.id,
+            outcome: 'accept',
+            capacity: decisionOf.get(p.id)?.capacity,
+            reason: options.reason,
+            edition,
+          },
+          audit: 'decision.accept',
+        })),
+      ),
+  }
+}
+
+/**
+ * `recordTermVersions`, and an edition that serves them all. `change` says what else the same
+ * edition does, such as taking a family out of service.
+ */
+export async function acceptTermVersions(
+  tx: Queryable,
+  terms: readonly TermVersion[],
+  options: {
+    channel: 'form' | 'import'
+    reason: string
+    /** The import the names came from, for a read's names. */
+    batch?: string
+    change?: Omit<EditionChange, 'vocabulary' | 'reason'>
+    /** The domain the edition is announced to; null for none. */
+    areaId: string | null
+    /** Versions served again as they were, by id, such as a family's when it is joined again. */
+    serveAgain?: readonly string[]
+  },
+) {
+  const recorded = await recordTermVersions(tx, terms, options)
   const edition = await publishEdition(
     tx,
     {
       reason: 'vocabulary_changed',
       ...options.change,
-      vocabulary: [...versions.map((v) => v.id), ...(options.serveAgain ?? [])],
+      vocabulary: [...recorded.versions, ...(options.serveAgain ?? [])],
     },
     options.areaId,
   )
-  await proposalEvents(
-    tx,
-    proposals.map((p) => ({
-      p: { id: p.id, areaId: p.areaId, state: 'accepted', revision: p.revision },
-      kind: 'decided',
-      data: {
-        decisionId: decisionOf.get(p.id)?.id,
-        outcome: 'accept',
-        capacity: decisionOf.get(p.id)?.capacity,
-        reason: options.reason,
-        edition: edition.label,
-      },
-      audit: 'decision.accept',
-    })),
-  )
+  await recorded.decided(edition.label)
   return edition
 }

@@ -67,7 +67,7 @@ export const ANSWER_LINES: readonly AnswerLine[] = [
     long: 'Covers part of it',
     sentence: 'Only part of this is written down.',
     means:
-      'Context covers part of the question, nobody checked it, or the dates were assumed. The answer says which.',
+      'Context covers part of the question, a match is held back, nobody checked it, or the dates were assumed. The answer says which.',
     todo: 'Write the missing part, or tell the owner.',
   },
   {
@@ -132,6 +132,11 @@ export type StateInput = {
   uncovered: { metrics: readonly string[]; values: readonly string[] }
   /** The question gave no dates and no window, so the server read it at today. */
   assumed: boolean
+  /**
+   * Matches the reader is told are held back (high risk waiting for a check, a stopped domain): what
+   * is given is only part of what is written (agent-side review, call 4).
+   */
+  withheld: number
 }
 
 /**
@@ -139,7 +144,8 @@ export type StateInput = {
  * planned answers all use. Not checked when the checks could not run; Not found when nothing was
  * given, or the question could not be read; Conflict when given items disagree; Partial when an
  * asked metric or value has no item that covers it in full, every item applies to only part of
- * the question, every item was published without review, or the dates were assumed; Outdated when a given item may be out of date, because
+ * the question, every item was published without review, a match is held back, or the dates were
+ * assumed; Outdated when a given item may be out of date, because
  * its check date passed or its source changed; otherwise Checked. The order is deliberate, so the
  * label names what an owner must do first.
  */
@@ -152,6 +158,7 @@ export function answerStateOf(input: StateInput): AnswerState {
     input.uncovered.metrics.length ||
     input.uncovered.values.length ||
     input.assumed ||
+    input.withheld > 0 ||
     input.items.every((item) => item.match === 'partial') ||
     input.items.every((item) => item.unreviewed)
   )

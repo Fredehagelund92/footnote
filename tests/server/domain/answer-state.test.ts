@@ -65,7 +65,7 @@ const none = { metrics: [], values: [] }
 const replyStatus = (
   input: Partial<Parameters<typeof replyStatusOf>[0]> &
     Pick<Parameters<typeof replyStatusOf>[0], 'status'>,
-) => replyStatusOf({ items: [], uncovered: none, assumed: false, ...input })
+) => replyStatusOf({ items: [], uncovered: none, assumed: false, withheld: 0, ...input })
 
 describe('a reply status', () => {
   const exact = { match: 'exact' as const, unverified: false, unreviewed: false }
@@ -75,7 +75,9 @@ describe('a reply status', () => {
 
   it('keeps what the resolver found when it found no match', () => {
     for (const status of ['no_match', 'conflict', 'need_more_detail', 'check_failed'] as const)
-      expect(replyStatusOf({ status, items: [old], uncovered: none, assumed: false })).toBe(status)
+      expect(
+        replyStatusOf({ status, items: [old], uncovered: none, assumed: false, withheld: 0 }),
+      ).toBe(status)
   })
 
   it('is Partial when part of the question has nothing written for it', () => {
@@ -106,6 +108,14 @@ describe('a reply status', () => {
     // One checked item beside it carries the answer.
     expect(replyStatus({ status: 'matched', items: [exact, unread] })).toBe('matched')
     expect(replyStatus({ status: 'conflict', items: [unread, unread] })).toBe('conflict')
+  })
+
+  it('is Partial when a match is held back, never Checked (agent-side review, call 4)', () => {
+    expect(replyStatus({ status: 'matched', items: [exact], withheld: 1 })).toBe('partial')
+    expect(replyStatus({ status: 'matched', items: [old], withheld: 1 })).toBe('partial')
+    expect(replyStatus({ status: 'conflict', items: [exact], withheld: 1 })).toBe('conflict')
+    // With nothing given it is Not found, as before: the reply says what is held back.
+    expect(replyStatus({ status: 'no_match', items: [], withheld: 1 })).toBe('no_match')
   })
 
   it('is Outdated when an item may be out of date, after Partial', () => {
@@ -146,10 +156,10 @@ describe('the answer state', () => {
     ['matched', [item(), item({ unverified: true })], none, false, 'stale'],
     ['matched', [item()], none, false, 'grounded'],
   ] as const)('%s with %j, %j, assumed %s, is %s', (status, items, uncovered, assumed, state) => {
-    expect(answerStateOf({ status, items, uncovered, assumed })).toBe(state)
+    expect(answerStateOf({ status, items, uncovered, assumed, withheld: 0 })).toBe(state)
     // The reply status is the same state in the status's words (a lookup in ANSWER_LINES).
     if (!items.length && status === 'matched') return
-    const reply = replyStatusOf({ status, items, uncovered, assumed })
+    const reply = replyStatusOf({ status, items, uncovered, assumed, withheld: 0 })
     expect(stateOfStatus(reply) ?? 'missing').toBe(state)
   })
 })

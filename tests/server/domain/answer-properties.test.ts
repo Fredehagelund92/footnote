@@ -3,6 +3,7 @@ import fc from 'fast-check'
 import {
   answer,
   answerStates,
+  heldBackOf,
   type AnswerBundle,
   type AnswerStepName,
 } from '../../../src/domain/answer.ts'
@@ -115,18 +116,25 @@ it(
             expect(
               !covered ||
                 result.assumed !== null ||
-                result.items.every((item) => item.match === 'partial'),
+                heldBackOf(result.leftOut) > 0 ||
+                result.items.every((item) => item.match === 'partial') ||
+                result.items.every((item) => item.unreviewed),
             ).toBe(true)
           if (result.state === 'stale')
             expect(covered && result.items.some((item) => item.unverified)).toBe(true)
           if (result.state === 'grounded')
-            expect(covered && result.items.every((item) => !item.unverified)).toBe(true)
+            expect(
+              covered &&
+                heldBackOf(result.leftOut) === 0 &&
+                result.items.every((item) => !item.unverified),
+            ).toBe(true)
           // get_context reads the state through replyStatus from the same facts: one rule.
           const reply = replyStatus({
             status: result.status,
             items: result.items,
             uncovered: result.uncovered,
             assumed: result.assumed !== null,
+            withheld: heldBackOf(result.leftOut),
           })
           expect(stateOfStatus(reply) ?? 'missing').toBe(result.state)
           for (const value of result.uncovered.values)

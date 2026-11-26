@@ -164,6 +164,9 @@ const readOperations = [
   'gaps.report',
   'vocabulary.get',
   'vocabulary.search',
+  // Values of a dimension: anyone signed in adds them; an owner of its domain or an admin
+  // publishes them, and anyone else's wait for one.
+  'vocabulary.addValues',
   'library.index',
   'search.all',
   'catalogue.list',

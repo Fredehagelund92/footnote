@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import * as z from 'zod'
-import { uncoveredParts } from '../../domain/answer.ts'
+import { heldBackOf, uncoveredParts } from '../../domain/answer.ts'
 import { replyStatus, stateOfStatus } from '../../domain/answer-state.ts'
 import { canonicalJson } from '../../domain/canonical.ts'
 import { noGroups } from '../../domain/item.ts'
@@ -1462,6 +1462,7 @@ export function createToolService(
                 )
               : { metrics: [], values: [] },
             assumed: !!assumed,
+            withheld: heldBackOf(resolution.withheld),
           })
         }
         // How the agent reaches what the reply left out: the next page by cursor, or a larger one,
@@ -1500,6 +1501,7 @@ export function createToolService(
                 unread,
                 values,
                 readAs,
+                ...(scope.unkept ? { unkept: scope.unkept } : {}),
               },
               contextVoice,
             ),

@@ -9,9 +9,9 @@ import type { Term } from '../../../src/domain/vocabulary.ts'
   included: "turnover" is no name, so it loses the metric; a typo is suggested, never chosen; two
   scopes in one question share one topic. A change to the reader that changes what a question is
   read as shows here first, on purpose. Beside each is the state the answer engine gives on the
-  small Larchwood library below. A question whose metric is lost reads as its market alone, and
-  a market alone gets only the items about no metric, so those questions are Not found here
-  although an item about their metric and market exists. DEMO DATA ONLY.
+  small Larchwood library below. A question whose metric is lost reads as its market alone, and a
+  market alone reads every item that names that market, whatever its metric (agent-side review,
+  finding 1), so those questions find the market's items, with the lost word said. DEMO DATA ONLY.
 */
 
 const term = (
@@ -254,7 +254,7 @@ export const phrasings: Phrasing[] = [
     kind: 'clean',
     question: 'How many units did we sell in Poland in September?',
     topic: '||val:market/poland|2026-09',
-    state: 'missing',
+    state: 'stale',
   },
   {
     kind: 'clean',
@@ -386,13 +386,13 @@ export const phrasings: Phrasing[] = [
     kind: 'other name',
     question: 'Sales of Shoes in Sweden',
     topic: '||val:market/sweden,val:product/footwear|2026-10',
-    state: 'missing',
+    state: 'conflict',
   },
   {
     kind: 'synonym',
     question: 'What was turnover in Norway in August?',
     topic: '||val:market/norway|2026-08',
-    state: 'missing',
+    state: 'grounded',
   },
   {
     kind: 'synonym',
@@ -404,7 +404,7 @@ export const phrasings: Phrasing[] = [
     kind: 'synonym',
     question: 'How much money did we make in Spain in Q3?',
     topic: '||val:market/spain|2026-07',
-    state: 'missing',
+    state: 'grounded',
   },
   {
     // A word only one metric's name holds reads as that metric, and the reply says so (names-read.ts,
@@ -430,7 +430,7 @@ export const phrasings: Phrasing[] = [
     kind: 'typo',
     question: 'Net revenu in Norway in August',
     topic: '||val:market/norway|2026-08',
-    state: 'missing',
+    state: 'grounded',
   },
   {
     kind: 'typo',
@@ -448,13 +448,13 @@ export const phrasings: Phrasing[] = [
     kind: 'typo',
     question: 'Chrun rate in Sweden',
     topic: '||val:market/sweden|2026-10',
-    state: 'missing',
+    state: 'conflict',
   },
   {
     kind: 'typo',
     question: 'Retruns in Spain',
     topic: '||val:market/spain|2026-10',
-    state: 'missing',
+    state: 'partial',
   },
   { kind: 'no scope', question: 'How are we doing?', topic: null, state: 'missing' },
   { kind: 'no scope', question: 'What changed this week?', topic: null, state: 'missing' },
@@ -588,7 +588,7 @@ export const labCases: LabCase[] = [
     ask: { question: 'What was turnover in Norway in August 2026?' },
     scope: { metrics: [], filters: norway, window: august },
     topic: '||val:market/norway|2026-08',
-    state: 'missing',
+    state: 'grounded',
   },
   {
     label: 'B2 turnover structured by agent',
@@ -678,7 +678,7 @@ export const labCases: LabCase[] = [
     ask: { question: 'Net revenu in Norway in August 2026' },
     scope: { metrics: [], filters: norway, window: august },
     topic: '||val:market/norway|2026-08',
-    state: 'missing',
+    state: 'grounded',
   },
   {
     label: 'G1 group',

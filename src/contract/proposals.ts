@@ -5,6 +5,7 @@ import { proposalStates } from '../domain/proposal-state.ts'
 import { creationChannels, itemKinds, personChannels } from '../domain/item.ts'
 import { proposalActions } from '../domain/proposal.ts'
 import { limits } from '../domain/proposal-rules.ts'
+import { newValuesSchema } from '../domain/values.ts'
 import { termSchema } from '../domain/vocabulary.ts'
 
 export const findingSchema = z.object({
@@ -26,6 +27,8 @@ const changeReasonSchema = z.nullable(z.string().check(z.maxLength(limits.change
 export const createProposalSchema = z.strictObject({
   draft: draftSchema,
   reason: z.optional(changeReasonSchema),
+  /** Values its writer added in "Applies to" that the vocabulary has no term for yet. */
+  newValues: z.optional(newValuesSchema),
   itemId: z.optional(z.string().check(z.regex(/^itm_[a-z0-9]{8,16}$/))),
   /** The version of that item the words were written from; left out, the version agents get now. */
   version: z.optional(z.number().check(z.int(), z.minimum(1))),
@@ -55,6 +58,11 @@ export const proposalRecordSchema = z.object({
   revision: z.number(),
   /** Item form content only; empty for proposals without an item draft. */
   draft: draftSchema,
+  /**
+   * Values its writer added in "Applies to" that the vocabulary has no term for yet: published
+   * with it (values without figures). Empty for most.
+   */
+  newValues: newValuesSchema,
   /**
    * Where each field came from when an AI agent or the assistant wrote the draft for the person
    * (FR-121, FR-707); null for a draft a person wrote.

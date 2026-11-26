@@ -17,9 +17,14 @@ export const anyValue = (dimension: string) => `${dimension}: any value`
 /** A term in words, as its chip shows it: "Orders", "Market: any value", "Norway". */
 export const termLabel = (t: ScopeTerm) => (t.kind === 'dimension' ? anyValue(t.name) : t.name)
 
-/** A term in full words, its dimension named: "Channel: Email". For hints and screen readers. */
+/**
+ * A term in full words, its dimension named: "Channel: Email". For hints and screen readers. A
+ * value the writer added says so: "Market: Norway (new value)".
+ */
 export const termWords = (t: ScopeTerm) =>
-  t.kind === 'value' && t.dimension ? `${t.dimension}: ${t.name}` : termLabel(t)
+  t.kind === 'value' && t.dimension
+    ? `${t.dimension}: ${t.name}${t.added ? ' (new value)' : ''}`
+    : termLabel(t)
 
 /** The id of a value's dimension by its key: `val:market/norway` is `market`. */
 export const dimensionIdOf = (key: string) =>

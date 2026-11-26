@@ -82,7 +82,10 @@ without review has `published_without_review` (the role whose permission it was,
 place, and an answer that rests only on such items is Partial. `may_be_out_of_date: true` and
 `disagrees_with` (the ids of the items in the same reply it disagrees with, the overlap notice of
 FR-350) appear when they hold. A question about what a metric means ("What does net revenue
-mean?") also gets `definitions`. A word where a market or another value goes that names no value
+mean?") also gets `definitions`. A question that names a market and no metric ("What happened in Norway in August 2026?") gets every
+item that names that market, whatever its metric, and `say` says no metric was named. A match held
+back from agents (high risk waiting for a check, a stopped domain) makes the answer Partial. A word
+where a market or another value goes that names no value
 here ("orders in Denmark") is never dropped: the reply is for every value, `say` says so, and
 `unread` lists the word with `value_of` and the closest values. `reply_id` is what `report` takes.
 

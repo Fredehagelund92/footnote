@@ -441,6 +441,37 @@ describe('Settings, Advanced', () => {
     expect(cleared(1)).toEqual({ what: 'Deleted 1 draft of Ines Duarte, who left' })
   })
 
+  it('says which families of one name Footnote told apart, the first by name', () => {
+    const told = (names: { key: string; from: string; to: string }[]) =>
+      historyLine(
+        entry({
+          action: 'names.told_apart',
+          actorId: null,
+          actorName: null,
+          actorKind: 'system',
+          subjectType: 'names',
+          subjectId: 'live',
+          details: { names },
+        }),
+      )
+    const sponsorships = {
+      key: 'group:sponsorships_forecast_revenue',
+      from: 'Forecast Revenue',
+      to: 'Forecast Revenue (sponsorships)',
+    }
+    expect(told([sponsorships])).toEqual({
+      what: 'Told apart families that shared a name: renamed “Forecast Revenue” to “Forecast Revenue (sponsorships)”',
+    })
+    expect(
+      told([
+        sponsorships,
+        { key: 'group:commercial_revenue_nnr', from: 'NNR', to: 'NNR (commercial revenue)' },
+      ]),
+    ).toEqual({
+      what: 'Told apart families that shared a name: renamed “Forecast Revenue” to “Forecast Revenue (sponsorships)” and 1 more',
+    })
+  })
+
   it('names the agent: a tool switched for it, a key renamed, and what it did for a person', () => {
     expect(
       historyLine(

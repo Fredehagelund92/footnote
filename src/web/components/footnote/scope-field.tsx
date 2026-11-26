@@ -12,6 +12,7 @@ import { useDebounced } from '@/lib/mentions'
 import { anyValue, holds, termOfHit, termWords, toggleTerm } from '@/lib/scope'
 import { cn } from '@/lib/utils'
 import type { ScopeTerm } from '@/model/items'
+import { valueKeyOf } from '@domain/values'
 
 // "Applies to" (FR-107, FR-126): the item's metrics, dimensions and values as chips, and one picker
 // that searches the vocabulary on the server. A dimension can hold thousands of values, so nothing
@@ -19,7 +20,9 @@ import type { ScopeTerm } from '@/model/items'
 // metrics and the dimensions without their values; typing finds a few metrics and, per dimension,
 // how many values match, the first few and the dimension itself as "any value". "All 2,400 values" searches inside one dimension, in a list that draws
 // only the rows in view and reads them a page at a time. Arrows move, Enter adds or takes out,
-// Right arrow opens a dimension, Backspace in the empty box leaves it, Esc closes.
+// Right arrow opens a dimension, Backspace in the empty box leaves it, Esc closes. Words that find
+// nothing offer to add them as a value of a dimension ("Add Norway to Market"): the value goes to
+// the owner with the item, and is published with it (values without figures).
 
 /** Rows the service reads at a time inside one dimension. */
 const PAGE = 50
@@ -32,6 +35,17 @@ const count = (n: number, noun: string) =>
 type Row =
   | { id: string; type: 'term'; term: ScopeTerm; label: string; hint?: string }
   | { id: string; type: 'within'; dimension: ScopeHit; count: number; named: boolean }
+  | { id: string; type: 'add'; term: ScopeTerm; dimension: string }
+
+/** A value the words would add to a dimension, as "Applies to" holds it; null for no key. */
+function addedTerm(dimension: ScopeHit, words: string): ScopeTerm | null {
+  const key = valueKeyOf(dimension.key, words)
+  return key ? { key, kind: 'value', name: words, dimension: dimension.name, added: true } : null
+}
+const addRow = (dimension: ScopeHit, words: string): Row[] => {
+  const term = addedTerm(dimension, words)
+  return term ? [{ id: `add:${term.key}`, type: 'add', term, dimension: dimension.name }] : []
+}
 type Section = { id: string; heading: string; count?: string; rows: Row[] }
 
 const termRow = (hit: ScopeHit, label = hit.name): Row => ({
@@ -124,6 +138,24 @@ function ScopePicker({
       })
     }
   }
+  // The dimensions, as the picker opens on them: what words that find nothing may add a value to.
+  const opening = useQuery({ ...scopeSearchQuery({ q: '' }), enabled: !within && !!q })
+  const typedWords = query.trim()
+  if (
+    !within &&
+    q &&
+    q === typedWords &&
+    result &&
+    !found.isFetching &&
+    !result.metrics.length &&
+    !result.groups.length &&
+    opening.data?.groups.length
+  )
+    sections.push({
+      id: 'add',
+      heading: `Nothing called “${typedWords}”. Add it as a value of`,
+      rows: opening.data.groups.flatMap((group) => addRow(group.dimension, typedWords)),
+    })
   const flat = sections.flatMap((s) => s.rows)
 
   // Inside a dimension: the rows in view, a page at a time.
@@ -156,6 +188,11 @@ function ScopePicker({
   const loading = within
     ? pages[0]?.isPending || pages[0]?.isFetching || waiting
     : found.isPending || found.isFetching || waiting
+  // Inside a dimension, words that find none of its values offer to add them as one.
+  const adding =
+    within && typed && !loading && !pages[0]?.isError && total === 0
+      ? (addRow(within, typed)[0] ?? null)
+      : null
 
   React.useLayoutEffect(() => {
     const list = listRef.current
@@ -215,6 +252,7 @@ function ScopePicker({
     if (within) {
       const hit = valueAt(i)
       if (hit) picked(termOfHit(hit))
+      else if (adding?.type === 'add') picked(adding.term)
       return
     }
     const row = flat[i]
@@ -339,7 +377,9 @@ function ScopePicker({
               ? within
                 ? valueAt(current) && optionId(listId, valueAt(current)!.key)
                 : flat[current] && optionId(listId, flat[current].id)
-              : undefined
+              : adding
+                ? optionId(listId, adding.id)
+                : undefined
           }
           value={query}
           placeholder={
@@ -433,6 +473,18 @@ function ScopePicker({
                 >
                   {s.rows.map((row) => {
                     const i = flat.indexOf(row)
+                    if (row.type === 'add')
+                      return (
+                        <div
+                          key={row.id}
+                          {...option(row, i)}
+                          aria-label={`Add ${row.term.name} as a value of ${row.dimension}`}
+                          className={cn(rowClass, 'h-10 max-sm:h-11')}
+                        >
+                          <PlusIcon aria-hidden className="text-muted-foreground" />
+                          <span className="min-w-0 flex-1 truncate">{row.dimension}</span>
+                        </div>
+                      )
                     if (row.type === 'within')
                       return (
                         <div
@@ -470,6 +522,26 @@ function ScopePicker({
               <p className="text-muted-foreground">
                 The search didn't answer. Check your connection and type again.
               </p>
+            ) : adding?.type === 'add' ? (
+              <>
+                <div
+                  id={optionId(listId, adding.id)}
+                  role="option"
+                  aria-selected={false}
+                  data-active
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => picked(adding.term)}
+                  className={cn(rowClass, 'h-10 text-left max-sm:h-11')}
+                >
+                  <PlusIcon aria-hidden className="text-muted-foreground" />
+                  <span className="min-w-0 flex-1 truncate">
+                    Add “{adding.term.name}” to {within!.name}
+                  </span>
+                </div>
+                <p className="mt-2 px-2 text-left text-xs text-muted-foreground">
+                  Nothing in {within!.name} is called that. A new value is published with your item.
+                </p>
+              </>
             ) : typed ? (
               <>
                 <p className="font-medium">
@@ -478,7 +550,7 @@ function ScopePicker({
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   You can only pick metrics, dimensions and values that are published in
-                  Definitions. New ones wait in the Inbox until an owner publishes them.
+                  Definitions.
                 </p>
               </>
             ) : (

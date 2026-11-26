@@ -1021,6 +1021,50 @@ describe('a concise reply (FR-342)', () => {
     }
   })
 
+  it('reads every metric for a market named with no metric, never a false Not found (finding 1)', async () => {
+    const s = setup()
+    type Out = { status: string; say: string; next?: string; context: { id: string }[] }
+    const ask = async (input: Record<string, unknown>) =>
+      (await s.call('get_context', input)).structuredContent as Out
+    // The review's call: the fixture's Norway item is about Orders, and no metric is named.
+    const norway = await ask({ question: 'What happened in Norway in August 2026?' })
+    expect(norway.status).toBe('matched')
+    expect(norway.context.map((item) => item.id)).toEqual(['itm_norway01'])
+    expect(norway.say).toBe(
+      'Checked. 1 context item applies to Norway in August 2026. Nothing else was looked up. No metric was named, so it may be about any metric: applies says which.',
+    )
+    expect(norway.say).not.toContain('Nothing is written down')
+    expect(norway.next).toContain('Answer for each metric apart, from applies.')
+    // The structured form says the same.
+    const structured = await ask({
+      question: 'Anything I should know about Norway?',
+      dimension_filters: [{ dimension: 'market', values: ['Norway'] }],
+      window: { from: '2026-08-01', to: '2026-08-31' },
+    })
+    expect(structured.context.map((item) => item.id)).toEqual(['itm_norway01'])
+  })
+
+  it('answers Partial when a high-risk match is held back, never Checked (call 4)', async () => {
+    const s = setup()
+    // A second item about Orders in Norway, high risk and waiting for a check: agents never get it.
+    s.data.items.push({
+      ...s.data.items[0]!,
+      id: 'itm_norway02',
+      title: 'Online sales to Norway stopped again',
+      riskLevel: 'high',
+      checkFlag: 'needs_check',
+    })
+    const out = (await s.call('get_context', { question })).structuredContent as {
+      status: string
+      say: string
+      context: { id: string }[]
+    }
+    expect(out.status).toBe('partial')
+    expect(out.context.map((item) => item.id)).toEqual(['itm_norway01'])
+    expect(out.say).toMatch(/^Partial\. Only part of this is written down\. /)
+    expect(out.say).toContain("isn't shared with AI agents")
+  })
+
   it('leaves the review out for a version with no acceptance on record', async () => {
     const s = setup()
     for (const item of s.data.items) item.review = null

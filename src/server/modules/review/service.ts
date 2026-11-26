@@ -9,6 +9,7 @@ import { shiftDate } from '../../../domain/validity.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { lockReleases, publishEdition } from '../editions/index.ts'
+import { createValuesService } from './values.ts'
 import { createGapsService } from '../gaps/index.ts'
 import {
   insertVersion,
@@ -155,8 +156,11 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     throw new ORPCError('UNPROCESSABLE_CONTENT', { message, data: { gate } })
   }
   /** Re-runs levels 1 to 3 on the current live edition; the gate must then pass (FR-514). */
-  async function checkedGate(p: Pick<LoadedProposal, 'id' | 'channel'>, version: StoredVersion) {
-    await runChecks(tx, clock, { id: p.id, channel: p.channel }, version)
+  async function checkedGate(
+    p: Pick<LoadedProposal, 'id' | 'channel' | 'newValues'>,
+    version: StoredVersion,
+  ) {
+    await runChecks(tx, clock, { id: p.id, channel: p.channel, newValues: p.newValues }, version)
     const gate = await readGate(tx, version.id)
     if (!gatePasses(gate)) blocked(gate)
     return gate
@@ -303,13 +307,24 @@ export function createReviewService(tx: Queryable, clock: Clock) {
     const replaced = []
     for (const target of version.version.replaces)
       if (await liveVersionId(tx, target)) replaced.push(target)
+    // The values its writer added are published with it, in its domain (values without figures).
+    const values = await createValuesService(tx).withItem(p.newValues, version.version.scope, {
+      areaId: version.version.areaId,
+      capacity: data.capacity === 'administrator' ? 'administrator' : 'owner',
+    })
     const edition = await publishEdition(
       tx,
       recheck
         ? { reason: 'source_rechecked', serve: [version.id], note: p.reason }
-        : { reason: 'proposal_accepted', serve: [version.id], close: replaced },
+        : {
+            reason: 'proposal_accepted',
+            serve: [version.id],
+            close: replaced,
+            ...(values.versions.length ? { vocabulary: values.versions } : {}),
+          },
       version.version.areaId,
     )
+    await values.decided(edition.label)
     const proposal = await moved(
       p,
       'accepted',
@@ -413,7 +428,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       const runs = await runChecks(
         tx,
         clock,
-        { id: p.id, channel: p.channel },
+        { id: p.id, channel: p.channel, newValues: p.newValues },
         await stored(p.itemVersionId),
         ['matching', 'delivery'],
       )

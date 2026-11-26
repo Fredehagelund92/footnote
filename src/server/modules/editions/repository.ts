@@ -214,6 +214,7 @@ export async function loadServingBundle(
     aliases: string[]
     area_id: string | null
     definition_refs: string[]
+    written_as: string[]
     definitions: DefinitionState[]
     described: {
       ref: string
@@ -287,6 +288,7 @@ export async function loadServingBundle(
     aliases: v.aliases,
     areaId: v.area_id,
     definitionRefs: v.definition_refs,
+    ...(v.written_as.length ? { writtenAs: v.written_as } : {}),
     definitions: v.definitions,
     described: v.described
       ? {

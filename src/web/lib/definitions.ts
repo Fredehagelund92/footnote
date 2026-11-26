@@ -108,6 +108,9 @@ export type SplitFamily = {
   on: string
 }
 
+/** A value of a dimension: its name, other names people say, and how the data writes it. */
+export type DefinitionValue = { name: string; aliases: string[]; writtenAs: string[] }
+
 export type Definition = {
   name: string
   type: DefinitionType
@@ -135,8 +138,8 @@ export type Definition = {
   domain?: DomainId
   /** Its tool's group, for metrics and dimensions. */
   group?: string
-  /** A dimension's values, as its tool lists them. */
-  values?: string
+  /** A dimension's values, by name: the ones people and owners published. */
+  values?: DefinitionValue[]
   /** A metric that is a family of variants, one entry for them all (FR-142). */
   family?: Family
   /** Its tool changed it at the last sync. */

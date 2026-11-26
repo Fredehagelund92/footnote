@@ -181,6 +181,11 @@ export const leftOutReasons = [
   'values',
   'dimension',
 ] as const
+/** The left-out reasons that hold a match back from what is given (call 4): a cut or a miss is none. */
+const heldBackReasons = new Set<string>(['source_visibility', 'stopped', 'high_risk_unverified'])
+/** How many matches an answer holds back: each makes it Partial (answer-state.ts). */
+export const heldBackOf = (leftOut: readonly { reason: string }[]) =>
+  leftOut.filter((l) => heldBackReasons.has(l.reason)).length
 export type LeftOutReason = (typeof leftOutReasons)[number]
 export type LeftOut = {
   id: string
@@ -511,6 +516,7 @@ export function* lookUp(
     ],
     uncovered,
     assumed: assumed !== null,
+    withheld: heldBackOf(leftOut),
   })
   yield step({ step: 'checked', ms: lap(), state, uncovered })
   mark = now()
@@ -551,6 +557,7 @@ export function* lookUp(
       readAs: (names.loose ?? []).flatMap((hit) =>
         shownName(hit.key).map((name) => ({ words: hit.words, name, by: hit.by })),
       ),
+      ...(read.unkept ? { unkept: read.unkept } : {}),
     },
     voice,
   )

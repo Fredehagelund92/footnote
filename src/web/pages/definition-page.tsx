@@ -1,6 +1,7 @@
 import { BookAIcon, ExternalLinkIcon, NotebookPenIcon, PencilIcon } from '@/components/icons'
 import { DefinitionDetails, TypeTile } from '@/components/footnote/definition'
 import { FamilyVariants } from '@/components/footnote/family-variants'
+import DimensionValues from '@/components/footnote/dimension-values'
 import { DefinitionRelations, FamilyRelations } from '@/components/footnote/definition-relations'
 import {
   FamilyDeclared,
@@ -129,6 +130,7 @@ export function DefinitionPage({ name }: { name: string }) {
                   d.synced && d.type === 'metric' && <DefinitionRelations d={d} />
                 )
               }
+              values={d.type === 'dimension' && d.synced && !d.sameAs && <DimensionValues d={d} />}
             />
           </Loadable>
         </Paper>

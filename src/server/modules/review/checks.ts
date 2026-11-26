@@ -5,6 +5,7 @@ import { formatOutcome, type Draft } from '../../../domain/draft.ts'
 import { retrievalChecks } from '../../../domain/golden-question.ts'
 import type { ItemVersion } from '../../../domain/item-version.ts'
 import { matchingCheck, matchingProbes } from '../../../domain/review.ts'
+import { addedValues, type NewValues } from '../../../domain/values.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { asDelivered, loadServingBundle, type ServingBundle } from '../editions/index.ts'
@@ -181,19 +182,30 @@ export type Candidate = Pick<StoredVersion, 'itemId' | 'versionNo' | 'version'>
 async function computeChecks(
   tx: Queryable,
   clock: Clock,
-  proposal: { id: string | null; channel: ItemVersion['createdVia'] },
+  proposal: {
+    id: string | null
+    channel: ItemVersion['createdVia']
+    /** The values its writer added in "Applies to", from its draft. */
+    newValues?: NewValues
+  },
   stored: Candidate,
   levels: readonly CheckRun['level'][],
 ): Promise<{ head: Head; runs: CheckRun[] }> {
   const head = await liveHead(tx)
   const today = clock.today()
   const live = await liveBundle(tx, head)
-  const candidate = candidateBundle(live, {
-    id: stored.itemId,
-    versionNo: stored.versionNo,
-    proposerId: stored.version.proposerId,
-    version: stored.version,
-  })
+  // The values its writer added are published with it (values without figures): checked as such.
+  const newValues = proposal.newValues ?? []
+  const candidate = candidateBundle(
+    live,
+    {
+      id: stored.itemId,
+      versionNo: stored.versionNo,
+      proposerId: stored.version.proposerId,
+      version: stored.version,
+    },
+    addedValues({ scope: stored.version.scope, newValues }, new Set(live.terms.map((t) => t.key))),
+  )
   const runs: CheckRun[] = []
   if (levels.includes('format')) {
     const format = await checkDraft(
@@ -202,6 +214,7 @@ async function computeChecks(
       stored.version.proposerId,
       proposal.channel,
       stored.itemId,
+      newValues,
     )
     runs.push({
       level: 'format',
@@ -231,7 +244,7 @@ async function computeChecks(
 export async function runChecks(
   tx: Queryable,
   clock: Clock,
-  proposal: { id: string; channel: ItemVersion['createdVia'] },
+  proposal: { id: string; channel: ItemVersion['createdVia']; newValues?: NewValues },
   stored: StoredVersion,
   levels: readonly CheckRun['level'][] = ['format', 'matching', 'delivery'],
 ): Promise<CheckRun[]> {

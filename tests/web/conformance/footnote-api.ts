@@ -185,6 +185,41 @@ export function describeFootnoteApi(
       },
     )
 
+    it.skipIf(lacks('signIn', 'getWorkspace', 'getDefinitions', 'addValues', 'getNames'))(
+      'adds a value to a dimension: a word one of its values has is refused, and a new one is published or waits for an owner',
+      async () => {
+        const live = await signedIn()
+        const me = (await live.getWorkspace()).people.find((p) => p.name === person)!
+        const market = (await live.getDefinitions()).find(
+          (d) => d.type === 'dimension' && d.name === 'Market',
+        )!
+        const known = market.values![0]!
+        await expect(
+          live.addValues({ dimension: market.name, values: [{ name: known.name.toUpperCase() }] }),
+        ).rejects.toMatchObject({ kind: 'invalid', message: `Market has ${known.name} already.` })
+        const name = 'Conformance Island'
+        const done = await live.addValues({
+          dimension: market.name,
+          values: [{ name, aliases: ['Conformia'], writtenAs: ['CI'] }],
+        })
+        const publishes = me.admin || (!!market.domain && me.owns.includes(market.domain))
+        expect(done).toMatchObject({
+          outcome: publishes ? 'published' : 'waiting',
+          values: [{ name }],
+        })
+        const listed = (await live.getDefinitions())
+          .find((d) => d.name === 'Market')!
+          .values!.find((v) => v.name === name)
+        if (publishes) {
+          expect(listed).toEqual({ name, aliases: ['Conformia'], writtenAs: ['CI'] })
+          // Published, its words belong to it: the same value again is refused.
+          await expect(
+            live.addValues({ dimension: market.name, values: [{ name: 'Conformia' }] }),
+          ).rejects.toMatchObject({ kind: 'invalid' })
+        } else expect(listed).toBeUndefined()
+      },
+    )
+
     it.skipIf(
       lacks('signIn', 'getWorkspace', 'getDefinitions', 'addSynonym', 'removeTerm', 'undo'),
     )(
