@@ -20,6 +20,7 @@ import {
   AddRow,
   BarSpacer,
   barButton,
+  barGroup,
   Count,
   FilterChip,
   FilterRow,
@@ -617,20 +618,6 @@ function ContextList() {
               />
             )}
             <ListBar>
-              <TextSwitch
-                label="Show"
-                value={onlyConflicts ? 'conflicts' : 'all'}
-                onChange={(v, press) =>
-                  move(press, () =>
-                    changeQuery({ show: v === 'conflicts' ? 'conflicts' : undefined }),
-                  )
-                }
-                options={[
-                  { value: 'all', label: 'All' },
-                  { value: 'conflicts', label: 'Conflicts', count: conflicts.data?.length },
-                ]}
-              />
-              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -719,27 +706,21 @@ function ContextList() {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <SortMenu
-                keys={SORTS}
-                sorting={sorting}
-                onSort={(next, press) => move(press, () => setSort(next))}
-                shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
-                narrow="@max-3xl/main:sr-only"
-                className="w-60"
-              />
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
                     <Button
                       variant="ghost"
-                      className={cn(barButton, group !== 'none' && 'bg-muted text-foreground')}
+                      className={cn(
+                        barButton,
+                        barGroup,
+                        group !== 'none' && 'bg-muted text-foreground',
+                      )}
                     />
                   }
                 >
                   <ListTreeIcon />
-                  <span className={cn(group === 'none' ? 'sr-only' : '@max-3xl/main:sr-only')}>
-                    {group === 'none' ? 'Group' : GROUPS[group]}
-                  </span>
+                  {group === 'none' ? 'Group' : GROUPS[group]}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-44">
                   <DropdownMenuGroup>
@@ -757,15 +738,28 @@ function ContextList() {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {/* On a phone, where there is no hover or Shift, Select starts picking rows. */}
-              <Button
-                variant="ghost"
-                className={cn(barButton, '@xl/main:hidden', boxes && 'bg-muted text-foreground')}
-                onClick={() => (boxes ? sel.clear() : sel.setPicking(true))}
-              >
-                <ListChecksIcon />
-                {boxes ? 'Done' : 'Select'}
-              </Button>
+              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+              <TextSwitch
+                label="Show"
+                value={onlyConflicts ? 'conflicts' : 'all'}
+                onChange={(v, press) =>
+                  move(press, () =>
+                    changeQuery({ show: v === 'conflicts' ? 'conflicts' : undefined }),
+                  )
+                }
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'conflicts', label: 'Conflicts', count: conflicts.data?.length },
+                ]}
+              />
+              <SortMenu
+                keys={SORTS}
+                sorting={sorting}
+                onSort={(next, press) => move(press, () => setSort(next))}
+                shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
+                narrow="@max-3xl/main:sr-only"
+                className="w-60"
+              />
               <BarSpacer>
                 {archived > 0 && !status.includes('Archived') && (
                   <span className="flex shrink-0 items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground @max-5xl/main:hidden">
@@ -784,6 +778,15 @@ function ContextList() {
                 )}
                 <SearchField value={text} onChange={setText} placeholder="Search context" />
               </BarSpacer>
+              {/* On a phone, where there is no hover or Shift, Select starts picking rows. */}
+              <Button
+                variant="ghost"
+                className={cn(barButton, '@xl/main:hidden', boxes && 'bg-muted text-foreground')}
+                onClick={() => (boxes ? sel.clear() : sel.setPicking(true))}
+              >
+                <ListChecksIcon />
+                <span className={cn(!boxes && 'sr-only')}>{boxes ? 'Done' : 'Select'}</span>
+              </Button>
               <Count>
                 {!ready ? (
                   phase === 'skeleton' && (

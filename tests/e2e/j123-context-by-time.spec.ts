@@ -137,3 +137,45 @@ test('Context by time shows, finds and opens the items along their dates', async
   await expect(page).not.toHaveURL(/view=time/)
   await expect(page.getByRole('columnheader', { name: 'Applies to' })).toBeVisible()
 })
+
+// Switching View keeps the bar's order: Filter and Group stay where they are, the view's own
+// controls (Show and Sort, or Zoom and Today) swap in the middle, and Search and the count do not move.
+for (const size of [
+  { name: 'wide', width: 1440, height: 900 },
+  { name: 'phone', width: 390, height: 844 },
+]) {
+  test(`The Context bar keeps its order between List and By time (${size.name})`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height })
+    await go(page, '/context')
+    const view = page.getByRole('radiogroup', { name: 'View' })
+    const bar = async () => {
+      const box = async (name: string | RegExp, exact = false) => {
+        const b = await page.getByRole('button', { name, exact }).first().boundingBox()
+        expect(b, `${name} is on the bar`).not.toBeNull()
+        return b!
+      }
+      return {
+        filter: await box(/^Filter/),
+        group: await box(/^(Group|Domain)$/),
+        search: (await page.getByRole('textbox', { name: 'Search context' }).boundingBox())!,
+      }
+    }
+    await expect(page.getByRole('radiogroup', { name: 'Show' })).toBeVisible()
+    const list = await bar()
+    await view.getByRole('radio', { name: 'By time' }).click()
+    await expect(page.getByRole('radiogroup', { name: 'Zoom' })).toBeVisible()
+    await expect(page.getByRole('radiogroup', { name: 'Show' })).toHaveCount(0)
+    const time = await bar()
+
+    // Nothing shared moves: the same place, the same size, in both views.
+    expect(time.filter).toEqual(list.filter)
+    expect(time.group).toEqual(list.group)
+    // Search keeps its left edge within a pixel on a wide bar; its row is the same on a phone.
+    expect(Math.abs(time.search.x - list.search.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(time.search.y - list.search.y)).toBeLessThanOrEqual(1)
+    // Group always shows its word: Group with no grouping, the field's name when By time groups.
+    await expect(page.getByRole('button', { name: 'Domain', exact: true })).toContainText('Domain')
+  })
+}
