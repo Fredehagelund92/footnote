@@ -178,17 +178,12 @@ export function createCatalogueService(
       gaps: string[][]
       items: IndexedItem[]
     }>(
-      `with spelled as (
-         select s.term_key as key, v.written_as from vocab_term_service s
-           join vocab_term_versions v on v.id = s.version_id
-          where s.editions @> (select seq from live_edition) and cardinality(v.written_as) > 0),
-       vocabulary as materialized (
+      `with vocabulary as materialized (
          select t.key, t.kind::text as kind, t.parent_key as "parentKey", t.name, t.aliases,
                 t.area_id as "areaId", d.area_id as "sourceAreaId", t.definition_refs as "definitionRefs",
-                coalesce(w.written_as, '{}') as "writtenAs"
+                t.written_as as "writtenAs"
            from serving_vocabulary((select seq from live_edition)) t
-           left join serving_source_domains((select seq from live_edition)) d on d.key = t.key
-           left join spelled w on w.key = t.key),
+           left join serving_source_domains((select seq from live_edition)) d on d.key = t.key),
        -- Accepted items that recorded another mark than the definition has now, counted in one
        -- pass over the library: a correlated count would read the item view once per term. The
        -- terms are chosen below, not here: matching the refs here makes PostgreSQL probe the refs

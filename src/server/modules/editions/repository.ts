@@ -223,10 +223,7 @@ export async function loadServingBundle(
   }>(
     // What the source says is read with the definitions, the first one's words for the term; a
     // definition limited to groups shows nothing of itself (CON-509), as the catalogue leaves it out.
-    // How the data writes each value is read once for the edition, in one join: a function that
-    // reads as its owner is never inlined, so one call per term would read every term each time.
     `select t.*,
-       coalesce(w.written_as, '{}') as written_as,
        coalesce((select json_agg(json_build_object('ref', d.ref,
            'missing', d.missing_since_snapshot is not null, 'renamedTo', d.renamed_to,
            'changeMark', d.change_mark) order by x.n)
@@ -235,7 +232,7 @@ export async function loadServingBundle(
            'title', d.title, 'description', d.description_copy, 'type', c.type, 'source', c.name) end
           from unnest(t.definition_refs) with ordinality x(ref, n) join definitions d on d.ref = x.ref
           join connectors c on c.id = d.connector_id order by x.n limit 1) as described
-     from serving_vocabulary($1) t left join serving_written_as($1) w on w.key = t.key`,
+     from serving_vocabulary($1) t`,
     [head.seq],
   )
   const links = await tx.query<ServingBundle['links'][number]>('select * from serving_links($1)', [

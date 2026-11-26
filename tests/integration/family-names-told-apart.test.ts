@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { copyFile, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -32,6 +32,10 @@ import { apiDatabase, queueReads, testDatabase, transaction } from './support.ts
   in the state the old code left: each later family a new version under the first one's name, or
   under a metric's. The migration gives each its view's name after it, in an edition of its own,
   and Definitions shows every name once.
+
+  The service of today writes that state, so the database has every migration, as today's code
+  needs: the migration's own statements then run again on what the old code left. On the empty
+  database the migrate step started from, they found nothing to tell apart.
 */
 
 const { client, url } = testDatabase({ unmigrated: true })
@@ -114,8 +118,7 @@ const live = async () =>
 
 it('gives each later family of one name its view’s name after it, once', async () => {
   expect(at).toBeGreaterThan(0)
-  // The database as it was before: every migration up to these.
-  for (const name of files.slice(0, at)) await copy(name)
+  for (const name of files) await copy(name)
   await migrate(client, pathToFileURL(migrations + '/'))
   await applyGrants(client)
   await foundation(client)
@@ -210,9 +213,12 @@ it('gives each later family of one name its view’s name after it, once', async
     expect(await familyNames()).toEqual(['Bookings', 'Forecast Revenue', 'Forecast Revenue'])
     const before = await live()
 
-    await copy('0024_names_told_apart_reason.sql')
-    await copy('0025_family_names_told_apart.sql')
-    expect(await migrate(client, pathToFileURL(migrations + '/'))).toBe(2)
+    await client.query(
+      await readFile(
+        fileURLToPath(new URL('0025_family_names_told_apart.sql', migrationDirectory)),
+        'utf8',
+      ),
+    )
 
     expect(await familyNames()).toEqual([
       'Bookings (subscriptions)',
