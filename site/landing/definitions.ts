@@ -6,8 +6,8 @@
   so the window shows no tree; Gross margin's ratio records nothing, so it shows none. The notes
   are some of the hand-written story notes about each, with their market
   (db/seed/fixtures/story-facts.ts, db/seed/story.ts): the demo holds 70 to 82 published notes
-  about each of these, so the window gives no count. test/landing.test.ts holds all of it to
-  those files.
+  about each of these, so the window gives no count. test/landing.test.ts holds the Cube model's
+  part to the model and the rest to the demo's design.
 */
 
 export type Metric = {

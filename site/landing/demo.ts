@@ -2,7 +2,7 @@
   What the landing page's first screen shows: four questions about the demo company that comes
   with Footnote, each with the answer line get_context gives it on the demo and the notes it reads
   (docs/design/demo-world.md, sections 11 and 14). Titles, quotes, sources, names and dates are the
-  demo's own, and test/landing.test.ts holds them to db/seed and the demo's design word for word.
+  demo's own. test/landing.test.ts holds Germany's note to the story facts and the rest to the demo's design.
   Each line is the one get_context gave on a fresh install of the demo on 26 Nov 2026: Germany's
   is Outdated, because its note's check date, 6 Sep 2026, has passed. The window around them is
   drawn: it is an example of an agent's answer, and its caption says so.
