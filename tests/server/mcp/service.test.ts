@@ -831,6 +831,63 @@ describe('a concise reply (FR-342)', () => {
     expect(JSON.stringify(all)).not.toMatch(/Jon|Abara/)
   })
 
+  it('never calls an item published without review checked, and answers Partial on it alone', async () => {
+    // The call of the agent-side review (finding 3): an owner's permission published the item, so
+    // nobody read it before agents got it.
+    const s = setup()
+    s.data.items[0]!.review!.withoutReview = true
+    const permitted = { permission_of: 'the owner of Finance', date: '2026-08-04' }
+    const line =
+      'Open in Footnote - Norway closure: /context/itm_norway01 - Published 4 Aug 2026 without review, with the permission of the owner of Finance.'
+    for (const response_format of ['concise', 'full'] as const) {
+      const reply = await s.call('get_context', { question, response_format })
+      const out = reply.structuredContent as {
+        status: string
+        say: string
+        next: string
+        context: Record<string, unknown>[]
+      }
+      expect(out.status).toBe('partial')
+      expect(out.say).toBe(
+        'Partial. Only part of this is written down. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. Nobody checked it: it was published without review.',
+      )
+      expect(out.next).toContain(
+        'Say that nobody checked a context item published without review, and whose permission published it.',
+      )
+      expect(out.context[0]).toMatchObject({ published_without_review: permitted })
+      expect(out.context[0]).not.toHaveProperty('checked')
+      expect(out.context[0]).not.toHaveProperty('reviewed')
+      expect(reply.content.at(-1)!.text).toBe(line)
+      expect(JSON.stringify(reply)).not.toMatch(/Checked/)
+    }
+    // read_context and find_context say the same, never a review.
+    for (const [tool, args] of [
+      ['read_context', { id: 'itm_norway01' }],
+      ['find_context', { query: 'Norway closure' }],
+    ] as const) {
+      const reply = await s.call(tool, args)
+      expect(JSON.stringify(reply.structuredContent)).toContain('"published_without_review"')
+      expect(reply.structuredContent).not.toHaveProperty('item.reviewed')
+      expect(reply.content.at(-1)!.text).toContain(
+        'Published 4 Aug 2026 without review, with the permission of the owner of Finance.',
+      )
+      expect(reply.content.at(-1)!.text).not.toMatch(/Checked|by the owner of Finance, in edition/)
+    }
+    // A checked item beside it carries the answer: Checked, and the unread one is said apart.
+    s.data.items.push({
+      ...s.data.items[0]!,
+      id: 'itm_norway02',
+      title: 'Norway returns',
+      review: { ...s.data.items[0]!.review!, withoutReview: false },
+    })
+    const both = (await s.call('get_context', { question })).structuredContent as {
+      status: string
+      say: string
+    }
+    expect(both.status).toBe('matched')
+    expect(both.say).toContain('Nobody checked 1 of them: it was published without review.')
+  })
+
   it('leaves the review out for a version with no acceptance on record', async () => {
     const s = setup()
     for (const item of s.data.items) item.review = null

@@ -618,10 +618,11 @@ describe.each(['legacy', 'auto'] as const)('the server instructions (FR-343), %s
       expect(read).toContain(
         'say nothing is written down only for exactly what you asked, never the whole topic',
       )
-      // How the agent speaks with people: a fact, the owner of its domain checked it, its
-      // source, and the Don't conclude line.
+      // How the agent speaks with people: a fact, who checked it, its source, and the Don't
+      // conclude line. It never says a check happened: nobody read an item published without review.
       expect(read).toContain('it is a context item')
-      expect(read).toContain('the owner of its domain checked it')
+      expect(read).toContain('who checked it')
+      expect(read).not.toContain('the owner of its domain checked it')
       expect(read).toContain('its source')
       expect(read).toContain("Don't conclude")
     }

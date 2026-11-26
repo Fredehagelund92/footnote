@@ -279,6 +279,29 @@ describe('publishing without review', () => {
     )
     expect(edition[0]?.by).toBe(people.owner)
 
+    // Every agent then reads it as published without review, never as checked, and an answer
+    // that rests on it alone is Partial (the agent-side review, finding 3).
+    const wire = await mcpClient(app.token)
+    const read = await wire.callTool({
+      name: 'get_context',
+      arguments: { question: 'How did orders do in October 2026?' },
+    })
+    await wire.close()
+    const served = read.structuredContent as {
+      status: string
+      say: string
+      context: Record<string, unknown>[]
+    }
+    expect(served.status).toBe('partial')
+    expect(served.say).toContain('Nobody checked it: it was published without review.')
+    expect(served.context).toMatchObject([
+      {
+        id: p.item_id,
+        published_without_review: { permission_of: 'the owner of Finance' },
+      },
+    ])
+    expect(served.context[0]).not.toHaveProperty('checked')
+
     // Its row in Agents and access shows the policy, with today's count.
     const rows = (await (await boss.api('/agents')).json()) as {
       id: string

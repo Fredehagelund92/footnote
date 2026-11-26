@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "861fd80b15d6ea1b1f13db6d503993aba5e05f0750828f6ea091f58b7a8fa510",
+  "digest": "5e7504f807af3c4c1e67b27a84da1a97c978817309a2735aa5721a9c32ef9cee",
   "tools": [
     {
       "_meta": {
@@ -170,6 +170,23 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 "kind": {
                   "description": "event, warning, rule or guide.",
                   "type": "string",
+                },
+                "published_without_review": {
+                  "additionalProperties": false,
+                  "description": "In place of checked: nobody read it before agents got it. It was published on that day with the permission of this role (never a person) to publish without review.",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                    },
+                    "permission_of": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "permission_of",
+                    "date",
+                  ],
+                  "type": "object",
                 },
                 "title": {
                   "type": "string",
@@ -554,6 +571,23 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                   "description": "It is due for a check: say so if you use it.",
                   "type": "boolean",
                 },
+                "published_without_review": {
+                  "additionalProperties": false,
+                  "description": "In place of checked: nobody read it before agents got it. It was published on that day with the permission of this role (never a person) to publish without review.",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                    },
+                    "permission_of": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "permission_of",
+                    "date",
+                  ],
+                  "type": "object",
+                },
                 "summary": {
                   "type": "string",
                 },
@@ -780,6 +814,23 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
               "kind": {
                 "description": "event, warning, rule or guide.",
                 "type": "string",
+              },
+              "published_without_review": {
+                "additionalProperties": false,
+                "description": "In place of checked: nobody read it before agents got it. It was published on that day with the permission of this role (never a person) to publish without review.",
+                "properties": {
+                  "date": {
+                    "type": "string",
+                  },
+                  "permission_of": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "permission_of",
+                  "date",
+                ],
+                "type": "object",
               },
               "title": {
                 "type": "string",

@@ -54,6 +54,8 @@ export const answerItemSchema = z.object({
   match: z.enum(['exact', 'partial']),
   unverified: z.boolean(),
   unverifiedReason: z.nullable(z.enum(['needs_check', 'source_missing', 'past_review_date'])),
+  /** Published with an owner's permission to publish without review: nobody read it. */
+  unreviewed: z.boolean(),
   restrictions: z.array(z.object({ dimension: z.string(), values: z.array(z.string()) })),
   conflictsWith: z.array(z.string()),
   /** The line its owner copied from its first source; null when none was copied. */

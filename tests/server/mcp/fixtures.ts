@@ -109,6 +109,7 @@ export function bundle(): ServingBundle {
           acceptedAs: 'owner',
           areaId: 'finance',
           edition: '2026-08-04.1',
+          withoutReview: false,
         },
         notToConclude: 'cause not proven',
         evidence: [

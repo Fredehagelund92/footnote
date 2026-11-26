@@ -67,7 +67,7 @@ export const ANSWER_LINES: readonly AnswerLine[] = [
     long: 'Covers part of it',
     sentence: 'Only part of this is written down.',
     means:
-      'Context covers part of the question, or the dates were assumed. The answer says which part.',
+      'Context covers part of the question, nobody checked it, or the dates were assumed. The answer says which.',
     todo: 'Write the missing part, or tell the owner.',
   },
   {
@@ -124,9 +124,10 @@ export type StateInput = {
   /**
    * Every item that applies, the reply's own and those a cut or a later page holds: what is
    * written decides Partial, so a page of partial items over a whole one says Checked. Only an item
-   * the reply gives counts as unverified, since only those are the reader's to check.
+   * the reply gives counts as unverified, since only those are the reader's to check. `unreviewed`:
+   * published with an owner's permission to publish without review, so nobody read it (FR-421).
    */
-  items: readonly { match: 'exact' | 'partial'; unverified: boolean }[]
+  items: readonly { match: 'exact' | 'partial'; unverified: boolean; unreviewed: boolean }[]
   /** The metrics and values asked that no item that applies covers in full (`uncoveredParts`). */
   uncovered: { metrics: readonly string[]; values: readonly string[] }
   /** The question gave no dates and no window, so the server read it at today. */
@@ -138,7 +139,7 @@ export type StateInput = {
  * planned answers all use. Not checked when the checks could not run; Not found when nothing was
  * given, or the question could not be read; Conflict when given items disagree; Partial when an
  * asked metric or value has no item that covers it in full, every item applies to only part of
- * the question, or the dates were assumed; Outdated when a given item may be out of date, because
+ * the question, every item was published without review, or the dates were assumed; Outdated when a given item may be out of date, because
  * its check date passed or its source changed; otherwise Checked. The order is deliberate, so the
  * label names what an owner must do first.
  */
@@ -151,7 +152,8 @@ export function answerStateOf(input: StateInput): AnswerState {
     input.uncovered.metrics.length ||
     input.uncovered.values.length ||
     input.assumed ||
-    input.items.every((item) => item.match === 'partial')
+    input.items.every((item) => item.match === 'partial') ||
+    input.items.every((item) => item.unreviewed)
   )
     return 'partial'
   if (input.items.some((item) => item.unverified)) return 'stale'

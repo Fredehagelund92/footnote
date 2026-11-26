@@ -51,6 +51,7 @@ import {
 import { overlaps, shiftDate, type DateWindow } from './validity.ts'
 import type { Term } from './vocabulary.ts'
 import type { Calendar } from './dates.ts'
+import type { ServedReview } from './served-review.ts'
 
 /**
  * The six answer states (FR-349), in the order a state wins: an answer that could not run is Not
@@ -83,6 +84,8 @@ export type AnswerSource = ResolverItem & {
   evidence?: readonly { url: string; quote: string }[]
   /** What not to conclude from it (FR-104). */
   notToConclude?: string
+  /** How its version was accepted; none for a version with no acceptance on record, such as a draft. */
+  review?: Pick<ServedReview, 'withoutReview'> | null
 }
 /** An edition bundle with its vocabulary: the live edition, a past one, or one with a draft in it. */
 export type AnswerBundle = Omit<EditionBundle, 'items'> & {
@@ -148,6 +151,8 @@ export type AnswerItem = {
   /** Its source changed or its check date passed: it may be out of date. */
   unverified: boolean
   unverifiedReason: 'needs_check' | 'source_missing' | 'past_review_date' | null
+  /** Published with an owner's permission to publish without review: nobody read it (FR-421). */
+  unreviewed: boolean
   /** The values the item applies to where the question asked for every value. */
   restrictions: Match['restrictions']
   /** The items given with it that it disagrees with. */
@@ -308,6 +313,7 @@ export function answerItemOf(
     match: match?.match ?? 'exact',
     unverified,
     unverifiedReason: unverified ? reason : null,
+    unreviewed: item.review?.withoutReview === true,
     restrictions: match?.restrictions ?? [],
     conflictsWith: item.conflicts.filter((id) => given.has(id)).sort(compareIds),
     quote: item.evidence?.find((e) => e.quote.trim())?.quote ?? null,
@@ -497,7 +503,11 @@ export function* lookUp(
     status: resolution.status,
     items: [
       ...items,
-      ...matched.slice(given.length).map((g) => ({ match: g.match.match, unverified: false })),
+      ...matched.slice(given.length).map((g) => ({
+        match: g.match.match,
+        unverified: false,
+        unreviewed: g.item.review?.withoutReview === true,
+      })),
     ],
     uncovered,
     assumed: assumed !== null,
@@ -525,6 +535,7 @@ export function* lookUp(
       delivered: items.length,
       partial: items.filter((item) => item.match === 'partial').length,
       unverified: items.filter((item) => item.unverified).length,
+      unreviewed: items.filter((item) => item.unreviewed).length,
       cut: cut.length,
       withheld: withheld.map((w) => w.reason),
       assumed: assumed ? assumedDate(assumed).note.sentence : null,

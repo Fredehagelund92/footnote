@@ -107,6 +107,7 @@ describe('the steps', () => {
         match: 'exact',
         unverified: false,
         unverifiedReason: null,
+        unreviewed: false,
         restrictions: [],
         conflictsWith: [],
         quote: null,

@@ -66,6 +66,7 @@ type ReviewRow = {
   accepted_as: AcceptedAs | null
   accepted_area: string | null
   first_edition: string | null
+  without_review: boolean | null
 }
 
 /** The tools switched on for every client (FR-407). */
@@ -193,11 +194,13 @@ export async function loadServingBundle(
   head: { seq: string; label: string; overlay: string },
 ): Promise<ServingBundle> {
   const rows = await tx.query<ItemRow>('select * from serving_items($1)', [head.seq])
-  // How each version was accepted (FR-326): the day, the role and domain, and its first edition.
+  // How each version was accepted (FR-326): the day, the role and domain, its first edition, and
+  // whether a permission published it without review (FR-421).
   const reviews = new Map(
     (
       await tx.query<ReviewRow>(
-        `select item_id,to_char(accepted_on,'YYYY-MM-DD') as accepted_on,accepted_as,accepted_area,first_edition
+        `select item_id,to_char(accepted_on,'YYYY-MM-DD') as accepted_on,accepted_as,accepted_area,first_edition,
+                without_review
            from serving_reviews($1)`,
         [head.seq],
       )
@@ -389,6 +392,7 @@ function servedReview(row: ReviewRow | undefined, areaId: string): ServingItem['
     acceptedAs: row.accepted_as,
     areaId: row.accepted_area ?? areaId,
     edition: row.first_edition,
+    withoutReview: row.without_review === true,
   }
 }
 

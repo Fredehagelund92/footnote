@@ -554,6 +554,8 @@ export type ContextSay = {
   partial: number
   /** Facts given that need checking: their source changed or their check date passed. */
   unverified?: number
+  /** Facts given that an owner's permission published without review, so nobody read (FR-421). */
+  unreviewed?: number
   /** Facts that apply but were left out, past max_items or to fit the size limit. */
   cut: number
   /** How the AI agent gets what was left out, when the reply says it; else the voice's own. */
@@ -639,6 +641,16 @@ export function contextSaid(bundle: Names, c: ContextSay, voice: Voice): Said {
           ? `${c.delivered === 1 ? 'It' : 'They'} may be out of date.`
           : `${c.unverified} of them may be out of date.`,
       )
+    if (c.unreviewed) {
+      say.push(
+        c.unreviewed === c.delivered
+          ? `Nobody checked ${c.delivered === 1 ? 'it' : 'them'}: ${c.delivered === 1 ? 'it was' : 'they were'} published without review.`
+          : `Nobody checked ${c.unreviewed} of them: ${c.unreviewed === 1 ? 'it was' : 'they were'} published without review.`,
+      )
+      next.push(
+        `Say that nobody checked a ${one} published without review, and whose permission published it.`,
+      )
+    }
     if (c.status === 'conflict') say.push('Some of them disagree.')
     if (c.cut) say.push(`${applies(c.cut, 'more ')} but didn't fit in this reply.`)
     if (c.withheld.length) say.push(heldBackSay(c.withheld, true, voice))

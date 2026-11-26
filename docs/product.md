@@ -175,14 +175,14 @@ The Help menu in the sidebar's foot opens a small menu: the Help page, the keys,
 
 Every answer to a question that was looked up, for an agent and for a person, starts with one answer line. The words are fixed. Each shows with its icon and its tint, never as colour alone. Under every line but Checked there is one short sentence. The long form is for a tooltip, Help and the answer line's card.
 
-| Label             | The sentence under it                | What it means                                                                               | What to do                                      |
-| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| **Checked**       | (none)                               | Context applies, and its owner published it with a source and a check date.                 | Nothing.                                        |
-| **Partial**       | Only part of this is written down.   | Context covers part of the question, or the dates were assumed. The answer says which part. | Write the missing part, or tell the owner.      |
-| **Not found**     | Nothing published about this yet.    | Nobody has written anything down for this. It does not mean there is no explanation.        | Write context, or tell the owner.               |
-| **Conflict**      | Two items say different things.      | Two items that apply say different things. Agents give both and say so.                     | An owner keeps one, narrows one, or keeps both. |
-| **Outdated**      | Some of this may be old.             | An item's check date has passed, or a definition it relies on changed.                      | The owner checks it: Still true, or Edit.       |
-| **Not looked up** | Ask could not look this up just now. | Ask could not look this up just now. That does not mean nothing is written.                 | Ask again in a minute.                          |
+| Label             | The sentence under it                | What it means                                                                                             | What to do                                      |
+| ----------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Checked**       | (none)                               | Context applies, and its owner published it with a source and a check date.                               | Nothing.                                        |
+| **Partial**       | Only part of this is written down.   | Context covers part of the question, nobody checked it, or the dates were assumed. The answer says which. | Write the missing part, or tell the owner.      |
+| **Not found**     | Nothing published about this yet.    | Nobody has written anything down for this. It does not mean there is no explanation.                      | Write context, or tell the owner.               |
+| **Conflict**      | Two items say different things.      | Two items that apply say different things. Agents give both and say so.                                   | An owner keeps one, narrows one, or keeps both. |
+| **Outdated**      | Some of this may be old.             | An item's check date has passed, or a definition it relies on changed.                                    | The owner checks it: Still true, or Edit.       |
+| **Not looked up** | Ask could not look this up just now. | Ask could not look this up just now. That does not mean nothing is written.                               | Ask again in a minute.                          |
 
 In the code the states are `grounded`, `partial`, `missing`, `conflict`, `stale` and `failed`. One function, `answerStateOf`, picks the state from the same facts for an agent's `get_context`, Ask, Try it and the replay, so they always agree: a metric or a value asked that no item covers in full makes the answer Partial for all of them (decision on issue 196). A draft answer says "Based on this draft" and is never called Checked. The labels, sentences and long forms live in one list that Ask, Try it, Help, the docs, the charts and the copy test all read.
 

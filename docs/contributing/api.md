@@ -77,7 +77,9 @@ and `check_failed` (Not looked up); `need_more_detail` means the question could 
 no answer state. `say` starts with the answer line, its label and, but for Checked, its sentence.
 `next` comes only when there is a step to take. Each item's `kind` is the label agents read
 (`event`, `warning`, `rule`, `guide`), `when` and `applies` say when and where it applies, `checked`
-names the role that checked it and the day, never a person, and `may_be_out_of_date: true` and
+names the role that checked it and the day, never a person; an item an owner's permission published
+without review has `published_without_review` (the role whose permission it was, and the day) in its
+place, and an answer that rests only on such items is Partial. `may_be_out_of_date: true` and
 `disagrees_with` (the ids of the items in the same reply it disagrees with, the overlap notice of
 FR-350) appear when they hold. A question about what a metric means ("What does net revenue
 mean?") also gets `definitions`. `reply_id` is what `report` takes.

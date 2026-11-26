@@ -121,8 +121,11 @@ export const askFirstLine =
 export const absenceRule =
   'no_match does not prove that no caveat exists: say nothing is written down only for exactly what you asked, never the whole topic.'
 
-/** How a model tells a person about an item (docs/design/copy.md). */
-export const contextRule = `Tell the person it is a ${fact}, the owner of its domain checked it, its source, and its ${notToConclude} line.`
+/**
+ * How a model tells a person about an item (docs/design/copy.md). Who checked it is the reply's own
+ * word: an item published without review says nobody did (FR-421).
+ */
+export const contextRule = `Tell the person it is a ${fact}, who checked it, its source, and its ${notToConclude} line.`
 
 /**
  * The rules a model needs before anything else: for a metric, call get_context first, read the

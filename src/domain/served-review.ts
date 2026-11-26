@@ -21,6 +21,11 @@ export type ServedReview = {
   areaId: string
   /** The first edition that served this version. */
   edition: string
+  /**
+   * Published under an owner's permission to publish without review (FR-421): nobody read it before
+   * agents got it, so it is never called checked.
+   */
+  withoutReview: boolean
 }
 
 /** The id a proposal's own item has in its preview: the item it changes, or the new one it makes. */
@@ -40,6 +45,13 @@ export const acceptedWords = (on: string, by: string, edition: string) =>
 
 /** A check in one sentence, as the agent contract's reply gives it: "Checked 12 Jun 2026 by the owner of Sales." */
 export const checkedWords = (on: string, by: string) => `Checked ${dayWords(on)} by ${by}.`
+
+/**
+ * A publish nobody read first, in one sentence: "Published 12 Jun 2026 without review, with the
+ * permission of the owner of Sales."
+ */
+export const withoutReviewWords = (on: string, by: string) =>
+  `Published ${dayWords(on)} without review, with the permission of ${by}.`
 
 /** A served review in one sentence, naming the role that accepted it. */
 export const reviewedWords = (review: ServedReview, domain: string) =>

@@ -48,6 +48,7 @@ import {
   acceptedByRole,
   acceptedWords,
   checkedWords,
+  withoutReviewWords,
   ownerRole,
 } from '../../domain/served-review.ts'
 import type {
@@ -160,7 +161,15 @@ function openLines(output: Record<string, unknown>): string[] {
     ...(Array.isArray(output.results) ? (output.results as unknown[]) : []),
   ]
   const items = listed.flatMap((item) => {
-    const { title, page, section, url, reviewed, checked } = item as Record<string, unknown>
+    const {
+      title,
+      page,
+      section,
+      url,
+      reviewed,
+      checked,
+      published_without_review: unreviewed,
+    } = item as Record<string, unknown>
     const name =
       typeof title === 'string'
         ? title
@@ -171,11 +180,14 @@ function openLines(output: Record<string, unknown>): string[] {
           : null
     const review = reviewed as Record<string, string> | undefined
     const check = checked as { role: string; date: string } | undefined
+    const permitted = unreviewed as { permission_of: string; date: string } | undefined
     const stamp = review
       ? ` - ${acceptedWords(review.accepted_on!, review.accepted_by!, review.in_edition!)}`
       : check
         ? ` - ${checkedWords(check.date, check.role)}`
-        : ''
+        : permitted
+          ? ` - ${withoutReviewWords(permitted.date, permitted.permission_of)}`
+          : ''
     return name !== null && typeof url === 'string'
       ? [`Open in ${productName} - ${name.replace(/\s+/g, ' ').trim()}: ${url}${stamp}`]
       : []
@@ -388,17 +400,17 @@ function itemOutput(
     url,
   }
 }
-/** Who checked an item before agents got it, as a role, and on which day (FR-326). */
+/**
+ * Who checked an item before agents got it, as a role, and on which day (FR-326). One published
+ * under a permission was checked by nobody: it says whose permission published it (FR-421).
+ */
 function checkedOutput(item: ServingItem, bundle: ServingBundle) {
   const review = item.review
-  return review
-    ? {
-        checked: {
-          role: acceptedByRole(review.acceptedAs, domainName(bundle, review.areaId)),
-          date: review.acceptedOn,
-        },
-      }
-    : {}
+  if (!review) return {}
+  const role = acceptedByRole(review.acceptedAs, domainName(bundle, review.areaId))
+  return review.withoutReview
+    ? { published_without_review: { permission_of: role, date: review.acceptedOn } }
+    : { checked: { role, date: review.acceptedOn } }
 }
 /**
  * A context item as the agent contract gives it (docs/product.md, section 10): what it is and
@@ -1313,6 +1325,9 @@ export function createToolService(
         }
         // The domains the question is about, with what their owners wrote about them (FR-813).
         const domains = askedDomains(bundle, resolution.scope, concise)
+        // Published with an owner's permission, so nobody read it before agents got it (FR-421).
+        const unreviewed = (id: string) =>
+          (index.item(id) as ServingItem).review?.withoutReview === true
         // The reply's status, which carries the answer state (FR-349): what is written decides it,
         // so every page of a question says the same; out of date as the items stand after any cut.
         const statusNow = () => {
@@ -1323,10 +1338,15 @@ export function createToolService(
               ...items.map((item) => ({
                 match: item.match,
                 unverified: item.freshness === 'unverified',
+                unreviewed: unreviewed(item.id),
               })),
               ...resolution.items
                 .filter((match) => !shown.has(match.id))
-                .map((match) => ({ match: match.match, unverified: false })),
+                .map((match) => ({
+                  match: match.match,
+                  unverified: false,
+                  unreviewed: unreviewed(match.id),
+                })),
             ],
             uncovered: resolution.scope
               ? uncoveredParts(
@@ -1365,6 +1385,7 @@ export function createToolService(
                 delivered: items.length,
                 partial: items.filter((item) => item.match === 'partial').length,
                 unverified: items.filter((item) => item.freshness === 'unverified').length,
+                unreviewed: items.filter((item) => unreviewed(item.id)).length,
                 cut: check.cut_ids.length,
                 // A cut by count is reached by the cursor; a cut by size too, or by more bytes.
                 ...(check.cut_ids.length ? { cutNext: cutNext() } : {}),

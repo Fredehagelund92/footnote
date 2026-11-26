@@ -476,7 +476,7 @@ const said = {
  * which an output schema does not describe.
  */
 export const readOutput = z.object(said).loose()
-/** An item as the agent contract gives it: its page in Footnote, and how it was checked. */
+/** An item as the agent contract gives it: its page in Footnote, and how it was checked, if it was. */
 const contextEntry = z
   .object({
     id: z.string(),
@@ -488,6 +488,12 @@ const contextEntry = z
       .optional()
       .describe(
         'Who checked it before agents got it, as a role (never a person), and on which day.',
+      ),
+    published_without_review: z
+      .object({ permission_of: z.string(), date: z.string() })
+      .optional()
+      .describe(
+        'In place of checked: nobody read it before agents got it. It was published on that day with the permission of this role (never a person) to publish without review.',
       ),
   })
   .loose()

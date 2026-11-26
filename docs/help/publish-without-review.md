@@ -63,6 +63,6 @@ Whoever set it, any owner of the domain, an admin, and the person the agent work
 
 The item's history says who sent it and whose decision it was: "Published by Claude Code for Kofi with Jon's permission to publish without review". The history log says the same, and keeps the owner as the one who decided. The owner finds it under Done in their Inbox, as Published with your permission.
 
-Nobody read it before agents got it, so an owner of the domain or an admin can undo it at any time while the item is as it was published: open the item, open its version in History, and choose Undo this publish. Agents stop getting it, and the suggestion waits for review like any other.
+Nobody read it before agents got it, and agents are told so: they never read it as checked, and an answer that rests only on such items is Partial. An owner of the domain or an admin can undo it at any time while the item is as it was published: open the item, open its version in History, and choose Undo this publish. Agents stop getting it, and the suggestion waits for review like any other.
 
 > **Why it is safe to try.** It only ever adds a new item that clashes with nothing, and every one can be undone. An owner who wants to read each suggestion first simply never turns it on.
