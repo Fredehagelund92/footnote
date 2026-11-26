@@ -164,7 +164,7 @@ describe('synonym tags', () => {
   })
 })
 
-describe('the connector the synced definitions come from', () => {
+describe('the connector the synced definitions come from, one at a time (CON-120)', () => {
   const synced = (connector?: string) => ({ synced: true, ...(connector ? { connector } : {}) })
 
   it('is the one connector that reads them all, so a page can link to it', () => {
@@ -172,9 +172,8 @@ describe('the connector the synced definitions come from', () => {
     expect(connectorOf(createDefinitions().list())).toBeDefined()
   })
 
-  it('is none when none or several read them, even when they read the same tool', () => {
+  it('is none when none is synced', () => {
     expect(connectorOf([])).toBeUndefined()
-    expect(connectorOf([synced('cube'), synced('cube-cloud')])).toBeUndefined()
     expect(connectorOf([{ synced: false, connector: 'cube' }])).toBeUndefined()
   })
 })

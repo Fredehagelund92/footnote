@@ -2,7 +2,7 @@ import type { CheckFlag } from '../../../domain/item.ts'
 import type { Queryable } from '../../db/database.ts'
 import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 
-type Reference = { ref: string; renamedTo: string | null }
+type Reference = { ref: string; renamedTo: string | null; off?: boolean }
 type FlagChange = {
   itemId: string
   areaId: string
@@ -29,10 +29,19 @@ function flagReason(change: FlagChange): string {
         .filter(Boolean)
         .join('; '),
     )
+  const gone = change.refs.filter((r) => !r.off)
+  const off = change.refs.filter((r) => r.off)
   return clip(
-    `Definition missing: ${change.refs
-      .map((r) => (r.renamedTo ? `${r.ref} (now ${r.renamedTo})` : r.ref))
-      .join(', ')}`,
+    [
+      gone.length
+        ? `Definition missing: ${gone
+            .map((r) => (r.renamedTo ? `${r.ref} (now ${r.renamedTo})` : r.ref))
+            .join(', ')}`
+        : '',
+      off.length ? `Its integration is off: ${off.map((r) => r.ref).join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join('; '),
   )
 }
 
@@ -40,11 +49,13 @@ function flagReason(change: FlagChange): string {
  * Brings the source flags of live items in line with their definitions (CON-209, CON-210). An item
  * is `needs_check` while a definition its live version references has another change mark than
  * the one recorded at review, or while it is about a family that was split back into its metrics
- * (FR-142), and `source_missing` while such a definition has disappeared. Only
+ * (FR-142), and `source_missing` while such a definition has disappeared or its integration is
+ * off (CON-120): the item is still served, and told as relying on what is not read now. Only
  * stored marks are compared, so an outage, which stores none, never flags (CON-213), and a mark
  * that is unknown never counts as checked (CON-212). Mentions are not references and never flag.
  *
- * Runs after every successful sync and in every publish transaction, so a recheck or a newer
+ * Runs after every successful sync, in every publish transaction, and when a definitions
+ * integration is turned on or off or disconnected, so a recheck or a newer
  * accepted version clears the flag in the edition that serves it. Repeating it changes nothing.
  * Each new flag tells the area's owners and deputies (their inbox, through the outbox).
  */
@@ -60,12 +71,14 @@ export async function reconcileSourceFlags(
         where s.editions @> (select seq from live_edition)),
      reasons as (
        select l.item_id, l.area_id, f.flag,
-              jsonb_build_object('ref', r.definition_ref, 'renamedTo', d.renamed_to) as ref,
+              jsonb_build_object('ref', r.definition_ref, 'renamedTo', d.renamed_to)
+                || case when c.enabled then '{}'::jsonb else jsonb_build_object('off', true) end as ref,
               null::text as family
          from live l
          join item_version_refs r on r.version_id = l.version_id
          join definitions d on d.ref = r.definition_ref
-         cross join lateral (select case when d.missing_since_snapshot is not null then 'source_missing'
+         join connectors c on c.id = d.connector_id
+         cross join lateral (select case when d.missing_since_snapshot is not null or not c.enabled then 'source_missing'
                                          when d.change_mark <> r.change_mark then 'needs_check' end as flag) f
         where f.flag is not null
        union all

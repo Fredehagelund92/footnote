@@ -69,8 +69,8 @@ export default defineConfig({
     // J128 draws the mock's demo metrics' tree, which the demo source on the service has none of;
     // the service's read is in tests/integration/definition-relations.test.ts.
     /\/j128-built-from-tree\.spec\.ts$/,
-    // J88 asks the mock for a dbt folder beside the demo's Cube model (?demo=dbt); the service reads
-    // one and gives its refs in tests/integration/server-folder-catalogue.test.ts.
+    // J88 asks the mock for a dbt folder in the demo's Cube model's place (?demo=dbt); the service
+    // reads one and gives its refs in tests/integration/server-folder-catalogue.test.ts.
     /\/j88-dbt-definitions\.spec\.ts$/,
     // J89 reads the families the mock's ?demo=families Names card offers; the service finds them
     // in tests/integration/declared-families.test.ts.

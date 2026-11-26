@@ -24,6 +24,8 @@ import { reservedSourceIds, sourceIdFrom } from '../../../domain/source-id.ts'
 import { durationText } from '../../../domain/source-schedule.ts'
 import type { Queryable } from '../../db/database.ts'
 import { plainReason, recordAudit } from '../admin/index.ts'
+import { reconcileSourceFlags } from './flags.ts'
+import { makeRoomFor } from './one-on.ts'
 import { createSourceOverview } from './overview.ts'
 import { groupOf, type RegisteredConnector, type StoredScope } from './platform.ts'
 import type { ConnectorRegistry } from './registry.ts'
@@ -179,7 +181,7 @@ function summary(
     ok: true,
     steps,
     version: snapshot.sourceVersion,
-    complete: snapshot.complete && warnings.every((warning) => warning.code !== 'taken'),
+    complete: snapshot.complete,
     views: scopes.length,
     metrics: metrics.length,
     dimensions: snapshot.definitions.length - metrics.length,
@@ -508,18 +510,7 @@ export function createWorkspaceSources({
     } catch (error) {
       return failed(error instanceof SourceReadError ? error.warnings : [], steps)
     }
-    // What a disconnected source read is handed over to the next that reads it (CON-118).
-    const taken = await tx.query<{ ref: string }>(
-      `select d.ref from definitions d join connectors c on c.id = d.connector_id
-        where d.ref = any($1::text[]) and d.connector_id <> $2 and c.removed_at is null
-        order by d.ref`,
-      [snapshot.definitions.map((definition) => definition.ref), source.id],
-    )
-    const check = summary(
-      snapshot,
-      [...snapshot.warnings, ...taken.map(({ ref }) => ({ code: 'taken' as const, target: ref }))],
-      steps,
-    )
+    const check = summary(snapshot, snapshot.warnings, steps)
     const inModel = new Set(groupsOf(snapshot).map((group) => group.id))
     return {
       ...check,
@@ -588,6 +579,8 @@ export function createWorkspaceSources({
       const plan = await checkPlan(tx, connector!, input.scopes ?? [], input.schedule ?? null)
       const allGroups = input.allGroups ?? !plan.scopes.length
       const definitions = connector!.manifest.kind === 'definitions'
+      // One definitions integration is on at a time (CON-120): refused while another is.
+      if (definitions) await makeRoomFor(tx, null, input.name.trim())
       await tx.query("select pg_advisory_xact_lock(hashtextextended('footnote.sources.add', 0))")
       const existing = await tx.query<{ id: string }>('select id from connectors')
       const id = sourceIdFrom(
@@ -845,6 +838,8 @@ export function createWorkspaceSources({
       )
       const ref = row.secret_ref
       if (ref) hooks.onCommit(() => secrets.remove(ref))
+      // Its definitions are off now: live items that rely on one are flagged (CON-120).
+      if (before?.kind === 'definition_source') await reconcileSourceFlags(tx)
       const connector = typeOf(row.type)
       await recordAudit(tx, {
         action: 'source.removed',

@@ -33,17 +33,18 @@ export function namesWords({
   ready,
   flagged,
   families = 0,
-  tools,
+  tool,
 }: {
   ready: number
   flagged: number
   /** Of them, the families waiting. */
   families?: number
-  tools: readonly string[]
+  /** The definitions integration's tool: one is on at a time (CON-120). */
+  tool: string
 }) {
   const total = ready + flagged
   const others = total - families
-  const from = `from ${tools.join(', ')}`
+  const from = `from ${tool}`
   const n = (x: number) => x.toLocaleString('en-GB')
   return {
     title: !total
@@ -192,7 +193,7 @@ export type InboxCard = {
    */
   asked?: { on: string; answers: CheckAnswerRow[] }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */
-  names?: { ready: number; flagged: number; families: number; tools: string[] }
+  names?: { ready: number; flagged: number; families: number; tool: string }
   /**
    * Created by a sync from a document, never by a person: the tool as people say it, and its
    * connector's id, which its logo is drawn by.

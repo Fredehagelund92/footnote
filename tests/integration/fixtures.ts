@@ -34,6 +34,20 @@ export async function foundation(client: pg.Client) {
   )
 }
 
+/**
+ * One definitions integration is on at a time (CON-120). A test that reads definitions of its own
+ * turns the foundation's demo off before it adds its source, then hands it the demo's definition:
+ * an install serves every definition from the one that is on.
+ */
+export async function demoOff(client: pg.Client) {
+  await client.query("update connectors set enabled = false where id = 'demo'")
+}
+
+export async function demoReadBy(client: pg.Client, id: string) {
+  await demoOff(client)
+  await client.query("update definitions set connector_id = $1 where connector_id = 'demo'", [id])
+}
+
 export async function version(
   client: pg.Client,
   options: {

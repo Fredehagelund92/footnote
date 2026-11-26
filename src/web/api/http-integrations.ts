@@ -556,10 +556,6 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
     title: 'A domain we do not have',
     detail: 'The tool names a domain that is not one of yours. Map it in the next steps.',
   },
-  taken: {
-    title: 'Read by another source',
-    detail: 'It stays with that source, and this one leaves it out.',
-  },
   too_many_records: { title: 'Too much to read at once', detail: 'The rest is left out.' },
   unsupported_file: {
     title: 'A file was skipped',

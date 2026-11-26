@@ -188,7 +188,7 @@ export function createMockNames(heldWords: WordHolders = holders) {
       const flagged = list.filter((n) => n.state === 'flagged').length
       if (!ready && !flagged) return null
       const families = list.filter((n) => n.family && n.state !== 'left_out').length
-      const counts = { ready, flagged, families, tools: ['dbt'] }
+      const counts = { ready, flagged, families, tool: 'dbt' }
       return {
         id: 'names:waiting',
         type: 'names',

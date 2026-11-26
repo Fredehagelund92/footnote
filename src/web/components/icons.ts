@@ -140,6 +140,8 @@ export {
   PlayIcon,
   PlugIcon,
   PlusIcon,
+  PowerIcon,
+  PowerOffIcon,
   PrinterIcon,
   QuoteIcon,
   Redo2,

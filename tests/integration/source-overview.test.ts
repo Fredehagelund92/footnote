@@ -16,7 +16,7 @@ import {
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { gitHost, type GitHost } from '../server/connectors/git-server.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
-import { foundation, people } from './fixtures.ts'
+import { demoOff, foundation, people } from './fixtures.ts'
 import { apiDatabase, queueReads, testDatabase, transaction } from './support.ts'
 
 /*
@@ -108,6 +108,7 @@ const handbook = {
  */
 async function seedCube() {
   await transaction(client, async () => {
+    await demoOff(client)
     await client.query(
       `insert into connectors (id, kind, type, name, failures)
        values ('cube', 'definition_source', 'cube', 'Cube model', 1)`,
@@ -277,11 +278,18 @@ describe('the sources an admin reads (CON-104)', () => {
   })
 
   it('says a read failed for a reason other than its key', async () => {
+    // One definitions integration is on at a time (CON-120): the demo, for this read.
+    const turnOn = async (id: string, off: string) => {
+      await client.query('update connectors set enabled = false where id = $1', [off])
+      await client.query('update connectors set enabled = true where id = $1', [id])
+    }
+    await turnOn('demo', 'cube')
     await client.query(
       `insert into connector_snapshots (connector_id, status, fetched_at, warnings)
        values ('demo', 'failed', '2026-10-08T07:00:00Z', '[{"code": "unreachable", "target": "model"}]')`,
     )
     expect((await row('demo')).state).toMatchObject({ intent: 'active', last: 'failed' })
+    await turnOn('cube', 'demo')
   })
 
   it("lists a definitions source's reads newest first, each with what changed, and its views", async () => {

@@ -1,6 +1,6 @@
 import type { ConnectorManifest } from '@domain/connector-manifest'
 import { builtInManifests } from '../../connectors/manifests'
-import { logos, type Connector, type ConnectorKind } from './integrations'
+import { logos, type Connector, type ConnectorKind, type Source } from './integrations'
 
 // The catalogue of connectors, drawn from the manifests built into the repository, so a connector
 // added there shows in Integrations with no change to the app. Only the pages that list or connect
@@ -122,3 +122,21 @@ export const definitionsConnectHref = () => {
   const connector = connectors.find((c) => c.kind === 'definitions')
   return connector ? `/settings/integrations/${connector.id}/connect` : '/settings/integrations'
 }
+
+/**
+ * The definitions integration that is on, other than `except`, with its connector; undefined when
+ * none is. One is on at a time (CON-120): another is connected or turned on only once it is off.
+ * A connector counts by its kind, what it reads, whatever its tool.
+ */
+export function definitionsOn(sources: readonly Source[], except?: string) {
+  for (const source of sources) {
+    const c = connectorById(source.connector)
+    if (c?.kind === 'definitions' && source.id !== except && source.state.intent !== 'paused')
+      return { source, c }
+  }
+  return undefined
+}
+
+/** Why `wanted` cannot be on while `on` is, and how to switch, in the words the service says it. */
+export const oneOnWords = (on: string, wanted: string) =>
+  `Only one definitions integration is on at a time, and ${on} is on. To read ${wanted} instead, turn ${on} off, then turn ${wanted} on.`

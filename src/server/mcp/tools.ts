@@ -51,16 +51,17 @@ export const instructionRules = rulesFor(productName)
 export { INSTRUCTIONS_READ_BY_ALL }
 /** FR-343: what the server tells a client when it connects (src/domain/mcp-text.ts). */
 export const serverInstructions = (
-  dataTools: readonly string[],
+  dataTool: string | null,
   about = '',
   calendar: Calendar = UTC_CALENDAR,
   permissions: readonly PublishPermission[] = [],
-): string => instructionsFor(productName, dataTools, about, calendar, permissions)
-/** The data tools the definition sources name, by their own label (CON-101). */
-export function dataToolsOf(bundle: Pick<ServingBundle, 'terms'>): string[] {
-  return [...new Set(bundle.terms.flatMap((term) => (term.described ? [term.described.tool] : [])))]
-    .filter(Boolean)
-    .sort()
+): string => instructionsFor(productName, dataTool, about, calendar, permissions)
+/**
+ * The data tool the definitions integration names, by its own label (CON-101): one is on at a
+ * time (CON-120). Null when nothing served is described by one.
+ */
+export function dataToolOf(bundle: Pick<ServingBundle, 'terms'>): string | null {
+  return bundle.terms.find((term) => term.described?.tool)?.described?.tool ?? null
 }
 /** A tool's description for the model: the line people read first, then what the model needs. */
 const describe = (tool: AgentToolName, text: string) => `${toolWords[tool].line} ${text}`

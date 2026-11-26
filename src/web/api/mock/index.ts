@@ -19,7 +19,7 @@ import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
 import { familyMeaningHistoryOf } from '../http-family-meaning'
-import { connectorById } from '@/model/catalogue'
+import { connectorById, oneOnWords } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
 import { cards, demoQuestions, questionDays, waiting, week } from './data/inbox'
@@ -70,7 +70,7 @@ import {
 } from './integrations'
 import { reportedOn, type Answer, type AskInput } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
-import { createDefinitions } from './definitions'
+import { createDefinitions, FAMILIES_DEFINITIONS } from './definitions'
 import { builtFromFor, relationsFor } from './data/relations'
 import { dimensionsOf, valuesOf } from './obs-filters'
 import { publishEffects, touchedBy } from './publish'
@@ -110,7 +110,6 @@ export function createMockApi() {
   const scenario = createScenario()
   const workspace = createWorkspace()
   const comments = createComments()
-  const definitions = createDefinitions()
   /** The dimensions an admin pinned on Overview in this visit (observability.pinned_dimensions). */
   let pins: Pins = { keys: [] }
   let automatic: Automatic = { on: false, version: 1 }
@@ -138,6 +137,25 @@ export function createMockApi() {
     () => settings.read().connected,
     (id) => kept.get(id),
   )
+  /** The definitions tool that is on, other than `except`: one is at a time (CON-120). */
+  const definitionsOn = (except?: string) =>
+    settings
+      .read()
+      .connected.find(
+        (id) =>
+          id !== except && connectorById(id)?.kind === 'definitions' && !integrations.paused(id),
+      )
+  /** Refused while another definitions tool is on, as the service refuses it. */
+  const makeRoomFor = (id: string) => {
+    if (connectorById(id)?.kind !== 'definitions') return
+    const on = definitionsOn(id)
+    if (on)
+      throw new ApiError(
+        'conflict',
+        oneOnWords(connectorById(on)?.label ?? on, connectorById(id)?.label ?? id),
+      )
+  }
+  const definitions = createDefinitions((connector) => definitionsOn() === connector)
   let views: SavedView[] = []
   readDefinitionsFrom(definitions.list)
   let state: State = start
@@ -1717,6 +1735,7 @@ export function createMockApi() {
     connectIntegration: ({ connector, config, chosen, readsAll, reason }) =>
       now(() => {
         checkConnect(connector, { chosen, reason })
+        makeRoomFor(connector)
         settings.connect(connector)
         kept.set(connector, { config, chosen, readsAll, revision: 1 })
         // A definitions tool's read makes names, and the owner accepts them.
@@ -1777,7 +1796,11 @@ export function createMockApi() {
     integrationPage: ({ id }) =>
       read('integrationPage', id, () => integrations.sourcePage(id, scenario.address())),
     readIntegration: ({ id }) => now(() => integrations.readAgain(id, new Date())),
-    pauseIntegration: ({ id, paused }) => now(() => integrations.pause(id, paused)),
+    pauseIntegration: ({ id, paused }) =>
+      now(() => {
+        if (!paused) makeRoomFor(id)
+        integrations.pause(id, paused)
+      }),
     listAgentConnections: () =>
       now(() =>
         settings
@@ -1924,6 +1947,12 @@ export function createMockApi() {
         lastDemo = demo
         if (demo === 'names') names.load()
         if (demo === 'variants') definitions.loadVariants()
+        // dbt reads the demo's model in Cube's place: one definitions tool is on at a time.
+        if (demo === 'dbt' || demo === 'families') {
+          settings.disconnect(DEMO_DEFINITIONS)
+          settings.connect(FAMILIES_DEFINITIONS)
+          definitions.readWith(FAMILIES_DEFINITIONS)
+        }
         if (demo === 'dbt') definitions.loadDbtFolder()
         if (demo === 'families') {
           familiesShop = true
