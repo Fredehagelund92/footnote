@@ -2,8 +2,9 @@ import type { Page } from '@playwright/test'
 import { allHandled, cardIn, expect, go, place, queue, settle, test } from './go.ts'
 
 // J23, review round 3: focus moves to the change after J, K or a decision, and the new suggestion
-// is announced; after the last decision the review says everything is handled, with Undo; the
-// bulk toast never covers the change.
+// is announced; after the last decision, which waits for the service since nothing is left to
+// move on to, the review says everything is handled, with Undo; the bulk toast never covers the
+// change.
 
 const decide = (page: Page) => page.getByRole('complementary', { name: 'Try it and decide' })
 
@@ -23,8 +24,6 @@ test('after the last decision: all handled, with Undo for the last one', async (
   await go(page, '/inbox/sug-ines-link/review?demo=last')
   await decide(page).getByRole('button', { name: 'Publish', exact: true }).click()
   await settle(page, 700)
-  await expect(decide(page).getByRole('button', { name: 'Undo' })).toBeVisible()
-  await page.keyboard.press('j')
   await expect(page.getByRole('heading', { name: `All ${queue().length} handled` })).toBeVisible()
   await expect(page.getByText(allHandled, { exact: false })).toBeVisible()
   await page.getByRole('button', { name: 'Undo the last one' }).click()

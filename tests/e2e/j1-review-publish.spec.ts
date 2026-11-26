@@ -8,14 +8,9 @@ test('an owner reviews and publishes a suggestion', async ({ page }) => {
   const decision = page.locator('#decision')
   await expect(decision.getByText('Ready.', { exact: true })).toBeVisible()
   await decision.getByRole('button', { name: 'Publish', exact: true }).click()
-  // The hold before the next suggestion pauses while the pointer rests on the decision, so move it away.
-  await page.mouse.move(0, 0)
-  // What it did, in place, then the next suggestion opens.
-  await expect(
-    page.getByRole('complementary', { name: 'Try it and decide' }).getByText('Agents now say'),
-  ).toBeVisible()
-  // The outcome appears under the still pointer, and a pointer on it holds the wait (so Undo is never a race).
-  // Leave it, as someone moving on would, so the wait runs out.
-  await page.mouse.move(0, 0)
-  await expect(page).not.toHaveURL(new RegExp(`${cardIn('sug-ines')}/review`), { timeout: 6000 })
+  // The next suggestion opens at once, and a toast says Published once the service has, with Undo.
+  await expect(page).not.toHaveURL(new RegExp(`${cardIn('sug-ines')}/review`))
+  const said = page.locator('[data-sonner-toast]').filter({ hasText: /^Published “/ })
+  await expect(said).toBeVisible()
+  await expect(said.getByRole('button', { name: 'Undo' })).toBeVisible()
 })

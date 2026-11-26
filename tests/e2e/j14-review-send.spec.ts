@@ -1,8 +1,11 @@
-import { expect, go, test } from './go.ts'
+import type { Page } from '@playwright/test'
+import { cardIn, expect, go, test } from './go.ts'
 
 // J14, deciding when the connection is not there: offline nothing is published and the button
 // says why; a failed try says "Couldn't publish", changes nothing, and Try again works. A returned
 // note that fails stays in the editor. The quick view's own actions wait the same way.
+
+const toasts = (page: Page) => page.locator('[data-sonner-toast]')
 
 test('offline, Publish waits and nothing says Published', async ({ page }) => {
   await go(page, '/inbox/sug-ines-link/review?state=offline')
@@ -11,8 +14,8 @@ test('offline, Publish waits and nothing says Published', async ({ page }) => {
   await expect(decide.getByText("Publish is off until you're back; nothing is lost.")).toBeVisible()
   await expect(decide.getByRole('button', { name: 'Publish', exact: true })).toBeDisabled()
   await page.keyboard.press('ControlOrMeta+Enter')
-  await expect(page.getByText('Agents now say')).toHaveCount(0)
-  await expect(decide.getByRole('button', { name: 'Undo' })).toHaveCount(0)
+  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-link')}/review`))
+  await expect(toasts(page)).toHaveCount(0)
   await expect(decide.getByRole('button', { name: 'Publish', exact: true })).toBeVisible()
 })
 
@@ -20,13 +23,19 @@ test('a failed publish changes nothing, and Try again publishes', async ({ page 
   await go(page, '/inbox/sug-ines-link/review?state=failed')
   const decide = page.getByRole('complementary', { name: 'Try it and decide' })
   await decide.getByRole('button', { name: 'Publish', exact: true }).click()
+  // The review moved on at once; the failure comes back as a toast that opens it again.
+  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-order')}/review`))
+  const failed = toasts(page).filter({ hasText: "Couldn't publish" })
+  await expect(failed).toContainText('Nothing changed. Open it to try again.')
+  await expect(toasts(page).filter({ hasText: /^Published/ })).toHaveCount(0)
+  await failed.getByRole('button', { name: 'Open' }).click()
+  await expect(page).toHaveURL(new RegExp(`${cardIn('sug-ines-link')}/review`))
   await expect(decide.getByRole('alert')).toContainText("Couldn't publish. Nothing changed.")
-  await expect(page.getByText('Agents now say')).toHaveCount(0)
   // One way forward: Try again, with Return beside it, and no second Publish.
   await expect(decide.getByRole('button', { name: 'Publish', exact: true })).toHaveCount(0)
   await expect(decide.getByRole('button', { name: 'Send back with a note' })).toBeVisible()
   await decide.getByRole('button', { name: 'Try again' }).click()
-  await expect(decide.getByText('Agents now say')).toBeVisible()
+  await expect(toasts(page).filter({ hasText: /^Published “/ })).toBeVisible()
 })
 
 test('a failed return keeps the note', async ({ page }) => {
@@ -41,7 +50,7 @@ test('a failed return keeps the note', async ({ page }) => {
   )
   await expect(note).toHaveText('Which page says 340?')
   await decide.getByRole('button', { name: 'Try again' }).click()
-  await expect(decide.getByText('Returned to Ines Duarte')).toBeVisible()
+  await expect(toasts(page).filter({ hasText: /^Returned “/ })).toBeVisible()
 })
 
 test("offline, the quick view's actions wait too", async ({ page }) => {
@@ -62,6 +71,8 @@ test('Try again after a failed return sends the note as it stands now', async ({
   await page.keyboard.press('ControlOrMeta+End')
   await note.pressSequentially(' Please link the page.')
   await decide.getByRole('button', { name: 'Try again' }).click()
-  await expect(decide.getByText('Returned to Ines Duarte')).toBeVisible()
+  await expect(toasts(page).filter({ hasText: /^Returned “/ })).toBeVisible()
+  // The review moved on; the note is in the returned suggestion's comments.
+  await go(page, '/inbox/sug-ines/review')
   await expect(page.getByText('Which page says 340? Please link the page.')).toBeVisible()
 })

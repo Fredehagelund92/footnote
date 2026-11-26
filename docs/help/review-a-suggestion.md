@@ -4,7 +4,7 @@ line: The quick view, the review, Try it, and publishing, returning or closing.
 group: Write and review
 order: 2
 minutes: 5
-reviewed: 2026-11-23
+reviewed: 2026-11-25
 open:
   label: Open the Inbox
   href: /inbox
@@ -44,10 +44,16 @@ The words beside it say what follows. The other buttons say what they do, such a
   Type @ to mention someone, or : for an emoji. Anyone who reads the suggestion can mark it done, or open it again, and the comment says who did and when. The side panel counts the open ones and goes to each. Open comments never hold Publish.
 
 - Publish, or Send back with a note: the note is the first comment, and the sender answers there. It waits in their Inbox under Returned to you, where Edit and send again opens it in the editor. A suggestion to archive is archived or closed, not returned.
-- Don't publish closes a new item or a change you don't want. Write why: its sender reads the reason in their Inbox, under Closed. Agents never get it, and Undo is there for a moment after.
+- Don't publish closes a new item or a change you don't want. Write why: its sender reads the reason in their Inbox, under Closed. Agents never get it.
 - A suggestion written against an earlier version of its item, because the item was checked or changed since, says so. Return it, so its sender writes it against what agents get now.
 - A suggestion to archive you don't want: choose Don't archive and say why. Nothing changes, and the reason is kept with the decision.
 - A suggestion to archive that its sender took back in the comments shows their words. Close the suggestion and nothing changes, or archive anyway, which asks first.
+
+## After you decide
+
+Publish opens the next suggestion at once. In the list of waiting suggestions, the one you left says Publishing, then Published once it is in. If it couldn't be published, it says Not published and why, and nothing changed. Agents get it only once it says Published.
+
+Every decision shows a note with Undo, which opens that suggestion again. Command and Z undoes your last decision from any page, for as long as Undo is offered.
 
 ## From Context
 
@@ -67,4 +73,4 @@ Publish the ones you've read takes only suggestions you read: the whole change o
 
 An owner can also let one named agent publish some of its suggestions without a review: [Publish without review](publish-without-review.md).
 
-> **Keys.** J and K move through the waiting suggestions, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Esc goes back to the Inbox, and ? lists them all.
+> **Keys.** J and K move through the waiting suggestions, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Command and Z undoes the last decision, Esc goes back to the Inbox, and ? lists them all.

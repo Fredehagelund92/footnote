@@ -219,7 +219,9 @@ test("a return's note is the suggestion's first comment", async ({ page }) => {
     .getByRole('textbox', { name: 'A note for Ines Duarte' })
     .pressSequentially('Which page says 340?')
   await decide.getByRole('button', { name: 'Return to Ines' }).click()
-  await expect(decide.getByText('Returned to Ines Duarte')).toBeVisible()
+  // The review moves on once it is returned; its note is in its comments.
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: /^Returned “/ })).toBeVisible()
+  await go(page, '/inbox/sug-ines/review')
   const comments = page.getByRole('region', { name: /^Comments/ })
   const first = comments.getByRole('article').first()
   await expect(first).toContainText('Returned with a note')
