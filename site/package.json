@@ -21,13 +21,13 @@
     "check:app-docs": "node scripts/check-app-docs.ts"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.9",
+    "@astrojs/markdown-remark": "7.3.10",
     "@astrojs/starlight": "0.43.1",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
     "@fontsource-variable/schibsted-grotesk": "5.3.0",
     "@fontsource-variable/source-serif-4": "5.3.1",
     "@fontsource/outfit": "5.3.0",
-    "astro": "7.4.12",
+    "astro": "7.4.13",
     "mdast-util-from-markdown": "2.1.0",
     "mdast-util-gfm": "3.1.0",
     "micromark-extension-gfm": "3.0.0",
@@ -46,6 +46,6 @@
     "prettier": "3.10.1",
     "typescript": "6.0.3",
     "vfile": "6.0.3",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   }
 }
