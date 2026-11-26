@@ -53,6 +53,10 @@ export function ListBar({ children }: { children: React.ReactNode }) {
 /** A control in the bar. */
 export const barButton = 'text-muted-foreground hover:text-foreground aria-expanded:text-foreground'
 
+/** The Group control in both Context views: its word always shows, at one width, so the controls
+ *  after it stay put when the view changes. */
+export const barGroup = 'min-w-28 justify-start'
+
 export function BarSpacer({ children }: { children?: React.ReactNode }) {
   return (
     <div className="flex min-w-0 flex-1 items-center justify-end gap-2 @max-2xl/main:order-last @max-2xl/main:basis-full">
@@ -123,7 +127,7 @@ export function Count({ children }: { children: React.ReactNode }) {
   return (
     <span
       aria-live="polite"
-      className="min-w-30 shrink-0 text-right text-xs whitespace-nowrap text-muted-foreground tabular-nums @max-5xl/main:sr-only"
+      className="min-w-34 shrink-0 text-right text-xs whitespace-nowrap text-muted-foreground tabular-nums @max-5xl/main:sr-only"
     >
       {children}
     </span>

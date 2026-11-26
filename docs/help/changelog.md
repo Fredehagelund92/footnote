@@ -16,6 +16,12 @@ One definitions tool is on at a time, so Definitions lists each metric once. To 
 
 Publish on selected drafts in Context shows "Publishing 50 drafts..." while it works, and its buttons wait until it is done. Drafts that were already published, by you a moment before, say "already published" instead of failing.
 
+## Families with the same name are told apart
+
+2026-11-26
+
+Definitions listed the same name many times when several families shared it, such as Forecast Revenue. A read now gives each family a distinct name, and the families that already shared one were renamed once, with the change recorded in Settings history. See [Metric variants](metric-variants.md).
+
 ## Publish moves on at once
 
 2026-11-25

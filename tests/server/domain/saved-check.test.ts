@@ -138,5 +138,6 @@ describe('the words of a result', () => {
     expect(triggerOfEdition('item_retired')).toBe('archive')
     expect(triggerOfEdition('decision_undone')).toBe('restore')
     expect(triggerOfEdition('vocabulary_changed')).toBe('sync')
+    expect(triggerOfEdition('names_told_apart')).toBe('sync')
   })
 })
