@@ -73,4 +73,4 @@ Publish the ones you've read takes only suggestions you read: the whole change o
 
 An owner can also let one named agent publish some of its suggestions without a review: [Publish without review](publish-without-review.md).
 
-> **Keys.** J and K move through the waiting suggestions, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Command and Z undoes the last decision, Esc goes back to where you opened it, such as the Inbox, and ? lists them all.
+> **Keys.** J and K move through the waiting suggestions, N and P through the changes, the arrows through the lines, C comments on the one in focus, Command and Enter publishes, Command and Z undoes the last decision, Esc goes back to the Inbox, and ? lists them all.
