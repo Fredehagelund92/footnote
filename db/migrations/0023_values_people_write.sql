@@ -12,3 +12,13 @@ ALTER TABLE public.vocab_term_versions ADD CONSTRAINT vocab_term_versions_writte
 ALTER TABLE public.proposals ADD COLUMN new_values jsonb DEFAULT '[]'::jsonb NOT NULL;
 ALTER TABLE public.proposals ADD CONSTRAINT proposals_new_values_check
   CHECK (jsonb_typeof(new_values) = 'array' AND jsonb_array_length(new_values) <= 50);
+
+-- What the data writes for each term served in an edition. Serving reads the vocabulary through functions
+-- (serving_vocabulary), never the service table, so this is one more of them.
+CREATE FUNCTION public.serving_written_as(p_seq bigint) RETURNS TABLE(key text, written_as text[])
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  select s.term_key, v.written_as
+    from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
+   where s.editions @> p_seq $$;
