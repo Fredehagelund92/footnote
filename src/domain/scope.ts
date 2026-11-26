@@ -698,6 +698,20 @@ export function extractScope(
     })
     return undefined
   }
+  // How the data writes a value (`NO`) is read only where an agent passes a value, after the
+  // names the value goes by, and never in a question's words.
+  const writtenValue = (value: string, parent: string) => {
+    const result = resolveTerm(value, terms, ['dimension_value'], parent)
+    if (result.status === 'resolved' || result.named) return undefined
+    const word = normalizeName(value)
+    const hits = terms.filter(
+      (term) =>
+        term.kind === 'dimension_value' &&
+        term.parentKey === parent &&
+        term.writtenAs?.some((spelled) => normalizeName(spelled) === word),
+    )
+    return hits.length === 1 ? hits[0]!.key : undefined
+  }
   for (const value of structured.metrics ?? []) {
     const key = resolve(value, ['metric', 'metric_group'], 'metrics')
     if (key) metrics.push(key)
@@ -711,7 +725,7 @@ export function extractScope(
       continue
     }
     for (const value of values) {
-      const valueKey = resolve(value, ['dimension_value'], key, key)
+      const valueKey = writtenValue(value, key) ?? resolve(value, ['dimension_value'], key, key)
       if (valueKey) filters[key].push(valueKey)
     }
   }

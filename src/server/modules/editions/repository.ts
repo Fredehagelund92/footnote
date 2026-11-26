@@ -211,6 +211,7 @@ export async function loadServingBundle(
     aliases: string[]
     area_id: string | null
     definition_refs: string[]
+    written_as: string[]
     definitions: DefinitionState[]
     described: {
       ref: string
@@ -223,6 +224,8 @@ export async function loadServingBundle(
     // What the source says is read with the definitions, the first one's words for the term; a
     // definition limited to groups shows nothing of itself (CON-509), as the catalogue leaves it out.
     `select t.*,
+       coalesce((select v.written_as from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
+          where s.term_key = t.key and s.editions @> $1::bigint), '{}') as written_as,
        coalesce((select json_agg(json_build_object('ref', d.ref,
            'missing', d.missing_since_snapshot is not null, 'renamedTo', d.renamed_to,
            'changeMark', d.change_mark) order by x.n)
@@ -284,6 +287,7 @@ export async function loadServingBundle(
     aliases: v.aliases,
     areaId: v.area_id,
     definitionRefs: v.definition_refs,
+    ...(v.written_as.length ? { writtenAs: v.written_as } : {}),
     definitions: v.definitions,
     described: v.described
       ? {

@@ -133,6 +133,40 @@ describe('a typed filter on a dimension with no values', () => {
   })
 })
 
+describe('how the data writes a value', () => {
+  const spelled: Term = { ...norway, writtenAs: ['NO'] }
+
+  it('finds the value a typed filter passes only by it, in any case', () => {
+    for (const passed of ['NO', 'no']) {
+      const read = extractScope('Why did orders drop?', [...noValues, spelled], today, {
+        metrics: ['orders'],
+        filters: { market: [passed] },
+        window: august,
+      })
+      expect(read).toMatchObject({
+        status: 'resolved',
+        scope: { filters: { 'dim:market': ['val:market/norway'] } },
+      })
+      expect(read.unkept).toBeUndefined()
+    }
+  })
+
+  it('is never read in the words of a question', () => {
+    const read = extractScope(
+      'Why did orders drop in the market NO?',
+      [...noValues, spelled],
+      today,
+      {
+        metrics: ['orders'],
+        window: august,
+      },
+    )
+    expect(JSON.stringify(read)).not.toContain('val:market/norway')
+    const no = extractScope('No, why did orders drop in Market: NO?', [...noValues, spelled], today)
+    expect(JSON.stringify(no)).not.toContain('val:market/norway')
+  })
+})
+
 describe('unkeptSay', () => {
   it('names the dimension and every value it did not read', () => {
     expect(

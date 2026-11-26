@@ -8,6 +8,9 @@ import type { ReviewSheet } from '../../src/contract/review-path.ts'
 import type { AddValuesResult } from '../../src/contract/values.ts'
 import type { Draft } from '../../src/domain/draft.ts'
 import { buildApp } from '../../src/server/app.ts'
+import { UTC_CALENDAR } from '../../src/domain/dates.ts'
+import { createToolService } from '../../src/server/mcp/service.ts'
+import { loadLiveBundle } from '../../src/server/modules/editions/index.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
@@ -330,5 +333,47 @@ describe('values added in Definitions', () => {
       call('GET', '/vocabulary/search?q=norway', 'author'),
     )
     expect(search.groups.flatMap((g) => g.values.map((v) => v.name))).toContain('Norway')
+  })
+
+  it('are found by get_context from how the data writes them, as an agent passes it', async () => {
+    const bundle = (await apiDatabase(url).transaction(null, loadLiveBundle))!
+    const execute = createToolService(
+      {
+        bundle: () => Promise.resolve(bundle),
+        policy: () =>
+          Promise.resolve({
+            client: null,
+            tools: [],
+            limits: {},
+            rates: { person: 30, client: 120 },
+            about: '',
+            calendar: UTC_CALENDAR,
+          }),
+      },
+      {
+        write: () => Promise.reject(new Error('no demand')),
+        reportGap: () => Promise.reject(new Error('no demand')),
+        feedback: () => Promise.reject(new Error('no demand')),
+      },
+      () => new Date('2026-10-12T12:00:00Z'),
+    )
+    const get = async (values: string[]) =>
+      execute(
+        'get_context',
+        {
+          question: 'How were orders?',
+          metrics: ['orders'],
+          dimension_filters: [{ dimension: 'market', values }],
+          window: { from: '2026-10-01', to: '2026-10-31' },
+        },
+        { client: 'assistant', scopes: ['read'], caller: 'eval', canSelectEdition: false },
+        100_000,
+        () => undefined,
+      )
+    const byWriting = await get(['dk'])
+    expect(byWriting.isError).not.toBe(true)
+    expect(JSON.stringify(byWriting.structuredContent)).toContain('Denmark')
+    const unknown = await get(['XX'])
+    expect(unknown.structuredContent).toMatchObject({ status: 'need_more_detail' })
   })
 })
