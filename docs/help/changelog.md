@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-25
 ---
 
+## Families with the same name are told apart
+
+2026-11-26
+
+Definitions listed the same name many times when several families shared it, such as Forecast Revenue. A read now gives each family a distinct name, and the families that already shared one were renamed once, with the change recorded in Settings history. See [Metric variants](metric-variants.md).
+
 ## Publish moves on at once
 
 2026-11-25
