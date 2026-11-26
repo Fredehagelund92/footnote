@@ -302,7 +302,7 @@ describe('what it refuses', () => {
   it('gives up on a read that waits for its turn past its time', async () => {
     const slow = createPageReader({ loopback: true, timeoutMs: 200 })
     const first = refusal(slow(`${base}/slow`))
-    expect(await refusal(slow(`${base}/missing`))).toBe('timeout')
+    expect(await refusal(slow(`${base}/page`))).toBe('timeout')
     expect(await first).toBe('timeout')
   })
 
