@@ -86,7 +86,7 @@ export function DefinitionPeek({ name }: { name: string }) {
   const about = subject.type === 'dimension' ? undefined : glossary.contextAbout(subject, facts)
   const page = `/definitions/${encodeURIComponent(d.name)}`
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
-  const values = d.values?.split(', ')
+  const values = d.values?.map((value) => value.name)
   // Other names are added by an admin or an owner of the definition's domain.
   const canEdit = me.admin || (!!d.domain && me.owns.includes(d.domain))
 
@@ -204,9 +204,11 @@ export function DefinitionPeek({ name }: { name: string }) {
                 ? ([
                     [
                       'Values',
-                      values.length > 5
-                        ? `${values.slice(0, 5).join(', ')} and ${values.length - 5} more`
-                        : values.join(', '),
+                      !values.length
+                        ? 'None yet'
+                        : values.length > 5
+                          ? `${values.slice(0, 5).join(', ')} and ${(values.length - 5).toLocaleString('en-GB')} more`
+                          : values.join(', '),
                     ],
                   ] as [string, string][])
                 : []),

@@ -49,6 +49,11 @@ export type ScopeTerm = {
   name: string
   /** A value's dimension, by name. */
   dimension?: string
+  /**
+   * A value the writer added here ("Add Norway to Market") that no vocabulary has yet: it goes to
+   * the owner with the item, and is published with it (values without figures).
+   */
+  added?: true
 }
 
 export type Fact = {

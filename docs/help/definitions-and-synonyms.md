@@ -3,8 +3,8 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 6
-minutes: 6
-reviewed: 2026-11-25
+minutes: 7
+reviewed: 2026-11-26
 open:
   label: Open Definitions
   href: /definitions
@@ -24,6 +24,14 @@ They come from where your metrics are defined, and are read-only here: their mea
 A line under the toolbar says which tool they come from and links to it in Integrations. One definitions tool is on at a time, so they all come from one. See [Integrations](integrations.md#one-definitions-tool-at-a-time).
 
 A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Set up your workspace](set-up-your-workspace.md#publish-the-names).
+
+## Values of a dimension
+
+A dimension's page lists its values, such as the markets of Market. These are the values context is written about, not every value in your data: nothing is read from your data, and your data tool has the full list. Until a dimension has values, an item can apply only to all of it.
+
+Choose **Add a value** to add one, with other names people say for it and how the data writes it, such as NO for Norway. An agent that sends that as a filter, such as Market: NO, finds the value. The words of a question never do. Or choose **Paste a list**, one value per line, with other names after commas: Norway, Norge.
+
+An owner of the dimension's domain, or an admin, publishes them at once. Anyone else's wait for one on the Names card in the Inbox, which publishes them or leaves them out. A dimension with no domain is an admin's. A word another value of the dimension has already is refused, and so is a value for a dimension of dates, numbers or yes and no.
 
 ## What a metric is built from
 

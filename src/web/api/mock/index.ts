@@ -78,7 +78,16 @@ import { SAVED_TREND } from './data/saved-questions'
 import { createSaved } from './saved'
 import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
-import { createScopeSearch, withScope, withValues } from './scope'
+import {
+  createScopeSearch,
+  dimensionTermOf,
+  heldValuesOf,
+  publishValues,
+  withScope,
+  withValues,
+} from './scope'
+import { textFindings } from '@domain/draft'
+import { dimensionOfValue, valueKeyOf, valueRefusal } from '@domain/values'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
 import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
@@ -129,7 +138,15 @@ export function createMockApi() {
   const chats = createChats()
   const scope = createScopeSearch()
   const settings = createSettings()
-  const names = createMockNames()
+  // A value that waited for an owner is published with its other names and how the data writes it.
+  const names = createMockNames(undefined, (values) =>
+    values.forEach((v) => publishValues(v.dimension.key, [v])),
+  )
+  /** The values a writer added in "Applies to", published with the item (values without figures). */
+  const publishAdded = (terms: Fact['scope']) => {
+    for (const t of terms ?? [])
+      if (t.added && t.key) publishValues(dimensionOfValue(t.key), [{ key: t.key, name: t.name }])
+  }
   const policies = createPolicies()
   /** What the connect flow set for each tool this visit. */
   const kept = new Map<string, Kept>()
@@ -926,6 +943,7 @@ export function createMockApi() {
             )
           mayDecide(fact.id, 'publish')
           const itemId = `itm_new_${Date.now().toString(36)}`
+          publishAdded(fact.scope)
           scope.used(fact.scope)
           dispatch({ type: 'addFact', fact: { ...fact, id: itemId, version: 1, by: waits.by } })
           dispatch({ type: 'complete', card: fact.id, outcome: 'Published' })
@@ -953,6 +971,7 @@ export function createMockApi() {
           ...(replaces ? { replaces } : {}),
           ...(disagreesWith ? { disagreesWith } : {}),
         }
+        publishAdded(fact.scope)
         scope.used(fact.scope)
         if (isNew) dispatch({ type: 'addFact', fact: { ...saved, id } })
         else dispatch({ type: 'editFact', id, patch: saved })
@@ -1295,6 +1314,65 @@ export function createMockApi() {
             ).length,
         ),
       ),
+    // As the service: every value is checked first, and an admin publishes them at once. The demo's
+    // dimensions have no domain, so anyone else's wait for an admin on the Names card.
+    addValues: ({ dimension, values }) =>
+      now(() => {
+        const of = dimensionTermOf(dimension)
+        if (!of) throw new ApiError('not-found', `“${dimension}” isn't in Definitions any more.`)
+        const held = [
+          ...heldValuesOf(of.key),
+          ...names
+            .waitingValues()
+            .filter((v) => v.dimension.key === of.key)
+            .map((v) => ({
+              key: v.key,
+              name: v.name,
+              words: [v.name, ...v.aliases],
+              waiting: true,
+            })),
+        ]
+        const added: { key: string; name: string; aliases: string[]; writtenAs: string[] }[] = []
+        for (const written of values) {
+          const name = written.name.trim()
+          const key = valueKeyOf(of.key, name)
+          const aliases = [
+            ...new Set((written.aliases ?? []).map((a) => a.trim()).filter((a) => a && a !== name)),
+          ]
+          const writtenAs = [
+            ...new Set((written.writtenAs ?? []).map((w) => w.trim()).filter(Boolean)),
+          ]
+          if (textFindings({ name, aliases, writtenAs }).length)
+            throw new ApiError(
+              'invalid',
+              'A value is a name: it may not hold an email address, a phone number or a key.',
+            )
+          if (!key)
+            throw new ApiError('invalid', `“${name}” has no letter or digit to name a value with.`)
+          const refusal =
+            valueRefusal({ name: of.name, types: [] }, { key, name, aliases }, held) ??
+            (added.some((v) => v.key === key) ? `${name} is in the list twice.` : null)
+          if (refusal) throw new ApiError('invalid', refusal)
+          added.push({ key, name, aliases, writtenAs })
+        }
+        const listed = added.map(({ key, name }) => ({ key, name }))
+        if (obsReader().admin) {
+          publishValues(of.key, added)
+          return { outcome: 'published' as const, values: listed, edition: 'today.1' }
+        }
+        const by = meAsPerson()
+        names.suggest(
+          added.map((v) => ({
+            id: crypto.randomUUID(),
+            ...v,
+            dimension: { key: of.key, name: of.name },
+            areaId: null,
+            by: { personId: by.id, name: by.name },
+            at: new Date().toISOString(),
+          })),
+        )
+        return { outcome: 'waiting' as const, values: listed, edition: null }
+      }),
     saveTerm: ({ previous, term }) => now(() => definitions.saveTerm(previous, term)),
     addSynonym: ({ target, word }) => now(() => definitions.addSynonym(target, word, me())),
     removeTerm: ({ name }) => now(() => remember(definitions.removeTerm(name))),

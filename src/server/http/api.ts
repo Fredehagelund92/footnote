@@ -108,6 +108,7 @@ import {
 } from '../modules/answer/index.ts'
 import {
   createNamesService,
+  createValuesService,
   createReviewPath,
   createReviewService,
   type ReviewService,
@@ -272,6 +273,7 @@ export function requestServices(
     areas: createAreasService(tx),
     people: createPeopleService(tx),
     vocabulary: createVocabularyService(tx),
+    values: createValuesService(tx),
     proposals,
     review,
     path: reviewPath,
@@ -1227,12 +1229,17 @@ export function createRouter({
           ...(input.limit === undefined ? {} : { limit: input.limit }),
         }),
       ),
+      addValues: authorized.vocabulary.addValues.handler(({ context, input }) =>
+        retryWrite(context.tx, idempotencyKey(context), 'vocabulary.addValues', input, () =>
+          context.values.add(input),
+        ),
+      ),
     },
     inbox: {
       feed: authorized.inbox.feed.handler(({ context, input }) => context.cards.feed(input.tab)),
       names: authorized.inbox.names.handler(async ({ context }) => {
-        const { revision, names } = await context.names.read()
-        return { revision, names }
+        const { revision, names, values } = await context.names.read()
+        return { revision, names, values }
       }),
       decideNames: authorized.inbox.decideNames.handler(({ context, input }) =>
         retryWrite(context.tx, idempotencyKey(context), 'inbox.decideNames', input, () =>

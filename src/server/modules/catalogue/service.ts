@@ -88,6 +88,8 @@ type VocabularyRow = {
   /** The domain the definition source gave the term, as the live edition carries it. */
   sourceAreaId: string | null
   definitionRefs: string[]
+  /** How the data writes a value; empty for any other term. */
+  writtenAs: string[]
 }
 
 type DefinitionRow = Omit<CatalogueDefinition, 'state' | 'fileUrl'> & {
@@ -178,7 +180,8 @@ export function createCatalogueService(
     }>(
       `with vocabulary as materialized (
          select t.key, t.kind::text as kind, t.parent_key as "parentKey", t.name, t.aliases,
-                t.area_id as "areaId", d.area_id as "sourceAreaId", t.definition_refs as "definitionRefs"
+                t.area_id as "areaId", d.area_id as "sourceAreaId", t.definition_refs as "definitionRefs",
+                t.written_as as "writtenAs"
            from serving_vocabulary((select seq from live_edition)) t
            left join serving_source_domains((select seq from live_edition)) d on d.key = t.key),
        -- Accepted items that recorded another mark than the definition has now, counted in one
@@ -472,6 +475,7 @@ export function createCatalogueService(
         aliases: row.aliases,
         // Its view, in words: `booked_revenue` is "Booked revenue".
         group: view ? { key: `view:${view}`, name: viewWords(view) } : null,
+        values: [],
         family: {
           by,
           // A family an owner published from names that look alike was found by its names.
@@ -535,6 +539,16 @@ export function createCatalogueService(
       }
     }
 
+    // A dimension's values, by name (FR-136): the ones people and owners published.
+    const valuesOf = new Map<string, CatalogueTerm['values']>()
+    for (const row of data.vocabulary)
+      if (row.kind === 'dimension_value' && row.parentKey)
+        valuesOf.set(row.parentKey, [
+          ...(valuesOf.get(row.parentKey) ?? []),
+          { key: row.key, name: row.name, aliases: row.aliases, writtenAs: row.writtenAs },
+        ])
+    for (const values of valuesOf.values()) values.sort(byName)
+
     function term(row: VocabularyRow): CatalogueTerm | null {
       const listed = listedOf(row)
       if (!listed) return null
@@ -552,6 +566,7 @@ export function createCatalogueService(
             ? { key: row.parentKey, name: groupNames.get(row.parentKey)! }
             : null,
         family: null,
+        values: kind === 'dimension' ? (valuesOf.get(row.key) ?? []) : [],
         // The live edition's map, the one serving and gap topics read.
         domain: termDomain(row.areaId, row.sourceAreaId),
         definition,

@@ -4,7 +4,7 @@ line: The quick view, the review, Try it, and publishing, returning or closing.
 group: Write and review
 order: 2
 minutes: 5
-reviewed: 2026-11-25
+reviewed: 2026-11-26
 open:
   label: Open the Inbox
   href: /inbox
@@ -20,6 +20,7 @@ Select a suggestion in the Inbox to see, side by side, what agents say today and
 
 - A suggestion that clashes with live context shows what agents would hear if you publish it as it is.
 - A suggestion to archive shows what they will say after you archive.
+- A suggestion that adds a value its writer typed in Applies to says so, such as New value: Norway (Market). Publishing it publishes the value too.
 
 What changes and the sender's note are folded below. Open them when you want them.
 

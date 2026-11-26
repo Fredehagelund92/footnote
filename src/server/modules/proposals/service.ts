@@ -13,6 +13,7 @@ import { parseMentions } from '../../../domain/mentions.ts'
 import { keepMarks, type Provenance } from '../../../domain/provenance.ts'
 import { addWorkingDays } from '../../../domain/review.ts'
 import { isCalendarDate, shiftDate } from '../../../domain/validity.ts'
+import { addedValues, type NewValues } from '../../../domain/values.ts'
 import { relevantRefs } from '../../../domain/vocabulary.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -27,7 +28,7 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
    (select name from vocab_term_versions where id=proposals.vocab_version_id),'Untitled proposal') as title,
  case when subject='vocabulary' then draft - 'base' else null end as vocabulary,
  item_version_id::text as "itemVersionId",proposer_id::text as "proposerId",channel,revision,
- case when subject='item' then coalesce(draft,'{}'::jsonb) else '{}'::jsonb end as draft,
+ case when subject='item' then coalesce(draft,'{}'::jsonb) else '{}'::jsonb end as draft,new_values as "newValues",
  provenance,draft_findings as findings,claimed_by::text as "claimedBy",due_at::text as "dueAt",
  submitted_at::text as "submittedAt",created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
@@ -435,7 +436,14 @@ function proposalsService(
       source = prior.draft
     }
     const draft = await defaults({ ...source, ...input.draft }, undefined, source.scope)
-    const checks = await checkDraft(tx, draft, personId, channelOf(input, question), itemId ?? null)
+    const checks = await checkDraft(
+      tx,
+      draft,
+      personId,
+      channelOf(input, question),
+      itemId ?? null,
+      input.newValues ?? [],
+    )
     return { draft, itemId: itemId ?? null, checks }
   }
   return {
@@ -521,8 +529,8 @@ function proposalsService(
           message: 'That version of this context item does not exist, so nothing was saved.',
         })
       const [p] = await tx.query<ProposalRecord>(
-        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id)
-        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16)
+        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id,new_values)
+        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16,$17)
         returning ${fields}`,
         [
           action,
@@ -541,18 +549,25 @@ function proposalsService(
           author?.document ?? null,
           options.agentId ?? null,
           written?.id ?? null,
+          JSON.stringify(input.newValues ?? []),
         ],
       )
       await event(p!, 'created', {})
       return p!
     },
-    /** `reason` left out keeps the stored one; null or empty clears it. */
+    /**
+     * `reason` left out keeps the stored one; null or empty clears it. `newValues` left out keeps
+     * the values its writer added in "Applies to".
+     */
     async save(
       id: string,
       revision: number,
       input: Draft,
       reasonInput?: string | null,
-      { byDomainOwners = false }: { byDomainOwners?: boolean } = {},
+      {
+        byDomainOwners = false,
+        newValues: newValuesInput,
+      }: { byDomainOwners?: boolean; newValues?: NewValues | undefined } = {},
     ) {
       const p = await current(id, revision)
       await writerOr(p, byDomainOwners)
@@ -563,11 +578,12 @@ function proposalsService(
       const draft = await defaults(input, p.areaId, p.draft.scope)
       rejectSensitive(draft)
       const reason = reasonInput === undefined ? p.reason : changeReason(reasonInput, p.action)
-      const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId)
+      const newValues = newValuesInput ?? p.newValues
+      const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId, newValues)
       // A field the person changed is theirs from now on: it loses the agent's mark (FR-121).
       const provenance = p.provenance ? keepMarks(p.provenance, p.draft, draft) : null
       await tx.query(
-        'update proposals set draft=$2,area_id=$3,draft_saved_at=now(),draft_findings=$4,provenance=$5,reason=$6 where id=$1',
+        'update proposals set draft=$2,area_id=$3,draft_saved_at=now(),draft_findings=$4,provenance=$5,reason=$6,new_values=$7 where id=$1',
         [
           id,
           JSON.stringify(draft),
@@ -575,6 +591,7 @@ function proposalsService(
           JSON.stringify(checks.findings),
           provenance ? JSON.stringify(provenance) : null,
           reason,
+          JSON.stringify(newValues),
         ],
       )
       const saved = await get(id)
@@ -596,7 +613,7 @@ function proposalsService(
       await tx.query(
         "select pg_advisory_xact_lock_shared(hashtextextended('context_layer.edition',0))",
       )
-      const checks = await checkDraft(tx, p.draft, p.proposerId, p.channel, p.itemId)
+      const checks = await checkDraft(tx, p.draft, p.proposerId, p.channel, p.itemId, p.newValues)
       if (!checks.version || checks.findings.some((f) => f.severity === 'error'))
         throw new ORPCError('UNPROCESSABLE_CONTENT', {
           message: 'Fix the problems shown before you send it for review.',
@@ -654,6 +671,18 @@ function proposalsService(
         }
         previous = written ?? base?.id ?? previous ?? rescue?.versionId ?? null
       }
+      // A value the writer added in "Applies to" takes its key now, so the version can name it: it
+      // goes live only when an owner publishes the item (values without figures).
+      const added = addedValues(
+        { ...(p.draft.scope ? { scope: p.draft.scope } : {}), newValues: p.newValues },
+        new Set(),
+      ).map((value) => value.key)
+      if (added.length)
+        await tx.query(
+          `insert into vocab_terms(key,kind) select k,'dimension_value' from unnest($1::text[]) k
+           on conflict (key) do nothing`,
+          [added],
+        )
       // An owner's or an admin's words in a suggestion that waits for them (Edit then publish)
       // supersede the version its writer sent, and name who edited it.
       const edit = p.state === 'submitted' || p.state === 'in_review'

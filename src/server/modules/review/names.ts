@@ -4,6 +4,7 @@ import type {
   NamesDecision,
   NamesRead,
   SourceNameRead,
+  WaitingValue,
 } from '../../../contract/inbox.ts'
 import { contentDigest } from '../../../domain/canonical.ts'
 import {
@@ -21,9 +22,10 @@ import { termName, termWord } from '../../../domain/terms.ts'
 import type { Queryable } from '../../db/database.ts'
 import { recordAudit } from '../admin/index.ts'
 import { connectorType } from '../connectors/index.ts'
-import { lockReleases } from '../editions/index.ts'
+import { lockReleases, publishEdition } from '../editions/index.ts'
 import { wordHolders } from '../terms/index.ts'
-import { acceptTermVersions } from './term-versions.ts'
+import { recordTermVersions } from './term-versions.ts'
+import { createValuesService } from './values.ts'
 import { sourceVocabulary } from './vocabulary.ts'
 
 /*
@@ -40,6 +42,9 @@ import { sourceVocabulary } from './vocabulary.ts'
   decision by an owner of its domain or an administrator, which the database checks, and an edition,
   which on a new install is the first. All the names of one step are one edition. The read that made
   a name is its only author, so its version names no proposer.
+
+  The values people added in Definitions wait here too (values without figures): each is a
+  suggestion of its own, published or left out with the names, in the same edition.
 */
 
 export type NamesView = NamesRead & {
@@ -50,24 +55,28 @@ export type NamesView = NamesRead & {
 const REASON = 'Accepted the names a read made.'
 
 /** The names as the person read them: any change to what they would decide changes this. */
-const revisionOf = (names: readonly SourceNameRead[]) =>
-  contentDigest(
-    names.map(({ key, name, aliases, definitionRefs, linked, areaId, state, flags, family }) => ({
-      key,
-      name,
-      aliases,
-      definitionRefs,
-      linked,
-      areaId,
-      state,
-      flags: flags.map((flag) => flag.code),
-      family,
-    })),
-  )
+const revisionOf = (names: readonly SourceNameRead[], values: readonly WaitingValue[]) =>
+  contentDigest({
+    names: names.map(
+      ({ key, name, aliases, definitionRefs, linked, areaId, state, flags, family }) => ({
+        key,
+        name,
+        aliases,
+        definitionRefs,
+        linked,
+        areaId,
+        state,
+        flags: flags.map((flag) => flag.code),
+        family,
+      }),
+    ),
+    values: values.map(({ id, name, aliases, writtenAs }) => ({ id, name, aliases, writtenAs })),
+  })
 
 export type NamesService = ReturnType<typeof createNamesService>
 
 export function createNamesService(tx: Queryable) {
+  const values = createValuesService(tx)
   /** The domains the person accepts names of, and whether they accept those of no domain too. */
   async function mine() {
     const rows = await tx.query<{ id: string; owned: boolean }>(
@@ -164,11 +173,19 @@ export function createNamesService(tx: Queryable) {
   }
 
   async function read(): Promise<NamesView> {
-    const { names, at } = await waiting()
-    return { revision: await revisionOf(names), names, at }
+    const [{ names, at }, waitingValues] = await Promise.all([waiting(), values.waiting()])
+    return {
+      revision: await revisionOf(names, waitingValues),
+      names,
+      values: waitingValues,
+      at: [at, ...waitingValues.map((value) => value.at)].reduce<string | null>(
+        (newest, when) => (when && (!newest || when > newest) ? when : newest),
+        null,
+      ),
+    }
   }
 
-  /** Stores accepted names as terms, versions, accepted proposals and decisions, and their edition. */
+  /** Stores accepted names as terms, versions, accepted proposals and decisions. */
   async function accept(
     picked: readonly (SourceName & { chosen: string })[],
     owned: ReadonlySet<string>,
@@ -199,20 +216,15 @@ export function createNamesService(tx: Queryable) {
        values(cl_person(),'apply',$1,$2) returning id::text`,
       [tools.join(', '), JSON.stringify({ subject: 'vocabulary', terms: picked.length })],
     )
-    const areas = new Set(picked.map((name) => name.areaId))
-    return acceptTermVersions(tx, terms, {
-      channel: 'import',
-      reason: REASON,
-      batch: batch!.id,
-      areaId: areas.size === 1 ? [...areas][0]! : null,
-    })
+    return recordTermVersions(tx, terms, { channel: 'import', reason: REASON, batch: batch!.id })
   }
 
   async function decide(input: DecideNames): Promise<NamesDecision> {
     await lockReleases(tx)
     const { names, tool, holders, who } = await namesNow()
     const shown = names.map((name) => asRead(name, tool))
-    if ((await revisionOf(shown)) !== input.revision)
+    const waitingValues = await values.waiting()
+    if ((await revisionOf(shown, waitingValues)) !== input.revision)
       throw new ORPCError('CONFLICT', {
         message:
           'The names changed after you opened them. Look at the latest list, then try again.',
@@ -302,7 +314,24 @@ export function createNamesService(tx: Queryable) {
         message: findings[0]!.message,
         data: { findings },
       })
-    const edition = picked.length ? await accept(picked, who.owned, tool) : null
+    // The names and the values published here are one edition, announced to their one domain.
+    const recorded = picked.length ? await accept(picked, who.owned, tool) : null
+    const decidedValues = await values.decide(input.values)
+    const served = [...(recorded?.versions ?? []), ...decidedValues.versions]
+    const valueArea = new Map(waitingValues.map((value) => [value.id, value.areaId]))
+    const areas = new Set([
+      ...picked.map((name) => name.areaId),
+      ...input.values.accept.map((id) => valueArea.get(id) ?? null),
+    ])
+    const edition = served.length
+      ? await publishEdition(
+          tx,
+          { reason: 'vocabulary_changed', vocabulary: served },
+          areas.size === 1 ? [...areas][0]! : null,
+        )
+      : null
+    if (recorded && edition) await recorded.decided(edition.label)
+    await decidedValues.decided(edition?.label ?? null)
     await tx.query('delete from names_left_out where definition_ref=any($1::text[])', [
       picked.flatMap((name) => name.definitionRefs),
     ])
@@ -324,9 +353,10 @@ export function createNamesService(tx: Queryable) {
       edition: edition?.label ?? null,
       accepted: picked.length,
       leftOut: left.length,
-      waiting: { revision: after.revision, names: after.names },
+      values: { accepted: decidedValues.versions.length, leftOut: input.values.leaveOut.length },
+      waiting: { revision: after.revision, names: after.names, values: after.values },
     }
   }
 
-  return { read, waiting, decide }
+  return { read, waiting, waitingValues: values.waiting, decide }
 }

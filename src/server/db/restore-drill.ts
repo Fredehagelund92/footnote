@@ -231,6 +231,7 @@ async function checkVersions(client: pg.Client): Promise<DrillReport['versions']
       aliases: string[]
       areaId: string | null
       definitionRefs: string[]
+      writtenAs: string[]
       digest: string
       versionNo: number
     }>(
@@ -238,7 +239,7 @@ async function checkVersions(client: pg.Client): Promise<DrillReport['versions']
          v.name, v.aliases, v.area_id as "areaId",
          coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C")
                      from vocab_term_refs r where r.version_id = v.id), '{}') as "definitionRefs",
-         encode(v.content_digest, 'hex') as digest, v.version_no as "versionNo"
+         v.written_as as "writtenAs", encode(v.content_digest, 'hex') as digest, v.version_no as "versionNo"
        from vocab_term_service s join vocab_term_versions v on v.id = s.version_id
        join vocab_terms t on t.key = s.term_key
        where exists (select 1 from editions e where e.sealed_at is not null and s.editions @> e.seq)`,

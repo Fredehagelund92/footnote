@@ -8,6 +8,7 @@ import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
 import { familyDefinitions, variantDefinitions } from './data/variants'
 import { dbtFolderDefinitions } from './data/dbt-folder'
+import { dimensionTermOf, valuesOf, valuesPublished } from './scope'
 import { ApiError } from '@/api/errors'
 import { today } from '@/lib/today'
 import type { DomainId } from '@/model/items'
@@ -79,7 +80,6 @@ const seed: Definition[] = [
     ...fromModel('Segments', d.name),
     sourceNames: [],
     group: 'Segments',
-    values: d.values,
     updated: '22 Oct 2026',
   })),
   ...TERMS,
@@ -149,15 +149,29 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
   /** What `list` gave last while a tool was off, kept so the same list is given again. */
   let shown: { all: Definition[]; off: string; list: Definition[] } | null = null
 
+  /** A dimension with the values the demo's vocabulary has for it now, as the catalogue sends. */
+  const withValues = (d: Definition): Definition => {
+    const key = d.type === 'dimension' && d.synced ? dimensionTermOf(d.name)?.key : undefined
+    return key ? { ...d, values: valuesOf(key) } : d
+  }
+  // The same valued list while nothing changed it, so an Undo that puts a list back gives that list.
+  const valued = new WeakMap<Definition[], { at: number; list: Definition[] }>()
   return {
-    /** What is listed: the list itself while every tool it reads is on, so it stays the same. */
+    /**
+     * What is listed: the list itself while every tool it reads is on, so it stays the same, each
+     * dimension with the values the demo's vocabulary has for it now.
+     */
     list: () => {
       const isOff = (d: Definition) => d.synced && d.connector !== undefined && !on(d.connector)
       const off = [...new Set(all.filter(isOff).map((d) => d.connector))].join()
-      if (!off) return all
-      if (shown?.all !== all || shown.off !== off)
+      if (off && (shown?.all !== all || shown.off !== off))
         shown = { all, off, list: all.filter((d) => !isOff(d)) }
-      return shown.list
+      const base = off ? shown!.list : all
+      const held = valued.get(base)
+      if (held?.at === valuesPublished()) return held.list
+      const list = base.map(withValues)
+      valued.set(base, { at: valuesPublished(), list })
+      return list
     },
 
     /**
