@@ -1144,6 +1144,12 @@ export async function seedDemoWeek(
     await after.query('commit')
     // What agents asked over the weeks Observability counts, and what they reported (P12).
     topics = await seedObservability(after)
+    // The drafts were started this morning too, before anything was sent.
+    for (const [index, id] of Object.values(drafts).entries())
+      await after.query(`update proposals set created_at=$2::timestamptz where id=$1`, [
+        id,
+        `${TODAY}T08:${String(30 - index).padStart(2, '0')}:00Z`,
+      ])
     // Sent this morning, one minute apart, newest first in the mock's order.
     for (const [index, card] of queue.entries())
       await after.query(

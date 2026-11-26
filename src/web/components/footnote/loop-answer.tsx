@@ -1256,6 +1256,185 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
   )
 }
 
+/** A row of the block of what is not published yet. */
+type DraftRow = NonNullable<LoopTurn['drafts']>['rows'][number]
+
+/** A day as a row of the block says it: "22 Nov". */
+const shortDay = (day: string) =>
+  new Date(`${day}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+
+/** What the rows are, said once: drafts, suggestions waiting for review, or both. */
+function draftsHead(d: NonNullable<LoopTurn['drafts']>) {
+  const states = new Set(d.rows.map((r) => r.state))
+  const words = d.words.map((w) => `“${w}”`).join(' or ')
+  const one = d.found === 1
+  const what =
+    d.more === 0 && states.size === 1
+      ? states.has('draft')
+        ? one
+          ? 'a draft mentions'
+          : `${d.found.toLocaleString('en-GB')} drafts mention`
+        : one
+          ? 'a suggestion waiting for review mentions'
+          : `${d.found.toLocaleString('en-GB')} suggestions waiting for review mention`
+      : `${d.found.toLocaleString('en-GB')} context items mention`
+  return `Not published yet: ${what} ${words}`
+}
+
+/**
+ * What is not published yet and matches the question's words (FR-718.2): the person's own drafts
+ * and the suggestions waiting for review they may open, in a block of its own under the answer,
+ * never mixed into it. Each row's title opens it; under the one sentence the model may write about
+ * them, conditional, a button opens the first of each kind the reader may act on: their draft,
+ * or a suggestion they review. Anyone else is told who reviews it. It stands in for the gap card.
+ */
+function NotPublishedYet({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
+  const P = useParts()
+  const me = P.useMe()
+  const d = loop.drafts
+  if (!d?.rows.length) return null
+  const allDrafts = d.rows.every((r) => r.state === 'draft') && d.more === 0
+  const offers = (['open_draft', 'review_suggestion'] as const).flatMap((id) => {
+    const row = d.rows.find((r) => r.action.id === id)
+    return row ? [{ id, draft: row.action.draft, title: row.title }] : []
+  })
+  const may = offers.filter((o) => ACTIONS[o.id].may(me, o))
+  const not = offers.filter((o) => !may.includes(o))
+  return (
+    <section
+      data-drafts
+      aria-label="Not published yet"
+      className="grid max-w-reading grid-cols-(--cols-lead-6) gap-x-1 gap-y-2.5 rounded-frame border bg-muted/40 py-3.5 pr-4 pl-3"
+    >
+      <P.CircleDashedIcon aria-hidden className="mt-1 size-4 text-muted-foreground" />
+      <div className="flex min-w-0 flex-col gap-1">
+        <p className="text-sm font-medium break-words">{draftsHead(d)}</p>
+        <p className="text-sm text-pretty text-muted-foreground">
+          {allDrafts
+            ? 'Not final: a draft can still change or be deleted, and agents don’t get it.'
+            : d.rows.length === 1 && d.more === 0
+              ? 'Not final: no owner has published it yet, so it can still change or be turned down, and agents don’t get it.'
+              : 'Not final: no owner has published these yet, so they can still change or be turned down, and agents don’t get them.'}
+        </p>
+      </div>
+      <ul
+        aria-label="Context items not published yet"
+        className="col-start-2 flex min-w-0 flex-col gap-2"
+      >
+        {d.rows.map((row) => (
+          <DraftRowLine key={row.id} row={row} nouns={nouns} />
+        ))}
+        {d.more > 0 && (
+          <li className="text-sm text-muted-foreground">
+            and {d.more.toLocaleString('en-GB')} more in{' '}
+            <a
+              className="underline underline-offset-2 hover:text-foreground"
+              href={P.href('/context')}
+            >
+              Context
+            </a>
+          </li>
+        )}
+      </ul>
+      {d.sentence && (
+        <p data-draft-sentence className="col-start-2 max-w-reading text-sm text-pretty">
+          <span className="text-muted-foreground">
+            {d.rows.length === 1
+              ? 'If it is published as written: '
+              : 'If they are published as written: '}
+          </span>
+          <Runs runs={withoutLead(d.sentence)} nouns={nouns} items={new Map()} />
+        </p>
+      )}
+      {(may.length > 0 || not.length > 0) && (
+        <div className="col-start-2 flex flex-col gap-2 pt-0.5">
+          {may.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {may.map((o) => {
+                const to = ACTIONS[o.id].target(me, o)
+                return 'path' in to ? (
+                  <P.Button
+                    key={o.id}
+                    variant="outline"
+                    nativeButton={false}
+                    aria-label={`${ACTIONS[o.id].label(me)}: ${o.title}`}
+                    render={<a href={P.href(to.path, to.search ?? {})} />}
+                  >
+                    {o.id === 'open_draft' ? (
+                      <P.PencilIcon data-icon="inline-start" />
+                    ) : (
+                      <P.InboxIcon data-icon="inline-start" />
+                    )}
+                    {ACTIONS[o.id].label(me)}
+                  </P.Button>
+                ) : null
+              })}
+            </div>
+          )}
+          {not.map((o) => (
+            <p key={o.id} className="flex items-start gap-1.5 text-sm text-muted-foreground">
+              <P.UsersIcon aria-hidden className="mt-0.5 size-4 shrink-0" />
+              <span>
+                <WhoDoes
+                  label={ACTIONS[o.id].label(me)}
+                  by={ACTIONS[o.id].doneBy(o)}
+                  admins={[]}
+                  nouns={nouns}
+                />
+              </span>
+            </p>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+/** The sentence after its lead, which the block says itself: "If they are published as written". */
+function withoutLead(runs: readonly LoopRun[]): LoopRun[] {
+  const [first, ...rest] = runs
+  if (first?.t !== 'text') return [...runs]
+  const text = first.text.replace(
+    /^[\s*_~]*if\s+(?:it\s+is|it's|they\s+are|they're|this\s+is|these\s+are)\s+published\s+as\s+written[\s*_~]*[,:]?\s*/i,
+    '',
+  )
+  return [{ ...first, text }, ...rest]
+}
+
+/** One row of the block: its title as a link to it, then its state, domain, who wrote it and when. */
+function DraftRowLine({ row, nouns }: { row: DraftRow; nouns: Nouns }) {
+  const P = useParts()
+  const Icon = row.state === 'draft' ? P.CircleDashedIcon : P.ClockIcon
+  const domain = row.domain ? nouns.get(row.domain)?.name : undefined
+  return (
+    <li className="flex min-w-0 flex-col gap-0.5">
+      <a
+        href={P.href(`/context/${row.id}`)}
+        className="rounded-sm text-sm font-medium break-words underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        {row.title}
+      </a>
+      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-px text-foreground">
+          <Icon aria-hidden className="size-3" />
+          {row.state === 'draft' ? 'Draft' : 'Waiting'}
+        </span>
+        {domain && <span>{domain}</span>}
+        {row.by && (
+          <>
+            <span aria-hidden>·</span>
+            <span>{row.by}</span>
+          </>
+        )}
+        <span aria-hidden>·</span>
+        <span>
+          {row.state === 'draft' ? 'started' : 'sent'} {shortDay(row.on)}
+        </span>
+      </span>
+    </li>
+  )
+}
+
 /**
  * The editor's search keys for an item about what the question was about: its names, and the kind
  * it most likely is: a rule when the question was about any date (what a metric means), else an
@@ -1933,6 +2112,8 @@ const actionIcon = (P: LoopParts): Record<ActionId, LucideIcon> => ({
   open_domain: P.LayersIcon,
   about_business: P.PencilIcon,
   add_domain: P.LayersIcon,
+  open_draft: P.PencilIcon,
+  review_suggestion: P.InboxIcon,
 })
 
 /**
@@ -2285,7 +2466,8 @@ function Finished({
   const shownUsed = loop.overview ? [] : used.filter((i) => !listed.has(i.id))
   const owns = useOwns(loop)
   // The gap card names who owns what is not written: the owners line would say it twice.
-  const gap = missingOf(loop, maps.nouns).length > 0 || !!loop.unknown?.length
+  // The block of what is not published yet stands in for the gap card.
+  const gap = !loop.drafts && (missingOf(loop, maps.nouns).length > 0 || !!loop.unknown?.length)
   const showOwners =
     !gap && (loop.state === 'missing' || loop.state === 'partial' || loop.state === 'stale')
   const [lit, light] = React.useState<number | null>(null)
@@ -2402,6 +2584,7 @@ function Finished({
                     {...(answer.dates ? { dates: answer.dates } : {})}
                   />
                 )}
+                <NotPublishedYet loop={loop} nouns={maps.nouns} />
                 {loop.state === 'missing' && <Closest loop={loop} maps={maps} />}
                 {showOwners && <Owners loop={loop} nouns={maps.nouns} />}
                 <Definitions loop={loop} nouns={maps.nouns} />

@@ -443,6 +443,44 @@ export const loopTurnSchema = z.object({
       }),
     ),
   ),
+  /**
+   * What is not published yet that the person may open and that matches every word of a search
+   * that found nothing published (FR-718.2): their own drafts and the suggestions waiting for
+   * review they sent or decide for, in a block of its own under the answer, never a source. Each
+   * row with what opens it (src/domain/actions.ts); the one sentence the model may write about
+   * them, if they are published as written, drawn by code and kept out of the answer's words; and
+   * the words searched. Left out when there are none.
+   */
+  drafts: z.optional(
+    z.object({
+      words: z.array(z.string()),
+      found: z.number(),
+      more: z.number(),
+      rows: z.array(
+        z.object({
+          id: z.string(),
+          state: z.enum(['draft', 'waiting']),
+          /** A change to a published item, not a new one. */
+          change: z.boolean(),
+          title: z.string(),
+          /** Its domain, as a noun's id when a read named it. */
+          domain: z.nullable(z.string()),
+          by: z.nullable(z.string()),
+          on: z.string(),
+          action: z.object({
+            id: z.enum(['open_draft', 'review_suggestion']),
+            draft: z.object({
+              id: z.string(),
+              domain: z.nullable(z.string()),
+              mine: z.boolean(),
+              owners: z.array(z.string()),
+            }),
+          }),
+        }),
+      ),
+      sentence: z.nullable(z.array(loopRunSchema)),
+    }),
+  ),
   choices: z.array(z.string()),
   reads: z.array(loopReadSchema),
   /**

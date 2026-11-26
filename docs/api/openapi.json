@@ -97996,7 +97996,9 @@
                                               "decide_conflict",
                                               "open_domain",
                                               "about_business",
-                                              "add_domain"
+                                              "add_domain",
+                                              "open_draft",
+                                              "review_suggestion"
                                             ],
                                             "type": "string"
                                           },
@@ -98034,6 +98036,278 @@
                                           "id"
                                         ]
                                       }
+                                    },
+                                    "drafts": {
+                                      "type": "object",
+                                      "properties": {
+                                        "words": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "found": {
+                                          "type": "number"
+                                        },
+                                        "more": {
+                                          "type": "number"
+                                        },
+                                        "rows": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "id": {
+                                                "type": "string"
+                                              },
+                                              "state": {
+                                                "enum": [
+                                                  "draft",
+                                                  "waiting"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "change": {
+                                                "type": "boolean"
+                                              },
+                                              "title": {
+                                                "type": "string"
+                                              },
+                                              "domain": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "by": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "string"
+                                                  },
+                                                  {
+                                                    "type": "null"
+                                                  }
+                                                ]
+                                              },
+                                              "on": {
+                                                "type": "string"
+                                              },
+                                              "action": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "enum": [
+                                                      "open_draft",
+                                                      "review_suggestion"
+                                                    ],
+                                                    "type": "string"
+                                                  },
+                                                  "draft": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "id": {
+                                                        "type": "string"
+                                                      },
+                                                      "domain": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "null"
+                                                          }
+                                                        ]
+                                                      },
+                                                      "mine": {
+                                                        "type": "boolean"
+                                                      },
+                                                      "owners": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "type": "string"
+                                                        }
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "id",
+                                                      "domain",
+                                                      "mine",
+                                                      "owners"
+                                                    ]
+                                                  }
+                                                },
+                                                "required": [
+                                                  "id",
+                                                  "draft"
+                                                ]
+                                              }
+                                            },
+                                            "required": [
+                                              "id",
+                                              "state",
+                                              "change",
+                                              "title",
+                                              "domain",
+                                              "by",
+                                              "on",
+                                              "action"
+                                            ]
+                                          }
+                                        },
+                                        "sentence": {
+                                          "anyOf": [
+                                            {
+                                              "type": "array",
+                                              "items": {
+                                                "anyOf": [
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "t": {
+                                                        "const": "text"
+                                                      },
+                                                      "text": {
+                                                        "type": "string"
+                                                      },
+                                                      "marks": {
+                                                        "type": "array",
+                                                        "items": {
+                                                          "enum": [
+                                                            "bold",
+                                                            "italic",
+                                                            "strike",
+                                                            "code"
+                                                          ],
+                                                          "type": "string"
+                                                        }
+                                                      },
+                                                      "link": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "url": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "url"
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "object",
+                                                            "properties": {
+                                                              "slug": {
+                                                                "type": "string"
+                                                              },
+                                                              "id": {
+                                                                "type": "string"
+                                                              }
+                                                            },
+                                                            "required": [
+                                                              "slug",
+                                                              "id"
+                                                            ]
+                                                          }
+                                                        ]
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "t",
+                                                      "text"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "t": {
+                                                        "const": "noun"
+                                                      },
+                                                      "id": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "t",
+                                                      "id"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "t": {
+                                                        "const": "cite"
+                                                      },
+                                                      "n": {
+                                                        "type": "number"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "t",
+                                                      "n"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "t": {
+                                                        "const": "count"
+                                                      },
+                                                      "value": {
+                                                        "type": "string"
+                                                      },
+                                                      "of": {
+                                                        "anyOf": [
+                                                          {
+                                                            "type": "string"
+                                                          },
+                                                          {
+                                                            "type": "null"
+                                                          }
+                                                        ]
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "t",
+                                                      "value",
+                                                      "of"
+                                                    ]
+                                                  },
+                                                  {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "t": {
+                                                        "const": "date"
+                                                      },
+                                                      "day": {
+                                                        "type": "string"
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "t",
+                                                      "day"
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "words",
+                                        "found",
+                                        "more",
+                                        "rows",
+                                        "sentence"
+                                      ]
                                     },
                                     "choices": {
                                       "type": "array",
@@ -99855,7 +100129,9 @@
                                                   "decide_conflict",
                                                   "open_domain",
                                                   "about_business",
-                                                  "add_domain"
+                                                  "add_domain",
+                                                  "open_draft",
+                                                  "review_suggestion"
                                                 ],
                                                 "type": "string"
                                               },
@@ -99893,6 +100169,278 @@
                                               "id"
                                             ]
                                           }
+                                        },
+                                        "drafts": {
+                                          "type": "object",
+                                          "properties": {
+                                            "words": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            },
+                                            "found": {
+                                              "type": "number"
+                                            },
+                                            "more": {
+                                              "type": "number"
+                                            },
+                                            "rows": {
+                                              "type": "array",
+                                              "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                  "id": {
+                                                    "type": "string"
+                                                  },
+                                                  "state": {
+                                                    "enum": [
+                                                      "draft",
+                                                      "waiting"
+                                                    ],
+                                                    "type": "string"
+                                                  },
+                                                  "change": {
+                                                    "type": "boolean"
+                                                  },
+                                                  "title": {
+                                                    "type": "string"
+                                                  },
+                                                  "domain": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "by": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "string"
+                                                      },
+                                                      {
+                                                        "type": "null"
+                                                      }
+                                                    ]
+                                                  },
+                                                  "on": {
+                                                    "type": "string"
+                                                  },
+                                                  "action": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                      "id": {
+                                                        "enum": [
+                                                          "open_draft",
+                                                          "review_suggestion"
+                                                        ],
+                                                        "type": "string"
+                                                      },
+                                                      "draft": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "id": {
+                                                            "type": "string"
+                                                          },
+                                                          "domain": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "string"
+                                                              },
+                                                              {
+                                                                "type": "null"
+                                                              }
+                                                            ]
+                                                          },
+                                                          "mine": {
+                                                            "type": "boolean"
+                                                          },
+                                                          "owners": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "type": "string"
+                                                            }
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "id",
+                                                          "domain",
+                                                          "mine",
+                                                          "owners"
+                                                        ]
+                                                      }
+                                                    },
+                                                    "required": [
+                                                      "id",
+                                                      "draft"
+                                                    ]
+                                                  }
+                                                },
+                                                "required": [
+                                                  "id",
+                                                  "state",
+                                                  "change",
+                                                  "title",
+                                                  "domain",
+                                                  "by",
+                                                  "on",
+                                                  "action"
+                                                ]
+                                              }
+                                            },
+                                            "sentence": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "array",
+                                                  "items": {
+                                                    "anyOf": [
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "text"
+                                                          },
+                                                          "text": {
+                                                            "type": "string"
+                                                          },
+                                                          "marks": {
+                                                            "type": "array",
+                                                            "items": {
+                                                              "enum": [
+                                                                "bold",
+                                                                "italic",
+                                                                "strike",
+                                                                "code"
+                                                              ],
+                                                              "type": "string"
+                                                            }
+                                                          },
+                                                          "link": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                  "url": {
+                                                                    "type": "string"
+                                                                  }
+                                                                },
+                                                                "required": [
+                                                                  "url"
+                                                                ]
+                                                              },
+                                                              {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                  "slug": {
+                                                                    "type": "string"
+                                                                  },
+                                                                  "id": {
+                                                                    "type": "string"
+                                                                  }
+                                                                },
+                                                                "required": [
+                                                                  "slug",
+                                                                  "id"
+                                                                ]
+                                                              }
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "text"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "noun"
+                                                          },
+                                                          "id": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "id"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "cite"
+                                                          },
+                                                          "n": {
+                                                            "type": "number"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "n"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "count"
+                                                          },
+                                                          "value": {
+                                                            "type": "string"
+                                                          },
+                                                          "of": {
+                                                            "anyOf": [
+                                                              {
+                                                                "type": "string"
+                                                              },
+                                                              {
+                                                                "type": "null"
+                                                              }
+                                                            ]
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "value",
+                                                          "of"
+                                                        ]
+                                                      },
+                                                      {
+                                                        "type": "object",
+                                                        "properties": {
+                                                          "t": {
+                                                            "const": "date"
+                                                          },
+                                                          "day": {
+                                                            "type": "string"
+                                                          }
+                                                        },
+                                                        "required": [
+                                                          "t",
+                                                          "day"
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "words",
+                                            "found",
+                                            "more",
+                                            "rows",
+                                            "sentence"
+                                          ]
                                         },
                                         "choices": {
                                           "type": "array",

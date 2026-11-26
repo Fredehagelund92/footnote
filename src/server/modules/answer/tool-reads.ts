@@ -1,6 +1,7 @@
 import type { Catalogue } from '../../../contract/index.ts'
 import type { ConflictList } from '../../../contract/conflicts.ts'
 import type { ItemPage } from '../../../contract/context.ts'
+import type { ProposalListResult, ProposalRecord } from '../../../contract/proposals.ts'
 import type { Feed } from '../../../contract/inbox.ts'
 import type { TermList, TermVersion } from '../../../contract/terms.ts'
 import type { Calendar } from '../../../domain/dates.ts'
@@ -19,6 +20,21 @@ import { askedFor, liveBundle, type BundleCache } from './service.ts'
   is made at most once a turn, and none of them writes: Ask's tools change nothing (FR-718.4).
 */
 
+/**
+ * A context item not published yet that the person may open: their own draft, or a suggestion
+ * waiting for review that they sent or decide for. Row security on proposals decides which.
+ */
+export type PendingItem = Pick<
+  ProposalRecord,
+  'id' | 'number' | 'state' | 'action' | 'areaId' | 'itemId' | 'title' | 'proposerId' | 'draft'
+> & { submittedAt: string | null; createdAt: string }
+
+/** The states of what is not published yet: a draft, and a suggestion waiting for review. */
+const PENDING_STATES = ['draft', 'submitted', 'in_review'] as const
+
+/** The most of them a turn reads: every one a person may open on any install we know of. */
+const PENDING_READ = 500
+
 /** A domain and its owners, by id. */
 export type ToolArea = { id: string; name: string; ownerIds: readonly string[] }
 
@@ -32,6 +48,11 @@ export type ToolReads = {
   readable: () => Promise<readonly { id: string; kind: string; status: string }[]>
   /** The Context list's items as the records keep them, with when each was published. */
   records: () => Promise<readonly RecordsItem[]>
+  /**
+   * The drafts and the suggestions waiting for review the person may open, of context items,
+   * newest first. Only Ask reads them, never an agent (FR-718.5).
+   */
+  pending: () => Promise<readonly PendingItem[]>
   areas: () => Promise<readonly ToolArea[]>
   /** The workspace's people, as Context names owners. */
   people: () => Promise<readonly { id: string; name: string }[]>
@@ -151,6 +172,13 @@ export type ToolServices = {
   context: { page(id: string): Promise<ItemPage | null> }
   conflicts: { list(input: { whose: 'all' }): Promise<ConflictList> }
   cards: { feed(tab: 'needs'): Promise<Feed> }
+  proposals: {
+    list(input: {
+      state: (typeof PENDING_STATES)[number]
+      limit: number
+      offset: number
+    }): Promise<Pick<ProposalListResult, 'rows' | 'total'>>
+  }
   people: () => Promise<readonly { id: string; name: string }[]>
 }
 
@@ -183,6 +211,16 @@ export function toolReadsIn(
     records: keep('records', async () => {
       const listed = await index()
       return turn(() => itemsOf(tx, listed, moment))
+    }),
+    pending: serial('pending', async () => {
+      const rows: PendingItem[] = []
+      for (const state of PENDING_STATES)
+        for (let offset = 0; rows.length < PENDING_READ; offset += 100) {
+          const page = await services.proposals.list({ state, limit: 100, offset })
+          rows.push(...page.rows.filter((p) => p.subject === 'item'))
+          if (offset + page.rows.length >= page.total || !page.rows.length) break
+        }
+      return rows.slice(0, PENDING_READ)
     }),
     areas: serial('areas', () => services.areas.list()),
     people: serial('people', () => services.people()),

@@ -77,6 +77,10 @@ const places = [
   '/ask?example=loop-used-trust',
   // An answer from the help in Markdown: marks, a link, a numbered list and a table.
   '/ask?example=loop-help-markdown',
+  // What is not published yet, in its own block under the answer: a draft, and a suggestion that
+  // waits for review.
+  '/ask?example=loop-drafts',
+  '/ask?example=loop-drafts-waiting',
   '/context/itm_gift_store_credit',
   // Conflicts: the Context list filtered to them, a pair's page, the dock, a pair across two
   // domains, a near copy.
