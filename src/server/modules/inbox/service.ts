@@ -825,7 +825,7 @@ export function createInboxFeedService(
         ready: names.filter((name) => name.state === 'ready').length,
         flagged: names.filter((name) => name.state === 'flagged').length,
         families: looking.filter((name) => name.family).length,
-        tools: [...new Set(names.map((name) => name.tool))].sort(),
+        tool: names[0]!.tool,
       },
     ]
   }

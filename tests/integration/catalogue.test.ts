@@ -210,15 +210,21 @@ describe('the catalogue on PostgreSQL', () => {
     expect((await catalogue()).coverage.withoutDomain).toBe(2)
   })
 
-  it('lists no disconnected source, though what it read still names it', async () => {
+  it('lists no definition of an integration that is off, nor of one disconnected', async () => {
+    // Off, its definitions are not listed (CON-120); on again, they are, as they were.
+    await client.query("update connectors set enabled = false where id = 'cube'")
+    expect((await catalogue()).sources).toEqual([])
+    expect(await term('metric:returns')).toBeUndefined()
+    await client.query("update connectors set enabled = true where id = 'cube'")
+    expect(await term('metric:returns')).toMatchObject({
+      definition: { ref: 'cube:orders.returns', sourceId: 'cube', tool: 'Cube' },
+    })
     await client.query(
       `update connectors set origin = 'workspace', enabled = false, secret_ref = null,
          removed_at = now(), removed_by = (select id from people order by id limit 1)
        where id = 'cube'`,
     )
     expect((await catalogue()).sources).toEqual([])
-    expect(await term('metric:returns')).toMatchObject({
-      definition: { ref: 'cube:orders.returns', sourceId: 'cube', tool: 'Cube' },
-    })
+    expect(await term('metric:returns')).toBeUndefined()
   })
 })

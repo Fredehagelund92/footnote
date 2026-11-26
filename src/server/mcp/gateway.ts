@@ -39,7 +39,7 @@ import type { ServingReads } from './reads.ts'
 import { resolverStatusOf } from '../../domain/answer-state.ts'
 import type { PublishPermission } from '../../domain/mcp-text.ts'
 import {
-  dataToolsOf,
+  dataToolOf,
   isToolName,
   personOnly,
   serverInstructions,
@@ -441,7 +441,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
             })
         : []
     const instructions = serverInstructions(
-      describes ? await deps.source.bundle().then(dataToolsOf, () => []) : [],
+      describes ? await deps.source.bundle().then(dataToolOf, () => null) : null,
       policy.about,
       policy.calendar,
       permits,

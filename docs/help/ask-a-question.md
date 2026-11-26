@@ -12,6 +12,8 @@ open:
 
 Ask answers a question about a number from the context your owners wrote and checked, and every answer starts with a line that says how much of it is written down. It reads published context with the same engine your agents use, and never more than you may see.
 
+Ask knows the names of the metrics, dimensions and domains you can see in Definitions. So when you name a metric another way, or in another language, it reads that metric by its own name.
+
 ![An answer in Ask, marked Checked. Under the question, Read as shows Units sold, Norway and Today, assumed. Under the answer, Used 1 item says it was published and checked on 2 July 2026, followed by the definition of Units sold.](../images/docs/ask-answer-light.webp)
 
 ## Ask

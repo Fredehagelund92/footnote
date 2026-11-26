@@ -1,0 +1,179 @@
+---
+import { answers, lines, unmatched, type Answer, type Line, type Note, type Said } from '../demo.ts'
+
+/* The first screen's window (landing/hero.ts): four questions about the demo, an agent's answer
+   with Footnote, and the notes it read. Every answer is drawn here, hidden but the first, so the
+   page shows Norway's without a script, and the script only picks one and plays it. */
+
+const icon: Record<Line, string> = {
+  checked: 'i-check',
+  stale: 'i-old',
+  conflict: 'i-conflict',
+  missing: 'i-none',
+}
+const badge: Record<Line, string> = {
+  checked: '',
+  stale: ' b-old',
+  conflict: ' b-conflict',
+  missing: ' b-missing',
+}
+const dot: Record<Line, string> = { checked: '', stale: ' old', conflict: ' bad', missing: ' none' }
+const panelTitle = (notes: readonly Note[]) =>
+  notes.length > 1 ? 'The notes it read' : notes.length ? 'The note it read' : 'Nothing to read'
+/** The sentence up to its last word, and the last word, which keeps its number beside it. */
+const split = (said: Said) => {
+  const at = said.text.lastIndexOf(' ')
+  return [said.text.slice(0, at + 1), said.text.slice(at + 1)] as const
+}
+const first = answers[0]!
+type Shown = Pick<Answer, 'question' | 'line' | 'guess' | 'says' | 'next' | 'notes'> & {
+  key: string
+}
+const shown: Shown[] = [
+  ...answers,
+  { key: 'none', question: '', line: 'missing', ...unmatched, notes: [] },
+]
+---
+
+<div class="win glow" id="win">
+  <i class="gl" aria-hidden="true"></i>
+  <div class="win-bar">
+    <div><svg class="logo" aria-hidden="true"><use href="#i-logo"></use></svg><b>Asked about the business</b></div>
+    <div class="about">An AI agent answers, with Footnote</div>
+    <div class="about" id="panel-title">{panelTitle(first.notes)}</div>
+  </div>
+  <div class="side" id="try" role="group" aria-label="Questions to try">
+    <p class="h">Questions</p>
+    {
+      answers.map((a) => (
+        <button type="button" data-a={a.key} aria-pressed={a === first ? 'true' : 'false'}>
+          <i class={`dot${dot[a.line]}`} />
+          <span>{a.question}</span>
+        </button>
+      ))
+    }
+    <p class="foot-note">Pick one, or type your own.</p>
+  </div>
+  <div class="chat">
+    <form class="composer" id="ask" autocomplete="off">
+      <label class="sr-only" for="q">A question about the demo company</label>
+      <input id="q" name="q" type="text" placeholder="Ask about orders in Norway, Germany or the United Kingdom" enterkeyhint="send" />
+      <kbd aria-hidden="true">Enter</kbd>
+      <button type="submit" aria-label="Ask"><svg class="ic" aria-hidden="true"><use href="#i-up"></use></svg></button>
+    </form>
+    {
+      shown.map((a) => (
+        <div class="thread" data-a={a.key} hidden={a.key !== first.key}>
+          <p class="q step" data-question={a.question}>{a.question}</p>
+          {a.guess && (
+            <p class="guess step">
+              <small>an agent on its own</small>
+              <s>{a.guess}</s>
+            </p>
+          )}
+          <p class="tool mono step"><i />called get_context</p>
+          <p class="state step">
+            <span class={`badge${badge[a.line]}`}>
+              <svg class="ic" aria-hidden="true"><use href={`#${icon[a.line]}`} /></svg>
+              {lines[a.line].label}
+            </span>
+            <span>{lines[a.line].says}</span>
+          </p>
+          <p class="ans step">
+            {'nothing' in a.says ? (
+              <Fragment><b class="none">Nothing is written down</b> {a.says.nothing}</Fragment>
+            ) : a.line !== 'conflict' ? (
+              <mark>
+                {a.says.map((said) => {
+                  const [lead, last] = split(said)
+                  return (
+                    <Fragment>
+                      {lead}
+                      <span class="nowrap">{last}<button type="button" class="ref" data-n={said.note} aria-label={`Note ${said.note}`}>{said.note}</button></span>
+                    </Fragment>
+                  )
+                })}
+              </mark>
+            ) : (
+              a.says.map((said) => {
+                const [lead, last] = split(said)
+                return (
+                  <span class="each">
+                    {lead}
+                    <span class="nowrap">{last}<button type="button" class="ref" data-n={said.note} aria-label={`Note ${said.note}`}>{said.note}</button></span>
+                  </span>
+                )
+              })
+            )}
+          </p>
+          {a.next && <p class="next step">{a.next}</p>}
+        </div>
+      ))
+    }
+  </div>
+  <aside class="panel" id="notes" aria-label="The note the agent read" data-title={panelTitle(first.notes)}>
+    {
+      shown.map((a) => (
+        <div class="read" data-a={a.key} data-title={panelTitle(a.notes)} hidden={a.key !== first.key}>
+          {a.notes.length ? (
+            a.notes.map((note, i) => (
+              <Fragment>
+                {i > 0 && <span class="neq step" role="img" aria-label="disagrees with">&ne;</span>}
+                <article class="note step" data-n={i + 1}>
+                  <div class="head">
+                    <span class="ref">{i + 1}</span>
+                    <h2>{note.title}</h2>
+                  </div>
+                  {note.scope && (
+                    <p class="scope">
+                      {note.scope.map((part) => (
+                        <span>{part}</span>
+                      ))}
+                    </p>
+                  )}
+                  {note.quote && (
+                    <blockquote>
+                      "{note.quote.text}"<cite>{note.quote.source}</cite>
+                    </blockquote>
+                  )}
+                  <div class="who">
+                    {note.who.map((who) => (
+                      <p>
+                        {who.face ? (
+                          <i class="av" style={`--c:${who.face.color}`}>{who.face.initials}</i>
+                        ) : (
+                          <i class="dom" />
+                        )}
+                        <span>{who.lead}<b>{who.name}</b>{who.tail}</span>
+                      </p>
+                    ))}
+                  </div>
+                  {note.due && (
+                    <p class="due-line">
+                      <svg class="ic" aria-hidden="true">
+                        <use href="#i-old" />
+                      </svg>
+                      Its check date passed on {note.due}
+                    </p>
+                  )}
+                  {note.dont && (
+                    <p class="dont">
+                      <b>Don't conclude:</b> {note.dont}
+                    </p>
+                  )}
+                </article>
+              </Fragment>
+            ))
+          ) : (
+            <article class="note none step">
+              <h2>No note</h2>
+              <p>Nobody has written this down yet.</p>
+            </article>
+          )}
+        </div>
+      ))
+    }
+  </aside>
+  <svg class="wires" id="wires" aria-hidden="true"></svg>
+  <p class="sr-only" id="answer-live" aria-live="polite"></p>
+</div>

@@ -13,7 +13,7 @@ import { systemClock } from '../../src/server/clock.ts'
 import { identifier, localRoles } from '../../src/server/db/roles.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
-import { foundation, people } from './fixtures.ts'
+import { demoOff, demoReadBy, foundation, people } from './fixtures.ts'
 import { apiDatabase, testDatabase, transaction } from './support.ts'
 
 /*
@@ -82,9 +82,11 @@ beforeAll(async () => {
          from unnest($1::text[]) m`,
       [markets],
     )
+    await demoOff(client)
     await client.query(
       `insert into connectors (id,kind,type,name) values ('cube','definition_source','cube','Cube')`,
     )
+    await demoReadBy(client, 'cube')
     await client.query(
       `insert into definitions (ref,connector_id,kind,name,title,synonyms,change_mark,visible_groups) values
          ('cube:revenue','cube','metric','payments.net_revenue','Net revenue','{Net sales}','1',null),
@@ -252,9 +254,9 @@ describe('one word, one meaning (FR-138)', () => {
     // The metric's own name, another name of it, and the source's title and synonym for it.
     expect(await refusal('owner', { name: 'orders', meaning: 'x', areaId: 'finance' })).toEqual({
       code: 'source',
-      message: "“orders” is Demo's name for Orders.",
+      message: "“orders” is Cube's name for Orders.",
       holder: 'Orders',
-      by: 'Demo',
+      by: 'Cube',
     })
     expect(
       await refusal('owner', { name: 'Order  Count', meaning: 'x', areaId: 'finance' }),
@@ -287,9 +289,9 @@ describe('one word, one meaning (FR-138)', () => {
     })
     expect(await refusal('owner', { name: 'Órders', meaning: 'x', areaId: 'finance' })).toEqual({
       code: 'source',
-      message: "“Órders” is Demo's name for Orders.",
+      message: "“Órders” is Cube's name for Orders.",
       holder: 'Orders',
-      by: 'Demo',
+      by: 'Cube',
     })
   })
 
@@ -353,7 +355,7 @@ describe('changing a term', () => {
       'Someone changed this word after you opened it. Look at it again, then try again.',
     )
     const r = await refused(update('owner', renamed, { name: 'Orders' }), 409)
-    expect(r.data?.refusal).toEqual({ code: 'source', holder: 'Orders', by: 'Demo' })
+    expect(r.data?.refusal).toEqual({ code: 'source', holder: 'Orders', by: 'Cube' })
     // A new casing is the same word.
     expect(
       await ok<Term>(update('owner', renamed, { name: renamed.name.toUpperCase() })),

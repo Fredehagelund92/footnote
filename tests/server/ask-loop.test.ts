@@ -1057,6 +1057,7 @@ function countingDatabase() {
 function fakeTools(
   results: (name: string, input: unknown) => unknown = () => ({ ids: [] }),
   vague: AskTools['vague'] = () => Promise.resolve(null),
+  card: AskTools['card'] = () => Promise.resolve(null),
 ) {
   const asked: { name: string; input: unknown }[] = []
   const tools = {
@@ -1065,6 +1066,7 @@ function fakeTools(
       return Promise.resolve(results(name, input))
     },
     vague,
+    card,
     ai: () => ({}),
   } as unknown as AskTools
   return { tools, asked }
@@ -1079,6 +1081,8 @@ async function turnWith(
     onEvent?: (event: LookupEvent) => void
     /** The word of the question that names no one metric, as the tools read it. */
     vague?: AskTools['vague']
+    /** The names card, as the tools write it. */
+    card?: AskTools['card']
     /** What a read returns, over the usual results. */
     results?: (name: string, input: unknown) => unknown
   } = {},
@@ -1093,6 +1097,7 @@ async function turnWith(
         read_context: { found: false, item: null, nothing: 'none', ids: [] },
       }[name] ?? { input, ids: [] },
     options.vague,
+    options.card,
   )
   const errors: unknown[] = []
   const events: LookupEvent[] = []
@@ -1101,6 +1106,7 @@ async function turnWith(
     question = 'what is written?',
     onEvent,
     vague: _vague,
+    card: _card,
     results: _results,
     ...rest
   } = options
@@ -1508,6 +1514,45 @@ describe("Ask's loop on a scripted model", () => {
     ])
   })
 
+  it('sends the names card after the instructions, behind a cache mark of its own, every step', async () => {
+    const breakpoint = { anthropic: { cacheControl: { type: 'ephemeral' } } }
+    const card = 'The names this person can see in Definitions ...\nMetrics: Orders; Net revenue.'
+    const sent: { role: string; content: unknown; providerOptions: unknown }[][] = []
+    const model = scriptedLoopChoice('card', ({ results, prompt }) => {
+      sent.push(prompt.map((m) => ({ ...m, providerOptions: m.providerOptions ?? null })))
+      return results.length
+        ? { text: 'Nothing is written [itm_germany01].' }
+        : { calls: [{ toolName: 'find_context', input: { words: 'orders' } }] }
+    })
+    await turnWith(() => ({ text: '' }), {
+      model: { ...model, cacheBreakpoint: breakpoint },
+      card: () => Promise.resolve(card),
+    })
+    expect(sent).toHaveLength(2)
+    for (const step of sent) {
+      expect(step[0]).toMatchObject({ role: 'system', providerOptions: breakpoint })
+      expect(step[0]!.content).not.toContain('Metrics: Orders')
+      // The same card in every step: the provider reads it from the cache after the first.
+      expect(step[1]).toEqual({ role: 'system', content: card, providerOptions: breakpoint })
+      expect(step[2]).toMatchObject({ role: 'user' })
+    }
+    // No card, no message for it; a card that cannot be read leaves the turn to answer without it.
+    const { turn: without } = await turnWith(({ prompt }) => {
+      expect(prompt.filter((m) => m.role === 'system')).toHaveLength(1)
+      return { text: 'Nothing more is written.' }
+    })
+    expect(without.text).toBe('Nothing more is written.')
+    const { turn, errors } = await turnWith(
+      ({ prompt }) => {
+        expect(prompt.filter((m) => m.role === 'system')).toHaveLength(1)
+        return { text: 'Nothing more is written.' }
+      },
+      { card: () => Promise.reject(new Error('catalogue down')) },
+    )
+    expect(turn.text).toBe('Nothing more is written.')
+    expect(errors).toEqual([new Error('catalogue down')])
+  })
+
   it('shows the words a checked sentence at a time, the first while the rest is still being written', async () => {
     const written: string[] = []
     const pieces = [
@@ -1651,6 +1696,7 @@ describe('an overview, whatever the model sends of it', () => {
           ? new Promise((done) => setTimeout(() => done(read), delay))
           : Promise.resolve({ ids: [] }),
       vague: () => Promise.resolve(null),
+      card: () => Promise.resolve(null),
       ai: () => ({}),
     }) as unknown as AskTools
   const groupsOf = (turn: LoopTurn) => turn.overview?.groups.map((g) => [g.key, g.rows.length])

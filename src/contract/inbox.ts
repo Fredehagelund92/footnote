@@ -47,12 +47,15 @@ export const cardSchema = z.union([
     group: z.literal('names'),
     /** The domain of the names, when they share one: names can belong to none (CON-206). */
     areaId: z.nullable(z.string()),
-    /** The names Accept all takes, the ones that need a look first, and the tools that gave them. */
+    /**
+     * The names Accept all takes, the ones that need a look first, and the tool that gave them: the
+     * definitions integration's, one on at a time (CON-120).
+     */
     ready: z.number(),
     flagged: z.number(),
     /** Of the names that wait, the families of near-identical metrics (FR-142). */
     families: z.number(),
-    tools: z.array(z.string()),
+    tool: z.string(),
   }),
   z.object({
     ...cardBase,

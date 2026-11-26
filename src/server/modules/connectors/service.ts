@@ -9,6 +9,7 @@ import {
   type DomainChange,
 } from './flags.ts'
 import { nextReadAt } from '../../../domain/source-schedule.ts'
+import { definitionsOn } from './one-on.ts'
 import { holdRead, readKindOf, stillCurrent } from './read-kind.ts'
 import { scheduleOf } from './schedule.ts'
 import type { ConnectorRegistry } from './registry.ts'
@@ -45,6 +46,19 @@ export interface SyncResult {
   rebaselined: number
   /** The edition that took the domains the source gives now, when they changed (FR-215). */
   domainEdition: string | null
+}
+
+/** A read that kept nothing: its source changed while it was out, or it is off (CON-120). */
+const discarded: SyncResult = {
+  snapshotId: null,
+  status: 'discarded',
+  definitionsSeen: 0,
+  coverage: null,
+  flags: { raised: 0, cleared: 0 },
+  staleLinkNotices: 0,
+  domainNotices: 0,
+  rebaselined: 0,
+  domainEdition: null,
 }
 
 /**
@@ -137,13 +151,26 @@ export class ConnectorService {
     return this.#database.transaction(null, async (tx) => {
       await holdRead(tx, source.id)
       // The server's own sources are registered at their first read; an added one already is. A
-      // source registered before is left alone here, so the read holds no row.
-      if (origin === 'server')
-        await tx.query(
-          `insert into connectors (id,kind,type,name,interface_version) values ($1,'definition_source',$2,$3,$4)
-           on conflict (id) do nothing`,
-          [source.id, source.type, source.name, source.interfaceVersion],
-        )
+      // source registered before is left alone here, so the read holds no row. One definitions
+      // integration is on at a time (CON-120): one the server names while another is on is
+      // registered off, for an admin to switch, and the demo gives way to any other.
+      if (origin === 'server') {
+        const [known] = await tx.query('select 1 from connectors where id=$1', [source.id])
+        if (!known) {
+          await tx.query(
+            "select pg_advisory_xact_lock(hashtextextended('footnote.definitions.on', 0))",
+          )
+          const on = await definitionsOn(tx)
+          const yields = on?.type === 'demo' && source.type !== 'demo'
+          if (yields) await tx.query('update connectors set enabled=false where id=$1', [on.id])
+          await tx.query(
+            `insert into connectors (id,kind,type,name,interface_version,enabled)
+             values ($1,'definition_source',$2,$3,$4,$5) on conflict (id) do nothing`,
+            [source.id, source.type, source.name, source.interfaceVersion, !on || yields],
+          )
+          if (on && !yields) return discarded
+        }
+      }
       const [registered] = await tx.query<{ enabled: boolean; type: string; origin: string }>(
         'select enabled,type,origin from connectors where id=$1',
         [source.id],
@@ -190,18 +217,7 @@ export class ConnectorService {
         }
         snapshot = undefined
       }
-      if (!(await stillCurrent(tx, source.id, kind)))
-        return {
-          snapshotId: null,
-          status: 'discarded',
-          definitionsSeen: 0,
-          coverage: null,
-          flags: { raised: 0, cleared: 0 },
-          staleLinkNotices: 0,
-          domainNotices: 0,
-          rebaselined: 0,
-          domainEdition: null,
-        }
+      if (!(await stillCurrent(tx, source.id, kind))) return discarded
       if (origin === 'server')
         await tx.query(
           `update connectors set interface_version=$2
@@ -210,30 +226,6 @@ export class ConnectorService {
         )
       // Nothing was read: this read stands where the last one did, with what it found.
       const kept = snapshot?.unchanged ? last : undefined
-      if (snapshot && !kept) {
-        // A ref belongs to one source for good (CON-117). A member another source already reads
-        // stays with it: this read leaves it out, says so, and is in part, so it marks nothing
-        // missing. Disconnecting a source hands its refs over: the next source to read one
-        // takes it (CON-118).
-        const taken = await tx.query<{ ref: string }>(
-          `select d.ref from definitions d join connectors c on c.id = d.connector_id
-            where d.ref = any($1::text[]) and d.connector_id <> $2 and c.removed_at is null
-            order by d.ref`,
-          [snapshot.definitions.map((definition) => definition.ref), source.id],
-        )
-        if (taken.length) {
-          const refs = new Set(taken.map((row) => row.ref))
-          snapshot = {
-            ...snapshot,
-            complete: false,
-            definitions: snapshot.definitions.filter((definition) => !refs.has(definition.ref)),
-            warnings: [
-              ...snapshot.warnings,
-              ...taken.map((row) => ({ code: 'taken' as const, target: row.ref })),
-            ],
-          }
-        }
-      }
       // Until an administrator chooses its groups in the app, the server's own source keeps the
       // groups its configuration lists where an added source keeps those an administrator chose,
       // so its page and Choose see what it reads.
@@ -323,7 +315,7 @@ export class ConnectorService {
           mark_version: number | null
         }>(
           `select d.connector_id, d.change_mark, d.source_mark, d.area_hint, d.missing_since_snapshot,
-                  c.removed_at is not null as handed_over, c.type, s.mark_version
+                  not c.enabled as handed_over, c.type, s.mark_version
              from definitions d join connectors c on c.id = d.connector_id
              left join connector_snapshots s on s.id = d.last_seen_snapshot
             where d.ref=$1`,
@@ -371,7 +363,7 @@ export class ConnectorService {
              family_description=excluded.family_description,
              missing_since_snapshot=null,renamed_to=null,connector_id=excluded.connector_id
              where definitions.connector_id=excluded.connector_id
-                or definitions.connector_id in (select id from connectors where removed_at is not null)
+                or definitions.connector_id in (select id from connectors where not enabled)
              returning ref`,
           [
             definition.ref,

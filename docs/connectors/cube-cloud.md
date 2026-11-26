@@ -70,12 +70,12 @@ Any other failure of a scheduled read shows only that it couldn't be read, and T
 
 ## Move from Cube model files
 
-Both connectors give the same definitions, and a definition belongs to one source. While a Cube model files source is connected, a Cube Cloud read leaves its definitions out, as read by another source.
+Both connectors give the same definitions, and one definitions integration is on at a time. Cube Cloud is connected once the model files source is off.
 
-1. **Disconnect** the model files source an admin added.
-2. The next Cube Cloud read takes its definitions. It flags no item for the move, since the two connectors see a member differently, and tells the owners once.
+1. **Turn off** the model files source in Integrations, or **Disconnect** it. Its definitions leave Definitions, and the items that rely on them are flagged.
+2. **Connect** Cube Cloud. Its first read takes the definitions over and clears the flags. The two connectors see a member differently, so the marks start again, and the owners are told once.
 
-A model folder set up on the server cannot be disconnected, so its definitions stay with it. A member the model files source had already marked gone counts as changed when it comes back, so the items on it are flagged. A member Cube Cloud does not show, for example one the security context hides, stays with the disconnected source and is never marked gone.
+A model folder set up on the server is turned off the same way. A member the model files source had already marked gone counts as changed when it comes back, so the items on it are flagged. A member Cube Cloud does not show, for example one the security context hides, stays with the files source, and the items on it stay flagged.
 
 ## Schedule and limits
 

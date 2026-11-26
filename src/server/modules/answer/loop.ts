@@ -353,6 +353,12 @@ function serialReads(deps: Pick<LoopDeps, 'database' | 'person' | 'toolsIn' | 'o
         deps.onError?.(error)
         return { error: 'This read could not be made just now.', ids: [] }
       }),
+    /** The names card (FR-718.8), or null; a failure reads as none, and the turn goes on without it. */
+    card: () =>
+      inTx((tools) => tools.card()).catch((error: unknown) => {
+        deps.onError?.(error)
+        return null
+      }),
     /** The word of the question that names no one metric, or null; a failure reads as none. */
     vague: (question: string) =>
       inTx((tools) => tools.vague(question)).catch((error: unknown) => {
@@ -393,7 +399,8 @@ function earlierReadsOf(turns: readonly ChatTurnInput[]) {
  * The messages of a step with a prompt cache breakpoint on the last, and on no other: the next
  * step sends them again and more, so it reads them from the cache, at a tenth of the price on
  * Claude (H20). The SDK sends a step's messages on to the next, so the mark moves rather than
- * adds up; Claude takes four marks at most, and the system instructions carry one of their own.
+ * adds up; Claude takes four marks at most, and the system instructions and the names card carry
+ * one each of their own.
  */
 export function cachedThrough(
   messages: readonly ModelMessage[],
@@ -944,6 +951,7 @@ export async function* askLoop(
   if (chosen.length) yield progress('Reading…')
 
   const system = loopSystem(deps.today, deps.asker, deps.timeZone, deps.about)
+  const card = await reads.card()
   const messages: ModelMessage[] = [
     ...chatMessages(turns, earlier),
     questionMessage(input.question),
@@ -985,9 +993,14 @@ export async function* askLoop(
       })
     : null
   const choice = meter ? meter.wrap(deps.model, { role: 'assistant' }) : deps.model
-  // The system instructions, kept for the next turn, then what this turn's words hold.
+  // The system instructions and the names card, each behind a cache mark of its own and kept for
+  // the next turn: the instructions are the same for everyone, the card only for this person.
+  // Then what this turn's words hold.
   const instructions: SystemModelMessage[] = [
     { role: 'system', content: system, providerOptions: choice.cacheBreakpoint },
+    ...(card
+      ? [{ role: 'system' as const, content: card, providerOptions: choice.cacheBreakpoint }]
+      : []),
     ...(vague ? [{ role: 'system' as const, content: vagueNote(vague) }] : []),
   ]
   const timeout = AbortSignal.timeout(deps.timeoutMs)
