@@ -248,7 +248,7 @@ async function viewOf(reads: ToolReads): Promise<View> {
           calendar: reads.calendar,
         }),
     },
-    { write: noWrite, reportGap: noWrite, feedback: noWrite },
+    { write: noWrite, reportGap: noWrite, feedback: noWrite, reply: noWrite },
     () => new Date(`${reads.today}T12:00:00Z`),
   )
   return {

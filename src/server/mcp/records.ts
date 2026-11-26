@@ -50,16 +50,22 @@ export interface AnonymousStore {
   write(records: readonly AnonymousRecord[]): Promise<void>
   reportGap(topic: Topic, note?: string): Promise<string>
   /**
-   * Anonymous feedback: on a reply (its delivery id), on a domain (the domain of a context item
-   * report names), or both. The domain of a reply comes from its topic when none is given.
+   * Anonymous feedback: on a reply (its delivery id), on a context item (with its domain), or both.
+   * The domain of a reply comes from its topic when none is given.
    */
-  feedback(
-    delivery: string | null,
-    verdict: 'helpful' | 'wrong' | 'missing' | 'unclear',
-    client: string,
-    note?: string,
-    area?: string | null,
-  ): Promise<void>
+  feedback(report: {
+    delivery: string | null
+    verdict: 'helpful' | 'wrong' | 'missing' | 'unclear'
+    client: string
+    note?: string | undefined
+    area?: string | null
+    item?: string | null
+  }): Promise<void>
+  /**
+   * A get_context reply of the last 90 days that has been written, by its id: the one domain its
+   * question was about, null when none or several. Undefined when there is no such reply.
+   */
+  reply(id: string): Promise<{ area: string | null } | undefined>
 }
 
 /** A bounded queue never retains a request, token, question, or caller identity. Failed batches are counted and dropped. */

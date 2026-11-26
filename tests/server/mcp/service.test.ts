@@ -95,7 +95,11 @@ it('cuts links before items, respects multibyte budgets and never mutates the ca
   ])
   const tiny = await s.call('get_context', { response_format: 'full', question, max_bytes: 1000 })
   expect(byteSize(tiny)).toBeLessThanOrEqual(1000)
-  expect(tiny.structuredContent.status).toBe('check_failed')
+  // A size too small is the caller's to change, never a check that could not run (finding 7).
+  expect(tiny.structuredContent).toMatchObject({
+    status: 'invalid_input',
+    next: 'The required report cannot fit this size limit. Increase max_bytes.',
+  })
 })
 
 it('cuts the items past max_items before links, and keeps the link that names the source last', async () => {
@@ -935,6 +939,86 @@ describe('a concise reply (FR-342)', () => {
     expect((report.structuredContent as { say: string }).say).toContain(
       '"Denmark" is not a market here, so this is for every market.',
     )
+  })
+
+  it('keeps the reported item, refuses a reply it never gave and says who sees a report (finding 5)', async () => {
+    const s = setup()
+    type Out = { status: string; say: string; next?: string; recorded?: boolean; to?: string }
+    const report = async (input: Record<string, unknown>) =>
+      (await s.call('report', input)).structuredContent as Out
+    // The item is kept beside its domain, so its owner sees which item.
+    expect(await report({ kind: 'wrong', context_id: 'itm_norway01' })).toMatchObject({
+      status: 'recorded',
+      to: 'the owner of Finance',
+    })
+    expect(s.feedback.at(-1)).toMatchObject({ item: 'itm_norway01', area: 'finance' })
+    // A reply_id that names no reply (the example id the error text gives) is refused, not lost.
+    const unknown = await report({
+      kind: 'wrong',
+      reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+    })
+    expect(unknown).toMatchObject({
+      status: 'need_more_detail',
+      recorded: false,
+      say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
+    })
+    expect(s.feedback).toHaveLength(1)
+    // A reply about one domain names its owner, before its record is written.
+    const finance = (await s.call('get_context', { question })).structuredContent as {
+      reply_id: string
+    }
+    expect(await report({ kind: 'wrong', reply_id: finance.reply_id })).toMatchObject({
+      to: 'the owner of Finance',
+      say: 'Sent: something is wrong. The owner of Finance will see it. Who asked is not kept.',
+    })
+    // A reply about no single domain says who really sees the report.
+    const market = (await s.call('get_context', { question: 'Norway August 2026' }))
+      .structuredContent as { reply_id: string }
+    const nowhere = await report({ kind: 'unclear', reply_id: market.reply_id })
+    expect(nowhere.say).toBe(
+      "Sent: something is unclear. It names no single domain, so no owner's Inbox gets it: an admin sees it in Observability. Who asked is not kept.",
+    )
+    expect(nowhere).not.toHaveProperty('to')
+  })
+
+  it('says what to change for a mistake the caller can fix, never to try again (finding 7)', async () => {
+    const s = setup()
+    // A note with an address or a phone number is refused with the field, as suggest_context does.
+    for (const note of ['Ask jon.abara@example.test, he knows', 'call me on +47 912 34 567']) {
+      const refused = await s.call('report', { kind: 'wrong', context_id: 'itm_norway01', note })
+      expect(refused.isError, note).toBe(true)
+      expect(refused.structuredContent, note).toMatchObject({
+        status: 'invalid_input',
+        recorded: false,
+        say: 'Nothing was sent: the note looks like it holds personal data or a secret.',
+        findings: [{ field: 'note' }],
+      })
+      expect(JSON.stringify(refused), note).not.toMatch(/Try again|check_failed/)
+    }
+    expect(s.feedback).toEqual([])
+    // The last day of year 9999 has no day after it: the schema says what to send instead.
+    const far = await s.call('get_context', {
+      question: 'orders in Norway',
+      window: { from: '2026-08-01', to: '9999-12-31' },
+    })
+    expect(far.structuredContent.status).toBe('invalid_input')
+    expect(far.structuredContent.next).toContain('2999-12-31')
+    expect(
+      (
+        await s.call('get_context', {
+          question: 'orders in Norway',
+          window: { from: '2026-08-01', to: '2999-12-31' },
+        })
+      ).structuredContent.status,
+    ).not.toBe('check_failed')
+    // An edition without its scope, and a cursor from another call, say what to change.
+    for (const [input, field] of [
+      [{ question, edition: '2026-08-04.1' }, 'edition'],
+      [{ question, cursor: 'not a cursor' }, 'cursor'],
+    ] as const) {
+      const out = (await s.call('get_context', input)).structuredContent
+      expect(out, field).toMatchObject({ status: 'invalid_input', problems: [{ field }] })
+    }
   })
 
   it('leaves the review out for a version with no acceptance on record', async () => {

@@ -55,6 +55,8 @@ const columns = {
     'gap_id',
     'created_hour',
     'area_id',
+    // The context item a report names, never who sent it.
+    'item_id',
   ],
   gap_notes: ['id', 'gap_id', 'source', 'note', 'created_hour', 'delete_after'],
   // An assistant rating (FR-712): the verdict, the domain and the hour, never who or what was asked.
@@ -227,6 +229,7 @@ it('lets anonymous tables reference only non-person tables, in every schema', as
     { source: 'deliveries', target: 'topics' },
     { source: 'feedback', target: 'areas' },
     { source: 'feedback', target: 'gaps' },
+    { source: 'feedback', target: 'items' },
     { source: 'gap_notes', target: 'gaps' },
     { source: 'gap_report_keys', target: 'gaps' },
     { source: 'gap_weekly_counts', target: 'gaps' },

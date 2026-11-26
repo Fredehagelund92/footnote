@@ -213,6 +213,30 @@ it('answers the agent contract over PostgreSQL: the short reply, the item, and a
   expect(
     (await admin.query('select status from deliveries where id=$1', [short.reply_id])).rows,
   ).toEqual([{ status: 'matched' }])
+  // Once written, the reply is known to the serving role with its domain; another id is not.
+  expect(await store.reply(short.reply_id)).toEqual({ area: 'finance' })
+  expect(await store.reply('0f8fad5b-d9cb-469f-a165-70867728950e')).toBeUndefined()
+})
+
+it('keeps the item a report names and refuses a reply it never gave (agent-side review, finding 5)', async () => {
+  const named = async () =>
+    (await admin.query('select count(*)::int as n from feedback where item_id=$1', [item]))
+      .rows[0] as { n: number }
+  const all = async () =>
+    (await admin.query('select count(*)::int as n from feedback')).rows[0] as { n: number }
+  const [before, beforeAll] = [await named(), await all()]
+  const unknown = await wire.callTool({
+    name: 'report',
+    arguments: { kind: 'wrong', reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e' },
+  })
+  expect(unknown.structuredContent).toMatchObject({ status: 'need_more_detail', recorded: false })
+  expect(await all()).toEqual(beforeAll)
+  const onItem = await wire.callTool({
+    name: 'report',
+    arguments: { kind: 'wrong', context_id: item },
+  })
+  expect(onItem.structuredContent).toMatchObject({ recorded: true, to: 'the owner of Finance' })
+  expect(await named()).toEqual({ n: before.n + 1 })
 })
 
 it('refuses a batch of report calls whole: no report counted, one refusal logged (FR-408)', async () => {

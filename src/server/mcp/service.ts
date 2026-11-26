@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import * as z from 'zod'
 import { uncoveredParts } from '../../domain/answer.ts'
 import { replyStatus, stateOfStatus } from '../../domain/answer-state.ts'
 import { canonicalJson } from '../../domain/canonical.ts'
@@ -38,6 +39,7 @@ import {
   type Calendar,
 } from '../../domain/dates.ts'
 import { isAnyDate, shiftDate } from '../../domain/validity.ts'
+import { invalidInputResult } from './invalid-input.ts'
 import {
   termEntry,
   termsIn,
@@ -91,6 +93,7 @@ import {
   failedSaid,
   findSaid,
   listSaid,
+  notLookedUp,
   readSaid,
   refusedSaid,
   reportSaid,
@@ -258,6 +261,25 @@ export const failure = (message = 'The checks could not run. Try again shortly.'
       ...saidFields(said),
       status: 'check_failed',
       check_report: report('check_failed'),
+    },
+    isError: true,
+  }
+}
+
+/**
+ * A call the caller can fix (agent-side review, finding 7): a size too small, a cursor from another
+ * call, an edition without its scope. It says what to change, as a call whose arguments do not fit
+ * does (`invalid_input`), so `check_failed` stays for a service that could not look.
+ */
+export const fixable = (field: string, problem: string): ToolResult => {
+  const say = `${notLookedUp} The request had a value that doesn't fit.`
+  return {
+    content: [{ type: 'text', text: `${say} ${problem}` }],
+    structuredContent: {
+      say,
+      next: problem,
+      status: 'invalid_input',
+      problems: [{ field, problem }],
     },
     isError: true,
   }
@@ -483,10 +505,27 @@ export const withCaveats = (instructions: string, items: readonly object[]) =>
   items.some((item) => 'not_to_conclude' in item)
     ? `${instructions} ${caveatInstruction}`
     : instructions
-/** FR-611: an anonymous note that fails the check of `noteFindings` is refused. */
-function safeNote(note: string | undefined, question?: string) {
-  if (note && noteFindings(note, question).length) throw new Error('Note contains sensitive text')
-  return note
+/**
+ * FR-611: an anonymous note that fails the check of `noteFindings` is refused, in words the caller
+ * can act on, as suggest_context refuses one (agent-side review, finding 7). Null when it passes.
+ */
+function refusedNote(note: string | undefined, question?: string): ToolResult | null {
+  const findings = note ? noteFindings(note, question) : []
+  if (!findings.length) return null
+  const say = 'Nothing was sent: the note looks like it holds personal data or a secret.'
+  const next =
+    'Remove what looks like personal data or a secret from note, or leave note out, then call report again. Nothing was saved.'
+  return {
+    content: [{ type: 'text', text: `${say} ${next}` }],
+    structuredContent: {
+      say,
+      next,
+      status: 'invalid_input',
+      recorded: false,
+      findings: findings.map(({ code, field }) => ({ code, field })),
+    },
+    isError: true,
+  }
 }
 function cursorFor(key: string, offset: number) {
   return Buffer.from(JSON.stringify({ key, offset })).toString('base64url')
@@ -707,6 +746,15 @@ export function createToolService(
 ) {
   const urlOf = (id: string) => itemUrl(web, id)
   /**
+   * The replies this service gave lately, with the one domain each was about: a report can name one
+   * before its record is written (records are written in batches after the response).
+   */
+  const issued = new Map<string, { area: string | null }>()
+  const remember = (id: string, area: string | null) => {
+    issued.set(id, { area })
+    if (issued.size > 10_000) issued.delete(issued.keys().next().value!)
+  }
+  /**
    * The words of a text that a person defined in Definitions, as the agent contract gives them
    * (src/domain/served-terms.ts): background for reading the words, never a checked source.
    */
@@ -736,7 +784,10 @@ export function createToolService(
     const parsed = findContextInput.parse(input)
     // Naming an edition needs edition scope, as for get_context.
     if (parsed.edition && !principal.canSelectEdition)
-      return failure('Selecting an edition requires edition scope.')
+      return fixable(
+        'edition',
+        'Leave out edition: only a service token with edition scope selects one.',
+      )
     const bundle = await source.bundle(parsed.edition)
     onEdition(bundle.seq)
     if (parsed.query === undefined || isDefinitionKind(parsed.kind))
@@ -829,11 +880,11 @@ export function createToolService(
     }
     // A page cut to nothing while hits remain would send the agent back to the same page.
     if (out.cut && Array.isArray(out.context) && !out.context.length && offset < Number(out.total))
-      return failure('The result cannot fit this size limit. Increase max_bytes.')
+      return fixable('max_bytes', 'The result cannot fit this size limit. Increase max_bytes.')
     const rendered = measure() <= limit ? resultFor(out) : null
     return rendered
       ? rendered
-      : failure('The result cannot fit this size limit. Increase max_bytes.')
+      : fixable('max_bytes', 'The result cannot fit this size limit. Increase max_bytes.')
   }
 
   /**
@@ -879,7 +930,9 @@ export function createToolService(
     calendar: Calendar,
   ): Promise<ToolResult> {
     const args = reportInput.parse(input)
-    const note = safeNote(args.note, args.question)
+    const refused = refusedNote(args.note, args.question)
+    if (refused) return refused
+    const note = args.note
     const verdict = args.kind === 'helped' ? 'helpful' : args.kind
     const sent = (to: string | null, extra: Record<string, unknown> = {}, said?: Said) =>
       resultFor({
@@ -907,8 +960,30 @@ export function createToolService(
           })
         area = item.areaId
         to = ownerRole(domainName(bundle, item.areaId))
+      } else {
+        // A reply id that names no reply would reach nobody: refused, with where to find one.
+        const reply = issued.get(args.reply_id!) ?? (await store.reply(args.reply_id!))
+        if (!reply)
+          return resultFor({
+            say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
+            next: 'Call report again with the reply_id of the get_context reply it is about, or the context_id of the item.',
+            status: 'need_more_detail',
+            recorded: false,
+          })
+        if (reply.area) {
+          const bundle = await source.bundle()
+          onEdition(bundle.seq)
+          to = ownerRole(domainName(bundle, reply.area))
+        }
       }
-      await store.feedback(args.reply_id ?? null, verdict, principal.client, note, area)
+      await store.feedback({
+        delivery: args.reply_id ?? null,
+        verdict,
+        client: principal.client,
+        note,
+        area,
+        item: args.context_id ?? null,
+      })
       return sent(to)
     }
     const scoped =
@@ -1082,7 +1157,7 @@ export function createToolService(
       if (byteSize(rendered) <= limit) return rendered
       page.pop()
     } while (page.length)
-    return failure('The list cannot fit this size limit. Increase max_bytes.')
+    return fixable('max_bytes', 'The list cannot fit this size limit. Increase max_bytes.')
   }
 
   /**
@@ -1157,7 +1232,7 @@ export function createToolService(
     })
     return byteSize(rendered) <= limit
       ? rendered
-      : failure('The definition cannot fit this size limit. Increase max_bytes.')
+      : fixable('max_bytes', 'The definition cannot fit this size limit. Increase max_bytes.')
   }
 
   return async function execute(
@@ -1183,7 +1258,10 @@ export function createToolService(
           : readInput.parse(input)
       const edition = 'edition' in args ? args.edition : undefined
       if (edition && !principal.canSelectEdition)
-        return failure('Selecting an edition requires edition scope.')
+        return fixable(
+          'edition',
+          'Leave out edition: only a service token with edition scope selects one.',
+        )
       const bundle = await source.bundle(edition)
       onEdition(bundle.seq)
       const common = {
@@ -1529,7 +1607,12 @@ export function createToolService(
         }
         const output = render()
         if (byteSize(output) > limit)
-          return failure('The required report cannot fit this size limit. Increase max_bytes.')
+          return fixable(
+            'max_bytes',
+            'The required report cannot fit this size limit. Increase max_bytes.',
+          )
+        const topic = resolution.scope ? topicFor(resolution.scope, bundle.metricArea) : null
+        remember(delivery, topic?.area ?? null)
         record({
           kind: 'delivery',
           value: {
@@ -1540,7 +1623,7 @@ export function createToolService(
             edition: bundle.seq,
             overlay: bundle.overlay,
             digest: toolSchemaDigest,
-            topic: resolution.scope ? topicFor(resolution.scope, bundle.metricArea) : null,
+            topic,
             scope: resolution.scope
               ? { ...resolution.scope, today, max_items: scoped.max_items, max_bytes: limit }
               : null,
@@ -1622,9 +1705,12 @@ export function createToolService(
       const rendered = resultFor(out)
       return byteSize(rendered) <= limit
         ? rendered
-        : failure('The item cannot fit this size limit. Increase max_bytes.')
+        : fixable('max_bytes', 'The item cannot fit this size limit. Increase max_bytes.')
     } catch (error) {
-      return failure(error instanceof StaleCursor ? staleCursor : undefined)
+      // Arguments that do not fit say what to change, as the gateway says it (FR-345): only a
+      // service that could not look is check_failed.
+      if (error instanceof z.ZodError) return invalidInputResult(name, error.issues)
+      return error instanceof StaleCursor ? fixable('cursor', staleCursor) : failure()
     }
   }
 }

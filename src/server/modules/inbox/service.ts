@@ -102,17 +102,24 @@ const reportWords: Record<ReportOutcome, string> = {
 }
 
 /**
- * The context a reported answer gave (FR-618): the items of the delivery the report names, in the
- * order agents got them, each by the title of the very version agents got, and only a version
- * whose audience lets the person read it (never a suggestion's unpublished text). No question and
- * no person: a delivery keeps neither.
+ * The context a report is about (FR-618): the item it names, by the title of its newest served
+ * version; else the items of the delivery it names, in the order agents got them, each by the title
+ * of the very version agents got. Only a version whose audience lets the person read it (never a
+ * suggestion's unpublished text). No question and no person: a delivery keeps neither.
  */
-const reportedItems = (feedback: string) => `coalesce((
+const reportedItems = (
+  feedback: string,
+) => `coalesce(case when ${feedback}.item_id is not null then (
+  select jsonb_build_array(jsonb_build_object('id', iv.item_id, 'title', iv.title))
+    from item_version_service s join item_versions iv on iv.id = s.version_id
+   where s.item_id = ${feedback}.item_id and cl_audience_allows(iv.audience_groups)
+   order by lower(s.editions) desc limit 1)
+  else (
   select jsonb_agg(jsonb_build_object('id', d.id, 'title', iv.title) order by d.rank)
     from deliveries dl
     cross join lateral jsonb_to_recordset(dl.delivered) as d(id text, v int, rank int)
     join item_versions iv on iv.item_id = d.id and iv.version_no = d.v
-   where dl.id = ${feedback}.delivery_id and cl_audience_allows(iv.audience_groups)), '[]'::jsonb)`
+   where dl.id = ${feedback}.delivery_id and cl_audience_allows(iv.audience_groups)) end, '[]'::jsonb)`
 
 export function createInboxFeedService(
   tx: Queryable,

@@ -178,12 +178,15 @@ that name none as `no_match` with the closest.
 
 **`report`** takes what the person says, after they say yes: `kind` is `missing`, `wrong`,
 `unclear` or `helped`, with the `reply_id` of a `get_context` reply, a `context_id` when it is about
-one item, and an optional short note checked for sensitive text (FR-611). It is recorded as
-anonymous feedback on the reply, with the item's domain when it names one, and the gap job turns
-missing, wrong and unclear into a gap for the reply's topic (FR-606, case 3). Something missing with
-no reply takes the question's metrics, markets and dates instead and is recorded as a gap.
-The reply says who will see it (`to`, "the owner of Sales") and never keeps who
-asked (FR-602).
+one item, and an optional short note checked for sensitive text (FR-611); a note that fails it is
+refused as `invalid_input` with the field, and nothing is sent. It is recorded as anonymous feedback
+on the reply, with the item and its domain when it names one, so the owner's Inbox card and
+Observability show that item, and the gap job turns missing, wrong and unclear into a gap for the
+reply's topic (FR-606, case 3). A `reply_id` that names no `get_context` reply of the last 90 days
+answers `need_more_detail` and records nothing. Something missing with no reply takes the question's
+metrics, markets and dates instead and is recorded as a gap. The reply says who will see it (`to`,
+"the owner of Sales"); a report about no single domain reaches no owner's Inbox, and the reply says
+an admin sees it in Observability. It never keeps who asked (FR-602).
 
 **`suggest_context`** (FR-121) lets an agent send a suggestion, as the person it acts for, after
 the person says yes. **It is on by default**, and the `propose` scope is granted at consent (the
@@ -278,8 +281,10 @@ are in [Agent and company sign-in](sign-in.md).
 Structured question dates are inclusive (`window.from` and `window.to`); returned validity and
 stored scopes use an exclusive end date. `max_bytes` covers the serialized tool result,
 including its text fallback. Links are trimmed before items, and cut item ids are reported.
-If the required report itself cannot fit, the tool returns a bounded `check_failed` error.
-Search and backlink cursors are invalidated by an edition or overlay change.
+If the required report itself cannot fit, the tool returns a bounded `invalid_input` error that
+says to raise `max_bytes`. Search and backlink cursors are invalidated by an edition or overlay
+change; a stale cursor, like an `edition` without edition scope, is `invalid_input` too, so
+`check_failed` means only that the service could not look. `window.to` is before 9999-12-31.
 
 The cache checks the live edition and overlay on every call, fails closed when that check
 fails, and retains at most four bundles for 15 seconds. Anonymous deliveries and request logs

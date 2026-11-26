@@ -15,6 +15,14 @@ import {
 import { provenanceFlagCodes } from '../../domain/provenance.ts'
 
 const date = z.string().refine(isCalendarDate, 'Expected a calendar date')
+/**
+ * A window's last day, which is read with the day after it: 9999-12-31 has none (agent-side review,
+ * finding 7), so the sentence says what to send for a window with no end.
+ */
+const lastDay = date.refine(
+  (day) => day < '9999-12-31',
+  'Expected a day before 9999-12-31; for a window with no end, send a far day such as 2999-12-31',
+)
 const edition = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}\.\d+$/)
@@ -43,7 +51,7 @@ const scopeFields = {
     .max(toolInputLimits.names)
     .optional(),
   window: z
-    .strictObject({ from: date, to: date })
+    .strictObject({ from: date, to: lastDay })
     .refine((w) => w.from <= w.to, 'Window ends before it starts')
     .optional(),
   /**
@@ -317,7 +325,7 @@ export const draftInput = z.strictObject({
   window: z
     .strictObject({
       from: date,
-      to: date.optional(),
+      to: lastDay.optional(),
       uncertain: z
         .boolean()
         .optional()

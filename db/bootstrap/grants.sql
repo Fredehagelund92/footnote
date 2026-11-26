@@ -54,7 +54,7 @@ grant execute on function serving_links(bigint) to :api, :serve;
 grant execute on function serving_family_splits(bigint) to :api, :serve;
 grant execute on function cl_short_id(text), cl_person(), cl_is_admin_now(), cl_is_owner_now(text) to :serve;
 grant execute on function cl_strip_mentions(text) to :api;
-grant execute on function serving_metadata(bigint), serving_report_gap(text,text,text[],text[],text[],date,text) to :serve;
+grant execute on function serving_metadata(bigint), serving_report_gap(text,text,text[],text[],text[],date,text), serving_reply(uuid) to :serve;
 
 -- Jobs: the API role runs the pg-boss queue (no DDL: queues share one table and REINDEX is off;
 -- job_table_run only serves pg-boss's own install), and the scheduled maintenance functions,

@@ -900,13 +900,17 @@ export function reportSaid(c: {
   /** The value words the report's question names that name no value here. */
   values?: readonly UnknownValueSaid[]
 }): Said {
-  const to = c.to ?? 'the owners of the domain'
+  // A report about no single domain reaches no owner's Inbox: say who really sees it (finding 5).
+  const sees = (what: string) =>
+    c.to
+      ? `${sentence(c.to)} will see ${what}.`
+      : `It names no single domain, so no owner's Inbox gets it: an admin sees ${what} in Observability.`
   const what =
     c.kind === 'helped'
-      ? `Sent: it helped. ${sentence(to)} will see it.`
+      ? `Sent: it helped. ${sees('it')}`
       : c.kind === 'missing'
-        ? `Sent: something is missing${c.scope ? ` for ${c.scope}` : ''}. ${sentence(to)} will see it was asked.`
-        : `Sent: something is ${c.kind}. ${sentence(to)} will see it.`
+        ? `Sent: something is missing${c.scope ? ` for ${c.scope}` : ''}. ${sees('it was asked')}`
+        : `Sent: something is ${c.kind}. ${sees('it')}`
   return {
     say: `${what} Who asked is not kept.${c.assumed ? ` ${c.assumed}` : ''}${c.values?.length ? ` ${unknownValuesSay(c.values)}` : ''}`,
   }
