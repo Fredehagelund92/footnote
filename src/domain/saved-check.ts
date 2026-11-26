@@ -146,7 +146,7 @@ export const answerText = (a: SavedAnswer) =>
 export function triggerOfEdition(reason: string): CheckTrigger {
   if (reason === 'item_retired' || reason === 'area_deleted') return 'archive'
   if (reason === 'item_restored' || reason === 'decision_undone') return 'restore'
-  if (reason === 'vocabulary_changed') return 'sync'
+  if (reason === 'vocabulary_changed' || reason === 'names_told_apart') return 'sync'
   return 'publish'
 }
 
