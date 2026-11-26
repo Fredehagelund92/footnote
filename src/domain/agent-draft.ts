@@ -347,28 +347,25 @@ export function deriveAgentDraft(
       ),
     )
 
-  // The domain: exactly one area for every scoped metric, or the person's choice.
+  // The domain: the person's answer, else the one area of every scoped metric. The agent's area
+  // counts only when the names give no single domain, so it never moves an item off its metrics'.
   let areaCandidates: string[] | null = null
   const answered = answers.area ? areaByName(answers.area, context.areas) : undefined
+  const ofMetrics = areaOfMetrics(draft.scope.metrics, context)
+  const chosen = input.area ? areaByName(input.area, context.areas) : undefined
   if (answered) {
     draft.areaId = answered.id
     marks.areaId = 'confirmed'
     reasons.areaId = confirmed
-  } else if (input.area) {
-    const chosen = areaByName(input.area, context.areas)
-    if (chosen) {
-      draft.areaId = chosen.id
-      marks.areaId = 'prefilled'
-      reasons.areaId = 'Chosen by the person, as the agent says.'
-    } else areaCandidates = context.areas.map((area) => area.id)
-  } else {
-    const area = areaOfMetrics(draft.scope.metrics, context)
-    if (area.id) {
-      draft.areaId = area.id
-      marks.areaId = 'derived'
-      reasons.areaId = 'Every metric it names belongs to this domain.'
-    } else areaCandidates = area.candidates
-  }
+  } else if (ofMetrics.id) {
+    draft.areaId = ofMetrics.id
+    marks.areaId = 'derived'
+    reasons.areaId = 'Every metric it names belongs to this domain.'
+  } else if (chosen) {
+    draft.areaId = chosen.id
+    marks.areaId = 'prefilled'
+    reasons.areaId = 'Chosen by the person, as the agent says.'
+  } else areaCandidates = ofMetrics.candidates
   if (areaCandidates)
     questions.unshift(
       question('area', 'Which domain is it about? Its owner reviews it.', areaCandidates),

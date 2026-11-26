@@ -201,6 +201,31 @@ describe('a draft from what an agent passes', () => {
     )
     expect(derived.draft.areaId).toBe('finance')
     expect(derived.marks.areaId).toBe('prefilled')
+    // When the names give several domains, the person's choice settles it.
+    const spread = deriveAgentDraft(
+      {
+        text: 'Orders and returns drop.',
+        scope: { metrics: ['Orders', 'Returns'] },
+        area: 'finance',
+      },
+      context,
+    )
+    expect(spread.draft.areaId).toBe('finance')
+    expect(spread.areaCandidates).toBeNull()
+  })
+  it("never takes the agent's domain over the one its metrics give (agent-side review, finding 4)", () => {
+    // A suggestion about a Commercial metric, sent with area Finance, goes to Commercial's owner.
+    const derived = deriveAgentDraft(
+      {
+        text: 'Orders were booked from the old ledger.',
+        scope: { metrics: ['Orders'] },
+        area: 'Finance',
+      },
+      context,
+    )
+    expect(derived.draft.areaId).toBe('commercial')
+    expect(derived.marks.areaId).toBe('derived')
+    expect(derived.reasons.areaId).toBe('Every metric it names belongs to this domain.')
   })
   it('flags the disagreement between the agent and the rule, and asks about an open issue', () => {
     const derived = deriveAgentDraft(
