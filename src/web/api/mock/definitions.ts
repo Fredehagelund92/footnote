@@ -181,8 +181,7 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
 
     /** Adds what a dbt folder on the server holds, to the demo's model it reads. */
     loadDbtFolder() {
-      if (!all.some((d) => d.ref?.startsWith('dbt:')))
-        all = [...all, ...dbtFolderDefinitions()]
+      if (!all.some((d) => d.ref?.startsWith('dbt:'))) all = [...all, ...dbtFolderDefinitions()]
     },
 
     /**

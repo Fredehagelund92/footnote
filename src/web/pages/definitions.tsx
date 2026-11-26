@@ -1014,7 +1014,8 @@ export function DefinitionsPage() {
             <p className="flex shrink-0 items-start gap-2 border-b px-4 py-2 text-xs leading-5 text-muted-foreground md:px-6">
               <ToolLogo c={source} size="sm" className="mt-0.5" />
               <span className="min-w-0">
-                From {tool ?? 'your definitions tool'} - change them there. Terms are written here by their domain owner.
+                From {tool ?? 'your definitions tool'} - change them there. Terms are written here
+                by their domain owner.
                 {/* The tool's page is in an admin's Settings: anyone else reads the line alone. */}
                 {mayOpenSettings(toolPage, me) && (
                   <>
