@@ -1,12 +1,12 @@
 import * as React from 'react'
-import { CircleDashedIcon, TriangleAlertIcon } from '@/components/icons'
+import { CircleDashedIcon, PlusIcon, TriangleAlertIcon } from '@/components/icons'
 import { cn, midSentence } from '@/lib/utils'
 import { DockFrame, DockMissing } from '@/components/dock'
 import { AgentAvatar, PersonAvatar } from '@/components/footnote/bits'
 import { KindLabel } from '@/components/footnote/review-parts'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { lookOf } from '@/model/integrations'
-import { careLine, countWord, type Review } from '@/model/review'
+import { careLine, countWord, newValuesWords, type Review } from '@/model/review'
 import { Mark } from '@/components/footnote/mark'
 import { navigate } from '@/lib/router'
 import { useInbox, useReviews } from '@/api/queries'
@@ -151,6 +151,16 @@ export function Summary({
 
 /* ---------- the quick view ---------- */
 
+/** The values a suggestion adds, which publishing it publishes too (values without figures). */
+export function NewValues({ values }: { values: NonNullable<Review['newValues']> }) {
+  return (
+    <p className="flex items-start gap-2 text-sm">
+      <PlusIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <span>{newValuesWords(values)}</span>
+    </p>
+  )
+}
+
 /** The comparison, loaded once a suggestion is opened: the first screen loads this module. */
 const PaneComparison = React.lazy(() => import('@/components/footnote/pane-comparison'))
 
@@ -185,6 +195,7 @@ export function QuickReview({ r, asked }: { r: Review; asked?: React.ReactNode }
           </span>
         </p>
       )}
+      {r.newValues && <NewValues values={r.newValues} />}
       <div className="border-b">
         <Fold
           title="What changes"

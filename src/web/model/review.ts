@@ -209,6 +209,11 @@ export type Review = {
    */
   instructionLike?: { field: string; words: string[] }[]
   /**
+   * Values its writer added in "Applies to", each with its dimension: publishing it publishes them
+   * too (values without figures). Absent when there are none.
+   */
+  newValues?: { name: string; dimension: string }[]
+  /**
    * The clash with live context: the suggestion's words once, and each live item it overlaps, which the
    * owner answers on its own. Publish sends each answer for its own item.
    */
@@ -281,4 +286,12 @@ export type Readiness = { ok: boolean; title: string; text: string; bulk: boolea
 export function readiness(r: Review, relation?: { hint: string } | null): Readiness {
   if (!r.clash || !relation || r.drafted || claimsToCheck(r)) return r.ready
   return { ok: true, title: 'Ready', text: relation.hint, bulk: false }
+}
+
+/** The values a suggestion adds, in words: "New value: Norway (Market). Publishing it publishes the value too." */
+export function newValuesWords(values: readonly { name: string; dimension: string }[]) {
+  const named = values.map((v) => `${v.name} (${v.dimension})`).join(', ')
+  return values.length === 1
+    ? `New value: ${named}. Publishing it publishes the value too.`
+    : `New values: ${named}. Publishing it publishes them too.`
 }

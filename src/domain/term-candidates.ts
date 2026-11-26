@@ -362,37 +362,3 @@ function withSynonyms(
     candidate.aliases = [...candidate.aliases, ...added].slice(0, ALIASES_MAX)
   }
 }
-
-/**
- * Dimension values from a pasted list, one per line: the name, then any other names after
- * commas ("Norway, Norge"). Blank lines and repeats are left out; a line whose name
- * makes no key is returned in `unreadable`.
- */
-export function pastedValues(
-  dimensionKey: string,
-  text: string,
-): {
-  values: { key: string; name: string; aliases: string[] }[]
-  unreadable: string[]
-} {
-  const dimension = dimensionKey.slice(dimensionKey.indexOf(':') + 1)
-  const values = new Map<string, { key: string; name: string; aliases: string[] }>()
-  const unreadable: string[] = []
-  for (const line of text.split(/\r?\n/)) {
-    const [name = '', ...aliases] = line.split(',').map((part) => part.trim())
-    if (!name) continue
-    const part = keyPart(name)
-    if (!part) {
-      unreadable.push(line.trim())
-      continue
-    }
-    const key = `val:${dimension}/${part}`
-    if (!values.has(key))
-      values.set(key, {
-        key,
-        name,
-        aliases: [...new Set(aliases.filter((alias) => alias && alias !== name))],
-      })
-  }
-  return { values: [...values.values()], unreadable }
-}

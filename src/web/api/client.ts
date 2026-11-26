@@ -34,7 +34,8 @@ import type { AskLive } from '@/model/ask-turn'
 import type { CommentAnchor, Comments, MentionNote, Subject } from '@/model/comments'
 import type { DomainId, Fact, Kind, LogEntry, Metric, Sent } from '@/model/items'
 import type { Version, VersionPair } from '@/model/history'
-import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
+import type { DecideNamesInput, NamesDecision, NamesRead } from '@contract/inbox'
+import type { AddValuesResult, WrittenValueInput } from '@contract/values'
 import type { Conflict, ConflictDecision, ConflictRow, SettleConflict } from '@/model/conflicts'
 import type { InboxCard, Outcome, Waiting } from '@/model/inbox'
 import type { Alerts, RaisedPage, RuleId } from '@/model/alerts'
@@ -611,6 +612,11 @@ export interface FootnoteApi {
   joinFamily: (input: { name: string }) => Promise<void>
   /** The families split back into their metrics, newest first. */
   getFamilySplits: () => Promise<SplitFamily[]>
+  /**
+   * Adds values to a dimension, by its name: one, or a pasted list. An owner of its domain or an
+   * admin publishes them at once; anyone else's wait for one on the Names card.
+   */
+  addValues: (input: { dimension: string; values: WrittenValueInput[] }) => Promise<AddValuesResult>
   /** Saves a term; a renamed one replaces the old entry. Synced definitions are never saved here. */
   saveTerm: (input: { previous?: string; term: Definition }) => Promise<void>
   /** Another name for a definition, refused when the word already means something. */
@@ -638,7 +644,7 @@ export interface FootnoteApi {
   /** The names a read made that the person may accept (FR-141). */
   getNames: () => Promise<NamesRead>
   /** Accepts names as one edition, and leaves others out. */
-  decideNames: (input: DecideNames) => Promise<NamesDecision>
+  decideNames: (input: DecideNamesInput) => Promise<NamesDecision>
   /** A card closed without a decision of its own (a report that is not a problem). */
   completeCard: (input: { card: string; outcome: string }) => Promise<Undoable>
   /**
@@ -1034,6 +1040,7 @@ export const footnoteApiMethods = [
   'splitFamily',
   'joinFamily',
   'getFamilySplits',
+  'addValues',
   'saveTerm',
   'addSynonym',
   'removeTerm',

@@ -274,6 +274,11 @@ export const reviewSheetSchema = z.object({
    * there are none, and for an archive.
    */
   instructionLike: z.array(z.object({ field: textField, words: z.array(z.string()) })),
+  /**
+   * Values its writer added in "Applies to" that no vocabulary has yet, each with its dimension's
+   * name: publishing the suggestion publishes them too, in its domain (values without figures).
+   */
+  newValues: z.array(z.object({ name: z.string(), dimension: z.string() })),
   clashes: z.array(clashSchema),
   /** Live items whose scope and dates overlap, for information; only a clash holds Publish. */
   overlaps: z.array(z.object({ id: z.string(), title: z.string(), kind: z.enum(itemKinds) })),

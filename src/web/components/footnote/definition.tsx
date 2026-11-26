@@ -503,12 +503,15 @@ export function DefinitionDetails({
   d,
   variants,
   relations,
+  values,
 }: {
   d: Definition
   /** A family's variants: its own page lists them, which keeps their code out of the first load. */
   variants?: React.ReactNode
   /** What a metric is built from and what is built from it: its own page shows it, as above. */
   relations?: React.ReactNode
+  /** A dimension's values and the forms that add them: its own page shows them, as above. */
+  values?: React.ReactNode
 }) {
   const me = useMe()
   const canEdit = me.admin || (!!d.domain && me.owns.includes(d.domain))
@@ -522,8 +525,7 @@ export function DefinitionDetails({
   const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
   const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
   const mentioned = related.links.length > 0
-  const hasDetails =
-    !!d.values || (d.synced && !!(d.ref || d.changed || d.sourceNames.length > 0)) || mentioned
+  const hasDetails = (d.synced && !!(d.ref || d.changed || d.sourceNames.length > 0)) || mentioned
   // The meaning is the page; then one quiet line on where it comes from, and the rest folded into Details.
   return (
     <div className="flex flex-col gap-5">
@@ -603,11 +605,10 @@ export function DefinitionDetails({
         {hasDetails && (
           <MoreProperties
             label="Details"
-            summary={[d.synced && d.ref, d.values, mentioned && `${related.links.length} related`]
+            summary={[d.synced && d.ref, mentioned && `${related.links.length} related`]
               .filter(Boolean)
               .join(' - ')}
           >
-            {d.values && <Property label="Values">{d.values}</Property>}
             {d.synced && d.sourceNames.length > 0 && (
               <Property label={`Other names in ${d.tool ?? 'its tool'}`}>
                 {d.sourceNames.map((n) => (
@@ -653,11 +654,18 @@ export function DefinitionDetails({
           <SynonymTags d={d} canEdit={canEdit} />
         </>
       )}
-      {subject.type !== 'dimension' && (
+      {subject.type !== 'dimension' ? (
         <>
           <Separator />
           <ContextAbout subject={subject} about={about} />
         </>
+      ) : (
+        values && (
+          <>
+            <Separator />
+            {values}
+          </>
+        )
       )}
       <Separator />
       <div className="flex flex-col gap-1">

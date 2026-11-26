@@ -8,6 +8,7 @@ import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
 import { familyDefinitions, variantDefinitions } from './data/variants'
 import { dbtFolderDefinitions } from './data/dbt-folder'
+import { dimensionTermOf, valuesOf, valuesPublished } from './scope'
 import { ApiError } from '@/api/errors'
 import { today } from '@/lib/today'
 import type { DomainId } from '@/model/items'
@@ -79,7 +80,6 @@ const seed: Definition[] = [
     ...fromModel('Segments', d.name),
     sourceNames: [],
     group: 'Segments',
-    values: d.values,
     updated: '22 Oct 2026',
   })),
   ...TERMS,
@@ -143,8 +143,21 @@ export function createDefinitions() {
   /** The families split back into their metrics, newest first, each with the entry it was. */
   let splits: { family: Definition; split: SplitFamily }[] = []
 
+  /** A dimension with the values the demo's vocabulary has for it now, as the catalogue sends. */
+  const withValues = (d: Definition): Definition => {
+    const key = d.type === 'dimension' && d.synced ? dimensionTermOf(d.name)?.key : undefined
+    return key ? { ...d, values: valuesOf(key) } : d
+  }
+  // The same list while nothing changed it, so an Undo that puts a list back gives that list.
+  const shown = new WeakMap<Definition[], { at: number; list: Definition[] }>()
   return {
-    list: () => all,
+    list: () => {
+      const held = shown.get(all)
+      if (held?.at === valuesPublished()) return held.list
+      const list = all.map(withValues)
+      shown.set(all, { at: valuesPublished(), list })
+      return list
+    },
 
     /** Adds a metric per currency and channel, 5,000 of them, for Definitions at that size. */
     loadVariants() {

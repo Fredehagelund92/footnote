@@ -1,4 +1,4 @@
-import type { DecideNames, NamesDecision, NamesRead } from '@contract/inbox'
+import type { DecideNamesInput, NamesDecision, NamesRead, WaitingValue } from '@contract/inbox'
 import { contentDigest } from '@domain/canonical'
 import {
   familyRead,
@@ -18,7 +18,8 @@ import { namesWords, type InboxCard } from '@/model/inbox'
 // invented shop's dbt project. They wait once a definitions tool is connected, or with
 // ?demo=names. Accepting one takes it off the list; the mock's vocabulary is the demo's own, so
 // nothing else changes. Kept until the page reloads. As on the service, a name is read and
-// decided only by an admin or an owner of its domain.
+// decided only by an admin or an owner of its domain. The values someone added in Definitions wait
+// here too (values without figures): the demo's dimensions have no domain, so an admin decides.
 
 /** Who reads the names: an admin, or the owner of some domains. */
 type Reader = { admin: boolean; owns: readonly string[] }
@@ -141,11 +142,19 @@ const holders: WordHolders = new Map([
   ['basket value', [{ origin: 'vocabulary', ref: 'metric:aov', name: 'Average order value' }]],
 ])
 
-export function createMockNames(heldWords: WordHolders = holders) {
+export function createMockNames(
+  heldWords: WordHolders = holders,
+  /** Publishes values that were waiting, as an owner's decision does. */
+  publish: (values: readonly WaitingValue[]) => void = () => {},
+) {
   let waiting = false
   let members = shop
   const taken = new Set<string>()
   const left = new Set<string>()
+  let values: WaitingValue[] = []
+  /** The values that wait for the person: those of a domain they own, or any for an admin. */
+  const valuesFor = (who: Reader) =>
+    values.filter((v) => who.admin || (v.areaId !== null && who.owns.includes(v.areaId)))
 
   const names = () =>
     waiting
@@ -173,7 +182,12 @@ export function createMockNames(heldWords: WordHolders = holders) {
         family: familyRead({ family, linked: name.linked }),
       }),
     )
-    return { revision: await contentDigest(shown), names: shown }
+    const shownValues = valuesFor(who)
+    return {
+      revision: await contentDigest({ shown, values: shownValues }),
+      names: shown,
+      values: shownValues,
+    }
   }
   return {
     /** A read of a definitions tool ended; with `families`, it found a family of metrics too. */
@@ -182,13 +196,20 @@ export function createMockNames(heldWords: WordHolders = holders) {
       if (families) members = [...shop, ...variants, ...foundOtherwise]
     },
     read,
+    /** Values someone added in Definitions, waiting for an owner. */
+    suggest(added: readonly WaitingValue[]) {
+      values = [...values, ...added]
+    },
+    /** The values that wait, of every dimension: what a new one must not repeat. */
+    waitingValues: () => values,
     card(me: string, who: Reader): InboxCard | null {
       const list = readable(who)
       const ready = list.filter((n) => n.state === 'ready').length
       const flagged = list.filter((n) => n.state === 'flagged').length
-      if (!ready && !flagged) return null
+      const waitingValues = valuesFor(who).length
+      if (!ready && !flagged && !waitingValues) return null
       const families = list.filter((n) => n.family && n.state !== 'left_out').length
-      const counts = { ready, flagged, families, tools: ['dbt'] }
+      const counts = { ready, flagged, families, values: waitingValues, tools: ['dbt'] }
       return {
         id: 'names:waiting',
         type: 'names',
@@ -202,9 +223,17 @@ export function createMockNames(heldWords: WordHolders = holders) {
         names: counts,
       }
     },
-    async decide(input: DecideNames, who: Reader): Promise<NamesDecision> {
+    async decide(input: DecideNamesInput, who: Reader): Promise<NamesDecision> {
       if ((await read(who)).revision !== input.revision)
         throw new ApiError('conflict', 'The names changed after you opened them.')
+      const decided = input.values ?? { accept: [], leaveOut: [] }
+      const mine = valuesFor(who)
+      for (const id of [...decided.accept, ...decided.leaveOut])
+        if (!mine.some((v) => v.id === id))
+          throw new ApiError(
+            'conflict',
+            'A value here no longer waits. Look at the latest list, then try again.',
+          )
       const found = readable(who)
       for (const key of [...input.accept.map((pick) => pick.key), ...input.leaveOut])
         if (!found.some((n) => n.key === key))
@@ -267,10 +296,16 @@ export function createMockNames(heldWords: WordHolders = holders) {
           })
       for (const key of input.leaveOut)
         list.find((n) => n.key === key)?.definitionRefs.forEach((ref) => left.add(ref))
+      // The first of two people's same value is published, and the other waits for nothing.
+      const published = values.filter((v) => decided.accept.includes(v.id))
+      publish(published)
+      const settled = new Set(published.map((v) => v.key))
+      values = values.filter((v) => !decided.leaveOut.includes(v.id) && !settled.has(v.key))
       return {
-        edition: chosen.size ? 'today.1' : null,
+        edition: chosen.size || published.length ? 'today.1' : null,
         accepted: chosen.size,
         leftOut: input.leaveOut.length,
+        values: { accepted: published.length, leftOut: decided.leaveOut.length },
         waiting: await read(who),
       }
     },

@@ -25,6 +25,11 @@ export const termSchema = z
      * at most, a dimension one per view of the source (`cube:orders.market`, `cube:segments.market`).
      */
     definitionRefs: z.array(z.string()),
+    /**
+     * How the data writes a value (`NO` for Norway): matched against what an agent's filter
+     * passes, never against a question's words. Only a value has it; absent when nobody wrote it.
+     */
+    writtenAs: z.optional(z.array(z.string())),
   })
   .check(
     z.refine((term) => {
@@ -186,7 +191,10 @@ export function relevantRefs(
 }
 /** What a term version's digest covers. */
 export function termDigestContent(
-  term: Pick<Term, 'key' | 'kind' | 'parentKey' | 'name' | 'aliases' | 'areaId' | 'definitionRefs'>,
+  term: Pick<
+    Term,
+    'key' | 'kind' | 'parentKey' | 'name' | 'aliases' | 'areaId' | 'definitionRefs' | 'writtenAs'
+  >,
 ) {
   const { definitionRefs, ...rest } = term
   const content = {
@@ -197,7 +205,12 @@ export function termDigestContent(
     aliases: rest.aliases,
     areaId: rest.areaId,
   }
-  return { ...content, definitionRefs: [...definitionRefs].sort(byCodePoint) }
+  // A version that says nothing of how the data writes it has the content it always had.
+  return {
+    ...content,
+    definitionRefs: [...definitionRefs].sort(byCodePoint),
+    ...(rest.writtenAs?.length ? { writtenAs: rest.writtenAs } : {}),
+  }
 }
 const byCodePoint = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 /**

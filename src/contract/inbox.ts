@@ -52,6 +52,8 @@ export const cardSchema = z.union([
     flagged: z.number(),
     /** Of the names that wait, the families of near-identical metrics (FR-142). */
     families: z.number(),
+    /** The values people added in Definitions that wait for the person to publish. */
+    values: z.number(),
     tools: z.array(z.string()),
   }),
   z.object({
@@ -317,10 +319,32 @@ export const sourceNameSchema = z.object({
 })
 export type SourceNameRead = z.infer<typeof sourceNameSchema>
 
+/**
+ * A value someone added to a dimension in Definitions, waiting for an owner of the dimension's
+ * domain or an admin to publish it (values without figures): a suggestion of its own.
+ */
+export const waitingValueSchema = z.object({
+  /** The suggestion, by id. */
+  id: z.string(),
+  /** The value's key: `val:market/norway`. */
+  key: z.string(),
+  name: z.string(),
+  aliases: z.array(z.string()),
+  /** How the data writes it, as an agent's filter passes it. */
+  writtenAs: z.array(z.string()),
+  dimension: z.object({ key: z.string(), name: z.string() }),
+  areaId: z.nullable(z.string()),
+  by: z.object({ personId: z.string(), name: z.nullable(z.string()) }),
+  at: z.string(),
+})
+export type WaitingValue = z.infer<typeof waitingValueSchema>
+
 export const namesSchema = z.object({
   /** The names as the person read them: a decision on an older list is refused. */
   revision: z.string(),
   names: z.array(sourceNameSchema),
+  /** The values people added that wait for the person to publish, oldest first. */
+  values: z.array(waitingValueSchema),
 })
 export type NamesRead = z.infer<typeof namesSchema>
 
@@ -345,13 +369,25 @@ export const decideNamesSchema = z.strictObject({
     )
     .check(z.maxLength(NAMES_MAX)),
   leaveOut: z.array(nameKeySchema).check(z.maxLength(NAMES_MAX)),
+  /** The waiting values to publish and to leave out, by suggestion. */
+  values: z._default(
+    z.strictObject({
+      accept: z.array(z.string().check(z.uuid())).check(z.maxLength(NAMES_MAX)),
+      leaveOut: z.array(z.string().check(z.uuid())).check(z.maxLength(NAMES_MAX)),
+    }),
+    { accept: [], leaveOut: [] },
+  ),
 })
 export type DecideNames = z.infer<typeof decideNamesSchema>
+/** A decision as the app sends it: `values` left out decides none. */
+export type DecideNamesInput = z.input<typeof decideNamesSchema>
 export const decideNamesResultSchema = z.object({
   /** The edition that made them live; null when nothing was accepted. */
   edition: z.nullable(z.string()),
   accepted: z.number(),
   leftOut: z.number(),
+  /** The waiting values published and left out. */
+  values: z.object({ accepted: z.number(), leftOut: z.number() }),
   /**
    * The names that wait after the decision, as `names` reads them: an owner decides one name
    * after another, and the card shows the next list without reading it again.

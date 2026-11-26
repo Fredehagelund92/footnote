@@ -122,7 +122,7 @@ import { backToList, navigate, pathNow, plainClick } from '@/lib/router'
 import { useDomains, useFacts } from '@/lib/workspace'
 import { useInboxRows } from '@/lib/inbox-rows'
 import { useMe } from '@/lib/workspace'
-import { Summary } from '@/pages/review'
+import { NewValues, Summary } from '@/pages/review'
 import { TruncatedText } from '@/components/footnote/truncated'
 import { useToastFloor } from '@/lib/toast-floor'
 import { plainText } from '@/lib/mentions'
@@ -795,6 +795,11 @@ function TheChange({
             this week. {r.retire.checkFirst}
           </p>
         </section>
+      )}
+      {r.newValues && (
+        <div className="mb-6 border-b pb-6">
+          <NewValues values={r.newValues} />
+        </div>
       )}
       {r.instructionLike && <InstructionWarning found={r.instructionLike} />}
       {r.synced && <SyncedFrom r={r} />}

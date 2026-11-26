@@ -33,18 +33,28 @@ export function namesWords({
   ready,
   flagged,
   families = 0,
+  values = 0,
   tools,
 }: {
   ready: number
   flagged: number
   /** Of them, the families waiting. */
   families?: number
+  /** Values people added in Definitions that wait (values without figures). */
+  values?: number
   tools: readonly string[]
 }) {
   const total = ready + flagged
   const others = total - families
   const from = `from ${tools.join(', ')}`
   const n = (x: number) => x.toLocaleString('en-GB')
+  const added = `${values === 1 ? '1 value' : `${n(values)} values`} people added`
+  if (!total && values)
+    return {
+      title: values === 1 ? '1 new value people added' : `${n(values)} new values people added`,
+      line: 'Publish the ones that are right.',
+    }
+  const also = values ? ` Also ${added}.` : ''
   return {
     title: !total
       ? 'Names left out'
@@ -53,11 +63,13 @@ export function namesWords({
         : `${total === 1 ? '1 new metric or dimension' : `${n(total)} new metrics and dimensions`} ${from}`,
     line: !total
       ? 'Every new name was left out.'
-      : flagged
-        ? `${ready} ready to publish, ${flagged} to look at first.`
-        : ready === 1
-          ? 'Ready to publish.'
-          : 'All ready to publish.',
+      : `${
+          flagged
+            ? `${ready} ready to publish, ${flagged} to look at first.`
+            : ready === 1
+              ? 'Ready to publish.'
+              : 'All ready to publish.'
+        }${also}`,
   }
 }
 
@@ -192,7 +204,7 @@ export type InboxCard = {
    */
   asked?: { on: string; answers: CheckAnswerRow[] }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */
-  names?: { ready: number; flagged: number; families: number; tools: string[] }
+  names?: { ready: number; flagged: number; families: number; values: number; tools: string[] }
   /**
    * Created by a sync from a document, never by a person: the tool as people say it, and its
    * connector's id, which its logo is drawn by.

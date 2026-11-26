@@ -210,6 +210,7 @@ import {
 } from './catalogue.ts'
 import { searchAllInputSchema, searchResultsSchema } from './search.ts'
 import { scopeSearchInputSchema, scopeSearchSchema } from './scope.ts'
+import { addValuesResultSchema, addValuesSchema } from './values.ts'
 import {
   deletedTermSchema,
   termChangeResultSchema,
@@ -1785,6 +1786,16 @@ export const contract = {
       })
       .input(scopeSearchInputSchema)
       .output(scopeSearchSchema),
+    addValues: proposal
+      .route({
+        method: 'POST',
+        path: '/vocabulary/values',
+        tags: ['reference'],
+        summary:
+          "Add values to a dimension, one or a pasted list: an owner of the dimension's domain or an admin publishes them at once, and anyone else's wait for one on the Names card. A word another value has already is refused (FR-125)",
+      })
+      .input(addValuesSchema)
+      .output(addValuesResultSchema),
   },
   inbox: {
     feed: read

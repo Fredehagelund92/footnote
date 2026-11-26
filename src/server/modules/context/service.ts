@@ -25,6 +25,7 @@ import {
   type BulkRowSkip,
 } from '../../../domain/context-bulk.ts'
 import type { Draft } from '../../../domain/draft.ts'
+import type { NewValues } from '../../../domain/values.ts'
 import { limits } from '../../../domain/proposal-rules.ts'
 import type { Scope } from '../../../domain/item.ts'
 import type { ItemVersion } from '../../../domain/item-version.ts'
@@ -1026,6 +1027,7 @@ export function createContextService(
    */
   async function publish(input: {
     draft: Draft
+    newValues?: NewValues | undefined
     itemId?: string | undefined
     version?: number | undefined
     reason?: string | undefined
@@ -1035,9 +1037,10 @@ export function createContextService(
   }): Promise<PublishItemResult> {
     if (input.gapId) await createGapsService(tx).linkable(input.gapId)
     const created = input.draftId
-      ? await finish(input.draftId, input.draft, input.reason)
+      ? await finish(input.draftId, input.draft, input.reason, input.newValues)
       : await proposals.create({
           draft: input.draft,
+          ...(input.newValues ? { newValues: input.newValues } : {}),
           ...(input.itemId ? { itemId: input.itemId } : {}),
           ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
           ...(input.reason ? { reason: input.reason } : {}),
@@ -1103,7 +1106,12 @@ export function createContextService(
    * admin, to publish it as itself (Edit then publish): its writer withdraws it. Someone else's
    * draft is never found: only its writer reads it (FR-139).
    */
-  async function finish(id: string, draft: Draft, reason: string | undefined) {
+  async function finish(
+    id: string,
+    draft: Draft,
+    reason: string | undefined,
+    newValues: NewValues | undefined,
+  ) {
     const [row] = await tx.query<{
       revision: number
       proposerId: string | null
@@ -1125,7 +1133,10 @@ export function createContextService(
         message: 'It is waiting for review. Withdraw it to change it, then send it again.',
       })
     if (row.proposerId !== mine.id && !mayPublish) notTheirsToPublish()
-    return proposals.save(id, row.revision, draft, reason, { byDomainOwners: row.waiting })
+    return proposals.save(id, row.revision, draft, reason, {
+      byDomainOwners: row.waiting,
+      newValues,
+    })
   }
 
   /**
@@ -1136,6 +1147,7 @@ export function createContextService(
    */
   async function saveDraft(input: {
     draft: Draft
+    newValues?: NewValues | undefined
     itemId?: string | undefined
     version?: number | undefined
     reason?: string | undefined
@@ -1151,10 +1163,13 @@ export function createContextService(
         [input.draftId],
       )
       if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
-      saved = await proposals.save(input.draftId, row.revision, input.draft, input.reason)
+      saved = await proposals.save(input.draftId, row.revision, input.draft, input.reason, {
+        newValues: input.newValues,
+      })
     } else
       saved = await proposals.create({
         draft: input.draft,
+        ...(input.newValues ? { newValues: input.newValues } : {}),
         ...(input.itemId ? { itemId: input.itemId } : {}),
         ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
         ...(input.reason ? { reason: input.reason } : {}),

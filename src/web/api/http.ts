@@ -73,6 +73,7 @@ import {
 import {
   dayShiftOf,
   draftOf,
+  newValuesOf,
   factOfDraft,
   factOfWaiting,
   factOfReadDraft,
@@ -180,6 +181,7 @@ export const wiredMethods = [
   'splitFamily',
   'joinFamily',
   'getFamilySplits',
+  'addValues',
   'saveTerm',
   'addSynonym',
   'removeTerm',
@@ -588,6 +590,11 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         operation.startsWith('terms.') ||
         operation === 'decisions.undo' ||
         operation === 'inbox.decideNames' ||
+        // A value added, or published with an item, is a word an item and a mention name.
+        operation === 'vocabulary.addValues' ||
+        operation === 'items.publish' ||
+        operation === 'review.publish' ||
+        operation === 'review.publishRead' ||
         operation === 'definitions.splitFamily' ||
         operation === 'definitions.joinFamily'
       )
@@ -847,6 +854,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const version = started ? before?.version : fact.version
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
+      newValues: newValuesOf(fact),
       ...(itself
         ? { draftId: itself.id }
         : itemId
@@ -875,6 +883,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const gap = card ? parseCardKey(card) : null
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
+      newValues: newValuesOf(fact),
       ...(started
         ? { draftId: started.id }
         : itemId
@@ -1617,6 +1626,13 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
       await write('proposals.withdraw', input, (o) => client.proposals.withdraw(input, o))
       sent = sent.filter((x) => x.id !== proposal.id)
+    },
+    addValues: async ({ dimension, values }) => {
+      const key = (await readGlossary()).keyOf(dimension)
+      if (!key?.startsWith('dim:'))
+        throw new ApiError('not-found', `“${dimension}” isn't in Definitions any more.`)
+      const input = { dimension: key, values }
+      return write('vocabulary.addValues', input, (o) => client.vocabulary.addValues(input, o))
     },
     getDefinitions: async () => (await readGlossary()).definitions,
     definitionsPage: async () => (await readGlossary()).definitions,

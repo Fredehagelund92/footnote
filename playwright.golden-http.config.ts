@@ -122,6 +122,10 @@ export default defineConfig({
     // J130 opens answers with what is not published yet by the mock's example address; the
     // service writes them in tests/web/integration/ask-loop-shapes.test.ts and ask-drafts.test.ts.
     /\/j130-ask-not-published\.spec\.ts$/,
+    // J131 adds values to the mock's dimensions, which have no domain there; the service adds and
+    // publishes them in tests/integration/values.test.ts, and on an install with no demo in
+    // tests/e2e-own/own-data.spec.ts.
+    /\/j131-dimension-values\.spec\.ts$/,
     // J102 connects the mock's ?demo=families dbt project; the service counts a test read's
     // families in tests/integration/metric-variants.test.ts and its card's in
     // declared-families.test.ts.

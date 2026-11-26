@@ -746,6 +746,7 @@ const sheet = (patch: Partial<ReviewSheet> = {}, diff: Partial<Diff> = {}): Revi
   source: { before: 'Leaves out 312 accounts.', after: 'Leaves out 340 accounts.', rows: [] },
   claims: null,
   instructionLike: [],
+  newValues: [],
   clashes: [],
   overlaps: [],
   readiness: {

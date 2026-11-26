@@ -113,6 +113,7 @@ describe('edition export check', () => {
       aliases: ['Order amount'],
       areaId: 'finance',
       definitionRefs: ['cube:payments.orders'],
+      writtenAs: [],
     }
     const item = { id: 'itm_abcdefgh01', version: 1, ...content }
     const digests = await itemVersionDigests(content)

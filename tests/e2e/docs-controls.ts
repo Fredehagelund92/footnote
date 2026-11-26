@@ -290,4 +290,16 @@ export const docControls: DocControl[] = [
   },
   { phrase: 'Definitions', page: 'definitions-and-synonyms', at: '/inbox', drawn: 'link' },
   { phrase: 'New term', page: 'definitions-and-synonyms', at: '/definitions', drawn: 'button' },
+  {
+    phrase: 'Add a value',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Market',
+    drawn: 'button',
+  },
+  {
+    phrase: 'Paste a list',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Market',
+    drawn: 'button',
+  },
 ]

@@ -7,6 +7,7 @@ export {
 export { draftOf } from './checks.ts'
 export { waitingMembers, type WaitingMember } from './vocabulary.ts'
 export { createNamesService, type NamesService } from './names.ts'
+export { createValuesService } from './values.ts'
 export { acceptTermVersions, type TermVersion } from './term-versions.ts'
 export { createReviewPath, type ReviewPath } from './path.ts'
 export { loadProposal, type LoadedProposal } from './records.ts'
