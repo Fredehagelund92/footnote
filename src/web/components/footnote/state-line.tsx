@@ -114,5 +114,5 @@ const stateEdgeTone: Record<AnswerState, string | null> = {
 
 export function StateEdge({ state }: { state: AnswerState }) {
   const tone = stateEdgeTone[state]
-  return tone && <span aria-hidden className={cn('absolute inset-y-0 left-0', tone)} />
+  return tone && <span aria-hidden className={cn('pointer-events-none absolute inset-y-0 left-0', tone)} />
 }
