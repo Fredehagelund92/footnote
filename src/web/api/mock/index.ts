@@ -1848,7 +1848,7 @@ export function createMockApi() {
 
   // Every write is sent as the scenario plays a send: refused offline, failing its first try under
   // a fault flag. These take as long as a send does; every other write answers at once unless a
-  // flag plays sends. ?decide=fail names the card it fails on.
+  // flag plays sends. ?decide=fail names the card it fails on, ?publish=fail the suggestion.
   const timedSends: FootnoteApiMethod[] = [
     'settleConflict',
     'suggestArchiving',
@@ -1875,7 +1875,13 @@ export function createMockApi() {
               key: (args[0] as Parameters<FootnoteApi['decideCard']>[0]).card,
               flag: 'decide' as const,
             }
-          : {}),
+          : method === 'publishReview'
+            ? {
+                key: (args[0] as Parameters<FootnoteApi['publishReview']>[0]).id,
+                flag: 'publish' as const,
+                refusal: 'Another owner is already reviewing this suggestion.',
+              }
+            : {}),
       })) as never
   }
 

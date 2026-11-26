@@ -114,7 +114,7 @@ test('a withdrawn retirement closes; archiving asks first, from the key too', as
   await expect(ask).toBeHidden()
   await expect(decide.getByText('Archived')).toHaveCount(0)
   await page.keyboard.press('ControlOrMeta+Enter')
-  await expect(decide.getByText('Nothing changes: the context item stays live.')).toBeVisible()
+  await expect(page.getByText('Nothing changes: the context item stays live.')).toBeVisible()
 })
 
 test('its sender takes a suggestion to archive back in the comments, or lets it stand', async ({

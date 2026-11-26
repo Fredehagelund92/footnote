@@ -16,6 +16,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { CommandPalette } from '@/components/command-palette'
 import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
+import { UndoKey } from '@/lib/undo'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
@@ -541,6 +542,7 @@ export default function App() {
               <ConnectAgentOnOpen />
               <ShortcutsDialog />
               <ReportDialog />
+              <UndoKey />
             </SignedIn>
           </Loaded>
           <AppToaster />

@@ -6,9 +6,11 @@ import { mayDo, type ReviewAction, type ReviewActions } from '@domain/review-act
 // two views of it, so a failure carries its action and "Try again" has nothing to guess. A note
 // travels with the Return being sent, and a retried Return sends the note as the editor holds it
 // now; a reason travels with a Close the same way. A pure reducer; the page sends the write and tells it how it went. What may be done comes
-// from `reviewActions` (src/domain/review-actions.ts), passed with the events that need it.
+// from `reviewActions` (src/domain/review-actions.ts), passed with the events that need it. What a
+// decision did is said in a toast as the review moves on, so a decision that went through is idle
+// again.
 //
-//   idle ──ask archive──▶ confirmingArchive ──press──▶ sending ──ok──▶ done ──finish──▶ idle
+//   idle ──ask archive──▶ confirmingArchive ──press──▶ sending ──ok──▶ idle
 //   idle ──ask return───▶ writingReturn ─────press──▶ sending ──error─▶ failed ──retry──▶ sending
 //   idle ──ask close────▶ confirmingClose ───press──▶ sending (with the owner's reason)
 //   idle ──press (publish, close)────────────────────▶ sending
@@ -17,7 +19,7 @@ import { mayDo, type ReviewAction, type ReviewActions } from '@domain/review-act
 // Every state names the suggestion it is for: a write that answers after the person moved on is
 // not theirs to see, and `open` starts a new suggestion clean.
 
-export type DecisionState<D> =
+export type DecisionState =
   | { kind: 'idle'; id: string }
   /** Archiving takes context away from agents, so it asks first. */
   | { kind: 'confirmingArchive'; id: string }
@@ -37,9 +39,8 @@ export type DecisionState<D> =
       failure: ApiErrorKind
       reason: string | null
     }
-  | { kind: 'done'; id: string; done: D }
 
-export type DecisionEvent<D> =
+export type DecisionEvent =
   | { type: 'open'; id: string }
   | { type: 'ask'; action: AskedAction; actions: ReviewActions }
   | { type: 'cancel' }
@@ -55,9 +56,8 @@ export type DecisionEvent<D> =
    * `reason` is a failed Close's reason as it is written now.
    */
   | { type: 'retry'; actions: ReviewActions; note?: JSONContent; reason?: string }
-  | { type: 'ok'; id: string; done: D }
+  | { type: 'ok'; id: string }
   | { type: 'error'; id: string; failure: ApiErrorKind; reason: string | null }
-  | { type: 'finish' }
 
 /** The actions that take a step of their own before they are sent. */
 export type AskedAction = 'archive' | 'return' | 'close'
@@ -68,7 +68,7 @@ const askedState = {
   close: 'confirmingClose',
 } as const
 
-export const idle = (id: string): DecisionState<never> => ({ kind: 'idle', id })
+export const idle = (id: string): DecisionState => ({ kind: 'idle', id })
 
 /**
  * A Return is only sent with the words of its note; with none on screen there is nothing to send.
@@ -79,7 +79,7 @@ const sendOf = (
   action: ReviewAction,
   note?: JSONContent,
   reason?: string,
-): DecisionState<never> | null =>
+): DecisionState | null =>
   action === 'return'
     ? note
       ? { kind: 'sending', id, action, note }
@@ -89,7 +89,7 @@ const sendOf = (
       : { kind: 'sending', id, action }
 
 /** The next state; the same object when the event does not apply, so a caller can tell. */
-export function decide<D>(state: DecisionState<D>, event: DecisionEvent<D>): DecisionState<D> {
+export function decide(state: DecisionState, event: DecisionEvent): DecisionState {
   const { id } = state
   switch (event.type) {
     case 'open':
@@ -110,7 +110,7 @@ export function decide<D>(state: DecisionState<D>, event: DecisionEvent<D>): Dec
       // Archive and Return are pressed from their own step; a Close from its own step, where it
       // takes a reason, or from the buttons where it leads (its sender took it back); the rest from
       // the buttons.
-      const from: DecisionState<D>['kind'][] =
+      const from: DecisionState['kind'][] =
         event.action === 'archive'
           ? ['confirmingArchive']
           : event.action === 'return'
@@ -134,24 +134,19 @@ export function decide<D>(state: DecisionState<D>, event: DecisionEvent<D>): Dec
         state
       )
     case 'ok':
-      return state.kind === 'sending' && event.id === id
-        ? { kind: 'done', id, done: event.done }
-        : state
+      return state.kind === 'sending' && event.id === id ? idle(id) : state
     case 'error':
       return state.kind === 'sending' && event.id === id
         ? { kind: 'failed', id, action: state.action, failure: event.failure, reason: event.reason }
         : state
-    case 'finish':
-      return state.kind === 'done' ? idle(id) : state
   }
 }
 
 /** The action being sent, if one is. */
-export const sendingOf = (state: DecisionState<unknown>) =>
-  state.kind === 'sending' ? state.action : null
+export const sendingOf = (state: DecisionState) => (state.kind === 'sending' ? state.action : null)
 
 /** The note is on screen: being written, sent, or kept after it failed. */
-export const writingReturn = (state: DecisionState<unknown>) =>
+export const writingReturn = (state: DecisionState) =>
   state.kind === 'writingReturn' ||
   ((state.kind === 'sending' || state.kind === 'failed') && state.action === 'return')
 

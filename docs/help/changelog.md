@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-25
 ---
 
+## Publish moves on at once
+
+2026-11-25
+
+Publish in a review opens the next suggestion at once. The one you left says Publishing, then Published once it is in, or why it couldn't be. Command and Z undoes your last decision from any screen, for as long as Undo is offered. See [Review a suggestion](review-a-suggestion.md#after-you-decide).
+
 ## The keys work on every list
 
 2026-11-25

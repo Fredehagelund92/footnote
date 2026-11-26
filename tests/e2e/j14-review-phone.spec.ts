@@ -18,13 +18,9 @@ test('on a phone, Try again after a failed Close closes, from either place', asy
   await expect(again).toHaveCount(2)
   // The panel's Try again retries what the bar sent: it closes. It never publishes or archives.
   await again.first().click()
-  await expect(
-    page
-      .getByRole('status')
-      .filter({ hasText: /^Closed/ })
-      .first(),
-  ).toBeVisible()
-  await expect(page.getByRole('status').filter({ hasText: /^(Published|Archived)/ })).toHaveCount(0)
+  const toasts = page.locator('[data-sonner-toast]')
+  await expect(toasts.filter({ hasText: /^Closed “/ })).toBeVisible()
+  await expect(toasts.filter({ hasText: /^(Published|Archived)/ })).toHaveCount(0)
   await expect(page.getByRole('dialog')).toHaveCount(0)
 })
 

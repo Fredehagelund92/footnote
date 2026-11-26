@@ -100,7 +100,7 @@ import {
   workspaceQuery,
 } from '@/api/queries'
 import type { UndoOffer } from '@/api/client'
-import { useUndo } from '@/lib/undo'
+import { rememberSending, useUndo } from '@/lib/undo'
 import { definitionsStep, setupHeading, setupSteps } from '@/lib/setup'
 import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
@@ -1714,21 +1714,23 @@ export function InboxPage() {
     let gone = false
     let saved: UndoOffer | undefined
     next()
+    // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
+    // back now when the answer is in, else when it comes. Command and Z does the same.
+    const takeBackWhenIn = () => {
+      undone = true
+      if (saved) void undo.takeBack(saved)
+    }
     const said = toast(d.message, {
       description: d.description,
       duration: Infinity,
-      action: {
-        label: 'Undo',
-        onClick: () => {
-          // Pressed as the save lands, this button can outlive the swap to the offer's own: take it
-          // back now when the answer is in, else when it comes.
-          undone = true
-          if (saved) void undo.takeBack(saved)
-        },
-      },
+      action: { label: 'Undo', onClick: takeBackWhenIn },
       onDismiss: () => {
         gone = true
       },
+    })
+    const waiting = rememberSending('Still saving that decision', () => {
+      toast.dismiss(said)
+      takeBackWhenIn()
     })
     void leaveThen(card.id, () =>
       React.startTransition(async () => {
@@ -1741,10 +1743,19 @@ export function InboxPage() {
           })
           saved = decided.undo
           // Undo was pressed while it was being saved: it is taken back as soon as it is in.
-          if (undone) await undo.takeBack(decided.undo)
-          else if (!gone)
-            undo.offer(d.message, decided.undo, { id: said, description: d.description })
+          if (undone) {
+            waiting.undone()
+            await undo.takeBack(decided.undo)
+          } else if (!gone)
+            undo.offer(d.message, decided.undo, {
+              id: said,
+              description: d.description,
+              sent: waiting,
+            })
+          // Its toast was closed: Command and Z still takes it back while the service holds it.
+          else undo.remember(d.message, decided.undo, { sent: waiting })
         } catch {
+          waiting.failed()
           toast.dismiss(said)
           if (undone) return
           toast.error("Couldn't save that decision", {
