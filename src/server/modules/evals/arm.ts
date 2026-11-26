@@ -11,7 +11,7 @@ import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { createDevVerifier, mintDevToken } from '../../mcp/auth.ts'
 import { registerMcpRoutes } from '../../mcp/gateway.ts'
-import { dataToolsOf, serverInstructions } from '../../mcp/tools.ts'
+import { dataToolOf, serverInstructions } from '../../mcp/tools.ts'
 import { loadServingPolicy, type ServingBundle, type ServingPolicy } from '../editions/index.ts'
 
 /**
@@ -63,7 +63,7 @@ export class ToolCallRefused extends Error {
 export const armInstructions = (
   bundle: Pick<ServingBundle, 'terms'>,
   policy: Pick<ServingPolicy, 'about' | 'calendar'>,
-) => serverInstructions(dataToolsOf(bundle), policy.about, policy.calendar)
+) => serverInstructions(dataToolOf(bundle), policy.about, policy.calendar)
 
 const discard = () => Promise.resolve()
 const noDemand = { write: discard, reportGap: () => Promise.resolve(''), feedback: discard }

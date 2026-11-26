@@ -321,8 +321,7 @@ function ReadyGroups({
   return (
     <ul className="flex flex-col">
       {groups.map(({ kind, of }) => {
-        const tools = [...new Set(of.map((name) => name.tool))].join(', ')
-        const said = foundKindWords(kind, tools)
+        const said = foundKindWords(kind, of[0]!.tool)
         const title =
           kind === 'names'
             ? 'Look alike, published as one family'
@@ -382,10 +381,6 @@ const Count = ({ n: count }: { n: number }) => (
 /** How many ready families open at once, each kind's list shown; past it they start folded. */
 const OPEN_READY = 8
 
-function toolsOf(names: readonly SourceNameRead[]) {
-  return [...new Set(names.map((name) => name.tool))].sort().join(', ')
-}
-
 /** The part asked for, unless it has nothing open and the other has. */
 function partWithOpen(part: NamesShow, families: number, singles: number): NamesShow {
   if (part === 'families' && !families && singles) return 'names'
@@ -422,7 +417,8 @@ export default function NamesReview({
   const [all, setAll] = React.useState(false)
   const [picked, setPicked] = React.useState<NamesShow | undefined>(undefined)
   const names = read.data?.names ?? []
-  const tools = [...new Set(names.map((name) => name.tool))].sort()
+  // The definitions integration's tool: one is on at a time (CON-120).
+  const tool = names[0]?.tool ?? 'your definitions tool'
   const looking = names.filter((name) => name.state !== 'left_out')
   const families = names.filter((name) => name.family)
   const singles = names.filter((name) => !name.family)
@@ -518,10 +514,8 @@ export default function NamesReview({
     ready: names.filter((name) => name.state === 'ready').length,
     flagged: names.filter((name) => name.state === 'flagged').length,
     families: familiesOpen.length,
-    tools,
+    tool,
   }
-  const tool = tools.length ? tools.join(', ') : 'your definitions tool'
-  const alikeTool = toolsOf(alike)
   const body = (
     <>
       <PaneHead
@@ -548,7 +542,7 @@ export default function NamesReview({
               Each family is published as one metric, with its variants.
               {onOpenFamily && ' Open one to see what it would mean.'}
             </p>
-            <FamiliesFound found={found} tool={toolsOf(familiesOpen)} as="line" />
+            <FamiliesFound found={found} tool={tool} as="line" />
           </div>
         )}
         {alike.length > 0 && (
@@ -560,7 +554,7 @@ export default function NamesReview({
               {alike.length === 1
                 ? 'These metrics have one name in other currencies'
                 : `${n(alike.length)} sets of metrics have one name in other currencies`}
-              , and nothing in {alikeTool} says they are one metric. Each waits for you.
+              , and nothing in {tool} says they are one metric. Each waits for you.
             </p>
             <ul>
               {alike.map((name) => (

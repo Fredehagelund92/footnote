@@ -1083,7 +1083,7 @@ function TurnOffDialog({
           <DialogTitle>Turn {c.label} off?</DialogTitle>
           <DialogDescription>
             Its definitions leave Definitions and agents stop getting them. Context that relies on
-            one stays published, flagged as relying on an integration that is off. One definitions
+            one stays published, marked as relying on an integration that is off. One definitions
             integration is on at a time, so this makes room for another.
           </DialogDescription>
         </DialogHeader>
@@ -1197,7 +1197,7 @@ function DisconnectDialog({
           <DialogTitle>Disconnect {c.label}?</DialogTitle>
           <DialogDescription>
             {c.kind === 'definitions'
-              ? 'Reading stops. Its definitions leave Definitions and agents stop getting them. Context that relies on one stays published, flagged as relying on an integration that is off.'
+              ? 'Reading stops. Its definitions leave Definitions and agents stop getting them. Context that relies on one stays published, marked as relying on an integration that is off.'
               : 'Reading stops and its open suggestions are withdrawn. Context that owners already published stays as it is.'}
           </DialogDescription>
         </DialogHeader>
@@ -1521,7 +1521,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
               {isDefinitions ? (
                 <span>
                   <span className="font-medium">{view.banner.words}</span> Its definitions are not
-                  listed and agents don&apos;t get them. Context that relies on one is flagged until
+                  listed and agents don&apos;t get them. Context that relies on one is marked until
                   it is on again.{' '}
                   {other ? (
                     <>

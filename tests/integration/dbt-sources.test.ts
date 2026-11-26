@@ -60,7 +60,7 @@ let host: GitHost
 type Who = keyof typeof people
 const headers: Partial<Record<Who, Record<string, string>>> = {}
 
-const call = (method: 'GET' | 'POST', path: string, who: Who, payload?: object) =>
+const call = (method: 'GET' | 'POST' | 'PUT', path: string, who: Who, payload?: object) =>
   app.inject({
     method,
     url: '/api/v1' + path,

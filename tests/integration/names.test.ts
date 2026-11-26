@@ -186,7 +186,7 @@ describe('a read makes names', () => {
       ready: 17,
       flagged: 0,
       families: 0,
-      tools: ['dbt'],
+      tool: 'dbt',
     })
     const mine = await names('owner')
     expect(mine.names.length).toBeGreaterThan(0)

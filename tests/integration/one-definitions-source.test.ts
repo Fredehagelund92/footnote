@@ -2,6 +2,7 @@ import { copyFile, mkdtemp, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import type pg from 'pg'
 import { expect, it } from 'vitest'
 import { migrate, migrationDirectory } from '../../src/server/db/migrate.ts'
 import { reconcileSourceFlags } from '../../src/server/modules/connectors/flags.ts'
@@ -31,7 +32,10 @@ const served = async () =>
 /** Brings the items' flags in line, as a read or a switch does. */
 const reconcile = () =>
   transaction(client, () =>
-    reconcileSourceFlags({ query: async (sql, values) => (await client.query(sql, values)).rows }),
+    reconcileSourceFlags({
+      query: async <Row extends pg.QueryResultRow>(sql: string, values?: unknown[]) =>
+        (await client.query<Row>(sql, values)).rows,
+    }),
   )
 
 const flags = async (item: string) =>

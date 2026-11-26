@@ -146,9 +146,19 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
   const meanings = new Map<string, Chosen[]>()
   /** The families split back into their metrics, newest first, each with the entry it was. */
   let splits: { family: Definition; split: SplitFamily }[] = []
+  /** What `list` gave last while a tool was off, kept so the same list is given again. */
+  let shown: { all: Definition[]; off: string; list: Definition[] } | null = null
 
   return {
-    list: () => all.filter((d) => !d.synced || d.connector === undefined || on(d.connector)),
+    /** What is listed: the list itself while every tool it reads is on, so it stays the same. */
+    list: () => {
+      const isOff = (d: Definition) => d.synced && d.connector !== undefined && !on(d.connector)
+      const off = [...new Set(all.filter(isOff).map((d) => d.connector))].join()
+      if (!off) return all
+      if (shown?.all !== all || shown.off !== off)
+        shown = { all, off, list: all.filter((d) => !isOff(d)) }
+      return shown.list
+    },
 
     /**
      * Reads the demo's model with another definitions tool, the install's one in its place
@@ -171,7 +181,7 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
 
     /** Adds what a dbt folder on the server holds, to the demo's model it reads. */
     loadDbtFolder() {
-      if (!all.some((d) => d.connector === 'dbt-metricflow'))
+      if (!all.some((d) => d.ref?.startsWith('dbt:')))
         all = [...all, ...dbtFolderDefinitions()]
     },
 

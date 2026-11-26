@@ -62,13 +62,19 @@ A read that could not read everything keeps what it missed: only a complete read
 
 What counts as a change depends on what the tool gives. Cube model files and dbt give each calculation, so a changed calculation flags. Cube Cloud gives metadata only: a member's type, how it adds up, its title, description and format. A changed calculation there flags nothing until one of those, or its meta, changes too.
 
-A model that moves from Cube model files to Cube Cloud keeps its definitions, since both read them as the same ids. Disconnect the files source an admin added, and the next Cube Cloud read takes them over. It flags no item for the move and tells the owners once.
+## One definitions integration at a time
 
-A files source set up on the server (`CUBE_MODEL_DIR`) cannot be disconnected, so its refs stay with it.
+One definitions integration is on at a time, whatever its tool. While one is on, another cannot be connected or turned on, and Integrations says which one is on and how to switch: turn it off, then turn the other on. Content sources are not counted.
+
+An integration that is off, paused or disconnected, leaves Definitions, and agents stop getting its definitions. Context that relies on one stays published, flagged as relying on an integration that is off. Turned on again, it is listed again and the flags clear.
+
+A model that moves from Cube model files to Cube Cloud keeps its definitions, since both read them as the same ids. Turn the files source off or disconnect it, then connect Cube Cloud. Its first read takes them over and clears the flags, and the owners are told once that the marks start again.
+
+A files source set up on the server (`CUBE_MODEL_DIR`) is turned off in Integrations, as one an admin added.
 
 A member the files source had already marked missing takes the new mark as a change when it comes back, so the items on it are flagged.
 
-A member Cube Cloud does not show, for example one the security context hides, stays with the disconnected source and is never marked missing.
+A member Cube Cloud does not show, for example one the security context hides, stays with the files source and is never marked missing. The items on it stay flagged.
 
 ## What a read does to documents
 
@@ -88,16 +94,17 @@ Each document's text lives in memory for one read. Only its link, title, change 
 
 Settings, Integrations, lists every source with how it is:
 
-| Status          | What it means                                                  |
-| --------------- | -------------------------------------------------------------- |
-| Healthy         | Its last read worked, or it has not been read yet              |
-| Paused          | An admin paused it. The job leaves it out                      |
-| Needs a new key | Its last read failed because its key was refused or is missing |
-| Failed          | Its last read failed for another reason                        |
+| Status          | What it means                                                   |
+| --------------- | --------------------------------------------------------------- |
+| Healthy         | Its last read worked, or it has not been read yet               |
+| Paused          | An admin paused it. The job leaves it out                       |
+| Off             | A definitions source an admin turned off. The job leaves it out |
+| Needs a new key | Its last read failed because its key was refused or is missing  |
+| Failed          | Its last read failed for another reason                         |
 
 Beside its status, a source that is waiting to be read says **Queued**: it was just added or changed, you asked for a read, or its time has come, and the job has not taken it yet. The job runs every five minutes. **Reading** means the job is reading it now. A failed read stays shown while its retry is queued.
 
-Pausing a source stops its reads. What is published stays. Resume it and it is queued for a read.
+Pausing a source stops its reads. What is published stays. Resume it and it is queued for a read. A definitions source is turned off and on instead, since one that is off leaves Definitions too (see [One definitions integration at a time](#one-definitions-integration-at-a-time)).
 
 A source whose key was refused is not paused: it is tried again at its usual time, so a key fixed in the tool works again by itself. Until then Integrations says it needs a new key and when it was last tried, its page says when it is tried again, and both offer **Replace key**.
 

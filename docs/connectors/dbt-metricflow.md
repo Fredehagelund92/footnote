@@ -150,7 +150,7 @@ An admin adds it in Settings, Integrations, as [Integrations](../help/integratio
 
 A source moves between Address, Object storage and Git repository in **Change settings**, and keeps its definitions. The secrets of the place it leaves are forgotten, and the new place needs its own.
 
-A project read from a server folder cannot move to a source added in Integrations. The server's source keeps its definitions, even once it is taken out of the server's settings, so a source added later cannot take them.
+A project read from a server folder moves to a source added in Integrations: turn the server's source off there, then connect the new one. One definitions integration is on at a time. The new source's first read takes the definitions over, and the server's source stays off.
 
 ## What a read does
 

@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-25
+reviewed: 2026-11-26
 ---
+
+## One definitions tool at a time
+
+2026-11-26
+
+One definitions tool is on at a time, so Definitions lists each metric once. To switch, turn off the tool that is on in Integrations, then connect or turn on the other. Its definitions leave Definitions, and context that relies on one is marked until it is on again. See [Integrations](integrations.md#one-definitions-tool-at-a-time).
 
 ## Publish moves on at once
 

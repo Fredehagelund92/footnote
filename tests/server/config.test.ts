@@ -92,14 +92,13 @@ describe('loadConfig', () => {
       VERCEL_AI_GATEWAY_API_KEY: 'gw-test',
       VERCEL_AI_GATEWAY_BASE_URL: 'https://gateway.example/v1',
       CUBE_MODEL_DIR: '/models/cube',
-      FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
       FOOTNOTE_DOMAIN_OVERRIDES: '/models/domains.json',
       CUBE_COMPILE_TIMEOUT_SECONDS: '300',
       CUBE_COMPILE_MEMORY_MB: '2048',
       FOOTNOTE_METRICS_TOKEN: 'm'.repeat(32),
     })
     expect(config.cubeCompile).toEqual({ timeoutMs: 300_000, memoryMb: 2048 })
-    expect(config.serverFolders).toEqual({ 'dbt-metricflow': '/models/dbt' })
+    expect(config.serverFolders).toEqual({})
     expect(config).toMatchObject({
       nodeEnv: 'test',
       host: '0.0.0.0',
@@ -115,6 +114,25 @@ describe('loadConfig', () => {
       domainOverridesFile: '/models/domains.json',
       metricsToken: 'm'.repeat(32),
     })
+  })
+
+  it('reads one definitions folder on the server at most: one integration is on at a time', () => {
+    expect(
+      loadConfig({
+        DATABASE_URL: databaseUrl,
+        FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
+      }).serverFolders,
+    ).toEqual({ 'dbt-metricflow': '/models/dbt' })
+    for (const env of [
+      {
+        CUBE_MODEL_DIR: '/models/cube',
+        FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt"}',
+      },
+      { FOOTNOTE_SERVER_FOLDERS: '{"dbt-metricflow":"/models/dbt","static-definitions":"/lists"}' },
+    ])
+      expect(() => loadConfig({ DATABASE_URL: databaseUrl, ...env })).toThrow(
+        /FOOTNOTE_SERVER_FOLDERS: Expected one definitions folder, not 2/,
+      )
   })
 
   it('takes a metrics token only when it is long enough to guess at', () => {

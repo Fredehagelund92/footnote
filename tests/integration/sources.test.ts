@@ -305,7 +305,7 @@ describe('sources an administrator adds', () => {
       signal: new AbortController().signal,
     })
     // The server's own source is off, so only the added one is read.
-    expect(Object.keys(summary.connectors)).toEqual(['analytics-in-git'])
+    expect(Object.keys(summary.connectors as object)).toEqual(['analytics-in-git'])
     expect(summary.connectors).toMatchObject({
       'analytics-in-git': { status: 'ok', definitionsSeen: 7 },
     })
