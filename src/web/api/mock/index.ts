@@ -78,10 +78,11 @@ import { SAVED_TREND } from './data/saved-questions'
 import { createSaved } from './saved'
 import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
-import { createScopeSearch, withScope } from './scope'
+import { createScopeSearch, withScope, withValues } from './scope'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
 import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
+import { manyFacts } from './data/many'
 import { createWorkspace } from './workspace'
 import {
   conflictOf,
@@ -94,6 +95,7 @@ import {
 } from './conflicts'
 import type { Fact } from '@/model/items'
 import { maySettle } from '@domain/conflicts'
+import { limits } from '@domain/proposal-rules'
 import { TODAY } from '@/model/history'
 
 /**
@@ -356,8 +358,11 @@ export function createMockApi() {
   }
   /** What the person may read: every item, and of the drafts only their own (FR-139). */
   const shownFacts = () => factsOf(state).filter((f) => f.status !== 'Draft' || f.by === me())
-  /** Context's rows: the items, their drafts, and what waits for review that they may open. */
-  const contextFacts = () => [...shownFacts(), ...waitingFacts()]
+  /**
+   * Context's rows: the items, their drafts, and what waits for review that they may open, each
+   * with its dimension values as the library index names them.
+   */
+  const contextFacts = () => [...shownFacts(), ...waitingFacts()].map(withValues)
   /**
    * Who left with drafts they never sent, by name, with how many: an admin deletes them unread.
    * The demo names a person by their name here, as they are gone from People.
@@ -1409,12 +1414,39 @@ export function createMockApi() {
       now(() => (answers ? chats.keep(id, answers) : chats.add(id, question))),
     renameChat: ({ id, title }) => now(() => chats.rename(id, title)),
     deleteChat: ({ id }) => now(() => remember(chats.remove(id), true)),
-    // A named report waits in this visit's memory; the demo's owners don't act on it here.
-    reportAnswer: ({ question }) =>
+    // A named report waits in this visit's memory; the demo's owners don't act on it here. The
+    // right words for an item wait as a suggestion on it, as one sent from the editor does.
+    reportAnswer: ({ question, part, correction }) =>
       now(() => {
         const id = `report-${reports.length + 1}`
+        const item = factsOf(state).find((f) => f.id === part)
+        const words = correction?.trim()
+        if (item && words && item.status === 'Archived')
+          throw new ApiError(
+            'conflict',
+            'It is archived, so it takes no suggestion. Send the report without new words.',
+          )
+        if (item && words && [...words].length > limits.summary)
+          throw new ApiError(
+            'invalid',
+            `The right words fit in ${limits.summary} characters, as a summary does.`,
+          )
         reports.unshift({ id, question, at: new Date() })
-        return { id }
+        if (!item || !words || words === item.summary.trim()) return { id }
+        const suggestion = `sent_${Date.now().toString(36)}`
+        dispatch({
+          type: 'send',
+          sent: {
+            id: suggestion,
+            factId: item.id,
+            title: item.title,
+            by: me(),
+            to: workspace.domainMap()[item.domain]?.owners[0] ?? 'the owners',
+            domain: item.domain,
+            at: 'just now',
+          },
+        })
+        return { id, suggestion }
       }),
     // The demo's owners don't see it here: it waits in this visit's memory, as a report does.
     tellOwner: () => now(() => ({ id: `gap-report-${reports.length + 1}` })),
@@ -1844,7 +1876,7 @@ export function createMockApi() {
 
   // Every write is sent as the scenario plays a send: refused offline, failing its first try under
   // a fault flag. These take as long as a send does; every other write answers at once unless a
-  // flag plays sends. ?decide=fail names the card it fails on.
+  // flag plays sends. ?decide=fail names the card it fails on, ?publish=fail the suggestion.
   const timedSends: FootnoteApiMethod[] = [
     'settleConflict',
     'suggestArchiving',
@@ -1871,7 +1903,13 @@ export function createMockApi() {
               key: (args[0] as Parameters<FootnoteApi['decideCard']>[0]).card,
               flag: 'decide' as const,
             }
-          : {}),
+          : method === 'publishReview'
+            ? {
+                key: (args[0] as Parameters<FootnoteApi['publishReview']>[0]).id,
+                flag: 'publish' as const,
+                refusal: 'Another owner is already reviewing this suggestion.',
+              }
+            : {}),
       })) as never
   }
 
@@ -1899,6 +1937,8 @@ export function createMockApi() {
         if (demo === 'imported')
           for (const fact of importedDrafts())
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
+        // 5,000 published items over 40 markets, for Context by time at the size of a large library.
+        if (demo === 'many') dispatch({ type: 'addFacts', facts: manyFacts() })
         // 60 more, past what one Publish takes.
         if (demo === 'backlog')
           for (const fact of backlogDrafts())

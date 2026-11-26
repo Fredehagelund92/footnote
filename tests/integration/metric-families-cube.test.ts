@@ -311,7 +311,7 @@ ${[
       )
     await writeFile(
       join(folder, 'model.yml'),
-      pairs((eur) => `COALESCE(${eur}, 0) * fx_rate`),
+      pairs((eur) => `ABS(${eur}) * fx_rate`),
     )
     await read()
     const before = await ok<NamesRead>(call('GET', '/inbox/names', 'admin'))

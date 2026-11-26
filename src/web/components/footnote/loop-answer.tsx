@@ -51,6 +51,7 @@ const GROUP_SHOWN = 4
 
 type Props = {
   turn: Turn
+  docked?: boolean
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
@@ -1829,7 +1830,7 @@ const groupIcons = (P: LoopParts): Record<string, LucideIcon> => ({
 function groupPage(P: LoopParts, o: LoopOverview, key: string | null) {
   if (!key) return null
   if ((o.from === 'inbox' && key === 'check') || (o.from === 'records' && key === 'due'))
-    return { href: '/context?due=1', label: 'Open in Context' }
+    return { href: '/context?status=due', label: 'Open in Context' }
   if (o.from === 'records' && key.startsWith('domain:'))
     return {
       href: P.href('/context', { domain: key.slice('domain:'.length) }),
@@ -2305,7 +2306,7 @@ const cardsStandIn = (loop: LoopTurn) =>
   !!loop.defined?.cards.length &&
   loop.defined.cards.every((c) => c.inWords && !(c.family && !c.family.meaning))
 
-function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
+function AnswerOfLoop({ turn, docked, onRetry, onAsk, latest }: Props) {
   const P = useParts()
   const { answer, stopped } = turn
   const loop = answer.loop
@@ -2315,12 +2316,28 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
   const words = React.useRef<HTMLDivElement>(null)
   const facts = P.useFacts()
   const [wrong, setWrong] = React.useState(false)
+  const opener = React.useRef<HTMLElement | null>(null)
   const [sent, setSent] = React.useState<Answer['report']>(undefined)
   const key = P.answerKey(answer)
+  // Something wrong? opens beside the answer, or under it where Ask is itself in the right panel.
+  const dock = P.useDock()
+  const sentBeside = P.useReportSent(key)
+  const report = sent ?? (sentBeside ? { on: 'just now' } : undefined)
   const cited = React.useMemo(
     () => (loop ? loop.sources.flatMap((id) => facts.find((f) => f.id === id) ?? []) : []),
     [loop, facts],
   )
+  const canReport = cited.length > 0 && !report
+  const reporting = docked ? wrong : dock?.kind === 'report' && dock.id === key
+  const onWrong = (open: boolean, from?: HTMLElement | null) => {
+    if (!canReport) return
+    if (docked) {
+      if (open) opener.current = from ?? null
+      else opener.current?.focus()
+      setWrong(open)
+    } else if (open) P.openFromButton('report', key, from ?? null)
+    else if (reporting) P.closeDock()
+  }
   // The items it cites are read ahead once it is written, so their quick views open whole.
   P.useReadCitedAhead(loop?.sources ?? [], done && !!latest)
   const { keepShown } = P
@@ -2363,6 +2380,7 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
       loop={shown}
       answer={answer}
       {...{
+        docked,
         typed,
         upTo: revealing ? revealed : undefined,
         // Stopped while the model wrote: the sentences checked so far, and nothing from the reads.
@@ -2376,6 +2394,10 @@ function AnswerOfLoop({ turn, onRetry, onAsk, latest }: Props) {
         setWrong,
         sent,
         setSent,
+        report,
+        canReport,
+        reporting,
+        onWrong,
         cited,
       }}
     />
@@ -2388,11 +2410,16 @@ function Finished({
   onRetry,
   onAsk,
   latest,
+  docked,
   words,
   wrong,
   setWrong,
   sent,
   setSent,
+  report,
+  canReport,
+  reporting,
+  onWrong,
   cited,
   typed,
   upTo,
@@ -2412,11 +2439,19 @@ function Finished({
   onRetry?: () => void
   onAsk?: (question: string) => void
   latest?: boolean
+  docked?: boolean
   words: React.RefObject<HTMLDivElement | null>
   wrong: boolean
   setWrong: (w: boolean) => void
+  /** Sent from the form under the answer, this visit. */
   sent: Answer['report']
   setSent: (s: Answer['report']) => void
+  /** Sent from here or from the panel beside it. */
+  report: Answer['report']
+  canReport: boolean
+  /** Whether Something wrong? is open for this answer. */
+  reporting: boolean
+  onWrong: (open: boolean, from?: HTMLElement | null) => void
   cited: Fact[]
 }) {
   const P = useParts()
@@ -2563,12 +2598,14 @@ function Finished({
                 )}
               </>
             )}
-            {sent && <P.ReportLine report={sent} />}
-            {wrong && !sent && cited.length > 0 && (
+            {report && (
+              <P.ReportLine report={report} focus={!!sent} answerKey={P.answerKey(answer)} />
+            )}
+            {docked && wrong && canReport && (
               <P.SomethingWrong
                 answer={answer}
                 facts={cited}
-                onClose={() => setWrong(false)}
+                onClose={() => onWrong(false)}
                 onSent={() => {
                   setWrong(false)
                   setSent({ on: 'just now' })
@@ -2582,9 +2619,9 @@ function Finished({
               draft={false}
               latest={latest}
               onRetry={bare ? undefined : onRetry}
-              wrong={wrong}
-              onWrong={(w) => cited.length > 0 && !sent && setWrong(w)}
-              canReport={cited.length > 0 && !sent}
+              wrong={reporting}
+              onWrong={onWrong}
+              canReport={canReport}
             />
           </div>
         )}

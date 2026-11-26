@@ -32,7 +32,14 @@ import { OfflineBanner } from '@/components/footnote/load-state'
 import { ProfileLabel } from '@/components/footnote/profile-label'
 import { ViewAs, ViewAsChoices, useViewAs } from '@/components/view-as'
 import { pageTitle } from '@/lib/page-title'
+import { plainClick } from '@/lib/router'
 import { useSession } from '@/api/queries'
+
+/**
+ * A way back, left of the title. With `onBack` a plain click goes back as the page's Esc does,
+ * such as back in history to the list it came from; the link still opens elsewhere.
+ */
+export type WayBack = { href: string; label: string; onBack?: () => void }
 
 /** The nav's toggle, always in the same spot, saying what it will do and its shortcut. */
 function NavToggle() {
@@ -142,6 +149,7 @@ export function SiteHeader({
   ask,
   more,
   fold,
+  views,
 }: {
   /**
    * The page's name, or a breadcrumb that leads to it. A breadcrumb's current page is the page's
@@ -153,14 +161,14 @@ export function SiteHeader({
   children?: ReactNode
   className?: string
   /** A way back, left of the title (an editor goes back to what it edits). */
-  back?: { href: string; label: string }
+  back?: WayBack
   /**
    * A page reached from a list or a link (an item, a definition, a review, a conflict). On a phone
    * its crumbs are gone, so it gets the way back, and everything but the page's main action moves
    * into one More menu (search, the theme, the nav and the person, with `ask` and `more`) so the
    * title keeps room to be read. A laptop's header is unchanged.
    */
-  deep?: { href: string; label: string }
+  deep?: WayBack
   /** On a phone, the page's Ask, in the More menu. The page draws its own button on a laptop. */
   ask?: () => void
   /** On a phone, the page's own menu items, first in the More menu. */
@@ -172,6 +180,8 @@ export function SiteHeader({
    * (Ask's History and New chat) keeps them a tap away and the install's label its words.
    */
   fold?: boolean
+  /** Other views of the page, after its title: Context's List and By time. */
+  views?: ReactNode
 }) {
   const { isMobile } = useSidebar()
   const { profileLabel } = useSession()
@@ -226,7 +236,7 @@ export function SiteHeader({
                     aria-label={way.label}
                     className="pointer-coarse:min-w-11"
                     nativeButton={false}
-                    render={<a href={way.href} />}
+                    render={<a href={way.href} onClick={way.onBack && plainClick(way.onBack)} />}
                   />
                 }
               >
@@ -248,6 +258,7 @@ export function SiteHeader({
               <span className="min-w-0 truncate">{title}</span>
             </div>
           )}
+          {views}
         </div>
         <div data-header-actions className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* On a phone the sidebar is a sheet, so search lives here, as a magnifier. */}
@@ -304,7 +315,7 @@ export function Page({
   icon?: ReactNode
   actions?: ReactNode
   /** See SiteHeader. */
-  deep?: { href: string; label: string }
+  deep?: WayBack
   ask?: () => void
   more?: ReactNode
   children: ReactNode

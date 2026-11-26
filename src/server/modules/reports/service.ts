@@ -11,9 +11,11 @@ import { missing } from '../../../contract/refusals.ts'
 
 /*
   Named reports (FR-622; docs/product.md, section 9). A person sends one from Ask as themselves:
-  the question, the part that is wrong, what is wrong and, optionally, the correct version and a
+  the question, the part that is wrong, what is wrong and, optionally, the right words and a
   link. It is filed on the item it is about, in that item's domain, and reaches that domain's
-  owners as a Reported card (the Inbox, src/server/modules/inbox). What the owners did after it is
+  owners as a Reported card (the Inbox, src/server/modules/inbox). The right words for an item
+  go to its owners as a suggestion too, made first by the context module (suggestWords), and the
+  report names it. What the owners did after it is
   read by cl_report_outcome, so its sender sees it in their chat. Row security keeps a report to
   its sender, the owners of its domain and administrators (db/migrations/0001_schema.sql);
   the MCP read path has no grant on it, and nothing an edition holds is built from it.
@@ -39,7 +41,7 @@ export function createReportsService(tx: Queryable) {
      * Files a report on its item, in the item's domain. An item the person may not read is one
      * that does not exist for them, as everywhere else.
      */
-    async create(input: CreateReport): Promise<SentReport> {
+    async create(input: CreateReport, suggestion: string | null = null): Promise<SentReport> {
       const [item] = await tx.query<{ area: string }>(
         `select v.area_id as area from item_version_service s join item_versions v on v.id = s.version_id
           where s.item_id = $1 and cl_item_open($1)
@@ -48,9 +50,10 @@ export function createReportsService(tx: Queryable) {
       )
       if (!item) throw new ORPCError('NOT_FOUND', { message: missing('this context item') })
       const [row] = await tx.query<SentReport>(
-        `insert into reports (person_id, area_id, item_id, part, question, what, correction, link)
-         values (cl_person(), $1, $2, $3, $4, $5, $6, $7)
-         returning id::text, ${iso('created_at')} as at`,
+        `insert into reports (person_id, area_id, item_id, part, question, what, correction, link,
+           proposal_id)
+         values (cl_person(), $1, $2, $3, $4, $5, $6, $7, $8)
+         returning id::text, ${iso('created_at')} as at, proposal_id::text as suggestion`,
         [
           item.area,
           input.itemId,
@@ -59,6 +62,7 @@ export function createReportsService(tx: Queryable) {
           input.what,
           input.correction ?? null,
           input.link ?? null,
+          suggestion,
         ],
       )
       return row!

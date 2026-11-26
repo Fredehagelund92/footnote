@@ -2414,7 +2414,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         ...(link?.trim() ? { link: link.trim() } : {}),
       }
       const sent = await write('reports.create', input, (o) => client.reports.create(input, o))
-      return { id: sent.id }
+      return { id: sent.id, ...(sent.suggestion ? { suggestion: sent.suggestion } : {}) }
     },
     tellOwner: async ({ about, dates, word }) => {
       const metrics = about.filter((id) => id.startsWith('metric:'))

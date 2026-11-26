@@ -676,14 +676,18 @@ export function ConflictView({
           done: { conflict: c, decision: result.decision, undo: result.undo },
         })
         const left = heldWords(result.undo)
-        toast(
+        const message =
           outcome === 'kept_one'
             ? 'Kept one, archived the other'
             : outcome === 'kept_both'
               ? 'Kept both'
-              : 'Not a conflict',
-          left ? { description: `You can undo this for ${left}.` } : {},
-        )
+              : 'Not a conflict'
+        toast(message, left ? { description: `You can undo this for ${left}.` } : {})
+        // Undo is on the page; Command and Z takes it back too, from any screen.
+        undo.remember(message, result.undo, {
+          undone: { title: 'Undone', description: 'Both items are as they were.' },
+          onUndone: () => dispatch({ type: 'finish' }),
+        })
       },
       (error: unknown) =>
         // A newer version of either holds the decision, as Publish does: see what changed first.

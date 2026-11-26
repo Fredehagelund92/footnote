@@ -39,6 +39,11 @@ describe('search params', () => {
     expect(contextSearch({ show: 'mine' })).toEqual({ show: undefined })
   })
 
+  it('know Context by time, and drop a view it does not have', () => {
+    expect(contextSearch({ view: 'time' })).toEqual({ view: 'time' })
+    expect(contextSearch({ view: 'board' })).toEqual({ view: undefined })
+  })
+
   it("never touch another place's params", () => {
     expect(inboxSearch({ q: 'refunds' })).toEqual({})
   })

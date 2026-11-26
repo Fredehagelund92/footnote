@@ -23,9 +23,20 @@ vi.mock('@/lib/workspace', () => ({
   usePeople: () => [],
 }))
 vi.mock('@/lib/definitions', () => ({ useDefinitions: () => [] }))
-vi.mock('@/lib/dock', () => ({ openDock: vi.fn(), useDock: () => null }))
+vi.mock('@/lib/dock', () => ({
+  openDock: vi.fn(),
+  openFromButton: vi.fn(),
+  closeDock: vi.fn(),
+  useDock: () => null,
+}))
 vi.mock('@/lib/read-ahead', () => ({ useReadAhead: () => () => ({}), useReadCitedAhead: () => {} }))
-vi.mock('@/lib/shown-answers', () => ({ answerKey: () => 'k', keepShown: () => {} }))
+vi.mock('@/lib/shown-answers', () => ({
+  answerKey: () => 'k',
+  keepShown: () => {},
+  markReportSent: () => {},
+  useReportSent: () => false,
+  useShownAnswer: () => undefined,
+}))
 vi.mock('@/api/queries', () => ({
   useWrite: () => (op: string, input: Record<string, unknown>) =>
     new Promise((ok, no) => world.calls.push({ op, input, ok, no: () => no(new Error('down')) })),
@@ -53,7 +64,10 @@ afterEach(() => {
   world.calls.length = 0
 })
 
-function mount(draft: boolean) {
+function mount(
+  draft: boolean,
+  onWrong: (open: boolean, from?: HTMLElement | null) => void = () => {},
+) {
   host = document.body.appendChild(document.createElement('div'))
   root = createRoot(host)
   const answer = { state: 'grounded', keys: { metrics: ['metric:orders'] } }
@@ -65,7 +79,7 @@ function mount(draft: boolean) {
         facts: [],
         draft,
         wrong: false,
-        onWrong: () => {},
+        onWrong,
         canReport: false,
       }),
     ),
@@ -112,6 +126,16 @@ describe('Good and Bad answer', () => {
     await click('Good answer')
     await settle(1, 'no')
     expect(pressed('Good answer')).toBe('true')
+  })
+
+  it('opens Something wrong? from Bad answer, which focus goes back to, but not when it takes the rating back', async () => {
+    const opened: [boolean, HTMLElement | null | undefined][] = []
+    mount(false, (open, from) => opened.push([open, from]))
+    await click('Bad answer')
+    expect(opened).toEqual([[true, thumb('Bad answer')]])
+    await settle(0, 'ok', { id: 'r1' })
+    await click('Bad answer')
+    expect(opened).toHaveLength(1)
   })
 
   it('shows no rating buttons on a draft preview', () => {

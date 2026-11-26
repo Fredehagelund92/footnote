@@ -35,7 +35,7 @@ export type DemoDefinition = {
   domainSource: 'source' | 'override' | 'none'
   /** The model file that defines the member's view, in db/seed/cube. */
   modelFile: string
-  /** The measures and columns its own calculation reads, when it is plain column arithmetic. */
+  /** The measures and columns its own calculation reads, when it is column arithmetic. */
   builtFrom?: { refs: string[]; columns: string[] }
   changeMark: string
 }
