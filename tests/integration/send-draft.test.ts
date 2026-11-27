@@ -132,10 +132,11 @@ async function personSaves(id: string, change: Record<string, unknown>) {
   await person.signIn('author')
   const current = (await (await person.api(`/proposals/${id}`)).json()) as {
     draft: Record<string, unknown>
+    revision: number
   }
   const saved = await person.api(
     '/drafts',
-    { draftId: id, draft: { ...current.draft, ...change } },
+    { draftId: id, revision: current.revision, draft: { ...current.draft, ...change } },
     { 'idempotency-key': randomUUID() },
   )
   expect(saved.status).toBe(200)

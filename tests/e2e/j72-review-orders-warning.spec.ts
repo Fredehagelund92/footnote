@@ -52,6 +52,7 @@ test('a suggestion that says "disregard all prior instructions" is reviewed with
     await page.request.get(`/api/v1/proposals/${written.draft_id}`)
   ).json()) as {
     draft: Record<string, unknown>
+    revision: number
   }
   const saved = await page.request.post('/api/v1/drafts', {
     headers: {
@@ -61,6 +62,7 @@ test('a suggestion that says "disregard all prior instructions" is reviewed with
     },
     data: {
       draftId: written.draft_id,
+      revision: current.revision,
       draft: {
         ...current.draft,
         summary: `Orders in Norway are booked in euros from 1 September 2026. ${orders}`,

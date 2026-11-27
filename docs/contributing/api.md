@@ -723,7 +723,7 @@ revision?, reason?, gapId? }` and keeps the words as the person's own draft, whi
   and agents never get: a new item, a change to the published item named (written from
   `version`), or, with `draftId` and the `revision` the words were written from, a draft of theirs
   saved again in place (404 for anything else, 400 without the revision). The editor saves a draft
-  so as the person types (FR-146). Once their agent changed it after that revision, nothing is
+  so as the person types (FR-147). Once their agent changed it after that revision, nothing is
   saved: 409 with the current record, which the editor merges field by field before it saves
   again. `gapId` makes it the draft of that Not found card. It answers `{ proposalId, revision }`.
 - `GET /drafts/left` (admins) lists the people who left with drafts they never sent, each with how
