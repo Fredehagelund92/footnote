@@ -696,8 +696,8 @@ footnote-tabs {
   display: none;
 }
 
-/* Footnotes in a page: the landing page's numbers, the accent's one place in the words, and their
-   notes at the end of the page, a hairline over each. */
+/* Footnotes in a page: the accent's numbers, its one place in the words, and their notes at the
+   end of the page, a hairline over each. */
 .sl-markdown-content sup:has(a[data-footnote-ref]) {
   font-size: max(0.62em, 11px);
   line-height: 1;
@@ -976,7 +976,7 @@ footnote-tabs {
   }
 }
 
-/* The home of the docs: each group's pages with their one line, as the landing page's footnotes. */
+/* The home of the docs: each group's pages with their one line. */
 .footnote-group {
   margin-top: 3.5rem;
 }

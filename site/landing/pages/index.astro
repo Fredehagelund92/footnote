@@ -7,15 +7,12 @@ import '../styles/landing.css'
 import inter from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url'
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
-import { sitePages } from '../../lib/pages.ts'
 import SiteFooter from '../../shared/SiteFooter.astro'
 import AskWindow from '../components/AskWindow.astro'
 import Definitions from '../components/Definitions.astro'
-import Fn from '../components/Fn.astro'
 import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
 import Sprite from '../components/Sprite.astro'
-import { footnotes } from '../footnotes.ts'
 import { released, releaseWords } from '../release.ts'
 // The tour's screens: two of the landing page's own captures and three of the docs' pictures, all
 // taken by scripts/capture.ts.
@@ -34,13 +31,12 @@ import compareDark from '../../../docs/images/docs/compare-dark.webp'
   The landing page, "Ask this page", as approved (site/README.md, "The landing page"): dark, on
   Footnote's dot field, with the vision told one sentence a section. The first screen is a question
   about the demo company answered from a note a named person wrote and its owner checked
-  (landing/demo.ts, landing/hero.ts). Every claim carries a footnote that opens its source's own
-  sentence (landing/footnotes.ts), and the pictures are real captures of the demo, taken by
+  (landing/demo.ts, landing/hero.ts). The pictures are real captures of the demo, taken by
   scripts/capture.ts.
 */
 
 const words = releaseWords(released)
-const { docs, repo, repository } = siteLinks(readSettings(process.env))
+const { docs, repository } = siteLinks(readSettings(process.env))
 
 /* The tour: one real screen of the app per step, in light and dark. */
 const tour = [
@@ -82,33 +78,6 @@ const tour = [
 ]
 const opening = tour[0]!
 
-/* The footnotes at the end, with where each comes from, and the day a page of the docs was last
-   checked against the app. */
-const pages = new Map(sitePages().map((page) => [page.slug, page]))
-const months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')
-const day = (iso: string) => {
-  const [y, m, d] = iso.split('-').map(Number)
-  return `${d} ${months[m! - 1]} ${y}`
-}
-const notes = footnotes.map((note, i) => {
-  if ('file' in note.source)
-    return {
-      n: i + 1,
-      href: note.source.file === 'README.md' ? `${repository}#readme` : repo(note.source.file),
-      label: note.source.label,
-      quote: note.quote,
-    }
-  const page = pages.get(note.source.page)
-  if (!page) throw new Error(`Footnote ${i + 1}: the docs have no page "${note.source.page}".`)
-  return {
-    n: i + 1,
-    href: docs(page.slug),
-    label: `Docs, ${page.title}`,
-    quote: note.quote,
-    when: page.reviewed ? `checked ${day(page.reviewed)}` : undefined,
-  }
-})
-
 const headline = 'Tell your AI agents why the number moved before they'.split(' ')
 ---
 
@@ -139,11 +108,11 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       <section class="hero" id="hero" aria-labelledby="h-hero">
         <div class="wrap">
           <h1 id="h-hero">
-            {headline.map((word, i) => <Fragment><span class="w" style={`--i:${i}`}>{word}</span>{' '}</Fragment>)}<span class="w" style={`--i:${headline.length}`}>guess<Fn n={1} /></span>
+            {headline.map((word, i) => <Fragment><span class="w" style={`--i:${i}`}>{word}</span>{' '}</Fragment>)}<span class="w" style={`--i:${headline.length}`}>guess</span>
           </h1>
           <div class="hero-row">
             <div>
-              <p class="sub">The people who know your business write down what happened, where and when, and the owner of that area checks it. Every AI agent reads it before it answers. When nothing is written, it says so.<Fn n={2} /></p>
+              <p class="sub">The people who know your business write down what happened, where and when, and the owner of that area checks it. Every AI agent reads it before it answers. When nothing is written, it says so.</p>
               <div class="cta"><a class="btn btn-main" href="#run">Run the demo</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
             </div>
             <p class="status"><i class={released ? 'dot' : 'dot none'}></i><b>{words.status}</b><a href={`${repository}#readme`}>What is true today</a></p>
@@ -167,7 +136,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
                 <div class="year"><i class="span"></i><i class="q a2" style="--x:45.8%" data-l="June: told"></i><i class="q out a3" style="--x:87.5%" data-l="November: not told"></i></div>
               </div>
               <h2>A note is bound to a time and a place</h2>
-              <p>A market closed for a month, a tool that changed how it counts, data that arrived late. Each note carries its dates and its place, and is told only for a question about those dates and that place.<Fn n={3} /></p>
+              <p>A market closed for a month, a tool that changed how it counts, data that arrived late. Each note carries its dates and its place, and is told only for a question about those dates and that place.</p>
             </li>
             <li class="rv" style="--d:120ms">
               <div class="frag" aria-hidden="true">
@@ -175,7 +144,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
                 <div class="row a3" style="--t:1700ms"><span class="pill">Still true</span><span class="pill">Edit</span></div>
               </div>
               <h2>It ends itself</h2>
-              <p>A question after a note's end date does not get it. Past its check date it is told as possibly out of date, until its owner looks again.<Fn n={4} /></p>
+              <p>A question after a note's end date does not get it. Past its check date it is told as possibly out of date, until its owner looks again.</p>
             </li>
             <li class="rv" style="--d:240ms">
               <div class="frag" aria-hidden="true">
@@ -183,7 +152,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
                 <div class="row a3"><span class="badge b-missing"><svg class="ic"><use href="#i-none"></use></svg>Not found</span><span>nothing is written down</span></div>
               </div>
               <h2>When nothing fits, it says so</h2>
-              <p>The answer says so in plain words, and no agent is handed a guess that sounds sure. The question goes back to the owner as a gap, so it gets written.<Fn n={5} /></p>
+              <p>The answer says so in plain words, and no agent is handed a guess that sounds sure. The question goes back to the owner as a gap, so it gets written.</p>
             </li>
           </ol>
         </div>
@@ -193,7 +162,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         <div class="wrap">
           <div class="sec-head rv">
             <h2 id="h-loop">Anyone may suggest a note. Its owner decides</h2>
-            <p>Anyone who knows the business may suggest one, and so may an agent. Only a person publishes,<Fn n={6} /> and a draft, a suggestion or a comment never reaches an agent.<Fn n={7} /> These are real screens of the app, on its demo.</p>
+            <p>Anyone who knows the business may suggest one, and so may an agent. Only a person publishes, and a draft, a suggestion or a comment never reaches an agent. These are real screens of the app, on its demo.</p>
           </div>
           <div class="tour rv" id="tour" style="--d:120ms">
             <div class="tour-tabs" role="tablist" aria-label="Screens of the app">
@@ -233,13 +202,13 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         <div class="wrap">
           <div class="sec-head rv">
             <h2 id="h-meaning">It keeps what the numbers mean, never the numbers</h2>
-            <p>Your semantic layer, such as Cube or dbt, still defines Orders and returns the figure. A definition says what a metric is. A note says what happened to it, when and where.<Fn n={8} /></p>
+            <p>Your semantic layer, such as Cube or dbt, still defines Orders and returns the figure. A definition says what a metric is. A note says what happened to it, when and where.</p>
           </div>
           <div class="sum rv" id="sum">
             <div class="part">
               <div class="pic" aria-hidden="true"><svg class="line" viewBox="0 0 300 60" preserveAspectRatio="none"><path pathLength="1" d="M0,14 L24,9 L48,17 L72,11 L96,6 L120,15 L144,10 L150,52 L180,54 L210,53 L240,55 L270,54 L300,54"></path></svg><p class="axis"><span>Orders, Norway</span><span>2026</span></p></div>
               <h3>The figure</h3>
-              <p>Cube or dbt MetricFlow defines Orders and returns it. Footnote reads the names only, and keeps no figure.<Fn n={9} /></p>
+              <p>Cube or dbt MetricFlow defines Orders and returns it. Footnote reads the names only, and keeps no figure.</p>
             </div>
             <span class="op" aria-hidden="true">+</span>
             <div class="part">
@@ -262,7 +231,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         <div class="wrap">
           <div class="sec-head rv">
             <h2 id="h-def">Every metric, with what people know about it</h2>
-            <p>Definitions lists every metric and dimension your semantic layer defines, read only: what it means, its other names, and what it is built from. Beside each one sit the notes people wrote about it.<Fn n={10} /></p>
+            <p>Definitions lists every metric and dimension your semantic layer defines, read only: what it means, its other names, and what it is built from. Beside each one sit the notes people wrote about it.</p>
           </div>
           <Definitions />
         </div>
@@ -272,7 +241,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         <div class="wrap">
           <div class="sec-head rv">
             <h2 id="h-lines">Every answer starts with one of six lines</h2>
-            <p>The line comes first, for people in Ask and for agents over MCP. Code picks it from the notes found, never a model,<Fn n={11} /> so Checked means the same thing every time.</p>
+            <p>The line comes first, for people in Ask and for agents over MCP. Code picks it from the notes found, never a model, so Checked means the same thing every time.</p>
           </div>
           <ul class="lines">
             <li class="rv" style="--d:0ms"><span class="badge"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>Checked</span><p>Something applies, and its owner published it with a source and a check date.</p><p>Nothing to do.</p></li>
@@ -289,7 +258,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         <div class="wrap">
           <div class="sec-head rv">
             <h2 id="h-agents">Your agent asks the same way</h2>
-            <p>Over MCP, signed in as you. It gets the line first, then the notes that apply, each with its source.<Fn n={12} /></p>
+            <p>Over MCP, signed in as you. It gets the line first, then the notes that apply, each with its source.</p>
           </div>
           <div class="agents-grid">
             <div>
@@ -322,7 +291,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
           </div>
           <div class="reads-grid rv">
             <div>
-              <h3>What reads it<Fn n={13} /></h3>
+              <h3>What reads it</h3>
               <ul class="rows">
                 <li><b><svg aria-hidden="true"><use href="#l-claude"></use></svg>Claude Code</b><span class="tag"><i class="dot"></i>tried</span></li>
                 <li><b><svg aria-hidden="true"><use href="#l-cursor"></use></svg>Cursor</b><span class="tag"><i class="dot none"></i>install link, not tried</span></li>
@@ -342,7 +311,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
               </ul>
             </div>
           </div>
-          <p class="small">Cube and dbt give Footnote the names of your metrics and markets, read only. Footnote keeps what the numbers mean, not the numbers.<Fn n={9} /> Documents arrive as suggestions for an owner, never as published notes. <a href={docs('connectors')}>Connectors</a>, <a href={docs('connect-an-agent')}>Connect an agent</a></p>
+          <p class="small">Cube and dbt give Footnote the names of your metrics and markets, read only. Footnote keeps what the numbers mean, not the numbers. Documents arrive as suggestions for an owner, never as published notes. <a href={docs('connectors')}>Connectors</a>, <a href={docs('connect-an-agent')}>Connect an agent</a></p>
         </div>
       </section>
 
@@ -353,8 +322,8 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
             <p>A product page usually fills these in with something that sounds good. This one does what the product does.</p>
           </div>
           <ul class="unknown">
-            <li class="rv" style="--d:0ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>How much better your agents will answer</h3><p>Not measured yet. The same 40 questions will be asked three ways, and the table goes in the README whatever it shows.<Fn n={14} /> <a href={docs('prove')}>Run the proof</a></p></li>
-            <li class="rv" style="--d:100ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>How it runs on a cloud host</h3><p>Nobody has run it on a named cloud host yet. It is for trying on one computer.<Fn n={15} /></p></li>
+            <li class="rv" style="--d:0ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>How much better your agents will answer</h3><p>Not measured yet. The same 40 questions will be asked three ways, and the table goes in the README whatever it shows. <a href={docs('prove')}>Run the proof</a></p></li>
+            <li class="rv" style="--d:100ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>How it runs on a cloud host</h3><p>Nobody has run it on a named cloud host yet. It is for trying on one computer.</p></li>
             <li class="rv" style="--d:200ms"><span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span><h3>Who may read which note</h3><p>Not built yet. In this version, everyone who is signed in, and every agent, can read everything that's published.</p></li>
           </ul>
         </div>
@@ -364,7 +333,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         <div class="wrap">
           <div class="sec-head rv">
             <h2 id="h-run">Run the demo on your own computer</h2>
-            <p>{words.installLede}<Fn n={16} /></p>
+            <p>{words.installLede}</p>
           </div>
           <ol class="go">
             <li class="rv" style="--d:0ms"><h3>Start it</h3><p>{words.startLine}</p><p class="cmd">{words.startCommands.map((command, i) => <Fragment>{i > 0 && <br />}<span>$ </span>{command}</Fragment>)}</p></li>
@@ -372,9 +341,9 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
             <li class="rv" style="--d:160ms"><h3>Connect Claude Code</h3><p>Add the server, run /mcp, pick it and choose Authenticate. Pick a demo person and press Allow.</p><p class="cmd"><span>$ </span>claude mcp add --transport http footnote http://localhost:3000/mcp</p></li>
           </ol>
           <ul class="true rv">
-            <li>On the demo nothing leaves your computer, and no AI service is called.<Fn n={17} /></li>
-            <li>From agents, Footnote keeps only what a question was about, and how often. Never the words, and never who asked.<Fn n={18} /></li>
-            <li>{words.versionNote}<Fn n={15} /></li>
+            <li>On the demo nothing leaves your computer, and no AI service is called.</li>
+            <li>From agents, Footnote keeps only what a question was about, and how often. Never the words, and never who asked.</li>
+            <li>{words.versionNote}</li>
           </ul>
         </div>
       </section>
@@ -387,26 +356,6 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
         </div>
       </section>
 
-      <section class="sec notes-sec" id="footnotes" aria-labelledby="h-notes">
-        <div class="wrap">
-          <h2 id="h-notes">Footnotes</h2>
-          <p class="lede">Where this page got what it says, in the source's own words. Vision is the project's statement of what Footnote is for. Each docs page carries the day someone last checked it against the app.</p>
-          <ol class="fns rv">
-            {
-              notes.map((note) => (
-                <li id={`fn-${note.n}`}>
-                  <span class="n">{note.n}</span>
-                  <div>
-                    <a href={note.href}>{note.label}</a>
-                    {note.quote && <Fragment> <q>{note.quote}</q></Fragment>}
-                    {note.when && <span class="when">{note.when}</span>}
-                  </div>
-                </li>
-              ))
-            }
-          </ol>
-        </div>
-      </section>
     </main>
 
     <SiteFooter home="#top" docs={docs()} />

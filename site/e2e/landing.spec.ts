@@ -6,10 +6,10 @@ import { releaseWords } from '../landing/release.ts'
 /*
   The landing page on the built site: the first screen's four questions by mouse, keyboard and
   typing, what a reader with reduced motion gets, the leaders ending on their marks, the
-  definitions window and the tour, its footnotes, the release switch as it is built, an axe pass at
-  WCAG AA, and screenshot baselines. Fonts render a little differently on each system, so each
-  platform keeps its own baselines (Playwright's default path ends in the platform's name). Where a
-  platform has none yet the check says so and skips; `npm run test:smoke -- e2e/landing.spec.ts
+  definitions window and the tour, the release switch as it is built, an axe pass at WCAG AA, and
+  screenshot baselines. Fonts render a little differently on each system, so each platform keeps
+  its own baselines (Playwright's default path ends in the platform's name). Where a platform has
+  none yet the check says so and skips; `npm run test:smoke -- e2e/landing.spec.ts
   --update-snapshots` on that platform writes them, for review by eye in a pull request.
 */
 
@@ -93,7 +93,7 @@ test.describe('with reduced motion', () => {
     ).toBeVisible()
     await expect(thread(page).locator('.ans')).toBeVisible()
     // Everything below the first screen is there at once, too.
-    await expect(page.getByRole('heading', { name: 'Footnotes' })).toBeVisible()
+    await expect(page.locator('#h-close')).toBeVisible()
     await expect(page.locator('.rv:not(.in)')).toHaveCount(0)
     await expect(win(page).locator('.wires path')).toHaveCount(1)
   })
@@ -215,20 +215,6 @@ test.describe('below the first screen', () => {
     await expect(shot).toHaveAttribute('src', /observability-dark/)
     await page.keyboard.press('Home')
     await expect(shot).toHaveAttribute('src', /item-dark/)
-  })
-
-  test('every footnote number opens its note, numbered in the order they are first used', async ({
-    page,
-  }) => {
-    await open(page)
-    const { used, listed } = await page.evaluate(() => ({
-      used: [...document.querySelectorAll('a.fn')].map((a) => a.getAttribute('href')!.slice(4)),
-      listed: [...document.querySelectorAll('#footnotes li')].map((li) => li.id.slice(3)),
-    }))
-    expect([...new Set(used)]).toEqual(listed)
-    expect(listed).toEqual(listed.map((_, i) => String(i + 1)))
-    await page.locator('h1 a.fn').hover()
-    await expect(page.getByRole('tooltip')).toContainText('Footnote exists so that an AI agent')
   })
 })
 
