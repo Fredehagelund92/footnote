@@ -89,7 +89,7 @@ A short reply looks like this, cut down here to the main fields:
       "summary": "Online sales stopped on 4 August.",
       "kind": "event",
       "applies": "Orders in Norway.",
-      "not_to_conclude": "cause not proven",
+      "not_to_conclude": "Fewer orders after 4 August do not mean fewer customers.",
       "url": "/context/itm_norway01"
     }
   ],

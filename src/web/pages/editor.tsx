@@ -39,6 +39,7 @@ import {
 } from '@/components/footnote/agent-change'
 import { sessionFieldLabel, type SessionField } from '@/model/draft-session'
 import { problemsOf, sourceProblem, type EditorField } from '@/lib/editor-problems'
+import { causeIn } from '@/lib/cause-words'
 import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
@@ -87,7 +88,6 @@ import { LoadError, NoSuchItem } from '@/components/footnote/load-state'
 import { readOf } from '@/lib/read'
 import { Loading } from '@/App'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
@@ -161,7 +161,6 @@ type Form = {
   until: string
   source: string
   quote: string
-  causes: boolean
   dontConclude: string
 }
 
@@ -178,7 +177,6 @@ const BLANK: Form = {
   until: '',
   source: '',
   quote: '',
-  causes: false,
   dontConclude: '',
 }
 
@@ -226,7 +224,6 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
     until: w.until,
     source: f.source,
     quote: f.quote,
-    causes: !!f.causes,
     dontConclude: f.dontConclude,
   }
 }
@@ -260,8 +257,8 @@ function toFact(f: Form, id: string, me: string, domains: Domains, original?: Fa
     checkedOn: '22 Oct 2026',
     source: f.source,
     quote: f.quote,
-    dontConclude: f.dontConclude || 'Cause not proven.',
-    causes: f.causes,
+    // Left empty, the item says nothing more: the service keeps its default, which agents never get.
+    dontConclude: f.dontConclude.trim(),
   }
 }
 
@@ -675,6 +672,8 @@ function Editor({
     () => instructionWords([form.title, text, form.quote].join('\n')),
     [form.title, text, form.quote],
   )
+  // A cause the text gives, which agents pass on as the writer's words.
+  const cause = causeIn(`${form.title}\n${text}`)
   // Long enough to clamp: about six lines of the preview's width.
   const long = text.split('\n').filter(Boolean).length + Math.floor(text.length / 45) > 6
 
@@ -1066,13 +1065,14 @@ function Editor({
               {form.source.replace(/^https?:\/\//, '') || 'No source yet'}
             </span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {/* As a sentence, before the next one: the service's own line is "cause not proven". */}
-            <span className="text-foreground">Don't conclude:</span>{' '}
-            {draft.dontConclude.charAt(0).toUpperCase() +
-              draft.dontConclude.slice(1).replace(/[^.!?]$/, '$&.')}
-            {form.causes ? '' : " The source doesn't say this caused a change."}
-          </p>
+          {draft.dontConclude && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {/* As a sentence, before the next one: the service's own line is "cause not proven". */}
+              <span className="text-foreground">Don't conclude:</span>{' '}
+              {draft.dontConclude.charAt(0).toUpperCase() +
+                draft.dontConclude.slice(1).replace(/[^.!?]$/, '$&.')}
+            </p>
+          )}
         </div>
       </PanelGroup>
     </>
@@ -1735,16 +1735,6 @@ function Editor({
                       className="min-h-16"
                     />
                   </Field>
-                  <Field orientation="horizontal">
-                    <Checkbox
-                      id="fact-causes"
-                      checked={form.causes}
-                      onCheckedChange={(v) => set('causes', !!v)}
-                    />
-                    <FieldLabel htmlFor="fact-causes" className="font-normal">
-                      The source says this caused the change
-                    </FieldLabel>
-                  </Field>
                 </div>
               </PickerField>
               {versionOf('source', 'mt-1 mb-2 max-w-xl')}
@@ -1760,8 +1750,14 @@ function Editor({
                 labelId={fieldId('dont')}
                 value={form.dontConclude}
                 onChange={(v) => set('dontConclude', v)}
-                placeholder="Left empty, agents are told: Cause not proven."
+                placeholder="What agents must not read into it, such as a cause nobody has shown"
               />
+              {cause && !form.dontConclude.trim() && (
+                <p className="pt-0.5 pb-1 text-xs text-muted-foreground">
+                  Your text gives a cause (“{cause}”), and agents pass it on as yours. If nobody has
+                  shown it, say so here.
+                </p>
+              )}
               {versionOf('dontConclude', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             {/* A draft, or a suggestion sent back, was never checked: it has no such row. */}

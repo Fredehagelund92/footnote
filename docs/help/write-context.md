@@ -54,7 +54,7 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 2. What agents should know: two or three sentences, with what it is not if people mix it up.
 3. Where and when it applies: the metrics and markets, and the dates.
 4. A source anyone can open. The check date is set for you.
-5. Don't conclude: the one line that stops an agent from reading a cause into it.
+5. Don't conclude: the one line that stops an agent from reading a cause into it. Left empty, agents get no such line, and a cause your text gives is passed on as yours.
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
 

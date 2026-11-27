@@ -238,11 +238,20 @@ test('an event asks when it happened, and Always is a choice that stays Always',
   await expect(row(page, 'When')).toContainText('Always')
   await expect(publish(page)).not.toHaveAccessibleDescription(/when it happened/)
 
-  // What the service will add for the writer is shown before, not after.
-  await expect(row(page, "Don't conclude").getByRole('textbox')).toHaveAttribute(
+  // Left empty, nothing is added for the writer: agents get no line they did not write. A cause
+  // in the text is theirs, and the field says so where they would add a doubt about it.
+  const dont = row(page, "Don't conclude")
+  await expect(dont.getByRole('textbox')).toHaveAttribute(
     'placeholder',
-    'Left empty, agents are told: Cause not proven.',
+    'What agents must not read into it, such as a cause nobody has shown',
   )
+  await expect(dont).not.toContainText('gives a cause')
+  await text(page, 'Returns rose in October because the new sizes ran small.')
+  await expect(dont).toContainText(
+    'Your text gives a cause (“because”), and agents pass it on as yours. If nobody has shown it, say so here.',
+  )
+  await dont.getByRole('textbox').fill('That the sizes alone caused it.')
+  await expect(dont).not.toContainText('gives a cause')
 })
 
 test('a rule does not ask, and what the writer picks is what the item says after it is published', async ({
