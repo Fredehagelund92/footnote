@@ -8,7 +8,7 @@ import type { Queryable } from '../../db/database.ts'
  * holds no content and expires in 24 hours (NFR-033); the monthly totals keep no person.
  */
 
-export type SpendFeature = 'eval' | 'assistant'
+export type SpendFeature = 'eval' | 'assistant' | 'writing_help'
 export type SpendLimits = {
   monthlyCapMicros: number
   featureCapMicros: number
@@ -25,7 +25,11 @@ export type SpendEntry = {
   estimated?: boolean
 }
 
-const labels: Record<SpendFeature, string> = { eval: 'answer tests', assistant: 'Ask' }
+const labels: Record<SpendFeature, string> = {
+  eval: 'answer tests',
+  assistant: 'Ask',
+  writing_help: 'writing help',
+}
 export const formatUsd = (micros: number) => `$${(micros / 1_000_000).toFixed(2)}`
 
 /** The current limits for one feature. Missing or invalid settings fall back to the defaults. */

@@ -227,11 +227,11 @@ export const reviewSheetSchema = z.object({
   proposal: reviewProposalSchema,
   mode: z.enum(['new', 'edit', 'retire']),
   /**
-   * Who sent it, by name, and whether an AI agent or the assistant wrote it for them; null when
+   * Who sent it, by name, and whether an AI agent or writing help wrote it with them; null when
    * a content source's read made it, which `synced` names.
    */
   from: z.nullable(z.object({ personId: z.string(), name: z.nullable(z.string()) })),
-  writtenBy: z.nullable(z.enum(['agent', 'source'])),
+  writtenBy: z.nullable(z.enum(['agent', 'source', 'writing_help'])),
   /** The agent that sent it, by its name then (FR-420); null for anything an agent didn't send. */
   agent: z.nullable(z.string()),
   synced: z.nullable(syncedSchema),

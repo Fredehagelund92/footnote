@@ -8,7 +8,7 @@ import {
 } from '../../domain/agent-draft.ts'
 import { policySkipWords } from '../../domain/agent-policies.ts'
 import { termDomain } from '../../domain/catalogue.ts'
-import { textFindings, type Draft } from '../../domain/draft.ts'
+import type { Draft } from '../../domain/draft.ts'
 import {
   changedSince,
   draftFieldNames,
@@ -16,12 +16,7 @@ import {
   type DraftFieldName,
   type FieldStamp,
 } from '../../domain/draft-stamps.ts'
-import {
-  provenanceFlags,
-  type FieldMark,
-  type MarkedField,
-  type ProvenanceFlag,
-} from '../../domain/provenance.ts'
+import type { FieldMark, MarkedField } from '../../domain/provenance.ts'
 import { ownerRole } from '../../domain/served-review.ts'
 import { shiftDate } from '../../domain/validity.ts'
 import type { Term } from '../../domain/vocabulary.ts'
@@ -34,6 +29,7 @@ import { createCommentsService } from '../modules/comments/index.ts'
 import {
   createProposalsService,
   patchAgentDraft,
+  refusedWords,
   saveAgentDraft,
 } from '../modules/proposals/index.ts'
 import { adoptPublished } from '../modules/saved-questions/index.ts'
@@ -97,7 +93,7 @@ const duplicate = (match: { overlaps: boolean; score: number | null }) =>
 
 /**
  * What a draft's names resolve against: the live vocabulary, each metric's domain and the active
- * domains. The assistant's drafts resolve against the same (assistant/tools.ts).
+ * domains. Writing help's fields resolve against the same (modules/writing-help).
  */
 export async function draftVocabulary(tx: Queryable) {
   const terms = await tx.query<Term>(
@@ -151,11 +147,7 @@ function asChange(derived: Derivation, args: WriteDraftInput): Derivation {
   }
 }
 
-/** The words that read like orders to an AI agent, which a write never stores (NFR-024). */
-const ordersIn = (draft: Draft): ProvenanceFlag[] =>
-  provenanceFlags(draft).filter((flag) => flag.code === 'instruction_like_text')
-
-type DraftFieldView = {
+export type DraftFieldView = {
   value: unknown
   by: FieldStamp['by'] | null
   at: string | null
@@ -163,8 +155,11 @@ type DraftFieldView = {
   mark?: FieldMark
 }
 
-/** A draft's fields as an agent reads them: by its names, with who changed each last and when. */
-async function fieldsOf(tx: Queryable, p: ProposalRecord) {
+/**
+ * A draft's fields as an agent reads them: by its names, with who changed each last and when.
+ * Writing help reads the person's draft the same way.
+ */
+export async function draftFieldsOf(tx: Queryable, p: ProposalRecord) {
   const names = new Map(
     (
       await tx.query<{ key: string; name: string }>(
@@ -227,13 +222,13 @@ async function fieldsOf(tx: Queryable, p: ProposalRecord) {
 }
 
 /** What stops a draft being sent for review now: the errors of its format check. */
-const blockingOf = (p: ProposalRecord) =>
+export const blockingOf = (p: ProposalRecord) =>
   p.findings
     .filter((finding) => finding.severity === 'error')
     .map(({ code, field, message }) => ({ code, field, message }))
 
 /** One of the person's own drafts or suggestions still waiting: nobody else's, nothing else. */
-const ownDraft = (p: ProposalRecord | null, personId: string): p is ProposalRecord =>
+export const ownDraft = (p: ProposalRecord | null, personId: string): p is ProposalRecord =>
   p !== null &&
   p.proposerId === personId &&
   p.subject === 'item' &&
@@ -426,17 +421,16 @@ export function createDraftSession(options: {
 
   /** The checks every write passes, a first one or a change (FR-117, NFR-024). */
   function checked(draft: Draft, nothing: string): ToolResult | null {
-    const sensitive = textFindings(draft)
-    if (sensitive.length)
+    const refused = refusedWords(draft)
+    if (refused?.kind === 'sensitive')
       return refusal(
         `Remove what looks like personal data or a secret, then try again. ${nothing}`,
-        { findings: sensitive.map(({ code, field }) => ({ code, field })) },
+        { findings: refused.findings.map(({ code, field }) => ({ code, field })) },
       )
-    const orders = ordersIn(draft)
-    if (orders.length)
+    if (refused?.kind === 'orders')
       return refusal(
         `Words in it read like orders to an AI agent. Write what happened in plain words, then try again. ${nothing}`,
-        { flags: orders },
+        { flags: refused.flags },
       )
     return null
   }
@@ -449,7 +443,7 @@ export function createDraftSession(options: {
       number: p.number,
       revision: p.revision,
       url: p.state === 'draft' ? linkTo(p.id) : waitingAt(p.id),
-      fields: await fieldsOf(tx, p),
+      fields: await draftFieldsOf(tx, p),
       ...(blocking.length ? { blocking } : {}),
     }
   }

@@ -1783,6 +1783,32 @@
       }
     }
   },
+  "writingHelp": {
+    "start": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/writing-help/drafts"
+        }
+      }
+    },
+    "turn": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/writing-help/turns"
+        }
+      }
+    }
+  },
   "me": {
     "get": {
       "~orpc": {

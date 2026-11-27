@@ -30,7 +30,12 @@ import {
 import { publishingPermissions } from './modules/agents/index.ts'
 import type { JobRunner } from './modules/jobs/index.ts'
 import type { AskTrace } from './modules/answer/index.ts'
-import { createModelPort, type ModelChecks, type ModelPort } from './modules/models/index.ts'
+import {
+  createModelPort,
+  type ModelChecks,
+  type ModelChoice,
+  type ModelPort,
+} from './modules/models/index.ts'
 import { registerLoginRoutes, type LoginServer } from './modules/oauth/index.ts'
 import type { PageReader } from './modules/web/index.ts'
 import { createMetrics, operationOf, type Metrics } from './observability/metrics.ts'
@@ -86,6 +91,8 @@ export interface AppDependencies {
   trustedProxies?: readonly string[]
   /** What a run of Ask's cases hears or replaces. Never set by the service. */
   askTrace?: AskTrace
+  /** The model writing help asks in place of Ask's, in a test. Never set by the service. */
+  writingHelpModel?: ModelChoice
   /**
    * The model check (`models/capability.ts`), with real models: made again by an Ask turn, or
    * after a role's setting changes. A bare app keeps none.
@@ -129,6 +136,7 @@ export function buildApp({
   readPage,
   trustedProxies = [],
   askTrace,
+  writingHelpModel,
   modelChecks,
   profileLabel,
 }: AppDependencies): FastifyInstance {
@@ -211,6 +219,7 @@ export function buildApp({
     workspaceSources,
     ...(readPage ? { readPage } : {}),
     ...(askTrace ? { askTrace } : {}),
+    ...(writingHelpModel ? { writingHelpModel } : {}),
     ...(modelChecks ? { modelChecks } : {}),
     profileLabel: profileLabel ?? null,
   })

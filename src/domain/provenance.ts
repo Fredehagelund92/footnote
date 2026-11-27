@@ -5,7 +5,7 @@ import { instructionWords, matchesOf, words } from './instruction-words.ts'
 import { fieldMarks, markedFields, type FieldMark, type MarkedField } from './proposal-rules.ts'
 
 /*
-  Where each field of a draft that an agent wrote came from (FR-121).
+  Where each field of a draft that an agent or writing help wrote came from (FR-121).
   A mark tells the person what to check before they submit, and the owner where the words came
   from: never a confidence number, only how the value was found. A field the person changes is
   marked confirmed: from then on it is their own. The marks and the fields that carry one are the
@@ -38,10 +38,10 @@ export type ProvenanceFlag = z.infer<typeof flagSchema>
 
 export const provenanceSchema = z.strictObject({
   /**
-   * Who wrote the draft: an AI agent over MCP, for the person; or a content source's read, from
-   * a document, for nobody (CON-603).
+   * Who wrote the draft: an AI agent over MCP, for the person; a content source's read, from a
+   * document, for nobody (CON-603); or writing help, in the editor's dock, with the person.
    */
-  by: z.enum(['agent', 'source']),
+  by: z.enum(['agent', 'source', 'writing_help']),
   fields: z.partialRecord(z.enum(markedFields), z.enum(fieldMarks)),
   flags: z.array(flagSchema).check(z.maxLength(20)),
 })
@@ -76,16 +76,16 @@ const isEmpty = (value: unknown) =>
 
 /**
  * The marks after `after` was saved over `before`. A field nobody changed keeps its mark. A field
- * the person changed is theirs: `confirmed`, so the owner sees a person read it. A field their
- * agent changed takes the agent's mark for what it wrote, `agent.marks`. The flags are worked out
- * again from the words as they are now; uncertain dates stay flagged until someone changes the
- * dates, or come with the agent's new ones.
+ * the person changed is theirs: `confirmed`, so the owner sees a person read it. A field a writer
+ * changed (their agent, or writing help) takes the writer's mark for what it wrote,
+ * `writer.marks`. The flags are worked out again from the words as they are now; uncertain dates
+ * stay flagged until someone changes the dates, or come with the writer's new ones.
  */
 export function keepMarks(
   provenance: Provenance,
   before: Draft,
   after: Draft,
-  agent?: { marks: Partial<Record<MarkedField, FieldMark>>; datesUncertain?: boolean },
+  writer?: { marks: Partial<Record<MarkedField, FieldMark>>; datesUncertain?: boolean },
 ): Provenance {
   const fields: Provenance['fields'] = {}
   const changed = new Set(changedFields(before, after))
@@ -95,12 +95,12 @@ export function keepMarks(
       if (mark) fields[field] = mark
       continue
     }
-    const next = workedOut.includes(field) ? mark : agent ? agent.marks[field] : 'confirmed'
+    const next = workedOut.includes(field) ? mark : writer ? writer.marks[field] : 'confirmed'
     if (next && (!isEmpty(fieldValue(after, field)) || next === 'not_inferred'))
       fields[field] = next
   }
   const uncertain = changed.has('validity')
-    ? agent?.datesUncertain === true && after.validity !== undefined
+    ? writer?.datesUncertain === true && after.validity !== undefined
     : provenance.flags.some((flag) => flag.code === 'uncertain_dates')
   return {
     by: provenance.by,

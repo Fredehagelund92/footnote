@@ -205,6 +205,9 @@ const readOperations = [
   'drafts.fromText',
   // Save as draft: the person's own draft, which only they read (FR-139).
   'drafts.save',
+  // Writing help writes in the person's own draft, as them; the service refuses it while it is off.
+  'writingHelp.start',
+  'writingHelp.turn',
   'inbox.feed',
   'inbox.names',
   'inbox.decideNames',

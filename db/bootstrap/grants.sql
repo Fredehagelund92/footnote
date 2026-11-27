@@ -274,3 +274,6 @@ grant select, insert, delete on names_left_out to :api;
 grant execute on function cl_undo_until(timestamptz) to :api;
 -- Reading a link a person pastes (FR-144): one read taken under the limits, counted unread.
 grant execute on function cl_link_read_take() to :api;
+-- Writing help: one turn taken under the person's daily limit, counted unread. Nothing here is
+-- granted to the serving or the analytics role.
+grant execute on function cl_writing_help_turn_take() to :api;

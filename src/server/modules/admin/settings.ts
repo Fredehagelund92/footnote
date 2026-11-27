@@ -100,7 +100,7 @@ export async function setSetting(
  * What everyone signed in reads of the workspace (FR-818): its name, empty until an admin names
  * it. Only this key is read, so the other settings stay with the admins.
  */
-export async function readWorkspace(tx: Queryable): Promise<WorkspaceInfo> {
+export async function readWorkspace(tx: Queryable): Promise<Pick<WorkspaceInfo, 'name'>> {
   const [row] = await tx.query<{ value: unknown }>(
     `select value from settings_versions where key = 'workspace.name' order by version desc limit 1`,
   )

@@ -10,7 +10,7 @@ import type {
 import { type Draft, formatOutcome, textFindings } from '../../../domain/draft.ts'
 import { defaultRiskFor, type ItemKind } from '../../../domain/item.ts'
 import { parseMentions } from '../../../domain/mentions.ts'
-import { stampsAfter } from '../../../domain/draft-stamps.ts'
+import { stampsAfter, type DraftWriter } from '../../../domain/draft-stamps.ts'
 import {
   keepMarks,
   type FieldMark,
@@ -150,6 +150,9 @@ export interface SourceAuthor {
   document: string
 }
 
+/** A channel only the service names: the page a question link opens, or writing help's start. */
+type ServiceChannel = 'question' | 'writing_help'
+
 export function createProposalsService(tx: Queryable, clock: Clock, personId: string) {
   return proposalsService(tx, clock, personId, null)
 }
@@ -235,7 +238,14 @@ function proposalsService(
     ])
     return agent?.name
   }
-  async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
+  /** `writer` names writing help on a change it made, in the draft's own history and the log. */
+  async function event(
+    p: ProposalRecord,
+    kind: string,
+    data: Record<string, unknown> = {},
+    writer?: DraftWriter,
+  ) {
+    if (writer === 'writing_help') data = { ...data, writer }
     await tx.query(
       'insert into proposal_events(proposal_id,actor_id,kind,data) values($1,cl_person(),$2,$3)',
       [p.id, kind, JSON.stringify(data)],
@@ -265,11 +275,13 @@ function proposalsService(
         `proposal.${kind}`,
         p.areaId,
         p.id,
-        // A suggestion an agent sent names the agent on every step of its history (FR-420).
+        // A suggestion an agent sent names the agent on every step of its history (FR-420), and a
+        // change writing help made names it as the writer: the actor is the person either way.
         JSON.stringify({
           revision: p.revision,
           ...(author ? { source: author.source } : {}),
           ...(p.agent ? { agent: p.agent } : {}),
+          ...(writer === 'writing_help' ? { writer } : {}),
         }),
         author ? 'service' : 'person',
       ],
@@ -424,14 +436,13 @@ function proposalsService(
   }
   /**
    * A read's suggestion comes through `source`; a person's through the channel they used, or the
-   * question page, which only the service names (`question`).
+   * one only the service names (`via`): the question page, or writing help.
    */
   const channelOf = (
     input: z.infer<typeof createProposalSchema>,
-    question = false,
-  ): ProposalRecord['channel'] =>
-    author ? 'source' : question ? 'question' : (input.channel ?? 'form')
-  async function prepare(input: z.infer<typeof createProposalSchema>, question = false) {
+    via?: ServiceChannel,
+  ): ProposalRecord['channel'] => (author ? 'source' : (via ?? input.channel ?? 'form'))
+  async function prepare(input: z.infer<typeof createProposalSchema>, via?: ServiceChannel) {
     let source: Draft = {}
     let itemId = input.itemId
     if (input.itemId) source = await seedItem(input.itemId)
@@ -454,7 +465,7 @@ function proposalsService(
       tx,
       draft,
       personId,
-      channelOf(input, question),
+      channelOf(input, via),
       itemId ?? null,
       input.newValues ?? [],
     )
@@ -516,13 +527,16 @@ function proposalsService(
          * `saveAgentDraft` passes it, for an agent's suggestion.
          */
         agentId?: string
-        /** Sent from a question link's page; only the questions service passes it. */
-        question?: boolean
+        /**
+         * Sent from a question link's page, which only the questions service passes, or started
+         * in writing help, which only its own start does.
+         */
+        via?: ServiceChannel
       } = {},
     ) {
-      const { draft, itemId, checks } = await prepare(input, options.question)
+      const { draft, itemId, checks } = await prepare(input, options.via)
       rejectSensitive(draft)
-      const channel = channelOf(input, options.question)
+      const channel = channelOf(input, options.via)
       const action = itemId ? 'change' : 'create'
       const reason = changeReason(input.reason, action)
       // The words of a change are written from the version the writer read: the one named, or else
@@ -580,8 +594,9 @@ function proposalsService(
     },
     /**
      * `reason` left out keeps the stored one; null or empty clears it. `newValues` left out keeps
-     * the values its writer added in "Applies to". `agent` is set when the person's agent wrote it
-     * (write_draft), with the mark of each field it wrote; only `patchAgentDraft` passes it.
+     * the values its writer added in "Applies to". `writer` is set when the person's agent
+     * (write_draft) or writing help wrote it, with the mark of each field it wrote; only
+     * `patchAgentDraft` passes it.
      */
     async save(
       id: string,
@@ -591,15 +606,16 @@ function proposalsService(
       {
         byDomainOwners = false,
         newValues: newValuesInput,
-        agent,
+        writer,
       }: {
         byDomainOwners?: boolean
         newValues?: NewValues | undefined
-        agent?: {
+        writer?: {
+          by: DraftWriter
           marks: Partial<Record<MarkedField, FieldMark>>
           datesUncertain?: boolean
           /** The agent that wrote it, named in the history of this change. */
-          id?: string
+          agentId?: string
         }
       } = {},
     ) {
@@ -615,16 +631,21 @@ function proposalsService(
       const newValues = newValuesInput ?? p.newValues
       const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId, newValues)
       // A field the person changed is theirs from now on: it is marked confirmed (FR-121). One
-      // their agent changed takes the agent's mark.
+      // their agent or writing help changed takes that writer's mark.
       const provenance =
-        p.provenance || agent
-          ? keepMarks(p.provenance ?? { by: 'agent', fields: {}, flags: [] }, p.draft, draft, agent)
+        p.provenance || writer
+          ? keepMarks(
+              p.provenance ?? { by: writer!.by, fields: {}, flags: [] },
+              p.draft,
+              draft,
+              writer,
+            )
           : null
       // The update below is the next revision (proposals_guard): each changed field is stamped with it.
-      const writer = await agentName(agent?.id)
+      const agent = await agentName(writer?.agentId)
       const stamps = stampsAfter(p.fieldStamps, p.draft, draft, {
-        by: agent ? 'agent' : 'person',
-        ...(writer ? { agent: writer } : {}),
+        by: writer?.by ?? 'person',
+        ...(agent ? { agent } : {}),
         revision: p.revision + 1,
         at: clock.now().toISOString(),
       })
@@ -643,10 +664,12 @@ function proposalsService(
       )
       const saved = await get(id)
       // The history names the agent on each of its writes, with the person as the actor (FR-420),
-      // also on a draft the person started themselves.
+      // also on a draft the person started themselves; and writing help on each of its own.
       await event(
-        writer ? { ...saved, agent: { id: agent!.id!, name: writer } } : saved,
-        agent ? 'updated' : 'saved',
+        agent ? { ...saved, agent: { id: writer!.agentId!, name: agent } } : saved,
+        writer ? 'updated' : 'saved',
+        {},
+        writer?.by,
       )
       return saved
     },

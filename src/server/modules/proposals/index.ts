@@ -13,8 +13,10 @@ export { retryWrite } from './retry.ts'
 export {
   AGENT_WRITES_PER_HOUR,
   patchAgentDraft,
+  refusedWords,
   saveAgentDraft,
   type AgentDraftRequest,
+  type AgentPatchRequest,
   type AgentPatchResult,
 } from './agent-drafts.ts'
 export { candidateBundle, draftBundle, previewDelivery } from './preview.ts'
