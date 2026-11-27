@@ -713,7 +713,7 @@ export const invalidations: {
   // A new key is listed on Connected agents; the history log notes it.
   createAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
   renameAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
-  // suggest_context off pauses the agent's policies.
+  // send_draft off pauses the agent's policies.
   setAgentTool: () => [
     queryKeys.agentConnections,
     queryKeys.advancedPage,

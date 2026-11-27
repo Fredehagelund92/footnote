@@ -20,7 +20,6 @@ import {
   withAgents,
   type TokenVerifier,
 } from './auth.ts'
-import { loadStateKey } from './state-key.ts'
 import { createAnonymousStore } from './store.ts'
 
 /**
@@ -70,13 +69,7 @@ export async function createMcpDependencies(config: Config, logger: Logger, logi
     query: async <Row extends pg.QueryResultRow>(sql: string, values?: unknown[]) =>
       (await pool.query<Row>(sql, values)).rows,
   }
-  const stateKey = await loadStateKey(config.mcpStateKeyFile, config.nodeEnv)
-  if (!stateKey)
-    logger.warn(
-      'FOOTNOTE_MCP_STATE_KEY_FILE does not exist: suggest_context lists its questions instead of asking them in the agent',
-    )
   return {
-    ...(stateKey ? { stateKey } : {}),
     source: createEditionSource(pool),
     store: createAnonymousStore(pool),
     verifier: withAccessKeys(

@@ -161,25 +161,25 @@ describe('access keys on Connected agents', () => {
     await api.signIn({ name: 'Jon Abara' })
     const kofi = (await api.listAgentConnections()).find((r) => r.who === 'Kofi Mensah')!
     expect(toolsLine(kofi)).toBe('All 7 tools')
-    await api.setAgentTool({ id: kofi.id, tool: 'suggest_context', on: false })
+    await api.setAgentTool({ id: kofi.id, tool: 'send_draft', on: false })
     let now = (await api.listAgentConnections()).find((r) => r.id === kofi.id)!
-    expect(toolsOn(now)).not.toContain('suggest_context')
+    expect(toolsOn(now)).not.toContain('send_draft')
     expect(toolsLine(now)).toBe('6 of 7 tools')
     expect(now.setBy?.name).toBe('Jon Abara')
     for (const { tool } of now.tools) await api.setAgentTool({ id: kofi.id, tool, on: false })
     now = (await api.listAgentConnections()).find((r) => r.id === kofi.id)!
     expect(toolsOn(now)).toEqual([])
     expect(toolsLine(now)).toBe('Off')
-    // Jon allowed his Cursor to read only: switching suggest_context on gives it nothing more.
+    // Jon allowed his Cursor to read only: switching send_draft on gives it nothing more.
     const jon = (await api.listAgentConnections()).find((r) => r.who === 'Jon Abara')!
-    await api.setAgentTool({ id: jon.id, tool: 'suggest_context', on: true })
+    await api.setAgentTool({ id: jon.id, tool: 'send_draft', on: true })
     now = (await api.listAgentConnections()).find((r) => r.id === jon.id)!
-    expect(toolsOn(now)).not.toContain('suggest_context')
-    // An access key can never have suggest_context.
+    expect(toolsOn(now)).not.toContain('send_draft')
+    // An access key can never have send_draft.
     await api.createAccessKey({ name: 'Nightly export' })
     const key = (await api.listAgentConnections()).find((r) => r.kind === 'key')!
     await expect(
-      api.setAgentTool({ id: key.id, tool: 'suggest_context', on: true }),
+      api.setAgentTool({ id: key.id, tool: 'send_draft', on: true }),
     ).rejects.toMatchObject({ kind: 'not-found' })
   })
 

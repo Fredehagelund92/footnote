@@ -39,7 +39,7 @@ export function phaseAt(elapsed: number, signIn?: number): Exclude<LivePhase, 'i
  * One row of Connected agents: an agent, by its name (FR-420). An app a person signed in with acts
  * for them (`who`); an access key an admin made names no person, and `who` is who made it. Each of
  * `tools` is switched on or off for this agent by an admin (`on`), and the agent may have it at all
- * (`allowed`) only when the person allowed it at connection and, for suggest_context, it is no
+ * (`allowed`) only when the person allowed it at connection and, for the draft tools, it is no
  * access key. A tool works only when both hold. `used` is Never for a key no agent used yet.
  */
 export type Connected = {

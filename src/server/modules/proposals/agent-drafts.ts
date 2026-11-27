@@ -16,17 +16,16 @@ import {
 } from '../../../domain/provenance.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
-import { retryWrite } from './retry.ts'
 import { createProposalsService } from './service.ts'
 import { productName } from '../../brand.ts'
 
 /*
-  The one write path for a draft that an AI agent wrote for the person, through the MCP tools
-  `suggest_context` and `write_draft` (FR-121): it saves a draft owned by the person through
-  proposals.create, with a mark on every field, and draft-tool.ts then submits it for review
-  (FR-102, FR-122); write_draft never does. A change an agent makes to one of the person's drafts
-  goes through proposals.save, as the person's own edit does, field by field: a field the person
-  changed since the agent read the draft stays theirs.
+  The one write path for a draft that an AI agent wrote for the person, through the MCP tool
+  `write_draft` (FR-121): it saves a draft owned by the person through proposals.create, with a
+  mark on every field, and never sends it; `send_draft` submits it for review after the person
+  says yes (FR-102, FR-122). A change an agent makes to one of the person's drafts goes through
+  proposals.save, as the person's own edit does, field by field: a field the person changed since
+  the agent read the draft stays theirs.
 */
 
 export type AgentDraftRequest = {
@@ -36,13 +35,6 @@ export type AgentDraftRequest = {
   marks: Partial<Record<MarkedField, FieldMark>>
   /** The person was unsure of the dates, or gave none: the draft's dates are flagged. */
   datesUncertain?: boolean
-  /** A resent request with the same key returns the same draft instead of a second one. */
-  retryKey?: string
-  /**
-   * The question round whose answers the person gave in their agent (MCP elicitation). A round
-   * saves one draft: a second save with it, a replayed request state, is refused.
-   */
-  answersRound?: string
   /** The agent that sent it (FR-420): named on the proposal. */
   agentId?: string
 }
@@ -90,31 +82,18 @@ export async function saveAgentDraft(
   request: AgentDraftRequest,
 ): Promise<ProposalRecord> {
   await checkLimits(tx)
-  // Under the person's agent-draft lock taken above; the unique column backs it up.
-  if (request.answersRound) {
-    const [used] = await tx.query('select 1 from proposals where answers_round=$1', [
-      request.answersRound,
-    ])
-    if (used)
-      throw new ORPCError('CONFLICT', {
-        message: `These answers already saved a draft. Open it in ${productName}, or call the tool again without them`,
-      })
-  }
   const proposals = createProposalsService(tx, clock, personId)
-  const input = {
-    draft: request.draft,
-    ...(request.itemId ? { itemId: request.itemId } : {}),
-    channel: 'mcp' as const,
-  }
-  const create = () =>
-    proposals.create(input, {
+  return proposals.create(
+    {
+      draft: request.draft,
+      ...(request.itemId ? { itemId: request.itemId } : {}),
+      channel: 'mcp' as const,
+    },
+    {
       provenance: (draft) => provenanceOf('agent', request.marks, draft, request.datesUncertain),
-      ...(request.answersRound ? { answersRound: request.answersRound } : {}),
       ...(request.agentId ? { agentId: request.agentId } : {}),
-    })
-  return request.retryKey
-    ? retryWrite(tx, request.retryKey, 'mcp.suggest_context', input, create)
-    : create()
+    },
+  )
 }
 
 /** How many times the person's agents may change one draft in an hour: a loop stops here. */

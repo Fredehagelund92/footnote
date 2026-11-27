@@ -42,7 +42,7 @@ import { liveServingBundle, type BundleCache } from '../answer/index.ts'
 import { conflictsOfItem } from '../conflicts/index.ts'
 import { createGapsService } from '../gaps/index.ts'
 import type { LibraryService } from '../library/index.ts'
-import { draftVocabulary } from '../../mcp/draft-tool.ts'
+import { draftVocabulary } from '../../mcp/draft-session.ts'
 import {
   changeReason,
   checkDraft,

@@ -1,16 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { Readable } from 'node:stream'
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web'
-import {
-  CLIENT_CAPABILITIES_META_KEY,
-  CLIENT_INFO_META_KEY,
-  createMcpHandler,
-  createRequestStateCodec,
-  inputRequired,
-  inputResponse,
-  McpServer,
-  type ServerContext,
-} from '@modelcontextprotocol/server'
+import { CLIENT_INFO_META_KEY, createMcpHandler, McpServer } from '@modelcontextprotocol/server'
 import type { FastifyInstance } from 'fastify'
 import { appFamilyOf, type AppFamily } from '../../domain/app-family.ts'
 import { productName } from '../brand.ts'
@@ -34,7 +25,6 @@ import {
 import { createLimiter } from '../http/rate-limit.ts'
 import type { Metrics } from '../observability/metrics.ts'
 import type { DraftSession } from './draft-session.ts'
-import { ROUND_SECONDS, type DraftRound, type DraftTool, type QuestionRound } from './draft-tool.ts'
 import { byteSize, createToolService, failure } from './service.ts'
 import type { ServingReads } from './reads.ts'
 import { resolverStatusOf } from '../../domain/answer-state.ts'
@@ -43,11 +33,13 @@ import {
   dataToolOf,
   isToolName,
   personOnly,
+  promptArgsSchema,
   serverInstructions,
   toolNames,
   tools,
   toolSchemaDigest,
   toolOutputSchema,
+  writeContext,
   type ToolName,
 } from './tools.ts'
 
@@ -69,27 +61,17 @@ export interface McpDependencies {
    */
   wallClock?: () => Date
   /**
-   * `suggest_context` (FR-121), which writes a suggestion as the signed-in person through the
-   * application's database. Without it the tool is not offered.
-   */
-  drafts?: DraftTool
-  /**
-   * `write_draft` and `read_draft`, which write and read the signed-in person's own drafts, as the
-   * person, through the application's database. Without it they are not offered.
+   * `write_draft`, `read_draft` and `send_draft`, which write, read and send the signed-in
+   * person's own drafts, as the person, through the application's database (FR-121). Without it
+   * they are not offered.
    */
   sessions?: DraftSession
   /**
    * Where the agent behind a person's token may publish without review now (FR-421), read on the
    * application's database as that person, for a line each in the instructions at connect.
-   * Without it the instructions name none, and the reply to a suggestion still says what came of it.
+   * Without it the instructions name none, and the reply to a send still says what came of it.
    */
   permissions?: (agent: { personId: string; agentId: string }) => Promise<PublishPermission[]>
-  /**
-   * The HMAC key (at least 32 bytes) that seals `suggest_context`'s question rounds, shared by
-   * every instance (FOOTNOTE_MCP_STATE_KEY_FILE). Without it the questions are never asked in the
-   * person's agent: the result lists them with the link instead.
-   */
-  stateKey?: Uint8Array
   /**
    * What a domain's definition source has beyond the vocabulary, which find_context names when the
    * words name a domain. Without it find_context leaves that out.
@@ -140,24 +122,6 @@ const SESSION_MESSAGES_PER_MINUTE = 120
  */
 const REFUSALS_PER_MINUTE = 60
 
-/** The key of the one form `suggest_context` asks in a round. */
-const QUESTIONS = 'draft_questions'
-
-/**
- * Whether the client declared form-mode elicitation on this request: on protocol 2026-07-28 it
- * sends its capabilities with every request, and an empty `elicitation` means form mode. A
- * 2025-era request carries none, so it is never asked.
- */
-function canElicitForm(ctx: ServerContext): boolean {
-  const envelope = ctx.mcpReq.envelope as Record<string, unknown> | undefined
-  const capabilities = envelope?.[CLIENT_CAPABILITIES_META_KEY] as
-    { elicitation?: { form?: unknown; url?: unknown } } | undefined
-  const elicitation = capabilities?.elicitation
-  return (
-    elicitation !== undefined && (elicitation.form !== undefined || elicitation.url === undefined)
-  )
-}
-
 export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, metrics?: Metrics) {
   const now = deps.now ?? (() => new Date())
   const execute = createToolService(deps.source, deps.store, now, deps.reads, deps.web ?? null)
@@ -193,7 +157,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     })
   })
   // The scopes a client asks for when it signs in for the first time: all three, so the person
-  // grants suggest_context at consent (FR-121 as changed).
+  // grants the draft tools at consent (FR-121 as changed).
   const challengeScope = 'read feedback propose'
   app.all('/mcp', { bodyLimit: 32768, logLevel: 'silent' }, async (request, reply) => {
     const started = performance.now()
@@ -323,7 +287,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     if (name && principal.agent && !principal.agent.tools.includes(name))
       return deny(
         403,
-        `An admin switched ${name} off for this agent in ${productName}.${name === 'suggest_context' ? ` The person can suggest in ${productName} instead.` : ''}`,
+        `An admin switched ${name} off for this agent in ${productName}.${name === 'send_draft' ? ` The person can send it for review in ${productName} instead.` : ''}`,
         'forbidden',
       )
     if (request.method !== 'POST') {
@@ -340,12 +304,11 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
     }
     if (!policy.client?.enabled) return deny(403, 'Client is not enabled', 'forbidden')
     // A tool that writes or reads as a person is offered where this service runs it.
-    const runs = (n: ToolName) => (n === 'suggest_context' ? deps.drafts : deps.sessions)
     const allowed = toolNames.filter(
       (n) =>
         principal.scopes.includes(tools[n].scope) &&
         (!principal.agent || principal.agent.tools.includes(n)) &&
-        (!personOnly(n) || (principal.subject !== undefined && runs(n) !== undefined)) &&
+        (!personOnly(n) || (principal.subject !== undefined && deps.sessions !== undefined)) &&
         policy.tools.includes(n) &&
         (policy.client!.tools_allowed === null || policy.client!.tools_allowed.includes(n)),
     )
@@ -392,55 +355,17 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       )
     }
     const maxBytes = Math.max(1000, Math.min(policy.client.max_response_bytes ?? 100000, 100000))
-    // A question round of suggest_context is sealed for this tool, this person
-    // and this app only (MCP basic/patterns/mrtr, server requirements 4 and 5): signed with the
-    // shared key, bound to all three, and expiring; the tool also binds it to the call's arguments
-    // and uses it once.
-    const codec = deps.stateKey
-      ? createRequestStateCodec<QuestionRound>({
-          key: deps.stateKey,
-          ttlSeconds: ROUND_SECONDS,
-          bind: () => `${name ?? ''}\0${principal.subject ?? ''}\0${principal.client}`,
-        })
-      : null
-    const roundOf = async (ctx: ServerContext): Promise<DraftRound> => {
-      const raw = ctx.mcpReq.requestState()
-      const response = inputResponse(ctx.mcpReq.inputResponses, QUESTIONS)
-      return {
-        canAsk: codec !== null && canElicitForm(ctx),
-        ...(typeof raw === 'string'
-          ? {
-              state: codec
-                ? await codec.verify(raw, ctx).then(
-                    (payload) => ({ payload }),
-                    () => 'refused' as const,
-                  )
-                : ('refused' as const),
-            }
-          : {}),
-        ...(response.kind === 'elicit'
-          ? {
-              response: {
-                action: response.action,
-                ...(response.content ? { content: response.content } : {}),
-              },
-            }
-          : {}),
-        seal: (round) =>
-          codec ? codec.mint(round, ctx) : Promise.reject(new Error('No state key')),
-      }
-    }
     // What the server tells a client that connects (FR-343), with the data tool its definition
     // sources name, where this agent may publish without review, and About our business last. Only
     // a request that reads the instructions loads the served edition and the permissions for it.
     const describes = body?.method === 'initialize' || body?.method === 'server/discover'
-    // A lookup that fails names none: the reply to a suggestion still says what came of it.
+    // A lookup that fails names none: the reply to a send still says what came of it.
     const permits =
       describes &&
       deps.permissions &&
       principal.agent &&
       principal.subject &&
-      allowed.includes('suggest_context')
+      allowed.includes('send_draft')
         ? await deps
             .permissions({ personId: principal.subject, agentId: principal.agent.id })
             .catch((error: unknown) => {
@@ -453,6 +378,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       policy.about,
       policy.calendar,
       permits,
+      allowed.includes('write_draft'),
     )
     const handler = createMcpHandler(
       () => {
@@ -484,9 +410,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
               // get_context loads in Claude Code before any search for it (anthropic/alwaysLoad).
               ...('_meta' in definition ? { _meta: definition._meta } : {}),
             },
-            // The typed callback has no room for an input-required return, which the SDK accepts
-            // on tools/call (protocol 2026-07-28).
-            (async (args: unknown, ctx: ServerContext): Promise<unknown> => {
+            async (args: unknown) => {
               const issues = invalidInputOf(args)
               if (issues) {
                 status = 'invalid_input'
@@ -503,32 +427,13 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
                   _meta: { tool_schema_digest: toolSchemaDigest },
                 }
               }
-              if (tool === 'suggest_context') {
-                const outcome = await deps.drafts!(args, principal, await roundOf(ctx))
-                if ('ask' in outcome) {
-                  status = 'ok'
-                  return inputRequired({
-                    inputRequests: {
-                      [QUESTIONS]: inputRequired.elicit({
-                        mode: 'form',
-                        ...outcome.ask,
-                      } as Parameters<typeof inputRequired.elicit>[0]),
-                    },
-                    requestState: outcome.requestState,
-                  })
-                }
-                const result =
-                  byteSize(outcome) > maxBytes
-                    ? failure('The result cannot fit the client response limit.')
-                    : outcome
-                status = result.isError ? 'error' : 'ok'
-                return { ...result, _meta: { tool_schema_digest: toolSchemaDigest } }
-              }
-              if (tool === 'write_draft' || tool === 'read_draft') {
-                const outcome = await deps.sessions![tool === 'write_draft' ? 'write' : 'read'](
-                  args,
-                  principal,
-                )
+              if (tool === 'write_draft' || tool === 'read_draft' || tool === 'send_draft') {
+                const step = {
+                  write_draft: 'write',
+                  read_draft: 'read',
+                  send_draft: 'send',
+                } as const
+                const outcome = await deps.sessions![step[tool]](args, principal)
                 const result =
                   byteSize(outcome) > maxBytes
                     ? failure('The result cannot fit the client response limit.')
@@ -555,10 +460,21 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
               resultStatus = resultStatusOf(result)
               // The overlay and cache hints the service put in _meta stay there (FR-346).
               return { ...result, _meta: { ...result._meta, tool_schema_digest: toolSchemaDigest } }
-            }) as never,
+            },
           )
         }
         for (const tool of allowed) list(tool)
+        // The prompt that starts a draft with the person comes with the tool that writes it.
+        if (allowed.includes('write_draft'))
+          server.registerPrompt(
+            writeContext.name,
+            {
+              title: writeContext.title,
+              description: writeContext.description,
+              argsSchema: promptArgsSchema(),
+            },
+            ({ topic }: { topic?: string }) => ({ messages: writeContext.messages(topic) }),
+          )
         return server
       },
       {

@@ -276,14 +276,20 @@ test("an agent's suggestion links to where it waits, in the person's Inbox", asy
   await page.getByRole('button', { name: /Ines Duarte/ }).click()
   await page.getByRole('button', { name: 'Allow', exact: true }).click()
   await agent.back(true)
-  const sent = await agent.calls('suggest_context', {
+  const written = await agent.calls('write_draft', {
     text: 'Orders in Norway include the accounts our teams use to test the webshop until 1 November 2026.',
     scope: { metrics: ['Orders'] },
     window: { from: '2026-10-01' },
     evidence: [{ url: 'https://wiki.example/test-accounts', quote: 'Test accounts are counted.' }],
     new_item: true,
   })
-  expect(sent).toMatchObject({ status: 'suggestion_sent' })
+  expect(written).toMatchObject({ status: 'draft_saved' })
+  // On the person's yes, the agent sends the revision it showed them.
+  const sent = await agent.calls('send_draft', {
+    draft_id: written.draft_id,
+    revision: written.revision,
+  })
+  expect(sent).toMatchObject({ status: 'sent' })
   const url = sent.url as string
   expect(url).toMatch(/\/inbox\?tab=all&card=waiting:[0-9a-f-]{36}$/)
   await page.goto(url)
@@ -292,7 +298,7 @@ test("an agent's suggestion links to where it waits, in the person's Inbox", asy
   ).toBeVisible()
 
   // A draft the agent saved without sending (a check refused it) links to the editor at its own
-  // address, as tests/integration/draft-tool.test.ts says; it opens there with what it holds.
+  // address, as tests/integration/send-draft.test.ts says; it opens there with what it holds.
   const { csrfToken } = (await (await page.request.get('/api/v1/auth/session')).json()) as {
     csrfToken: string
   }

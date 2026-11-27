@@ -507,7 +507,7 @@ export const withCaveats = (instructions: string, items: readonly object[]) =>
     : instructions
 /**
  * FR-611: an anonymous note that fails the check of `noteFindings` is refused, in words the caller
- * can act on, as suggest_context refuses one (agent-side review, finding 7). Null when it passes.
+ * can act on, as write_draft refuses one (agent-side review, finding 7). Null when it passes.
  */
 function refusedNote(note: string | undefined, question?: string): ToolResult | null {
   const findings = note ? noteFindings(note, question) : []

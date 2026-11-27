@@ -894,7 +894,7 @@ export interface FootnoteApi {
   listAgentConnections: () => Promise<Connected[]>
   /**
    * Switches one tool on or off for one agent. It acts at the agent's next request and never widens
-   * what a person allowed; an access key never gets suggest_context. Admins only.
+   * what a person allowed; an access key never gets the draft tools. Admins only.
    */
   setAgentTool: (input: { id: string; tool: AgentToolName; on: boolean }) => Promise<void>
   /** Ends an agent at once: every connection of an app, or an access key. Anyone their own apps. */

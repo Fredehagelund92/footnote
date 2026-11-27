@@ -29,7 +29,7 @@ export function toolRows(
 
 /**
  * The agents people connected as the demo starts, the last used first (FR-420): each by its name,
- * the person it acts for and its tools. Jon Abara switched suggest_context off for Ines Duarte's;
+ * the person it acts for and its tools. Jon Abara switched send_draft off for Ines Duarte's;
  * Jon's own Cursor was allowed to read only when he connected it.
  */
 export const seedAgents: readonly Connected[] = [
@@ -80,7 +80,7 @@ export const seedAgents: readonly Connected[] = [
     host: 'claude.ai',
     since: '1 Oct 2026',
     used: 'Today',
-    tools: toolRows('app', everything, ['suggest_context']),
+    tools: toolRows('app', everything, ['send_draft']),
     setBy: { name: 'Jon Abara', on: '14 Oct 2026' },
     policies: [],
     sent: 0,

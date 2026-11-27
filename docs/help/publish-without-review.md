@@ -2,9 +2,9 @@
 title: Publish without review
 line: Let one agent publish low-risk new items in your domain, as your decision, and turn it off.
 group: Write and review
-order: 7
+order: 8
 minutes: 4
-reviewed: 2026-11-20
+reviewed: 2026-11-27
 open:
   label: Open Agents and access
   href: /settings/agents
@@ -19,6 +19,7 @@ An owner can let one named agent publish some of its suggestions in their domain
 A suggestion from that agent publishes at once only when all of this is true:
 
 - It is a new context item. A change to a live item, or archiving one, always waits for an owner.
+- That agent wrote the draft it sends. A draft the person started in the app, or another agent wrote, waits for review.
 - It names a metric, and every metric it names belongs to your domain. A suggestion about another domain's metric, or about no metric, waits for review, even when the agent names your domain.
 - It is low risk. An agent never sets the risk level, so its suggestion keeps the default for its kind: a Rule starts at low risk, and an Event, a Warning or a Guide at normal risk. Today that means Rules only.
 - It clashes with nothing live, has no detail to compare with the source, and nothing in it needs care, such as words that may mean a legal or financial matter.

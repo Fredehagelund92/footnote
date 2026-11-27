@@ -1096,13 +1096,13 @@ export function describeFootnoteApi(
           'read_context',
           'read_draft',
           'report',
-          'suggest_context',
+          'send_draft',
           'write_draft',
         ])
-        await live.setTool({ name: 'suggest_context', on: false })
-        expect((await live.getSettings()).tools.suggest_context).toBe(false)
-        await live.setTool({ name: 'suggest_context', on: true })
-        expect((await live.getSettings()).tools.suggest_context).toBe(true)
+        await live.setTool({ name: 'send_draft', on: false })
+        expect((await live.getSettings()).tools.send_draft).toBe(false)
+        await live.setTool({ name: 'send_draft', on: true })
+        expect((await live.getSettings()).tools.send_draft).toBe(true)
         await live.setTool({ name: 'read_context', on: false })
         expect((await live.getSettings()).tools.read_context).toBe(false)
         await live.setTool({ name: 'read_context', on: true })
@@ -1155,10 +1155,10 @@ export function describeFootnoteApi(
         const kofi = rows.find((r) => r.agent === 'Claude Code' && r.who === 'Kofi Mensah')
         expect(kofi).toMatchObject({ kind: 'app' })
         expect(toolsOn(kofi!)).toEqual([...agentToolNames])
-        // An admin switched suggest_context off for Ines's, and only that.
+        // An admin switched send_draft off for Ines's, and only that.
         const ines = rows.find((r) => r.who === 'Ines Duarte')!
         expect(ines).toMatchObject({ setBy: { name: 'Jon Abara' } })
-        expect(toolsOn(ines)).toEqual(agentToolNames.filter((t) => t !== 'suggest_context'))
+        expect(toolsOn(ines)).toEqual(agentToolNames.filter((t) => t !== 'send_draft'))
         const gone = rows.find((r) => r.who !== person && r.kind === 'app') ?? rows[0]!
         await live.revokeAgent({ id: gone.id })
         const after = await live.listAgentConnections()
@@ -1174,9 +1174,9 @@ export function describeFootnoteApi(
         const live = await signedIn()
         const rows = await live.listAgentConnections()
         const app = rows.find((r) => r.kind === 'app' && r.tools.every((t) => t.allowed && t.on))!
-        await live.setAgentTool({ id: app.id, tool: 'suggest_context', on: false })
+        await live.setAgentTool({ id: app.id, tool: 'send_draft', on: false })
         let now = (await live.listAgentConnections()).find((r) => r.id === app.id)!
-        expect(toolsOn(now)).toEqual(agentToolNames.filter((t) => t !== 'suggest_context'))
+        expect(toolsOn(now)).toEqual(agentToolNames.filter((t) => t !== 'send_draft'))
         expect(now.setBy?.name).toBe(person)
         // Every tool off: the agent is off.
         for (const tool of agentToolNames) await live.setAgentTool({ id: app.id, tool, on: false })
@@ -1188,9 +1188,9 @@ export function describeFootnoteApi(
         // An app the person allowed only to read never suggests, whatever its switch says.
         const reader = rows.find((r) => r.tools.some((t) => !t.allowed && r.kind === 'app'))
         if (reader) {
-          await live.setAgentTool({ id: reader.id, tool: 'suggest_context', on: true })
+          await live.setAgentTool({ id: reader.id, tool: 'send_draft', on: true })
           now = (await live.listAgentConnections()).find((r) => r.id === reader.id)!
-          expect(toolsOn(now)).not.toContain('suggest_context')
+          expect(toolsOn(now)).not.toContain('send_draft')
         }
       },
     )
@@ -1220,7 +1220,7 @@ export function describeFootnoteApi(
       expect(JSON.stringify(await live.getSettings())).not.toContain(key)
       // An access key names no person, so it can never suggest.
       await expect(
-        live.setAgentTool({ id: made[0]!.id, tool: 'suggest_context', on: true }),
+        live.setAgentTool({ id: made[0]!.id, tool: 'send_draft', on: true }),
       ).rejects.toMatchObject({ kind: 'not-found' })
       await live.renameAccessKey({ id: made[0]!.id, name: 'Monday sales digest' })
       expect((await live.listAgentConnections()).find((r) => r.id === made[0]!.id)).toMatchObject({

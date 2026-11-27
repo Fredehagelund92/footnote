@@ -19,7 +19,7 @@ The service image starts in production mode unless told otherwise. People sign i
 ## Run the image in production mode
 
 1. **Set up sign-in.** Follow [Set up company sign-in](company-sign-in.md).
-2. **Make the keys, once.** They go in the volume that keeps them, and a key that exists is kept:
+2. **Make the signing key, once.** It goes in the volume that keeps the keys, and a key that exists is kept:
 
    ```sh
    docker run --rm -v footnote-keys:/var/lib/footnote <image> npm run keys:create

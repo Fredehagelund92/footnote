@@ -1,4 +1,4 @@
-import { question, type AgentAnswers, type AgentQuestion } from './agent-questions.ts'
+import { question, type AgentQuestion } from './agent-questions.ts'
 import type { Draft } from './draft.ts'
 import { SUMMARY_MAX_LENGTH, type ItemKind } from './item.ts'
 import {
@@ -20,7 +20,7 @@ import { normalizeName, resolveTerm, suggestTerms, type Term } from './vocabular
   audience, an owner or a link to another item.
 */
 
-/** What an agent passes for a draft, in the MCP tool's words (`suggest_context`). */
+/** What an agent passes for a draft, in the MCP tool's words (`write_draft`). */
 export type AgentDraftInput = {
   text: string
   title?: string
@@ -222,16 +222,8 @@ function split(text: string): { summary: string; body?: string; cut?: true } {
   return body ? { summary, body } : { summary }
 }
 
-/**
- * Works out a draft from an agent's input. Pure: the same input gives the same draft. `answers`
- * are what the person answered in their agent (agent-questions.ts): each one replaces what the
- * agent suggested, is marked `confirmed`, and closes its question.
- */
-export function deriveAgentDraft(
-  input: AgentDraftInput,
-  context: DerivationContext,
-  answers: AgentAnswers = {},
-): Derivation {
+/** Works out a draft from an agent's input. Pure: the same input gives the same draft. */
+export function deriveAgentDraft(input: AgentDraftInput, context: DerivationContext): Derivation {
   const marks: Derivation['marks'] = {}
   const reasons: Derivation['reasons'] = {}
   const questions: AgentQuestion[] = []
@@ -256,25 +248,18 @@ export function deriveAgentDraft(
     ? 'Written by the agent.'
     : 'The first words of the summary. Shorten it if it reads badly.'
 
-  // The kind: the agent's hint or the rule, always confirmed.
+  // The kind: the agent's hint or the rule, for the person to confirm.
   const rule = kindByRule(input.title ? `${asWords(input.title)}\n${text}` : text)
-  if (answers.kind) {
-    draft.kind = answers.kind
-    marks.kind = 'confirmed'
-    reasons.kind = confirmed
-  } else {
-    draft.kind = input.kind ?? rule.kind
-    marks.kind = 'prefilled'
-    reasons.kind = input.kind ? 'Suggested by the agent.' : rule.reason
-    if (input.kind && input.kind !== rule.kind)
-      questions.push(
-        question(
-          'kind',
-          `Is this ${article(input.kind)} or ${article(rule.kind)}? ${rule.reason}`,
-          [input.kind, rule.kind],
-        ),
-      )
-  }
+  draft.kind = input.kind ?? rule.kind
+  marks.kind = 'prefilled'
+  reasons.kind = input.kind ? 'Suggested by the agent.' : rule.reason
+  if (input.kind && input.kind !== rule.kind)
+    questions.push(
+      question('kind', `Is this ${article(input.kind)} or ${article(rule.kind)}? ${rule.reason}`, [
+        input.kind,
+        rule.kind,
+      ]),
+    )
 
   // Where it applies: names resolved against the vocabulary, never keys from memory.
   const metrics = new Set<string>()
@@ -301,15 +286,6 @@ export function deriveAgentDraft(
   for (const [dimension, keys] of Object.entries(named.filters))
     for (const key of keys) values.set(dimension, (values.get(dimension) ?? new Set()).add(key))
   for (const dimension of anyValue) values.delete(dimension)
-  const matchedByAgent = metrics.size > 0 || values.size > 0 || anyValue.size > 0
-  // The terms the person chose from the choices offered: keys of the live vocabulary only.
-  for (const key of answers.scope ?? []) {
-    const term = context.terms.find((candidate) => candidate.key === key)
-    if (!term) continue
-    if (term.kind === 'metric' || term.kind === 'metric_group') metrics.add(key)
-    else if (term.kind === 'dimension_value' && term.parentKey)
-      values.set(term.parentKey, (values.get(term.parentKey) ?? new Set()).add(key))
-  }
   draft.scope = {
     metrics: [...metrics].sort(),
     dimensions: [...anyValue].sort(),
@@ -317,15 +293,10 @@ export function deriveAgentDraft(
       .flatMap(([dimension, keys]) => [...keys].map((value) => ({ dimension, value })))
       .sort((a, b) => (a.value < b.value ? -1 : 1)),
   }
-  const wholeScopeAnswered = answers.scope !== undefined && !matchedByAgent
-  marks.scope = wholeScopeAnswered ? 'confirmed' : 'prefilled'
-  reasons.scope = wholeScopeAnswered
-    ? confirmed
-    : 'Matched to the vocabulary from the names the agent passed and the words.'
+  marks.scope = 'prefilled'
+  reasons.scope = 'Matched to the vocabulary from the names the agent passed and the words.'
   const ambiguous = named.ambiguous.map((issue) => issue.input)
-  if (answers.scope) {
-    // Answered: no question about where it applies is left.
-  } else if (
+  if (
     !draft.scope.metrics.length &&
     !draft.scope.dimensions.length &&
     !draft.scope.dimensionValues.length
@@ -347,17 +318,12 @@ export function deriveAgentDraft(
       ),
     )
 
-  // The domain: the person's answer, else the one area of every scoped metric. The agent's area
-  // counts only when the names give no single domain, so it never moves an item off its metrics'.
+  // The domain: the one area of every scoped metric. The agent's area counts only when the names
+  // give no single domain, so it never moves an item off its metrics'.
   let areaCandidates: string[] | null = null
-  const answered = answers.area ? areaByName(answers.area, context.areas) : undefined
   const ofMetrics = areaOfMetrics(draft.scope.metrics, context)
   const chosen = input.area ? areaByName(input.area, context.areas) : undefined
-  if (answered) {
-    draft.areaId = answered.id
-    marks.areaId = 'confirmed'
-    reasons.areaId = confirmed
-  } else if (ofMetrics.id) {
+  if (ofMetrics.id) {
     draft.areaId = ofMetrics.id
     marks.areaId = 'derived'
     reasons.areaId = 'Every metric it names belongs to this domain.'
@@ -371,12 +337,8 @@ export function deriveAgentDraft(
       question('area', 'Which domain is it about? Its owner reviews it.', areaCandidates),
     )
 
-  // When it applies: the person's answer, the agent's dates, otherwise the dates the words name.
-  if (answers.validity) {
-    draft.validity = answers.validity
-    marks.validity = 'confirmed'
-    reasons.validity = confirmed
-  } else if (input.window) {
+  // When it applies: the agent's dates, otherwise the dates the words name.
+  if (input.window) {
     draft.validity = {
       start: input.window.from,
       end: input.window.to ? shiftDate(input.window.to, 1) : null,
@@ -393,24 +355,13 @@ export function deriveAgentDraft(
       reasons.validity = `${dates.end ? 'The range' : 'The first date'} the words name${dates.assumedYear ? `; the year is assumed from ${context.today}` : ''}.`
     } else questions.push(question('start', 'From which day does it apply?', [context.today]))
   }
-  if (!answers.validity && draft.kind === 'issue' && draft.validity && draft.validity.end === null)
+  if (draft.kind === 'issue' && draft.validity && draft.validity.end === null)
     questions.push(
       question('end', 'Is it still going on, or what was the last day?', ['still going on']),
     )
 
   // Where it comes from: only links and sentences the agent read or the person gave.
-  if (answers.evidence) {
-    draft.evidence = [
-      ...(input.evidence ?? []).map((entry) => ({
-        url: entry.url.trim(),
-        quote: asWords(entry.quote),
-        date: context.today,
-      })),
-      { url: answers.evidence.url, quote: asWords(answers.evidence.quote), date: context.today },
-    ]
-    marks.evidence = 'confirmed'
-    reasons.evidence = 'The link and sentence the person gave. Check that the sentence is there.'
-  } else if (input.evidence?.length) {
+  if (input.evidence?.length) {
     draft.evidence = input.evidence.map((entry) => ({
       url: entry.url.trim(),
       quote: asWords(entry.quote),
@@ -594,7 +545,7 @@ export function deriveAgentPatch(input: AgentPatchInput, context: DerivationCont
 }
 
 /**
- * A name matched to the vocabulary, as `suggest_context` matches it: a key, a name or another name
+ * A name matched to the vocabulary, as `write_draft` matches it: a key, a name or another name
  * of exactly one term. A name it cannot match goes on `unresolved` with the nearest terms.
  */
 function resolveName(
@@ -646,5 +597,4 @@ export type NamedDraft = Omit<Draft, 'areaId' | 'ownerId' | 'scope'> & {
   }
 }
 
-const confirmed = 'Answered by the person in their agent.'
 const article = (kind: ItemKind) => `${/^[aeiou]/.test(kind) ? 'an' : 'a'} ${kind}`

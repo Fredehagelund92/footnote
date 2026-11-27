@@ -20,7 +20,6 @@ describe('loadConfig', () => {
       databaseServeUrl: 'postgres://context_layer_serve@localhost:5432/context_layer_dev',
       mcpResourceUrl: 'http://localhost:3000/mcp',
       mcpDevKeyFile: '.footnote-dev-key.pem',
-      mcpStateKeyFile: '.footnote-mcp-state.key',
       loginServer: {
         kind: 'builtin',
         issuer: 'http://localhost:3000',

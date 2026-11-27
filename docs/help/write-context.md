@@ -21,7 +21,7 @@ To create one, open **Context** and choose **Write context**. It opens on one bo
 
 A link is read from its page, which becomes the source.
 
-To start from an empty item, choose **Write it yourself**. Draft from text, in the editor's More menu, goes back to the box.
+To start from an empty item, choose **Write it yourself**. Draft from text, in the editor's More menu, goes back to the box. To write it with Claude or another agent of yours instead, see [Write with your agent](write-with-your-agent.md).
 
 When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 

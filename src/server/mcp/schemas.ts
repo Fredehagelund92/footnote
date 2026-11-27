@@ -9,11 +9,9 @@ import {
   fieldMarks,
   limits,
   markedFields,
-  questionIds,
   toolInputLimits,
 } from '../../domain/proposal-attributes.ts'
 import { draftFields, type DraftFieldName } from '../../domain/draft-stamps.ts'
-import { provenanceFlagCodes } from '../../domain/provenance.ts'
 
 const date = z.string().refine(isCalendarDate, 'Expected a calendar date')
 /**
@@ -284,11 +282,11 @@ export const reportInput = z.strictObject({
 })
 export type ReportInput = z.infer<typeof reportInput>
 /**
- * FR-121: what an agent passes to draft context for the person. Every field is a suggestion the
+ * FR-121: the words an agent passes for a draft of the person's. Every field is a suggestion the
  * person confirms; Footnote resolves names against the vocabulary and never trusts a key or a fact
  * from the agent's memory. Bounded fields only: never a conversation (FR-603).
  */
-export const draftInput = z.strictObject({
+const draftWords = {
   text: z
     .string()
     .min(1)
@@ -371,23 +369,13 @@ export const draftInput = z.strictObject({
     .max(limits.areaId)
     .optional()
     .describe('The domain, only when the person chose one after a reply asked.'),
-  item_id: z
-    .string()
-    .regex(/^itm_[a-z0-9]{8,16}$/)
-    .optional()
-    .describe('To suggest a change to an accepted item instead of a new one.'),
-  new_item: z
-    .boolean()
-    .optional()
-    .describe('true when the person said it is new after a reply listed possible duplicates.'),
-})
-export type DraftInput = z.infer<typeof draftInput>
+}
 
 const revision = z.int().min(1)
 /**
- * What an agent passes to `write_draft` (Route 1, slice R1a): a new draft for the person, with
- * suggest_context's fields, or, with draft_id and the revision it read, only the fields to change
- * in one of the person's drafts. Never a field only people decide (FR-121).
+ * What an agent passes to `write_draft` (Route 1, slice R1a): a new draft for the person, a new
+ * item or a change to a published one, or, with draft_id and the revision it read, only the fields
+ * to change in one of the person's drafts. Never a field only people decide (FR-121).
  */
 export const writeDraftInput = z.strictObject({
   draft_id: z
@@ -399,25 +387,34 @@ export const writeDraftInput = z.strictObject({
     .describe(
       'With draft_id, the revision you last read. A field the person changed after it keeps their words.',
     ),
-  text: draftInput.shape.text
+  text: draftWords.text
     .optional()
     .describe(
       'For a new draft, what the person wants recorded: what happened, where and since when; its first sentences become the summary when you give none. For a draft you change, its text: the detail under the summary. Not a transcript.',
     ),
-  title: draftInput.shape.title,
-  summary: draftInput.shape.summary,
-  kind: draftInput.shape.kind,
-  scope: draftInput.shape.scope,
-  window: draftInput.shape.window,
-  evidence: draftInput.shape.evidence,
-  not_to_conclude: draftInput.shape.not_to_conclude,
-  area: draftInput.shape.area,
+  title: draftWords.title,
+  summary: draftWords.summary,
+  kind: draftWords.kind,
+  scope: draftWords.scope,
+  window: draftWords.window,
+  evidence: draftWords.evidence,
+  not_to_conclude: draftWords.not_to_conclude,
+  area: draftWords.area,
+  item_id: z
+    .string()
+    .regex(/^itm_[a-z0-9]{8,16}$/)
+    .optional()
+    .describe('For a new draft, to change this published item instead of starting a new one.'),
+  new_item: z
+    .boolean()
+    .optional()
+    .describe('true when the person said it is new after a reply listed possible duplicates.'),
 })
 export type WriteDraftInput = z.infer<typeof writeDraftInput>
 
 /** What `read_draft` takes: one of the person's drafts, and the revision the agent read last. */
 export const readDraftInput = z.strictObject({
-  draft_id: z.uuid().describe('The draft, as write_draft or suggest_context gave it.'),
+  draft_id: z.uuid().describe('The draft, as write_draft gave it.'),
   since_revision: revision
     .optional()
     .describe('The revision you read last: changed_since lists the fields changed after it.'),
@@ -425,6 +422,7 @@ export const readDraftInput = z.strictObject({
 export type ReadDraftInput = z.infer<typeof readDraftInput>
 
 const draftFieldName = z.enum(Object.keys(draftFields) as [DraftFieldName, ...DraftFieldName[]])
+const listed = z.strictObject({ id: z.string(), title: z.string(), kind: z.string() })
 /** A field of the person's draft as it is now, and who changed it last. */
 const draftField = z.strictObject({
   value: z.unknown(),
@@ -449,7 +447,8 @@ const draftOf = {
 /**
  * What `write_draft` returns. `status` says what happened: a new draft saved, fields changed, no
  * field changed because the person changed each of them since the revision given (`conflict`), no
- * field different (`no_change`), a domain to choose, or a refusal, which changes nothing.
+ * field different (`no_change`), a domain to choose, published items that may say the same
+ * (`possible_duplicate`), or a refusal, which changes nothing.
  */
 export const writeDraftOutput = z
   .object({
@@ -459,6 +458,7 @@ export const writeDraftOutput = z
       'conflict',
       'no_change',
       'needs_area',
+      'possible_duplicate',
       'refused',
     ]),
     saved: z.boolean(),
@@ -489,6 +489,7 @@ export const writeDraftOutput = z
       .array(z.strictObject({ name: z.string(), suggestions: z.array(z.string()) }))
       .optional(),
     areas: z.array(z.strictObject({ id: z.string(), name: z.string() })).optional(),
+    possible_duplicates: z.array(listed).optional(),
   })
   .loose()
 /** What `read_draft` returns: the person's draft as it is now, or a refusal. */
@@ -502,70 +503,35 @@ export const readDraftOutput = z
   })
   .loose()
 
-const listed = z.strictObject({ id: z.string(), title: z.string(), kind: z.string() })
-const question = z.strictObject({
-  field: z.enum(markedFields),
-  question: z.string(),
-  options: z.array(z.string()).optional(),
+/** What `send_draft` takes: one of the person's drafts, and the revision the person said yes to. */
+export const sendDraftInput = z.strictObject({
+  draft_id: z.uuid().describe('The draft, as write_draft gave it.'),
+  revision: revision.describe(
+    'The revision the person saw and said yes to. If the draft changed since, nothing is sent.',
+  ),
 })
+export type SendDraftInput = z.infer<typeof sendDraftInput>
 /**
- * What `suggest_context` returns (their MCP output schema), field names and
- * marks from the attribute table (src/domain/proposal-attributes.ts). `status` says which parts
- * are present: a suggestion sent to the owner, one published under an owner's policy (FR-421), a
- * saved draft (suggest_context's, or one the review checks kept back), a domain to choose, possible
- * duplicates, or a refusal, which saves nothing.
+ * What `send_draft` returns. `status` says what came of it: sent for review (`sent`), published at
+ * once under an owner's permission to publish without review (`published`, FR-421), kept as the
+ * person's draft because the review checks refused it (`kept`, with `blocking`), not sent because
+ * the draft changed since the revision given (`changed`), or a refusal, which sends nothing.
  */
-export const draftOutput = z
+export const sendDraftOutput = z
   .object({
-    status: z.enum([
-      'suggestion_sent',
-      'suggestion_published',
-      'draft_saved',
-      'needs_area',
-      'possible_duplicate',
-      'refused',
-    ]),
-    saved: z.boolean(),
+    status: z.enum(['sent', 'published', 'kept', 'changed', 'refused']),
+    sent: z.boolean(),
     message: z.string().optional(),
-    submitted: z.boolean().optional(),
     draft_id: z.string().optional(),
     number: z.number().optional(),
+    revision: z.number().optional(),
     title: z.string().optional(),
     url: z.string().nullable().optional(),
-    fields: z
-      .partialRecord(
-        z.enum(markedFields),
-        z.strictObject({
-          value: z.unknown(),
-          mark: z.enum(fieldMarks),
-          reason: z.string().optional(),
-        }),
-      )
+    /** With `changed`: the fields changed after the revision given. */
+    changed_since: z.array(draftFieldName).optional(),
+    blocking: z
+      .array(z.strictObject({ code: z.string(), field: z.string(), message: z.string() }))
       .optional(),
-    questions: z.array(question).optional(),
-    /** The questions the person answered in their agent, when it could ask them. */
-    answered: z.array(z.enum(questionIds)).optional(),
-    not_in_vocabulary: z
-      .array(z.strictObject({ name: z.string(), suggestions: z.array(z.string()) }))
-      .optional(),
-    areas: z.array(z.strictObject({ id: z.string(), name: z.string() })).optional(),
-    possible_duplicates: z.array(listed).optional(),
-    overlaps: z
-      .strictObject({
-        accepted: z.array(listed),
-        own_proposals: z.array(z.record(z.string(), z.unknown())),
-      })
-      .optional(),
-    flags: z
-      .array(
-        z.strictObject({
-          code: z.enum(provenanceFlagCodes),
-          field: z.enum(markedFields),
-          words: z.array(z.string()),
-        }),
-      )
-      .optional(),
-    findings: z.array(z.record(z.string(), z.unknown())).optional(),
     /**
      * When it was published under an owner's policy: whose policy, in which domain. When a policy is
      * on but did not publish it: why it waits for review instead.

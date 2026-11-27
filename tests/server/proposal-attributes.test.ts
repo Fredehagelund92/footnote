@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as z from 'zod'
 import { deriveAgentDraft, type DerivationContext } from '../../src/domain/agent-draft.ts'
-import {
-  questionDefinitions,
-  questionFields,
-  questionForm,
-  readAnswers,
-  type FormProperty,
-} from '../../src/domain/agent-questions.ts'
+import { questionFields } from '../../src/domain/agent-questions.ts'
 import { draftSchema } from '../../src/domain/draft.ts'
 import { itemKinds } from '../../src/domain/item.ts'
 import { itemVersionSchema } from '../../src/domain/item-version.ts'
@@ -23,7 +17,7 @@ import {
 } from '../../src/domain/proposal-attributes.ts'
 import { provenanceSchema } from '../../src/domain/provenance.ts'
 import type { Term } from '../../src/domain/vocabulary.ts'
-import { draftInput, draftOutput } from '../../src/server/mcp/schemas.ts'
+import { writeDraftInput } from '../../src/server/mcp/schemas.ts'
 import { tools } from '../../src/server/mcp/tools.ts'
 import {
   requiredMismatch,
@@ -35,7 +29,7 @@ import { version } from './domain/fixtures.ts'
 
 /*
   The alignment guard (CONTRIBUTING.md, "Proposal attributes"): the Add context and Suggest a
-  change form and the agent tool suggest_context write the same proposal, so they must not drift
+  change form and the agent tool write_draft write the same proposal, so they must not drift
   apart silently. Every attribute of the proposal schema is classified once, in
   src/domain/proposal-attributes.ts, and this suite fails until a new or changed attribute, tool
   input, limit or question is decided there. Each failure says what to do.
@@ -86,7 +80,7 @@ describe('every attribute of the proposal schema is classified for the form and 
     }
     expect(treatmentProblems(widened as never)).toEqual([
       '"riskLevel" is defaulted but may carry the mark "prefilled". A defaulted attribute carries only default.',
-      'suggest_context asks the person for "riskLevel", which it treats as defaulted. Only a derived or prefilled attribute may be asked.',
+      'write_draft asks the person for "riskLevel", which it treats as defaulted. Only a derived or prefilled attribute may be asked.',
       '"riskLevel" may be asked, so its marks must include "confirmed".',
     ])
   })
@@ -110,7 +104,7 @@ describe('the form, the schemas and the tool share one set of limits', () => {
     expect(ok(evidence(over(limits.quote)))).toBe(false)
   })
   it("in the agent tool's input", () => {
-    const schema = z.toJSONSchema(draftInput, { io: 'input' }) as {
+    const schema = z.toJSONSchema(writeDraftInput, { io: 'input' }) as {
       properties: Record<
         string,
         { maxLength?: number; items?: { properties: Record<string, { maxLength?: number }> } }
@@ -128,26 +122,26 @@ describe('the form, the schemas and the tool share one set of limits', () => {
     expect(draftSchema.safeParse({ title: over(limits.title) }).success).toBe(false)
   })
   it('with one vocabulary of kinds', () => {
-    expect(draftInput.shape.kind.unwrap().options).toEqual([...itemKinds])
+    expect(writeDraftInput.shape.kind.unwrap().options).toEqual([...itemKinds])
   })
 })
 
 describe('the agent tool takes and returns the classified attributes only', () => {
   it('takes inputs that suggest only what it may suggest', () => {
-    const inputs = Object.keys(draftInput.shape)
+    const inputs = Object.keys(writeDraftInput.shape)
     expect(toolInputMismatch(inputs)).toEqual([])
     expect(toolInputMismatch([...inputs, 'risk'])[0]).toContain(
-      'suggest_context takes "risk", which src/domain/proposal-attributes.ts does not list',
+      'write_draft takes "risk", which src/domain/proposal-attributes.ts does not list',
     )
     const widened = {
       ...proposalAttributes,
       riskLevel: { ...spec('riskLevel'), agent: { ...spec('riskLevel').agent, inputs: ['kind'] } },
     }
     expect(toolInputMismatch(inputs, widened as never)).toContain(
-      'The tool input "kind" suggests "riskLevel", which suggest_context treats as defaulted: an agent must never set it. Remove the input, or change the treatment on purpose (a product decision, FR-121).',
+      'The tool input "kind" suggests "riskLevel", which write_draft treats as defaulted: an agent must never set it. Remove the input, or change the treatment on purpose (a product decision, FR-121).',
     )
   })
-  it('returns each field with a mark of the provenance table', () => {
+  it('marks each field with a mark of the provenance table', () => {
     // The names a schema's `fields` record takes, as its JSON Schema states them.
     const fieldNames = (schema: z.core.$ZodType) =>
       (
@@ -155,17 +149,16 @@ describe('the agent tool takes and returns the classified attributes only', () =
           properties: { fields: { propertyNames: { enum: unknown } } }
         }
       ).properties.fields.propertyNames.enum
-    expect(fieldNames(draftOutput)).toEqual([...markedFields])
     expect(fieldNames(provenanceSchema)).toEqual([...markedFields])
     // Each field that carries a mark is a classified attribute, in the table's reading order.
     expect(markedFields).toEqual(attributeNames.filter(isMarked))
   })
   it('describes what it does with each attribute from the table, so the words cannot go stale', () => {
-    const description = tools.suggest_context.description
+    const description = tools.write_draft.description
     expect(description).toContain(agentTreatmentSentence())
     for (const name of attributeNames) {
       if (['proposerId', 'createdVia', 'summaryMarkup', 'bodyMarkup'].includes(name)) continue
-      expect(description, `The description of suggest_context does not name "${name}".`).toContain(
+      expect(description, `The description of write_draft does not name "${name}".`).toContain(
         spec(name).words,
       )
     }
@@ -223,7 +216,7 @@ describe('what the agent tool derives stays inside its classification', () => {
         const allowed: readonly string[] = spec(field as ProposalAttribute).agent.marks
         expect(
           allowed,
-          `suggest_context marks "${field}" ${mark}, which its row does not allow.`,
+          `write_draft marks "${field}" ${mark}, which its row does not allow.`,
         ).toContain(mark)
       }
       for (const key of Object.keys(derived.draft)) {
@@ -232,7 +225,7 @@ describe('what the agent tool derives stays inside its classification', () => {
         const asks = (spec(name).agent as { asks?: readonly string[] }).asks ?? []
         expect(
           treatment === 'prefilled' || asks.length > 0,
-          `suggest_context sets "${key}", which it treats as ${treatment}. Only the service fills it.`,
+          `write_draft sets "${key}", which it treats as ${treatment}. Only the service fills it.`,
         ).toBe(true)
       }
       for (const q of derived.questions) {
@@ -256,65 +249,9 @@ describe('what the agent tool derives stays inside its classification', () => {
     })
 })
 
-describe('every question the tool may ask has a definition the protocol can show', () => {
-  const allowedFormats = ['date', 'uri', 'email', 'date-time']
-  const flat = (property: FormProperty) =>
-    property.type === 'boolean' ||
-    (property.type === 'string' &&
-      (property.format === undefined || allowedFormats.includes(property.format))) ||
-    (property.type === 'array' &&
-      property.items.anyOf.every((option) => typeof option.const === 'string'))
-
+describe('every question the tool may ask', () => {
   it('names each question once, on an attribute that may be asked', () => {
-    for (const id of questionIds) {
-      expect(questionDefinitions[id], `The question "${id}" has no definition.`).toBeDefined()
+    for (const id of questionIds)
       expect(questionFields[id], `No attribute asks the question "${id}".`).toBeDefined()
-    }
-  })
-  it('asks as flat primitives, at most four questions, and reads the answers back as confirmed', () => {
-    const asked = deriveAgentDraft(
-      {
-        text: 'The feed for Norway is down.',
-        kind: 'event',
-        scope: { metrics: ['Orders'] },
-      },
-      context,
-    )
-    const titleOf = (value: string) =>
-      context.areas.find((area) => area.id === value)?.name ??
-      terms.find((t) => t.key === value)?.name ??
-      value
-    const ask = { draft: asked.draft, today: context.today, titleOf }
-    const form = questionForm(asked.questions, ask)!
-    expect(form.asked).toEqual(['kind', 'scope', 'start', 'evidence'])
-    for (const property of Object.values(form.requestedSchema.properties))
-      expect(flat(property)).toBe(true)
-    const { answers, answered } = readAnswers(
-      {
-        kind: 'issue',
-        scope: ['val:market/norway'],
-        first_day: '2026-10-01',
-        source_link: 'https://status.example/feed',
-        source_quote: 'The Norway feed is down.',
-      },
-      asked.questions,
-      form.asked,
-      ask,
-    )
-    expect(answered).toEqual(['kind', 'scope', 'start', 'evidence'])
-    const confirmed = deriveAgentDraft(
-      { text: 'The feed for Norway is down.', kind: 'event', scope: { metrics: ['Orders'] } },
-      context,
-      answers,
-    )
-    expect(confirmed.marks).toMatchObject({
-      kind: 'confirmed',
-      // The agent matched Orders itself, so the scope is not wholly the person's answer.
-      scope: 'prefilled',
-      validity: 'confirmed',
-      evidence: 'confirmed',
-    })
-    // Every question was answered, so none is left for Footnote's own form.
-    expect(confirmed.questions.map((q) => q.id)).toEqual([])
   })
 })

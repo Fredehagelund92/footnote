@@ -4,7 +4,7 @@ import openai from '@/assets/logos/openai.svg'
 import vscode from '@/assets/logos/vscode.svg'
 import { MCP_URL, SLUG } from '@/lib/brand'
 import type { LivePhase } from '@/lib/connect'
-import { AGENT_TOOLS, askFirstLine } from '@domain/mcp-text'
+import { AGENT_TOOLS, askFirstLine, finishDraftPrompt, writeContextPrompt } from '@domain/mcp-text'
 
 // How an agent connects. One prompt first: the agent adds the server, writes the Ask-first line into
 // the project's instructions file and says how to sign in. Quick links where a client has a real
@@ -46,6 +46,21 @@ export const PROMPT_PARTS = promptParts()
 /** The prompt as it is copied: its parts, one after another. */
 export const promptOf = (parts: { text: string }[]) => parts.map((p) => p.text).join('\n\n')
 export const PROMPT = promptOf(PROMPT_PARTS)
+
+/**
+ * The words that start writing context with an agent, about a topic (metrics, markets and dates,
+ * never the words anyone asked): the MCP server's write_context prompt says the same.
+ */
+export const writePrompt = (topic?: string) => writeContextPrompt(topic)
+/** The words that go on with one of the person's own drafts, by its id. */
+export const finishPrompt = (draftId: string) => finishDraftPrompt(draftId)
+
+/**
+ * Claude's app on a new chat with `prompt` in its box, for the person to read and send (Open Claude
+ * Desktop with a link, 30 June 2026: about 14,000 characters, on macOS, Windows and Linux).
+ */
+export const claudeAppLink = (prompt: string) =>
+  `claude://claude.ai/new?q=${encodeURIComponent(prompt)}`
 
 /** Cursor's install link: the server's name and a base64 config with its address. */
 export const cursorLink = (name = SLUG, url = ADDRESS) =>
@@ -100,6 +115,10 @@ export const guidesFor = (address = ADDRESS): AgentGuide[] => [
       { what: 'Press Add, then Connect, and approve the connection in the browser.' },
       {
         what: 'On a Team or Enterprise plan an owner adds it under Organization settings, Connectors; then each person presses Connect.',
+      },
+      {
+        what: "Claude's app has no instructions file. To have it check first in every chat of a Project, paste this line into the Project's instructions:",
+        copy: ASK_FIRST_LINE,
       },
     ],
   },

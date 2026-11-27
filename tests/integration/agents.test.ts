@@ -80,7 +80,7 @@ const call = (token: string, body: object) =>
   })
 
 const suggestion = (title: string) => ({
-  name: 'suggest_context',
+  name: 'write_draft',
   arguments: {
     text: `${title}, from 1 October 2026.`,
     scope: { metrics: ['Orders'] },
@@ -139,7 +139,12 @@ describe('every agent by name', () => {
     })
 
     const wire = await mcpClient(app.token)
-    const reply = await wire.callTool(suggestion('Orders exclude gift cards'))
+    const written = (await wire.callTool(suggestion('Orders exclude gift cards')))
+      .structuredContent as { draft_id: string; revision: number }
+    const reply = await wire.callTool({
+      name: 'send_draft',
+      arguments: { draft_id: written.draft_id, revision: written.revision },
+    })
     await wire.close()
     expect(reply.isError).not.toBe(true)
     const { draft_id: proposalId } = reply.structuredContent as { draft_id: string }
@@ -196,44 +201,57 @@ describe('every agent by name', () => {
     ).rejects.toThrow(/cannot change/)
   })
 
-  it('stops an app with suggest_context switched off from suggesting at its next request', async () => {
+  it('stops an app with send_draft switched off from sending at its next request', async () => {
     const app = await connect('author')
     const id = await agentOfClient(app.clientId)
     const boss = await signedIn('admin')
+    // A draft it wrote, for the person to say yes to.
+    const writer = await mcpClient(app.token)
+    const written = (await writer.callTool(suggestion('Orders exclude test orders')))
+      .structuredContent as { draft_id: string; revision: number }
+    await writer.close()
+    const send = {
+      name: 'send_draft',
+      arguments: { draft_id: written.draft_id, revision: written.revision },
+    }
     const before = await proposalCount()
+    const state = async () =>
+      (
+        await admin.query<{ state: string }>('select state::text from proposals where id=$1', [
+          written.draft_id,
+        ])
+      ).rows[0]!.state
 
     // A reason is required, and it is checked for secrets like every reason the log keeps.
-    expect((await setTool(boss, id, 'suggest_context', false, '')).status).toBe(400)
+    expect((await setTool(boss, id, 'send_draft', false, '')).status).toBe(400)
     expect(
-      (await setTool(boss, id, 'suggest_context', false, `password: ${'hak_' + 'x'.repeat(43)}`))
-        .status,
+      (await setTool(boss, id, 'send_draft', false, `password: ${'hak_' + 'x'.repeat(43)}`)).status,
     ).toBe(422)
     expect((await setTool(boss, id, 'not_a_tool', false)).status).toBe(400)
-    expect((await setTool(boss, id, 'suggest_context', false)).status).toBe(200)
+    expect((await setTool(boss, id, 'send_draft', false)).status).toBe(200)
 
     const wire = await mcpClient(app.token)
     const names = (await wire.listTools()).tools.map((t) => t.name)
     await wire.close()
     expect(names).toContain('get_context')
-    expect(names).not.toContain('suggest_context')
-    const refused = await call(app.token, {
-      method: 'tools/call',
-      params: suggestion('Orders exclude test orders'),
-    })
+    expect(names).toContain('write_draft')
+    expect(names).not.toContain('send_draft')
+    const refused = await call(app.token, { method: 'tools/call', params: send })
     expect(refused.status).toBe(403)
     // No scope challenge: the app is not asked to sign the person in again.
     expect(refused.headers.get('www-authenticate')).toBeNull()
     expect(await refused.json()).toEqual({
       error:
-        'An admin switched suggest_context off for this agent in Footnote. The person can suggest in Footnote instead.',
+        'An admin switched send_draft off for this agent in Footnote. The person can send it for review in Footnote instead.',
     })
     expect(await proposalCount()).toBe(before)
+    expect(await state()).toBe('draft')
 
     // The row says so, and who changed it; the history log keeps why.
     const row = (await agentsOf(boss)).find((r) => r.id === id)!
-    expect(toolsOn(row)).toEqual(toolNames.filter((t) => t !== 'suggest_context'))
-    expect(row.tools.find((t) => t.tool === 'suggest_context')).toEqual({
-      tool: 'suggest_context',
+    expect(toolsOn(row)).toEqual(toolNames.filter((t) => t !== 'send_draft'))
+    expect(row.tools.find((t) => t.tool === 'send_draft')).toEqual({
+      tool: 'send_draft',
       on: false,
       allowed: true,
     })
@@ -247,18 +265,18 @@ describe('every agent by name', () => {
       {
         action: 'agent.tool_switched',
         actor: people.admin,
-        details: { name: 'Test client', kind: 'app', tool: 'suggest_context', on: false },
+        details: { name: 'Test client', kind: 'app', tool: 'send_draft', on: false },
         reason: 'Checking what it sends',
       },
     ])
 
-    // Switched back on, it may suggest again at once.
-    expect((await setTool(boss, id, 'suggest_context', true)).status).toBe(200)
+    // Switched back on, it may send again at once.
+    expect((await setTool(boss, id, 'send_draft', true)).status).toBe(200)
     const again = await mcpClient(app.token)
-    const reply = await again.callTool(suggestion('Orders exclude staff orders'))
+    const reply = await again.callTool(send)
     await again.close()
     expect(reply.isError).not.toBe(true)
-    expect(await proposalCount()).toBe(before + 1)
+    expect(await state()).toBe('submitted')
   })
 
   it('lists what there is with find_context until an admin switches it off, then neither lists nor searches (FR-338)', async () => {
@@ -329,15 +347,15 @@ describe('every agent by name', () => {
     await setAll(boss, id, true)
     expect(await mcpStatus(app.token)).toBe(200)
 
-    // An app the person allowed only to read never suggests, whatever its switch says.
+    // An app the person allowed only to read never sends, whatever its switch says.
     const readerId = await agentOfClient(reader.clientId)
-    expect((await setTool(boss, readerId, 'suggest_context', true)).status).toBe(200)
+    expect((await setTool(boss, readerId, 'send_draft', true)).status).toBe(200)
     const wire = await mcpClient(reader.token)
-    expect((await wire.listTools()).tools.map((t) => t.name)).not.toContain('suggest_context')
+    expect((await wire.listTools()).tools.map((t) => t.name)).not.toContain('send_draft')
     await wire.close()
     const readerRow = (await agentsOf(boss)).find((r) => r.id === readerId)!
-    expect(toolsOn(readerRow)).not.toContain('suggest_context')
-    expect(readerRow.tools.find((t) => t.tool === 'suggest_context')).toMatchObject({
+    expect(toolsOn(readerRow)).not.toContain('send_draft')
+    expect(readerRow.tools.find((t) => t.tool === 'send_draft')).toMatchObject({
       allowed: false,
     })
   })
@@ -363,7 +381,7 @@ describe('every agent by name', () => {
     const one = await connect('owner')
     const two = await connect('owner')
     expect(
-      (await setTool(boss, await agentOfClient(one.clientId), 'suggest_context', false)).status,
+      (await setTool(boss, await agentOfClient(one.clientId), 'send_draft', false)).status,
     ).toBe(200)
     expect(
       (await setTool(boss, await agentOfClient(two.clientId), 'read_context', false)).status,

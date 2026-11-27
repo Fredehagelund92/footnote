@@ -874,7 +874,7 @@ export const contract = {
         path: '/agents/{id}/tools',
         tags: ['admin'],
         summary:
-          "Switch one tool on or off for one agent. It acts at the agent's next request and never widens what a person allowed; an access key never gets suggest_context. The history log keeps the reason",
+          "Switch one tool on or off for one agent. It acts at the agent's next request and never widens what a person allowed; an access key never gets the draft tools. The history log keeps the reason",
       })
       .input(agentToolInputSchema)
       .output(changed),

@@ -102,11 +102,11 @@ The service starts empty. To load the demo, set `SEED_DEMO=on`, as `.env.example
 
 What [Back up, restore and upgrade](back-up-restore-and-upgrade.md) keeps in containers lives elsewhere here:
 
-| Part             | Where it is                                                                                                          |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
-| The database     | The one `DATABASE_URL_MIGRATE` names in `.env.local`                                                                 |
-| The keys         | The files `MCP_DEV_KEY_FILE`, `FOOTNOTE_MCP_STATE_KEY_FILE` and `FOOTNOTE_OAUTH_SIGNING_KEY_FILE` name, in the clone |
-| The secret store | The folder `FOOTNOTE_SECRETS_DIR` names, when it is set. Without it, a tool that needs a secret can't connect        |
+| Part             | Where it is                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| The database     | The one `DATABASE_URL_MIGRATE` names in `.env.local`                                                          |
+| The keys         | The files `MCP_DEV_KEY_FILE` and `FOOTNOTE_OAUTH_SIGNING_KEY_FILE` name, in the clone                         |
+| The secret store | The folder `FOOTNOTE_SECRETS_DIR` names, when it is set. Without it, a tool that needs a secret can't connect |
 
 Back up the database and prove the backup with these, which need PostgreSQL 18's tools on `PATH`:
 

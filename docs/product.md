@@ -235,15 +235,17 @@ One rule everywhere: **from agents, Footnote keeps only what a question was abou
 
 Seven tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
 
-| Tool              | What it does                                                                                                                                                               |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `get_context`     | The context that applies to a question about a metric, with the answer line and one sentence to relay.                                                                     |
-| `find_context`    | Find context items and definitions by words, or, without words, list them by kind or domain, a page at a time: an item's title and summary, never its text.                |
-| `read_context`    | One context item in full: text, source, check date, the don't conclude line, and what it links to and from. Or one definition in full, even with no context item about it. |
-| `report`          | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                                          |
-| `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review.                         |
-| `write_draft`     | Write a draft of the person's own, or change some of its fields. It is never sent. A field the person changed since the agent last read the draft keeps their words.       |
-| `read_draft`      | Read a draft of the person's own as it is now: each field, who changed it last and when, and the draft's revision. Only the person's own agent reads it.                   |
+| Tool           | What it does                                                                                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `get_context`  | The context that applies to a question about a metric, with the answer line and one sentence to relay.                                                                                           |
+| `find_context` | Find context items and definitions by words, or, without words, list them by kind or domain, a page at a time: an item's title and summary, never its text.                                      |
+| `read_context` | One context item in full: text, source, check date, the don't conclude line, and what it links to and from. Or one definition in full, even with no context item about it.                       |
+| `report`       | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                                                                |
+| `write_draft`  | Write a draft of the person's own, or change some of its fields. It is never sent. A field the person changed since the agent last read the draft keeps their words.                             |
+| `read_draft`   | Read a draft of the person's own as it is now: each field, who changed it last and when, and the draft's revision. Only the person's own agent reads it.                                         |
+| `send_draft`   | Send a draft of the person's own to the owner, after the person says yes: exactly the revision they saw. It waits in the owner's Inbox, unless the owner lets that agent publish without review. |
+
+An agent offered `write_draft` also gets one prompt, `write_context`, which starts a draft about a topic with the person. The app's Write with Claude button sends the same words to Claude's app, or copies them for another agent of the person's.
 
 The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a read: `read_context` gives an item's links one step out and in with every read, and never changes what an answer includes. Only `get_context` says to call it first, and only for a question about a metric; in Claude Code it loads when a session starts.
 

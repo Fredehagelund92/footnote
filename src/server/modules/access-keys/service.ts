@@ -47,7 +47,7 @@ async function administrator(tx: Queryable) {
 
 /**
  * Creates a key with a name for the signed-in administrator, and the agent it is, with every tool
- * but suggest_context on: the key itself is in this answer only. The history log notes that a key
+ * but the draft tools on: the key itself is in this answer only. The history log notes that a key
  * was made and its name, never the key or its digest. Null when the signed-in person is no longer an administrator.
  */
 export async function createAccessKey(

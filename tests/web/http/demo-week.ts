@@ -1130,7 +1130,7 @@ export async function seedDemoWeek(
     )
     await seedAgentConnections(after)
     // An agent wrote Kofi's, sent with his OK: his Claude Code, named on the suggestion as
-    // suggest_context names it. Which agent sent a suggestion never changes once it is made, so the
+    // write_draft names it. Which agent sent a suggestion never changes once it is made, so the
     // seed writes it past that guard.
     await after.query('begin')
     await after.query("set local session_replication_role = 'replica'")

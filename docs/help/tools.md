@@ -3,13 +3,13 @@ title: Agent tools
 line: The seven tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 14
+minutes: 15
 reviewed: 2026-11-27
 ---
 
 The seven tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them.
 
-Three read published context. Two send something to an owner after the person says yes: a report, and a suggestion, which waits for the owner unless the owner lets that agent [publish without review](publish-without-review.md). The last two write and read a draft of the person's own, which they never send.
+Three read published context. One sends a report to an owner after the person says yes. The last three write, read and send a draft of the person's own: writing and reading never send it, and the send waits for the person's yes, then for the owner, unless the owner lets that agent [publish without review](publish-without-review.md).
 
 ## The seven tools
 
@@ -43,13 +43,6 @@ Tell the owner something is missing, wrong or unclear.
 - Takes: What is wrong, after the person says yes.
 - Returns: That it was sent, and to which owner.
 
-### suggest_context
-
-Send a suggestion to the owner, after the person says yes.
-
-- Takes: The suggested text and what it applies to.
-- Returns: That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.
-
 ### write_draft
 
 Write or change a draft of the person's own. It is never sent.
@@ -63,6 +56,13 @@ Read a draft of the person's own as it is now, with what changed.
 
 - Takes: The draft, and the revision the agent read last.
 - Returns: Each field, who changed it last and when, and the draft's revision.
+
+### send_draft
+
+Send a draft of the person's own to the owner, after the person says yes.
+
+- Takes: The draft, and the revision the person said yes to.
+- Returns: That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.
 
 <!-- /include -->
 
@@ -211,44 +211,30 @@ A `reply_id` that names no reply of the last 90 days is refused, also when a `co
 
 Add a short note. It is checked for sensitive text, and the report never keeps who asked. The reply says that it was sent, and who sees it (`to`). A report about no single domain reaches no owner's Inbox: the reply says an admin sees it in Observability.
 
-## Send a suggestion: suggest_context
-
-It runs only after the person says yes, and only a person's own agent may call it. An access key or a dev token names no person, so it is refused.
-
-It takes `text`, at most 2,000 characters, and hints such as `title`, `kind` and `area`.
-
-An area counts only when the metrics it names give no single domain. It gives back one of these statuses, with a link:
-
-| `status`               | What happened                                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `suggestion_sent`      | It waits in the owner's Inbox. `policy.waits_because` says why, if a permission to publish is on |
-| `suggestion_published` | An owner's permission to publish without review covered it, so it went live                      |
-| `draft_saved`          | The review checks refused it. `blocking` says why, with a link to the draft                      |
-
-- At connect, the instructions name each domain where the agent may publish without review, as far as they have room. The reply is the source of truth if a permission was set or ended since.
-- `possible_duplicate` means live items look alike. Ask the person, then call again with `item_id` or `new_item: true`.
-- `needs_area` means the words do not point to one domain. Ask the person which, and pass `area`.
-- Text that looks like personal data or a secret is refused, and nothing is saved.
-- One person's agents can save 10 drafts in 24 hours, with 20 waiting unsent. Admins change this with `limits.agent_drafts`.
-
-An agent that can show forms asks up to four of its open questions there first. An agent that cannot gets a link and the list of questions.
-
 ## Write a draft together: write_draft and read_draft
 
-The person and their agent work on one draft: the person in the app, the agent with these two tools. Only a person's own agent may call them, as with `suggest_context`. Neither sends anything: the person sends the draft for review in the app, or says yes to `suggest_context`.
+The person and their agent work on one draft: the person in the app, the agent with these tools. Only a person's own agent may call them. An access key or a dev token names no person, so it is refused.
 
-`write_draft` takes one of two shapes:
+Neither tool sends anything. The person sends the draft for review in the app, or says yes and the agent calls `send_draft`.
 
-- Without `draft_id`, it starts a new draft from `text` and the fields `suggest_context` takes.
+`write_draft` takes one of three shapes:
+
+- Without `draft_id`, it starts a new draft from `text`, at most 2,000 characters, with optional hints: a title, a kind and an area.
+- With `item_id` instead, the new draft changes that published item rather than starting a new one.
 - With `draft_id` and `revision`, it changes only the fields you pass: the title, summary, text, kind, area, scope, window, evidence and Don't conclude line.
 
-| `status`        | What happened                                                              |
-| --------------- | -------------------------------------------------------------------------- |
-| `draft_saved`   | A new draft was saved. It is not sent                                      |
-| `draft_changed` | The fields in `applied` changed                                            |
-| `conflict`      | Nothing changed: the person changed each field since the revision you read |
-| `no_change`     | Every field was already as you passed it                                   |
-| `needs_area`    | The words do not point to one domain. Ask the person which                 |
+An area counts only when the metrics it names give no single domain.
+
+| `status`             | What happened                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `draft_saved`        | A new draft was saved. It is not sent                                                          |
+| `draft_changed`      | The fields in `applied` changed                                                                |
+| `conflict`           | Nothing changed: the person changed each field since the revision you read                     |
+| `no_change`          | Every field was already as you passed it                                                       |
+| `needs_area`         | The words do not point to one domain. Ask the person which, and pass `area`                    |
+| `possible_duplicate` | Published items look alike. Ask the person, then call again with `item_id` or `new_item: true` |
+
+One person's agents can save 10 new drafts in 24 hours, with 20 waiting unsent. Admins change this with `limits.agent_drafts`.
 
 `read_draft` takes `draft_id`, and the revision you read last as `since_revision`. It gives back:
 
@@ -263,3 +249,23 @@ The agent sees the person's edits only when it reads the draft, which is when th
 - A field the person changes is marked confirmed, so the owner sees a person read it. A field only the agent wrote stays prefilled.
 - The person's agents can change one draft 60 times an hour. A new draft counts toward `limits.agent_drafts`; a change does not.
 - `read_draft` reads only the person's own drafts and their suggestions still waiting. The words are the person's, never a source for an answer: the other read tools and Ask read only published context.
+
+### The write_context prompt
+
+An agent that may call `write_draft` is also offered one prompt, `write_context`, which starts a draft with the person. In Claude Code it is the command /footnote:write_context. It takes `topic`, what the item is about, such as a metric, a market and dates; without one, the agent asks what happened. It gives back the same words as the app's Write with Claude button: [Write with your agent](write-with-your-agent.md).
+
+## Send a draft: send_draft
+
+It runs only after the person says yes, and only a person's own agent may call it. It takes `draft_id` and `revision`, the revision the person saw, and no words: it sends exactly that revision, as the person's own Send for review would. It gives back one of these statuses, with a link:
+
+| `status`    | What happened                                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| `sent`      | It waits in the owner's Inbox. `policy.waits_because` says why, if a permission to publish is on                      |
+| `published` | An owner's permission to publish without review covered it, so it went live                                           |
+| `kept`      | The review checks refused it. `blocking` says why, with a link to the draft                                           |
+| `changed`   | Nothing was sent: the draft changed after the revision given. `changed_since` lists the fields. Read it and ask again |
+
+- At connect, the instructions name each domain where the agent may publish without review, as far as they have room. The reply is the source of truth if a permission was set or ended since.
+- A permission covers only a draft its own agent wrote. A draft the person started in the app, or another agent wrote, waits for review.
+- A draft that was sent already is refused, and nothing is sent twice.
+- `send_draft` has its own switch, apart from `write_draft` and `read_draft`: an admin can let agents write drafts and keep them from sending.
