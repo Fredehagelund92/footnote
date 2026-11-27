@@ -14,6 +14,7 @@ import { ITEM_FILE_MAX_LENGTH } from '../domain/item-file.ts'
 import { isHost, NEVER_READ_HOSTS_MAX, normalizeHost } from '../domain/never-read-hosts.ts'
 import { itemVersionSchema } from '../domain/item-version.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
+import { WRITING_HELP_MESSAGE_MAX } from '../domain/writing-help.ts'
 import { findingSchema } from './proposals.ts'
 
 const reason = z.string().check(z.minLength(1), z.maxLength(500))
@@ -101,7 +102,10 @@ export const settingSchemas = {
   }),
   'limits.llm_daily_micros_per_person': micros,
   'limits.llm_monthly_cap_micros': micros,
-  'limits.llm_feature_monthly_micros': z.partialRecord(z.enum(['eval', 'assistant']), micros),
+  'limits.llm_feature_monthly_micros': z.partialRecord(
+    z.enum(['eval', 'assistant', 'writing_help']),
+    micros,
+  ),
   'limits.mentions_per_version': int(0, 50),
   // How long after a decision its maker may undo it (FR-227). The screens offer Undo for exactly
   // this long, so the window is never shorter than time to press it.
@@ -117,6 +121,16 @@ export const settingSchemas = {
   'ask.time_limit_seconds': int(5, 120),
   // Whether people may share an Ask chat as a link (FR-721). Off, no link is made and none opens.
   'ask.share_chats': z.boolean(),
+  // Whether people may write a draft with writing help, the editor's dock. On, the words of the
+  // draft and of what the person pastes go to the model provider set for Ask; off, as installed,
+  // nothing of a draft leaves the service.
+  'writing_help.on': z.boolean(),
+  // The turns of writing help one person may take in 24 hours, and the most characters of one
+  // message they send it.
+  'limits.writing_help': z.strictObject({
+    turns_per_day: int(1, 1000),
+    paste_characters: int(500, WRITING_HELP_MESSAGE_MAX),
+  }),
   'evals.tries': int(1, 20),
   // The majority of the repeats decides a flip, so the count is odd.
   'evals.flip_repeats': int(1, 15).check(z.refine((n) => n % 2 === 1, 'Expected an odd number')),
@@ -234,8 +248,11 @@ export const modelCheckSchema = z.object({
 })
 export type ModelCheckRow = z.infer<typeof modelCheckSchema>
 
-/** What everyone in the workspace reads of it (FR-818): its name, empty until an admin names it. */
-export const workspaceSchema = z.object({ name: z.string() })
+/**
+ * What everyone in the workspace reads of it (FR-818): its name, empty until an admin names it,
+ * and whether writing help is there to ask: an admin turned it on and an AI model is connected.
+ */
+export const workspaceSchema = z.object({ name: z.string(), writingHelp: z.boolean() })
 export type WorkspaceInfo = z.infer<typeof workspaceSchema>
 export const setSettingSchema = z.strictObject({
   key: settingKey,

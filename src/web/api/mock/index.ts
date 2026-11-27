@@ -49,11 +49,28 @@ import {
   historyFile,
   UNDO_SECONDS,
   type Automatic,
+  type Helping,
   type Links,
   type Pins,
   type Sharing,
 } from './advanced'
-import { loopExample, playAnswer, recordedAnswer } from './ask-live'
+import { MOCK_FIELD_MS, mockTurn } from './writing-help'
+import { ownerRole } from '@domain/served-review'
+import {
+  linksIn,
+  pasteTooLong,
+  turnsUsedUp,
+  WRITING_HELP_PASTE_CHARACTERS,
+  WRITING_HELP_TURNS_PER_DAY,
+  writingHelpOff,
+} from '@domain/writing-help'
+import {
+  sessionFields,
+  type DraftSession,
+  type FieldBy,
+  type SessionField,
+} from '@/model/draft-session'
+import { loopExample, MOCK_READ_MS, playAnswer, recordedAnswer } from './ask-live'
 import { createChats } from './chats'
 import { askedThisWeek } from './data/asked-week'
 import { createMockNames, familiesShopHeld } from './names'
@@ -127,6 +144,10 @@ export function createMockApi() {
   let links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 }
   /** Sharing Ask chats as links in this visit: on as installed. */
   let sharing: Sharing = { on: true, version: 1 }
+  /** Writing help in this visit: off as installed, until an admin turns it on. */
+  let helping: Helping = { on: false, version: 1 }
+  /** The turns of writing help each person took in this visit, by name. */
+  const helpTurns = new Map<string, number>()
   /** An Observability page as the person signed in may read it, for a view. */
   const obsPageFor = ({ range, domain, agent }: Omit<ObsPageInput, 'section'>) => {
     const person = workspace.people().find((p) => p.name === me())
@@ -224,6 +245,40 @@ export function createMockApi() {
   }
   /** The revision of each of the person's drafts the editor saved, by id: 1 until it is saved. */
   const revisions = new Map<string, number>()
+  /** Who last changed each field of a draft, by id, where the editor or writing help changed it. */
+  const stamps = new Map<string, DraftSession['fields']>()
+  /** A draft's session as the editor keeps up with it: its revision and who changed what. */
+  const sessionOf = (id: string): DraftSession => ({
+    revision: revisions.get(id) ?? 1,
+    fields: stamps.get(id) ?? {},
+  })
+  /** The parts of an item each of the editor's fields is made of. */
+  const factParts: Record<SessionField, (keyof Fact)[]> = {
+    title: ['title'],
+    text: ['summary', 'body'],
+    kind: ['kind'],
+    domain: ['domain'],
+    where: ['where', 'scope'],
+    when: ['valid'],
+    source: ['source', 'quote'],
+    dontConclude: ['dontConclude'],
+  }
+  /** One more revision of a draft, with the fields it changed stamped with who changed them. */
+  const stamp = (id: string, fields: readonly SessionField[], by: FieldBy['by']) => {
+    const revision = (revisions.get(id) ?? 1) + 1
+    revisions.set(id, revision)
+    const at = new Date().toISOString()
+    stamps.set(id, {
+      ...stamps.get(id),
+      ...Object.fromEntries(
+        fields.map((field) => [
+          field,
+          { by, revision, at, ...(by === 'person' ? {} : { mark: 'prefilled' as const }) },
+        ]),
+      ),
+    })
+    return revision
+  }
 
   /** Conflicts kept as both, by pair: off the lists while both items are as the decision saw them. */
   const keptPairs = new Map<string, KeptPair>()
@@ -645,6 +700,7 @@ export function createMockApi() {
         people: workspace.people(),
         invites: workspace.invites(),
         about: state.about,
+        writingHelp: helping.on,
         setup: { done: state.setup, serverSource: null },
       })),
     getVocabulary: () =>
@@ -772,9 +828,7 @@ export function createMockApi() {
           pair && conflictOf(pair[0], pair[1], meAsPerson(), workspace.domainMap(), undefined)
         // The person's own draft saves itself as they write it, at its revision.
         const session =
-          item.status === 'Draft' && item.by === me()
-            ? { session: { revision: revisions.get(item.id) ?? 1, fields: {} } }
-            : {}
+          item.status === 'Draft' && item.by === me() ? { session: sessionOf(item.id) } : {}
         return {
           item: { ...withScope(item), ...session },
           // A draft was never published, so it has no versions yet, as the service has it.
@@ -794,7 +848,7 @@ export function createMockApi() {
       read('draftNow', id, () => {
         const item = shownFacts().find((f) => f.id === id)
         if (item?.status !== 'Draft' || item.by !== me()) return null
-        return { ...withScope(item), session: { revision: revisions.get(id) ?? 1, fields: {} } }
+        return { ...withScope(item), session: sessionOf(id) }
       }),
     conflicts: ({ whose }) => read('conflicts', whose, () => conflictRows(whose)),
     conflict: ({ holderId, otherId }) =>
@@ -975,10 +1029,123 @@ export function createMockApi() {
             'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
           )
         const { session: _, ...words } = fact
-        dispatch({ type: 'editFact', id: fact.id, patch: { ...words, status: 'Draft', by: me() } })
-        revisions.set(fact.id, at + 1)
-        return { revision: at + 1 }
+        // Each field the person changed is theirs from now on, as the service stamps it.
+        const changed = sessionFields.filter((field) =>
+          factParts[field].some(
+            (part) => JSON.stringify(mine[part]) !== JSON.stringify(fact[part]),
+          ),
+        )
+        // A draft with no title keeps its stand-in until the person writes one; clearing one gives it back.
+        const titled =
+          !fact.title || (mine.untitled && !changed.includes('title'))
+            ? { title: mine.untitled ? mine.title : 'Untitled draft' }
+            : {}
+        dispatch({
+          type: 'editFact',
+          id: fact.id,
+          patch: { ...words, ...titled, untitled: 'title' in titled, status: 'Draft', by: me() },
+        })
+        return { revision: stamp(fact.id, changed, 'person') }
       }),
+    // A draft started in writing help: kept as Save as draft keeps one, while writing help is on.
+    startWritingHelp: ({ fact, isNew }) =>
+      now(() => {
+        if (!helping.on) throw new ApiError('failed', writingHelpOff)
+        const mine = isNew ? undefined : shownFacts().find((f) => f.id === fact.id)
+        if (mine?.status === 'Draft')
+          throw new ApiError(
+            'conflict',
+            'A draft saves itself as you write it: it has nothing to save.',
+          )
+        if (!isNew && !mine)
+          throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+        const { session: _, ...words } = fact
+        const id = `itm_draft_${Date.now().toString(36)}`
+        dispatch({
+          type: 'addFact',
+          fact: {
+            ...words,
+            id,
+            status: 'Draft',
+            by: me(),
+            checkedBy: '',
+            checkedOn: '',
+            // No title yet: a list names it by a stand-in, and the editor asks for one.
+            ...(fact.title ? {} : { title: 'Untitled draft', untitled: true }),
+          },
+        })
+        return { id }
+      }),
+    // One turn of writing help, played by rule (mock/writing-help.ts): each field lands on its own,
+    // stamped as writing help's, so the editor shows it as it shows the service's.
+    writingHelp: async ({ draftId, message, live }) => {
+      if (scenario.offline()) throw new ApiError('unanswered', "You're offline.")
+      if (!helping.on) throw new ApiError('failed', writingHelpOff)
+      const draft = () => shownFacts().find((f) => f.id === draftId && f.status === 'Draft')
+      const mine = draft()
+      if (!mine) throw new ApiError('not-found', "This draft isn't here any more.")
+      const characters = [...message].length
+      if (characters > WRITING_HELP_PASTE_CHARACTERS)
+        throw new ApiError('invalid', pasteTooLong(characters, WRITING_HELP_PASTE_CHARACTERS))
+      const taken = helpTurns.get(me()) ?? 0
+      if (taken >= WRITING_HELP_TURNS_PER_DAY)
+        throw new ApiError('failed', turnsUsedUp(WRITING_HELP_TURNS_PER_DAY, 24 * 60 * 60))
+      helpTurns.set(me(), taken + 1)
+      const pause = (ms: number) =>
+        new Promise<void>((done, fail) => {
+          const stopped = () => fail(new DOMException('The turn was stopped.', 'AbortError'))
+          if (live?.signal?.aborted) return stopped()
+          const timer = setTimeout(done, ms)
+          live?.signal?.addEventListener('abort', () => (clearTimeout(timer), stopped()), {
+            once: true,
+          })
+        })
+      const linked = linksIn(message).length > 0
+      live?.onEvent?.({
+        type: 'progress',
+        progress: { doing: 'reading', links: linked && links.on ? 1 : 0 },
+      })
+      await pause(MOCK_READ_MS)
+      const owner = ownerRole(workspace.domainMap()[mine.domain]?.name ?? mine.domain)
+      const turn = mockTurn(mine, message, owner)
+      const changed: SessionField[] = []
+      for (const write of turn.writes) {
+        // A field that already says the same is not written again, as on the service.
+        const now = draft()
+        const same = (Object.keys(write.patch) as (keyof Fact)[]).every(
+          (key) => JSON.stringify(now?.[key]) === JSON.stringify(write.patch[key]),
+        )
+        if (same) continue
+        live?.onEvent?.({ type: 'progress', progress: { doing: 'writing', field: write.field } })
+        await pause(MOCK_FIELD_MS)
+        // Sent or deleted meanwhile: nothing more is written.
+        if (!draft()) break
+        dispatch({
+          type: 'editFact',
+          id: draftId,
+          patch: { ...write.patch, ...(write.field === 'title' ? { untitled: false } : {}) },
+        })
+        stamp(draftId, [write.field], 'writing_help')
+        changed.push(write.field)
+        live?.onEvent?.({ type: 'written', changed: [write.field] })
+      }
+      return copy({
+        reply: turn.reply,
+        changed,
+        kept: [],
+        refused: [],
+        question: turn.question,
+        links: {
+          read: linked && links.on ? 1 : 0,
+          problem:
+            linked && !links.on
+              ? "Reading links is off in this workspace. Paste the page's text instead."
+              : null,
+        },
+        stopped: null,
+        limit: null,
+      })
+    },
     clearLeftDrafts: ({ id }) =>
       now(() => {
         const gone = factsOf(state).filter((f) => f.status === 'Draft' && f.by === id)
@@ -1797,8 +1964,21 @@ export function createMockApi() {
           leftDrafts(),
           links,
           sharing,
+          helping,
         ),
       ),
+    setWritingHelp: ({ on, version }) =>
+      now(() => {
+        if (!obsReader().admin)
+          throw new ApiError('forbidden', 'Only an admin turns writing help on or off.')
+        if (version !== helping.version)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this setting after you opened it. Look at it again, then try again.',
+          )
+        const why = on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.'
+        helping = { on, version: version + 1, changed: { who: me(), when: 'Today', why } }
+      }),
     setAutomaticRuns: ({ on, version }) =>
       now(() => {
         if (!obsReader().admin)

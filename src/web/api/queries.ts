@@ -625,6 +625,9 @@ export const invalidations: {
   saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
   // A draft saved from a Not found card is that card's draft.
   saveDraft: () => [...items, ...inbox],
+  startWritingHelp: () => [...items, ...inbox],
+  // The editor reads its own draft again as a turn writes it; the lists are read where they show next.
+  writingHelp: () => [],
   // Saved as the person types, from the editor, which reads the draft again itself (`later`).
   autosaveDraft: () => [],
   // Published or sent from the list or the Inbox's drafts card, drafts leave that card too.
@@ -717,6 +720,8 @@ export const invalidations: {
     queryKeys.sharedChats,
   ],
   setNeverReadHosts: () => [queryKeys.settings, queryKeys.advancedPage],
+  // Everyone's editor reads from the workspace whether writing help is there to ask.
+  setWritingHelp: () => [queryKeys.settings, queryKeys.advancedPage, queryKeys.workspace],
   // A new key is listed on Connected agents; the history log notes it.
   createAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
   renameAccessKey: () => [queryKeys.agentConnections, queryKeys.advancedPage],
@@ -836,6 +841,7 @@ const later: { [K in WriteOperation]?: QueryKey[] } = {
   ],
   // The draft's row in Context and on the Inbox's drafts card, read again where it shows next.
   autosaveDraft: [...items, ...inbox],
+  writingHelp: [...items, ...inbox],
   // A value its writer added is published with the item (values without figures).
   saveItem: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],
   publishReview: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],

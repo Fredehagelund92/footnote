@@ -41,7 +41,7 @@ import { servedToAgents } from '@/model/items'
 import { useQuery } from '@tanstack/react-query'
 import type { Advanced as AdvancedPage, AnswerTestRuns, Exported } from '@/api/client'
 import { toApiError } from '@/api/errors'
-import { advancedPageQuery, useWrite } from '@/api/queries'
+import { advancedPageQuery, useSession, useWrite } from '@/api/queries'
 import { Loadable, RowsSkeleton } from '@/components/footnote/load-state'
 import { useAdminsSaid, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { listOf } from '@/model/people'
@@ -460,7 +460,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       <FrameSection
         title="Tuning settings"
         level={3}
-        description={`All ${count} settings and their values now. Answer tests, links people paste and shared chats can be changed here; the rest change through the API.`}
+        description={`All ${count} settings and their values now. Answer tests, links people paste, shared chats and writing help can be changed here; the rest change through the API.`}
         collapsible
       >
         <div className="space-y-2 border-t px-4 py-3 text-sm text-muted-foreground md:px-5">
@@ -563,6 +563,7 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
       </FrameSection>
       {page.links && <LinkReading links={page.links} />}
       {page.sharing && <ChatSharing sharing={page.sharing} />}
+      {page.writingHelp && <WritingHelp help={page.writingHelp} />}
       <FrameSection
         title="Answer tests"
         level={3}
@@ -748,6 +749,50 @@ function ChatSharing({ sharing }: { sharing: NonNullable<AdvancedPage['sharing']
             label: <label htmlFor="share-chats">Share chats as links</label>,
             hint: 'A link keeps a copy of the chat under its sender’s name, never a figure. Only people signed in open it, each source only if they may read it.',
             value: <Switch id="share-chats" checked={sharing.on} onCheckedChange={setOn} />,
+          },
+        ]}
+      />
+    </FrameSection>
+  )
+}
+
+/**
+ * Writing help, the editor's dock: off as installed, since turning it on sends the words of a
+ * draft to the AI model set for Ask. The row says what is sent before an admin turns it on.
+ */
+function WritingHelp({ help }: { help: NonNullable<AdvancedPage['writingHelp']> }) {
+  const write = useWrite()
+  const { answeredBy } = useSession()
+  const setOn = (on: boolean) =>
+    void write('setWritingHelp', { on, version: help.version }).then(
+      () => toast(on ? 'Writing help is on' : 'Writing help is off'),
+      (e: unknown) =>
+        toast(on ? "Couldn't turn it on" : "Couldn't turn it off", {
+          description: toApiError(e).message,
+        }),
+    )
+  return (
+    <FrameSection
+      title="Writing help"
+      level={3}
+      description={
+        help.on
+          ? 'On. People can write a draft with writing help, beside the editor.'
+          : 'Off. Nothing of a draft leaves this workspace.'
+      }
+      collapsible
+      defaultOpen={false}
+    >
+      <FrameRows
+        rows={[
+          {
+            id: 'writing-help',
+            label: <label htmlFor="writing-help">Let people write with writing help</label>,
+            hint:
+              answeredBy === 'reader'
+                ? 'On, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. No AI model is connected now, so writing help stays away until one is.'
+                : 'On, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. Writing help changes only that person’s own draft, and never sends it.',
+            value: <Switch id="writing-help" checked={help.on} onCheckedChange={setOn} />,
           },
         ]}
       />

@@ -1,12 +1,19 @@
 import * as React from 'react'
 import { SparklesIcon, Undo2Icon, XIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
-import { changeLine, fieldList, type AgentChange } from '@/model/draft-session'
+import {
+  changeLine,
+  fieldList,
+  HELP_NAME,
+  inSentence,
+  type AgentChange,
+} from '@/model/draft-session'
 import { cn } from '@/lib/utils'
 
 // What the person's agent did to the draft open in the editor (Route 1): a strip that says what it
 // changed and how long ago, with Undo; its words beside a field the person was writing in, to take
 // or leave; and a mark on each field only the agent has written, which nobody has read yet.
+// Writing help, the editor's dock (Route 3), is said the same way, under its own name.
 
 /** The time now, again every `ms`: "20 seconds ago" stays true while it is on the screen. */
 function useNow(ms: number) {
@@ -30,30 +37,53 @@ export function AgentChangeSaid({ change }: { change: AgentChange | null }) {
   )
 }
 
-/** "Claude changed Title and When, 20 seconds ago", with Undo and a way to close it. */
+/**
+ * "Claude changed Title and When, 20 seconds ago", with Undo and a way to close it. `words` says
+ * a change another way, as a turn of writing help is said.
+ */
 export function AgentChangeStrip({
   change,
+  words = changeLine,
   onUndo,
   onClose,
 }: {
   change: AgentChange
+  words?: (change: AgentChange, now: Date) => string
   onUndo: () => void
   onClose: () => void
 }) {
   const now = useNow(10_000)
   return (
     <section
-      aria-label={`What ${change.agent} changed`}
+      aria-label={`What ${inSentence(change.agent)} changed`}
       className="mb-5 flex items-center gap-2 rounded-frame bg-muted py-1 pr-1 pl-3 text-sm"
     >
       <SparklesIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      <p className="min-w-0 flex-1 py-1">{changeLine(change, now)}</p>
+      <p className="min-w-0 flex-1 py-1">{words(change, now)}</p>
       <Button variant="ghost" onClick={onUndo}>
         <Undo2Icon data-icon="inline-start" />
         Undo
       </Button>
       <Button variant="ghost" size="icon" aria-label="Close" onClick={onClose}>
         <XIcon />
+      </Button>
+    </section>
+  )
+}
+
+/** While a turn of writing help runs: that it is writing, and that the person may go on, with Stop. */
+export function HelpWorkingStrip({ onStop }: { onStop: () => void }) {
+  return (
+    <section
+      aria-label="Writing help is working"
+      className="mb-5 flex items-center gap-2 rounded-frame bg-muted py-1 pr-1 pl-3 text-sm"
+    >
+      <SparklesIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+      <p className="min-w-0 flex-1 py-1">
+        {HELP_NAME} is writing the draft. Your hands are free: it skips a field you type in.
+      </p>
+      <Button variant="ghost" onClick={onStop}>
+        Stop
       </Button>
     </section>
   )
@@ -93,7 +123,7 @@ export function AgentVersion({
       <div className="line-clamp-4 text-sm">{children}</div>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={onTake}>
-          Use {agent}'s version
+          Use {inSentence(agent)}'s version
         </Button>
         <Button variant="ghost" onClick={onLeave}>
           Keep mine
@@ -118,5 +148,5 @@ export function AgentWroteLine({ agent, parts }: { agent: string; parts: string[
 /** A field only the agent has written, and nobody has read yet: its mark, as a PropertyRow shows it. */
 export const agentMark = (agent: string) => ({
   icon: <SparklesIcon className="size-3" />,
-  words: `Written by ${agent}. Check it before you send it.`,
+  words: `Written by ${inSentence(agent)}. Check it before you send it.`,
 })

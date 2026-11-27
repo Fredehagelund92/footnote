@@ -353,6 +353,7 @@ export function factOfDraft(
   return {
     id: proposal.id,
     title: draft.title || proposal.title || 'Untitled draft',
+    ...(draft.title || proposal.title ? {} : { untitled: true }),
     summary: text(draft.summary, draft.summaryMarkup, words),
     ...(body ? { body } : {}),
     domain: draft.areaId ?? proposal.areaId ?? '',

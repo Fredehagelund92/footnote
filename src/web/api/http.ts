@@ -159,6 +159,9 @@ export const wiredMethods = [
   'contextPage',
   'itemPage',
   'draftNow',
+  'startWritingHelp',
+  'writingHelp',
+  'setWritingHelp',
   'getItemHistory',
   'compareVersions',
   'getRelated',
@@ -401,28 +404,28 @@ const READ_SHARED_MS = 3000
  * reads its own, and several of them need the same people, domains or Inbox. A read in flight, or
  * answered in the last few seconds, serves the same read again, each caller with its own copy of
  * the answer. Any change (anything but a GET) starts afresh when it is sent and again when it settles, and a read
- * that was in flight meanwhile is never kept, so a read after it sees it.
+ * that was in flight meanwhile is never kept, so a read after it sees it. `changed` starts afresh
+ * for a change the service makes while a request is still open, as a turn of writing help does.
  */
 export function sharedReads(
   send: typeof globalThis.fetch,
   now: () => number = () => Date.now(),
-): typeof globalThis.fetch {
+): typeof globalThis.fetch & { changed: () => void } {
   const recent = new Map<string, { answer: Promise<Response>; at: number; generation: number }>()
   let generation = 0
   const forget = (url: string, entry: object) => {
     if (recent.get(url) === entry) recent.delete(url)
   }
-  return (input, init) => {
+  const changed = () => {
+    generation++
+    recent.clear()
+  }
+  const shared: typeof globalThis.fetch = (input, init) => {
     const request = new Request(input, init)
     if (request.method !== 'GET') {
-      generation++
-      recent.clear()
-      const settled = () => {
-        generation++
-        recent.clear()
-      }
+      changed()
       const written = send(request)
-      written.then(settled, settled)
+      written.then(changed, changed)
       return written
     }
     const known = recent.get(request.url)
@@ -439,6 +442,7 @@ export function sharedReads(
     recent.set(request.url, entry)
     return answer.then((r) => r.clone())
   }
+  return Object.assign(shared, { changed })
 }
 
 export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): FootnoteApi {
@@ -863,6 +867,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
    * draft is saved so: a suggestion is sent or published.
    */
   async function saveDraftFromEditor(fact: Fact, isNew: boolean, card?: string) {
+    const input = await newDraftInput(fact, isNew, card)
+    return write('drafts.save', input, (o) => client.drafts.save(input, o))
+  }
+
+  /** What the editor holds as a new draft: a new item, or a change to a published one. */
+  async function newDraftInput(fact: Fact, isNew: boolean, card?: string) {
     const vocabulary = await readWords()
     const itemId = isNew ? undefined : fact.id
     if (itemId && !isItemId(itemId))
@@ -874,7 +884,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     if (itemId && !before)
       throw new ApiError('not-found', "This context item isn't in Context any more.")
     const gap = card ? parseCardKey(card) : null
-    const input = {
+    return {
       draft: draftOf(fact, vocabulary, calendar.today, before),
       newValues: newValuesOf(fact),
       ...(itemId
@@ -882,7 +892,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         : {}),
       ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
     }
-    return write('drafts.save', input, (o) => client.drafts.save(input, o))
   }
 
   /**
@@ -1373,6 +1382,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       })
       return {
         name: named.name,
+        writingHelp: named.writingHelp,
         domains: workspace.domains,
         people,
         invites: invited,
@@ -1584,6 +1594,26 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       write('drafts.clearLeft', { personId: id }, (o) =>
         client.drafts.clearLeft({ personId: id }, o),
       ),
+    startWritingHelp: async ({ fact, isNew, gap }) => {
+      const input = await newDraftInput(fact, isNew, gap)
+      const started = await write('writingHelp.start', input, (o) =>
+        client.writingHelp.start(input, o),
+      )
+      return { id: started.proposalId }
+    },
+    // A turn's own code loads with the first turn (http-writing-help.ts): the request stays open
+    // while it runs, and each write it makes starts the shared reads afresh.
+    writingHelp: async (input) => {
+      const { helpTurn } = await import('./http-writing-help')
+      const reply = await helpTurn(
+        input,
+        (turn, signal) =>
+          readPosted((o) => client.writingHelp.turn(turn, { ...o, ...(signal ? { signal } : {}) })),
+        shared.changed,
+      )
+      if (!reply) throw new ApiError('unanswered', 'Writing help stopped before it finished.')
+      return reply
+    },
     draftFromText: async ({ text }) => {
       const [drafted, names, vocabulary] = await Promise.all([
         write('drafts.fromText', { text }, (o) => client.drafts.fromText({ text }, o)),
@@ -2351,7 +2381,17 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         },
         links: words.linkReadingOf(settings),
         sharing: words.chatSharingOf(settings),
+        writingHelp: words.writingHelpOf(settings),
       }
+    },
+    setWritingHelp: async ({ on, version }) => {
+      const input = {
+        key: 'writing_help.on',
+        version,
+        value: on,
+        reason: on ? 'Turned on in Settings, Advanced.' : 'Turned off in Settings, Advanced.',
+      }
+      await write('settings.set', input, (o) => client.settings.set(input, o))
     },
     setChatSharing: async ({ on, version }) => {
       const input = {

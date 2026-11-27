@@ -65,13 +65,13 @@ export const proposalRecordSchema = z.object({
    */
   newValues: newValuesSchema,
   /**
-   * Where each field came from when an AI agent or the assistant wrote the draft for the person
-   * (FR-121, FR-707); null for a draft a person wrote.
+   * Where each field came from when an AI agent or writing help wrote in the draft for the person
+   * (FR-121); null for a draft only a person wrote.
    */
   provenance: z.nullable(provenanceSchema),
   /**
-   * Who last changed each field, the person or their agent, at which revision and when (Route 1):
-   * the editor tells the person what their agent changed. Empty for a field nobody changed since
+   * Who last changed each field, the person, their agent or writing help, at which revision and
+   * when (Route 1): the editor tells the person what a writer changed. Empty for a field nobody changed since
    * Footnote kept who does.
    */
   fieldStamps: fieldStampsSchema,

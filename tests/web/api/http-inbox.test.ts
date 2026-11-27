@@ -805,6 +805,25 @@ describe('the review', () => {
     expect(reviewOf(sheet(), 'sug-1').stale).toBeUndefined()
   })
 
+  it('says when its writer wrote it with writing help, as theirs and written in the editor', () => {
+    const helped = reviewOf(
+      sheet({
+        writtenBy: 'writing_help',
+        proposal: { ...sheet().proposal, channel: 'writing_help' },
+      }),
+      'sug-1',
+    )
+    expect(helped).toMatchObject({ from: 'Ines Duarte', helped: true, via: 'editor' })
+    expect(helped.agent).toBeUndefined()
+    expect(reviewOf(sheet(), 'sug-1').helped).toBeUndefined()
+    // Written for a Not found card with writing help, it is still its writer's, not the queue's own.
+    const forGap = reviewOf(
+      sheet({ writtenBy: 'writing_help', gapId: '0f8fad5b-d9cb-469f-a165-70867728950e' }),
+      'sug-1',
+    )
+    expect(forGap).toMatchObject({ from: 'Ines Duarte', helped: true })
+  })
+
   it('reads the sheet under its card’s id, with the service’s Ready line and read time', () => {
     const r = reviewOf(
       sheet(

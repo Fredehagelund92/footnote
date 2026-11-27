@@ -485,7 +485,8 @@
                         "mcp",
                         "import",
                         "source",
-                        "question"
+                        "question",
+                        "writing_help"
                       ],
                       "type": "string"
                     },
@@ -731,7 +732,8 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "source"
+                                "source",
+                                "writing_help"
                               ],
                               "type": "string"
                             },
@@ -869,7 +871,8 @@
                           "by": {
                             "enum": [
                               "person",
-                              "agent"
+                              "agent",
+                              "writing_help"
                             ],
                             "type": "string"
                           },
@@ -1401,7 +1404,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -1647,7 +1651,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -1785,7 +1790,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -2335,7 +2341,8 @@
                               "mcp",
                               "import",
                               "source",
-                              "question"
+                              "question",
+                              "writing_help"
                             ],
                             "type": "string"
                           },
@@ -2581,7 +2588,8 @@
                                   "by": {
                                     "enum": [
                                       "agent",
-                                      "source"
+                                      "source",
+                                      "writing_help"
                                     ],
                                     "type": "string"
                                   },
@@ -2719,7 +2727,8 @@
                                 "by": {
                                   "enum": [
                                     "person",
-                                    "agent"
+                                    "agent",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -3275,7 +3284,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -3521,7 +3531,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -3659,7 +3670,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -4147,7 +4159,8 @@
                         "mcp",
                         "import",
                         "source",
-                        "question"
+                        "question",
+                        "writing_help"
                       ],
                       "type": "string"
                     },
@@ -4393,7 +4406,8 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "source"
+                                "source",
+                                "writing_help"
                               ],
                               "type": "string"
                             },
@@ -4531,7 +4545,8 @@
                           "by": {
                             "enum": [
                               "person",
-                              "agent"
+                              "agent",
+                              "writing_help"
                             ],
                             "type": "string"
                           },
@@ -5063,7 +5078,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -5309,7 +5325,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -5447,7 +5464,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -5956,7 +5974,8 @@
                         "mcp",
                         "import",
                         "source",
-                        "question"
+                        "question",
+                        "writing_help"
                       ],
                       "type": "string"
                     },
@@ -6202,7 +6221,8 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "source"
+                                "source",
+                                "writing_help"
                               ],
                               "type": "string"
                             },
@@ -6340,7 +6360,8 @@
                           "by": {
                             "enum": [
                               "person",
-                              "agent"
+                              "agent",
+                              "writing_help"
                             ],
                             "type": "string"
                           },
@@ -6872,7 +6893,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -7118,7 +7140,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -7256,7 +7279,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -7771,7 +7795,8 @@
                         "mcp",
                         "import",
                         "source",
-                        "question"
+                        "question",
+                        "writing_help"
                       ],
                       "type": "string"
                     },
@@ -8017,7 +8042,8 @@
                             "by": {
                               "enum": [
                                 "agent",
-                                "source"
+                                "source",
+                                "writing_help"
                               ],
                               "type": "string"
                             },
@@ -8155,7 +8181,8 @@
                           "by": {
                             "enum": [
                               "person",
-                              "agent"
+                              "agent",
+                              "writing_help"
                             ],
                             "type": "string"
                           },
@@ -8687,7 +8714,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -8933,7 +8961,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -9071,7 +9100,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -9504,7 +9534,8 @@
                             "mcp",
                             "import",
                             "source",
-                            "question"
+                            "question",
+                            "writing_help"
                           ],
                           "type": "string"
                         },
@@ -9631,7 +9662,8 @@
                         {
                           "enum": [
                             "agent",
-                            "source"
+                            "source",
+                            "writing_help"
                           ],
                           "type": "string"
                         },
@@ -12735,7 +12767,8 @@
                                   "mcp",
                                   "import",
                                   "source",
-                                  "question"
+                                  "question",
+                                  "writing_help"
                                 ],
                                 "type": "string"
                               },
@@ -12862,7 +12895,8 @@
                               {
                                 "enum": [
                                   "agent",
-                                  "source"
+                                  "source",
+                                  "writing_help"
                                 ],
                                 "type": "string"
                               },
@@ -16794,7 +16828,8 @@
                             "mcp",
                             "import",
                             "source",
-                            "question"
+                            "question",
+                            "writing_help"
                           ],
                           "type": "string"
                         },
@@ -17979,7 +18014,8 @@
                             "mcp",
                             "import",
                             "source",
-                            "question"
+                            "question",
+                            "writing_help"
                           ],
                           "type": "string"
                         },
@@ -19066,7 +19102,8 @@
                             "mcp",
                             "import",
                             "source",
-                            "question"
+                            "question",
+                            "writing_help"
                           ],
                           "type": "string"
                         },
@@ -21074,7 +21111,8 @@
                         "mcp",
                         "import",
                         "source",
-                        "question"
+                        "question",
+                        "writing_help"
                       ],
                       "type": "string"
                     },
@@ -22652,7 +22690,8 @@
                               "mcp",
                               "import",
                               "source",
-                              "question"
+                              "question",
+                              "writing_help"
                             ],
                             "type": "string"
                           },
@@ -24654,7 +24693,8 @@
                                           "mcp",
                                           "import",
                                           "source",
-                                          "question"
+                                          "question",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -37581,7 +37621,8 @@
                             "mcp",
                             "import",
                             "source",
-                            "question"
+                            "question",
+                            "writing_help"
                           ],
                           "type": "string"
                         },
@@ -39765,7 +39806,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -40011,7 +40053,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -40149,7 +40192,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -43910,7 +43954,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -44156,7 +44201,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -44294,7 +44340,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -44832,6 +44879,14 @@
                     "minimum": 1,
                     "maximum": 9007199254740991
                   },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "gapId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
                   "draftId": {
                     "type": "string",
                     "format": "uuid"
@@ -44840,14 +44895,6 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 9007199254740991
-                  },
-                  "reason": {
-                    "type": "string",
-                    "maxLength": 500
-                  },
-                  "gapId": {
-                    "type": "string",
-                    "format": "uuid"
                   }
                 },
                 "required": [
@@ -45268,7 +45315,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -45514,7 +45562,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -45652,7 +45701,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -70804,7 +70854,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -71050,7 +71101,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -71188,7 +71240,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -71775,7 +71828,8 @@
                                   {
                                     "enum": [
                                       "agent",
-                                      "source"
+                                      "source",
+                                      "writing_help"
                                     ],
                                     "type": "string"
                                   },
@@ -78046,7 +78100,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -78292,7 +78347,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -78430,7 +78486,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },
@@ -90113,7 +90170,7 @@
     "/workspace": {
       "get": {
         "operationId": "workspace.get",
-        "summary": "The workspace's name, which an admin sets (workspace.name), for everyone signed in (FR-818)",
+        "summary": "The workspace's name, which an admin sets (workspace.name), and whether writing help is there to ask, for everyone signed in (FR-818)",
         "tags": [
           "session"
         ],
@@ -90127,10 +90184,14 @@
                   "properties": {
                     "name": {
                       "type": "string"
+                    },
+                    "writingHelp": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
-                    "name"
+                    "name",
+                    "writingHelp"
                   ]
                 }
               }
@@ -90345,6 +90406,3031 @@
                         "code",
                         "status",
                         "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/writing-help/drafts": {
+      "post": {
+        "operationId": "writingHelp.start",
+        "summary": "Start a draft in writing help: what the editor holds is kept as the person's own draft, as Save as draft keeps one, for writing help to write in; refused while writing help is off",
+        "tags": [
+          "library"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "draft": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "note",
+                          "event",
+                          "guide",
+                          "issue"
+                        ],
+                        "type": "string"
+                      },
+                      "areaId": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "summaryMarkup": {
+                        "type": "string"
+                      },
+                      "bodyMarkup": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "type": "object",
+                        "properties": {
+                          "metrics": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^(metric|group):[a-z0-9_]+$"
+                            }
+                          },
+                          "dimensions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "pattern": "^dim:[a-z0-9_]+$"
+                            },
+                            "default": []
+                          },
+                          "dimensionValues": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "dimension": {
+                                  "type": "string",
+                                  "pattern": "^dim:[a-z0-9_]+$"
+                                },
+                                "value": {
+                                  "type": "string",
+                                  "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                }
+                              },
+                              "required": [
+                                "dimension",
+                                "value"
+                              ]
+                            }
+                          }
+                        },
+                        "required": [
+                          "metrics",
+                          "dimensionValues"
+                        ]
+                      },
+                      "validity": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "string",
+                            "maxLength": 10
+                          },
+                          "end": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "maxLength": 10
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "start",
+                          "end"
+                        ]
+                      },
+                      "reviewDate": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "maxLength": 10
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "evidence": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "url": {
+                              "type": "string",
+                              "maxLength": 2000
+                            },
+                            "quote": {
+                              "type": "string",
+                              "maxLength": 500
+                            },
+                            "date": {
+                              "type": "string",
+                              "maxLength": 10
+                            }
+                          },
+                          "required": [
+                            "url",
+                            "quote",
+                            "date"
+                          ]
+                        }
+                      },
+                      "references": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "changeMarks": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "claimLevel": {
+                        "enum": [
+                          "fact_only",
+                          "effect_stated"
+                        ],
+                        "type": "string"
+                      },
+                      "claimAuthority": {
+                        "type": "string"
+                      },
+                      "claimQuote": {
+                        "type": "string"
+                      },
+                      "riskLevel": {
+                        "enum": [
+                          "low",
+                          "normal",
+                          "high"
+                        ],
+                        "type": "string"
+                      },
+                      "audience": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "everyone"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ]
+                      },
+                      "ownerId": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "notToConclude": {
+                        "type": "string"
+                      },
+                      "replaces": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^itm_[a-z0-9]{8,16}$"
+                        }
+                      },
+                      "conflicts": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^itm_[a-z0-9]{8,16}$"
+                        }
+                      },
+                      "summary": {
+                        "type": "string",
+                        "maxLength": 20000
+                      },
+                      "body": {
+                        "type": "string",
+                        "maxLength": 40000
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "newValues": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "itemId": {
+                    "type": "string",
+                    "pattern": "^itm_[a-z0-9]{8,16}$"
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "gapId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "draft"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "proposalId": {
+                      "type": "string"
+                    },
+                    "revision": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "proposalId",
+                    "revision"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find this context item. It may have been deleted, or you may not have access."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "current": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "number": {
+                                  "type": "number"
+                                },
+                                "subject": {
+                                  "enum": [
+                                    "item",
+                                    "vocabulary"
+                                  ],
+                                  "type": "string"
+                                },
+                                "action": {
+                                  "enum": [
+                                    "create",
+                                    "change",
+                                    "retire",
+                                    "recheck"
+                                  ],
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "enum": [
+                                    "draft",
+                                    "submitted",
+                                    "in_review",
+                                    "changes_requested",
+                                    "accepted",
+                                    "rejected",
+                                    "withdrawn"
+                                  ],
+                                  "type": "string"
+                                },
+                                "areaId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "itemId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "itemVersionId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "vocabularyVersionId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "vocabulary": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "key": {
+                                          "type": "string"
+                                        },
+                                        "kind": {
+                                          "enum": [
+                                            "metric",
+                                            "metric_group",
+                                            "dimension",
+                                            "dimension_value"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "aliases": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "parentKey": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "areaId": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "definitionRefs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "key",
+                                        "kind",
+                                        "name",
+                                        "aliases",
+                                        "parentKey",
+                                        "areaId",
+                                        "definitionRefs"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "proposerId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "channel": {
+                                  "enum": [
+                                    "form",
+                                    "chat",
+                                    "command_line",
+                                    "mcp",
+                                    "import",
+                                    "source",
+                                    "question",
+                                    "writing_help"
+                                  ],
+                                  "type": "string"
+                                },
+                                "revision": {
+                                  "type": "number"
+                                },
+                                "draft": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "enum": [
+                                        "note",
+                                        "event",
+                                        "guide",
+                                        "issue"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "areaId": {
+                                      "type": "string"
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "summaryMarkup": {
+                                      "type": "string"
+                                    },
+                                    "bodyMarkup": {
+                                      "type": "string"
+                                    },
+                                    "scope": {
+                                      "type": "object",
+                                      "properties": {
+                                        "metrics": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "pattern": "^(metric|group):[a-z0-9_]+$"
+                                          }
+                                        },
+                                        "dimensions": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "pattern": "^dim:[a-z0-9_]+$"
+                                          },
+                                          "default": []
+                                        },
+                                        "dimensionValues": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "dimension": {
+                                                "type": "string",
+                                                "pattern": "^dim:[a-z0-9_]+$"
+                                              },
+                                              "value": {
+                                                "type": "string",
+                                                "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                              }
+                                            },
+                                            "required": [
+                                              "dimension",
+                                              "value"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "metrics",
+                                        "dimensionValues"
+                                      ]
+                                    },
+                                    "validity": {
+                                      "type": "object",
+                                      "properties": {
+                                        "start": {
+                                          "type": "string",
+                                          "maxLength": 10
+                                        },
+                                        "end": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 10
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "start",
+                                        "end"
+                                      ]
+                                    },
+                                    "reviewDate": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "maxLength": 10
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "evidence": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "url": {
+                                            "type": "string",
+                                            "maxLength": 2000
+                                          },
+                                          "quote": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                          },
+                                          "date": {
+                                            "type": "string",
+                                            "maxLength": 10
+                                          }
+                                        },
+                                        "required": [
+                                          "url",
+                                          "quote",
+                                          "date"
+                                        ]
+                                      }
+                                    },
+                                    "references": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "changeMarks": {
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string"
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "claimLevel": {
+                                      "enum": [
+                                        "fact_only",
+                                        "effect_stated"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "claimAuthority": {
+                                      "type": "string"
+                                    },
+                                    "claimQuote": {
+                                      "type": "string"
+                                    },
+                                    "riskLevel": {
+                                      "enum": [
+                                        "low",
+                                        "normal",
+                                        "high"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "audience": {
+                                      "type": "object",
+                                      "properties": {
+                                        "kind": {
+                                          "const": "everyone"
+                                        }
+                                      },
+                                      "required": [
+                                        "kind"
+                                      ]
+                                    },
+                                    "ownerId": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "notToConclude": {
+                                      "type": "string"
+                                    },
+                                    "replaces": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^itm_[a-z0-9]{8,16}$"
+                                      }
+                                    },
+                                    "conflicts": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^itm_[a-z0-9]{8,16}$"
+                                      }
+                                    },
+                                    "summary": {
+                                      "type": "string",
+                                      "maxLength": 20000
+                                    },
+                                    "body": {
+                                      "type": "string",
+                                      "maxLength": 40000
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "provenance": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "by": {
+                                          "enum": [
+                                            "agent",
+                                            "source",
+                                            "writing_help"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "fields": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "enum": [
+                                              "kind",
+                                              "areaId",
+                                              "ownerId",
+                                              "title",
+                                              "summary",
+                                              "body",
+                                              "scope",
+                                              "validity",
+                                              "reviewDate",
+                                              "evidence",
+                                              "references",
+                                              "changeMarks",
+                                              "claimLevel",
+                                              "riskLevel",
+                                              "audience",
+                                              "notToConclude",
+                                              "replaces",
+                                              "conflicts"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {
+                                            "enum": [
+                                              "derived",
+                                              "default",
+                                              "prefilled",
+                                              "confirmed",
+                                              "not_inferred"
+                                            ],
+                                            "type": "string"
+                                          }
+                                        },
+                                        "flags": {
+                                          "type": "array",
+                                          "maxItems": 20,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "code": {
+                                                "enum": [
+                                                  "may_be_high_risk",
+                                                  "instruction_like_text",
+                                                  "uncertain_dates"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "field": {
+                                                "enum": [
+                                                  "kind",
+                                                  "areaId",
+                                                  "ownerId",
+                                                  "title",
+                                                  "summary",
+                                                  "body",
+                                                  "scope",
+                                                  "validity",
+                                                  "reviewDate",
+                                                  "evidence",
+                                                  "references",
+                                                  "changeMarks",
+                                                  "claimLevel",
+                                                  "riskLevel",
+                                                  "audience",
+                                                  "notToConclude",
+                                                  "replaces",
+                                                  "conflicts"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "words": {
+                                                "type": "array",
+                                                "maxItems": 10,
+                                                "items": {
+                                                  "type": "string",
+                                                  "maxLength": 60
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "code",
+                                              "field",
+                                              "words"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "by",
+                                        "fields",
+                                        "flags"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent",
+                                          "writing_help"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "agent": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "findings": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "code": {
+                                        "type": "string"
+                                      },
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "message": {
+                                        "type": "string"
+                                      },
+                                      "severity": {
+                                        "enum": [
+                                          "error",
+                                          "warning"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "code",
+                                      "field",
+                                      "message",
+                                      "severity"
+                                    ]
+                                  }
+                                },
+                                "claimedBy": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "dueAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "updatedAt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "number",
+                                "subject",
+                                "action",
+                                "state",
+                                "areaId",
+                                "itemId",
+                                "itemVersionId",
+                                "vocabularyVersionId",
+                                "title",
+                                "reason",
+                                "vocabulary",
+                                "proposerId",
+                                "channel",
+                                "revision",
+                                "draft",
+                                "newValues",
+                                "provenance",
+                                "fieldStamps",
+                                "agent",
+                                "findings",
+                                "claimedBy",
+                                "dueAt",
+                                "submittedAt",
+                                "createdAt",
+                                "updatedAt"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "412",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "PRECONDITION_FAILED"
+                        },
+                        "status": {
+                          "const": 412
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "An admin has turned off writing help."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNPROCESSABLE_CONTENT"
+                        },
+                        "status": {
+                          "const": 422
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Some details need attention. Fix the problems shown, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "findings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "severity": {
+                                    "enum": [
+                                      "error",
+                                      "warning"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "field",
+                                  "message",
+                                  "severity"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "findings"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/writing-help/turns": {
+      "post": {
+        "operationId": "writingHelp.turn",
+        "summary": "One turn of writing help on the person's own draft: a model changes its fields as the person, each through the checks an agent's write_draft passes, and never sends it; answered as events while it runs. The draft's words, the message and one link's page go to the model provider set for Ask; nothing of the chat is stored",
+        "tags": [
+          "library"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "draftId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100000
+                  },
+                  "turns": {
+                    "type": "array",
+                    "maxItems": 6,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "said": {
+                          "type": "string",
+                          "maxLength": 2000
+                        },
+                        "reply": {
+                          "type": "string",
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "said",
+                        "reply"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "draftId",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "event": {
+                          "const": "message"
+                        },
+                        "data": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "const": "progress"
+                                },
+                                "doing": {
+                                  "enum": [
+                                    "reading",
+                                    "looking",
+                                    "writing"
+                                  ],
+                                  "type": "string"
+                                },
+                                "links": {
+                                  "type": "number"
+                                },
+                                "field": {
+                                  "enum": [
+                                    "title",
+                                    "summary",
+                                    "text",
+                                    "kind",
+                                    "scope",
+                                    "window",
+                                    "evidence",
+                                    "not_to_conclude"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "doing"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "const": "written"
+                                },
+                                "applied": {
+                                  "type": "array",
+                                  "items": {
+                                    "enum": [
+                                      "title",
+                                      "summary",
+                                      "text",
+                                      "kind",
+                                      "scope",
+                                      "window",
+                                      "evidence",
+                                      "not_to_conclude"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "kept": {
+                                  "type": "array",
+                                  "items": {
+                                    "enum": [
+                                      "title",
+                                      "summary",
+                                      "text",
+                                      "kind",
+                                      "scope",
+                                      "window",
+                                      "evidence",
+                                      "not_to_conclude"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "refused": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "field": {
+                                        "enum": [
+                                          "title",
+                                          "summary",
+                                          "text",
+                                          "kind",
+                                          "scope",
+                                          "window",
+                                          "evidence",
+                                          "not_to_conclude"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "why": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "field",
+                                      "why"
+                                    ]
+                                  }
+                                },
+                                "revision": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "applied",
+                                "kept",
+                                "refused",
+                                "revision"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "const": "words"
+                                },
+                                "text": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "text"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "const": "turn"
+                                },
+                                "turn": {
+                                  "type": "object",
+                                  "properties": {
+                                    "reply": {
+                                      "type": "string"
+                                    },
+                                    "changed": {
+                                      "type": "array",
+                                      "items": {
+                                        "enum": [
+                                          "title",
+                                          "summary",
+                                          "text",
+                                          "kind",
+                                          "scope",
+                                          "window",
+                                          "evidence",
+                                          "not_to_conclude"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "kept": {
+                                      "type": "array",
+                                      "items": {
+                                        "enum": [
+                                          "title",
+                                          "summary",
+                                          "text",
+                                          "kind",
+                                          "scope",
+                                          "window",
+                                          "evidence",
+                                          "not_to_conclude"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "refused": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "field": {
+                                            "enum": [
+                                              "title",
+                                              "summary",
+                                              "text",
+                                              "kind",
+                                              "scope",
+                                              "window",
+                                              "evidence",
+                                              "not_to_conclude"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "why": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "required": [
+                                          "field",
+                                          "why"
+                                        ]
+                                      }
+                                    },
+                                    "question": {
+                                      "anyOf": [
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "text": {
+                                              "type": "string"
+                                            },
+                                            "answers": {
+                                              "type": "array",
+                                              "maxItems": 2,
+                                              "items": {
+                                                "type": "string"
+                                              }
+                                            }
+                                          },
+                                          "required": [
+                                            "text",
+                                            "answers"
+                                          ]
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "links": {
+                                      "type": "object",
+                                      "properties": {
+                                        "read": {
+                                          "type": "number"
+                                        },
+                                        "problem": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "read",
+                                        "problem"
+                                      ]
+                                    },
+                                    "revision": {
+                                      "type": "number"
+                                    },
+                                    "stopped": {
+                                      "anyOf": [
+                                        {
+                                          "enum": [
+                                            "steps",
+                                            "time",
+                                            "spending",
+                                            "model",
+                                            "key",
+                                            "credit"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "limit": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "reply",
+                                    "changed",
+                                    "kept",
+                                    "refused",
+                                    "question",
+                                    "links",
+                                    "revision",
+                                    "stopped",
+                                    "limit"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "turn"
+                              ]
+                            }
+                          ]
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "retry": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "event",
+                        "data"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "event": {
+                          "const": "done"
+                        },
+                        "data": {},
+                        "id": {
+                          "type": "string"
+                        },
+                        "retry": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "event"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "event": {
+                          "const": "error"
+                        },
+                        "data": {},
+                        "id": {
+                          "type": "string"
+                        },
+                        "retry": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "event"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "This draft isn't here any more."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "current": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "number": {
+                                  "type": "number"
+                                },
+                                "subject": {
+                                  "enum": [
+                                    "item",
+                                    "vocabulary"
+                                  ],
+                                  "type": "string"
+                                },
+                                "action": {
+                                  "enum": [
+                                    "create",
+                                    "change",
+                                    "retire",
+                                    "recheck"
+                                  ],
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "enum": [
+                                    "draft",
+                                    "submitted",
+                                    "in_review",
+                                    "changes_requested",
+                                    "accepted",
+                                    "rejected",
+                                    "withdrawn"
+                                  ],
+                                  "type": "string"
+                                },
+                                "areaId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "itemId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "itemVersionId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "vocabularyVersionId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "vocabulary": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "key": {
+                                          "type": "string"
+                                        },
+                                        "kind": {
+                                          "enum": [
+                                            "metric",
+                                            "metric_group",
+                                            "dimension",
+                                            "dimension_value"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "aliases": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "parentKey": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "areaId": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "definitionRefs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "key",
+                                        "kind",
+                                        "name",
+                                        "aliases",
+                                        "parentKey",
+                                        "areaId",
+                                        "definitionRefs"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "proposerId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "channel": {
+                                  "enum": [
+                                    "form",
+                                    "chat",
+                                    "command_line",
+                                    "mcp",
+                                    "import",
+                                    "source",
+                                    "question",
+                                    "writing_help"
+                                  ],
+                                  "type": "string"
+                                },
+                                "revision": {
+                                  "type": "number"
+                                },
+                                "draft": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "enum": [
+                                        "note",
+                                        "event",
+                                        "guide",
+                                        "issue"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "areaId": {
+                                      "type": "string"
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "summaryMarkup": {
+                                      "type": "string"
+                                    },
+                                    "bodyMarkup": {
+                                      "type": "string"
+                                    },
+                                    "scope": {
+                                      "type": "object",
+                                      "properties": {
+                                        "metrics": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "pattern": "^(metric|group):[a-z0-9_]+$"
+                                          }
+                                        },
+                                        "dimensions": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "pattern": "^dim:[a-z0-9_]+$"
+                                          },
+                                          "default": []
+                                        },
+                                        "dimensionValues": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "dimension": {
+                                                "type": "string",
+                                                "pattern": "^dim:[a-z0-9_]+$"
+                                              },
+                                              "value": {
+                                                "type": "string",
+                                                "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                              }
+                                            },
+                                            "required": [
+                                              "dimension",
+                                              "value"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "metrics",
+                                        "dimensionValues"
+                                      ]
+                                    },
+                                    "validity": {
+                                      "type": "object",
+                                      "properties": {
+                                        "start": {
+                                          "type": "string",
+                                          "maxLength": 10
+                                        },
+                                        "end": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 10
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "start",
+                                        "end"
+                                      ]
+                                    },
+                                    "reviewDate": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "maxLength": 10
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "evidence": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "url": {
+                                            "type": "string",
+                                            "maxLength": 2000
+                                          },
+                                          "quote": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                          },
+                                          "date": {
+                                            "type": "string",
+                                            "maxLength": 10
+                                          }
+                                        },
+                                        "required": [
+                                          "url",
+                                          "quote",
+                                          "date"
+                                        ]
+                                      }
+                                    },
+                                    "references": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "changeMarks": {
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string"
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "claimLevel": {
+                                      "enum": [
+                                        "fact_only",
+                                        "effect_stated"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "claimAuthority": {
+                                      "type": "string"
+                                    },
+                                    "claimQuote": {
+                                      "type": "string"
+                                    },
+                                    "riskLevel": {
+                                      "enum": [
+                                        "low",
+                                        "normal",
+                                        "high"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "audience": {
+                                      "type": "object",
+                                      "properties": {
+                                        "kind": {
+                                          "const": "everyone"
+                                        }
+                                      },
+                                      "required": [
+                                        "kind"
+                                      ]
+                                    },
+                                    "ownerId": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "notToConclude": {
+                                      "type": "string"
+                                    },
+                                    "replaces": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^itm_[a-z0-9]{8,16}$"
+                                      }
+                                    },
+                                    "conflicts": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^itm_[a-z0-9]{8,16}$"
+                                      }
+                                    },
+                                    "summary": {
+                                      "type": "string",
+                                      "maxLength": 20000
+                                    },
+                                    "body": {
+                                      "type": "string",
+                                      "maxLength": 40000
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "provenance": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "by": {
+                                          "enum": [
+                                            "agent",
+                                            "source",
+                                            "writing_help"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "fields": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "enum": [
+                                              "kind",
+                                              "areaId",
+                                              "ownerId",
+                                              "title",
+                                              "summary",
+                                              "body",
+                                              "scope",
+                                              "validity",
+                                              "reviewDate",
+                                              "evidence",
+                                              "references",
+                                              "changeMarks",
+                                              "claimLevel",
+                                              "riskLevel",
+                                              "audience",
+                                              "notToConclude",
+                                              "replaces",
+                                              "conflicts"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {
+                                            "enum": [
+                                              "derived",
+                                              "default",
+                                              "prefilled",
+                                              "confirmed",
+                                              "not_inferred"
+                                            ],
+                                            "type": "string"
+                                          }
+                                        },
+                                        "flags": {
+                                          "type": "array",
+                                          "maxItems": 20,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "code": {
+                                                "enum": [
+                                                  "may_be_high_risk",
+                                                  "instruction_like_text",
+                                                  "uncertain_dates"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "field": {
+                                                "enum": [
+                                                  "kind",
+                                                  "areaId",
+                                                  "ownerId",
+                                                  "title",
+                                                  "summary",
+                                                  "body",
+                                                  "scope",
+                                                  "validity",
+                                                  "reviewDate",
+                                                  "evidence",
+                                                  "references",
+                                                  "changeMarks",
+                                                  "claimLevel",
+                                                  "riskLevel",
+                                                  "audience",
+                                                  "notToConclude",
+                                                  "replaces",
+                                                  "conflicts"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "words": {
+                                                "type": "array",
+                                                "maxItems": 10,
+                                                "items": {
+                                                  "type": "string",
+                                                  "maxLength": 60
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "code",
+                                              "field",
+                                              "words"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "by",
+                                        "fields",
+                                        "flags"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent",
+                                          "writing_help"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "agent": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "findings": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "code": {
+                                        "type": "string"
+                                      },
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "message": {
+                                        "type": "string"
+                                      },
+                                      "severity": {
+                                        "enum": [
+                                          "error",
+                                          "warning"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "code",
+                                      "field",
+                                      "message",
+                                      "severity"
+                                    ]
+                                  }
+                                },
+                                "claimedBy": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "dueAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "updatedAt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "number",
+                                "subject",
+                                "action",
+                                "state",
+                                "areaId",
+                                "itemId",
+                                "itemVersionId",
+                                "vocabularyVersionId",
+                                "title",
+                                "reason",
+                                "vocabulary",
+                                "proposerId",
+                                "channel",
+                                "revision",
+                                "draft",
+                                "newValues",
+                                "provenance",
+                                "fieldStamps",
+                                "agent",
+                                "findings",
+                                "claimedBy",
+                                "dueAt",
+                                "submittedAt",
+                                "createdAt",
+                                "updatedAt"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "412",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "PRECONDITION_FAILED"
+                        },
+                        "status": {
+                          "const": 412
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "An admin has turned off writing help."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNPROCESSABLE_CONTENT"
+                        },
+                        "status": {
+                          "const": 422
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Some details need attention. Fix the problems shown, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "findings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "severity": {
+                                    "enum": [
+                                      "error",
+                                      "warning"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "field",
+                                  "message",
+                                  "severity"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "findings"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "TOO_MANY_REQUESTS"
+                        },
+                        "status": {
+                          "const": 429
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You've used writing help the most times allowed today. Try again tomorrow."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "retryAfterSeconds": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "retryAfterSeconds"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message",
+                        "data"
                       ]
                     },
                     {
@@ -96219,7 +99305,8 @@
                                     "mcp",
                                     "import",
                                     "source",
-                                    "question"
+                                    "question",
+                                    "writing_help"
                                   ],
                                   "type": "string"
                                 },
@@ -96465,7 +99552,8 @@
                                         "by": {
                                           "enum": [
                                             "agent",
-                                            "source"
+                                            "source",
+                                            "writing_help"
                                           ],
                                           "type": "string"
                                         },
@@ -96603,7 +99691,8 @@
                                       "by": {
                                         "enum": [
                                           "person",
-                                          "agent"
+                                          "agent",
+                                          "writing_help"
                                         ],
                                         "type": "string"
                                       },

@@ -98,6 +98,11 @@ export type Fact = {
   owners?: string[]
   /** Who started a draft, or sent a suggestion that waits for review. */
   by?: string
+  /**
+   * A draft that has no title yet: a list names it by `title`, a stand-in, and the editor asks
+   * for one.
+   */
+  untitled?: boolean
   /** When a suggestion waiting for review was sent (ISO): how long it has waited. */
   sentAt?: string
   /**

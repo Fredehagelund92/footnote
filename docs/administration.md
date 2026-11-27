@@ -31,6 +31,7 @@ A change applies at once, and the history log keeps it with who made it.
 | `limits.mcp_rate_per_minute`     | Agent calls to each tool                      |
 | `limits.agent_drafts`            | Drafts one person's agents can save           |
 | `limits.link_reads`              | Links people can read, failed reads too       |
+| `limits.writing_help`            | How much one person can use writing help      |
 | `limits.undo_seconds`            | How long a decision can be undone             |
 | `privacy.min_count`              | The smallest count shown                      |
 | `retention.delivery_days`        | How long what agents asked about is kept      |
@@ -52,6 +53,25 @@ The limits are counted in the database, so every service process keeps the same 
 A person can share an Ask chat as a link: a copy of each turn's question, what Ask read, its answer line, its words and its sources, under their name. Only people signed in open it, and each source shows only to those who may read it. A link lasts 90 days, and its sender stops it from History.
 
 `ask.share_chats` is on as installed, and Settings, Advanced, Shared chats turns it off. Off, no link is made and none opens, the ones already made too. A link pasted into another tool shows only "A chat from Footnote".
+
+## Writing help
+
+Writing help is a panel beside the editor: a person says what happened or what to change, and an AI model changes the fields of their own draft, which they check. It writes one draft and nothing else. It cannot send or publish, it never sets the domain, the owner, who may read an item or its risk, and every field it writes passes the checks an agent's `write_draft` passes.
+
+| Setting               | What it does                                                                       |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `writing_help.on`     | Off as installed. Settings, Advanced, Writing help turns it on                     |
+| `limits.writing_help` | Turns one person may take in 24 hours (40), and characters in one message (12,000) |
+
+Turn it on only once your company approves the model provider for draft text. On, three things go to the model set for Ask (`models.assistant`), for that turn:
+
+- the words of the person's own draft
+- what they write to writing help
+- the text of one page they link
+
+Off, nothing of a draft leaves the service. It is there only with a real model (`MODELS=live`); with none, the switch changes nothing people see.
+
+The turns are counted in the database with who and when, never a word, for 24 hours. Its model calls count under `limits.llm_feature_monthly_micros.writing_help` and the person's daily limit. Nothing of a chat is stored: the browser keeps it for the visit. The history of a draft names the person as the one who changed it and writing help as the writer.
 
 ## Switch a tool off for every agent
 

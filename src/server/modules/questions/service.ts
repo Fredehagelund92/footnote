@@ -260,7 +260,7 @@ export function createQuestionsService(
           // The link waits in the draft, with no sentence from it, for the owner to confirm.
           evidence: input.link ? [{ url: input.link, quote: '', date: today }] : [],
         }
-        const created = await deps.proposals.create({ draft }, { question: true })
+        const created = await deps.proposals.create({ draft }, { via: 'question' })
         const [linked] = await tx.query<{ revision: number }>(
           'update proposals set source_gap_id = $2 where id = $1 returning revision',
           [created.id, row.gapId],

@@ -329,6 +329,12 @@ import {
 } from './editions.ts'
 import { operationsOverviewSchema, runJobInputSchema, runJobSchema } from './operations.ts'
 import { refusals } from './refusals.ts'
+import { writingHelpOff } from '../domain/writing-help.ts'
+import {
+  startWritingHelpInputSchema,
+  writingHelpEventSchema,
+  writingHelpTurnInputSchema,
+} from './writing-help.ts'
 export * from './schemas.ts'
 export type {
   Gap,
@@ -415,6 +421,7 @@ export type {
 } from './admin.ts'
 export type { AreaDetail, AreaHoldings, AreaRemoved, ArchivedArea } from './areas.ts'
 export type { UndoOffer } from './undo.ts'
+export type { WritingHelpEvent, WritingHelpTurn, WritingHelpTurnInput } from './writing-help.ts'
 export type { OperationsOverviewView } from './operations.ts'
 export type { ConnectInfo, TryItReading, TryItReadInput } from './connect.ts'
 export type { HeldRole, PeopleRoleFilter, PeopleSignInFilter, PersonStatus } from './people.ts'
@@ -2087,9 +2094,44 @@ export const contract = {
         path: '/workspace',
         tags: ['session'],
         summary:
-          "The workspace's name, which an admin sets (workspace.name), for everyone signed in (FR-818)",
+          "The workspace's name, which an admin sets (workspace.name), and whether writing help is there to ask, for everyone signed in (FR-818)",
       })
       .output(workspaceSchema),
+  },
+  writingHelp: {
+    start: proposal
+      .errors({
+        ...notFound,
+        PRECONDITION_FAILED: { message: writingHelpOff },
+      })
+      .route({
+        method: 'POST',
+        path: '/writing-help/drafts',
+        tags: ['library'],
+        summary:
+          "Start a draft in writing help: what the editor holds is kept as the person's own draft, as Save as draft keeps one, for writing help to write in; refused while writing help is off",
+      })
+      .input(startWritingHelpInputSchema)
+      .output(savedDraftSchema),
+    turn: proposal
+      .errors({
+        NOT_FOUND: { message: "This draft isn't here any more." },
+        PRECONDITION_FAILED: { message: writingHelpOff },
+        TOO_MANY_REQUESTS: {
+          status: 429,
+          message: "You've used writing help the most times allowed today. Try again tomorrow.",
+          data: z.object({ retryAfterSeconds: z.number() }),
+        },
+      })
+      .route({
+        method: 'POST',
+        path: '/writing-help/turns',
+        tags: ['library'],
+        summary:
+          "One turn of writing help on the person's own draft: a model changes its fields as the person, each through the checks an agent's write_draft passes, and never sends it; answered as events while it runs. The draft's words, the message and one link's page go to the model provider set for Ask; nothing of the chat is stored",
+      })
+      .input(writingHelpTurnInputSchema)
+      .output(eventIterator(writingHelpEventSchema)),
   },
   me: {
     get: read

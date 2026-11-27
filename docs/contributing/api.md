@@ -734,6 +734,23 @@ revision?, reason?, gapId? }` and keeps the words as the person's own draft, whi
 - `POST /drafts/from-text` takes `{ text }`: a draft read from pasted text, or from the page a
   single link points to, with no model. It fills the words, a kind and dates by rule and where
   it applies by the vocabulary's names, and lists in `unsure` what it guessed.
+- `POST /writing-help/drafts` starts a draft in writing help (FR-148): it takes what `POST /drafts`
+  takes for a new draft and keeps it the same way, with the channel `writing_help`. It is refused
+  with 412 while writing help is off or no real model is connected (FR-819).
+- `POST /writing-help/turns` is one turn of writing help on the person's own draft: `{ draftId,
+message, turns? }`, where `turns` are the chat's earlier turns as the browser kept them (`said`
+  and `reply`), since the service stores none. It answers as an event stream: `progress` (what it
+  is doing: reading the message and a link, looking at what is published, writing a field),
+  `written` (the fields one write changed, kept as the person wrote them or refused, with the
+  draft's new revision), `words` (the reply so far) and then `turn`, the whole turn: the reply,
+  the fields changed, kept and refused with why, one question back with up to two answers, how
+  many links were read or why one was not, and `stopped` when a limit or the model ended it early.
+  The model writes with one tool, which takes only the fields `write_draft` takes but the domain;
+  each field is written on its own, as the person, as soon as its input is complete
+  (`patchAgentDraft`), stamped and marked as writing help's. It is refused before anything is
+  sent: 412 while it is off, 404 for a draft that is not the person's own or was sent, 422 for a
+  message over `limits.writing_help.paste_characters`, and 429 once the person took
+  `turns_per_day` turns in 24 hours. Aborting the request stops the turn, and what it wrote stays.
 
 A context item's kind belongs to each version, so Change kind keeps its id,
 history and links. In a change to many items, a draft's writer deletes it, and
@@ -1069,7 +1086,8 @@ Footnote v1's Settings (FR-815, FR-418, FR-818, golden plan P11a). Every read an
 `src/contract/index.ts`; the app's http binding words them for the screens
 (`src/web/api/http-settings.ts`).
 
-- `GET /workspace`: the workspace's name, for everyone signed in, and nothing else of the
+- `GET /workspace`: the workspace's name, and whether writing help is there to ask (an admin
+  turned it on and a real model is connected), for everyone signed in, and nothing else of the
   settings. An administrator names it as any other setting, `PUT /settings/workspace.name` (one
   line, at most 80 characters); a new install's is empty, and an answer's share card then says
   only when it was answered.

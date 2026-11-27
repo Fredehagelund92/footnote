@@ -50,7 +50,8 @@ export type ClaimLevel = (typeof claimLevels)[number]
 /**
  * How an item version was created (FR-103). `source`: a content source's read, not a person
  * (CON-603). `question`: a person's answer on the page a question link opens, which may come
- * without a source (item-version.ts).
+ * without a source (item-version.ts). `writing_help`: a draft the person started in writing help,
+ * the editor's dock.
  */
 export const creationChannels = [
   'form',
@@ -60,11 +61,12 @@ export const creationChannels = [
   'import',
   'source',
   'question',
+  'writing_help',
 ] as const
 export type CreationChannel = (typeof creationChannels)[number]
 /**
- * The channels a person names when they write: every one but a content source's read and the
- * question page, which the service sets itself.
+ * The channels a person names when they write: every one but a content source's read, the
+ * question page and writing help, which the service sets itself.
  */
 export const personChannels = [
   'form',

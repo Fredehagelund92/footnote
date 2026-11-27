@@ -427,7 +427,7 @@ const listed = z.strictObject({ id: z.string(), title: z.string(), kind: z.strin
 const draftField = z.strictObject({
   value: z.unknown(),
   /** null for a field nobody changed since Footnote kept who does. */
-  by: z.enum(['person', 'agent']).nullable(),
+  by: z.enum(['person', 'agent', 'writing_help']).nullable(),
   at: z.string().nullable(),
   revision: z.number().nullable(),
   mark: z.enum(fieldMarks).optional(),

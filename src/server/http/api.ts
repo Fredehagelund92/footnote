@@ -65,6 +65,7 @@ import {
   readSpendLimits,
   roleModels,
   type ModelChecks,
+  type ModelChoice,
   type ModelPort,
 } from '../modules/models/index.ts'
 import { errorCode } from '../observability/logger.ts'
@@ -178,6 +179,14 @@ import {
   pastedLink,
   type PageReader,
 } from '../modules/web/index.ts'
+import {
+  readWritingHelp,
+  requireShortEnough,
+  requireWritingHelp,
+  takeTurn,
+  writingHelpTurn,
+} from '../modules/writing-help/index.ts'
+import { ownDraft } from '../mcp/draft-session.ts'
 import { productName } from '../brand.ts'
 import { personTools } from '../../domain/agents.ts'
 import { footnoteVersion } from '../version.ts'
@@ -191,6 +200,11 @@ export interface ApiServices {
   models: ModelPort
   /** What a run of Ask's cases hears or replaces. Never set by the service. */
   askTrace?: AskTrace
+  /**
+   * The model writing help's loop asks in place of Ask's, such as a scripted one in a test. Never
+   * set by the service: without it, writing help is there only with a real model (MODELS=live).
+   */
+  writingHelpModel?: ModelChoice
   /** The model check, with real models: made again by an Ask turn, or after a role's setting changes. */
   modelChecks?: ModelChecks
   /** The MCP server's public address (`MCP_RESOURCE_URL`); null when this app serves no MCP. */
@@ -340,6 +354,7 @@ export function createRouter({
   }),
   readPage = createPageReader(),
   askTrace,
+  writingHelpModel,
   modelChecks,
   profileLabel = null,
 }: ApiServices) {
@@ -549,6 +564,79 @@ export function createRouter({
         ...(askTrace?.onLoopTurn ? { onTurn: askTrace.onLoopTurn } : {}),
       },
       input,
+    )
+  }
+  // Writing help asks a real model, or the one a test gave it: with neither it is not there.
+  const helpModelThere = models.mode === 'live' || !!writingHelpModel
+  /**
+   * One turn of writing help: what it needs is read inside the request, which then ends; the loop
+   * runs after it, and each of its reads, writes, spending checks and meter lines is a transaction
+   * of its own as the person, so no turn holds a connection while its model works. Everything
+   * that refuses a turn refuses it here, before it is counted and before anything is sent.
+   */
+  const helpTurn = async (
+    context: RequestContext &
+      ReturnType<typeof requestServices> & {
+        tx: Queryable
+        session: { person: { id: string } } | null
+      },
+    input: { draftId: string; message: string; turns?: { said: string; reply: string }[] },
+    signal: AbortSignal | undefined,
+  ) => {
+    const person = context.session!.person.id
+    const settings = await readWritingHelp(context.tx)
+    requireWritingHelp(settings, helpModelThere)
+    requireShortEnough(input.message, settings)
+    // Row security lets an owner read a suggestion sent to them: only the writer's own draft is
+    // written in, and one that was sent is no draft any more.
+    const draft = await context.proposals.read(input.draftId).catch(() => null)
+    if (!ownDraft(draft, person) || draft.state !== 'draft')
+      throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
+    await takeTurn(context.tx)
+    const live = models.mode === 'live'
+    const model = writingHelpModel ?? (await readAssistantModel(context.tx, models))
+    const limits = live ? await readSpendLimits(context.tx, 'writing_help') : null
+    const about = await readAboutBusiness(context.tx)
+    const calendar = await readCalendar(context.tx)
+    const db = forRequest(database, context.request.id)
+    const log = context.request.log
+    return writingHelpTurn(
+      {
+        database: db,
+        clock,
+        person,
+        // Ask's reads, as the person, without their drafts: writing help reads published context.
+        toolsIn: (tx) =>
+          createAskTools({
+            ...toolReadsIn(
+              tx,
+              clock,
+              answerBundles,
+              {
+                ...requestServices(tx, person, { clock, answerBundles, models, hooks: noHooks }),
+                people: () => listMembers(tx),
+              },
+              calendar,
+            ),
+            pending: () => Promise.resolve([]),
+          }),
+        readLink: linkReaderFor(db, readPage, person),
+        model,
+        limits,
+        about,
+        today: todayIn(clock, calendar.timeZone),
+        timeZone: calendar.timeZone,
+        ...(signal ? { signal } : {}),
+        // Names the failure and its status only, never the message, the draft or what was read.
+        onError: (error) =>
+          keyRefused(error)
+            ? log.error(
+                { error: errorCode(error) },
+                'writing help: the model provider refused the key',
+              )
+            : log.warn({ error: errorCode(error) }, 'writing help'),
+      },
+      { draft, message: input.message, ...(input.turns ? { turns: input.turns } : {}) },
     )
   }
   /** Checks each role's model again after a change of its setting, without waiting for it. */
@@ -1389,7 +1477,21 @@ export function createRouter({
     },
     me: { get: authorized.me.get.handler(({ context }) => context.session!.person) },
     workspace: {
-      get: authorized.workspace.get.handler(({ context }) => readWorkspace(context.tx)),
+      get: authorized.workspace.get.handler(async ({ context }) => ({
+        ...(await readWorkspace(context.tx)),
+        writingHelp: helpModelThere && (await readWritingHelp(context.tx)).on,
+      })),
+    },
+    writingHelp: {
+      start: authorized.writingHelp.start.handler(async ({ context, input }) => {
+        requireWritingHelp(await readWritingHelp(context.tx), helpModelThere)
+        return retryWrite(context.tx, idempotencyKey(context), 'writingHelp.start', input, () =>
+          context.context.saveDraft(input, { writingHelp: true }),
+        )
+      }),
+      turn: authorized.writingHelp.turn.handler(({ context, input, signal }) =>
+        helpTurn(context, input, signal),
+      ),
     },
     settings: {
       list: authorized.settings.list.handler(({ context }) => listSettings(context.tx)),

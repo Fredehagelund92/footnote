@@ -277,15 +277,23 @@ export const publishItemResultSchema = z.union([
  * never get, to finish later. A new item, a change to the published item named, or a draft of theirs
  * saved again.
  */
+/** The words a new draft is kept from: a new item, or a change to a published one. */
+export const newDraftShape = {
+  draft: draftSchema,
+  /** Values the writer added in "Applies to" that the vocabulary has no term for yet. */
+  newValues: z.optional(newValuesSchema),
+  /** The published item it changes; left out for a new item. */
+  itemId: z.optional(itemIdSchema),
+  /** The version of the item the words were written from, sent with `itemId`. */
+  version: z.optional(z.number().check(z.int(), z.minimum(1))),
+  /** What is wrong with the current version, for a change. */
+  reason: z.optional(z.string().check(z.maxLength(500))),
+  /** The gap it was written for, from a Not found card: the card shows the draft as its own. */
+  gapId: z.optional(z.string().check(z.uuid())),
+}
 export const saveDraftInputSchema = z
   .strictObject({
-    draft: draftSchema,
-    /** Values the writer added in "Applies to" that the vocabulary has no term for yet. */
-    newValues: z.optional(newValuesSchema),
-    /** The published item it changes; left out for a new item. */
-    itemId: z.optional(itemIdSchema),
-    /** The version of the item the words were written from, sent with `itemId`. */
-    version: z.optional(z.number().check(z.int(), z.minimum(1))),
+    ...newDraftShape,
     /** The person's own draft these words replace. */
     draftId: z.optional(z.string().check(z.uuid())),
     /**
@@ -293,10 +301,6 @@ export const saveDraftInputSchema = z
      * changed it since, nothing is saved (409, with the draft as it is now).
      */
     revision: z.optional(z.number().check(z.int(), z.minimum(1))),
-    /** What is wrong with the current version, for a change. */
-    reason: z.optional(z.string().check(z.maxLength(500))),
-    /** The gap it was written for, from a Not found card: the card shows the draft as its own. */
-    gapId: z.optional(z.string().check(z.uuid())),
   })
   .check(
     z.refine((input) => input.draftId === undefined || input.revision !== undefined, {

@@ -1,7 +1,7 @@
 import { ORPCError } from '@orpc/client'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import { agentDraftsDefault, type Patch } from '../../../domain/agent-draft.ts'
-import type { Draft } from '../../../domain/draft.ts'
+import { textFindings, type Draft, type FormatFinding } from '../../../domain/draft.ts'
 import {
   draftFields,
   personChangedSince,
@@ -9,9 +9,11 @@ import {
 } from '../../../domain/draft-stamps.ts'
 import {
   changedFields,
+  provenanceFlags,
   provenanceOf,
   type FieldMark,
   type MarkedField,
+  type ProvenanceFlag,
 } from '../../../domain/provenance.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -24,8 +26,26 @@ import { productName } from '../../brand.ts'
   mark on every field, and never sends it; `send_draft` submits it for review after the person
   says yes (FR-102, FR-122). A change an agent makes to one of the person's drafts goes through
   proposals.save, as the person's own edit does, field by field: a field the person changed since
-  the agent read the draft stays theirs.
+  the agent read the draft stays theirs. Writing help, the editor's dock, changes a draft through
+  the same path, as its own writer (Route 3).
 */
+
+/**
+ * Why a writer's words are never stored, by the checks every write passes, a first one or a change
+ * (FR-117, NFR-024): text that looks like personal data or a secret, or words that read like
+ * orders to an AI agent. Null when they may be stored.
+ */
+export function refusedWords(
+  draft: Draft,
+):
+  | { kind: 'sensitive'; findings: FormatFinding[] }
+  | { kind: 'orders'; flags: ProvenanceFlag[] }
+  | null {
+  const findings = textFindings(draft)
+  if (findings.length) return { kind: 'sensitive', findings }
+  const flags = provenanceFlags(draft).filter((flag) => flag.code === 'instruction_like_text')
+  return flags.length ? { kind: 'orders', flags } : null
+}
 
 export type AgentDraftRequest = {
   draft: Draft
@@ -126,7 +146,7 @@ export const AGENT_WRITES_PER_HOUR = 60
 
 export type AgentPatchRequest = {
   id: string
-  /** The revision the agent read the draft at (read_draft, or its last write_draft). */
+  /** The revision the writer read the draft at (read_draft, or its last write_draft). */
   revision: number
   /** The fields it changes, by the names agents use, worked out as a draft's are. */
   names: readonly DraftFieldName[]
@@ -135,6 +155,11 @@ export type AgentPatchRequest = {
   datesUncertain?: boolean
   /** The agent that changed it (FR-420): named in the history of this change. */
   agentId?: string
+  /**
+   * Writing help changed it, not the person's agent. Its turns are counted before they start
+   * (`cl_writing_help_turn_take`), so the agents' hourly limit on one draft is not its own.
+   */
+  writingHelp?: true
 }
 export type AgentPatchResult = {
   /** The draft after the change, or as it is when nothing changed. */
@@ -176,31 +201,35 @@ export async function patchAgentDraft(
     throw new ORPCError('CONFLICT', {
       message: `The draft is at revision ${p.revision}, before the revision given. Read it again`,
     })
-  const [writes] = await tx.query<{ n: number }>(
-    `select count(*)::int as n from proposal_events
-      where proposal_id=$1 and kind='updated' and at > now() - interval '1 hour'`,
-    [p.id],
-  )
-  if ((writes?.n ?? 0) >= AGENT_WRITES_PER_HOUR)
-    throw new ORPCError('TOO_MANY_REQUESTS', {
-      message: `Your agents changed this draft ${AGENT_WRITES_PER_HOUR} times in the last hour, the most allowed. Try again later, or finish it in ${productName}`,
-    })
+  if (!request.writingHelp) {
+    const [writes] = await tx.query<{ n: number }>(
+      `select count(*)::int as n from proposal_events
+        where proposal_id=$1 and kind='updated' and not (data ? 'writer')
+          and at > now() - interval '1 hour'`,
+      [p.id],
+    )
+    if ((writes?.n ?? 0) >= AGENT_WRITES_PER_HOUR)
+      throw new ORPCError('TOO_MANY_REQUESTS', {
+        message: `Your agents changed this draft ${AGENT_WRITES_PER_HOUR} times in the last hour, the most allowed. Try again later, or finish it in ${productName}`,
+      })
+  }
   const conflicts = personChangedSince(p.fieldStamps, request.names, request.revision)
   const applied = request.names.filter((name) => !conflicts.includes(name))
   const next: Draft = { ...p.draft }
   for (const name of applied) {
     const field = draftFields[name]
     Object.assign(next, { [field]: request.patch.draft[field] })
-    // An agent's words carry no mentions: its summary or text replaces the person's markup.
+    // A writer's words carry no mentions: its summary or text replaces the person's markup.
     if (field === 'summary') delete next.summaryMarkup
     if (field === 'body') delete next.bodyMarkup
   }
   if (!changedFields(p.draft, next).length) return { proposal: p, applied: [], conflicts }
   const saved = await proposals.save(p.id, p.revision, next, undefined, {
-    agent: {
+    writer: {
+      by: request.writingHelp ? 'writing_help' : 'agent',
       marks: request.patch.marks,
       ...(request.datesUncertain ? { datesUncertain: true } : {}),
-      ...(request.agentId ? { id: request.agentId } : {}),
+      ...(request.agentId ? { agentId: request.agentId } : {}),
     },
   })
   return { proposal: saved, applied, conflicts }

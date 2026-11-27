@@ -1170,16 +1170,20 @@ export function createContextService(
    * version it names; or the words of a draft of theirs saved again. Written from a Not found card,
    * the draft is that card's, as its publish would cover the gap.
    */
-  async function saveDraft(input: {
-    draft: Draft
-    newValues?: NewValues | undefined
-    itemId?: string | undefined
-    version?: number | undefined
-    reason?: string | undefined
-    draftId?: string | undefined
-    revision?: number | undefined
-    gapId?: string | undefined
-  }): Promise<SavedDraft> {
+  async function saveDraft(
+    input: {
+      draft: Draft
+      newValues?: NewValues | undefined
+      itemId?: string | undefined
+      version?: number | undefined
+      reason?: string | undefined
+      draftId?: string | undefined
+      revision?: number | undefined
+      gapId?: string | undefined
+    },
+    /** Started in writing help, the editor's dock: the draft's history says so. */
+    { writingHelp = false }: { writingHelp?: boolean } = {},
+  ): Promise<SavedDraft> {
     if (input.gapId) await createGapsService(tx).linkable(input.gapId)
     let saved
     if (input.draftId) {
@@ -1195,13 +1199,16 @@ export function createContextService(
         newValues: input.newValues,
       })
     } else
-      saved = await proposals.create({
-        draft: input.draft,
-        ...(input.newValues ? { newValues: input.newValues } : {}),
-        ...(input.itemId ? { itemId: input.itemId } : {}),
-        ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
-        ...(input.reason ? { reason: input.reason } : {}),
-      })
+      saved = await proposals.create(
+        {
+          draft: input.draft,
+          ...(input.newValues ? { newValues: input.newValues } : {}),
+          ...(input.itemId ? { itemId: input.itemId } : {}),
+          ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
+          ...(input.reason ? { reason: input.reason } : {}),
+        },
+        writingHelp ? { via: 'writing_help' } : {},
+      )
     if (!input.gapId) return { proposalId: saved.id, revision: saved.revision }
     const [linked] = await tx.query<{ revision: number }>(
       'update proposals set source_gap_id = $2 where id = $1 returning revision',

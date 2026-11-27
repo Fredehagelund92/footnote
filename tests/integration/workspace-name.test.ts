@@ -59,7 +59,7 @@ const setName = (who: Who, value: unknown, version = 1) =>
 
 describe('the workspace name', () => {
   it('starts empty, for everyone signed in', async () => {
-    expect(await name('stranger')).toEqual({ name: '' })
+    expect(await name('stranger')).toEqual({ name: '', writingHelp: false })
   })
 
   it('is named by an admin, as a new version of the setting, and read by everyone', async () => {
@@ -67,7 +67,7 @@ describe('the workspace name', () => {
     const saved = await setName('admin', 'Larchwood Outdoor')
     expect(saved.statusCode, saved.body).toBe(200)
     expect(saved.json()).toMatchObject({ key: 'workspace.name', version: 2 })
-    expect(await name('stranger')).toEqual({ name: 'Larchwood Outdoor' })
+    expect(await name('stranger')).toEqual({ name: 'Larchwood Outdoor', writingHelp: false })
   })
 
   it('is one line of at most 80 characters, with no space at either end', async () => {

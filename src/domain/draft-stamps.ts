@@ -4,12 +4,17 @@ import { changedFields } from './provenance.ts'
 import { markedFields, type MarkedField } from './proposal-rules.ts'
 
 /*
-  Who last changed each field of a draft (Route 1, slice R1a): the person, in Footnote, or their
-  agent, through write_draft, at which revision and when. A draft is one object the person and
-  their agent both edit; the agent sees the person's edits only when it reads the draft again, so
-  a write from an agent that read an older revision must never overwrite a field the person
-  changed since. Each field is checked on its own: what the person did not touch still changes.
+  Who last changed each field of a draft (Route 1, slice R1a): the person, in Footnote, their
+  agent, through write_draft, or writing help, in the editor's dock (Route 3), at which revision
+  and when. A draft is one object the person and a writer both edit; the writer sees the person's
+  edits only when it reads the draft again, so a write from a writer that read an older revision
+  must never overwrite a field the person changed since. Each field is checked on its own: what
+  the person did not touch still changes.
 */
+
+/** Who writes a draft's fields beside the person: their agent, or Footnote's own writing help. */
+export const draftWriters = ['agent', 'writing_help'] as const
+export type DraftWriter = (typeof draftWriters)[number]
 
 /** The fields of a draft an agent reads and writes, by the names it uses, and the field each is. */
 export const draftFields = {
@@ -27,7 +32,7 @@ export type DraftFieldName = keyof typeof draftFields
 export const draftFieldNames = Object.keys(draftFields) as DraftFieldName[]
 
 export const fieldStampSchema = z.strictObject({
-  by: z.enum(['person', 'agent']),
+  by: z.enum(['person', ...draftWriters]),
   /** The agent's name, as the person named it when they connected it: the editor says it. */
   agent: z.optional(z.string()),
   revision: z.number().check(z.int(), z.minimum(1)),
@@ -53,8 +58,8 @@ export function stampsAfter(
 }
 
 /**
- * The fields of `fields` the person changed after the revision an agent read: a write from that
- * agent leaves them as they are.
+ * The fields of `fields` the person changed after the revision a writer read: a write from that
+ * writer leaves them as they are.
  */
 export const personChangedSince = (
   stamps: FieldStamps,

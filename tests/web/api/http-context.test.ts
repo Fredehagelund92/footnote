@@ -609,6 +609,14 @@ describe('a draft, as the Context list and its page read it', () => {
       words,
     )
     expect(fact).toMatchObject({ title: 'Untitled draft', kind: 'note', where: [], domain: '' })
+    // The stand-in is a list's: the editor asks for a title instead of keeping these words.
+    expect(fact.untitled).toBe(true)
+    const titled = factOfDraft(
+      { id: 'x', title: '', areaId: null, proposerId: 'per_ines', draft: { title: 'Norway' } },
+      names,
+      words,
+    )
+    expect(titled.untitled).toBeUndefined()
   })
 })
 

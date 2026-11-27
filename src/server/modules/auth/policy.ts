@@ -128,6 +128,9 @@ export const policies = {
   'items.deleted': 'admin',
   'drafts.fromText': 'propose',
   'drafts.save': 'propose',
+  // Writing help writes in the person's own draft only; the service refuses it while it is off.
+  'writingHelp.start': 'propose',
+  'writingHelp.turn': 'propose',
   'drafts.left': 'admin',
   'drafts.clearLeft': 'admin',
   // The Inbox of Footnote v1: the service narrows every card to the domains the person owns.

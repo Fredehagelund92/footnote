@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildApp } from '../../../src/server/app.ts'
 import { systemClock } from '../../../src/server/clock.ts'
+import { scriptedLoopChoice } from '../../../src/server/modules/answer/index.ts'
 import { createLogger } from '../../../src/server/observability/logger.ts'
 import { footnoteApiMethods, type FootnoteApi } from '@/api/client'
 import { createHttpApi, wiredMethods } from '@/api/http'
@@ -42,6 +43,19 @@ const app = buildApp({
   devPeople: devPeople(),
   // The agents the demo week's people connected sign in with the service's own login server.
   login: await demoLoginServer('http://localhost:3000', 'http://localhost:5173'),
+  // Writing help asks a scripted model: it writes a title, then says so.
+  writingHelpModel: scriptedLoopChoice('conformance', ({ results }) =>
+    results.length
+      ? { text: 'I wrote the title.' }
+      : {
+          calls: [
+            {
+              toolName: 'write_draft',
+              input: { title: 'Online sales to Norway stopped on 4 August 2026' },
+            },
+          ],
+        },
+  ),
 })
 let api: FootnoteApi | undefined
 let base = ''
