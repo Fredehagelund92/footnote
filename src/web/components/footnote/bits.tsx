@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useDomains } from '@/lib/workspace'
 import { diffWords } from 'diff/lib/diff/word.js'
 import { BotIcon } from '@/components/icons'
@@ -28,9 +28,11 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase()
 
-/** A person: 28 in lists, 32 in the user menu. Initials are 12 px; at 16 and 20 px there is no
- *  room for 12 px letters, so the avatar shows its colour (hidden from a screen reader, which hears
- *  the name beside it) and the name stays in its title. */
+/** A person: 28 in lists, 32 in the user menu. Initials are 12 px; a 20 px avatar has its two at
+ *  9 px and a 16 px one its first at 9 px, so where the name is not beside it (View as on a phone)
+ *  it is still a person and never a bare disc. A small one is hidden from a screen reader, which
+ *  hears the name beside it or its control's label, and its letters are drawn, not written, so
+ *  they never join the name in a copy or a search of the page. The name stays in its title. */
 export function PersonAvatar({
   name,
   size = 28,
@@ -41,10 +43,10 @@ export function PersonAvatar({
   className?: string
 }) {
   const hue = HUES[hash(name) % HUES.length]!
-  const lettered = size >= 28
+  const small = size < 28
   return (
     <Avatar
-      aria-hidden={lettered ? undefined : true}
+      aria-hidden={small ? true : undefined}
       className={cn(
         size === 16 ? 'size-4' : size === 20 ? 'size-5' : size === 28 ? 'size-7' : 'size-8',
         className,
@@ -54,15 +56,18 @@ export function PersonAvatar({
       {/* The ink is inline so a row that forces its own text colour (a focused menu item) cannot
           take it: the initials keep their contrast on the tint in every row. */}
       <AvatarFallback
+        data-initials={small ? initials(name).slice(0, size === 16 ? 1 : 2) : undefined}
         className="bg-avatar text-xs font-semibold"
         style={
           {
             '--avatar-h': hue,
             color: 'oklch(var(--avatar-ink-l) var(--avatar-ink-c) var(--avatar-h))',
+            // Below the type scale on purpose: a mark, as an icon is, not words to read.
+            ...(small && { fontSize: 9 }),
           } as CSSProperties
         }
       >
-        {lettered && initials(name)}
+        {!small && initials(name)}
       </AvatarFallback>
     </Avatar>
   )
@@ -76,6 +81,24 @@ export function AgentAvatar({ size = 28 }: { size?: 28 | 32 }) {
         <BotIcon className="size-4" aria-hidden />
       </AvatarFallback>
     </Avatar>
+  )
+}
+
+/* ---------- layout ---------- */
+
+/**
+ * Words with their button beside them, as a row's last part. Where the button would leave the
+ * words a few to a line (under 28rem, a phone), it goes under them, as Google Drive's Replace key
+ * does. `children` are the words, which take what the button leaves.
+ */
+export function WithAction({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="@container min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1">{children}</div>
+        {action && <div className="@max-md:basis-full">{action}</div>}
+      </div>
+    </div>
   )
 }
 

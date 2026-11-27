@@ -21,7 +21,7 @@ import {
 } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { cn, midSentence } from '@/lib/utils'
-import { FieldDiff, PersonAvatar } from '@/components/footnote/bits'
+import { FieldDiff, PersonAvatar, WithAction } from '@/components/footnote/bits'
 import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/footnote/tool-logo'
@@ -1482,36 +1482,42 @@ function Setup({ due }: { due: number }) {
                         >
                           {isDone ? <CircleCheckIcon className="size-4 text-foreground" /> : i + 1}
                         </span>
-                        <span className="min-w-0 flex-1 space-y-1">
-                          <span
-                            className={cn(
-                              'block text-sm leading-snug',
-                              isDone && 'text-muted-foreground line-through',
-                            )}
-                          >
-                            {step.title}
-                          </span>
-                          <span
-                            className="block text-xs text-muted-foreground"
-                            aria-live={own ? 'polite' : undefined}
-                          >
-                            {own ? definitions.description : step.description}
-                          </span>
-                          {!isDone && !mayDo(step.id) && (
-                            <span className="block text-xs text-muted-foreground">
-                              An admin does this{admins}.
+                        <WithAction
+                          action={
+                            action !== null &&
+                            (!isDone || (own && definitions.opens === 'names')) && (
+                              <Button
+                                variant={first?.id === step.id ? 'default' : 'outline'}
+                                onClick={() => go(step.id)}
+                              >
+                                {action}
+                              </Button>
+                            )
+                          }
+                        >
+                          <span className="block space-y-1">
+                            <span
+                              className={cn(
+                                'block text-sm leading-snug',
+                                isDone && 'text-muted-foreground line-through',
+                              )}
+                            >
+                              {step.title}
                             </span>
-                          )}
-                        </span>
-                        {isDone && <span className="sr-only">Done</span>}
-                        {action !== null && (!isDone || (own && definitions.opens === 'names')) && (
-                          <Button
-                            variant={first?.id === step.id ? 'default' : 'outline'}
-                            onClick={() => go(step.id)}
-                          >
-                            {action}
-                          </Button>
-                        )}
+                            <span
+                              className="block text-xs text-muted-foreground"
+                              aria-live={own ? 'polite' : undefined}
+                            >
+                              {own ? definitions.description : step.description}
+                            </span>
+                            {!isDone && !mayDo(step.id) && (
+                              <span className="block text-xs text-muted-foreground">
+                                An admin does this{admins}.
+                              </span>
+                            )}
+                          </span>
+                          {isDone && <span className="sr-only">Done</span>}
+                        </WithAction>
                       </li>
                     )
                   })}

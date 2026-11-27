@@ -30,7 +30,7 @@ import {
 import { toast } from '@/lib/toast'
 import { clockTime } from '@/lib/dates'
 import { cn } from '@/lib/utils'
-import { PersonAvatar } from '@/components/footnote/bits'
+import { PersonAvatar, WithAction } from '@/components/footnote/bits'
 import { listOf } from '@/model/people'
 import { Mark } from '@/components/footnote/mark'
 import { marksExceptions } from '@/lib/marks'
@@ -835,20 +835,27 @@ function IntegrationsBody({ view }: { view: IntegrationsView }) {
       {refused && refusedTool && (
         <div
           role="alert"
-          className="flex flex-wrap items-start gap-3 border-t bg-caution/8 px-4 py-4 text-sm md:px-5"
+          className="flex items-start gap-3 border-t bg-caution/8 px-4 py-4 text-sm md:px-5"
         >
           <TriangleAlertIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-caution" />
-          <p className="min-w-0 flex-1">
-            <span className="font-medium">{refusedTool.name} needs a new key.</span>{' '}
-            {sentence(refused.failure ?? 'the key was refused')}.
-            {refused.last && ` ${triedWords(refused.last.at, refused.failures)}.`} Published context
-            is not affected.
-          </p>
-          <Button
-            onClick={() => navigate(`/settings/integrations/${refused.id}/connect`, { step: '2' })}
+          <WithAction
+            action={
+              <Button
+                onClick={() =>
+                  navigate(`/settings/integrations/${refused.id}/connect`, { step: '2' })
+                }
+              >
+                Replace key
+              </Button>
+            }
           >
-            Replace key
-          </Button>
+            <p>
+              <span className="font-medium">{refusedTool.name} needs a new key.</span>{' '}
+              {sentence(refused.failure ?? 'the key was refused')}.
+              {refused.last && ` ${triedWords(refused.last.at, refused.failures)}.`} Published
+              context is not affected.
+            </p>
+          </WithAction>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2 border-t px-4 py-3 md:px-5">

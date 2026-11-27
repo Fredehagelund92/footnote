@@ -103,9 +103,15 @@
   justify-content: flex-start;
 }
 
+/* A small avatar's initials (PersonAvatar): drawn, so they are not words of the page. */
+[data-initials]::after {
+  content: attr(data-initials);
+}
+
 /* The page header folds by its own width, not the window's: the sidebar and the dock change the
    room it has (design contract 3.6). Its parts say how with data-narrow. View as gives up its name
-   first, then the rest of its words, a step before the page's own parts fold: `gone` steps aside
+   first, then the rest of its words, and a group of a page's actions marked `wide` gives way to
+   its `more` menu, a step before the page's own parts fold: `gone` steps aside
    (a crumb, a count, the words of an action that is named for a screen reader), an `icon` action
    is its icon alone, an icon button that keeps its centre, and the `title` gives up its icon
    before a letter of its words. */
@@ -114,7 +120,15 @@
 }
 
 @container header (width < 48rem) {
-  [data-narrow='name'] {
+  [data-narrow='name'],
+  [data-narrow='wide'] {
+    display: none;
+  }
+}
+
+/* A page's actions that fold into one More menu under 48rem (an item waiting for review). */
+@container header (width >= 48rem) {
+  [data-narrow='more'] {
     display: none;
   }
 }

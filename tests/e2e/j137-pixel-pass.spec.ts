@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expect, go, signInAs, test } from './go.ts'
 
 // J137, the pixel pass: what a walk through every screen at 1440, tablet and phone widths found
@@ -8,6 +8,11 @@ import { expect, go, signInAs, test } from './go.ts'
 // wraps before a button is cut, the review's compare table and the Context list keep to their
 // frames, a line that is cut ends in an ellipsis, a card opened by its address shows its row, a
 // mark keeps its size beside words that wrap, and an address is never broken at a hyphen.
+//
+// Wave 2: on a tablet an item waiting for review keeps its title and folds its other choices into
+// More, and the editor's foot keeps to its bar (P10). A small avatar has its initials (P11). Ask's
+// sources are one row shape (J70, P12). The documentation's header fits a tablet (P13). On a phone
+// a button beside a few words goes under them (P14).
 
 /** Where an element is on the screen. */
 const boxOf = (page: Page, selector: string) =>
@@ -413,5 +418,164 @@ test.describe('on a phone', () => {
     await go(page, '/inbox?card=flag-germany')
     await expect(page.getByText('It opens with the report')).toBeVisible()
     await expect(page.getByText(/beside the list/)).toHaveCount(0)
+  })
+})
+
+/** Where a row's button sits: beside its words, on their line, or under them at their left edge. */
+const placeOf = (button: Locator) =>
+  button.evaluate((el) => {
+    const words = el.parentElement!.previousElementSibling!.getBoundingClientRect()
+    const box = el.getBoundingClientRect()
+    if (box.top < words.bottom - 1) return 'beside'
+    return Math.abs(box.left - words.left) < 1 ? 'under' : `under, ${box.left - words.left} px off`
+  })
+
+/** The rows of P14, each with its button: a setup step, a banner, an empty page's step. */
+const ROWS_WITH_A_BUTTON = [
+  ['/inbox?demo=setup', 'Write context'],
+  ['/settings/integrations?state=reauth', 'Replace key'],
+  ['/observability?state=empty', 'Connect an agent'],
+] as const
+
+test.describe('wave 2, at 1440 px', () => {
+  test('an item waiting for review shows its choices in the header, with no More (P10)', async ({
+    page,
+  }) => {
+    await go(page, '/context/sug-agent')
+    const header = page.locator('[data-site-header]')
+    await expect(header.getByRole('button', { name: "Don't publish" })).toBeVisible()
+    await expect(header.getByRole('button', { name: 'Send back with a note' })).toBeVisible()
+    await expect(header.getByRole('button', { name: 'More' })).toBeHidden()
+  })
+
+  test('Send to the owner is one run of words, one space between them (P10)', async ({ page }) => {
+    await go(page, '/context/itm_norway_stop/suggest')
+    const send = page
+      .locator('[data-site-header]')
+      .getByRole('button', { name: /^Send to the owner of / })
+    await expect(send).toBeVisible()
+    // The button's gap once stood between Send and the rest: two spaces' width.
+    const gap = await send.evaluate((button) => {
+      const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT)
+      const words: DOMRect[] = []
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const text = n.textContent ?? ''
+        for (const word of ['Send', 'to']) {
+          const at = text.indexOf(word)
+          if (at < 0 || words.length > (word === 'Send' ? 0 : 1)) continue
+          const range = document.createRange()
+          range.setStart(n, at)
+          range.setEnd(n, at + word.length)
+          words.push(range.getBoundingClientRect())
+        }
+      }
+      return words[1]!.left - words[0]!.right
+    })
+    expect(gap).toBeLessThan(6)
+  })
+
+  test('a row keeps its button beside its words where there is room (P14)', async ({ page }) => {
+    // Observability's steps sit in a narrow column beside the chart, so they fold there too.
+    for (const [route, name] of ROWS_WITH_A_BUTTON.slice(0, 2)) {
+      // A whole load: the mock takes a page's state (a refused key) from the address it opens at.
+      await page.goto(route)
+      const button = page.getByRole('button', { name, exact: true }).last()
+      await expect(button).toBeVisible()
+      expect(await placeOf(button), route).toBe('beside')
+    }
+  })
+
+  test("a term's marks are in one column, its author a face with initials (P11)", async ({
+    page,
+  }) => {
+    await go(page, '/definitions?show=terms')
+    await expect(
+      page.getByRole('columnheader', { name: 'Needs a look, and who wrote it' }),
+    ).toHaveCount(1)
+    const faces = page.locator('main table [data-initials]')
+    await expect(faces.first()).toBeVisible()
+    for (const face of await faces.all()) {
+      const box = (await face.boundingBox())!
+      expect(box.width).toBe(20)
+      expect(await face.evaluate((el) => getComputedStyle(el, '::after').content)).toMatch(
+        /^"[A-Z]{2}"$/,
+      )
+    }
+  })
+})
+
+test.describe('wave 2, on a tablet', () => {
+  test.use({ viewport: { width: 768, height: 1024 }, hasTouch: true, isMobile: true })
+
+  test('an item waiting for review keeps its title, its other choices in More (P10)', async ({
+    page,
+  }) => {
+    await go(page, '/context/sug-agent')
+    const header = page.locator('[data-site-header]')
+    await expect(header.getByRole('button', { name: 'Publish' })).toBeVisible()
+    // Its three other choices once left the title four letters: "Context > P...".
+    await expect(header.getByRole('button', { name: "Don't publish" })).toBeHidden()
+    const title = header.locator('[aria-current=page]')
+    expect((await title.boundingBox())!.width).toBeGreaterThan(160)
+    expect(overlapping(await headerControls(page))).toEqual([])
+    await header.getByRole('button', { name: 'More' }).click()
+    const menu = page.getByRole('menu')
+    for (const choice of ['Edit', 'Send back with a note', "Don't publish"])
+      await expect(menu.getByRole('menuitem', { name: choice })).toBeVisible()
+  })
+
+  test("the editor's foot keeps its words to one line in its bar, its mark square (P10)", async ({
+    page,
+  }) => {
+    await go(page, '/context/new')
+    const foot = page.locator('footer').filter({ hasText: 'Not ready' })
+    await expect(foot).toBeVisible()
+    expect((await foot.boundingBox())!.height).toBe(48)
+    const status = foot.getByText(/^Not ready/)
+    // It once wrapped to three lines in the 48 px bar, cut above and below, its mark squeezed.
+    expect((await status.boundingBox())!.height).toBeLessThanOrEqual(20)
+    await expect(status).toHaveAttribute('title', /^Not ready: add /)
+    const mark = await foot.locator('svg').last().boundingBox()
+    expect(mark!.width).toBe(mark!.height)
+  })
+
+  for (const width of [768, 820, 1023])
+    test(`the documentation's header fits ${width} px on one line (P13)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 1024 })
+      await go(page, '/docs')
+      const header = page.locator('header').first()
+      await expect(header.getByRole('link', { name: "What's new" })).toBeVisible()
+      // It was 855 px wide, so a touch browser drew the whole page 10% small to fit it.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width)
+      for (const tab of ['Guides', 'Reference', "What's new"])
+        expect(
+          (await header.getByRole('link', { name: tab }).boundingBox())!.height,
+        ).toBeLessThanOrEqual(28)
+      // Search is its magnifier, as on a phone, and the app is a link away.
+      expect(
+        (await header.getByRole('button', { name: 'Search the docs' }).boundingBox())!.width,
+      ).toBe(28)
+      await expect(header.getByRole('link', { name: 'Open the app' })).toBeVisible()
+    })
+})
+
+test.describe('wave 2, on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+  test('a button beside a few words goes under them, at their left edge (P14)', async ({
+    page,
+  }) => {
+    for (const [route, name] of ROWS_WITH_A_BUTTON) {
+      // A whole load: the mock takes a page's state (a refused key) from the address it opens at.
+      await page.goto(route)
+      const button = page.getByRole('button', { name, exact: true }).last()
+      await expect(button).toBeVisible()
+      expect(await placeOf(button), route).toBe('under')
+    }
+    // The setup steps: Write context once left its words four short lines.
+    await go(page, '/inbox?demo=setup')
+    const step = page.getByRole('listitem').filter({ hasText: 'Write what you know' })
+    const words = step.getByText(/^Two sentences/)
+    expect((await words.boundingBox())!.height).toBeLessThanOrEqual(2 * 20)
   })
 })

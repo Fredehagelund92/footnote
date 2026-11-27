@@ -523,59 +523,6 @@ export function CiteMark({ n, item }: { n: number; item?: LoopItem }) {
   )
 }
 
-/**
- * A source under the answer as a chip (the source chips): its number, the kind's icon, its title
- * cut to the chip, and the day it was last checked where the column has room. Its card names it
- * whole, a press opens it, and pointing at it lights its marks in the words.
- */
-export function SourceChip({ item }: { item: LoopItem & { n: number } }) {
-  const P = useParts()
-  const { lit, light } = React.useContext(LitSource)
-  const Icon = P.kindIcons[kindOf(item.kind)]
-  const on = () => light(item.n)
-  const off = () => light(null)
-  return (
-    <HoverCard
-      label={item.title}
-      trigger={
-        // Its name is what it shows, so a voice command can say what it reads (WCAG 2.5.3):
-        // "Source 1: Online sales to Norway stopped, checked 21 Nov 2026".
-        <span
-          role="button"
-          tabIndex={0}
-          onPointerEnter={on}
-          onPointerLeave={off}
-          onFocus={on}
-          onBlur={off}
-          className={P.cn(
-            'group/chip inline-flex h-8 max-w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border bg-background pr-2.5 pl-1 text-sm transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 data-popup-open:bg-muted',
-            lit === item.n && 'bg-muted',
-          )}
-        >
-          <span className="sr-only">Source {item.n}: </span>
-          <span
-            aria-hidden
-            className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-sm bg-muted px-1.5 text-xs font-medium tabular-nums group-hover/chip:bg-background group-data-popup-open/chip:bg-background"
-          >
-            {item.n}
-          </span>
-          <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 truncate font-medium">{item.title}</span>
-          {item.checked && (
-            <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground @max-md/sources:sr-only">
-              <span className="sr-only">, </span>
-              checked {dayText(item.checked, true)}
-            </span>
-          )}
-        </span>
-      }
-      onOpen={() => P.openDock('context', item.id)}
-    >
-      <ItemCard item={item} />
-    </HoverCard>
-  )
-}
-
 /** An item's card: its kind and domain, its status, who checked it and when, what it says. */
 function ItemCard({ item }: { item: LoopItem }) {
   const P = useParts()
@@ -840,38 +787,78 @@ export function ItemRow({
 }
 
 /**
- * A cited item in one line: its number, its kind's icon and its title, cut to the line when long
- * (the number's card and the name say it whole). Its domain, status, day and the rest are on the
- * card. A press on the title opens it. An item that needs a look ends in why, in words that stand
- * out from the line's muted ones, then what can be done about it.
+ * A cited item in one line across its column: its number, its kind's icon and its title, cut to
+ * the line when long (the number's card and the name say it whole), then at the line's end why it
+ * needs a look, in words that stand out from the line's muted ones, and what can be done about it,
+ * or with `day` the day it was last checked. Its domain, status and the rest are on the card. A
+ * press on the title opens it, and pointing at the line lights its marks in the words. Where the
+ * column is narrow (under 28rem, a phone) the end goes under the title, so the title keeps its
+ * words, and a checked day is left to the card.
  */
-export function CompactItemRow({ item, action }: { item: LoopItem; action?: React.ReactNode }) {
+export function CompactItemRow({
+  item,
+  action,
+  day,
+}: {
+  item: LoopItem
+  action?: React.ReactNode
+  day?: boolean
+}) {
   const P = useParts()
   const ahead = P.useReadAhead()
+  const { light } = React.useContext(LitSource)
   const Icon = P.kindIcons[kindOf(item.kind)]
   const why = useNeedsLook()(item)
   const muted = why === 'Archived'
-  return (
-    <li className="flex h-7 min-w-0 items-center gap-2 text-sm">
-      {item.n && <CiteMark n={item.n} item={item} />}
-      <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
-      <button
-        type="button"
-        {...ahead(item.id)}
-        onClick={() => P.openDock('context', item.id)}
-        className="min-w-0 truncate rounded-sm text-left underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+  const on = () => light(item.n ?? null)
+  const off = () => light(null)
+  const end = why ? (
+    <>
+      <span
+        className={`inline-flex items-center gap-1.5 text-xs font-medium ${muted ? 'text-muted-foreground' : 'text-caution'}`}
       >
-        {item.title}
-      </button>
-      {why && (
-        <span
-          className={`inline-flex shrink-0 items-center gap-1.5 text-xs font-medium ${muted ? 'text-muted-foreground' : 'text-caution'}`}
-        >
-          <span aria-hidden className={`size-2 rounded-full ${muted ? 'bg-off' : 'bg-caution'}`} />
-          {why}
-        </span>
-      )}
+        <span aria-hidden className={`size-2 rounded-full ${muted ? 'bg-off' : 'bg-caution'}`} />
+        {why}
+      </span>
       {action}
+    </>
+  ) : (
+    action
+  )
+  return (
+    <li
+      className="flex min-w-0 items-start gap-2 text-sm"
+      onPointerEnter={on}
+      onPointerLeave={off}
+      onFocus={on}
+      onBlur={off}
+    >
+      {/* The number and the icon keep to the title's line when the end goes under it. */}
+      <span className="flex h-7 shrink-0 items-center gap-2">
+        {item.n && <CiteMark n={item.n} item={item} />}
+        <Icon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2">
+        <button
+          type="button"
+          {...ahead(item.id)}
+          onClick={() => P.openDock('context', item.id)}
+          className="h-7 min-w-0 flex-1 truncate rounded-sm text-left underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          {item.title}
+        </button>
+        {end ? (
+          <span className="flex shrink-0 items-center gap-1.5 @max-md:basis-full">{end}</span>
+        ) : (
+          day &&
+          item.checked && (
+            <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground @max-md/sources:sr-only">
+              <span className="sr-only">, </span>
+              checked {dayText(item.checked, true)}
+            </span>
+          )
+        )}
+      </span>
     </li>
   )
 }

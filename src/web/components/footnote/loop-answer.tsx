@@ -17,7 +17,6 @@ import {
   LitSource,
   NounChip,
   PersonChip,
-  SourceChip,
   Runs,
   dayText,
   runLength,
@@ -671,14 +670,14 @@ function Rows({
   )
 }
 
-/** The most sources shown as chips before the rest fold behind +n. */
+/** The most sources shown before the rest fold behind Show n more; one that needs a look is always shown. */
 const SOURCES_SHOWN = 3
 
 /**
- * What the answer rests on, as source chips under its words (the source chips): the first three
- * with their titles, the rest behind +n, so a reader sees what it rests on without a press. An item
- * that needs a look is never a chip: it stays under them, one line each, with what its owner can
- * do about it there.
+ * What the answer rests on, under its words: one row each, in the order of their numbers, with the
+ * day each was checked at its end, so a reader sees what it rests on without a press. The first
+ * three are shown and the rest fold behind Show n more, but an item that needs a look is always in
+ * sight, its row ending in why and what its owner can do about it there.
  */
 function Sources({
   items,
@@ -690,42 +689,31 @@ function Sources({
 }) {
   const needsLook = useNeedsLook()
   const [all, setAll] = React.useState(false)
-  const look: LoopItem[] = []
-  const rest: (LoopItem & { n: number })[] = []
-  for (const i of items)
-    if (needsLook(i)) look.push(i)
-    else if (i.n) rest.push({ ...i, n: i.n })
-  const shown = all ? rest : rest.slice(0, SOURCES_SHOWN)
-  const hidden = rest.length - shown.length
+  const cited = items
+    .filter((i) => i.n || needsLook(i))
+    .sort((a, b) => (a.n ?? Infinity) - (b.n ?? Infinity))
+  let live = 0
+  const shown = cited.filter((i) => all || needsLook(i) || live++ < SOURCES_SHOWN)
+  const hidden = cited.length - shown.length
   return (
-    <div data-sources className="@container/sources flex max-w-reading flex-col gap-1.5">
-      {rest.length > 0 && (
-        <ul aria-label="Sources" className="flex flex-wrap items-center gap-1.5">
-          {shown.map((item) => (
-            <li key={item.id} className="flex max-w-full min-w-0">
-              <SourceChip item={item} />
-            </li>
-          ))}
-          {hidden > 0 && (
-            <li>
-              <button
-                type="button"
-                onClick={() => setAll(true)}
-                aria-label={`Show ${hidden} more ${hidden === 1 ? 'source' : 'sources'}`}
-                className="inline-flex h-8 items-center rounded-md border px-2.5 text-sm font-medium tabular-nums transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                +{hidden}
-              </button>
-            </li>
-          )}
-        </ul>
-      )}
-      {look.length > 0 && (
-        <ul data-pinned className="flex flex-col gap-0.5">
-          {look.map((item) => (
+    <div data-sources className="@container/sources flex max-w-reading flex-col gap-1">
+      <ul aria-label="Sources" className="flex flex-col gap-0.5">
+        {shown.map((item) =>
+          needsLook(item) ? (
             <PinnedRow key={item.id} item={item} owns={owns} />
-          ))}
-        </ul>
+          ) : (
+            <CompactItemRow key={item.id} item={item} day />
+          ),
+        )}
+      </ul>
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setAll(true)}
+          className="w-fit rounded-sm text-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          Show {hidden} more {hidden === 1 ? 'source' : 'sources'}
+        </button>
       )}
     </div>
   )
@@ -817,15 +805,13 @@ function MarkStillTrue({
         Mark it still true
       </P.Button>
     )
-  // Where the column is narrow, the words would cut the title to a few letters: its icon alone.
   return (
     <button
       type="button"
       {...press}
-      className="relative -ml-1 inline-flex shrink-0 items-center rounded-sm px-1 text-xs font-medium text-foreground underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:text-muted-foreground @max-md/used:after:-inset-2"
+      className="relative -mx-1 inline-flex h-6 shrink-0 items-center rounded-sm px-1 text-xs font-medium text-foreground underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:text-muted-foreground"
     >
-      <span className="@max-md/used:hidden">Mark it still true</span>
-      <P.CheckIcon aria-hidden className="hidden size-4 @max-md/used:block" />
+      Mark it still true
     </button>
   )
 }

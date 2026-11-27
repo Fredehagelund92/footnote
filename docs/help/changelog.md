@@ -26,6 +26,16 @@ A first hour on a new install met screens that said something that was not so, o
 
 See [Set up your workspace](set-up-your-workspace.md).
 
+## Tidier pages on a tablet and a phone
+
+2026-11-27
+
+A person's small round picture shows their initials, so the View as button on a phone and the author of a term in Definitions read as people. Definitions shows a term's marks in one column.
+
+In Ask the sources under an answer are one list, in the order of their numbers, each on one line with the day it was checked, or what to do about it when it needs a look.
+
+On a tablet an item waiting for review keeps its title in the top bar, and its other choices are in More. The documentation's top bar fits a tablet's width. On a phone a button beside a few words, such as a setup step's, sits under them.
+
 ## A phone's width keeps what a page holds
 
 2026-11-27

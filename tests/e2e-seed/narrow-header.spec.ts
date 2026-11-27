@@ -73,3 +73,16 @@ test('at 768 px no header of the demo draws one part over another or cuts its ti
   await page.goto('/context')
   await expect(header(page).getByText('Write context')).toBeVisible()
 })
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+  test('View as is a face with an initial, never a bare disc (P11)', async ({ page }) => {
+    await page.goto('/definitions')
+    const face = viewAs(page).locator('[data-initials]')
+    await expect(face).toBeVisible()
+    // The name is gone from the button, so its avatar says who: Ravi Kapoor's R.
+    await expect(viewAs(page).getByText('Ravi Kapoor')).toBeHidden()
+    expect(await face.evaluate((el) => getComputedStyle(el, '::after').content)).toBe('"R"')
+  })
+})
