@@ -6,7 +6,7 @@ import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { createDevVerifier, mintDevToken } from '../../src/server/mcp/auth.ts'
 import { createAnonymousStore } from '../../src/server/mcp/store.ts'
-import { toolNames } from '../../src/server/mcp/tools.ts'
+import { personOnly, toolNames } from '../../src/server/mcp/tools.ts'
 import { createEditionSource } from '../../src/server/modules/editions/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
@@ -118,11 +118,11 @@ describe('connect', () => {
     expect(response.json<ConnectInfo>()).toEqual({
       address: resource,
       // Every tool in the gateway's registry, so none can be left off the page, and every one on:
-      // get_related and suggest_context too (FR-121, FR-332 as changed).
+      // get_related, suggest_context and the draft tools too, the person-only ones marked (FR-121, FR-332).
       tools: toolNames.map((tool) => ({
         tool,
         enabled: true,
-        personOnly: tool === 'suggest_context',
+        personOnly: personOnly(tool),
       })),
       // The evaluation runner is the gateway's own client, not a person's.
       clients: [{ label: 'claude-code', name: 'Claude Code with a token' }],
