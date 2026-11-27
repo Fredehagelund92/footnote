@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { SourceSettings } from '../../src/contract/sources.ts'
@@ -13,7 +14,11 @@ import {
   connectorSyncJob,
 } from '../../src/server/modules/connectors/index.ts'
 import { createLogger } from '../../src/server/observability/logger.ts'
-import { legacyManifest } from '../server/connectors/dbt-metricflow-fixture.ts'
+import {
+  legacyManifest,
+  withMetric,
+  type Manifest,
+} from '../server/connectors/dbt-metricflow-fixture.ts'
 import { idleJobs } from '../server/idle-jobs.ts'
 import { foundation, people } from './fixtures.ts'
 import { apiDatabase, queueReads, testDatabase } from './support.ts'
@@ -82,10 +87,10 @@ async function ok<T>(method: 'GET' | 'POST', path: string, payload?: object, as 
   return response.json<T>()
 }
 
-async function read() {
-  await writeFile(join(folder, 'semantic_manifest.json'), JSON.stringify(legacyManifest))
+async function read(manifest: Manifest = legacyManifest) {
+  await writeFile(join(folder, 'semantic_manifest.json'), JSON.stringify(manifest))
   await queueReads(client, [id])
-  await connectorSyncJob(registry, { clock }).run({
+  return connectorSyncJob(registry, { clock }).run({
     database,
     logger,
     signal: new AbortController().signal,
@@ -167,9 +172,47 @@ describe('the domain made with the names', () => {
       expect.arrayContaining([['customers', 'sales']]),
     )
     expect(settings.scopes.some((scope) => scope.id === 'orders')).toBe(false)
-    // The read after gives every model the domain, with nothing left to place.
+    // The names the decision leaves have the domain of their mapped views already.
+    expect((await ok<NamesRead>('GET', '/inbox/names')).revision).toBe(decided.waiting.revision)
+    // The read after gives every model the domain, with nothing left to place, and changes no
+    // name the admin still has open: a press made as that read ends is not refused as stale.
     await read()
     expect((await domains()).every((row) => row.domains.join() === 'sales')).toBe(true)
-    expect((await ok<NamesRead>('GET', '/inbox/names')).place).toBeNull()
+    const after = await ok<NamesRead>('GET', '/inbox/names')
+    expect(after.place).toBeNull()
+    expect(after.revision).toBe(decided.waiting.revision)
+  }, 120_000)
+
+  it('takes the edition lock before the source, so a read cannot deadlock names that map views', async () => {
+    // Another transaction publishes names under a domain: it holds the edition lock, and then
+    // takes the source's row to map its views.
+    const other = new pg.Client({ connectionString: url })
+    await other.connect()
+    try {
+      await other.query('begin')
+      await other.query("select pg_advisory_xact_lock(hashtextextended('context_layer.edition',0))")
+      const reading = read(
+        withMetric(legacyManifest, 'net_revenue', (metric) => {
+          metric.type_params.expr = 'revenue - discounts - 0'
+        }),
+      )
+      // The read waits for the edition lock before it takes the source's row to store its find.
+      for (let tries = 0; ; tries++) {
+        const { rowCount } = await client.query(
+          `select 1 from pg_locks where locktype = 'advisory' and not granted
+              and database = (select oid from pg_database where datname = current_database())`,
+        )
+        if (rowCount) break
+        expect(tries, 'the read never waited for the edition lock').toBeLessThan(200)
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+      // Taking the source's row now would be a deadlock if the read already held it.
+      await other.query('select revision from connectors where id = $1 for update', [id])
+      await other.query('commit')
+      const { connectors } = (await reading) as { connectors: Record<string, unknown> }
+      expect(connectors[id]).toMatchObject({ status: 'ok' })
+    } finally {
+      await other.end()
+    }
   }, 120_000)
 })

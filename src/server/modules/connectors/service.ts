@@ -217,6 +217,10 @@ export class ConnectorService {
         }
         snapshot = undefined
       }
+      // A publish takes the edition lock first, and then the source's row (names published under
+      // a domain map its views) or the flags lock. A read takes them in that order too, once its
+      // source has answered, so a read and a publish at once cannot wait on each other.
+      await lockReleases(tx)
       if (!(await stillCurrent(tx, source.id, kind))) return discarded
       if (origin === 'server')
         await tx.query(
@@ -426,9 +430,6 @@ export class ConnectorService {
         ])
         await noticeRebaselined(tx, { sourceId: source.id, snapshotId, refs: rebaselined })
       }
-      // Publishing takes the edition lock and then the flags lock; this takes them in that order
-      // too, so a read and a publish at once cannot wait on each other.
-      await lockReleases(tx)
       const flags = await reconcileSourceFlags(tx, { snapshotId })
       const staleLinkNotices = await noticeStaleLinks(tx, snapshotId)
       const domainNotices = await noticeDomainChanges(tx, domainChanges)

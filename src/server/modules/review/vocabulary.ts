@@ -13,11 +13,17 @@ export const termRefs = (version: string) =>
  * vocabulary proposals the reader may read (row security: an administrator reads them all). With
  * `everyone`, only the members whose source shows them to every reader: a member its source
  * limits to some groups is left out, as serving leaves its definition out (groups are parked).
+ *
+ * A member of a group its source maps to a domain has that domain from the moment it is mapped,
+ * as the read the mapping queues stores it (`withChosenGroups`): names published under a domain
+ * map their views, and the names still open must not change when that read ends.
  */
 export async function sourceVocabulary(tx: Queryable, everyone = false) {
   const rows = await tx.query<CandidateMember & { type: string | null; sourceName: string | null }>(
     `select d.ref,d.connector_id as source,d.kind::text as kind,d.name,d.title,
-            d.description_copy as description,d.value_type as "valueType",d.area_hint as "areaHint",
+            d.description_copy as description,d.value_type as "valueType",
+            case when chosen.scope is null then d.area_hint else chosen.scope->>'domain' end
+              as "areaHint",
             d.synonyms,d.base_name as "baseName",c.type,c.name as "sourceName",
             case when d.variant_shape is not null
                  then jsonb_build_object('shape',d.variant_shape,'by',d.variant_by) end as variant,
@@ -31,6 +37,14 @@ export async function sourceVocabulary(tx: Queryable, everyone = false) {
                  then jsonb_build_object('refs',d.built_from_refs,'columns',d.built_from_columns)
             end as "builtFrom"
        from definitions d left join connectors c on c.id=d.connector_id
+       -- The group is the name up to its last dot (groupOf); the server's own source reads by
+       -- the groups chosen for it once they are chosen in the app.
+       left join lateral (
+         select scope from jsonb_array_elements(c.scopes) as scope
+          where (c.origin = 'workspace' or c.changed_at is not null)
+            and scope->>'id' = substring(d.name from '^(.+)\\.[^.]*$')
+          limit 1
+       ) chosen on true
       where d.missing_since_snapshot is null and (c.id is null or c.enabled)
         and c.type is distinct from 'demo'
         ${everyone ? 'and d.visible_groups is null' : ''}`,

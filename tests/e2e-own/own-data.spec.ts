@@ -15,6 +15,10 @@ import { objectHost, type ObjectHost } from '../server/connectors/object-server.
   starts from seeded names, which is how this path broke once with every test green.
 */
 
+// The second journey goes on from the first one's names, domain and access key: when the first
+// fails, the second is not run, rather than failing on what the first never made.
+test.describe.configure({ mode: 'serial' })
+
 const mcp = `http://localhost:${process.env.PW_OWN_API_PORT ?? 3121}/mcp`
 
 /**
@@ -121,9 +125,13 @@ async function getContext(page: Page, key: string, args: object) {
     },
   })
   const body = await answer.text()
+  expect(answer.ok(), body).toBe(true)
   const json = body.startsWith('{') ? body : /^data: (.*)$/m.exec(body)![1]!
-  return (JSON.parse(json) as { result: { structuredContent: Record<string, unknown> } }).result
-    .structuredContent
+  const { result } = JSON.parse(json) as {
+    result?: { structuredContent: Record<string, unknown> }
+  }
+  expect(result, body).toBeDefined()
+  return result!.structuredContent
 }
 
 test('from an own semantic manifest to a Checked answer', async ({ page }) => {
