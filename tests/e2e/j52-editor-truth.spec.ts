@@ -135,7 +135,14 @@ test('a new page that holds nothing has no status to give', async ({ page }) => 
   const statusRow = page.locator('div', { has: page.locator('dt', { hasText: /^Status$/ }) }).last()
   await expect(statusRow.locator('dd')).toHaveText('Not published yet')
   await title(page, 'Orders are counted when they ship')
-  await expect(status(page)).toHaveText('Not saved yet')
+  // A new item keeps itself as the writer's draft once it has words: the address names it, so a
+  // reload opens it, and leaving asks nothing.
+  await expect(status(page)).toHaveText('Saved')
+  await expect(page).toHaveURL(/\/context\/new\?saved=/)
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeFocused()
+  await page.getByRole('button', { name: 'Back to Context' }).click()
+  await expect(page.getByRole('dialog', { name: 'Leave without saving?' })).toHaveCount(0)
+  await expect(page).toHaveURL(/\/context$/)
 })
 
 test('offline, the status says nothing is kept, not that it is saved on this device', async ({

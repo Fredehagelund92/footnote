@@ -38,6 +38,7 @@ import {
   AgentWroteLine,
 } from '@/components/footnote/agent-change'
 import { sessionFieldLabel, type SessionField } from '@/model/draft-session'
+import { useAutosave, type SaveState } from '@/lib/autosave'
 import { problemsOf, sourceProblem, type EditorField } from '@/lib/editor-problems'
 import { causeIn } from '@/lib/cause-words'
 import '@/components/editor/style.css'
@@ -434,12 +435,17 @@ function RelationRow({
 
 /* ---------- the page ---------- */
 
-export function FactEditor(props: { mode: 'new' | 'edit' | 'suggest'; factId?: string }) {
+export function FactEditor(asked: { mode: 'new' | 'edit' | 'suggest'; factId?: string }) {
+  const { query } = useRoute()
   // ?draft=norway opens the editor as Draft from text fills it, so that state has a link.
   const fromText = useQuery({
     ...draftFromTextQuery(''),
-    enabled: useRoute().query.get('draft') === 'norway',
+    enabled: query.get('draft') === 'norway',
   })
+  // A new item that kept itself as a draft (?saved=) opens as that draft after a reload. Read once:
+  // the address names it while the page is open too, and the page is the same page.
+  const [saved] = React.useState(() => (asked.mode === 'new' && query.get('saved')) || undefined)
+  const props = saved ? { mode: 'edit' as const, factId: saved } : asked
   // An edit or a suggestion starts from the item's own read, which has its text, source and quote;
   // the list's row is all there is when that read fails.
   const page = useQuery({ ...itemPageQuery(props.factId ?? ''), enabled: !!props.factId })
@@ -623,8 +629,11 @@ function Editor({
     domain: domains[form.domain]?.name ?? '',
   })
   const KindIcon = kindIcons[form.kind]
+  // The draft this page saved itself into (a new item once it has words): its id from then on.
+  const [savedId, setSavedId] = React.useState<string | null>(null)
+  const savedRef = React.useRef<string | null>(null)
   const draft = {
-    ...toFact(form, original?.id ?? 'draft', me.name, domains, original),
+    ...toFact(form, original?.id ?? savedId ?? 'draft', me.name, domains, original),
     ...(base ? { version: base } : {}),
   }
   React.useEffect(() => setDraft(draft))
@@ -709,17 +718,70 @@ function Editor({
     toast('Filled from your text', { description: 'Check each part before you publish.' })
   }
 
-  // Nothing is kept until Save: words that differ from what the page opened with are unsaved.
+  // Words that differ from what the page opened with.
   const edited = JSON.stringify(form) !== JSON.stringify(initial)
   // A draft nobody has published goes as it is: publishing its words is the change.
   const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
   const unchanged = mode !== 'new' && !edited && !asIs
+  // A new item, and the writer's own draft, keep themselves as a draft once there are words and a
+  // domain to keep them in (FR-139): a reload, a closed tab or a crash loses nothing. A change to a
+  // published item, or to someone else's draft, is kept only by its Save.
+  const ownDraft = original?.status === 'Draft' && !original.returned && original.by === me.name
+  const hasWords = !!(form.title.trim() || form.body.trim())
+  const keepsItself =
+    !session.on &&
+    !beside &&
+    !starting &&
+    (mode === 'new' || ownDraft) &&
+    !!domains[form.domain] &&
+    hasWords
+  const gapId = query.get('gap') ?? undefined
+  const autosave = useAutosave<Fact>({
+    save: async (fact) => {
+      const id = savedRef.current ?? original?.id
+      const saved = await write('saveDraft', {
+        fact: id ? { ...fact, id } : fact,
+        isNew: !id,
+        gap: gapId,
+      })
+      if (savedRef.current || original) return
+      savedRef.current = saved.id
+      setSavedId(saved.id)
+      // The address names the draft, so a reload opens it again; the page stays as it is, with
+      // the cursor where it was.
+      navigate('/context/new', { ...Object.fromEntries(query), saved: saved.id }, { replace: true })
+    },
+    onError: (error) =>
+      toast("Couldn't save it as a draft", { description: toApiError(error).message }),
+  })
+  // Each change of what it holds is kept, a moment after the typing stops; its id is the save's.
+  const draftKey = JSON.stringify({ ...draft, id: 'draft' })
+  const { change } = autosave
+  React.useEffect(() => {
+    if (keepsItself && edited) change(JSON.parse(draftKey) as Fact)
+  }, [draftKey, keepsItself, edited, change])
+  // What the header says: a page that keeps itself says whether it is kept; any other holds words
+  // that are not saved until its Save.
+  const saveState: SaveState =
+    sendState === 'failed'
+      ? 'failed'
+      : sendState === 'sending'
+        ? 'saving'
+        : keepsItself || savedId
+          ? autosave.status
+          : !edited
+            ? 'clean'
+            : online
+              ? 'dirty'
+              : 'offline'
   // Words in the first box are the person's too, until they are filled in. A draft that saves
   // itself holds back only what it could not save: the rest is sent on the way out.
   const guard = useLeaveGuard(
     session.on
       ? session.status === 'failed' || session.status === 'offline'
-      : edited || (starting && !!pasted.trim()),
+      : keepsItself || savedId
+        ? !['saved', 'clean'].includes(autosave.status)
+        : edited || (starting && !!pasted.trim()),
   )
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
@@ -807,13 +869,18 @@ function Editor({
     // A draft that saves itself is stored as it reads before it goes.
     if (session.on) await session.flush()
     if (asIs) return publishAsIs(asIs)
+    // A draft this page keeps is sent or published as itself, once what it holds is stored: a
+    // save still on its way would otherwise leave a draft beside what is published.
+    if (keepsItself || savedRef.current) await autosave.flush().catch(() => undefined)
+    const kept = original?.id ?? savedRef.current ?? undefined
+    const fact = { ...draft, id: kept ?? draft.id }
     if (isSuggest) {
       // It waits visibly: a line on the item, and a row under All in your Inbox.
       const { id } = await write('sendSuggestion', {
-        fact: draft,
+        fact,
         gap: query.get('gap') ?? undefined,
         sent: {
-          factId: original?.id,
+          factId: kept,
           title: form.title,
           by: me.name,
           to: ownerName,
@@ -831,8 +898,8 @@ function Editor({
       return
     }
     const { id } = await write('saveItem', {
-      fact: draft,
-      isNew: !original,
+      fact,
+      isNew: !kept,
       // Each overlap as the owner answered it; one left alone is unrelated, as it reads.
       relations: {
         ...Object.fromEntries(overlaps.map((f) => [f.id, overlap[f.id] ?? 'unrelated'])),
@@ -945,11 +1012,16 @@ function Editor({
     }
     setSavingDraft(true)
     try {
-      const { id } = await write('saveDraft', {
-        fact: draft,
-        isNew: !original,
-        gap: query.get('gap') ?? undefined,
-      })
+      // A page that keeps itself has saved it already: what is still on its way goes, then the
+      // person is taken to the draft.
+      const { id } =
+        keepsItself || savedRef.current
+          ? await autosave.flush().then(() => ({ id: savedRef.current ?? original!.id }))
+          : await write('saveDraft', {
+              fact: draft,
+              isNew: !original,
+              gap: query.get('gap') ?? undefined,
+            })
       guard.release()
       toast('Saved as a draft', {
         description: "Only you can see it. Agents don't get it until it is published.",
@@ -1206,23 +1278,14 @@ function Editor({
       header={
         <>
           <SiteHeader title={heading} icon={<FilePenLineIcon />} back={back} bare>
-            {/* Nothing is kept until Save, so a new page that holds nothing yet has nothing to say. */}
+            {/* A new page that holds nothing yet has nothing to say. */}
             {session.on ? (
               <SaveStatus status={session.status} retry={session.retry} />
             ) : (
               (mode !== 'new' || edited) && (
                 <SaveStatus
-                  status={
-                    sendState === 'failed'
-                      ? 'failed'
-                      : sendState === 'sending'
-                        ? 'saving'
-                        : !edited
-                          ? 'clean'
-                          : online
-                            ? 'dirty'
-                            : 'offline'
-                  }
+                  status={saveState}
+                  retry={autosave.status === 'failed' ? autosave.retry : undefined}
                 />
               )
             )}

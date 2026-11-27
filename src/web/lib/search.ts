@@ -125,6 +125,8 @@ export const contextEditorSearch = lenient(
     setup: text,
     // Opened from a conflict: the item it disagrees with stays in view.
     beside: text,
+    // The draft a new item kept itself as: a reload opens it again.
+    saved: text,
   }),
 )
 
