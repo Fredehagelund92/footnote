@@ -11,7 +11,9 @@ export function NotFoundPage() {
         title="There is no page at this address"
         way={{ href: '/inbox', label: 'Go to the Inbox' }}
       >
-        Nothing lives at {path}. The link may be old or mistyped.
+        {/* The address stays whole on a line when it fits one, with its full stop: never cut at one of its hyphens. */}
+        Nothing lives at <span className="inline-block max-w-full">{path}.</span> The link may be
+        old or mistyped.
       </NotFound>
     </Page>
   )

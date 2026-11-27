@@ -904,15 +904,12 @@ export function SettingsCrumbs({ trail }: { trail: { label: string; href?: strin
       <BreadcrumbList className="flex-nowrap text-sm">
         {trail.map((t, i) => (
           <React.Fragment key={t.label}>
-            {i > 0 && (
-              <BreadcrumbSeparator
-                className={cn(
-                  i < trail.length - 1 && 'max-sm:hidden',
-                  i === trail.length - 1 && 'max-sm:hidden',
-                )}
-              />
-            )}
-            <BreadcrumbItem className={cn(i < trail.length - 1 && 'max-sm:hidden', 'min-w-0')}>
+            {/* In a narrow header the page's own name stands alone. */}
+            {i > 0 && <BreadcrumbSeparator data-narrow="gone" />}
+            <BreadcrumbItem
+              data-narrow={i < trail.length - 1 ? 'gone' : undefined}
+              className="min-w-0"
+            >
               {/* The page it ends in is the page's heading. */}
               {i === trail.length - 1 ? (
                 <h1 className="min-w-0 truncate">

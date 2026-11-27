@@ -34,10 +34,11 @@ export function ConflictPage({ pairKey }: { pairKey: string }) {
       title={
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
+            {/* Gone on a phone, where the way back stands in its place, and in a narrow header. */}
+            <BreadcrumbItem data-narrow="gone" className="max-md:hidden">
               <BreadcrumbLink href={href(CONFLICTS_LIST)}>Context</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbSeparator data-narrow="gone" className="max-md:hidden" />
             <BreadcrumbItem>
               <h1 className="flex min-w-0">
                 <BreadcrumbPage className="truncate">

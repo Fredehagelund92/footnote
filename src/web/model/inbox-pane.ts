@@ -67,8 +67,11 @@ export function reviewFollows(r: Review): string {
   return reach > 0 ? `${questions(reach)} a week would get ${what}` : `Agents would get ${what}`
 }
 
-/** The few words beside any card's button, when there is something worth saying about what follows. */
-export function follows(card: InboxCard, review?: Review): string | undefined {
+/**
+ * The few words beside any card's button, when there is something worth saying about what follows.
+ * On a `phone` what opens is a screen of its own, so nothing is said to be beside anything.
+ */
+export function follows(card: InboxCard, review?: Review, phone = false): string | undefined {
   if (review) return reviewFollows(review)
   switch (card.type) {
     case 'gap':
@@ -78,7 +81,8 @@ export function follows(card: InboxCard, review?: Review): string | undefined {
     case 'look':
       return 'Quality shows before and now for each'
     case 'flag':
-      return card.factId ? 'It opens beside the list, with the report' : undefined
+      if (!card.factId) return undefined
+      return phone ? 'It opens with the report' : 'It opens beside the list, with the report'
     default:
       return undefined
   }

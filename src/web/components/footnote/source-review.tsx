@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { FoldTrigger } from '@/components/footnote/fold'
 import { cn } from '@/lib/utils'
+import { TOUCH_LINK } from '@/lib/touch'
 import {
   changeWords,
   diffStats,
@@ -219,14 +220,19 @@ function SourceValue({
     <div className="flex min-w-0 flex-col gap-1">
       {/* An address a reader may not follow (javascript:) is shown, never linked. */}
       {safeHref(source.url) ? (
-        <a
-          href={source.url}
-          target="_blank"
-          rel="noreferrer"
-          className="break-all underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <Words words={side === 'before' ? l : r} side={side} />
-        </a>
+        <span>
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noreferrer"
+            className={cn(
+              'break-all underline decoration-muted-foreground/40 underline-offset-4 outline-none hover:decoration-foreground focus-visible:ring-3 focus-visible:ring-ring/50',
+              TOUCH_LINK,
+            )}
+          >
+            <Words words={side === 'before' ? l : r} side={side} />
+          </a>
+        </span>
       ) : (
         <span className="break-all">
           <Words words={side === 'before' ? l : r} side={side} />

@@ -1422,13 +1422,13 @@ export function AskPage() {
                   variant="outline"
                   aria-label="Share chat"
                   aria-pressed={dock?.kind === 'share' && dock.id === shown.id}
-                  className="max-lg:w-7 max-lg:px-0"
+                  data-narrow="icon"
                   onClick={() => openDock('share', shown.id)}
                 />
               }
             >
               <ShareIcon />
-              <span className="max-lg:hidden">Share chat</span>
+              <span data-narrow="gone">Share chat</span>
             </TooltipTrigger>
             <TooltipContent>Share chat as a link</TooltipContent>
           </Tooltip>
@@ -1441,13 +1441,13 @@ export function AskPage() {
                 aria-label="History"
                 aria-expanded={isMobile ? sheet : !collapsed}
                 aria-controls={isMobile ? undefined : 'ask-chats'}
-                className="max-lg:w-7 max-lg:px-0"
+                data-narrow="icon"
                 onClick={() => (isMobile ? setSheet(true) : setCollapsed(!collapsed))}
               />
             }
           >
             <HistoryIcon />
-            <span className="max-lg:hidden">History</span>
+            <span data-narrow="gone">History</span>
           </TooltipTrigger>
           <TooltipContent>
             {isMobile ? 'History' : collapsed ? 'Show history' : 'Hide history'}{' '}

@@ -38,8 +38,8 @@ Every mark has an icon, a shape or a word as well.
 
 ## 4. Targets and touch
 
-- On a touch screen (`pointer: coarse`) every control can be hit with a finger: its tap area grows to **44 px** around it, while the control keeps the size it is drawn. Header actions are spaced so two 44 px areas never overlap.
-- Nothing on the review or the quick view is under 44 px under a finger. On a phone the decision bar's actions are 44 px.
+- On a touch screen (`pointer: coarse`) every control can be hit with a finger: its tap area grows to **44 px** around it, while the control keeps the size it is drawn. Every page's header draws its buttons 28 px this way, spaced so two 44 px areas never overlap.
+- Under the header, no button or field on the review or the quick view is under 44 px under a finger, and a link in a line of words keeps its size with a 44 px tap area around it. On a phone the decision bar's actions are 44 px, and so are a side panel's.
 - On a desktop pointer, 24 px is the floor for any target. A button is 28 px high, or 36 px for the one decision a pane or a page is for; a field is 32 px.
 - Lists on a phone use Select, and a tap then ticks a row.
 
@@ -91,7 +91,7 @@ Every mark has an icon, a shape or a word as well.
 | axe                 | WCAG 2.2 AA through `@axe-core/playwright` on every route, at 390 and 1440 px, in light and dark, plus the open palette and menus                               | Playwright, in CI         |
 | Lighthouse          | Accessibility 100 on the audited screens. By hand per slice until it is automated                                                                               | By hand, before a release |
 | Keyboard specs      | The job specs J13 (the review's keys), J23 (focus and announcements), J24 (picking rows), J20 (tags) and J22 (help and the keys)                                | Playwright, in CI         |
-| Touch specs         | J17 (the review on a phone: 44 px targets, the state in words)                                                                                                  | Playwright, in CI         |
+| Touch specs         | J17 (the review on a phone: 44 px targets, the state in words) and J137 (every page header: 28 px buttons with 44 px tap areas that never overlap)              | Playwright, in CI         |
 | Motion specs        | J29 and J18, with and without reduced motion                                                                                                                    | Playwright, in CI         |
 | Copy test           | Labels, state lines and hints stay short and free of contractions                                                                                               | Unit test, in CI          |
 | Screen reader pass  | By hand before a release, with NVDA and Firefox, and with VoiceOver and Safari: the document editor, the list and its bulk bar, the review, Ask and the palette | Release checklist         |

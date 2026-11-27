@@ -126,6 +126,10 @@ export default defineConfig({
     // publishes them in tests/integration/values.test.ts, and on an install with no demo in
     // tests/e2e-own/own-data.spec.ts.
     /\/j131-dimension-values\.spec\.ts$/,
+    // J137 measures the mock build's pages by the mock's own addresses (a read from Google Drive,
+    // a drafted card's claims, a topic's answer panel); the layout is the same components on the
+    // service, and the demo install's header is in tests/e2e-seed/narrow-header.spec.ts.
+    /\/j137-pixel-pass\.spec\.ts$/,
     // J102 connects the mock's ?demo=families dbt project; the service counts a test read's
     // families in tests/integration/metric-variants.test.ts and its card's in
     // declared-families.test.ts.

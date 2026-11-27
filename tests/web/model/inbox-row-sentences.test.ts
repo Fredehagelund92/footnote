@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { askedWords, changeWords, gapRowWords } from '@/model/review'
+import { askedWords, changeWords, flagRowWords, gapRowWords } from '@/model/review'
 import { cardTypeLabel, namesWords } from '@/model/inbox'
 
 // The Inbox's suggestion rows say what happened in whole short sentences, not in labels
@@ -45,6 +45,15 @@ describe('a suggestion row in sentences', () => {
     expect(gapRowWords({ times: 9, told: 0, acrossMonths: 'x' })).toBe(
       'Agents asked about this 9 times this week. They found nothing. Counted across two months.',
     )
+  })
+
+  it('quotes the words of a report, and writes no empty quotes when it has none', () => {
+    expect(flagRowWords({ reason: 'wrong', note: 'The source link opens the wrong page.' })).toBe(
+      'Reported as wrong: “The source link opens the wrong page.”',
+    )
+    // It once read: Reported as wrong: “”.
+    expect(flagRowWords({ reason: 'wrong', note: '' })).toBe('Reported as wrong')
+    expect(flagRowWords({ reason: 'unclear', note: '  ' })).toBe('Reported as unclear')
   })
 
   it('names new metrics and dimensions, not "names"', () => {

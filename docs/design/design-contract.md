@@ -248,8 +248,8 @@ Avatars are a soft tint picked from the person's name, one of ten hues every 36 
 
 ### 3.1 The shell
 
-- **Sidebar.** 16rem, resizable from 200 to 360 px, folding to a 3rem icon rail (Command B, and a toggle in every header). It sits on the page background, divided by a hairline. Four places (Inbox, Ask, Context, Definitions), a search field at the top (a lone magnifier in the rail and on a phone's top bar), and at the foot Help, Observability and Settings. Help opens a small menu. The user menu is the last block.
-- **Header.** 48 px. The way back, a 14 px title (cut with an ellipsis, in full on hover or focus), then the page's actions and, at the right end, the theme menu (light, dark, system). On a phone, an item, definition, review or conflict page keeps the back arrow to its list, the title, the page's one main action and a More button; the page's other actions, Ask, the menu, search, the theme and the demo's person sit in More, and the profile label is left out, so the title keeps room.
+- **Sidebar.** 16rem, resizable from 200 to 360 px, folding to a 3rem icon rail (Command B, and a toggle in every header). In a window under 1024 px it starts as the rail, where the open sidebar leaves a page too little room, and opens when asked. It sits on the page background, divided by a hairline. Four places (Inbox, Ask, Context, Definitions), a search field at the top (a lone magnifier in the rail and on a phone's top bar), and at the foot Help, Observability and Settings. Help opens a small menu. The user menu is the last block.
+- **Header.** 48 px. The way back, a 14 px title (cut with an ellipsis, in full on hover or focus), then the page's actions and, at the right end, the theme menu (light, dark, system). It folds by its own width, not the window's, since the sidebar and the dock change the room it has: the demo's View as gives up its name, then the rest of its words, and under 36rem of header a page's own actions are their icons alone, a breadcrumb is its last step, and the title gives up its icon before a letter of its words. On a touch screen its buttons are drawn 28 px on every page, each with a 44 px tap area. On a phone, an item, definition, review or conflict page keeps the back arrow to its list, the title, the page's one main action and a More button; the page's other actions, Ask, the menu, search, the theme and the demo's person sit in More, and the profile label is left out, so the title keeps room.
 - **Area menus.** Settings and Observability swap the sidebar for their own menu, with Back to app on top. Both lead back to the app, never to a workspace's name.
 - **Phone.** Below 768 px the sidebar is a sheet. Lists, detail and the dock are each a full screen. Bottom bars carry the decision.
 
@@ -267,7 +267,7 @@ Resizable from 400 to 960 px, and the page keeps at least 360 px. The width is k
 
 ### 3.3 Panel anatomy
 
-Every right-hand panel (the editor's What agents get, the context page's side panel, the review's Try it and decision, Settings help, the quick view docks) has one anatomy: a title bar with a close or fold, **one scrolling body**, and a footer for what must stay in reach (Ready, the decision). The bar and the footer never scroll away. A long block in a panel (a live preview) is clamped with Show all, never boxed. A side panel scrolls only when its content is genuinely long, and is folded on edit pages unless it has something to say.
+Every right-hand panel (the editor's What agents get, the context page's side panel, the review's Try it and decision, Settings help, the quick view docks) has one anatomy: a title bar with a close or fold, **one scrolling body**, and a footer for what must stay in reach (Ready, the decision). The bar and the footer never scroll away. A footer's actions go onto a second row before one of them is cut; on a phone they are full width and 44 px, the main one on a row of its own. A long block in a panel (a live preview) is clamped with Show all, never boxed. A side panel scrolls only when its content is genuinely long, and is folded on edit pages unless it has something to say.
 
 ### 3.4 Scroll rules
 
@@ -287,7 +287,7 @@ Every right-hand panel (the editor's What agents get, the context page's side pa
 
 ### 3.6 Breakpoints
 
-Viewport variants are allowed in pages (`md`, `lg`, `max-sm`). Anything that can sit in the dock reads its **container** width instead, because the dock changes the room a component has. Pane-width rules are named: the scope column steps aside under 960 px of pane, the review queue folds to a slim rail under 80rem of pane, and the quick view's answers stand side by side from 560 px of pane (`--container-pane-split`, the `@pane-split` variant) and one above the other below it.
+Viewport variants are allowed in pages (`md`, `lg`, `max-sm`). Anything that can sit in the dock reads its **container** width instead, because the dock changes the room a component has. The page header reads its own width the same way: its parts say how they fold with `data-narrow`, and the stylesheet holds the widths (3.1). Pane-width rules are named: the scope column steps aside under 960 px of pane, the review queue folds to a slim rail under 80rem of pane, and the quick view's answers stand side by side from 560 px of pane (`--container-pane-split`, the `@pane-split` variant) and one above the other below it.
 
 ### 3.7 Density
 
@@ -489,7 +489,7 @@ Light, dark and system, from a small menu at the right end of every header. `the
 | 8   | Spacing steps 4 to 64 only, no half steps, no margins, enforced by lint                                                           | Tailwind's default scale; no arbitrary values outside the allowlist; "parents set gaps" is a should     |
 | 9   | Header 48 (56 on phones), toolbar 44                                                                                              | Bar 48 everywhere, tool row 40                                                                          |
 | 10  | Widths: full, overview 1120, reading 720, prose 68ch                                                                              | Sheet 56rem, frame 80rem, reading 60ch                                                                  |
-| 11  | Below 1280 the sidebar becomes the rail on its own                                                                                | The rail is the person's choice, and it folds by itself when a dock opens                               |
+| 11  | Below 1280 the sidebar becomes the rail on its own                                                                                | The rail is the person's choice; a dock folds it, and a window under 1024 px starts on it               |
 | 12  | Docked panel 480; assistant 400, resizable from 320 to 560; docks from 1,224                                                      | One dock: 480, 560 or 720, resizable from 400 to 960; no separate assistant panel                       |
 | 13  | Page rail 320, flat column                                                                                                        | One panel anatomy for every right panel                                                                 |
 | 14  | List pages scroll the list; document pages scroll the page                                                                        | One scroll owner per view                                                                               |

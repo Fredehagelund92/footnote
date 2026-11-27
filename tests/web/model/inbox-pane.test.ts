@@ -97,6 +97,11 @@ describe('the words beside the button', () => {
       if (words) expect(words.split(' ').length, c.id).toBeLessThanOrEqual(10)
     }
   })
+
+  it('say nothing opens beside the list on a phone, where the item is a screen of its own', () => {
+    expect(pane('flag-germany').follows).toBe('It opens beside the list, with the report')
+    expect(follows(card('flag-germany'), undefined, true)).toBe('It opens with the report')
+  })
 })
 
 describe('what agents answer today and after the decision', () => {

@@ -258,9 +258,12 @@ function Feedback({ busy }: { busy: boolean }) {
                       >
                         {r.title}
                       </a>
-                      <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                      {/* The words are cut with an ellipsis in a box of their own: a flex row only clips them. */}
+                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         {r.domain && <DomainDot id={r.domain} />}
-                        {r.domain ? domains[r.domain]?.name : 'No domain'} - {r.line}
+                        <span className="min-w-0 truncate">
+                          {r.domain ? domains[r.domain]?.name : 'No domain'} - {r.line}
+                        </span>
                       </p>
                     </div>
                     {/* On a narrow page the state and who sent it go under the title. */}

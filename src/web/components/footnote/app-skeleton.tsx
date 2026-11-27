@@ -14,9 +14,11 @@ import {
 import { Frame, FramePage } from '@/components/footnote/frame'
 import { RowsSkeleton } from '@/components/footnote/load-state'
 import { DEFINITIONS_LEAD, TableSkeleton } from '@/components/footnote/list-skeleton'
+import { useIsNarrow } from '@/hooks/use-mobile'
 import { useDock } from '@/lib/dock'
 import { clamp, readWidth } from '@/lib/pane-width'
 import { useRoute } from '@/lib/router'
+import { startFold } from '@/lib/sidebar-fold'
 import { cn } from '@/lib/utils'
 
 // The app's skeletons in each page's own shape, for a lazy page's fallback (Loading in App.tsx) and
@@ -215,12 +217,13 @@ function NavRowShape({ width }: { width: number }) {
 
 /**
  * The app while its shared reads load (a big workspace, a slow network): the sidebar where it will
- * be, folded as the shell folds it for a dock or a review, and the page's own skeleton beside it,
- * so what arrives lands in place.
+ * be, folded as the shell folds it for a dock, a review or a narrow window, and the page's own
+ * skeleton beside it, so what arrives lands in place.
  */
 export function ShellShape() {
   const { parts } = useRoute()
   const dock = useDock()
+  const narrow = useIsNarrow()
   const shape = shapeOf(parts)
   // The documentation is outside the shell: its own header and column.
   if (shape === 'docs-home' || shape === 'docs-page')
@@ -229,13 +232,16 @@ export function ShellShape() {
         <PageShape shape={shape} />
       </div>
     )
-  const folded = !!dock || (parts[0] === 'inbox' && parts[2] === 'review')
+  const { open } = startFold({
+    dock: !!dock || (parts[0] === 'inbox' && parts[2] === 'review'),
+    narrow,
+  })
   return (
     <SidebarProvider
       role="status"
       aria-busy="true"
       aria-label="Loading"
-      open={!folded}
+      open={open}
       className="h-svh overflow-clip"
       style={
         {

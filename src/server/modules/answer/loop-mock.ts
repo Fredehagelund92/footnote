@@ -174,6 +174,8 @@ type Obj = Record<string, unknown>
 const isObj = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.isArray(v)
 const objs = (v: unknown): Obj[] => (Array.isArray(v) ? v.filter(isObj) : [])
 const firstSentence = (text: string) => text.split(/(?<=[.!?])\s/)[0]!.replace(/[.!?]$/, '')
+/** A title before its sentence: a colon after it, unless it ends a sentence itself ("...in August 2026?"). */
+const titled = (title: string) => (/[.!?]$/.test(title) ? title : `${title}:`)
 const list = (names: readonly string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
 
@@ -312,7 +314,10 @@ export function plainStep({
         names.length ? `What is written for ${list(names)}.` : 'What is written.',
         ...items
           .slice(0, 4)
-          .map((i) => `${String(i.title)}: ${firstSentence(String(i.summary))} [${String(i.id)}].`),
+          .map(
+            (i) =>
+              `${titled(String(i.title))} ${firstSentence(String(i.summary))} [${String(i.id)}].`,
+          ),
       ].join('\n\n'),
     }
   }

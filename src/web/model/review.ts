@@ -78,6 +78,15 @@ export function askedWords(times: number | null) {
 }
 
 /**
+ * A reported row's line: what it was reported as, then the reporter's words in quotes. A report
+ * sent with no words ends at what it was reported as, with no empty quotes after it.
+ */
+export function flagRowWords(flag: { reason: string; note: string }) {
+  const note = flag.note.trim()
+  return note ? `Reported as ${flag.reason}: “${note}”` : `Reported as ${flag.reason}`
+}
+
+/**
  * A Not found row's line: what agents found this week, and whether someone told the owners from
  * Ask (Tell the owner), who are the only ones the row reaches.
  */

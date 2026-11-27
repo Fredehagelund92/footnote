@@ -17,7 +17,7 @@ import {
   Undo2Icon,
 } from '@/components/icons'
 import { toast } from '@/lib/toast'
-import { and, cn, midSentence } from '@/lib/utils'
+import { and, cn, ended, midSentence } from '@/lib/utils'
 import { Statement } from '@/components/footnote/conflict-pair'
 import { comparePair, sharedWords, type Compared } from '@/lib/differing-words'
 import { SIDE_BY_SIDE } from '@/lib/conflict'
@@ -1518,7 +1518,10 @@ function Decision({
     return (
       <div
         ref={floor}
-        className="flex shrink-0 flex-col gap-2 border-t bg-background px-4 pt-2.5 pb-safe-sm"
+        className={cn(
+          'flex shrink-0 flex-col gap-2 border-t bg-background px-4 pt-2.5 pb-safe-sm',
+          TOUCH,
+        )}
       >
         {done ? (
           <p className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground">
@@ -1591,7 +1594,7 @@ function Decision({
         </p>
         <p className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Overlaps:</span>{' '}
-          {r.clash ? r.clash.items.map((c) => c.title).join('; ') : 'none'}.
+          {ended(r.clash ? r.clash.items.map((c) => c.title).join('; ') : 'none')}
         </p>
       </section>
       <section className="flex min-h-25 flex-col justify-center gap-3 p-4">
@@ -2085,8 +2088,7 @@ export function ReviewPage({ id }: { id: string }) {
 
   return (
     <RelationContext.Provider value={[answers, answer]}>
-      {/* Under a finger every control is at least 40px; the phone bar's actions are 44px. */}
-      <div key={r.id} className={cn('flex h-full min-h-0 flex-col bg-background', TOUCH)}>
+      <div key={r.id} className="flex h-full min-h-0 flex-col bg-background">
         <SiteHeader
           deep={{ href: `/inbox?card=${r.id}`, label: 'Back to the Inbox', onBack: leave }}
           more={
@@ -2098,16 +2100,16 @@ export function ReviewPage({ id }: { id: string }) {
           title={
             <Breadcrumb className="min-w-0">
               <BreadcrumbList className="flex-nowrap text-sm">
-                <BreadcrumbItem className="max-sm:hidden">
+                <BreadcrumbItem data-narrow="gone">
                   <BreadcrumbLink href={`/inbox?card=${r.id}`} onClick={plainClick(leave)}>
                     Inbox
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="max-sm:hidden" />
-                <BreadcrumbItem className="max-sm:hidden">
+                <BreadcrumbSeparator data-narrow="gone" />
+                <BreadcrumbItem data-narrow="gone">
                   <span>Review</span>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="max-sm:hidden" />
+                <BreadcrumbSeparator data-narrow="gone" />
                 <BreadcrumbItem className="min-w-0">
                   <h1 className="flex min-w-0">
                     <BreadcrumbPage className="flex min-w-0 items-center gap-1.5 font-medium">
@@ -2122,7 +2124,7 @@ export function ReviewPage({ id }: { id: string }) {
             </Breadcrumb>
           }
         >
-          <span className="shrink-0 text-xs text-muted-foreground tabular-nums max-sm:hidden">
+          <span data-narrow="gone" className="shrink-0 text-xs text-muted-foreground tabular-nums">
             {at + 1} of {reviews.length}
           </span>
           <div className="flex items-center gap-1">
@@ -2195,7 +2197,8 @@ export function ReviewPage({ id }: { id: string }) {
             )}
           </div>
         </SiteHeader>
-        <div ref={paneRef} className="@container/main flex min-h-0 flex-1">
+        {/* Under a finger every control below the header is at least 44px, the phone bar's actions too. */}
+        <div ref={paneRef} className={cn('@container/main flex min-h-0 flex-1', TOUCH)}>
           {!isMobile && (
             <ResizableAside
               side="left"

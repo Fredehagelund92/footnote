@@ -63,6 +63,8 @@ export function ViewToggle({
 export type TextOption<T extends string> = {
   value: T
   label: React.ReactNode
+  /** The choice's name for a screen reader, where its label can fold away (a narrow page header). */
+  name?: string
   count?: number
   icon?: React.ReactNode
 }
@@ -157,6 +159,7 @@ export function TextSwitch<T extends string>({
                 type="button"
                 role="radio"
                 aria-checked={on}
+                aria-label={o.name}
                 tabIndex={on ? 0 : -1}
                 data-value={o.value}
                 onClick={(e) => onChange(o.value, e)}

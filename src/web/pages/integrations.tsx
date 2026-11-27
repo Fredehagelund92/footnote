@@ -1563,8 +1563,8 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                   : []),
                 `Nothing published. Daily limit ${docs.madeToday} of ${docs.perDay}`,
               ].map((t) => (
-                <li key={t} className="flex items-center gap-2">
-                  <CheckIcon aria-hidden className="size-3.5" />
+                <li key={t} className="flex items-start gap-2">
+                  <CheckIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />
                   {t}
                 </li>
               ))}
@@ -2750,8 +2750,9 @@ function PickStep({ c }: { c: Connector }) {
                   'One suggestion per document, for the owners of its domain',
                 ]
             ).map((t) => (
-              <li key={t} className="flex items-center gap-2">
-                <CheckIcon aria-hidden className="size-4 text-good" />
+              // The mark keeps its size and its place on the first line when the words wrap.
+              <li key={t} className="flex items-start gap-2">
+                <CheckIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-good" />
                 {t}
               </li>
             ))}
@@ -2764,8 +2765,8 @@ function PickStep({ c }: { c: Connector }) {
               ? ['A calculation, a query or a row of data']
               : ['The document itself, or who can read it', 'Anything published without an owner']
             ).map((t) => (
-              <li key={t} className="flex items-center gap-2">
-                <XIcon aria-hidden className="size-4 text-destructive" />
+              <li key={t} className="flex items-start gap-2">
+                <XIcon aria-hidden className="mt-0.5 size-4 shrink-0 text-destructive" />
                 {t}
               </li>
             ))}

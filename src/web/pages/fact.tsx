@@ -298,10 +298,11 @@ export function FactPage({ id }: { id: string }) {
       title={
         <Breadcrumb className="min-w-0">
           <BreadcrumbList className="flex-nowrap">
-            <BreadcrumbItem className="hidden md:block">
+            {/* Gone on a phone, where the way back stands in its place, and in a narrow header. */}
+            <BreadcrumbItem data-narrow="gone" className="max-md:hidden">
               <BreadcrumbLink href={listHref('/context')}>Context</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbSeparator data-narrow="gone" className="max-md:hidden" />
             <BreadcrumbItem className="min-w-0">
               <BreadcrumbPage className="truncate">{fact.title}</BreadcrumbPage>
             </BreadcrumbItem>
