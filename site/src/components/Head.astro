@@ -1,0 +1,10 @@
+---
+import Default from '@astrojs/starlight/components/Head.astro'
+import inter from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url'
+
+/* Starlight's head, and the font a page's first lines are set in, fetched first, as the landing
+   page does (landing/components/Head.astro). */
+---
+
+<Default />
+<link rel="preload" href={inter} as="font" type="font/woff2" crossorigin />

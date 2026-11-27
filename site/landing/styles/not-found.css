@@ -1,126 +1,70 @@
-/* The 404 page (landing/pages/404.astro): a short sheet in the landing page's earlier design, on the
-   paper's dot field (shared/ground.css). */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-html {
-  -webkit-text-size-adjust: 100%;
-  scroll-behavior: smooth;
-}
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-}
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font: 400 17px/1.6 var(--sans);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  overflow-x: hidden;
-}
-a {
-  color: inherit;
-  text-decoration-color: color-mix(in srgb, var(--mark) 45%, transparent);
-  text-underline-offset: 3px;
-  text-decoration-thickness: 1px;
-}
-a:hover {
-  text-decoration-color: var(--mark);
-}
-:focus-visible {
-  outline: 2px solid var(--mark);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-code,
-kbd,
-pre {
-  font-family: var(--mono);
-}
-p {
-  margin: 0;
-}
-h1,
-h2,
-h3 {
-  margin: 0;
-}
-ul,
-ol {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
+/* The 404 page (landing/pages/404.astro): the landing page's closing screen for an address that
+   leads nowhere, on the dot field. It takes the site's styles in here, and not in its page beside
+   the landing page's own, so the two pages share no stylesheet and each loads one. */
+@import '../../shared/tokens.css';
+@import '../../shared/fonts.css';
+@import './base.css';
+@import '../../shared/chrome.css';
+@import '../../shared/ground.css';
 
-.wrap {
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-@media (min-width: 720px) {
-  .wrap {
-    padding: 0 28px;
-  }
-}
-.sheet {
-  background: var(--sheet);
-  border: 1px solid var(--rule);
-  border-top: 0;
-  border-radius: 0 0 20px 20px;
-  margin-bottom: 64px;
-}
-.doc {
-  max-width: calc(var(--main) + var(--gap) + var(--notes));
-}
-.doc > * {
-  max-width: var(--main);
-}
-.doc > .wide {
-  max-width: none;
-}
-.hero {
-  padding: 48px 20px 80px;
-}
-@media (min-width: 720px) {
-  .hero {
-    padding: 64px 56px 104px;
-  }
-}
-.h1 {
-  margin-top: 48px;
-  font: 750 clamp(29px, 3.2vw, 40px)/1.12 var(--sans);
-  letter-spacing: -0.025em;
-  text-wrap: balance;
-  max-width: 26ch;
-}
-.hero-p {
-  margin-top: 16px;
-  font-size: 18.5px;
-  line-height: 1.6;
-  color: var(--ink-2);
-  text-wrap: pretty;
-}
-.hero-p + .hero-p {
-  margin-top: 12px;
-}
-.hero-cta {
-  margin-top: 30px;
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+}
+.lost {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  flex: 1;
+  display: grid;
   align-items: center;
-  gap: 12px 18px;
+  padding: 96px 0 128px;
+  text-align: center;
+}
+/* The light behind the landing page's closing screen. */
+.lost::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  bottom: -300px;
+  width: min(1000px, 120%);
+  height: 560px;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, var(--stage), transparent);
+  pointer-events: none;
+}
+.lost h1 {
+  width: fit-content;
+  margin-inline: auto;
+  font-weight: 510;
+  font-size: clamp(34px, 4.45vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.022em;
+  color: var(--fg-3);
+  text-wrap: balance;
+}
+.lost h1 b {
+  display: block;
+  font-weight: 510;
+  color: var(--fg);
+}
+.lost .cta {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.lost p {
+  margin-top: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fg-3);
+}
+@media (max-width: 600px) {
+  .lost .cta .btn {
+    flex: 1;
+  }
 }

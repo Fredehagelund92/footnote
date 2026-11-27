@@ -3,21 +3,21 @@
   <desc id="desc">People and agents reach your TLS proxy over https. The proxy sends /api/v1/, /mcp, /oauth/ and /.well-known/oauth-* to the service image directly, and every other path to the web image. The service uses a PostgreSQL 18 database and keeps its keys and secrets in a volume at /var/lib/footnote.</desc>
   <style>
     .bg { fill: #ffffff; }
-    .box { fill: #f2f4f7; stroke: #cdd2db; stroke-width: 1.5; }
-    .key { fill: #e4e9fd; stroke: #2a48db; stroke-width: 1.5; }
-    .ok { fill: #e3f3ea; stroke: #1d7a4b; stroke-width: 1.5; }
-    .warn { fill: #f5ead2; stroke: #8a5a0b; stroke-width: 1.5; stroke-dasharray: 5 4; }
-    .line { fill: none; stroke: #686f7e; stroke-width: 1.5; }
-    .back { fill: none; stroke: #8a5a0b; stroke-width: 1.5; stroke-dasharray: 5 4; }
-    .head { fill: #686f7e; }
-    .headwarn { fill: #8a5a0b; }
-    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #151922; }
+    .box { fill: #f4f5f6; stroke: #d3d4d5; stroke-width: 1.5; }
+    .key { fill: #eaeff8; stroke: #2c5dbd; stroke-width: 1.5; }
+    .ok { fill: #e8f2ed; stroke: #16794c; stroke-width: 1.5; }
+    .warn { fill: #ffffff; stroke: #656b74; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .line { fill: none; stroke: #656b74; stroke-width: 1.5; }
+    .back { fill: none; stroke: #656b74; stroke-width: 1.5; stroke-dasharray: 5 4; }
+    .head { fill: #656b74; }
+    .headwarn { fill: #656b74; }
+    text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; fill: #101113; }
     .t { font-size: 18px; font-weight: 600; }
-    .s { font-size: 15.5px; fill: #424958; }
-    .m { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14.5px; fill: #424958; }
-    .l { font-size: 14.5px; fill: #686f7e; }
-    .lw { font-size: 14.5px; fill: #8a5a0b; }
-    .okt { fill: #1d7a4b; font-weight: 600; font-size: 13px; }
+    .s { font-size: 15.5px; fill: #2f3338; }
+    .m { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14.5px; fill: #2f3338; }
+    .l { font-size: 14.5px; fill: #5a6069; }
+    .lw { font-size: 14.5px; fill: #5a6069; }
+    .okt { fill: #16794c; font-weight: 600; font-size: 13px; }
   </style>
   <rect class="bg" width="960" height="364"/>
 <rect class="box" x="24" y="134" width="180" height="80" rx="10"/>

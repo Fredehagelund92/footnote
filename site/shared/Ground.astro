@@ -1,6 +1,6 @@
 ---
-/* The ground's moving part (shared/ground.ts), on the 404 page: marks land on the paper around the
-   sheet. A phone shows no paper beside the page, so nothing lands there. */
+/* The ground's moving part (shared/ground.ts), on the 404 page: marks land on the dot field beside
+   the page's words. A phone shows no ground beside them, so nothing lands there. */
 ---
 
 <script>
@@ -10,11 +10,11 @@
 
   ground({
     areas: () => {
-      const sheet = document.querySelector('.sheet')?.getBoundingClientRect()
-      if (!sheet) return []
+      const words = document.querySelector('.lost h1')?.getBoundingClientRect()
+      if (!words) return []
       return [
-        { left: 0, top: 0, right: sheet.left - gap, bottom: innerHeight },
-        { left: sheet.right + gap, top: 0, right: innerWidth, bottom: innerHeight },
+        { left: 0, top: 0, right: words.left - gap, bottom: innerHeight },
+        { left: words.right + gap, top: 0, right: innerWidth, bottom: innerHeight },
       ]
     },
     every: [2600, 4800],

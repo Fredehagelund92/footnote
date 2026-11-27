@@ -1,13 +1,13 @@
-/* The ground: a dot field on the paper around the page, as Altertable draws it (28 px pitch,
-   ink at 11 percent, fixed to the window, fading in over the top and bottom 140 px), around the
-   sheet of the 404 page. The docs have none. */
+/* The ground of the 404 page: the site's dot field (28 px pitch, fixed to the window, fading in
+   over the top and bottom 140 px). The landing page draws its own on its first and last screens
+   (landing/styles/landing.css), and the docs have none. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(circle, var(--dot) 1.1px, transparent 1.6px);
+  background-image: radial-gradient(circle, var(--dot) 1.15px, transparent 1.6px);
   background-size: 28px 28px;
   background-position: 14px 14px;
   -webkit-mask-image: linear-gradient(
