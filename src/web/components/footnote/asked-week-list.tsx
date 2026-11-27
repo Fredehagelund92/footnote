@@ -10,9 +10,9 @@ import type { AnswerState, AskedRow, AskedWeek } from '@/model/ask'
 /** The tile under a row's icon: the state's colour at 8 percent, a hairline where it has none. */
 const tileTone: Record<AnswerState, string> = {
   grounded: 'bg-good/8',
-  partial: 'bg-muted',
+  partial: 'ring-1 ring-input ring-inset',
   missing: 'shadow-hairline',
-  conflict: 'bg-caution/8 ring-1 ring-caution/45 ring-inset',
+  conflict: 'bg-caution/8 ring-1 ring-caution ring-inset',
   stale: 'bg-caution/8',
   failed: 'bg-muted',
 }
@@ -170,7 +170,16 @@ function Row({
   onPick: (question: string) => void
   parts: WeekParts
 }) {
-  const { ArrowRightIcon, cn, stateIcon, stateInk, Tooltip, TooltipContent, TooltipTrigger } = parts
+  const {
+    ArrowRightIcon,
+    cn,
+    StateEdge,
+    stateIcon,
+    stateInk,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+  } = parts
   const { rowClassName, textClassName, topicClassName, stateClassName, countClassName } = parts
   const answering = React.use(parts.Answering)
   const ANSWER_LINES = parts.ANSWER_LINES
@@ -236,6 +245,7 @@ function Row({
       <span id={`${id}-count`} className={cn(countClassName, answering && 'opacity-60')}>
         {r.count} times
       </span>
+      <StateEdge state={r.state} />
     </li>
   )
 }

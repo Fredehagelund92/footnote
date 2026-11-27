@@ -8,7 +8,7 @@ Use the checklist while you build. The gates at the end are what CI and the revi
 
 - Text is 4.5:1 or better against its surface. Muted text is `#666666` in light and `#a3a3a3` in dark so it keeps 4.5:1 on the muted surface.
 - Controls, field borders, checkboxes, radios, icons that carry meaning and the review marks are 3:1 or better. Input borders are `#8f8f8f` in light and `#6b6b6b` in dark.
-- Avatar initials are 6.4:1 or better on every tint, in both themes.
+- Avatar initials are 4.5:1 or better on every hue (6.5:1 or better on the ten faces in light, 8.6:1 in dark).
 - Scroll bar thumbs keep 3:1 against the page.
 - The token test recomputes every pair from the token file, in light and dark.
 

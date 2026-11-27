@@ -100,6 +100,14 @@
   --chip-ink-l: 0.36;
   --chip-ink-c: 0.07;
 
+  /* Avatars: one tint and one ink per person, the same lightness and chroma at every hue, so ten
+     hues spaced evenly round the wheel (components/footnote/bits.tsx) read as one set. A face
+     sets --avatar-h; bg-avatar and the ink beside it draw it, and both change with the theme. */
+  --avatar-l: 0.93;
+  --avatar-c: 0.045;
+  --avatar-ink-l: 0.42;
+  --avatar-ink-c: 0.09;
+
   /* A status dot that is off, the word diff's fills, and its inks and line in the colour of their
      meaning. A token with a dark value below changes with the theme; the rest are the same in both. */
   --off: oklch(0.62 0 0);
@@ -337,6 +345,10 @@
     --chip-c: 0.045;
     --chip-ink-l: 0.9;
     --chip-ink-c: 0.04;
+    --avatar-l: 0.34;
+    --avatar-c: 0.055;
+    --avatar-ink-l: 0.9;
+    --avatar-ink-c: 0.06;
   }
 }
 
@@ -462,6 +474,9 @@
   --color-chip: oklch(var(--chip-l) var(--chip-c) var(--chip-h));
   --color-chip-foreground: oklch(var(--chip-ink-l) var(--chip-ink-c) var(--chip-h));
   --color-chip-dot: oklch(0.62 0.14 var(--chip-h));
+
+  /* Written on the face itself, so its own --avatar-h decides the hue; its ink is set inline. */
+  --color-avatar: oklch(var(--avatar-l) var(--avatar-c) var(--avatar-h));
 
   /* Five corners (design contract 2.2), and nothing between them: Tailwind's own scale is
      cleared, so a corner off the list is not a class. Containers are square: cards, panels,
