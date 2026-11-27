@@ -1096,6 +1096,7 @@ function Editor({
     desk.current = {
       ready: async () => {
         if (session.on) {
+          setStarting(false)
           await session.flush()
           return own!.id
         }
@@ -1121,6 +1122,7 @@ function Editor({
         // started now for a page with no words yet. The page goes on as that draft, where it is.
         if (keepsItself || savedRef.current) await autosave.flush()
         const id = await draftMade(() => start(true))
+        setStarting(false)
         const stored = await queryClient.fetchQuery({ ...draftNowQuery(id), staleTime: 0 })
         if (!stored?.session) throw new ApiError('not-found', 'This draft was sent or deleted.')
         moveHelpChat(id)
@@ -1133,9 +1135,11 @@ function Editor({
     }
   })
   const helpDraft = session.on ? own!.id : null
+  const helpPage = original?.id ?? 'new'
   React.useEffect(() => {
     if (!helpThere) return
     setHelpDesk({
+      page: helpPage,
       draftId: helpDraft,
       ready: () => desk.current!.ready(),
       ask: (input, live) => desk.current!.ask(input, live),
@@ -1143,7 +1147,7 @@ function Editor({
       revert: (change) => desk.current!.revert(change),
     })
     return () => setHelpDesk(null)
-  }, [helpThere, helpDraft])
+  }, [helpThere, helpDraft, helpPage])
 
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')

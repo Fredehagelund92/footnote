@@ -50,10 +50,15 @@ const change = (fields: AgentChange['fields'], after: Partial<SessionForm>): Age
 })
 
 /** A page that holds a draft, with what the turn's model does when it is asked. */
-function desk(draftId: string | null, ask: HelpDesk['ask'] = () => Promise.resolve(reply())) {
+function desk(
+  draftId: string | null,
+  ask: HelpDesk['ask'] = () => Promise.resolve(reply()),
+  page = 'new',
+) {
   const calls: string[] = []
   const reverted: AgentChange[] = []
   const made: HelpDesk = {
+    page,
     draftId,
     ready: () => {
       calls.push('ready')
@@ -219,6 +224,96 @@ describe('a turn that ended while the page cannot read the draft', () => {
     await settled()
     expect(helpNow().turns[1]).toMatchObject({ state: 'failed', problem: null })
     expect(helpNow().busy).toBe(false)
+    setHelpDesk(null)
+  })
+})
+
+describe('Undo and Stop around the ends of a turn', () => {
+  it('takes back an ended turn while the read of the draft hangs, and the read still joins it', async () => {
+    let arrive!: () => void
+    const page = desk('d14')
+    page.desk.refresh = () => new Promise<void>((resolve) => (arrive = resolve))
+    setHelpDesk(page.desk)
+    void askHelp('Write it up.')
+    await settled()
+    noteHelpChange('d14', change(['title'], { title: 'Norway' }))
+    // The turn is done and its read is still waiting: Undo works now.
+    expect(helpNow().turns[0]).toMatchObject({ state: 'done' })
+    noteHelpChange('d14', change(['text'], { title: 'Norway', body: 'Stopped.' }))
+    undoHelp()
+    expect(page.reverted).toHaveLength(1)
+    expect(page.reverted[0]).toMatchObject({ fields: ['title', 'text'] })
+    expect(helpNow().turns[0]).toMatchObject({ undone: true })
+    arrive()
+    setHelpDesk(null)
+  })
+
+  it('ends a turn stopped before it started as stopped, and never asks it', async () => {
+    const page = desk('d15')
+    let ready!: (id: string) => void
+    page.desk.ready = () => new Promise<string | null>((resolve) => (ready = resolve))
+    setHelpDesk(page.desk)
+    const asking = askHelp('Write it up.')
+    await settled()
+    stopHelp()
+    ready('d15')
+    await asking
+    expect(helpNow().turns[0]).toMatchObject({ state: 'stopped' })
+    expect(helpNow().busy).toBe(false)
+    expect(page.calls.filter((c) => c.startsWith('ask'))).toEqual([])
+    setHelpDesk(null)
+  })
+
+  it('ends a turn stopped while it waits for its draft’s page as stopped, and never starts it', async () => {
+    const fresh = desk(null)
+    fresh.desk.ready = () => {
+      moveHelpChat('d16')
+      return Promise.resolve(null)
+    }
+    setHelpDesk(fresh.desk)
+    await askHelp('Ops told us about Norway.')
+    stopHelp()
+    const kept = desk('d16')
+    setHelpDesk(kept.desk)
+    await settled()
+    expect(helpNow().turns[0]).toMatchObject({ state: 'stopped' })
+    expect(kept.calls.filter((c) => c.startsWith('ask'))).toEqual([])
+    setHelpDesk(null)
+  })
+})
+
+describe('the chat of a page with no draft yet', () => {
+  it('is the page’s own: another page with no draft does not show it', async () => {
+    const first = desk(null, undefined, 'item-1')
+    first.desk.ready = () => Promise.reject(new ApiError('failed', 'Not just now.'))
+    setHelpDesk(first.desk)
+    await askHelp('Write it up.')
+    expect(helpNow().turns[0]).toMatchObject({ state: 'failed', problem: 'Not just now.' })
+    setHelpDesk(null)
+    const other = desk(null, undefined, 'item-2')
+    setHelpDesk(other.desk)
+    expect(helpNow().turns).toEqual([])
+    setHelpDesk(first.desk)
+    expect(helpNow().turns).toHaveLength(1)
+    setHelpDesk(null)
+  })
+
+  it('moves to the draft it becomes, from the page that made it', async () => {
+    const other = desk(null, undefined, 'item-3')
+    other.desk.ready = () => Promise.reject(new ApiError('failed', 'Not just now.'))
+    setHelpDesk(other.desk)
+    await askHelp('Hello.')
+    const page = desk(null, undefined, 'item-4')
+    page.desk.ready = () => {
+      moveHelpChat('d18')
+      return Promise.resolve(null)
+    }
+    setHelpDesk(page.desk)
+    await askHelp('Ops told us about Norway.')
+    setHelpDesk(null)
+    setHelpDesk(desk('d18').desk)
+    await settled()
+    expect(helpNow().turns.map((t) => t.said)).toEqual(['Ops told us about Norway.'])
     setHelpDesk(null)
   })
 })

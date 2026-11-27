@@ -22,6 +22,8 @@ import {
 
 /** What the editor gives writing help to work with: the draft it holds, and how to reach it. */
 export type HelpDesk = {
+  /** The page itself, as its address names it: the chat of a page with no draft yet is its own. */
+  page: string
   /** The person's own draft the page edits; null on a page whose words are no draft yet. */
   draftId: string | null
   /**
@@ -44,8 +46,10 @@ export type HelpDesk = {
 /** What one turn changed in the draft, as one change: `turn` is empty for one made elsewhere. */
 type TurnChange = { turn: string; change: AgentChange }
 
-/** The chat about a page with no draft yet: it becomes the draft's once the draft is there. */
+/** The chat of no page at all: where the dock reads when none is there. */
 const NEW = ''
+/** The chat about a page with no draft yet, by the page: it becomes the draft's once it is there. */
+const pageChat = (desk: HelpDesk) => `page:${desk.page}`
 
 type State = {
   desk: HelpDesk | null
@@ -61,6 +65,10 @@ let state: State = { desk: null, chats: new Map(), changes: new Map(), waiting: 
 const listeners = new Set<() => void>()
 /** The turn running on each draft, to gather its changes and to stop it. */
 const running = new Map<string, { turn: string; controller: AbortController }>()
+/** The turn that ended on each draft while the page reads what it wrote: its changes join its Undo. */
+const settling = new Map<string, string>()
+/** What stops the turn being made ready, before it is running on a draft. */
+let starting: AbortController | null = null
 
 function set(next: Partial<State>) {
   state = { ...state, ...next }
@@ -124,12 +132,13 @@ async function run(ask: HelpDesk['ask'], draft: string, id: string) {
       )
     }
   } finally {
-    // The turn has ended: what it wrote before is in the draft, which the page reads again now. The
-    // turn stays the one running until that read has settled, so what it brings in joins its
-    // Undo; offline the read waits, and the turn does not.
-    await refresh(draft)
+    // The turn has ended, and can be undone now. The page reads the draft again for what it wrote;
+    // offline that read waits, and what it brings in still joins this turn's Undo.
     if (running.get(draft)?.controller === controller) running.delete(draft)
+    settling.set(draft, id)
     set({})
+    await refresh(draft)
+    if (settling.get(draft) === id) settling.delete(draft)
   }
 }
 
@@ -138,17 +147,27 @@ export async function askHelp(message: string) {
   const desk = state.desk
   const said = message.trim()
   if (!desk || !said) return
-  const from = desk.draftId ?? NEW
+  const from = desk.draftId ?? pageChat(desk)
   // One turn at a time: a turn asked and not yet ended, or one waiting for its draft's page.
   if (chatOf(from).at(-1)?.state === 'asking' || state.waiting) return
   const id = nextId()
   setChat(from, [...chatOf(from), askedTurn(id, said)])
+  const controller = new AbortController()
+  starting = controller
   let draft: string | null
   try {
     draft = await desk.ready()
   } catch (error) {
     const failure = toApiError(error)
     update(from, id, (t) => failedTurn(t, failure.kind === 'unanswered' ? null : failure.message))
+    return
+  } finally {
+    if (starting === controller) starting = null
+  }
+  // Stopped before it started: it is never asked.
+  if (controller.signal.aborted) {
+    if (state.waiting?.turn === id) set({ waiting: null })
+    update(draft ?? state.waiting?.draft ?? from, id, stoppedTurn)
     return
   }
   // The page is moving to the draft it just kept: the turn starts there (`setHelpDesk`).
@@ -178,10 +197,11 @@ function failWaiting() {
  * go on as it, and may hold it already.
  */
 export function moveHelpChat(draft: string) {
-  const turns = chatOf(NEW)
+  const from = state.desk ? pageChat(state.desk) : NEW
+  const turns = chatOf(from)
   const last = turns.at(-1)
   const chats = new Map(state.chats)
-  chats.delete(NEW)
+  chats.delete(from)
   chats.set(draft, turns)
   set({ chats, waiting: last?.state === 'asking' ? { draft, turn: last.id } : null })
   startWaiting()
@@ -193,7 +213,7 @@ export function moveHelpChat(draft: string) {
  * turn running here, as one made in another window, is a change of its own.
  */
 export function noteHelpChange(draft: string, change: AgentChange) {
-  const turn = running.get(draft)?.turn ?? ''
+  const turn = running.get(draft)?.turn ?? settling.get(draft) ?? ''
   const kept = state.changes.get(draft) ?? []
   const last = kept.at(-1)
   const changes = new Map(state.changes)
@@ -206,9 +226,18 @@ export function noteHelpChange(draft: string, change: AgentChange) {
   set({ changes })
 }
 
-/** Stops the turn running on the page's draft: what it wrote so far stays. */
+/**
+ * Stops the turn of the page: one still being made ready is never asked, one waiting for its
+ * draft's page never starts, and one running keeps what it wrote so far.
+ */
 export function stopHelp() {
   const draft = state.desk?.draftId
+  starting?.abort()
+  const { waiting } = state
+  if (waiting) {
+    set({ waiting: null })
+    update(waiting.draft, waiting.turn, stoppedTurn)
+  }
   if (draft) running.get(draft)?.controller.abort()
 }
 
@@ -255,7 +284,8 @@ const subscribe = (listener: () => void) => {
 /** Writing help for the draft on the page, from what is kept here. */
 function viewOf(now: State) {
   // A page with no draft yet shows the chat of the draft it is moving to, while a turn waits there.
-  const draft = now.desk?.draftId ?? now.waiting?.draft ?? NEW
+  const draft =
+    now.desk?.draftId ?? now.waiting?.draft ?? (now.desk ? pageChat(now.desk) : NEW)
   const turns = now.chats.get(draft) ?? []
   const last = (now.changes.get(draft) ?? []).at(-1)
   const busy = !!now.waiting || turns.at(-1)?.state === 'asking'

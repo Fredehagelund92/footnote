@@ -3,6 +3,7 @@ import type {
   WritingHelpTurn,
   WritingHelpTurnInput,
 } from '@contract/writing-help'
+import type { SessionField } from '@/model/draft-session'
 import { editorFields, type HelpEvent, type HelpReply } from '@/model/writing-help'
 import type { FootnoteApi } from './client'
 
@@ -10,13 +11,25 @@ import type { FootnoteApi } from './client'
 // wrote as an agent does, and the editor by its own. Loaded with the first turn, so the first
 // load of the app carries none of it.
 
+/** The refusals by the editor's field: one line for each, the reasons of the service's fields joined. */
+function refusalsOf(refused: WritingHelpTurn['refused']): HelpReply['refused'] {
+  const byField = new Map<SessionField, string[]>()
+  for (const r of refused) {
+    const field = editorFields([r.field])[0]!
+    const why = byField.get(field) ?? []
+    if (!why.includes(r.why)) why.push(r.why)
+    byField.set(field, why)
+  }
+  return [...byField].map(([field, why]) => ({ field, why: why.join(' ') }))
+}
+
 /** A turn of writing help as it ended, by the editor's fields. */
 export function helpReplyOf(turn: WritingHelpTurn): HelpReply {
   return {
     reply: turn.reply,
     changed: editorFields(turn.changed),
     kept: editorFields(turn.kept),
-    refused: turn.refused.map((r) => ({ field: editorFields([r.field])[0]!, why: r.why })),
+    refused: refusalsOf(turn.refused),
     question: turn.question,
     links: turn.links,
     stopped: turn.stopped,

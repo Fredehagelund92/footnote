@@ -93,7 +93,15 @@ function Problem({ children, onAgain }: { children: React.ReactNode; onAgain?: (
 }
 
 /** The fields a turn changed, as chips, with Undo while its change is the one Undo takes back. */
-function Changed({ turn, undoable }: { turn: HelpTurn; undoable: boolean }) {
+function Changed({
+  turn,
+  undoable,
+  onUndo,
+}: {
+  turn: HelpTurn
+  undoable: boolean
+  onUndo: () => void
+}) {
   if (!turn.changed.length) return null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
@@ -112,7 +120,10 @@ function Changed({ turn, undoable }: { turn: HelpTurn; undoable: boolean }) {
           <Button
             variant="link"
             className="h-6 px-0 text-muted-foreground hover:text-foreground"
-            onClick={undoHelp}
+            onClick={() => {
+              undoHelp()
+              onUndo()
+            }}
           >
             <Undo2Icon data-icon="inline-start" />
             Undo
@@ -128,13 +139,20 @@ function Turn({
   latest,
   busy,
   undoable,
+  focusBox,
 }: {
   turn: HelpTurn
   latest: boolean
   busy: boolean
   undoable: boolean
+  focusBox: () => void
 }) {
-  const again = latest && !busy ? () => void askHelp(turn.said) : undefined
+  // A button that leaves the page when pressed hands the keyboard to the box, not to the body.
+  const ask = (words: string) => {
+    void askHelp(words)
+    focusBox()
+  }
+  const again = latest && !busy ? () => ask(turn.said) : undefined
   const reply = turn.reply
   const read = reply ? readLine(reply) : ''
   return (
@@ -171,7 +189,7 @@ function Turn({
       {turn.state === 'failed' && (
         <Problem {...(again ? { onAgain: again } : {})}>{failedLine(turn.problem, turn.changed)}</Problem>
       )}
-      {turn.state !== 'asking' && <Changed turn={turn} undoable={undoable} />}
+      {turn.state !== 'asking' && <Changed turn={turn} undoable={undoable} onUndo={focusBox} />}
       {reply && reply.kept.length > 0 && <Line>{keptLine(reply.kept)}</Line>}
       {reply?.refused.map((refused) => (
         <Line key={refused.field}>{refusedLine(refused)}</Line>
@@ -186,7 +204,7 @@ function Turn({
                   key={answer}
                   variant="outline"
                   disabled={busy}
-                  onClick={() => void askHelp(answer)}
+                  onClick={() => ask(answer)}
                 >
                   {answer}
                 </Button>
@@ -200,9 +218,16 @@ function Turn({
 }
 
 /** The box at the foot: Enter sends, Shift and Enter makes a new line, and Send becomes Stop. */
-function Composer({ busy, first }: { busy: boolean; first: boolean }) {
+function Composer({
+  busy,
+  first,
+  box,
+}: {
+  busy: boolean
+  first: boolean
+  box: React.RefObject<HTMLTextAreaElement | null>
+}) {
   const [text, setText] = React.useState('')
-  const box = React.useRef<HTMLTextAreaElement>(null)
   // A touch screen gets no automatic focus: the keyboard would cover the draft before anyone asked.
   const [touch] = React.useState(() => window.matchMedia('(pointer: coarse)').matches)
   const send = () => {
@@ -295,6 +320,8 @@ function Composer({ busy, first }: { busy: boolean; first: boolean }) {
 export function WritingHelpDock() {
   const help = useHelp()
   const end = React.useRef<HTMLDivElement>(null)
+  const box = React.useRef<HTMLTextAreaElement>(null)
+  const focusBox = () => box.current?.focus()
   const last = help.turns.at(-1)
   // What arrives stays in view: the latest turn's end, as it grows.
   React.useEffect(() => {
@@ -321,7 +348,7 @@ export function WritingHelpDock() {
       title={HELP_NAME}
       foot={
         <div className="px-4 pt-3 pb-4">
-          <Composer busy={help.busy} first={help.turns.length === 0} />
+          <Composer busy={help.busy} first={help.turns.length === 0} box={box} />
         </div>
       }
     >
@@ -348,6 +375,7 @@ export function WritingHelpDock() {
                 latest={i === help.turns.length - 1}
                 busy={help.busy}
                 undoable={help.latest?.turn === turn.id}
+                focusBox={focusBox}
               />
             ))}
           </div>
