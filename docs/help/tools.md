@@ -217,9 +217,10 @@ The person and their agent work on one draft: the person in the app, the agent w
 
 Neither tool sends anything. The person sends the draft for review in the app, or says yes and the agent calls `send_draft`.
 
-`write_draft` takes one of two shapes:
+`write_draft` takes one of three shapes:
 
-- Without `draft_id`, it starts a new draft from `text`, at most 2,000 characters, and hints such as `title`, `kind` and `area`. With `item_id` the draft changes that published item instead of starting a new one.
+- Without `draft_id`, it starts a new draft from `text`, at most 2,000 characters, with optional hints: a title, a kind and an area.
+- With `item_id` instead, the new draft changes that published item rather than starting a new one.
 - With `draft_id` and `revision`, it changes only the fields you pass: the title, summary, text, kind, area, scope, window, evidence and Don't conclude line.
 
 An area counts only when the metrics it names give no single domain.
