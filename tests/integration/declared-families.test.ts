@@ -329,11 +329,17 @@ describe('the Names card', () => {
     const ready = list.names
       .filter((n) => n.state === 'ready' && n.key !== converted.key)
       .map(({ key }) => ({ key }))
+    await client.query('update definitions set area_hint = null where ref = any($1::text[])', [
+      converted.definitionRefs,
+    ])
+    const unplaced = await names()
+    expect(unplaced.names.find((n) => n.key === converted.key)?.areaId).toBeNull()
     const decided = await ok<NamesDecision>(
       call('POST', '/inbox/names/decide', 'admin', {
-        revision: list.revision,
+        revision: unplaced.revision,
         accept: [...ready, { key: fee.key, apart: true }, { key: converted.key, apart: true }],
         leaveOut: [],
+        domain: { id: 'partners' },
       }),
     )
     expect(decided.waiting.names.filter((n) => n.state !== 'left_out')).toEqual([])
@@ -356,6 +362,13 @@ describe('the Names card', () => {
     expect(apart.rows).toEqual([
       { kind: 'metric', parent: null },
       { kind: 'metric', parent: null },
+    ])
+    const kept = await client.query<{ name: string; area: string | null }>(
+      'select name, area_id as area from family_kept_apart order by name',
+    )
+    expect(kept.rows).toEqual([
+      { name: 'Accrued share 2', area: 'partners' },
+      { name: 'Partner fee', area: 'partners' },
     ])
   })
 })

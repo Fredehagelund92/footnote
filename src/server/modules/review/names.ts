@@ -471,7 +471,7 @@ export function createNamesService(tx: Queryable) {
             apart.map((family) => ({
               key: family.key,
               name: family.name,
-              areaId: family.areaId,
+              areaId: placed.has(family.key) ? under : family.areaId,
               variants: family.family!.variants.map((variant) => variant.key),
             })),
           ),
