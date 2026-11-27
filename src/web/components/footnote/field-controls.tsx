@@ -18,6 +18,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { today } from '@/lib/today'
+import { dateLabel } from '@/model/validity'
+import { shiftDate } from '@domain/validity'
 import {
   missingDates,
   sameWhen,
@@ -482,12 +484,14 @@ export function WhenField({
   const takeTyped = () => {
     if (!typed.trim()) return setTypedProblem('')
     const next = whenOfTyped(typed, value, today())
-    if (!next) return setTypedProblem('Type a day, such as 4 Aug 2024.')
+    if (!next) return setTypedProblem(`Type a day, such as ${example}.`)
     setTypedProblem('')
     setTyped('')
     pick(next)
   }
   const offered = offers.filter((o) => asking || !sameWhen(o, value))
+  // A day of two years back, as the box's example: the calendar is far from it.
+  const example = dateLabel(shiftDate(today(), -730))
   const single = value.mode === 'until' ? value.until : value.from
   const hint = asking
     ? asking
@@ -581,7 +585,9 @@ export function WhenField({
                 id={typedId}
                 value={typed}
                 placeholder={
-                  value.mode === 'between' ? '3 to 14 Aug 2024' : 'Type a date: 4 Aug 2024'
+                  value.mode === 'between'
+                    ? 'Type the first and last day'
+                    : `Type a date, such as ${example}`
                 }
                 aria-invalid={typedProblem ? true : undefined}
                 aria-describedby={typedProblem ? `${typedId}-problem` : undefined}
