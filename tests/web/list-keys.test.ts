@@ -8,6 +8,8 @@ import { useListKeys, type ListKeys } from '@/lib/list'
 // The page's one keymap for every list (lib/list.ts): J and K from page load, the focus following
 // the cursor's row unless the step came from the list's panel, Enter on the row on show, Esc from
 // anywhere, keys in a dock showing something else left to it, and a list inside another asked first.
+// A move the page has not drawn yet is where the next key steps on from, and a dialog over the page
+// takes every key.
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean
@@ -115,6 +117,51 @@ describe('the list keys', () => {
     draw(h(NoList))
     expect(press('j', document.body)).toBe(true)
     expect(onMove).toHaveBeenLastCalledWith('b', { panel: false })
+  })
+
+  it('step on from the row last sent to while the page has not drawn it yet', () => {
+    // The Inbox while its list still loads: the address changes at once, the page draws it later.
+    const onMove = vi.fn()
+    const Loading = ({ current }: { current: string }) => {
+      useListKeys({ order: IDS, current, onMove })
+      return null
+    }
+    draw(h(Loading, { current: 'a' }))
+    press('j', document.body)
+    press('j', document.body)
+    expect(onMove.mock.calls).toEqual([
+      ['b', { panel: false }],
+      ['c', { panel: false }],
+    ])
+    // K comes back to the row still drawn: that is a move too.
+    press('k', document.body)
+    press('k', document.body)
+    expect(onMove).toHaveBeenLastCalledWith('a', { panel: false })
+    // Drawn on its row, the page's own row on show holds the cursor again, wherever it goes next.
+    act(() => root!.render(h(Loading, { current: 'a' })))
+    press('j', document.body)
+    act(() => root!.render(h(Loading, { current: 'b' })))
+    act(() => root!.render(h(Loading, { current: 'a' })))
+    onMove.mockClear()
+    press('j', document.body)
+    expect(onMove).toHaveBeenLastCalledWith('b', { panel: false })
+  })
+
+  it('never act while a dialog covers the page, before it has the focus', () => {
+    const onMove = vi.fn()
+    const onEscape = vi.fn(() => true)
+    const host = draw(rows({ onMove, onEscape }))
+    const cover = Object.assign(document.createElement('div'), { className: 'cover' })
+    cover.dataset.slot = 'dialog-overlay'
+    cover.dataset.open = ''
+    host.append(cover)
+    expect(press('j', document.body)).toBe(false)
+    expect(press('Escape', document.body)).toBe(false)
+    expect(onMove).not.toHaveBeenCalled()
+    expect(onEscape).not.toHaveBeenCalled()
+    // Closing, it lets the keys go back to the page.
+    delete cover.dataset.open
+    expect(press('j', document.body)).toBe(true)
   })
 
   it('leave keys in a dock that shows something else to it', () => {

@@ -161,10 +161,6 @@ test('G then a letter goes to the Inbox, Ask, Context, Definitions or Settings',
     /^Settings\s*G\s*then\s*S$/,
   ])
   await page.keyboard.press('Escape')
-  // Let the sheet finish closing and hand its focus back before the menu opens, so the menu
-  // remembers the same element under load as on an idle machine.
-  await expect(sheet).toBeHidden()
-  await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
   await page.keyboard.press('ControlOrMeta+k')
   const menu = page.getByRole('dialog', { name: 'Search' })
   await expect(menu.getByRole('option', { name: 'Context (G then C)', exact: true })).toBeVisible()
@@ -188,4 +184,26 @@ test('G then a letter goes to the Inbox, Ask, Context, Definitions or Settings',
   await goBy('i', /\/inbox$/)
   await goBy('s', /\/settings(\/general)?$/)
   await goBy('a', /\/ask$/)
+})
+
+test('A key pressed as a dialog opens is the dialog’s, before the dialog has the focus', async ({
+  page,
+}) => {
+  await go(page, '/inbox')
+  await expect(rows(page).first()).toBeVisible()
+  await page.keyboard.press('ControlOrMeta+k')
+  const menu = page.getByRole('dialog', { name: 'Search' })
+  await expect(menu).toBeVisible()
+  // The menu takes the focus a frame after it opens; on a busy machine keys come before that, from
+  // the body. Here the focus stays there.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  await page.keyboard.press('g')
+  await page.keyboard.press('c')
+  await expect(page).toHaveURL(/\/inbox$/)
+  // Esc closes the menu alone: the Inbox keeps its card on show, and the focus is the body's.
+  await page.keyboard.press('Escape')
+  await expect(menu).toBeHidden()
+  await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
+  await expect(page.getByText('Nothing selected')).toBeHidden()
+  await expect(page).toHaveURL(/\/inbox$/)
 })

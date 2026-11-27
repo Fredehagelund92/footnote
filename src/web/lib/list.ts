@@ -132,11 +132,24 @@ export type ListKeys = {
   within?: boolean
 }
 
+/**
+ * A list on screen. `moved` is the row the cursor was last sent to when no row took the focus to
+ * carry it (none drawn yet, or the panel keeps the focus), and the rows `current` was on since:
+ * the page draws a move later than the address changes, and until it does the next key steps on
+ * from that row, not again from the one still drawn.
+ */
+type Keymap = {
+  at: number
+  keys: React.RefObject<ListKeys>
+  moved: React.RefObject<{ to: string; past: string[] } | undefined>
+}
+
 /** The lists on screen, the one drawn last first. */
-const keymaps: { at: number; keys: React.RefObject<ListKeys> }[] = []
+const keymaps: Keymap[] = []
 let drawnLists = 0
 
-function listKey(k: ListKeys, e: KeyboardEvent) {
+function listKey(m: Keymap, e: KeyboardEvent) {
+  const k = m.keys.current
   const t = e.target as HTMLElement
   const list = k.list?.current ?? null
   const inList = !!list?.contains(t)
@@ -148,7 +161,9 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
     ? stops.find((s) => s === t || s.contains(t) || s.closest('tr, li')?.contains(t))
     : undefined
   const ids = k.order ?? stops.map((s) => s.dataset.rowOpen!)
-  const at = ids.indexOf(on?.dataset.rowOpen ?? k.current ?? '')
+  const moving = m.moved.current?.past.includes(k.current ?? '') ? m.moved.current : undefined
+  const cursor = moving ? moving.to : k.current
+  const at = ids.indexOf(on?.dataset.rowOpen ?? cursor ?? '')
   const inPanel =
     !inList && !nowhere && (!!t.closest('[data-slot=dock]') || !!k.panel?.current?.contains(t))
   const go = (i: number, dir: 1 | -1) => {
@@ -166,11 +181,13 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
         const stop = row.querySelector<HTMLElement>('[data-row-open]')
         if (stop) show(stop)
       })
-    else {
-      const stop = stops.find((s) => s.dataset.rowOpen === id)
-      if (stop) show(stop)
-    }
-    if (id !== k.current) k.onMove?.(id, { panel: inPanel })
+    const stop = k.reveal ? undefined : stops.find((s) => s.dataset.rowOpen === id)
+    if (stop) show(stop)
+    m.moved.current =
+      inPanel || (!k.reveal && !stop)
+        ? { to: id, past: moving ? [...moving.past, moving.to] : [k.current ?? ''] }
+        : undefined
+    if (id !== cursor) k.onMove?.(id, { panel: inPanel })
     return true
   }
   const arrows = inList || (nowhere && !!list)
@@ -194,7 +211,7 @@ function listKey(k: ListKeys, e: KeyboardEvent) {
 // selection's Esc, a page's own keys), so Esc closes the panel before it clears the ticked rows.
 function onListKey(e: KeyboardEvent) {
   if (e.defaultPrevented || e.shiftKey || !pageKey(e)) return
-  if (keymaps.some((m) => listKey(m.keys.current, e))) e.preventDefault()
+  if (keymaps.some((m) => listKey(m, e))) e.preventDefault()
 }
 
 /** Gives a list the page's list keys while it is on screen. */
@@ -202,11 +219,16 @@ export function useListKeys(keys: ListKeys) {
   // Counted as lists draw, parent before child: a list inside another's pane comes later.
   const [at] = React.useState(() => ++drawnLists)
   const ref = React.useRef(keys)
+  const moved: Keymap['moved'] = React.useRef(undefined)
   React.useLayoutEffect(() => {
     ref.current = keys
+    // The page drew the move, or the cursor went elsewhere: its own `current` holds it again.
+    const was = moved.current
+    if (was && (keys.current === was.to || !was.past.includes(keys.current ?? '')))
+      moved.current = undefined
   })
   React.useEffect(() => {
-    const mine = { at, keys: ref }
+    const mine: Keymap = { at, keys: ref, moved }
     keymaps.push(mine)
     keymaps.sort((a, b) => b.at - a.at)
     if (keymaps.length === 1) document.addEventListener('keydown', onListKey)
