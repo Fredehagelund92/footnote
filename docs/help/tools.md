@@ -83,15 +83,15 @@ A short reply looks like this, cut down here to the main fields:
 
 Pass on `say`, which starts with the [answer line](answer-lines.md). If the reply has `next`, follow it: it is the step for the agent. Keep `reply_id` to send a `report`.
 
-| `status`           | Answer line   | What it means                                                           |
-| ------------------ | ------------- | ----------------------------------------------------------------------- |
-| `matched`          | Checked       | Context covers the question                                             |
-| `partial`          | Partial       | No item covers all of it, or a question with no dates was read at today |
-| `no_match`         | Not found     | Nothing applies                                                         |
-| `conflict`         | Conflict      | Two items that apply disagree                                           |
-| `stale`            | Outdated      | An item's check date passed, or its source changed                      |
-| `check_failed`     | Not looked up | The checks could not run                                                |
-| `need_more_detail` | None          | The question could not be read, so nothing was looked up                |
+| `status`           | Answer line   | What it means                                                                                                                          |
+| ------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `matched`          | Checked       | Context covers the question                                                                                                            |
+| `partial`          | Partial       | No item covers all of it, a match is held back, every item was published without review, or a question with no dates was read at today |
+| `no_match`         | Not found     | Nothing applies                                                                                                                        |
+| `conflict`         | Conflict      | Two items that apply disagree                                                                                                          |
+| `stale`            | Outdated      | An item's check date passed, or its source changed                                                                                     |
+| `check_failed`     | Not looked up | The checks could not run                                                                                                               |
+| `need_more_detail` | None          | The question could not be read, so nothing was looked up                                                                               |
 
 ### Other fields you may see
 
@@ -100,6 +100,7 @@ Pass on `say`, which starts with the [answer line](answer-lines.md). If the repl
 - `options`: on a word with two meanings. Ask the person which they mean, using `say`, and pass the choice in `metrics`.
 - `may_be_out_of_date` and `disagrees_with`: on an item, when they hold.
 - `about`: on a reply about several metrics, the ones an item is about. Never give them as one figure.
+- `published_without_review`: on an item, in place of its checked stamp, when an owner's permission published it and nobody read it. It names the role whose permission it was and the day. Say that nobody checked it.
 
 Set `response_format` to `full` for each item's body, every source, owner and links, and for how the dates were read.
 
@@ -114,6 +115,10 @@ The items come in one order, the one Ask reads too: first those whose title, sum
 A metric is read by its name, another name, another form or order of it, its initials (such as ROAS) or a word only its name holds (such as churn). `read_as` says which words were read so.
 
 When the question names no metric, `unread` gives each word that could have named one, with the names that hold it. Ask the person which they meant, or search the word with `find_context`, and never read it as one of them yourself.
+
+A question that names a value and no metric, such as "What happened in Norway in August 2026?", reads the items of every metric that apply to that value. `say` tells you each item may be about a different metric: answer for each apart, from `applies`.
+
+A word where a value goes that names no value here, such as "Denmark" for a market, is read as every value, and `say` says so. It appears in `unread` with `value_of`, the dimensions it could be a value of, and `closest`, the values it is a typo away from. Tell the person the answer is for every value, and call again with the name if they meant a close one. Sending `dimension_filters`, even an empty list, does not switch this off.
 
 ## Search or list: find_context
 
@@ -184,13 +189,15 @@ What else you send depends on what the report is about:
 - About one item, add `context_id`.
 - Something missing with no reply takes `question`, and `metrics`, `dimension_filters` and `window` if you have them.
 
-Add a short note. It is checked for sensitive text, and the report never keeps who asked. The reply says that it was sent, and who sees it (`to`).
+A `reply_id` that names no reply of the last 90 days is refused, also when a `context_id` is sent with it. A report about one item keeps the item, so the owner's Inbox card and Observability show which one.
+
+Add a short note. It is checked for sensitive text, and the report never keeps who asked. The reply says that it was sent, and who sees it (`to`). A report about no single domain reaches no owner's Inbox: the reply says an admin sees it in Observability.
 
 ## Send a suggestion: suggest_context
 
 It runs only after the person says yes, and only a person's own agent may call it. An access key or a dev token names no person, so it is refused.
 
-It takes `text`, at most 2,000 characters, and hints such as `title`, `kind` and `area`. It gives back one of these statuses, with a link:
+It takes `text`, at most 2,000 characters, and hints such as `title`, `kind` and `area`. An `area` counts only when the metrics it names give no single domain. It gives back one of these statuses, with a link:
 
 | `status`               | What happened                                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------------------------ |
