@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-27
 ---
 
+## An agent writes many drafts, and sends none
+
+2026-11-27
+
+Your agent can turn a page of your wiki into context in one go: it writes each item as its own draft and sends none. They wait on one card in your Inbox, Your drafts, where you read them one after another and publish them together.
+
+Your agents can now save 50 new drafts in 24 hours, with 50 waiting, up from 10 and 20. An admin can change both. See [Agent tools](tools.md).
+
 ## Whole words in Context by time and in wide tables
 
 2026-11-27

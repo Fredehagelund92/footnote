@@ -14,6 +14,7 @@ export {
   AGENT_WRITES_PER_HOUR,
   patchAgentDraft,
   saveAgentDraft,
+  type AgentDraftCount,
   type AgentDraftRequest,
   type AgentPatchResult,
 } from './agent-drafts.ts'

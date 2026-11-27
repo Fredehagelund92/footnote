@@ -158,10 +158,13 @@ export const cardSchema = z.union([
     /** The domain of the drafts, when they share one. */
     areaId: z.nullable(z.string()),
     /**
-     * The person's own drafts that wait for them, oldest first (FR-139): each one imported, or not
-     * saved for DRAFT_OLD_DAYS days. Only they can see them; they send or publish them all at once.
+     * The person's own drafts that wait for them, oldest first (FR-139): each one imported, written
+     * by their agents (FR-145), or not saved for DRAFT_OLD_DAYS days. Only they can see them; they
+     * send or publish them all at once.
      */
-    drafts: z.array(z.object({ id: z.string(), areaId: z.string(), imported: z.boolean() })),
+    drafts: z.array(
+      z.object({ id: z.string(), areaId: z.string(), from: z.enum(['import', 'agent', 'old']) }),
+    ),
   }),
   z.object({
     ...cardBase,
