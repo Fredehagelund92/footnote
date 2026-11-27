@@ -172,7 +172,6 @@ const BLANK: Form = {
   dontConclude: '',
 }
 
-/** An item's scope by key; an item read only as names (a list row, a gap's draft) by its names. */
 /** What the foot says after "Not ready", where it has room for more than those words. */
 const notReadyWhy = (r: Readiness) =>
   r.state === 'missing'
@@ -181,6 +180,7 @@ const notReadyWhy = (r: Readiness) =>
       ? ': shorten the first paragraph'
       : ': say how it relates'
 
+/** An item's scope by key; an item read only as names (a list row, a gap's draft) by its names. */
 const scopeOf = (f: Fact, vocabulary: Vocabulary) => f.scope ?? termsOfNames(f.where, vocabulary)
 
 /** The words of "Applies to" in a sentence: "Orders in any market". */
