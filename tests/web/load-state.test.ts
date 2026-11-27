@@ -53,7 +53,7 @@ describe('TableSkeleton', () => {
     expect(heights).toEqual([
       ['h-[45px]', '@max-md/main:h-[89px]'],
       ['h-[39px]', '@max-md/main:h-[57px]'],
-      ['h-[49px]', '@max-md/main:h-[81px]'],
+      ['h-[49px]', '@max-md/main:h-[97px]'],
     ])
     // The header band, then the rows: 36px like the table's, two lines on a phone.
     expect(bars.slice(3).every((b) => b.classList.contains('h-9'))).toBe(true)
