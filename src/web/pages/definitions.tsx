@@ -710,7 +710,12 @@ export function DefinitionsPage() {
         {/* What it means, in the row: a synonym reads its target's meaning. */}
         <td className="hidden max-w-0 px-2 align-middle text-muted-foreground @min-[48rem]/main:table-cell">
           <TruncatedText
-            text={(marked ? sourceWords(meaning) : meaning) || 'No meaning written yet'}
+            text={
+              (marked ? sourceWords(meaning) : meaning) ||
+              (subject?.synced
+                ? `No description in ${subject.tool ?? 'its tool'}`
+                : 'No meaning written yet')
+            }
           >
             {meaning ? marked ? <SourceText text={meaning} /> : meaning : '–'}
           </TruncatedText>

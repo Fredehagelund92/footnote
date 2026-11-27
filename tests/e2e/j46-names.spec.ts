@@ -18,6 +18,14 @@ test('an owner accepts the ready names with one press, and looks at the rest', a
   await expect(flagged).toContainText('Another definition is called “Total”')
   await expect(flagged).toContainText('“Basket value” is already a name for Average order value.')
 
+  // A ready name can be changed before it goes, as one that waits can: a model with no titles
+  // gives names such as "Completed orders" for what the team calls Shipped orders. The own-data
+  // journey (tests/e2e-own) follows one renamed name to Definitions on the service.
+  const ready = main.getByRole('region', { name: /^Ready to publish/ })
+  await ready
+    .getByRole('textbox', { name: 'Name for orders.completed_orders' })
+    .fill('Shipped orders')
+
   // Publish all leaves what needs a look: it is never picked.
   await main.getByRole('button', { name: 'Publish all' }).click()
   await expect(page.getByText('2 names are published')).toBeVisible()
@@ -70,7 +78,7 @@ test('an owner leaves one ready name out, and can still edit and publish it from
   await expect(ready.getByRole('listitem')).toHaveCount(2)
   await ready
     .getByRole('listitem')
-    .filter({ hasText: 'Completed orders' })
+    .filter({ has: page.getByRole('textbox', { name: 'Name for orders.completed_orders' }) })
     .getByRole('button', { name: 'Leave out', exact: true })
     .click()
   await expect(page.getByText('Completed orders is left out')).toBeVisible()
