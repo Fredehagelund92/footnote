@@ -223,7 +223,7 @@ const pureChecks: Record<
       warnings: [
         {
           title: 'No domain named',
-          detail: 'Map it to a domain in the next steps, or name its domain in the tool.',
+          detail: 'Give it a domain where you choose what to read, or name its domain in the tool.',
           count: 1,
         },
       ],
