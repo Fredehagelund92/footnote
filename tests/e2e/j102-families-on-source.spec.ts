@@ -120,7 +120,8 @@ for (const { name, width, height } of widths) {
           '5 families wait in the Inbox for an owner of Sales. Nothing is published before. 1 looks alike; 4 are ready.',
         )
         // Each family is a row: how it was found, its variants and how it stands.
-        const rows = block.getByRole('table')
+        // On a phone a family is a block of the list, not a row of the table (J137, P16).
+        const rows = name === '390' ? block : block.getByRole('table')
         await expect(rows).toContainText('Published')
         await expect(rows).toContainText('Waits in the Inbox')
         await expect(rows).toContainText('Look alike: waits for a yes')

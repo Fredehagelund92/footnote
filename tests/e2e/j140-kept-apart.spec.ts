@@ -144,7 +144,15 @@ for (const { name, width, height } of widths) {
       test("the source's page lists what was kept apart", async ({ page }) => {
         await as(page, 'Jon Abara')
         await moveTo(page, '/settings/integrations/dbt-metricflow')
-        const row = page.getByRole('row', { name: /Tip amount/ })
+        // On a phone a row is a block of a list (J137, P16).
+        const row =
+          name === '390'
+            ? page
+                .getByRole('listitem')
+                .filter({ hasText: 'Kept separate' })
+                .filter({ has: page.getByRole('link', { name: 'Tip amount' }) })
+                .last()
+            : page.getByRole('row', { name: /Tip amount/ })
         await expect(row).toContainText('2 metrics')
         await expect(row).toContainText('Kept separate')
         await expect(row.getByRole('link', { name: 'Tip amount' })).toHaveAttribute(

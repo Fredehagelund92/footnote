@@ -101,8 +101,12 @@ for (const { name, width, height } of widths) {
 
         // Its page reads the views chosen, and only those.
         await expect(page).toHaveURL(/\/settings\/integrations\/cube$/)
-        const read = page.getByRole('table').getByRole('row')
-        await expect(read).toHaveCount(9)
+        // On a phone each view is a block of a list, with no header row (J137, P16).
+        const read =
+          name === '390'
+            ? page.getByRole('listitem').filter({ has: page.locator('code') })
+            : page.getByRole('table').getByRole('row')
+        await expect(read).toHaveCount(name === '390' ? 8 : 9)
         await expect(read.filter({ hasText: 'coast_orders_kiosk' })).toBeVisible()
         await expect(read.filter({ hasText: 'revenue' })).toHaveCount(0)
       })
