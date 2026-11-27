@@ -6,14 +6,12 @@ import { storyFacts } from '../../db/seed/fixtures/story-facts.ts'
 import { ANSWER_LINES } from '../../src/domain/answer-state.ts'
 import { answers, lines } from '../landing/demo.ts'
 import { metrics } from '../landing/definitions.ts'
-import { footnotes } from '../landing/footnotes.ts'
-import { repoRoot, sitePages } from '../lib/pages.ts'
+import { repoRoot } from '../lib/pages.ts'
 
 /*
-  The landing page promises that what it shows of the demo is the demo's own, and that each
-  footnote is its source's own sentence. These hold it to the data the demo is made of, imported
-  and compared by value (the answer lines, the hand-written story facts, the Cube model's
-  definitions), and to the docs' prose where the footnotes quote it word for word.
+  The landing page promises that what it shows of the demo is the demo's own. These hold it to the
+  data the demo is made of, imported and compared by value (the answer lines, the hand-written
+  story facts, the Cube model's definitions).
   db/seed/story.ts cannot be imported here: it pulls in the server, Fastify, pg and the MCP
   clients. So the notes only it publishes (the Norway note and the two United Kingdom notes) are
   held to docs/design/demo-world.md, the demo's design: their titles and the names beside them.
@@ -98,17 +96,5 @@ describe('the definitions window', () => {
   it('names notes the demo holds', () => {
     for (const metric of metrics)
       for (const note of metric.notes) expect(world.includes(note.title), note.title).toBe(true)
-  })
-})
-
-describe("the page's footnotes", () => {
-  const pages = new Map(sitePages().map((page) => [page.slug, page]))
-
-  it("quote each source's own sentence", () => {
-    for (const [i, note] of footnotes.entries()) {
-      const file = 'file' in note.source ? note.source.file : pages.get(note.source.page)?.file
-      expect(file, `footnote ${i + 1}`).toBeDefined()
-      if (note.quote) expect(words(file!).includes(note.quote), `footnote ${i + 1}`).toBe(true)
-    }
   })
 })

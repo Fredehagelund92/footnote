@@ -1,8 +1,8 @@
 /*
   The landing page below its first screen (landing/pages/index.astro): the definitions window, the
-  tour of real screens, what arrives as it scrolls into view, the light that follows the pointer
-  over a window, and the footnote numbers that show their note on hover or focus. With reduced
-  motion nothing arrives or walks: everything is there, and the tour waits for a press.
+  tour of real screens, what arrives as it scrolls into view, and the light that follows the pointer
+  over a window. With reduced motion nothing arrives or walks: everything is there, and the tour
+  waits for a press.
 */
 
 export function page() {
@@ -11,7 +11,6 @@ export function page() {
   const tour = walk(moving)
   arrive(moving, tour)
   if (moving) glow()
-  footnotes()
 }
 
 /** Pressing a metric, in the list or in a tree, opens it. */
@@ -170,55 +169,4 @@ function glow() {
       el.style.setProperty('--mx', `${e.clientX - box.left}px`)
       el.style.setProperty('--my', `${e.clientY - box.top}px`)
     })
-}
-
-/** A footnote number shows its note on hover or focus. A press still goes to the list. */
-function footnotes() {
-  const pop = document.createElement('div')
-  pop.id = 'fn-pop'
-  pop.setAttribute('role', 'tooltip')
-  document.body.appendChild(pop)
-  let open: HTMLAnchorElement | null = null
-  function show(a: HTMLAnchorElement) {
-    const item = document.getElementById(a.getAttribute('href')!.slice(1))
-    if (!item) return
-    const body = item.querySelector('div')!.cloneNode(true) as HTMLElement
-    for (const link of body.querySelectorAll('a')) {
-      const b = document.createElement('b')
-      b.textContent = link.textContent
-      link.replaceWith(b)
-    }
-    const n = document.createElement('span')
-    n.className = 'n'
-    n.textContent = item.querySelector('.n')!.textContent
-    pop.replaceChildren(n, body)
-    const r = a.getBoundingClientRect()
-    const w = pop.offsetWidth
-    const h = pop.offsetHeight
-    const x = Math.max(16, Math.min(innerWidth - w - 16, r.left + r.width / 2 - w / 2))
-    const y = r.top - h - 10 < 72 ? r.bottom + 10 : r.top - h - 10
-    pop.style.left = `${x}px`
-    pop.style.top = `${y}px`
-    pop.classList.add('on')
-    a.setAttribute('aria-describedby', 'fn-pop')
-    open = a
-  }
-  function hide() {
-    if (!open) return
-    pop.classList.remove('on')
-    open.removeAttribute('aria-describedby')
-    open = null
-  }
-  for (const a of document.querySelectorAll<HTMLAnchorElement>('a.fn')) {
-    a.addEventListener('pointerenter', (e) => {
-      if (e.pointerType !== 'touch') show(a)
-    })
-    a.addEventListener('pointerleave', hide)
-    a.addEventListener('focus', () => show(a))
-    a.addEventListener('blur', hide)
-  }
-  addEventListener('scroll', hide, { passive: true })
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hide()
-  })
 }
