@@ -24,7 +24,7 @@ Ask knows the names of the metrics, dimensions and domains you can see in Defini
 
 Before your first question, the page can show what agents asked about this week, as counts only, never the words, with the answer each would get now.
 
-With no AI model connected, Ask still answers: it lists what your team wrote and an owner checked.
+With no AI model connected, Ask still answers: it lists what your team wrote and an owner checked, each item with its whole summary. An admin sees a link there to how to connect a model.
 
 ## Read the answer
 

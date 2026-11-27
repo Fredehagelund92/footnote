@@ -223,7 +223,7 @@ function InviteBody({
           role="note"
           className="flex flex-col items-start gap-1 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
         >
-          <p>
+          <p className="text-pretty">
             People sign in here by picking who they are from a list, and someone you invite is not
             on it. An invite lets them in once company sign-in is set up.
           </p>

@@ -10,6 +10,22 @@ reviewed: 2026-11-27
 
 A source's page in Integrations wrote counts in the thousands without a comma, such as "5062 definitions read". Its numbers, its activity and its list of what it reads now write 5,062.
 
+## A new workspace says only what is so
+
+2026-11-27
+
+A first hour on a new install met screens that said something that was not so, or nothing at all. They now say what is so:
+
+- After the demo, a start on your own definitions stops and says how to start empty, so the two are never mixed.
+- Start from the guide, in About our business, gives the shape of the text to fill in, not the demo company's words.
+- With no AI model connected, Ask gives each item's whole summary, and an admin sees how to connect a model.
+- The Inbox says agents asked today on the day the first one asks.
+- Agents and access counts the agents connected already, and a Domain field says when there is no domain yet.
+- Invite people says when someone invited cannot sign in yet.
+- A file address on the server itself that cannot be reached says why, and a key can be shown as you type it.
+
+See [Set up your workspace](set-up-your-workspace.md).
+
 ## A phone's width keeps what a page holds
 
 2026-11-27

@@ -44,6 +44,8 @@ Only admins connect a tool. Open **Settings**, then **Integrations**, and choose
 4. Map: each to a domain. A folder's documents go to its domain's owners; a view or semantic model left without a domain stays shared.
 5. Schedule: how often it is read and what each read does. Then say why it is added.
 
+A token, a key or a signed link is hidden as you type it. The button in its field shows it, so you can look for a mistake before you test. A file address on the server itself, such as one at localhost, is opened where the service runs, which may not be your computer: the test says so when it cannot reach it.
+
 **Change settings** goes through the same steps, filled in. A token or a key left empty stays as it is. **Disconnect** stops reading the tool and forgets its key: its open suggestions are withdrawn, and what owners published stays. A definitions tool disconnected is off, as above.
 
 ## Choose what it reads
