@@ -511,7 +511,7 @@ test('Limits: every tuning setting, read only, with where its value comes from',
   await expect(page).toHaveURL(/\/settings\/advanced$/)
   await expect(
     page.getByText(
-      'All 42 settings and their values now. Answer tests, links people paste and shared chats can be changed here; the rest change through the API.',
+      'All 44 settings and their values now. Answer tests, links people paste, shared chats and writing help can be changed here; the rest change through the API.',
     ),
   ).toBeVisible()
   // The page says how a setting is really changed, and names no command that does not exist.
@@ -519,8 +519,8 @@ test('Limits: every tuning setting, read only, with where its value comes from',
   await expect(page.getByText('PUT /api/v1/settings/{key}')).toBeVisible()
   await expect(page.getByText(/settings set/)).toHaveCount(0)
   const settings = page.getByRole('table', { name: 'Tuning settings' })
-  // A header for each of the 8 groups, and one for each of the 42 settings.
-  await expect(settings.getByRole('rowheader')).toHaveCount(8 + 42)
+  // A header for each of the 8 groups, and one for each of the 44 settings.
+  await expect(settings.getByRole('rowheader')).toHaveCount(8 + 44)
   await expect(
     settings.getByRole('rowheader', { name: 'AI cost this month', exact: true }),
   ).toBeVisible()
