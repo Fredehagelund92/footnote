@@ -580,7 +580,8 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
   },
   invalid_domain: {
     title: 'A domain we do not have',
-    detail: 'The tool names a domain that is not one of yours. Map it in the next steps.',
+    detail:
+      'The tool names a domain in words that are not a domain id. Choose the domain it means in Domain names, under More settings.',
   },
   too_many_records: { title: 'Too much to read at once', detail: 'The rest is left out.' },
   unsupported_file: {
