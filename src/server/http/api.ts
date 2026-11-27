@@ -837,10 +837,9 @@ export function createRouter({
           })
         if (changed === undefined)
           throw new ORPCError('NOT_FOUND', {
-            message:
-              personTools.includes(input.tool)
-                ? `We couldn't find this agent, or it is an access key, which can't have ${input.tool}: it names no person.`
-                : "We couldn't find this agent.",
+            message: personTools.includes(input.tool)
+              ? `We couldn't find this agent, or it is an access key, which can't have ${input.tool}: it names no person.`
+              : "We couldn't find this agent.",
           })
         return { changed }
       }),
