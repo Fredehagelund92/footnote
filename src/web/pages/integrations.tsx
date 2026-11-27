@@ -1615,8 +1615,8 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                   <code key="v" className="font-mono text-xs">
                     {v.view}
                   </code>,
-                  v.metrics,
-                  v.dimensions,
+                  v.metrics.toLocaleString('en-GB'),
+                  v.dimensions.toLocaleString('en-GB'),
                   v.domain ? domains[v.domain]?.name : <NoDomain key="d" />,
                   <Owners key="o" domain={v.domain} />,
                 ])}
@@ -1633,7 +1633,7 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                     <span className="font-medium">
                       {`${groupCount(d.noDomain, groupOf(c))} ${d.noDomain === 1 ? 'has' : 'have'} no domain.`}
                     </span>{' '}
-                    Their definitions stay shared, and no owner is told when they change.
+                    {`${d.noDomain === 1 ? 'Its' : 'Their'} definitions stay shared, and no owner is told when they change.`}
                   </p>
                   <Button
                     variant="outline"

@@ -14,6 +14,7 @@ import { memberName, type CandidateMember } from '@domain/term-candidates'
 import { termName } from '@domain/terms'
 import { ApiError } from '@/api/errors'
 import { namesWords, type InboxCard } from '@/model/inbox'
+import type { HeldDefinition } from './integrations'
 
 // The names a read makes in the mock (FR-141): the same rules as the service, on the members of an
 // invented shop's dbt project. They wait once a definitions tool is connected, or with
@@ -140,6 +141,16 @@ export function familiesShopRead() {
     dimensions: all.length - metrics.length,
     ...(families ? { families } : {}),
   }
+}
+
+/** What the shop of ?demo=families holds, each in its semantic model (its name up to the dot). */
+export function familiesShopHeld(): HeldDefinition[] {
+  return [...shop, ...variants, ...foundOtherwise].map((m) => ({
+    group: m.name.slice(0, m.name.indexOf('.')),
+    kind: m.kind === 'metric' ? 'metric' : 'dimension',
+    count: 1,
+    domain: m.areaHint,
+  }))
 }
 
 /** The words that mean something else in the mock's demo: the demo has its own Orders. */

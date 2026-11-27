@@ -135,22 +135,26 @@ export function sourceView(
   const counts: [SourceNumber, SourceNumber] = d
     ? active?.last === 'failed'
       ? [
-          { label: 'Definitions', value: String(d.metrics + d.dimensions), sub: 'as last read' },
+          {
+            label: 'Definitions',
+            value: (d.metrics + d.dimensions).toLocaleString('en-GB'),
+            sub: 'as last read',
+          },
           {
             label: 'Context affected',
-            value: String(d.flagged),
+            value: d.flagged.toLocaleString('en-GB'),
             sub: d.flagged ? 'reported' : 'none reported',
           },
         ]
       : [
           {
             label: 'Definitions',
-            value: String(d.metrics + d.dimensions),
+            value: (d.metrics + d.dimensions).toLocaleString('en-GB'),
             sub: `${count(d.metrics, 'metric', 'metrics')}, ${count(d.dimensions, 'dimension', 'dimensions')}`,
           },
           {
             label: 'Context to check',
-            value: String(d.flagged),
+            value: d.flagged.toLocaleString('en-GB'),
             sub: d.flagged
               ? changedOn
                 ? `after the ${changedOn} changes`
@@ -161,7 +165,7 @@ export function sourceView(
     : [
         {
           label: 'Suggestions waiting',
-          value: String(docs?.waiting ?? 0),
+          value: (docs?.waiting ?? 0).toLocaleString('en-GB'),
           sub: docs?.waiting ? `for ${count(docs.domains, 'domain', 'domains')}` : 'none yet',
         },
         {

@@ -33,7 +33,8 @@ import {
 import { connectorById, connectors } from '@/model/catalogue'
 
 const twoDigits = (n: number) => String(n).padStart(2, '0')
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 /** A moment as the pages say it, in the reader's time zone: "Today", "Tomorrow", "21 Oct". */
 export function whenOf(at: string, now: Date): When {

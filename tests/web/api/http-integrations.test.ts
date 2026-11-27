@@ -288,6 +288,14 @@ describe("a source's activity", () => {
     expect(
       activityOf(read({ definitions: { seen: 27, added: 0, changed: 0, gone: 0 } }), tool, now),
     ).toMatchObject({ tone: 'ok', what: 'Read complete', detail: '27 definitions, no changes' })
+    // A model of thousands, in English.
+    expect(
+      activityOf(
+        read({ first: true, definitions: { seen: 5_062, added: 5_062, changed: 0, gone: 0 } }),
+        tool,
+        now,
+      ),
+    ).toMatchObject({ detail: '5,062 definitions read' })
     expect(
       activityOf(
         read({ at: at(7), definitions: { seen: 27, added: 1, changed: 2, gone: 1 } }),

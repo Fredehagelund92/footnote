@@ -114,6 +114,8 @@ for (const { name, width, height } of widths) {
         await expect(
           block.getByRole('list', { name: 'Families by how they were found' }),
         ).toBeVisible()
+        // Counted from all it reads, each variant a metric: never more in families than it holds.
+        await expect(block).toContainText('30 families in 5,027 of 5,053 metrics.')
         await expect(block).toContainText(
           '5 families wait in the Inbox for an owner of Sales. Nothing is published before. 1 looks alike; 4 are ready.',
         )

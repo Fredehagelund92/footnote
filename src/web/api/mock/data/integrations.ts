@@ -175,7 +175,8 @@ const active = (source: Source) => {
   if (source.state.intent !== 'active') throw new Error(`${source.id} is paused in the demo`)
   return source.state
 }
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 /**
  * A tool of the demo world: its row and page, and its connect flow (the settings a new connection
