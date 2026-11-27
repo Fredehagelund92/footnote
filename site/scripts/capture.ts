@@ -122,7 +122,12 @@ const docsShots: Shot[] = [
   {
     name: 'editor',
     path: '/context/new',
-    ready: (p) => p.locator('[aria-label="Properties"]').waitFor(),
+    // Write context opens on one box: Write it yourself opens the empty form.
+    ready: (p) => p.getByRole('button', { name: 'Write it yourself' }).waitFor(),
+    prepare: async (p) => {
+      await p.getByRole('button', { name: 'Write it yourself' }).click()
+      await p.locator('[aria-label="Properties"]').waitFor()
+    },
     clip: underHeader,
   },
   {
