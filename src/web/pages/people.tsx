@@ -29,9 +29,9 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { DomainId } from '@/model/items'
+import { inviteLinkWords } from '@/model/invite-link'
 import {
   emailOf,
-  inviteLinkWords,
   listOf,
   partyActions,
   type Allowed,
