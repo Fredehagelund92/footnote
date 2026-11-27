@@ -1,5 +1,8 @@
 ---
-import '../styles/fonts.css'
+import '../../shared/tokens.css'
+import '../../shared/fonts.css'
+import '../styles/base.css'
+import '../../shared/chrome.css'
 import '../styles/landing.css'
 import inter from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url'
 import { siteLinks } from '../../lib/site.ts'
@@ -115,7 +118,6 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       title="Footnote. Tell your AI agents why the number moved"
       description="Footnote: write down why a number moved, have the owner check it, and every AI agent reads it before it answers. Open source, self-hosted, pre-1.0."
       fonts={[inter]}
-      dark
     />
     <script is:inline>
       // The page arrives and plays only with motion allowed, and never stays hidden: if its script
@@ -131,7 +133,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
   </head>
   <body>
     <Sprite />
-    <Header />
+    <Header home="#top" run="#run" parts />
 
     <main id="top">
       <section class="hero" id="hero" aria-labelledby="h-hero">

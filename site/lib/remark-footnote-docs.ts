@@ -16,8 +16,8 @@ import { repoRoot } from './pages.ts'
 
 /*
   What the pages write that Markdown alone does not draw as the docs do: links as lib/links.ts
-  resolves them, a note (a quote whose first words are its title in bold) as a note, tables a
-  keyboard can scroll and whose cells know their column, a picture in the reader's theme, tabs,
+  resolves them, a note (a quote whose first words are its title in bold) as a note, tables in a
+  box a keyboard can scroll and whose cells know their column, a picture in the reader's theme, tabs,
   and an include's markers as one element that holds what stands between them: the list as
   Markdown, so the page reads as it is, marked as the app's Docs area marks it, so the check of the
   two (scripts/check-app-docs.ts) can tell the app's own lists apart.
@@ -171,11 +171,27 @@ function labelCells({ children: [heading, ...rows] }: Table) {
     })
 }
 
+/**
+ * Each table in a box of its own: the table keeps the width of the page, and the box scrolls
+ * sideways when the table is wider, so the keyboard has to be able to reach the box.
+ */
+function boxTables(tree: Root) {
+  visit(tree, 'table', (node, index, parent) => {
+    if (!parent || index == null) return undefined
+    labelCells(node)
+    parent.children[index] = element('div', { className: ['footnote-table'], tabIndex: 0 }, [
+      node,
+    ]) as never
+    return [SKIP, index + 1]
+  })
+}
+
 export function remarkFootnoteDocs(context: LinkContext) {
   return (tree: Root, file: VFile) => {
     const from = relative(repoRoot, file.path)
     drawTabs(tree)
     drawIncludes(tree)
+    boxTables(tree)
     visit(tree, (node, index, parent) => {
       if (node.type === 'link' && parent && index != null) {
         const url = resolveLink(node.url, from, context)
@@ -184,11 +200,6 @@ export function remarkFootnoteDocs(context: LinkContext) {
           parent.children.splice(index, 1, ...node.children)
           return [SKIP, index]
         }
-      }
-      // A wide table scrolls on a phone, so the keyboard has to be able to reach it.
-      if (node.type === 'table') {
-        node.data = { hProperties: { tabIndex: 0 } }
-        labelCells(node)
       }
       if (node.type === 'paragraph') {
         const image = pictureOf(node)

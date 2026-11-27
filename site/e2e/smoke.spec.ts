@@ -5,7 +5,8 @@ import { expect, test, type Page } from '@playwright/test'
   The site as a reader meets it, on the built pages: in light and dark, on a phone and a wide
   screen, nothing goes wrong in the console, nothing loads from another host, nothing scrolls
   sideways, and axe finds nothing serious. Then the few things that only work in a browser: the
-  theme is one for the whole site, and search finds a page.
+  landing page, the docs and the 404 page are set in one design, the theme is one for the whole
+  site, and search finds a page.
 */
 
 const pages = ['/', '/404.html', '/docs/', '/docs/try-the-demo/', '/docs/configuration/']
@@ -53,24 +54,48 @@ for (const width of widths)
         expect(problems).toEqual([])
       })
 
+test('the landing page, the docs and the 404 page are set in one design', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  /** What a reader sees of the design at the top of a page: its ground, its font, the logo and Run the demo. */
+  async function look(path: string) {
+    await page.goto(path)
+    await page.evaluate(() => document.fonts.ready)
+    return page.evaluate(() => {
+      const css = (selector: string) => getComputedStyle(document.querySelector(selector)!)
+      const [body, brand, run] = [css('body'), css('.brand'), css('a.btn-main')]
+      return {
+        ground: body.backgroundColor,
+        font: body.fontFamily.split(',')[0],
+        brand: [brand.fontSize, brand.fontWeight, brand.letterSpacing, brand.color],
+        run: [run.height, run.borderRadius, run.fontSize, run.backgroundColor, run.color],
+        header: document.querySelector('header')!.getBoundingClientRect().height,
+      }
+    })
+  }
+  const landing = await look('/')
+  expect(landing.font).toContain('Inter')
+  expect(await look('/docs/')).toEqual(landing)
+  expect(await look('/docs/try-the-demo/')).toEqual(landing)
+  expect(await look('/404.html')).toEqual(landing)
+})
+
 test('the theme a reader picks holds from the landing page to the docs and back', async ({
   page,
 }) => {
-  // Without a pick the landing page opens dark and the docs light.
+  // Without a pick every page opens dark.
   await page.goto('/docs/')
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.goto('/')
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
   await page.getByRole('button', { name: 'Switch to light mode' }).click()
-  await page.getByRole('button', { name: 'Switch to dark mode' }).click()
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Docs' }).click()
   await expect(page).toHaveURL(/\/docs\/$/)
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await page.getByRole('button', { name: 'Switch to dark mode' }).first().click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await page.getByRole('button', { name: 'Switch to light mode' }).first().click()
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await page.goto('/')
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 })
 
 test('search in the docs finds a page', async ({ page }) => {

@@ -1,16 +1,16 @@
 /*
   The ground's moving part, on the 404 page (shared/Ground.astro): now and
-  then a footnote mark lands on a dot of the paper, numbered like the notes on a page. The dots
+  then a footnote mark lands on a dot of the field, numbered like the notes on a page. The dots
   around it light up in a widening ring, and a dotted leader runs from it toward the page, as a
   note points at its line; then it all fades. It draws on one canvas only while a mark is landing,
   rests while the tab is hidden, and never runs with reduced motion. The dots it lights are the
-  dot field's own (shared/chrome.css): 28 px apart, fixed to the window.
+  dot field's own (shared/ground.css): 28 px apart, fixed to the window.
 */
 
 export type Area = { left: number; top: number; right: number; bottom: number }
 
 export type GroundOptions = {
-  /** Where marks may land, in the window's coordinates: the paper around the page. */
+  /** Where marks may land, in the window's coordinates: the ground beside the page's words. */
   areas: () => Area[]
   /** The wait between two landings, in milliseconds: the shortest and the longest. */
   every: readonly [number, number]
@@ -78,9 +78,8 @@ export function ground({ areas, every, strength }: GroundOptions) {
   function draw(now: number) {
     frame = 0
     ctx.clearRect(0, 0, width, height)
-    const css = getComputedStyle(document.documentElement)
-    const ink = css.getPropertyValue('--ink').trim()
-    const blue = css.getPropertyValue('--mark').trim()
+    // Every lit dot is the accent's, as on the landing page's ground.
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()
     for (let i = marks.length - 1; i >= 0; i--) {
       const mark = marks[i]!
       const t = (now - mark.t0) / duration
@@ -91,7 +90,6 @@ export function ground({ areas, every, strength }: GroundOptions) {
       const fade = 1 - Math.max(0, (t - 0.6) / 0.4)
       // The ring.
       const ring = ease(Math.min(t / 0.75, 1)) * reach
-      ctx.fillStyle = ink
       for (let x = mark.x - reach; x <= mark.x + reach; x += pitch)
         for (let y = mark.y - reach; y <= mark.y + reach; y += pitch) {
           const d = Math.hypot(x - mark.x, y - mark.y)
@@ -104,7 +102,6 @@ export function ground({ areas, every, strength }: GroundOptions) {
           ctx.fill()
         }
       // The leader: the dots between the mark and the page light up one after another.
-      ctx.fillStyle = blue
       for (let step = 1; ; step++) {
         const x = mark.x + mark.toward * step * pitch
         if (!inside(x, mark.y, mark.area)) break
@@ -119,10 +116,10 @@ export function ground({ areas, every, strength }: GroundOptions) {
       const shown = Math.min(1, t / 0.12) * fade
       ctx.globalAlpha = shown
       ctx.beginPath()
-      ctx.arc(mark.x, mark.y, 2.4, 0, Math.PI * 2)
+      ctx.arc(mark.x, mark.y, 3, 0, Math.PI * 2)
       ctx.fill()
-      ctx.font = 'italic 500 17px "Source Serif 4", Georgia, serif'
-      ctx.fillText(String(mark.n), mark.x + 4, mark.y - 5 - (1 - shown) * 4)
+      ctx.font = '510 13px "Inter Variable", system-ui, sans-serif'
+      ctx.fillText(String(mark.n), mark.x + 7, mark.y - 6 - (1 - shown) * 4)
     }
     ctx.globalAlpha = 1
     if (marks.length) frame = requestAnimationFrame(draw)

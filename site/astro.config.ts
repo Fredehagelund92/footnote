@@ -7,8 +7,8 @@ import { remarkFootnoteDocs } from './lib/remark-footnote-docs.ts'
 import { docsPath, readSettings } from './lib/settings.ts'
 
 /*
-  The docs (site/README.md): docs/help and the operator pages, read where they are, in the landing
-  page's design. One build makes one version, in a folder of its own under /docs/ that holds its
+  The docs (site/README.md): docs/help and the operator pages, read where they are, in the site's
+  design. One build makes one version, in a folder of its own under /docs/ that holds its
   pages, styles and search; nothing here depends on the other versions. The landing page is built
   apart (astro.landing.config.ts).
 */
@@ -22,12 +22,12 @@ const isNext = settings.version === 'next'
 const socialPreview =
   'https://raw.githubusercontent.com/Fredehagelund92/footnote/main/docs/images/footnote-social-preview.png'
 
-// The landing page's terminal as a code theme (shared/tokens.css): its ink, with comments and keys
-// in its dim grey, as get_context's reply reads on the landing page.
-const terminal = {
-  name: 'footnote-terminal',
-  type: 'dark',
-  colors: { 'editor.background': '#0d1118', 'editor.foreground': '#e6e9f0' },
+// The landing page's terminal as a code theme, in dark and in light (shared/tokens.css): its card,
+// its words, and comments and keys a step dimmer, as get_context's reply reads on the landing page.
+const terminal = (type: 'dark' | 'light', card: string, words: string, dim: string) => ({
+  name: `footnote-${type}`,
+  type,
+  colors: { 'editor.background': card, 'editor.foreground': words },
   tokenColors: [
     {
       scope: [
@@ -36,10 +36,10 @@ const terminal = {
         'support.type.property-name',
         'punctuation.support.type.property-name',
       ],
-      settings: { foreground: '#8b94a7' },
+      settings: { foreground: dim },
     },
   ],
-}
+})
 
 export default defineConfig({
   site: !isNext && settings.site ? settings.site : undefined,
@@ -64,39 +64,42 @@ export default defineConfig({
       // A wrong address anywhere opens the site's own 404 page, at the root (landing/pages/404.astro).
       disable404Route: true,
       customCss: [
-        './shared/fonts.css',
         './shared/tokens.css',
+        './shared/fonts.css',
         './shared/chrome.css',
         './src/styles/theme.css',
       ],
       sidebar: sidebar(pages),
-      // The code block is the landing page's terminal, dark in both themes, so one theme is enough.
+      // The code block is the landing page's terminal, in the reader's theme.
       expressiveCode: {
-        themes: [terminal],
+        themes: [
+          terminal('dark', '#0f1011', '#d0d6e0', '#82878f'),
+          terminal('light', '#ffffff', '#2f3338', '#656b74'),
+        ],
         defaultProps: { wrap: true },
         styleOverrides: {
-          borderRadius: '11px',
-          borderColor: 'var(--term-rule)',
-          codeBackground: 'var(--term)',
+          borderRadius: '12px',
+          borderColor: 'var(--line)',
+          codeBackground: 'var(--bg-1)',
           codeFontFamily: 'var(--mono)',
           codeFontSize: '0.8125rem',
-          codeFontWeight: '450',
-          codeLineHeight: '1.65',
-          codePaddingBlock: '0.8125rem',
-          codePaddingInline: '0.9375rem',
+          codeFontWeight: '400',
+          codeLineHeight: '1.7',
+          codePaddingBlock: '1rem',
+          codePaddingInline: '1.25rem',
           uiFontFamily: 'var(--sans)',
-          uiFontSize: '0.84375rem',
+          uiFontSize: '0.8125rem',
           frames: {
             frameBoxShadowCssValue: 'none',
             editorActiveTabIndicatorHeight: '0',
-            editorTabBarBackground: 'var(--term)',
+            editorTabBarBackground: 'var(--bg-1)',
             editorTabBarBorderBottomColor: 'transparent',
-            editorActiveTabBackground: 'var(--term)',
-            editorActiveTabForeground: 'var(--term-dim)',
-            terminalTitlebarForeground: 'var(--term-dim)',
-            terminalTitlebarBackground: 'var(--term)',
-            terminalTitlebarBorderBottomColor: 'var(--term-rule)',
-            terminalBackground: 'var(--term)',
+            editorActiveTabBackground: 'var(--bg-1)',
+            editorActiveTabForeground: 'var(--fg-4)',
+            terminalTitlebarForeground: 'var(--fg-4)',
+            terminalTitlebarBackground: 'var(--bg-1)',
+            terminalTitlebarBorderBottomColor: 'var(--line)',
+            terminalBackground: 'var(--bg-1)',
           },
         },
       },
@@ -118,9 +121,10 @@ export default defineConfig({
           ? [{ tag: 'meta' as const, attrs: { name: 'robots', content: 'noindex' } }]
           : []),
       ],
-      // The landing page's header and footer, its theme button and its theme in the head.
+      // The landing page's header and footer, its theme button, and its theme and font in the head.
       components: {
         Footer: './src/components/Footer.astro',
+        Head: './src/components/Head.astro',
         PageTitle: './src/components/PageTitle.astro',
         Search: './src/components/Search.astro',
         SiteTitle: './src/components/SiteTitle.astro',

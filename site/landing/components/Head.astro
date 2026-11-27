@@ -1,5 +1,5 @@
 ---
-import { landingThemeScript, themeScript } from '../../shared/theme.ts'
+import { themeScript } from '../../shared/theme.ts'
 import { readSettings } from '../../lib/settings.ts'
 
 /* The head of a page of this build: the theme before the first paint, the icons, and the fonts its
@@ -9,8 +9,6 @@ interface Props {
   description: string
   /** The font files to fetch first. */
   fonts: string[]
-  /** Dark without the reader's pick, as the landing page opens; light otherwise. */
-  dark?: boolean
 }
 
 const { site, root } = readSettings(process.env)
@@ -24,7 +22,7 @@ const socialPreview =
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>{Astro.props.title}</title>
 <meta name="description" content={Astro.props.description} />
-<script is:inline set:html={Astro.props.dark ? landingThemeScript : themeScript} />
+<script is:inline set:html={themeScript} />
 <script is:inline>
   document.documentElement.classList.add('js')
 </script>

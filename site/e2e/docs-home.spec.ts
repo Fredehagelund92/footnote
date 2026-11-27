@@ -2,8 +2,8 @@ import { existsSync } from 'node:fs'
 import { expect, test, type Page } from '@playwright/test'
 
 /*
-  The docs on the built site: no dot ground on any page, the home's nor a reading page's, and
-  screenshot baselines of the home. As with the landing page (e2e/landing.spec.ts), each platform
+  The docs on the built site: no dot ground on any page, the home's nor a reading page's, a table
+  that keeps the width of the page, and screenshot baselines of the home. As with the landing page (e2e/landing.spec.ts), each platform
   keeps its own baselines, and one with none skips them:
   `npm run test:smoke -- e2e/docs-home.spec.ts --update-snapshots` writes them.
 */
@@ -31,6 +31,18 @@ for (const path of ['/docs/', '/docs/try-the-demo/'])
     await page.waitForTimeout(1500)
     expect(await dots(page)).toEqual({ field: 'none', canvas: 0 })
   })
+
+test('a table is as wide as the page, in a box the keyboard can reach', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page, '/docs/configuration/')
+  const boxes = page.locator('.footnote-table')
+  expect(await boxes.count()).toBeGreaterThan(0)
+  const column = (await page.locator('.sl-markdown-content').boundingBox())!.width
+  for (const box of await boxes.all()) {
+    await expect(box).toHaveAttribute('tabindex', '0')
+    expect((await box.locator('table').boundingBox())!.width).toBeCloseTo(column, 0)
+  }
+})
 
 const shots = [
   { name: 'docs-home-1440-light', viewport: { width: 1440, height: 900 }, theme: 'light' },

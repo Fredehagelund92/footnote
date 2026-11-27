@@ -4,7 +4,7 @@ import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
 import ThemeToggle from '../../shared/ThemeToggle.astro'
 
-/* The version being read, the theme button and Install, as at the end of the landing page's
+/* The version being read, the theme button and Run the demo, as at the end of the landing page's
    header. */
 const settings = readSettings(process.env)
 const { home } = siteLinks(settings)
@@ -23,7 +23,7 @@ const { home } = siteLinks(settings)
   )
 }
 <ThemeToggle />
-<a class="btn btn-ink btn-sm" href={`${home}#run`}>Install</a>
+<a class="btn btn-main btn-sm" href={`${home}#run`}>Run the demo</a>
 
 <script>
   // The list is read when a page opens, so an old version's pages know of newer ones without being

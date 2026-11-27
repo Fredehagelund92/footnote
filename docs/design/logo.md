@@ -36,7 +36,7 @@ uses outside the product; the app never shows it (see Usage).
 | Phone menu sheet             | The lockup              | The same 20 high, in the sheet's 56 pixel header, on a 44 pixel target. The phone header itself shows no logo               |
 | Sign-in, consent, signed out | The lockup              | 32 high (about 154 wide), on the content column, 24 above the heading                                                       |
 | The app's Docs               | The lockup              | 20 high, then a hairline and "Docs"                                                                                         |
-| The public site's header     | The lockup              | Its own size, 26 high, as on the landing page; in the docs, then a hairline and "Docs" (`site/shared/Brand.astro`)          |
+| The public site's header     | The symbol and the name | The symbol 20 high and the name in Inter; in the docs, then a hairline and "Docs" (`site/shared/Brand.astro`)               |
 | Favicon and touch icon       | The tile                | Below                                                                                                                       |
 | Web app manifest             | The tile                | 192 and 512, and a 512 full square for masking                                                                              |
 | README on GitHub             | The display lockup      | 56 high, the light or the dark file by the reader's colour scheme (`docs/images`)                                           |
