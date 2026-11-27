@@ -1,6 +1,6 @@
 import { contentDigest } from '../../../domain/canonical.ts'
 import type { Database } from '../../db/database.ts'
-import { publishSourceDomains } from '../editions/index.ts'
+import { lockReleases, publishSourceDomains } from '../editions/index.ts'
 import {
   noticeDomainChanges,
   noticeRebaselined,
@@ -426,6 +426,9 @@ export class ConnectorService {
         ])
         await noticeRebaselined(tx, { sourceId: source.id, snapshotId, refs: rebaselined })
       }
+      // Publishing takes the edition lock and then the flags lock; this takes them in that order
+      // too, so a read and a publish at once cannot wait on each other.
+      await lockReleases(tx)
       const flags = await reconcileSourceFlags(tx, { snapshotId })
       const staleLinkNotices = await noticeStaleLinks(tx, snapshotId)
       const domainNotices = await noticeDomainChanges(tx, domainChanges)
