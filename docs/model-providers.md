@@ -103,15 +103,17 @@ On the demo, an Ask question cost about USD 0.02, and at most about USD 0.06. Te
 
 The service stops calling the model at these limits, which an admin can change:
 
-| Setting                              | Default                                        |
-| ------------------------------------ | ---------------------------------------------- |
-| `limits.llm_daily_micros_per_person` | USD 2 a person a day                           |
-| `limits.llm_feature_monthly_micros`  | USD 250 a month for Ask, and for the test runs |
-| `limits.llm_monthly_cap_micros`      | USD 500 a month in all                         |
+| Setting                              | Default                                                          |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `limits.llm_daily_micros_per_person` | USD 2 a person a day                                             |
+| `limits.llm_feature_monthly_micros`  | USD 250 a month for Ask, for writing help, and for the test runs |
+| `limits.llm_monthly_cap_micros`      | USD 500 a month in all                                           |
 
 ## What leaves this computer
 
 For each question, Ask sends the chat so far, the text of the items it reads, their owners' names, and whether the person asking is an admin and which domains they own. It sends no e-mail address and not the asker's name. Test runs send their test questions and the items they read, and the judge receives the answer too.
+
+Writing help is off until an admin turns it on ([Administration](administration.md#writing-help)). On, each turn sends the person's own draft, what they wrote to it in this chat, the text of one page they linked, the names Definitions shows them, and the published items it looks up. It uses the model set for Ask, and it sends no name and no e-mail address.
 
 | Option                                                     | Who receives it                                               |
 | ---------------------------------------------------------- | ------------------------------------------------------------- |

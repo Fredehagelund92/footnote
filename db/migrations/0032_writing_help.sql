@@ -23,8 +23,8 @@ ALTER TABLE public.proposals
   DROP CONSTRAINT proposals_provenance_check,
   ADD CONSTRAINT proposals_provenance_check CHECK (((provenance IS NULL) OR ((jsonb_typeof(provenance) = 'object'::text) AND ((provenance ->> 'by'::text) = ANY (ARRAY['agent'::text, 'source'::text, 'writing_help'::text])) AND (jsonb_typeof((provenance -> 'fields'::text)) = 'object'::text) AND (jsonb_typeof((provenance -> 'flags'::text)) = 'array'::text))));
 
--- One row a turn of writing help, finished or not: who and when, never a word of it. Kept two
--- days, for the daily limit only; nobody reads the table, cl_writing_help_turn_take counts it.
+-- One row a turn of writing help, finished or not: who and when, never a word of it. Kept 24
+-- hours, for the daily limit only; nobody reads the table, cl_writing_help_turn_take counts it.
 CREATE TABLE public.writing_help_turns (
     person_id uuid NOT NULL REFERENCES public.people(id) ON DELETE CASCADE,
     taken_at timestamp with time zone DEFAULT now() NOT NULL
@@ -50,6 +50,8 @@ begin
     raise exception 'a turn of writing help is taken by a person' using errcode = 'insufficient_privilege';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('writing_help_turn:' || me::text, 0));
+  -- A turn older than the day it counts in is of no use, whoever took it.
+  delete from writing_help_turns where taken_at < now() - interval '24 hours';
   select count(*)::int into n from writing_help_turns
    where person_id = me and taken_at > now() - interval '24 hours';
   if n >= most then
@@ -64,7 +66,7 @@ begin
   return query select false, n + 1, null::integer;
 end $$;
 
--- Turns of writing help are kept two days, as link reads are.
+-- Turns of writing help are kept 24 hours, as the daily spending counters are (NFR-033).
 CREATE OR REPLACE FUNCTION public.cl_retention_run() RETURNS TABLE(what text, n bigint)
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
@@ -85,7 +87,7 @@ begin
   delete from idempotency_keys where expires_at < now();                 get diagnostics k = row_count; return query select 'idempotency_keys', k;
   delete from llm_spend_daily where expires_at < now();                  get diagnostics k = row_count; return query select 'llm_spend_daily', k;
   delete from link_reads where read_at < now() - interval '2 days';      get diagnostics k = row_count; return query select 'link_reads', k;
-  delete from writing_help_turns where taken_at < now() - interval '2 days'; get diagnostics k = row_count; return query select 'writing_help_turns', k;
+  delete from writing_help_turns where taken_at < now() - interval '24 hours'; get diagnostics k = row_count; return query select 'writing_help_turns', k;
   delete from shared_chats where expires_at <= now();                    get diagnostics k = row_count; return query select 'shared_chats', k;
   delete from inbox_items where created_at < now() - interval '90 days'; get diagnostics k = row_count; return query select 'inbox_items', k;
   delete from outbox_events where relayed_at < now() - make_interval(days => v_outbox); get diagnostics k = row_count; return query select 'outbox_events', k;

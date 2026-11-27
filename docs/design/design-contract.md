@@ -255,13 +255,13 @@ Avatars are a soft tint picked from the person's name, one of ten hues every 36 
 
 ### 3.2 The dock
 
-One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `ask`, `try`, `topic`, `share`, `where`.
+One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `family`, `ask`, `try`, `write`, `topic`, `share`, `report`, `where`, `conflict`. Writing help (`write`) and Try it swap in the editor's one dock: write the draft, then see what agents would say.
 
-| Dock                                                         | Width |
-| ------------------------------------------------------------ | ----- |
-| Ask, a context or definition peek, Try it, Share chat, Where | 480   |
-| The answer panel of a topic                                  | 560   |
-| A review's quick view                                        | 720   |
+| Dock                                                                       | Width |
+| -------------------------------------------------------------------------- | ----- |
+| Ask, a context or definition peek, Try it, Writing help, Share chat, Where | 480   |
+| The answer panel of a topic                                                | 560   |
+| A review's quick view                                                      | 720   |
 
 Resizable from 400 to 960 px, and the page keeps at least 360 px. The width is kept for the browser session. On a phone it is full screen. The review itself is a full-screen page with the sidebar folded to its rail.
 

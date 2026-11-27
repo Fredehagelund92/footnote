@@ -90,6 +90,16 @@ delete time, by their creation hour, so a changed setting also re-ages existing 
 may run only `job_now`, `create_queue` and `delete_queue`; `job_table_run` serves its install.
 The serving and analytics roles can reach neither the maintenance functions nor `pgboss`.
 
+## Writing help
+
+`writing_help_turns` holds one row a turn of writing help, finished or not: who took it and when,
+never a word of it. `cl_writing_help_turn_take()`, which runs as the owner, takes one turn for the
+person of the transaction or says how long until the next, under `limits.writing_help.turns_per_day`
+(40), one at a time for a person. Rows older than 24 hours are deleted there and by
+`cl_retention_run()` (NFR-033). The table has row security and no policy, so no role reads it; the
+API role runs only the function. `creation_channel` has `writing_help` for a draft started there,
+and `proposals.provenance` and `proposals.field_stamps` may name `writing_help` as a writer.
+
 ## Gaps, counts and privacy
 
 `topic_week_counts` is kept by a trigger on `deliveries`: each agent

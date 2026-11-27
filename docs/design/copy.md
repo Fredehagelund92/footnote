@@ -32,6 +32,7 @@ Ten examples from the app, before and after:
 Three smaller rules follow from them:
 
 - **Ask calls itself Ask.** Never "I", "the model", "the check", "the look-up" or the product's name. An agent says "I", because a person is talking with it. The service says "we" only for an outage it caused.
+- **Writing help says "I" in its replies, and only there.** A person talks with it about their draft, so its reply reads "I wrote the title". The strip and the marks in the draft, which the app writes, say "Writing help changed Title", and an error is the app's: "Couldn't ask writing help." It never says a draft is ready, checked or sent: the page says that.
 - **"Not" in full, and one negative at most.** "That doesn't mean there's no explanation, only that none is written down" has three.
 - **A date has its year, and is written in British English,** whatever the browser's language.
 

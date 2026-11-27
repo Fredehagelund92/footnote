@@ -449,17 +449,16 @@ describe('field by field', () => {
       expect(written.length).toBeGreaterThan(1)
       expect(written.at(-1)!.revision).toBe(draft.revision + 3)
       // The page is told which field is being written before it lands.
-      const order = done.events.flatMap((e) =>
-        e.type === 'progress' && e.doing === 'writing'
-          ? [`writing ${e.field}`]
-          : e.type === 'written'
-            ? [`written ${e.applied.join()}`]
-            : [],
-      )
-      for (const field of ['title', 'summary', 'kind'])
-        expect(order.indexOf(`writing ${field}`), field).toBeLessThan(
-          order.indexOf(`written ${field}`),
+      for (const field of ['title', 'summary', 'kind']) {
+        const writing = done.events.findIndex(
+          (e) => e.type === 'progress' && e.doing === 'writing' && e.field === field,
         )
+        const landed = done.events.findIndex(
+          (e) => e.type === 'written' && (e.applied as string[]).includes(field),
+        )
+        expect(writing, field).toBeGreaterThanOrEqual(0)
+        expect(writing, field).toBeLessThan(landed)
+      }
       expect(done.turn).toMatchObject({
         reply: 'I wrote the title and the text.',
         changed: ['title', 'summary', 'kind'],
