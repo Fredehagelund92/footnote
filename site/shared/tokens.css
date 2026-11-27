@@ -1,65 +1,66 @@
 /*
-  The docs' design tokens, from the landing page's earlier design, which the 404 page keeps too
-  (site/README.md, "The design"; the landing page has its own): cool paper under a white sheet, blue-black ink, a proofreader's blue for marks and
-  links, a highlighter yellow for what was checked, and the terminal an agent reads in. Schibsted
-  Grotesk is Footnote talking, Source Serif 4 is what an agent says. Light unless the reader picks
-  dark (shared/theme.ts).
+  The site's design tokens, read by the landing page, the docs and the 404 page (site/README.md,
+  "The design"): one near-black ramp in dark and its paper twin in light, hairlines, and the app's
+  own blue as the one accent. No highlighter yellow. Inter is everything the site says, and
+  JetBrains Mono is code (shared/fonts.css). Dark unless the reader picks light (shared/theme.ts).
 */
-
 :root {
-  --paper: #f2f4f7;
-  /* The paper a person reads on, beside the terminal; in dark it is lighter than the sheet. */
-  --paper-side: var(--paper);
-  --sheet: #ffffff;
-  --ink: #151922;
-  --ink-2: #424958;
-  /* A shade darker than the approved #727a8a, so small text keeps 4.5:1 on the paper (WCAG AA). */
-  --ink-3: #686f7e;
-  --rule: #e4e7ed;
-  --rule-2: #cdd2db;
-  --mark: #2a48db;
-  --mark-soft: #e4e9fd;
-  --hl: rgba(255, 221, 64, 0.62);
-  --ok: #1d7a4b;
-  --ok-bg: #e3f3ea;
-  --warn: #8a5a0b;
-  --warn-bg: #f5ead2;
-  --term: #0d1118;
-  --term-ink: #e6e9f0;
-  --term-dim: #8b94a7;
-  --term-rule: #232a38;
-  --term-text: #b9c0cf;
-  --shadow: 0 1px 2px rgba(21, 25, 34, 0.05), 0 14px 36px -22px rgba(21, 25, 34, 0.32);
-  --logo: #111111;
-  --dot: rgba(21, 25, 34, 0.11);
-  --sans: 'Schibsted Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --serif: 'Source Serif 4', 'Iowan Old Style', Georgia, serif;
-  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --main: 660px;
-  --notes: 290px;
-  --gap: 64px;
+  --bg: #fbfbfc;
+  --bg-1: #ffffff;
+  --bg-2: #f4f5f6;
+  --bg-3: #e9eaed;
+  --line: rgba(12, 14, 18, 0.1);
+  --line-2: rgba(12, 14, 18, 0.18);
+  --fg: #101113;
+  --fg-2: #2f3338;
+  --fg-3: #5a6069;
+  --fg-4: #656b74;
+  --accent: #2c5dbd;
+  --accent-bg: rgba(44, 93, 189, 0.1);
+  --mark: rgba(44, 93, 189, 0.11);
+  --ok: #16794c;
+  --part: #a4541a;
+  --bad: #be2f37;
+  --btn: #101113;
+  --btn-fg: #ffffff;
+  --win-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 32px 64px -40px rgba(12, 14, 18, 0.28);
+  --dot: rgba(21, 25, 34, 0.17);
+  --glow: rgba(12, 14, 18, 0.035);
+  --edge: rgba(12, 14, 18, 0.3);
+  --stage: transparent;
+  --lit: transparent;
+  --pop-shadow: 0 16px 40px -16px rgba(12, 14, 18, 0.3);
+  --sans:
+    'Inter Variable', 'SF Pro Display', -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: light;
 }
 :root[data-theme='dark'] {
-  --paper: #0a0d14;
-  --paper-side: #141a26;
-  --sheet: #0f131c;
-  --ink: #e8ebf2;
-  --ink-2: #b4bbca;
-  --ink-3: #7e8698;
-  --rule: #1d2330;
-  --rule-2: #2c3444;
-  --mark: #93a6ff;
-  --mark-soft: #1c2448;
-  --hl: rgba(255, 210, 60, 0.3);
-  --ok: #7fd3a4;
-  --ok-bg: #14291e;
-  --warn: #e6bc6a;
-  --warn-bg: #3a2e17;
-  --term: #05070b;
-  --term-rule: #1b2130;
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 18px 44px -22px rgba(0, 0, 0, 0.8);
-  --logo: #ffffff;
-  --dot: rgba(232, 235, 242, 0.09);
+  --bg: #08090a;
+  --bg-1: #0f1011;
+  --bg-2: #151617;
+  --bg-3: #1d1e21;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.15);
+  --fg: #f7f8f8;
+  --fg-2: #d0d6e0;
+  --fg-3: #8a8f98;
+  --fg-4: #82878f;
+  --accent: #7aa2f0;
+  --accent-bg: rgba(122, 162, 240, 0.13);
+  --mark: rgba(122, 162, 240, 0.15);
+  --ok: #4cc38a;
+  --part: #e0915a;
+  --bad: #f0787a;
+  --btn: #e6e6e7;
+  --btn-fg: #08090a;
+  --win-shadow: none;
+  --dot: rgba(232, 235, 242, 0.16);
+  --glow: rgba(255, 255, 255, 0.055);
+  --edge: rgba(255, 255, 255, 0.42);
+  --stage: rgba(255, 255, 255, 0.11);
+  --lit: rgba(255, 255, 255, 0.03);
+  --pop-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.8);
   color-scheme: dark;
 }

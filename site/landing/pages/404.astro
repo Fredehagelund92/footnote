@@ -1,19 +1,15 @@
 ---
-import '../../shared/fonts.css'
-import '../../shared/tokens.css'
-import '../../shared/chrome.css'
-import '../../shared/ground.css'
 import '../styles/not-found.css'
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
 import Ground from '../../shared/Ground.astro'
 import SiteFooter from '../../shared/SiteFooter.astro'
 import Head from '../components/Head.astro'
-import serif from '@fontsource-variable/source-serif-4/files/source-serif-4-latin-opsz-normal.woff2?url'
-import sans from '@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url'
-import Header from '../components/PaperHeader.astro'
+import Header from '../components/Header.astro'
+import inter from '@fontsource-variable/inter/files/inter-latin-opsz-normal.woff2?url'
 
-/* The page a wrong address anywhere on the site opens, in the landing page's design. */
+/* The page a wrong address anywhere on the site opens, in the site's design: the landing page's
+   closing screen, with the answer line an agent gives when nothing is written. */
 const { docs, home } = siteLinks(readSettings(process.env))
 ---
 
@@ -22,26 +18,22 @@ const { docs, home } = siteLinks(readSettings(process.env))
     <Head
       title="Not found - Footnote"
       description="This address leads to no page of Footnote's site."
-      fonts={[serif, sans]}
+      fonts={[inter]}
     />
   </head>
   <body>
-    <Header home={home} install={`${home}#run`} />
-    <main class="wrap">
-      <div class="sheet">
-        <section class="hero" aria-labelledby="h-missing">
-          <div class="doc">
-            <h1 class="h1" id="h-missing">There is no page at this address.</h1>
-            <p class="hero-p">It may have moved, or the link has a typo.</p>
-            <div class="hero-cta">
-              <a class="btn btn-ink" href={home}>Go to the start</a>
-              <a class="btn btn-line" href={docs()}>Read the docs</a>
-            </div>
-          </div>
-        </section>
-        <SiteFooter home={home} docs={docs()} />
+    <Header home={home} run={`${home}#run`} />
+    <main class="lost" aria-labelledby="h-missing">
+      <div class="wrap">
+        <h1 id="h-missing"><span>Not found</span> <b>There is no page at this address</b></h1>
+        <div class="cta">
+          <a class="btn btn-main" href={home}>Go to the start</a>
+          <a class="btn btn-line" href={docs()}>Read the docs</a>
+        </div>
+        <p>It may have moved, or the link has a typo.</p>
       </div>
     </main>
+    <SiteFooter home={home} docs={docs()} />
     <Ground />
   </body>
 </html>

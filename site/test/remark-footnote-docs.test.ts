@@ -51,20 +51,31 @@ describe('the remark plugin', () => {
       mdastExtensions: [gfmFromMarkdown()],
     })
     remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
-    const [, row] = (tree.children[0] as Table).children
+    const [, row] = ((tree.children[0] as Paragraph).children[0] as unknown as Table).children
     expect(row!.children.map((cell) => cell.data)).toEqual([
       { hProperties: { dataLabel: 'Job' } },
       { hProperties: { dataLabel: 'When' } },
     ])
   })
 
-  it('lets the keyboard reach a table, which scrolls on a phone', () => {
-    const tree = fromMarkdown('| A |\n| - |\n| b |', {
+  it('puts a table in a box the keyboard can reach, which scrolls when the table is wider', () => {
+    const tree = fromMarkdown('| A |\n| - |\n| [b](tools.md) |', {
       extensions: [gfm()],
       mdastExtensions: [gfmFromMarkdown()],
     })
     remarkFootnoteDocs(context)(tree, new VFile({ path: join(repoRoot, 'docs/help/privacy.md') }))
-    expect(tree.children[0]?.data).toMatchObject({ hProperties: { tabIndex: 0 } })
+    const box = tree.children[0] as Paragraph
+    expect(drawn(box)).toEqual({
+      hName: 'div',
+      hProperties: { className: ['footnote-table'], tabIndex: 0 },
+    })
+    const table = box.children[0] as unknown as Table
+    expect(table.type).toBe('table')
+    // A link in a cell is still pointed at its address.
+    expect(table.children[1]!.children[0]!.children[0]).toMatchObject({
+      type: 'link',
+      url: '/docs/0.1/tools/',
+    })
   })
 
   it('draws a picture as a figure with its light and its dark file, at its screen size', () => {

@@ -2,16 +2,14 @@
 import { siteLinks } from '../../lib/site.ts'
 import { readSettings } from '../../lib/settings.ts'
 import Brand from '../../shared/Brand.astro'
-import Scrolled from '../../shared/Scrolled.astro'
 
 /* As the landing page's header: the logo, which opens the landing page, then a hairline and Docs,
    which opens the home of the docs being read. */
 const { home } = siteLinks(readSettings(process.env))
 ---
 
-<span class="footnote-title">
+<span class="footnote-site">
   <Brand href={home} />
-  <span class="footnote-title-rule" aria-hidden="true"></span>
-  <a class="footnote-title-docs" href={Astro.locals.starlightRoute.siteTitleHref}>Docs</a>
+  <span class="footnote-site-rule" aria-hidden="true"></span>
+  <a class="footnote-site-docs" href={Astro.locals.starlightRoute.siteTitleHref}>Docs</a>
 </span>
-<Scrolled />

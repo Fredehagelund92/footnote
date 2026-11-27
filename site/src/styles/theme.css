@@ -1,52 +1,53 @@
 /*
-  The docs in the landing page's earlier design (site/README.md, "The design"), which "the landing
-  page's" below names: its tokens (shared/tokens.css) under Starlight's names, its header and
-  footer (shared/chrome.css), and its marks and notes for the pages. A page is a white sheet beside the paper of the sidebar. Values
+  The docs in the site's design (site/README.md, "The design"): the landing page's tokens
+  (shared/tokens.css) under Starlight's names, its header, buttons and footer (shared/chrome.css),
+  and its type, hairlines and footnote marks for the pages. A page is the site's one ground, with
+  no dot field: the sidebar, the page and "On this page" stand on it, parted by hairlines. Values
   come from the tokens; this file holds the mapping and the few shapes Starlight draws its own way.
 */
 
 :root,
 ::backdrop {
-  --sl-color-white: var(--ink);
-  --sl-color-gray-1: var(--ink);
-  --sl-color-gray-2: var(--ink-2);
-  --sl-color-gray-3: var(--ink-3);
-  --sl-color-gray-4: var(--ink-3);
-  --sl-color-gray-5: var(--rule-2);
-  --sl-color-gray-6: var(--rule);
-  --sl-color-gray-7: var(--paper);
-  --sl-color-black: var(--sheet);
+  --sl-color-white: var(--fg);
+  --sl-color-gray-1: var(--fg);
+  --sl-color-gray-2: var(--fg-2);
+  --sl-color-gray-3: var(--fg-3);
+  --sl-color-gray-4: var(--fg-4);
+  --sl-color-gray-5: var(--line-2);
+  --sl-color-gray-6: var(--bg-2);
+  --sl-color-gray-7: var(--bg-1);
+  --sl-color-black: var(--bg);
 
-  --sl-color-accent-low: var(--mark-soft);
-  --sl-color-accent: var(--mark);
-  --sl-color-accent-high: var(--mark);
+  --sl-color-accent-low: var(--accent-bg);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent);
 
-  --sl-color-text: var(--ink-2);
-  --sl-color-text-accent: var(--mark);
-  --sl-color-text-invert: var(--sheet);
-  --sl-color-bg: var(--sheet);
-  --sl-color-bg-nav: var(--sheet);
-  /* The sidebar is the paper itself. */
-  --sl-color-bg-sidebar: transparent;
-  --sl-color-bg-inline-code: var(--paper);
-  --sl-color-bg-accent: var(--mark);
-  --sl-color-hairline-light: var(--rule);
-  --sl-color-hairline: var(--rule);
-  --sl-color-hairline-shade: var(--rule);
+  --sl-color-text: var(--fg-2);
+  --sl-color-text-accent: var(--accent);
+  --sl-color-text-invert: var(--btn-fg);
+  --sl-color-bg: var(--bg);
+  --sl-color-bg-nav: var(--bg);
+  --sl-color-bg-sidebar: var(--bg);
+  --sl-color-bg-inline-code: var(--bg-2);
+  --sl-color-bg-accent: var(--accent);
+  --sl-color-hairline-light: var(--line);
+  --sl-color-hairline: var(--line);
+  --sl-color-hairline-shade: var(--line);
 
   --sl-font: var(--sans);
   --sl-font-mono: var(--mono);
 
-  --sl-text-body: 1.0625rem;
-  --sl-line-height: 1.6;
+  --sl-text-body: 1rem;
+  --sl-line-height: 1.625;
   --sl-line-height-headings: 1.15;
-  --sl-text-h1: clamp(1.8125rem, 3.2vw, 2.5rem);
-  --sl-text-h2: 1.625rem;
-  --sl-text-h3: 1.1875rem;
-  --sl-text-h4: 1.0625rem;
-  --sl-text-h5: 1rem;
+  --sl-text-h1: clamp(2rem, 3.2vw, 2.5rem);
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.125rem;
+  --sl-text-h4: 1rem;
+  --sl-text-h5: 0.875rem;
 
-  --sl-nav-height: 65px;
+  --sl-nav-height: 64px;
+  --sl-nav-pad-x: 20px;
   --sl-sidebar-width: 17rem;
   --sl-content-width: 45rem;
 }
@@ -54,205 +55,251 @@
 /* Starlight sets these again from 50em up, inside its own layer. */
 @media (min-width: 50em) {
   :root {
-    --sl-nav-height: 65px;
-    --sl-text-h1: clamp(1.8125rem, 3.2vw, 2.5rem);
-    --sl-text-h2: 1.625rem;
-    --sl-text-h3: 1.1875rem;
-    --sl-text-h4: 1.0625rem;
+    --sl-nav-height: 64px;
+    --sl-nav-pad-x: 24px;
+    --sl-text-h1: clamp(2rem, 3.2vw, 2.5rem);
+    --sl-text-h2: 1.5rem;
+    --sl-text-h3: 1.125rem;
+    --sl-text-h4: 1rem;
   }
 }
 
-/* The header is the landing page's: 64 px and its rule, 56 px and its rule on a phone, with the
-   logo a size smaller on a narrow phone (shared/chrome.css), so the logo stays put between them. */
-@media (max-width: 560px) {
-  :root {
-    --sl-nav-height: 57px;
-  }
-}
-
-@media (max-width: 479px) {
-  .footnote-title .brand {
-    gap: 8px;
-    font-size: 21px;
-  }
-
-  .footnote-title .brand svg {
-    width: 22px;
-    height: 22px;
-  }
-}
-
+/* The landing page's type: Inter with its single-storey a and open digits, set a touch tight. */
 body {
+  font-feature-settings: 'cv01', 'ss03';
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+code,
+kbd,
+pre {
+  letter-spacing: 0;
+}
+
 ::selection {
-  background: var(--hl);
+  background: var(--accent-bg);
   color: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid var(--mark);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* The page is a sheet on the paper: the paper shows under the header and beside the sidebar. It
-   is the landing page's paper for a person, which in dark is lighter than the sheet. */
-body {
-  background: var(--paper-side);
-}
-
-.main-frame {
-  background: var(--sheet);
-  background-clip: content-box;
-}
-
-/* The header, as the landing page's: clear over the top of the page, then the sheet's colour and
-   a hairline once the page scrolls or the menu opens (shared/Scrolled.astro). */
+/* The header, as the landing page's: it stays at the top, blurred over the page, on a hairline. */
 .page > .header {
-  border-bottom-color: transparent;
-  background-color: transparent;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
+  border-bottom-color: var(--line);
+  background-color: color-mix(in srgb, var(--bg) 82%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
-:root[data-scrolled] .page > .header,
-:root:has(#starlight__sidebar:popover-open) .page > .header {
-  border-bottom-color: var(--rule);
-  background-color: var(--sheet);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page > .header {
-    transition: none;
-  }
-}
-
-.footnote-title {
+.footnote-site {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-.footnote-title-rule {
+.footnote-site-rule {
   width: 1px;
-  height: 18px;
-  background: var(--rule-2);
+  height: 16px;
+  background: var(--line-2);
 }
 
-.footnote-title-docs {
-  color: var(--ink-2);
-  font-size: 15px;
-  font-weight: 500;
+.footnote-site-docs {
+  color: var(--fg-3);
+  font-size: 13px;
+  line-height: 20px;
   text-decoration: none;
+  transition: color 140ms var(--ease);
 }
 
-.footnote-title-docs:hover {
-  color: var(--ink);
+.footnote-site-docs:hover {
+  color: var(--fg);
 }
 
 header .right-group {
-  gap: 10px;
+  gap: 8px;
 }
 
-/* The links take the place of Starlight's icons, so the hairline after them goes too. */
+/* GitHub, then the hairline the landing page's header draws before its theme button. */
+header .social-icons {
+  gap: 20px;
+  margin-right: 12px;
+}
+
 header .social-icons::after {
-  content: none;
+  height: 32px;
+  border-inline-end-color: var(--line);
 }
 
 .footnote-nav {
   margin-left: 0;
-  padding-right: 6px;
 }
 
 .mobile-preferences {
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .mobile-preferences .social-icons {
+  margin-right: auto;
   padding-block: 0.75rem;
+}
+
+.mobile-preferences .social-icons::after {
+  content: none;
+}
+
+/* Search: a quiet box in the header, and its keys on a chip, as the landing page's Enter. On a
+   phone it is an icon beside the menu's. */
+site-search button[data-open-modal] {
+  color: var(--fg-3);
+  font-size: 1.125rem;
 }
 
 @media (min-width: 50em) {
   site-search button[data-open-modal] {
-    height: 36px;
-    border: 1px solid var(--rule-2);
-    border-radius: 9px;
-    background: var(--sheet);
-    color: var(--ink-3);
-    font-size: 15px;
+    height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg-2);
+    padding-inline: 10px 6px;
+    color: var(--fg-3);
+    font-size: 13px;
+    transition:
+      border-color 140ms var(--ease),
+      color 140ms var(--ease);
   }
 
   site-search button[data-open-modal]:hover {
-    border-color: var(--ink-3);
-    color: var(--ink-2);
+    border-color: var(--line-2);
+    color: var(--fg);
   }
 }
 
+site-search button[data-open-modal] > kbd {
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg-3);
+  padding-inline: 6px;
+  color: var(--fg-3);
+  font-size: 11px;
+}
+
 site-search dialog {
-  border-radius: 16px;
+  border-color: var(--line-2);
+  background: var(--bg-1);
+  box-shadow: var(--pop-shadow);
+}
+
+@media (min-width: 50em) {
+  site-search dialog {
+    border-radius: 12px;
+  }
 }
 
 site-search dialog:focus-visible {
   outline: 0;
 }
 
-site-search mark {
-  background: var(--hl);
-  color: inherit;
+site-search dialog::backdrop {
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+#starlight__search {
+  --pagefind-ui-background: var(--bg-2);
+  --pagefind-ui-border: var(--line);
+  --pagefind-ui-border-radius: 8px;
+  --pagefind-ui-tag: var(--bg-3);
+}
+
+#starlight__search .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)),
+#starlight__search .pagefind-ui__result-nested {
+  background: var(--bg-2);
+}
+
+#starlight__search .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)):hover,
+#starlight__search
+  .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)):focus-within,
+#starlight__search .pagefind-ui__result-nested:hover,
+#starlight__search .pagefind-ui__result-nested:focus-within {
+  outline-color: var(--line-2);
+  background: var(--bg-3);
+}
+
+#starlight__search .pagefind-ui__result-link {
+  font-weight: 510;
+}
+
+#starlight__search mark {
+  background: var(--mark);
+  color: var(--fg);
+  font-weight: inherit;
+}
+
+#starlight__search .pagefind-ui__search-clear::before,
+site-search button[data-close-modal] {
+  background-color: var(--fg-3);
+  color: var(--fg-3);
+}
+
+site-search button[data-close-modal] {
+  background-color: transparent;
 }
 
 /* The menu button on a phone, as the landing page's icon buttons. */
 .sl-menu-button {
-  --sl-menu-button-size: 36px;
-  border: 1px solid var(--rule-2);
-  border-radius: 9px;
+  --sl-menu-button-size: 32px;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
   box-shadow: none;
-  color: var(--ink-2);
+  color: var(--fg-3);
 }
 
 :root[data-theme] .sl-menu-button {
   background: transparent;
-  color: var(--ink-2);
+  color: var(--fg-3);
 }
 
 :root[data-theme] .sl-menu-button:has(~ :popover-open) {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg-2);
+  color: var(--fg);
 }
 
 footnote-version[hidden] {
   display: none;
 }
 
-/* The version switcher, framed as the landing page's small buttons beside it. */
+/* The version switcher, framed as the search box beside it. */
 footnote-version label {
-  color: var(--ink-2);
+  color: var(--fg-3);
 }
 
 footnote-version select {
   width: var(--sl-select-width);
-  height: 36px;
+  height: 32px;
   margin-inline: 0;
-  border: 1px solid var(--rule-2);
-  border-radius: 9px;
-  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-2);
   padding-block: 0;
   padding-inline: 1.875rem 1.75rem;
-  font-size: 14px;
+  color: var(--fg-2);
+  font-size: 13px;
 }
 
 footnote-version label:hover select {
-  border-color: var(--ink-3);
+  border-color: var(--line-2);
 }
 
 footnote-version option {
-  background: var(--sheet);
-  color: var(--ink);
+  background: var(--bg-2);
+  color: var(--fg);
 }
 
 footnote-version .label-icon {
@@ -263,68 +310,115 @@ footnote-version .caret {
   inset-inline-end: 0.375rem;
 }
 
-/* The sidebar: quiet rows on the paper, the current one on the sheet. */
+/* The sidebar: quiet rows on the ground, the current one lit, as the question that is open in the
+   landing page's window. */
 .sidebar-content {
-  --sl-sidebar-item-padding-inline: 0.625rem;
+  --sl-sidebar-item-padding-inline: 0.5rem;
 }
 
 .sidebar-content ul ul li {
+  margin-inline-start: 0;
   border-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+.sidebar-content .top-level > li + li {
+  margin-top: 1.25rem;
+}
+
+.sidebar-content summary {
+  padding-block: 0.25rem;
 }
 
 .sidebar-content .large {
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 650;
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 510;
+  line-height: 20px;
+}
+
+.sidebar-content summary .caret {
+  color: var(--fg-4);
+  font-size: 1rem;
 }
 
 .sidebar-content ul a {
-  border-radius: 9px;
-  color: var(--ink-2);
-  font-size: 15px;
+  border-radius: 6px;
+  padding-block: 0.3125rem;
+  color: var(--fg-3);
+  font-size: 14px;
+  line-height: 20px;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
 }
 
 .sidebar-content ul a:hover,
 .sidebar-content ul a:focus-visible {
-  color: var(--ink);
+  background: var(--bg-2);
+  color: var(--fg);
 }
 
 .sidebar-content ul a[aria-current='page'],
 .sidebar-content ul a[aria-current='page']:hover,
 .sidebar-content ul a[aria-current='page']:focus {
-  background: var(--sheet);
-  box-shadow: inset 0 0 0 1px var(--rule);
-  color: var(--ink);
-  font-weight: 600;
+  background: var(--bg-3);
+  box-shadow: inset 0 1px 0 var(--line);
+  color: var(--fg);
+  font-weight: 510;
 }
 
-@media (min-width: 50em) {
-  .sidebar-pane {
-    border-inline-end: 1px solid var(--rule);
-  }
-}
-
-/* "On this page" starts under the header, so its rule never shows through the clear header. */
+/* "On this page": the notes column of a page, on a hairline of its own. */
 @media (min-width: 72rem) {
   .right-sidebar {
-    top: var(--sl-nav-height);
-    height: calc(100vh - var(--sl-nav-height));
-    padding-top: 0;
+    border-inline-start-color: var(--line);
   }
 }
 
-/* "On this page": the notes column of a page. */
+.right-sidebar-panel h2 {
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 510;
+  line-height: 20px;
+}
+
 starlight-toc a,
 mobile-starlight-toc a {
-  color: var(--ink-3);
+  color: var(--fg-3);
+  transition: color 140ms var(--ease);
+}
+
+starlight-toc a {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+starlight-toc a:hover {
+  color: var(--fg);
 }
 
 starlight-toc a[aria-current='true'],
 mobile-starlight-toc a[aria-current='true'] {
-  color: var(--mark);
+  color: var(--fg);
 }
 
-/* A page: the title as the landing page's headings, then a lead in the sans, as its ledes. */
+mobile-starlight-toc nav {
+  border-top-color: var(--line);
+}
+
+mobile-starlight-toc .toggle {
+  border-color: var(--line);
+  background: var(--bg-2);
+  color: var(--fg);
+}
+
+mobile-starlight-toc .dropdown {
+  border-color: var(--line-2);
+  background: var(--bg-1);
+  box-shadow: var(--pop-shadow);
+}
+
+/* A page: the title as the landing page's headings, then a lead as the line under its headline. */
 .content-panel + .content-panel {
   border-top: 0;
 }
@@ -334,34 +428,33 @@ mobile-starlight-toc a[aria-current='true'] {
 }
 
 h1#_top {
-  color: var(--ink);
-  font-weight: 750;
-  letter-spacing: -0.025em;
-  line-height: 1.12;
+  color: var(--fg);
+  font-weight: 510;
+  letter-spacing: -0.022em;
+  line-height: 1.05;
   text-wrap: balance;
 }
 
 .sl-markdown-content > p:first-child,
 .footnote-lead {
-  color: var(--ink-2);
-  font-size: 1.1875rem;
-  line-height: 1.6;
+  color: var(--fg-3);
+  font-size: 1.0625rem;
+  line-height: 1.625rem;
   text-wrap: pretty;
 }
 
-.sl-markdown-content :is(h2, h3, h4) {
-  color: var(--ink);
+.sl-markdown-content :is(h2, h3, h4, h5) {
+  color: var(--fg);
+  font-weight: 510;
   text-wrap: balance;
 }
 
 .sl-markdown-content h2 {
-  font-weight: 700;
-  letter-spacing: -0.022em;
+  letter-spacing: -0.019em;
 }
 
-.sl-markdown-content :is(h3, h4) {
-  font-weight: 650;
-  letter-spacing: -0.01em;
+.sl-markdown-content h3 {
+  letter-spacing: -0.014em;
 }
 
 .sl-markdown-content p,
@@ -369,73 +462,89 @@ h1#_top {
   text-wrap: pretty;
 }
 
-/* Links read as text with a blue underline, as on the landing page. */
-.sl-markdown-content a:not(.sl-anchor-link) {
-  color: var(--ink);
-  font-weight: 500;
+/* Links read as text on a hairline, as on the landing page. */
+.sl-markdown-content a:not(.sl-anchor-link, .btn) {
+  color: var(--fg);
   text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--mark) 45%, transparent);
+  text-decoration-color: var(--line-2);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+  transition: text-decoration-color 140ms var(--ease);
 }
 
-.sl-markdown-content a:not(.sl-anchor-link):hover {
-  color: var(--mark);
-  text-decoration-color: var(--mark);
+.sl-markdown-content a:not(.sl-anchor-link, .btn):hover {
+  text-decoration-color: currentColor;
 }
 
 .sl-markdown-content strong {
-  color: var(--ink);
-  font-weight: 600;
+  color: var(--fg);
+  font-weight: 510;
 }
 
 .sl-markdown-content code:not(pre code) {
   margin: 0;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
   padding: 0.0625rem 0.3125rem;
-  color: var(--ink);
-  font-size: 0.875em;
+  color: var(--fg);
+  font-size: 0.8125em;
 }
 
 .sl-markdown-content mark {
-  background: linear-gradient(var(--hl), var(--hl)) 0 88% / 100% 42% no-repeat;
+  background: var(--mark);
   color: inherit;
 }
 
+.sl-markdown-content hr {
+  border-color: var(--line);
+}
+
+/* A table is the landing page's rows: a hairline over each, and no frame around them. It keeps
+   the width of the page, and its box scrolls when it is wider (lib/remark-footnote-docs.ts). */
+.footnote-table {
+  overflow-x: auto;
+}
+
 .sl-markdown-content table {
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  border-collapse: separate;
-  border-spacing: 0;
-  overflow: hidden;
-  font-size: 15px;
-  line-height: 1.55;
+  display: table;
+  width: 100%;
+  border-top: 1px solid var(--line);
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .sl-markdown-content th {
-  border-bottom: 1px solid var(--rule);
-  background: var(--paper);
-  color: var(--ink-3);
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--fg-4);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
+  line-height: 20px;
 }
 
 .sl-markdown-content th,
 .sl-markdown-content td,
 .sl-markdown-content th:first-child,
 .sl-markdown-content td:first-child {
-  padding: 0.625rem 1rem;
+  padding: 0.625rem 1.5rem 0.625rem 0;
+}
+
+.sl-markdown-content :is(th, td):last-child {
+  padding-right: 0;
 }
 
 .sl-markdown-content tr td {
-  border-top: 1px solid var(--rule);
-  border-bottom: 0;
+  border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
 
-.sl-markdown-content tbody tr:first-child td {
-  border-top: 0;
+.sl-markdown-content td:first-child {
+  color: var(--fg);
+}
+
+.sl-markdown-content tbody tr:nth-child(2n):not(:where(.not-content *)) {
+  background: none;
 }
 
 /* On a phone a table stands as one block per row, so a long cell keeps the width of the page. */
@@ -452,11 +561,8 @@ h1#_top {
   }
 
   .sl-markdown-content tr {
-    padding: 0.75rem 1rem;
-  }
-
-  .sl-markdown-content tr + tr {
-    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--line);
+    padding: 0.75rem 0;
   }
 
   .sl-markdown-content td,
@@ -467,8 +573,7 @@ h1#_top {
   }
 
   .sl-markdown-content td:first-child {
-    color: var(--ink);
-    font-weight: 500;
+    font-weight: 510;
   }
 
   .sl-markdown-content td + td {
@@ -477,25 +582,24 @@ h1#_top {
 
   /* The heading row is gone, so each cell says its column (lib/remark-footnote-docs.ts). */
   .sl-markdown-content td + td[data-label]::before {
-    color: var(--ink-3);
+    color: var(--fg-4);
     content: attr(data-label) ': ';
   }
 }
 
 /*
   A note (a quote whose first words are its title in bold, lib/remark-footnote-docs.ts) is set as
-  the landing page's margin notes: the serif, beside a blue rule. A quote is the same, without the
-  title.
+  the note in the landing page's window: a card on a hairline, a step lighter than the ground. A
+  quote is the landing page's quoted source: beside a rule, a step dimmer than the page.
 */
-.footnote-note,
-.sl-markdown-content blockquote {
-  border: 0;
-  border-left: 2px solid var(--mark-soft);
-  background: none;
-  padding: 2px 0 2px 16px;
-  color: var(--ink-2);
-  font: 400 1rem/1.55 var(--serif);
-  font-style: normal;
+.footnote-note {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg-1);
+  padding: 0.875rem 1.125rem;
+  color: var(--fg-2);
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .footnote-note > * + * {
@@ -503,22 +607,26 @@ h1#_top {
 }
 
 .footnote-note > p:first-child > strong:first-child {
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 0.9375rem;
-  font-weight: 650;
+  color: var(--fg);
+}
+
+.sl-markdown-content blockquote:not(.footnote-note) {
+  border: 0;
+  border-left: 1px solid var(--line-2);
+  padding: 0 0 0 1rem;
+  color: var(--fg-3);
 }
 
 /*
   A picture of a screen or a diagram (lib/remark-footnote-docs.ts): the file of the reader's theme,
-  on the sheet with a hairline, so a white screen keeps its edges on white paper.
+  framed as the landing page's screens, so a screen keeps its edges on the ground.
 */
 .sl-markdown-content .footnote-picture {
   margin-block: 1.5rem;
-  border: 1px solid var(--rule-2);
-  border-radius: 11px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--sheet);
+  background: var(--bg-1);
 }
 
 .sl-markdown-content .footnote-picture img {
@@ -531,8 +639,8 @@ h1#_top {
 
 /*
   Tabs (src/components/Tabs.astro): one section at a time under a row of names, the active one
-  underlined in the ink, as the landing page marks what is open. Without the script, each section
-  shows under its name.
+  underlined, as the landing page marks what is open. Without the script, each section shows under
+  its name.
 */
 footnote-tabs {
   display: block;
@@ -543,32 +651,35 @@ footnote-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0 1.25rem;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--line);
 }
 
 .footnote-tablist [role='tab'] {
   margin: 0 0 -1px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-bottom: 1px solid transparent;
   background: none;
-  padding: 0.5rem 0 0.4375rem;
-  color: var(--ink-3);
-  font: 500 0.9375rem/1.4 var(--sans);
+  padding: 0.5rem 0;
+  color: var(--fg-3);
+  font: 400 14px/20px var(--sans);
+  letter-spacing: inherit;
   cursor: pointer;
+  transition: color 140ms var(--ease);
 }
 
 .footnote-tablist [role='tab']:hover {
-  color: var(--ink);
+  color: var(--fg);
 }
 
 .footnote-tablist [role='tab'][aria-selected='true'] {
-  border-bottom-color: var(--ink);
-  color: var(--ink);
+  border-bottom-color: var(--fg);
+  color: var(--fg);
+  font-weight: 510;
 }
 
 .footnote-tablist [role='tab']:focus-visible,
 .footnote-tabpanel:focus-visible {
-  outline: 2px solid var(--mark);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -577,78 +688,140 @@ footnote-tabs {
 }
 
 .footnote-tab-name {
-  color: var(--ink);
-  font-weight: 650;
+  color: var(--fg);
+  font-weight: 510;
 }
 
 .footnote-tabs-on .footnote-tab-name {
   display: none;
 }
 
-/* Footnotes in a page: the landing page's blue marks, and their notes at the end of the page. */
+/* Footnotes in a page: the landing page's numbers, the accent's one place in the words, and their
+   notes at the end of the page, a hairline over each. */
+.sl-markdown-content sup:has(a[data-footnote-ref]) {
+  font-size: max(0.62em, 11px);
+  line-height: 1;
+}
+
 .sl-markdown-content sup a[data-footnote-ref] {
-  color: var(--mark);
-  font-family: var(--sans);
-  font-weight: 700;
+  margin-left: 0.08em;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 510;
+  letter-spacing: 0;
   text-decoration: none;
+}
+
+.sl-markdown-content sup a[data-footnote-ref]:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .sl-markdown-content section[data-footnotes] {
   margin-top: 2.5rem;
-  border-top: 1px solid var(--rule);
-  padding-top: 1rem;
-  color: var(--ink-2);
-  font: 400 0.875rem/1.5 var(--serif);
+  border-top: 1px solid var(--line);
+  color: var(--fg-3);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.sl-markdown-content section[data-footnotes] ol {
+  margin: 0;
+  padding: 0;
+  list-style-position: inside;
+}
+
+.sl-markdown-content section[data-footnotes] li {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0.5rem;
+  transition: background-color 300ms var(--ease);
+}
+
+.sl-markdown-content section[data-footnotes] li > p {
+  display: inline;
 }
 
 .sl-markdown-content section[data-footnotes] li::marker {
-  color: var(--mark);
-  font-family: var(--sans);
-  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 510;
+}
+
+/* The way back to the number, as an arrow in the words' own colour, never an emoji. */
+.sl-markdown-content a[data-footnote-backref] {
+  color: var(--fg-3);
+  font-variant-emoji: text;
+  text-decoration: none;
 }
 
 .sl-markdown-content section[data-footnotes] li:target {
-  border-radius: 6px;
-  background: var(--mark-soft);
-  box-shadow: -6px 0 0 6px var(--mark-soft);
+  background: var(--accent-bg);
 }
 
-/* Previous and next, and the asides: the landing page's cards. */
+/* Under a page: Edit page and the day it was last checked, then previous and next. */
+.meta {
+  color: var(--fg-4);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.meta a {
+  color: var(--fg-3);
+  transition: color 140ms var(--ease);
+}
+
+.meta a:hover {
+  color: var(--fg);
+}
+
 .pagination-links a {
-  border: 1px solid var(--rule);
+  border: 1px solid var(--line);
   border-radius: 12px;
   box-shadow: none;
-  background: var(--sheet);
+  background: var(--bg-1);
+  color: var(--fg-3);
+  font-size: 13px;
+  line-height: 20px;
+  transition:
+    background-color 140ms var(--ease),
+    border-color 140ms var(--ease);
 }
 
 .pagination-links a:hover {
-  border-color: var(--ink-3);
+  border-color: var(--line-2);
+  background: var(--bg-2);
 }
 
 .pagination-links .link-title {
-  color: var(--ink);
-  font-size: 17px;
-  font-weight: 600;
+  color: var(--fg);
+  font-size: 15px;
+  font-weight: 510;
+  line-height: 24px;
 }
 
 .starlight-aside {
-  border: 1px solid var(--rule);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--paper);
+  background: var(--bg-1);
 }
 
 .sl-banner {
-  background: var(--mark-soft);
-  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  background: var(--bg-2);
+  color: var(--fg-2);
+  font-size: 13px;
+  line-height: 20px;
 }
 
 .sl-banner a {
-  color: var(--ink);
+  color: var(--fg);
 }
 
-/* A code block is the landing page's terminal (astro.config.ts). A command stands alone there,
-   with no window around it, so a terminal without a title shows no title bar; its name stays for
-   a screen reader. */
+/* A code block is the landing page's terminal (astro.config.ts): a card on a hairline, in the
+   reader's theme. A command stands alone there, with no window around it, so a terminal without a
+   title shows no title bar; its name stays for a screen reader. */
 .expressive-code .frame.is-terminal:not(.has-title) .header {
   position: absolute;
   width: 1px;
@@ -658,75 +831,109 @@ footnote-tabs {
   white-space: nowrap;
 }
 
-/* A title is the bar of the landing page's files, with its rule under the whole bar. */
-.expressive-code .frame.has-title:not(.is-terminal) .header {
-  border-bottom: 1px solid var(--term-rule);
+/* With no bar over it, the command's card closes at the top as it does at the bottom. */
+.expressive-code .frame.is-terminal:not(.has-title) pre {
+  border-top: var(--ec-brdWd) solid var(--ec-brdCol);
+  border-radius: var(--ec-brdRad);
 }
 
-/* The landing page's footer, under the page's own column. */
+/* A title is the bar of the landing page's windows, with its hairline under the whole bar. */
+.expressive-code .frame.has-title:not(.is-terminal) .header {
+  border-bottom: 1px solid var(--line);
+}
+
+/* The site's footer, under the page's own column. */
 .sl-container .foot {
+  --side: 0px;
   margin-top: 3rem;
-  padding-inline: 0;
 }
 
 /* The home of the docs: the way in for a newcomer, then a door for each kind of reader. */
 .footnote-start {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.75rem 1rem;
   align-items: center;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 
 .footnote-start span {
-  color: var(--ink-2);
-  font-size: 15px;
+  color: var(--fg-3);
+  font-size: 14px;
+  line-height: 20px;
 }
 
-.sl-markdown-content .footnote-start .btn-ink,
-.sl-markdown-content .footnote-start .btn-ink:hover {
-  color: var(--sheet);
-  text-decoration: none;
-}
-
+/* The doors are the landing page's rows: who it is for, what it opens, and a hairline between. */
 .footnote-doors {
-  display: grid;
-  gap: 12px;
-  margin-top: 1.75rem;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--line);
 }
 
 .sl-markdown-content .footnote-doors a {
   display: grid;
-  gap: 0.25rem;
-  align-content: start;
+  grid-template-columns: 11rem minmax(0, 1fr) auto;
+  gap: 0.125rem 1.5rem;
+  align-items: center;
+  min-height: 56px;
   margin: 0;
-  border: 1px solid var(--rule-2);
-  border-radius: 12px;
-  background: var(--sheet);
-  padding: 0.875rem 1rem 1rem;
-  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0;
   text-decoration: none;
-  transition: border-color 0.15s ease;
-}
-
-.sl-markdown-content .footnote-doors a:hover {
-  border-color: var(--ink-3);
 }
 
 .footnote-doors strong {
-  color: var(--mark);
-  font-weight: 650;
+  color: var(--fg);
+  font-size: 15px;
+  font-weight: 510;
+  line-height: 24px;
 }
 
 .footnote-doors span {
-  color: var(--ink-2);
-  font-size: 15px;
-  line-height: 1.5;
+  color: var(--fg-3);
+  font-size: 14px;
+  line-height: 22px;
+  transition: color 140ms var(--ease);
 }
 
-@media (min-width: 40em) {
-  .footnote-doors {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.footnote-doors a:hover span {
+  color: var(--fg);
+}
+
+.footnote-doors svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--fg-4);
+  transition:
+    color 140ms var(--ease),
+    transform 140ms var(--ease);
+}
+
+.footnote-doors a:hover svg {
+  color: var(--fg);
+  transform: translateX(2px);
+}
+
+@media (max-width: 40em) {
+  .sl-markdown-content .footnote-doors a {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .footnote-doors strong {
+    grid-column: 1;
+  }
+
+  .footnote-doors span {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .footnote-doors svg {
+    grid-row: 1 / span 2;
   }
 }
 
@@ -745,7 +952,7 @@ footnote-tabs {
 
 .footnote-copy {
   position: relative;
-  margin-top: 1.125rem;
+  margin-top: 0.5rem;
 }
 
 /* Copied, or why not, under the button, where it moves nothing. */
@@ -753,7 +960,7 @@ footnote-tabs {
   position: absolute;
   top: calc(100% + 0.375rem);
   right: 0;
-  color: var(--ink-3);
+  color: var(--fg-3);
   font-size: 13px;
   white-space: nowrap;
 }
@@ -769,52 +976,74 @@ footnote-tabs {
   }
 }
 
-/* The home of the docs: each group's pages with their one line. */
+/* The home of the docs: each group's pages with their one line, as the landing page's footnotes. */
 .footnote-group {
-  margin-top: 2.5rem;
+  margin-top: 3.5rem;
 }
 
 .footnote-group h2 {
-  color: var(--ink);
-  font-size: 1.1875rem;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  color: var(--fg);
+  font-size: 15px;
+  font-weight: 510;
+  letter-spacing: -0.011em;
+  line-height: 24px;
 }
 
 .footnote-group ul {
   display: grid;
-  gap: 0 40px;
+  gap: 0 48px;
   margin-top: 0.75rem;
+  border-top: 1px solid var(--line);
   padding: 0;
   list-style: none;
 }
 
 .footnote-group li {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.125rem;
   align-content: start;
   margin: 0;
-  border-top: 1px solid var(--rule);
-  padding: 0.875rem 0 1rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 0;
 }
 
-.footnote-group li a {
-  font-weight: 600;
+.sl-markdown-content .footnote-group li a {
+  font-size: 14px;
+  font-weight: 510;
+  line-height: 22px;
+  text-decoration-color: transparent;
+}
+
+.sl-markdown-content .footnote-group li a:hover {
+  text-decoration-color: var(--line-2);
 }
 
 .footnote-group span {
-  color: var(--ink-2);
-  font-size: 15px;
-  line-height: 1.55;
+  color: var(--fg-3);
+  font-size: 14px;
+  line-height: 22px;
 }
 
 @media (min-width: 40em) {
   .footnote-group ul {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* Two columns under one hairline: a lone last row keeps its own, and the gap stays clear. */
+  .footnote-group ul {
+    border-top: 0;
+  }
+
+  .footnote-group li:nth-child(-n + 2) {
+    border-top: 1px solid var(--line);
+  }
 }
 
-/* The shortcut's keys on their chip, dark enough to read in both themes. */
-site-search kbd {
-  color: var(--ink-2);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

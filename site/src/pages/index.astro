@@ -77,7 +77,7 @@ const doors = [
     who checked it and when. When nothing is written down, the answer says so instead of guessing.
   </p>
   <p class="footnote-start">
-    <a class="btn btn-ink btn-sm" href={path('try-the-demo')}>Try the demo</a>
+    <a class="btn btn-main" href={path('try-the-demo')}>Try the demo</a>
     <span>On your own computer, with Docker. The first start can take ten minutes.</span>
   </p>
   <nav class="footnote-doors" aria-label="Where to start">
@@ -86,6 +86,10 @@ const doors = [
         <a href={path(door.slug)}>
           <strong>{door.who}</strong>
           <span>{door.what}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14" />
+            <path d="m13 6 6 6-6 6" />
+          </svg>
         </a>
       ))
     }
