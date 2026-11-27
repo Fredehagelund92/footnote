@@ -20,6 +20,12 @@ import { normalizeName, resolveTerm, suggestTerms, type Term } from './vocabular
   audience, an owner or a link to another item.
 */
 
+/**
+ * The new drafts one person's agents may save in 24 hours, and keep waiting unsent, as installed
+ * (`limits.agent_drafts`, which an admin changes): 50, the most one Publish takes.
+ */
+export const agentDraftsDefault = { perDay: 50, open: 50 } as const
+
 /** What an agent passes for a draft, in the MCP tool's words (`write_draft`). */
 export type AgentDraftInput = {
   text: string

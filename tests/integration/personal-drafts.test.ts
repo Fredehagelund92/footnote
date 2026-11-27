@@ -337,11 +337,13 @@ describe('the drafts of people who left', () => {
 })
 
 describe("the writer's drafts card in the Inbox", () => {
-  it('holds their imported drafts and those not saved for 30 days, for them alone', async () => {
+  it("holds their imported drafts, their agents' drafts and those not saved for 30 days, for them alone", async () => {
     const before = await draftsCard('admin')
     const fresh = await aDraft('admin')
     const imported = await aDraft('admin')
     const old = await aDraft('admin')
+    // One of a batch an agent wrote from a document (write_draft): it waits here from the start.
+    const agent = await aDraft('admin')
     await transaction(client, async () => {
       const [batch] = (
         await client.query<{ id: string }>(
@@ -358,13 +360,15 @@ describe("the writer's drafts card in the Inbox", () => {
         "update proposals set draft_saved_at = now() - interval '31 days' where id = $1",
         [old],
       )
+      await client.query("update proposals set channel = 'mcp' where id = $1", [agent])
     })
     expect(before).toBeUndefined()
     const card = await draftsCard('admin')
     expect(card).toMatchObject({ id: 'drafts:yours', areaId: 'finance', done: null })
     expect(card?.drafts).toEqual([
-      { id: imported, areaId: 'finance', imported: true },
-      { id: old, areaId: 'finance', imported: false },
+      { id: imported, areaId: 'finance', from: 'import' },
+      { id: old, areaId: 'finance', from: 'old' },
+      { id: agent, areaId: 'finance', from: 'agent' },
     ])
     expect(card?.drafts.map((d) => d.id)).not.toContain(fresh)
     // An owner of the domain hears nothing of them.
@@ -372,9 +376,9 @@ describe("the writer's drafts card in the Inbox", () => {
 
     // Published from the card, as from the Context list, they leave it.
     const r = await ok<{ done: string[] }>(
-      call('POST', '/items/bulk', 'admin', { action: 'publish', rows: [imported, old] }),
+      call('POST', '/items/bulk', 'admin', { action: 'publish', rows: [imported, old, agent] }),
     )
-    expect(r.done).toEqual([imported, old])
+    expect(r.done).toEqual([imported, old, agent])
     expect(await draftsCard('admin')).toBeUndefined()
   })
 })

@@ -13,8 +13,8 @@ import { tableContents } from './support.ts'
   one the review checks refuse stays the person's draft. A draft the person changed after that
   revision is not sent: the person said yes to what they saw. Then each rule the wrong way: the
   switch, tokens that name no person, a sent draft, someone else's, a possible duplicate, the
-  daily limit, and that the person is named on the proposal only, never in another MCP record or a
-  log line.
+  daily limit and the drafts waiting, which a batch of drafts meets, and that the person is named
+  on the proposal only, never in another MCP record or a log line.
 */
 
 const harness = await signInHarness()
@@ -46,6 +46,12 @@ type Reply = {
   possible_duplicates?: { id: string; title: string; kind: string }[]
   questions?: { field: string }[]
   instructions?: string
+  drafts?: {
+    waiting: number
+    most_waiting: number
+    new_in_24_hours: number
+    most_new_in_24_hours: number
+  }
 }
 
 const complete = {
@@ -488,34 +494,92 @@ describe("an AI agent sends a draft of the person's, after they say yes", () => 
     })
   })
 
-  it('limits the drafts of each person per day, and the drafts waiting at once', async () => {
-    const used = (await agentDrafts()).length
-    await setLimits(used, 20)
+  it('installs 50 new drafts a day and 50 waiting, which an admin changes', async () => {
+    const versions = await admin.query<{ value: unknown; reason: string }>(
+      "select value,reason from settings_versions where key='limits.agent_drafts' order by version",
+    )
+    expect(versions.rows.slice(0, 2)).toEqual([
+      { value: { per_day: 10, open: 20 }, reason: 'default (FR-121)' },
+      {
+        value: { per_day: 50, open: 50 },
+        reason: 'default: 50, the most one Publish takes (FR-121)',
+      },
+    ])
+  })
+
+  it('writes a batch of drafts and sends none, counting them in each reply up to the limits', async () => {
     const token = await personToken()
+    const mine = async () =>
+      (
+        await admin.query<{ today: number; open: number }>(
+          `select count(*) filter (where created_at > now() - interval '24 hours')::int as today,
+                  count(*) filter (where state='draft' and discarded_at is null)::int as open
+             from proposals where channel='mcp' and proposer_id=$1`,
+          [people.author],
+        )
+      ).rows[0]!
+    const before = await mine()
+    await setLimits(before.today + 3, 100)
+    const markets = ['Norway', 'Sweden', 'Denmark']
+    const batch = []
+    for (const [i, market] of markets.entries())
+      batch.push(
+        await call(token, 'write_draft', {
+          text: `Orders from ${market} are booked a day late from ${i + 7} October 2026.`,
+          ...complete,
+          new_item: true,
+        }),
+      )
+    expect(batch.map(({ out }) => out.status)).toEqual([
+      'draft_saved',
+      'draft_saved',
+      'draft_saved',
+    ])
+    expect(batch.map(({ out }) => out.drafts)).toEqual(
+      [1, 2, 3].map((n) => ({
+        waiting: before.open + n,
+        most_waiting: 100,
+        new_in_24_hours: before.today + n,
+        most_new_in_24_hours: before.today + 3,
+      })),
+    )
+    expect(batch[0]!.out.message).toContain(
+      `${before.open + 1} drafts from the person's agents wait for them in Your drafts, and you may save 2 more now (${before.today + 3} new drafts in 24 hours and 100 waiting unsent at most).`,
+    )
+    expect(batch[2]!.out.message).toContain('and no more may be saved now')
+    // None of them was sent: each waits as the person's draft.
+    const ids = batch.map(({ out }) => out.draft_id)
+    expect(await Promise.all(ids.map(async (id) => (await row(id)).state))).toEqual([
+      'draft',
+      'draft',
+      'draft',
+    ])
+
     const refused = await call(token, 'write_draft', {
-      text: 'Orders for Finance close at midnight UTC from 5 October 2026.',
+      text: 'Orders from Finland are booked a day late from 10 October 2026.',
       ...complete,
       new_item: true,
     })
-    expect(refused.out).toMatchObject({ status: 'refused', saved: false })
-    expect(refused.out.message).toMatch(/last 24 hours/)
-    await setLimits(100, 100)
-    await call(token, 'write_draft', {
-      text: 'Orders for Finance close at noon UTC from 6 October 2026.',
-      ...complete,
-      new_item: true,
+    expect(refused.out).toMatchObject({
+      status: 'refused',
+      saved: false,
+      message: `The person's agents saved ${before.today + 3} new drafts in the last 24 hours, and the most allowed is ${before.today + 3} new drafts in 24 hours and 100 waiting unsent. Tell the person their drafts wait in Your drafts, in Footnote's Inbox, and save the rest tomorrow. Nothing was saved.`,
     })
-    const kept = (await agentDrafts()).length
-    const open = (await agentDrafts()).filter((draft) => draft.state === 'draft').length
-    await setLimits(100, open)
+    expect(await mine()).toEqual({ today: before.today + 3, open: before.open + 3 })
+
+    await setLimits(100, before.open + 3)
     const waiting = await call(token, 'write_draft', {
-      text: 'Orders for Finance close at midnight UTC from 5 October 2026.',
+      text: 'Orders from Finland are booked a day late from 10 October 2026.',
       ...complete,
       new_item: true,
     })
-    expect(waiting.out.message).toMatch(/unsubmitted/)
-    expect(await agentDrafts()).toHaveLength(kept)
-    await setLimits(10, 20)
+    expect(waiting.out).toMatchObject({
+      status: 'refused',
+      saved: false,
+      message: `${before.open + 3} drafts from the person's agents wait unsubmitted, and the most allowed is 100 new drafts in 24 hours and ${before.open + 3} waiting unsent. Ask the person to publish, send or delete some in Your drafts, in Footnote's Inbox, before you save more. Nothing was saved.`,
+    })
+    expect(await mine()).toEqual({ today: before.today + 3, open: before.open + 3 })
+    await setLimits(50, 50)
   })
 
   it('asks for the domain instead of guessing it', async () => {

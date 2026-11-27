@@ -240,7 +240,7 @@ describe('Settings, Advanced', () => {
           version: 3,
           reason: 'The demo week',
         },
-        setting('limits.agent_drafts', { per_day: 10, open: 20 }),
+        setting('limits.agent_drafts', { per_day: 50, open: 50 }),
         setting('retention.delivery_days', 1),
         setting('models.judge', 'different_family'),
         setting('models.assistant', { provider: 'anthropic', model: 'claude-sonnet-5-5' }),
@@ -286,7 +286,7 @@ describe('Settings, Advanced', () => {
       value: 'Answer tests $20',
       changed: { who: null, when: '1 Oct', why: 'The demo week' },
     })
-    expect(rows['limits.agent_drafts']?.value).toBe('10 a day, 20 waiting at once')
+    expect(rows['limits.agent_drafts']?.value).toBe('50 new a day, 50 waiting at once')
     // The full record lasts the days set; the weekly counts, which hold nobody's words, stay for good.
     expect(rows['retention.delivery_days']).toMatchObject({
       value: '1 day',

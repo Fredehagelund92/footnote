@@ -234,7 +234,18 @@ An area counts only when the metrics it names give no single domain.
 | `needs_area`         | The words do not point to one domain. Ask the person which, and pass `area`                    |
 | `possible_duplicate` | Published items look alike. Ask the person, then call again with `item_id` or `new_item: true` |
 
-One person's agents can save 10 new drafts in 24 hours, with 20 waiting unsent. Admins change this with `limits.agent_drafts`.
+To write context from a document, the agent saves each item as its own draft and sends none. The person reviews them in Your drafts, in the Inbox, and publishes them together.
+
+One person's agents can save 50 new drafts in 24 hours, with 50 waiting unsent. Admins change this with `limits.agent_drafts`. Each new draft's reply says how many wait, and the limits, in `drafts`:
+
+| Field                  | What it holds                                                  |
+| ---------------------- | -------------------------------------------------------------- |
+| `waiting`              | The person's agent drafts not sent or deleted, the new one too |
+| `most_waiting`         | The most that may wait                                         |
+| `new_in_24_hours`      | New drafts in the last 24 hours, deleted ones too              |
+| `most_new_in_24_hours` | The most new drafts in 24 hours                                |
+
+Past either limit nothing is saved, and the refusal says the limits.
 
 `read_draft` takes `draft_id`, and the revision you read last as `since_revision`. It gives back:
 

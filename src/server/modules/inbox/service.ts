@@ -854,19 +854,28 @@ export function createInboxFeedService(
 
   /**
    * The one card of the person's own drafts that wait for them (FR-139): every draft they imported,
-   * and every other one they have not saved for DRAFT_OLD_DAYS days. Only they read their drafts,
-   * so nobody else is told of them; none, and there is no card.
+   * every one their agents wrote (FR-145), as many as an agent wrote from one document, and every
+   * other one they have not saved for DRAFT_OLD_DAYS days. Only they read their drafts, so nobody
+   * else is told of them; none, and there is no card.
    */
   async function draftsCard(): Promise<Card[]> {
-    const rows = await tx.query<{ id: string; areaId: string; imported: boolean; at: string }>(
-      `select id::text, area_id as "areaId", import_batch_id is not null as imported,
-              to_char((case when import_batch_id is not null then created_at
+    const rows = await tx.query<{
+      id: string
+      areaId: string
+      from: 'import' | 'agent' | 'old'
+      at: string
+    }>(
+      `select id::text, area_id as "areaId",
+              case when import_batch_id is not null then 'import'
+                   when channel = 'mcp' then 'agent' else 'old' end as "from",
+              to_char((case when import_batch_id is not null or channel = 'mcp' then created_at
                             else draft_saved_at + make_interval(days => $2) end) at time zone 'UTC',
                       'YYYY-MM-DD"T"HH24:MI:SS"Z"') as at
          from proposals
         where proposer_id = cl_person() and subject = 'item' and state = 'draft'
           and discarded_at is null and area_id is not null
-          and (import_batch_id is not null or draft_saved_at <= $1::timestamptz - make_interval(days => $2))
+          and (import_batch_id is not null or channel = 'mcp'
+               or draft_saved_at <= $1::timestamptz - make_interval(days => $2))
         order by created_at, id`,
       [clock.now().toISOString(), DRAFT_OLD_DAYS],
     )
@@ -880,7 +889,7 @@ export function createInboxFeedService(
         at: rows.reduce((at, r) => (r.at > at ? r.at : at), rows[0]!.at),
         opened: false,
         done: null,
-        drafts: rows.map(({ id, areaId, imported }) => ({ id, areaId, imported })),
+        drafts: rows.map(({ id, areaId, from }) => ({ id, areaId, from })),
       },
     ]
   }

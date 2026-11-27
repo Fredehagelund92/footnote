@@ -75,19 +75,26 @@ export function namesWords({
   }
 }
 
+/** How many of the person's waiting drafts were imported, written by their agents, or left. */
+export type DraftCounts = { imported: number; agent: number; old: number }
+
 /**
  * The card of the person's own drafts that wait for them (FR-139), in words: how many, and why
  * they wait. Nobody else is told of them.
  */
-export function draftsWords({ imported, old }: { imported: number; old: number }) {
+export function draftsWords({ imported, agent, old }: DraftCounts) {
   const drafts = (n: number) => (n === 1 ? '1 draft' : `${n.toLocaleString('en-GB')} drafts`)
+  const all = imported + agent + old
   return {
-    title: !old
-      ? `${drafts(imported)} from your import`
-      : !imported
-        ? `${drafts(old)} not saved for ${DRAFT_OLD_DAYS} days`
-        : `${drafts(imported + old)} waiting for you`,
-    line: `Only you can see ${imported + old === 1 ? 'it' : 'them'}. Agents get ${imported + old === 1 ? 'it' : 'them'} once ${imported + old === 1 ? 'it is' : 'they are'} published.`,
+    title:
+      imported === all
+        ? `${drafts(imported)} from your import`
+        : agent === all
+          ? `${drafts(agent)} from your agents`
+          : old === all
+            ? `${drafts(old)} not saved for ${DRAFT_OLD_DAYS} days`
+            : `${drafts(all)} waiting for you`,
+    line: `Only you can see ${all === 1 ? 'it' : 'them'}. Agents get ${all === 1 ? 'it' : 'them'} once ${all === 1 ? 'it is' : 'they are'} published.`,
   }
 }
 
@@ -206,9 +213,9 @@ export type InboxCard = {
   alert?: { rule: AlertCardRule; name: string; href: string; pair?: string }
   /**
    * The person's own drafts that wait for them (FR-139): their ids, oldest first, and how many were
-   * imported or not saved for a while.
+   * imported, written by their agents, or not saved for a while.
    */
-  drafts?: { ids: string[]; imported: number; old: number }
+  drafts?: { ids: string[] } & DraftCounts
   /**
    * Ask someone who knows: the day the card's link was last copied ("25 Nov"), never who opened
    * it, and on a Due for a check card what people answered there since it was last checked.

@@ -214,8 +214,9 @@ owner sees what the agent filled in. Before saving, published items whose scope 
 and whose words read alike are returned as `possible_duplicate`, so the agent asks the person and
 calls again with `item_id` or `new_item: true`; without one domain it answers `needs_area`. Then
 it saves the draft through `saveAgentDraft`, counted by `limits.agent_drafts`, which caps one
-person's agent drafts at 10 in 24 hours and 20 waiting unsubmitted. The open questions only the
-person can answer come back in `questions`, for the agent to ask in its own words.
+person's agent drafts at 50 in 24 hours and 50 waiting unsubmitted; each new draft's reply
+counts them in `drafts`. The open questions only the person can answer come back in `questions`,
+for the agent to ask in its own words.
 
 With `draft_id` and `revision`, the revision the agent read, it changes only the fields passed
 (`deriveAgentPatch`, then `patchAgentDraft`, then `proposals.save`). Each proposal keeps who last
@@ -532,9 +533,9 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   it.
 - `GET /inbox/feed?tab=needs|all` lists the person's cards by need: Not found (`gap`), Reported
   (`flag`), Mentioned you (`mention`), Due for a check (`check`), suggestions, then the person's
-  own drafts (`drafts`, named `drafts:yours`): one card for every draft they imported and every
-  other one they have not saved for 30 days, with each draft's id, domain and whether it was
-  imported, oldest first; nobody else hears of them (FR-230). An owner gets
+  own drafts (`drafts`, named `drafts:yours`): one card for every draft they imported, every one
+  their agents wrote and every other one they have not saved for 30 days, with each draft's id,
+  domain and where it came from (`from`: `import`, `agent` or `old`), oldest first; nobody else hears of them (FR-230). An owner gets
   those of their domains, an administrator every domain, anyone else none; a Mentioned you card
   is the person's own, in any domain: one for each thread with a comment that mentions them and
   that they haven't read, named `mention:<subject>`. Reported cards are the anonymous wrong or unclear
