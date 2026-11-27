@@ -1694,8 +1694,9 @@ describe('read_context and find_context', () => {
       when: 'From 4 August 2026 on',
       checked: { role: 'the owner of Finance', date: '2026-08-04' },
       body: 'Compare with an unaffected market.',
-      not_to_conclude: 'cause not proven',
     })
+    // Its writer said nothing not to conclude: the default is no line (FR-104).
+    expect(out.context).not.toHaveProperty('not_to_conclude')
     const missing = (await s.call('read_context', { id: 'itm_missing001' })).structuredContent
     expect(missing).toMatchObject({
       status: 'no_match',
