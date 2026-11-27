@@ -2,7 +2,7 @@
 title: Keep context up to date
 line: The Inbox cards for a context item that is due for a check or was reported, and the ways to answer each.
 group: Write and review
-order: 3
+order: 4
 minutes: 4
 reviewed: 2026-11-25
 open:

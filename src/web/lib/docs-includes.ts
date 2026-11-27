@@ -1,5 +1,5 @@
 import type { DocInclude } from '@domain/docs'
-import { AGENT_TOOLS, CHECKS, PROMPT } from '@/lib/agents'
+import { AGENT_TOOLS, CHECKS, PROMPT, writePrompt } from '@/lib/agents'
 import { ANSWER_LINES, WORDS } from '@/lib/help-content'
 import { setupSteps } from '@/lib/setup'
 import { kindHint, kindLabel, type Kind } from '@/model/items'
@@ -20,6 +20,8 @@ export function includeMarkdown(name: DocInclude, arg: string): string | null {
       return setupSteps.map((s, i) => `${i + 1}. **${s.title}**. ${s.description}`).join('\n')
     case 'prompt':
       return ['```text title="The prompt, exactly as the app shows it"', PROMPT, '```'].join('\n')
+    case 'write-prompt':
+      return ['```text title="What Write with Claude sends"', writePrompt(), '```'].join('\n')
     case 'checks':
       return CHECKS.map((c) => `- ${c}`).join('\n')
     case 'kinds':

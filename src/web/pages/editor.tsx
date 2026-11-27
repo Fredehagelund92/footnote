@@ -129,6 +129,8 @@ import { Kbd } from '@/components/ui/kbd'
 import { usePrimaryKey } from '@/hooks/use-primary-key'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
+import { WriteWithButton, WriteWithMenuItem } from '@/components/footnote/write-with-agent'
+import { finishPrompt, writePrompt } from '@/lib/agents'
 
 // The context editor as a document, the way editorcn's Simple Document Editor template shows one: a
 // muted canvas, editorcn's floating toolbar, the title as a large heading, the text as the document,
@@ -185,6 +187,18 @@ const scopeOf = (f: Fact, vocabulary: Vocabulary) => f.scope ?? termsOfNames(f.w
 /** The words of "Applies to" in a sentence: "Orders in any market". */
 const scopeWords = (terms: ScopeTerm[]) =>
   terms.map((t) => (t.kind === 'dimension' ? `any "${t.name}"` : t.name)).join(' in ')
+
+/**
+ * What a new item is about, for the prompt that writes it with an agent: where and when it
+ * applies, as the panel says it, and nothing when the form names neither.
+ */
+const topicOf = (form: Form) =>
+  [
+    form.where.length ? scopeWords(form.where) : '',
+    form.when === 'always' ? '' : whenText(form).replace(/^From/, 'from'),
+  ]
+    .filter(Boolean)
+    .join(', ')
 
 function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
   // From the stored dates, so the editor shows the real ones.
@@ -1096,6 +1110,7 @@ function Editor({
               >
                 {edited ? 'Back to the form' : 'Write it yourself'}
               </Button>
+              <WriteWithButton prompt={writePrompt()} variant="ghost" />
             </div>
           </section>
         </Paper>
@@ -1201,6 +1216,14 @@ function Editor({
                   <SparklesIcon />
                   Draft from text
                 </DropdownMenuItem>
+              )}
+              {/* A new item starts a draft about what it applies to; a saved draft goes on by its id. */}
+              {mode === 'new' ? (
+                <WriteWithMenuItem prompt={writePrompt(topicOf(form))} />
+              ) : (
+                original?.status === 'Draft' && (
+                  <WriteWithMenuItem prompt={finishPrompt(original.id)} />
+                )
               )}
               <DropdownMenuItem onClick={() => setSideChoice(!sideOpen)}>
                 <PanelRightIcon />

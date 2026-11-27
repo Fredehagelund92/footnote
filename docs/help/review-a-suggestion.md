@@ -2,7 +2,7 @@
 title: Review a suggestion
 line: The quick view, the review, Try it, and publishing, returning or closing.
 group: Write and review
-order: 2
+order: 3
 minutes: 5
 reviewed: 2026-11-26
 open:

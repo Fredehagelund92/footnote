@@ -47,6 +47,7 @@ export const movedSlugs = Object.keys(movedPages)
 export const docIncludes = [
   'setup-steps',
   'prompt',
+  'write-prompt',
   'checks',
   'kinds',
   'word',

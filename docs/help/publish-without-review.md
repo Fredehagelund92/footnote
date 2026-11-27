@@ -2,7 +2,7 @@
 title: Publish without review
 line: Let one agent publish low-risk new items in your domain, as your decision, and turn it off.
 group: Write and review
-order: 7
+order: 8
 minutes: 4
 reviewed: 2026-11-27
 open:

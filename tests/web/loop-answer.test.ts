@@ -49,6 +49,7 @@ vi.mock('@/lib/workspace', () => ({
 }))
 vi.mock('@/lib/definitions', () => ({ useDefinitions: () => world.definitions }))
 vi.mock('@/api/queries', () => ({
+  useAgentConnections: () => [],
   useWrite: () => (op: string, input: unknown) => {
     world.writes.push({ op, input })
     const word = (input as { word?: string }).word

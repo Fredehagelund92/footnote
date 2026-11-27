@@ -9,6 +9,7 @@ import {
   instructionRules as rulesFor,
   instructionsFor,
   toolWords,
+  writeContextPrompt,
   type AgentToolName,
   type PublishPermission,
 } from '../../domain/mcp-text.ts'
@@ -53,13 +54,17 @@ const write = {
 /** The rules every client reads first (FR-343), with the product's name the setting gives. */
 export const instructionRules = rulesFor(productName)
 export { INSTRUCTIONS_READ_BY_ALL }
-/** FR-343: what the server tells a client when it connects (src/domain/mcp-text.ts). */
+/**
+ * FR-343: what the server tells a client when it connects (src/domain/mcp-text.ts), with how to
+ * write a draft with the person when it is offered write_draft (`drafts`).
+ */
 export const serverInstructions = (
   dataTool: string | null,
   about = '',
   calendar: Calendar = UTC_CALENDAR,
   permissions: readonly PublishPermission[] = [],
-): string => instructionsFor(productName, dataTool, about, calendar, permissions)
+  drafts = false,
+): string => instructionsFor(productName, dataTool, about, calendar, permissions, drafts)
 /**
  * The data tool the definitions integration names, by its own label (CON-101): one is on at a
  * time (CON-120). Null when nothing served is described by one.
@@ -204,6 +209,47 @@ export function isToolName(value: unknown): value is ToolName {
  * read_draft, send_draft).
  */
 export type ServedToolName = Exclude<ToolName, 'write_draft' | 'read_draft' | 'send_draft'>
+
+/**
+ * The one prompt the server offers (M2): it starts writing context with the person, as a draft of
+ * theirs that is never sent, so it is offered with write_draft. Claude Code lists it as
+ * /footnote:write_context; the app's Write with Claude button says the same words
+ * (src/domain/mcp-text.ts).
+ */
+export const writeContext = {
+  name: 'write_context',
+  title: 'Write context',
+  description: `Write a context item with the person, saved as their draft in ${productName} and never sent. Give what it is about, or leave it out and you are asked what happened.`,
+  argsSchema: z.object({
+    topic: z
+      .string()
+      .optional()
+      .describe(
+        'What it is about: a metric, a market and dates, such as Orders in Norway since 4 August.',
+      ),
+  }),
+  /** The prompt's one message, the person's, about `topic`. */
+  messages: (topic?: string) => [
+    {
+      role: 'user' as const,
+      content: { type: 'text' as const, text: writeContextPrompt(topic) },
+    },
+  ],
+}
+
+/** The write_context prompt's arguments for the MCP server, as JSON Schema too. */
+export function promptArgsSchema() {
+  const schema = writeContext.argsSchema
+  return {
+    '~standard': {
+      ...schema['~standard'],
+      jsonSchema: {
+        input: () => z.toJSONSchema(schema, { io: 'input' }),
+        output: () => z.toJSONSchema(schema),
+      },
+    },
+  }
+}
 
 /** A tool's output schema for the MCP server, when it declares one. */
 export function toolOutputSchema(name: ToolName) {

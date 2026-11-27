@@ -23,6 +23,9 @@ import {
   statusRules,
   suggestRule,
   dataRule,
+  draftRule,
+  reportRule,
+  writeContextPrompt,
 } from '../../../src/domain/mcp-text.ts'
 import { createDevVerifier, mintDevToken } from '../../../src/server/mcp/auth.ts'
 import { registerMcpRoutes } from '../../../src/server/mcp/gateway.ts'
@@ -51,7 +54,15 @@ async function server(
     wallClock,
     web,
     resource = 'http://localhost:3000/mcp',
-  }: { reads?: boolean; wallClock?: { now: Date }; web?: string; resource?: string } = {},
+    person = false,
+  }: {
+    reads?: boolean
+    wallClock?: { now: Date }
+    web?: string
+    resource?: string
+    /** The token names a person a login server signed in, so the draft tools are offered. */
+    person?: boolean
+  } = {},
 ) {
   const { privateKey } = generateKeyPairSync('ed25519')
   const memory = memoryStore(),
@@ -80,10 +91,28 @@ async function server(
   }
   const app = Fastify({ logger: false })
   // Resource binding is independent of the ephemeral listening port, just as behind a proxy.
+  const dev = createDevVerifier(privateKey, resource, 'test')
   const gateway = registerMcpRoutes(app, {
     source,
     store: memory.store,
-    verifier: createDevVerifier(privateKey, resource, 'test'),
+    verifier: person
+      ? {
+          verify: async (token) => ({
+            ...(await dev.verify(token)),
+            subject: 'person-1',
+            scopes: ['read', 'feedback', 'propose'],
+          }),
+        }
+      : dev,
+    ...(person
+      ? {
+          sessions: {
+            write: () => Promise.reject(new Error('Not called')),
+            read: () => Promise.reject(new Error('Not called')),
+            send: () => Promise.reject(new Error('Not called')),
+          },
+        }
+      : {}),
     resource,
     now: () => clock.now,
     ...(wallClock ? { wallClock: () => wallClock.now } : {}),
@@ -893,10 +922,17 @@ describe('the words before a suggestion (FR-121, FR-421)', () => {
     expect(demo).toContain(`${suggestRule}\n${four.map(permissionRule).join('\n')}\n${dataRule}`)
     expect(demo.endsWith(ABOUT_BUSINESS_END)).toBe(true)
     // As many as fit: the whole stays within what Claude Code reads (FR-343), whatever the
-    // product name, About our business and the number of domains.
+    // product name, About our business and the number of domains, with the draft rule too.
     const many = Array.from({ length: 40 }, (_, i) => ({ ...sales, domain: `Domain ${i}` }))
     for (const about of ['', ABOUT_BUSINESS_STARTER, 'x'.repeat(ABOUT_BUSINESS_MAX)]) {
-      const text = instructionsFor('x'.repeat(PRODUCT_NAME_MAX), 'Cube', about, UTC_CALENDAR, many)
+      const text = instructionsFor(
+        'x'.repeat(PRODUCT_NAME_MAX),
+        'Cube',
+        about,
+        UTC_CALENDAR,
+        many,
+        true,
+      )
       expect(text.length).toBeLessThanOrEqual(INSTRUCTIONS_MAX)
       const said = many.filter((permission) => text.includes(permissionRule(permission)))
       expect(said).toEqual(many.slice(0, said.length))
@@ -1280,6 +1316,49 @@ it('follows links with read_context, and keeps a switched-off tool out of the li
       (r) => r.kind === 'request' && r.value.tool === 'read_context' && r.value.status === 'ok',
     ),
   ).toBe(true)
+})
+
+describe('the write_context prompt (M2)', () => {
+  it('comes with write_draft, for a person, and starts a draft about the topic', async () => {
+    const client = await (await server(undefined, { person: true })).connect('auto')
+    expect((await client.listTools()).tools.map((t) => t.name)).toContain('write_draft')
+    expect(client.getInstructions()).toContain(`${reportRule}\n${draftRule}\n${suggestRule}`)
+    const { prompts } = await client.listPrompts()
+    expect(prompts).toEqual([
+      {
+        name: 'write_context',
+        title: 'Write context',
+        description: expect.stringContaining('saved as their draft') as string,
+        arguments: [{ name: 'topic', description: expect.any(String) as string, required: false }],
+      },
+    ])
+    const about = await client.getPrompt({
+      name: 'write_context',
+      arguments: { topic: 'Orders in Norway\nsince 4 August' },
+    })
+    expect(about.messages).toEqual([
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text: writeContextPrompt('Orders in Norway since 4 August'),
+        },
+      },
+    ])
+    expect(writeContextPrompt('Orders in Norway since 4 August')).toMatch(
+      /^Write a context item with me about Orders in Norway since 4 August\. Ask me what happened/,
+    )
+    // Without a topic, the agent asks what happened.
+    const open = await client.getPrompt({ name: 'write_context', arguments: {} })
+    expect(open.messages[0]!.content).toMatchObject({ text: writeContextPrompt() })
+    expect(writeContextPrompt()).toMatch(/^Write a context item with me\. Ask me/)
+  })
+
+  it('is not offered, nor the draft rule said, to a token that names no person', async () => {
+    const client = await (await server()).connect('auto')
+    expect(client.getServerCapabilities()?.prompts).toBeUndefined()
+    expect(client.getInstructions()).not.toContain(draftRule)
+  })
 })
 
 it('offers find_context with or without the reads beside the edition', async () => {

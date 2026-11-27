@@ -3,7 +3,7 @@ title: Agent tools
 line: The seven tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 14
+minutes: 15
 reviewed: 2026-11-27
 ---
 
@@ -249,6 +249,10 @@ The agent sees the person's edits only when it reads the draft, which is when th
 - A field the person changes is marked confirmed, so the owner sees a person read it. A field only the agent wrote stays prefilled.
 - The person's agents can change one draft 60 times an hour. A new draft counts toward `limits.agent_drafts`; a change does not.
 - `read_draft` reads only the person's own drafts and their suggestions still waiting. The words are the person's, never a source for an answer: the other read tools and Ask read only published context.
+
+### The write_context prompt
+
+An agent that may call `write_draft` is also offered one prompt, `write_context`, which starts a draft with the person. In Claude Code it is the command /footnote:write_context. It takes `topic`, what the item is about, such as a metric, a market and dates; without one, the agent asks what happened. It gives back the same words as the app's Write with Claude button: [Write with your agent](write-with-your-agent.md).
 
 ## Send a draft: send_draft
 

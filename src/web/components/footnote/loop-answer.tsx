@@ -28,6 +28,8 @@ import {
   type Nouns,
 } from '@/components/footnote/loop-nouns'
 import { SourcePassages, SourceText } from '@/components/footnote/source-text'
+import { WriteWithButton } from '@/components/footnote/write-with-agent'
+import { writePrompt } from '@/lib/agents'
 import { useReveal } from '@/lib/ask-motion'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
@@ -1211,17 +1213,21 @@ function GapCard({
         <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-2">
           {mayWrite ? (
             about.length ? (
-              <P.Button
-                variant="outline"
-                nativeButton={false}
-                aria-label={`Write context for ${said}`}
-                render={
-                  <a href={P.href('/context/new', writeSearch(loop, about, nouns, question))} />
-                }
-              >
-                <P.PencilIcon data-icon="inline-start" />
-                Write context
-              </P.Button>
+              <>
+                <P.Button
+                  variant="outline"
+                  nativeButton={false}
+                  aria-label={`Write context for ${said}`}
+                  render={
+                    <a href={P.href('/context/new', writeSearch(loop, about, nouns, question))} />
+                  }
+                >
+                  <P.PencilIcon data-icon="inline-start" />
+                  Write context
+                </P.Button>
+                {/* The same, with the person's own agent: about what is missing, never the question. */}
+                <WriteWithButton prompt={writePrompt(topicOf(loop, said))} />
+              </>
             ) : (
               // Each word opens a new term with that word already in it.
               words.map((word) => (
@@ -1453,6 +1459,15 @@ const writeSearch = (loop: LoopTurn, about: readonly string[], nouns: Nouns, que
     // A how-to reads no subject: asked again, it would not find the item.
     ...(loop.subject && question.trim() ? { q: question.trim() } : {}),
   }
+}
+
+/**
+ * What an agent writes about from a gap card: what is missing, in plain words, and the days the
+ * question was read on when its words gave some. Never the question itself.
+ */
+const topicOf = (loop: LoopTurn, said: string) => {
+  const dated = !!loop.subject && !loop.subject.assumedToday && loop.subject.period !== 'any date'
+  return dated ? `${said}, ${loop.subject!.period}` : said
 }
 
 /** The metrics the answer's words name, by their nouns' ids. */
