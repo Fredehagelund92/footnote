@@ -81,6 +81,33 @@ describe('mergeDraft', () => {
     expect(unsavedFields(merged.form, merged.saved)).toEqual([])
   })
 
+  it('settles a wait when the field later comes in, and a field that waits again replaces it', () => {
+    const first = { ...form, title: 'Online sales stopped' }
+    const waits = mergeDraft(
+      { form, saved: form, revision: 1 },
+      { form: first, session: session({ title: byAgent(2) }, 2) },
+      (field) => field === 'title',
+    )!
+    expect(waits.waiting).toEqual(['title'])
+    expect(waits.settled).toEqual([])
+    const later = { ...form, title: 'Webshop sales stopped' }
+    const settles = mergeDraft(
+      { form: waits.form, saved: waits.saved, revision: 2 },
+      { form: later, session: session({ title: byAgent(3) }, 3) },
+      nobodyTyping,
+    )!
+    expect(settles.form.title).toBe('Webshop sales stopped')
+    expect(settles.waiting).toEqual([])
+    expect(settles.settled).toEqual(['title'])
+    const again = mergeDraft(
+      { form: waits.form, saved: waits.saved, revision: 2 },
+      { form: later, session: session({ title: byAgent(3) }, 3) },
+      (field) => field === 'title',
+    )!
+    expect(again.waiting).toEqual(['title'])
+    expect(again.settled).toEqual([])
+  })
+
   it('reads only what changed after its revision, by who changed it, never by the words', () => {
     // The service writes a field back in its own way; one nobody changed since is left alone.
     const theirs = { ...form, body: 'Online sales to Norway stopped on 4 August 2026 .' }

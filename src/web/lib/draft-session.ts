@@ -92,10 +92,6 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
       latest.current.typing,
     )
     if (!merged) return
-    const since = opened.current.revision
-    const settled = sessionFields.filter(
-      (f) => (fact.session?.fields[f]?.revision ?? 0) > since && !merged.waiting.includes(f),
-    )
     keep({ saved: merged.saved, revision: merged.revision })
     setStamps(fact.session.fields)
     if (merged.form !== formRef.current)
@@ -106,6 +102,7 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     const came = merged.change
     if (came) setChange((older) => joinChanges(older, came))
     const agentOf = (f: SessionField) => fact.session?.fields[f]?.agent ?? 'Your agent'
+    const { settled } = merged
     if (settled.length || merged.waiting.length)
       setWaiting((w) => {
         const rest = Object.fromEntries(

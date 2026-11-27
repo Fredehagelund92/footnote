@@ -115,6 +115,8 @@ export type Merged<F extends SessionForm> = {
   change: AgentChange | null
   /** Fields the person is writing in that the agent changed too: its words wait there. */
   waiting: SessionField[]
+  /** Fields changed since the editor's revision that did not go to waiting: any older wait is over. */
+  settled: SessionField[]
 }
 
 /**
@@ -135,11 +137,17 @@ export function mergeDraft<F extends SessionForm>(
   let saved = mine.saved
   const changed: SessionField[] = []
   const waiting: SessionField[] = []
+  const settled: SessionField[] = []
   let at = ''
   let agent = ''
   for (const field of sessionFields) {
     const stamp = fields[field]
     if (!stamp || stamp.revision <= mine.revision) continue
+    if (
+      !(typing(field) || !sameField(mine.form, mine.saved, field)) ||
+      sameField(form, theirs.form, field)
+    )
+      settled.push(field)
     if (sameField(form, theirs.form, field)) {
       saved = takeField(saved, theirs.form, field)
       continue
@@ -167,6 +175,7 @@ export function mergeDraft<F extends SessionForm>(
       ? { agent: agent || 'Your agent', fields: changed, at, before: mine.form, after: form }
       : null,
     waiting,
+    settled,
   }
 }
 
