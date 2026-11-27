@@ -318,6 +318,25 @@ test.describe('on a phone', () => {
     expect(buttons[2]!.top).toBe(buttons[1]!.top)
   })
 
+  test('a footer whose main action comes last still gives that action the row (P03)', async ({
+    page,
+  }) => {
+    await go(page, '/inbox?card=names:waiting&dock=family.group:packaging_costs')
+    const main = page.getByRole('button', { name: /^Publish/ })
+    await expect(main).toBeVisible()
+    const buttons = await main.evaluate((b) =>
+      [...b.parentElement!.children].map((el) => {
+        const r = el.getBoundingClientRect()
+        return { left: r.left, right: r.right, top: r.top, height: r.height }
+      }),
+    )
+    expect(buttons.length).toBeGreaterThan(1)
+    const last = buttons[buttons.length - 1]!
+    expect(last.right - last.left).toBe(390 - 2 * 16)
+    expect(last.height).toBe(44)
+    for (const b of buttons.slice(0, -1)) expect(b.top).toBeLessThan(last.top)
+  })
+
   test('the compare table keeps its verdict inside its frame (P04)', async ({ page }) => {
     await go(page, '/inbox/gap-spain/review')
     const table = page.getByRole('table').filter({ hasText: 'In the copied sentence' })

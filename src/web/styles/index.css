@@ -144,15 +144,15 @@
   }
 }
 
-/* A dock's footer on a phone: its actions fill the row and are 44px for a finger, the main one,
-   which comes first, on a row of its own. */
+/* A dock's footer on a phone: its actions fill the row and are 44px for a finger, the main one
+   (data-variant='default', wherever it sits), on a row of its own. */
 @media (width < 40rem) {
   [data-dock-footer] > * {
     flex: 1;
     height: calc(var(--spacing) * 11);
   }
 
-  [data-dock-footer] > :first-child {
+  [data-dock-footer] > [data-variant='default'] {
     flex-basis: 100%;
   }
 }
