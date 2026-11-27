@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
-import type { SourceNameRead, WaitingValue } from '@contract/inbox'
+import type { NamesRead, SourceNameRead, WaitingValue } from '@contract/inbox'
 import { toApiError } from '@/api/errors'
 import { namesQuery, queryKeys, useWrite } from '@/api/queries'
 import { Domain, Fold, PaneFoot, PaneHead, PrimaryAction } from '@/components/footnote/inbox-pane'
@@ -558,7 +558,9 @@ export default function NamesReview({
     setProblems({})
     try {
       await write('decideNames', {
-        revision: read.data.revision,
+        // The write puts the names that follow into the cache before this card draws them, so a
+        // press right after one reads the revision from the cache, not from the last render.
+        revision: client.getQueryData<NamesRead>(queryKeys.names)?.revision ?? read.data.revision,
         accept: picks,
         leaveOut,
         values: decided,
