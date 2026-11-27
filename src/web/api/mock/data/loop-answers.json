@@ -1,7 +1,7 @@
 {
   "How many test accounts does units sold leave out in Norway?": {
     "kind": "answer",
-    "text": "What is written for Units sold and Norway.\n\nUnits sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop.[1]",
+    "text": "What is written for Units sold and Norway.\n\nUnits sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop. From 29 May 2026 the test accounts of the new app are left out too.[1]",
     "sources": ["itm_s90n5xps"],
     "state": "grounded",
     "footer": {
@@ -81,7 +81,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "Units sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop."
+            "text": "Units sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop. From 29 May 2026 the test accounts of the new app are left out too."
           },
           {
             "t": "cite",
@@ -90,7 +90,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:units_sold] and [@value:market/norway].\n\nUnits sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop.[itm_s90n5xps]",
+    "said": "What is written for [@metric:units_sold] and [@value:market/norway].\n\nUnits sold excludes test accounts: Units sold in Norway leaves out the 312 accounts our teams use to test the webshop. From 29 May 2026 the test accounts of the new app are left out too.[itm_s90n5xps]",
     "nouns": [
       {
         "id": "metric:units_sold",
@@ -561,7 +561,7 @@
   },
   "Do Norway orders include gift-card money?": {
     "kind": "answer",
-    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
     "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
     "state": "conflict",
     "footer": {
@@ -641,7 +641,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out."
           },
           {
             "t": "cite",
@@ -676,7 +676,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
     "nouns": [
       {
         "id": "metric:orders",
@@ -813,7 +813,7 @@
   },
   "Why did Norway returns drop at the end of April?": {
     "kind": "answer",
-    "text": "What is written for Returns and Norway.\n\nReturns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank.[1]",
+    "text": "What is written for Returns and Norway.\n\nReturns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank. Cancelled refunds counted before, so earlier weeks read about 4 percent higher.[1]",
     "sources": ["itm_ra39ow6c"],
     "state": "stale",
     "footer": {
@@ -893,7 +893,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "Returns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank."
+            "text": "Returns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank. Cancelled refunds counted before, so earlier weeks read about 4 percent higher."
           },
           {
             "t": "cite",
@@ -902,7 +902,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:returns] and [@value:market/norway].\n\nReturns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank.[itm_ra39ow6c]",
+    "said": "What is written for [@metric:returns] and [@value:market/norway].\n\nReturns changed definition on 28 April 2026: From 28 April 2026, Norway returns count only refunds that reached the customer's bank. Cancelled refunds counted before, so earlier weeks read about 4 percent higher.[itm_ra39ow6c]",
     "nouns": [
       {
         "id": "metric:returns",
@@ -1183,7 +1183,7 @@
   },
   "How did orders in Norway change in October 2026?": {
     "kind": "answer",
-    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
     "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
     "state": "conflict",
     "footer": {
@@ -1263,7 +1263,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out."
           },
           {
             "t": "cite",
@@ -1298,7 +1298,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
     "nouns": [
       {
         "id": "metric:orders",
@@ -1447,7 +1447,7 @@
   },
   "Why did orders in Norway drop in August?": {
     "kind": "answer",
-    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
+    "text": "What is written for Orders and Norway.\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out.[1]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[2]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[3]",
     "sources": ["itm_gift_card_only", "itm_gift_store_credit", "itm_norway_stop"],
     "state": "conflict",
     "footer": {
@@ -1527,7 +1527,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments."
+            "text": "Norway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out."
           },
           {
             "t": "cite",
@@ -1562,7 +1562,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
+    "said": "What is written for [@metric:orders] and [@value:market/norway].\n\nNorway orders are card and cash payments only: Orders in Norway count only card and cash payments. Store credit and gift cards are left out.[itm_gift_card_only]\n\nNorway orders count store credit: Orders in Norway include orders paid with store credit and gift cards, in euros at the daily rate.[itm_gift_store_credit]\n\nOnline sales to Norway stopped on 4 August 2026: A new customs rule stopped all online sales to Norway from 4 August 2026, so orders there fell to almost nothing.[itm_norway_stop]",
     "nouns": [
       {
         "id": "metric:orders",
@@ -1714,7 +1714,7 @@
   },
   "Did discount cost in Norway fall after 9 May?": {
     "kind": "answer",
-    "text": "What is written for Discount cost and Norway.\n\nNew VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price.[1]",
+    "text": "What is written for Discount cost and Norway.\n\nNew VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price. We cut welcome discounts in Norway in that time, and discount cost there is lower for those months.[1]",
     "sources": ["itm_7ini5esz"],
     "state": "grounded",
     "footer": {
@@ -1794,7 +1794,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "New VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price."
+            "text": "New VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price. We cut welcome discounts in Norway in that time, and discount cost there is lower for those months."
           },
           {
             "t": "cite",
@@ -1803,7 +1803,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:discount_cost] and [@value:market/norway].\n\nNew VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price.[itm_7ini5esz]",
+    "said": "What is written for [@metric:discount_cost] and [@value:market/norway].\n\nNew VAT rate applied in Norway from 3 August 2025: A new VAT rule applied in Norway from 3 August 2025 to 5 June 2026 and taxed discounts as part of the price. We cut welcome discounts in Norway in that time, and discount cost there is lower for those months.[itm_7ini5esz]",
     "nouns": [
       {
         "id": "metric:discount_cost",
@@ -2422,7 +2422,7 @@
   },
   "Before the weekly note goes out: has anything changed in how gross margin is counted for Spain since the price promotions came back?": {
     "kind": "answer",
-    "text": "What is written for Gross margin and Spain.\n\nWhat to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more.[1]",
+    "text": "What is written for Gross margin and Spain.\n\nWhat to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more. Margin there swings with clearance sales, so one good weekend for us is no trend.[1]",
     "sources": ["itm_kcy22j54"],
     "state": "stale",
     "footer": {
@@ -2502,7 +2502,7 @@
         "runs": [
           {
             "t": "text",
-            "text": "What to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more."
+            "text": "What to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more. Margin there swings with clearance sales, so one good weekend for us is no trend."
           },
           {
             "t": "cite",
@@ -2511,7 +2511,7 @@
         ]
       }
     ],
-    "said": "What is written for [@metric:gross_margin] and [@value:market/spain].\n\nWhat to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more.[itm_kcy22j54]",
+    "said": "What is written for [@metric:gross_margin] and [@value:market/spain].\n\nWhat to rule out before explaining a jump in Gross margin: Before you explain a jump in gross margin in Spain, look at four weeks or more. Margin there swings with clearance sales, so one good weekend for us is no trend.[itm_kcy22j54]",
     "nouns": [
       {
         "id": "metric:gross_margin",
