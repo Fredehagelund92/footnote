@@ -145,6 +145,26 @@ test('a new page that holds nothing has no status to give', async ({ page }) => 
   await expect(page).toHaveURL(/\/context$/)
 })
 
+test('a new item keeps every later edit of its draft too, and a reload shows them all', async ({
+  page,
+}) => {
+  await newContext(page)
+  await title(page, 'Orders are counted when they ship')
+  await expect(status(page)).toHaveText('Saved')
+  await expect(page).toHaveURL(/\/context\/new\?saved=/)
+  await text(page, 'Shipped orders count, whatever the payment says.')
+  await expect(status(page)).toHaveText('Saved')
+  await page.getByRole('textbox', { name: 'Title' }).fill('Orders are counted at shipping')
+  await expect(status(page)).toHaveText('Saved')
+  await inHttpOnly('a reload reads the draft the service holds', async () => {
+    await page.reload()
+    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue(
+      'Orders are counted at shipping',
+    )
+    await expect(page.getByText('Shipped orders count, whatever the payment says.')).toBeVisible()
+  })
+})
+
 test('offline, the status says nothing is kept, not that it is saved on this device', async ({
   page,
 }) => {

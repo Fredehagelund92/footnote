@@ -132,7 +132,14 @@ import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
 import { relationWords } from '@domain/clash-relations'
 import { instructionWords } from '@domain/instruction-words'
-import { draftFromTextQuery, itemPageQuery, useInbox, useVocabulary, useWrite } from '@/api/queries'
+import {
+  draftFromTextQuery,
+  draftNowQuery,
+  itemPageQuery,
+  useInbox,
+  useVocabulary,
+  useWrite,
+} from '@/api/queries'
 import { useGlossary, type Definition } from '@/lib/definitions'
 import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useWide } from '@/hooks/use-wide'
@@ -593,12 +600,14 @@ function Editor({
     source: 'source',
     dontConclude: 'dont',
   }
+  // A new item that kept itself as a draft: the page goes on as that draft, as one opened again.
+  const [kept, setKept] = React.useState<Fact | null>(null)
   const session = useDraftSession({
-    draft: original?.session && original.by === me.name ? original : undefined,
+    draft: original?.session && original.by === me.name ? original : (kept ?? undefined),
     form,
     setForm,
     formOf: (f) => fromFact(f, domains, vocabulary),
-    factOf: (f) => toFact(f, original?.id ?? 'draft', me.name, domains, original),
+    factOf: (f) => toFact(f, original?.id ?? kept?.id ?? 'draft', me.name, domains, original),
     typing: (field) => {
       const active = document.activeElement
       if (field === 'title') return active === titleRef.current
@@ -723,33 +732,34 @@ function Editor({
   // A draft nobody has published goes as it is: publishing its words is the change.
   const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
   const unchanged = mode !== 'new' && !edited && !asIs
-  // A new item, and the writer's own draft, keep themselves as a draft once there are words and a
-  // domain to keep them in (FR-230): a reload, a closed tab or a crash loses nothing. A change to a
-  // published item, or to someone else's draft, is kept only by its Save.
-  const ownDraft = original?.status === 'Draft' && !original.returned && original.by === me.name
+  // A new item keeps itself as a draft once there are words and a domain to keep them in (FR-230):
+  // a reload, a closed tab or a crash loses nothing. From then on it is that draft, which saves
+  // itself as any of the writer's drafts do. A change to a published item, or to someone else's
+  // draft, is kept only by its Save.
   const hasWords = !!(form.title.trim() || form.body.trim())
   const keepsItself =
     !session.on &&
     !beside &&
     !starting &&
-    (mode === 'new' || ownDraft) &&
+    mode === 'new' &&
+    !savedId &&
     !!domains[form.domain] &&
     hasWords
   const gapId = query.get('gap') ?? undefined
   const autosave = useAutosave<Fact>({
     save: async (fact) => {
-      const id = savedRef.current ?? original?.id
-      const saved = await write('saveDraft', {
-        fact: id ? { ...fact, id } : fact,
-        isNew: !id,
-        gap: gapId,
-      })
-      if (savedRef.current || original) return
-      savedRef.current = saved.id
-      setSavedId(saved.id)
-      // The address names the draft, so a reload opens it again; the page stays as it is, with
-      // the cursor where it was.
-      navigate('/context/new', { ...Object.fromEntries(query), saved: saved.id }, { replace: true })
+      let id = savedRef.current
+      if (!id) {
+        const saved = await write('saveDraft', { fact, isNew: true, gap: gapId })
+        id = saved.id
+        savedRef.current = id
+        setSavedId(id)
+        // The address names the draft, so a reload opens it again; the page stays as it is, with
+        // the cursor where it was.
+        navigate('/context/new', { ...Object.fromEntries(query), saved: id }, { replace: true })
+      }
+      const stored = await queryClient.fetchQuery(draftNowQuery(id))
+      if (stored?.session) setKept(stored)
     },
     onError: (error) =>
       toast("Couldn't save it as a draft", { description: toApiError(error).message }),
@@ -871,7 +881,8 @@ function Editor({
     if (asIs) return publishAsIs(asIs)
     // A draft this page keeps is sent or published as itself, once what it holds is stored: a
     // save still on its way would otherwise leave a draft beside what is published.
-    if (keepsItself || savedRef.current) await autosave.flush().catch(() => undefined)
+    if (keepsItself || (savedRef.current && !session.on))
+      await autosave.flush().catch(() => undefined)
     const kept = original?.id ?? savedRef.current ?? undefined
     const fact = { ...draft, id: kept ?? draft.id }
     if (isSuggest) {
@@ -1014,14 +1025,15 @@ function Editor({
     try {
       // A page that keeps itself has saved it already: what is still on its way goes, then the
       // person is taken to the draft.
-      const { id } =
-        keepsItself || savedRef.current
-          ? await autosave.flush().then(() => ({ id: savedRef.current ?? original!.id }))
-          : await write('saveDraft', {
-              fact: draft,
-              isNew: !original,
-              gap: query.get('gap') ?? undefined,
-            })
+      if (session.on) await session.flush()
+      else if (keepsItself || savedRef.current) await autosave.flush()
+      const { id } = savedRef.current
+        ? { id: savedRef.current }
+        : await write('saveDraft', {
+            fact: draft,
+            isNew: !original,
+            gap: query.get('gap') ?? undefined,
+          })
       guard.release()
       toast('Saved as a draft', {
         description: "Only you can see it. Agents don't get it until it is published.",
