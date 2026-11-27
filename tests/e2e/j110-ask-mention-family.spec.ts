@@ -1,4 +1,4 @@
-import { expect, go, test } from './go.ts'
+import { expect, go, newContext, test } from './go.ts'
 
 // J110: an owner names a family in Ask with '@' (FR-142). On the mock's ?demo=families, Active
 // buyers is a family of three metrics, one per sales line: typing its name after '@' in Ask finds
@@ -27,7 +27,7 @@ test("an owner mentions a family in Ask's '@' list", async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Active buyers', level: 2 })).toBeVisible()
 
   // A text links only to what the service keeps: the family is not offered there.
-  await go(page, '/context/new')
+  await newContext(page)
   const body = page.getByRole('textbox', { name: 'What agents should know' })
   await body.click()
   await body.pressSequentially('@Active')

@@ -1,4 +1,4 @@
-import { expect, go, signInAs, test } from './go.ts'
+import { expect, go, newContext, signInAs, test } from './go.ts'
 
 // J131, values people write (values without figures): a dimension's page lists its values, and
 // Jon, an admin, adds one there, which the Applies to picker finds at once; a value nobody has
@@ -26,7 +26,7 @@ test('people add values on a dimension’s page and where they write, and an adm
   await expect(values).toContainText('Runningalso Run, Jogging')
 
   // The picker finds it, by another name too, and offers what nobody has added yet.
-  await go(page, '/context/new')
+  await newContext(page)
   await page.getByRole('button', { name: /^Applies to/ }).click()
   const search = page.getByRole('combobox', { name: 'Search Applies to' })
   const list = page.getByRole('listbox', { name: 'Applies to' })

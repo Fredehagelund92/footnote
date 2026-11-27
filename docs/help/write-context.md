@@ -4,7 +4,7 @@ line: How to add a context item, what it is, what to put in it, its source and i
 group: Write and review
 order: 1
 minutes: 8
-reviewed: 2026-11-26
+reviewed: 2026-11-27
 open:
   label: Write context
   href: /context/new
@@ -17,7 +17,9 @@ How to add a context item, what to put in it, and the line that stops an agent f
 
 ## Add a context item
 
-To create one, open **Context** and choose **Write context**. The editor opens on a new item, with its first question: What should agents know?
+To create one, open **Context** and choose **Write context**. It opens on one box: What happened? Paste a message, a link, or just say what happened, and choose **Fill it in**. The editor opens with the title, the text, the kind, the dates and where it applies filled in by rule from your words, with no AI model, and you check each one. A link is read from its page, which becomes the source.
+
+To start from an empty item, choose **Write it yourself**. Draft from text, in the editor's More menu, goes back to the box.
 
 When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 

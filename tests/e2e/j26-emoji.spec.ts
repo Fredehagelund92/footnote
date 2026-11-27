@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { expect, go, test } from './go.ts'
+import { expect, go, newContext, test } from './go.ts'
 
 // J26: emoji where people talk to each other. ':' alone opens the same list as '@' (one popover,
 // one keyboard model), the five reactions and what was used lately first; Enter inserts the
@@ -121,7 +121,7 @@ test('in Ask, Enter picks from an open list instead of sending', async ({ page }
 })
 
 test('context takes no emoji list, and a pasted emoji gets a quiet note', async ({ page }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   const body = page.getByRole('textbox', { name: /What agents should know/ })
   await body.click()
   await page.keyboard.type('Orders :sm')

@@ -12,6 +12,7 @@ import type {
   SavedDraft,
 } from '../../../contract/context.ts'
 import { deriveAgentDraft } from '../../../domain/agent-draft.ts'
+import { titleOfWords } from '../../../domain/questions.ts'
 import {
   changeAction,
   changeSummary,
@@ -1244,7 +1245,13 @@ export function createContextService(
       { text: words, ...(title ? { title } : {}) },
       { ...(await draftVocabulary(tx)), today },
     )
-    const draft: Draft = { ...derived.draft, ...(evidence ? { evidence } : {}) }
+    // Words with no title of their own, such as a person saying what happened, are titled by their
+    // first sentence, as a sent question is; the writer shortens it.
+    const draft: Draft = {
+      ...derived.draft,
+      ...(derived.draft.title ? {} : { title: titleOfWords(derived.draft.summary ?? words) }),
+      ...(evidence ? { evidence } : {}),
+    }
     const unsure = Object.entries(derived.marks)
       .filter(([field, mark]) => mark !== 'confirmed' && field !== 'summary' && field !== 'body')
       .map(([field]) => field)

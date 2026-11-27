@@ -76,7 +76,7 @@ test.describe('at 1440 px', () => {
       '/definitions',
       '/context',
       '/context/itm_norway_stop',
-      '/context/new',
+      '/context/new?draft=norway',
       '/inbox/sug-ines-link/review',
       '/settings/general',
     ]) {

@@ -212,6 +212,12 @@ export async function go(page: Page, route: string) {
   await to.after?.()
 }
 
+/** Write context's form with nothing in it: its first box, passed over with Write it yourself. */
+export async function newContext(page: Page) {
+  await go(page, '/context/new')
+  await page.getByRole('button', { name: 'Write it yourself' }).click()
+}
+
 /** Move to another address inside the app, as a link on the page does, without loading it again. */
 export const moveTo = (page: Page, route: string) =>
   page.evaluate((to) => {

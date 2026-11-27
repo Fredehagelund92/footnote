@@ -1,4 +1,4 @@
-import { domain, expect, go, test } from './go.ts'
+import { domain, expect, go, newContext, test } from './go.ts'
 
 // J9, domains: each is a document of its own; a new one is added from the grid and, while empty,
 // can be deleted; one with context can't; its words reach the context editor's domain list.
@@ -47,7 +47,7 @@ test("a domain with context can't be deleted", async ({ page }) => {
 })
 
 test("the domain's words reach the context editor's domain list", async ({ page }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   await page.getByRole('button', { name: /^Domain/ }).click()
   await expect(page.getByRole('option', { name: /Orders, revenue and the basket/ })).toBeVisible()
 })
