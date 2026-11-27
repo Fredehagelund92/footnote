@@ -144,7 +144,7 @@ export const agentSchema = z.object({
   /**
    * Every tool, in the order agents read them: whether an administrator switched it on for this
    * agent, and whether the agent may have it at all, which the person decided when an app
-   * connected and which an access key never has for suggest_context. It works only when both hold.
+   * connected and which an access key never has for the draft tools. It works only when both hold.
    */
   tools: z.array(z.object({ tool: z.enum(agentToolNames), on: z.boolean(), allowed: z.boolean() })),
   /** Who last switched a tool, and when; null while every switch is as it started. */

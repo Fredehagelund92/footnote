@@ -5,8 +5,8 @@
 #
 # (`--drafts` with `--apply` keeps them as drafts.) `footnote` talks to http://127.0.0.1:3000; name
 # another service with --url. An import never publishes anything: each item becomes a suggestion
-# that the domain's owner publishes in Footnote. The web app's editor and an agent's suggest_context
-# make the same suggestions. A law or a regulation has a template of its own:
+# that the domain's owner publishes in Footnote. The web app's editor and an agent's write_draft and
+# send_draft make the same suggestions. A law or a regulation has a template of its own:
 # docs/templates/regulatory-event.yaml. To turn lessons or instructions you already have into this
 # format, see convert-lessons.md.
 #

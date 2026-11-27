@@ -991,7 +991,7 @@ describe('a concise reply (FR-342)', () => {
 
   it('says what to change for a mistake the caller can fix, never to try again (finding 7)', async () => {
     const s = setup()
-    // A note with an address or a phone number is refused with the field, as suggest_context does.
+    // A note with an address or a phone number is refused with the field, as write_draft does.
     for (const note of ['Ask jon.abara@example.test, he knows', 'call me on +47 912 34 567']) {
       const refused = await s.call('report', { kind: 'wrong', context_id: 'itm_norway01', note })
       expect(refused.isError, note).toBe(true)

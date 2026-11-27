@@ -104,27 +104,31 @@ function suggestion(
   n += 1
   const title = options.title ?? `Finance closes the books on day ${n} of each month`
   return {
-    name: 'suggest_context',
-    arguments: {
-      text: `${title}.`,
-      kind: options.kind ?? 'note',
-      area: 'finance',
-      scope: {
-        metrics: options.metrics ?? ['Orders'],
-        ...(options.markets
-          ? { dimension_filters: [{ dimension: 'Market', values: options.markets }] }
-          : {}),
-      },
-      window: { from: '2026-10-01' },
-      evidence: [{ url: `https://wiki.example/finance/close-${n}`, quote: `${title}.` }],
-      new_item: true,
+    text: `${title}.`,
+    kind: options.kind ?? 'note',
+    area: 'finance',
+    scope: {
+      metrics: options.metrics ?? ['Orders'],
+      ...(options.markets
+        ? { dimension_filters: [{ dimension: 'Market', values: options.markets }] }
+        : {}),
     },
+    window: { from: '2026-10-01' },
+    evidence: [{ url: `https://wiki.example/finance/close-${n}`, quote: `${title}.` }],
+    new_item: true,
   }
 }
 
-async function suggest(token: string, call = suggestion()) {
+/** The agent writes a draft and, on the person's yes, sends the revision it showed them. */
+async function suggest(token: string, args: Record<string, unknown> = suggestion()) {
   const wire = await mcpClient(token)
-  const reply = await wire.callTool(call)
+  const written = await wire.callTool({ name: 'write_draft', arguments: args })
+  expect(written.isError).not.toBe(true)
+  const draft = written.structuredContent as { draft_id: string; revision: number }
+  const reply = await wire.callTool({
+    name: 'send_draft',
+    arguments: { draft_id: draft.draft_id, revision: draft.revision },
+  })
   await wire.close()
   expect(reply.isError).not.toBe(true)
   return reply.structuredContent as Reply
@@ -212,7 +216,7 @@ describe('publishing without review', () => {
       ),
     ).rejects.toThrow(/off for the workspace/)
     const sent = await suggest(app.token)
-    expect(sent.status).toBe('suggestion_sent')
+    expect(sent.status).toBe('sent')
     expect(sent.policy).toBeUndefined()
     // Only an admin switches it.
     expect((await owner.api('/agent-policies/switch', { on: true, reason: 'x' })).status).toBe(403)
@@ -238,7 +242,7 @@ describe('publishing without review', () => {
 
     const reply = await suggest(app.token)
     expect(reply).toMatchObject({
-      status: 'suggestion_published',
+      status: 'published',
       policy: { published: true, set_by: 'owner', domain: 'Finance' },
     })
     // In the app's words, which the agent relays to the person: never "policy".
@@ -316,6 +320,63 @@ describe('publishing without review', () => {
     expect(await live(p.item_id!)).toBe(false)
   })
 
+  it('publishes only a draft its own agent wrote: one the person started, or another agent wrote, waits', async () => {
+    const app = await connect('author')
+    const other = await connect('author')
+    await switchTo(boss, true)
+    expect((await setPolicy(owner, app.agentId)).status).toBe(200)
+    const call = async (token: string, name: string, args: Record<string, unknown>) => {
+      const wire = await mcpClient(token)
+      const reply = await wire.callTool({ name, arguments: args })
+      await wire.close()
+      return reply.structuredContent as Reply & { revision: number }
+    }
+    // Another agent of the same person wrote it: the permission is not that agent's.
+    const theirs = await call(other.token, 'write_draft', suggestion())
+    const sentForThem = await call(app.token, 'send_draft', {
+      draft_id: theirs.draft_id,
+      revision: theirs.revision,
+    })
+    expect(sentForThem.status).toBe('sent')
+    expect(sentForThem.policy).toBeUndefined()
+    expect((await proposal(theirs.draft_id)).state).toBe('submitted')
+    // The person started it in Footnote and the agent finished it: it waits for review too.
+    const author = await signedIn('author')
+    const started = await author.api(
+      '/drafts',
+      {
+        draft: {
+          kind: 'note',
+          title: 'Finance closes the books on the last day of each month',
+          summary: 'Finance closes the books on the last day of each month.',
+          scope: { metrics: ['metric:orders'], dimensions: [], dimensionValues: [] },
+        },
+      },
+      { 'idempotency-key': randomUUID() },
+    )
+    expect(started.status).toBe(200)
+    const id = ((await started.json()) as { proposalId: string }).proposalId
+    const read = await call(app.token, 'read_draft', { draft_id: id })
+    const finished = await call(app.token, 'write_draft', {
+      draft_id: id,
+      revision: read.revision,
+      window: { from: '2026-10-01' },
+      evidence: [
+        {
+          url: 'https://wiki.example/finance/close-last',
+          quote: 'Finance closes the books on the last day of each month.',
+        },
+      ],
+    })
+    const sent = await call(app.token, 'send_draft', {
+      draft_id: id,
+      revision: finished.revision,
+    })
+    expect(sent.status).toBe('sent')
+    expect(sent.policy).toBeUndefined()
+    expect(await decisionsOf(id)).toEqual([])
+  })
+
   it('keeps every other suggestion waiting for review, and says why', async () => {
     const app = await connect('author')
     await switchTo(boss, true)
@@ -329,7 +390,7 @@ describe('publishing without review', () => {
     // A clash with a live item: once one rule about Orders is live, the next one clashes with it,
     // and an owner says how they relate.
     const first = await suggest(app.token)
-    expect(first.status).toBe('suggestion_published')
+    expect(first.status).toBe('published')
     const clash = await suggest(app.token, suggestion({ title: 'Orders exclude gift cards' }))
     expect(clash.policy).toMatchObject({
       published: false,
@@ -350,7 +411,7 @@ describe('publishing without review', () => {
     await switchTo(boss, true)
     expect((await setPolicy(owner, app.agentId)).status).toBe(200)
     const other = await suggest(app.token, suggestion({ metrics: ['Marketing spend'] }))
-    expect(other.status).toBe('suggestion_sent')
+    expect(other.status).toBe('sent')
     expect(other.policy).toBeUndefined()
     expect(other.message).toBe(
       'Sent to the owner of Marketing. It waits for their check, and nothing changes until they publish it.',
@@ -368,7 +429,7 @@ describe('publishing without review', () => {
         title: 'Spend per order counts gift cards',
       }),
     )
-    expect(both.status).toBe('suggestion_sent')
+    expect(both.status).toBe('sent')
     expect(both.policy).toMatchObject({
       published: false,
       domain: 'Finance',
@@ -394,7 +455,7 @@ describe('publishing without review', () => {
     await switchTo(boss, true)
     await setPolicy(owner, app.agentId, { perDay: 1 })
     const first = await suggest(app.token)
-    expect(first.status).toBe('suggestion_published')
+    expect(first.status).toBe('published')
     const [decision] = await decisionsOf(first.draft_id)
     // An owner undoes it later; the suggestion waits for review again and the item goes.
     expect((await undo(owner, decision!.id)).status).toBe(200)
@@ -412,7 +473,7 @@ describe('publishing without review', () => {
     await switchTo(boss, true)
     await setPolicy(owner, app.agentId)
     const reply = await suggest(app.token)
-    expect(reply.status).toBe('suggestion_published')
+    expect(reply.status).toBe('published')
     const [decision] = await decisionsOf(reply.draft_id)
     const author = await signedIn('author')
     expect((await undo(author, decision!.id)).status).toBe(403)
@@ -484,7 +545,7 @@ describe('publishing without review', () => {
       ),
     ).rejects.toThrow(/Only an owner of the domain/)
     const reply = await suggest(app.token)
-    expect(reply.status).toBe('suggestion_sent')
+    expect(reply.status).toBe('sent')
     expect(reply.policy).toBeUndefined()
     // An access key never suggests, so it never has a policy.
     const key = (await (await boss.api('/access-keys', { name: 'Nightly digest' })).json()) as {
@@ -519,7 +580,7 @@ describe('publishing without review', () => {
       reason: 'I want to check what it sends',
     })
     expect(await ended.json()).toEqual({ changed: true })
-    expect((await suggest(app.token)).status).toBe('suggestion_sent')
+    expect((await suggest(app.token)).status).toBe('sent')
     // A policy is never changed, only ended; and ended once.
     await expect(
       admin.query('update agent_policies set per_day=50 where id=$1', [policy.id]),
@@ -531,7 +592,7 @@ describe('publishing without review', () => {
     // The workspace switch off ends every policy, with the history log keeping each.
     await setPolicy(owner, app.agentId)
     expect(await (await switchTo(boss, false)).json()).toEqual({ on: false, ended: 1 })
-    expect((await suggest(app.token)).status).toBe('suggestion_sent')
+    expect((await suggest(app.token)).status).toBe('sent')
     const { rows } = await admin.query<{ action: string }>(
       `select action from audit_log where subject_type='agent' and subject_id=$1 order by seq`,
       [app.agentId],
@@ -560,7 +621,7 @@ describe('publishing without review', () => {
       'select count(*)::int as open from agent_policies where ended_at is null',
     )
     expect(rows[0]!.open).toBe(0)
-    expect((await suggest(app.token)).status).toBe('suggestion_sent')
+    expect((await suggest(app.token)).status).toBe('sent')
   })
 
   it('ends with the last connection of its app, on whatever path it is revoked', async () => {
@@ -665,14 +726,14 @@ describe('the instructions an agent gets at connect', () => {
       )
     }
 
-    // Paused: suggest_context is off for the agent, which then lists four tools. Another person's
+    // Paused: send_draft is off for the agent, which then lists the other six. Another person's
     // app, since a new agent of the same person and app keeps an admin's switch.
     const off = await connect('stranger')
     expect((await setPolicy(owner, off.agentId)).status).toBe(200)
     expect(
       (
         await boss.api(`/agents/${off.agentId}/tools`, {
-          tool: 'suggest_context',
+          tool: 'send_draft',
           on: false,
           reason: 'Trying read-only for this agent',
         })
@@ -684,7 +745,7 @@ describe('the instructions an agent gets at connect', () => {
     expect(listed.policies.find((p) => p.agentId === off.agentId)?.pause).toBe('tool_off')
     const toolOff = await connected(off.token)
     expect(toolOff.instructions).not.toContain(none)
-    expect(toolOff.tools.sort()).toEqual(all.filter((t) => t !== 'suggest_context').sort())
+    expect(toolOff.tools.sort()).toEqual(all.filter((t) => t !== 'send_draft').sort())
   })
 })
 
@@ -695,7 +756,7 @@ describe('the database guard on a decision under a policy', () => {
     await switchTo(boss, true)
     // A policy the owner sets after the suggestion was sent, so it still waits.
     const reply = await suggest(app.token, suggestion({ kind }))
-    expect(reply.status).toBe('suggestion_sent')
+    expect(reply.status).toBe('sent')
     const policy = (await (await setPolicy(owner, app.agentId)).json()) as { id: string }
     const { rows } = await admin.query<{ version: string }>(
       'select item_version_id::text as version from proposals where id=$1',
@@ -737,13 +798,13 @@ describe('the database guard on a decision under a policy', () => {
     await expect(decideAs(people.owner, w)).rejects.toThrow(/only publishes low-risk items/)
   })
 
-  it('refuses one while suggest_context is off for the agent', async () => {
+  it('refuses one while send_draft is off for the agent', async () => {
     const w = await waiting()
     await admin.query(
-      "update auth.agents set tools = array_remove(tools, 'suggest_context') where id=$1",
+      "update auth.agents set tools = array_remove(tools, 'send_draft') where id=$1",
       [w.app.agentId],
     )
-    await expect(decideAs(people.owner, w)).rejects.toThrow(/suggest_context is off/)
+    await expect(decideAs(people.owner, w)).rejects.toThrow(/send_draft is off/)
   })
 
   it('refuses one once the workspace switch is off', async () => {

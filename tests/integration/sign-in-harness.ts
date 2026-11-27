@@ -93,7 +93,6 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
     connectionDays: 7,
   }
   const { privateKey: devKey } = generateKeyPairSync('ed25519')
-  const stateKey = Uint8Array.from(randomBytes(32))
   let keyDir: string
   let keys: KeyRing
   let login: LoginServer
@@ -125,8 +124,6 @@ export async function signInHarness(options: { dynamicRegistration?: boolean } =
         resource,
         authorizationServers: [issuer],
         now,
-        // Seals suggest_context's question rounds (tests/integration/draft-questions.test.ts).
-        stateKey,
         // Access keys, and what each agent may do, are checked as the service checks them: on the
         // serving role, at every request.
         verifier: withAccessKeys(

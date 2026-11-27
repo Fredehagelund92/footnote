@@ -375,7 +375,7 @@ describe('a draft the person writes with their agent', () => {
     await off.close()
     expect(names).not.toContain('write_draft')
     expect(names).not.toContain('read_draft')
-    expect(names).toContain('suggest_context')
+    expect(names).toContain('send_draft')
     const stale = await callRaw(token, 'write_draft', { text, ...complete })
     expect(stale.status).toBe(403)
     expect(stale.text).toContain('An admin switched write_draft off for this agent in Footnote.')

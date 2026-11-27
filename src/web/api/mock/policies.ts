@@ -56,7 +56,7 @@ export function createPolicies() {
               .filter(
                 (a) =>
                   a.kind === 'app' &&
-                  a.tools.some((t) => t.tool === 'suggest_context' && t.on && t.allowed),
+                  a.tools.some((t) => t.tool === 'send_draft' && t.on && t.allowed),
               )
               .map((a) => ({
                 id: a.id,
@@ -105,9 +105,7 @@ export function createPolicies() {
         setOn: '23 Oct 2026',
         reason: input.reason,
         today: 0,
-        pause: input.agent.tools.some((t) => t.tool === 'suggest_context' && t.on)
-          ? null
-          : 'tool_off',
+        pause: input.agent.tools.some((t) => t.tool === 'send_draft' && t.on) ? null : 'tool_off',
         canEnd: true,
       }
       // A change is a new policy: it replaces the agent's policy in that domain.

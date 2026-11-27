@@ -53,8 +53,8 @@ async function openPolicies(
               where d.auto_policy_id = p.id and d.decided_at > now() - interval '24 hours') as today,
             case
               when not cl_has_area_role(p.set_by, p.area_id, 'owner', now()) then 'not_owner'
-              when not 'suggest_context' = any (a.tools) then 'tool_off'
-              when not coalesce((select enabled from tool_config where tool = 'suggest_context'), false)
+              when not 'send_draft' = any (a.tools) then 'tool_off'
+              when not coalesce((select enabled from tool_config where tool = 'send_draft'), false)
                 then 'workspace_tool_off'
             end as pause,
             (p.set_by = cl_person() or cl_is_owner_now(p.area_id) or cl_is_admin_now()
@@ -114,7 +114,7 @@ async function standing(tx: Queryable, areaId: string) {
 
 /**
  * One domain's policies, and the apps a policy there may be for: those that sent a suggestion to
- * the domain in the last 90 days and still have a connection and suggest_context, with what came of
+ * the domain in the last 90 days and still have a connection and send_draft, with what came of
  * their suggestions. Only someone who may set a policy here sees the apps.
  */
 export async function domainPolicies(tx: Queryable, areaId: string): Promise<DomainPolicies> {
@@ -130,7 +130,7 @@ export async function domainPolicies(tx: Queryable, areaId: string): Promise<Dom
            join people p on p.id = a.person_id
            join proposals x on x.agent_id = a.id and x.area_id = $1
                            and x.created_at > now() - interval '90 days' and x.state <> 'draft'
-          where a.kind = 'app' and 'suggest_context' = any (a.tools)
+          where a.kind = 'app' and 'send_draft' = any (a.tools)
             and p.deactivated_at is null and p.erased_at is null
             and exists (select 1 from auth.oauth_grants g
                          where g.person_id = a.person_id and g.client_id = a.client_id
@@ -357,8 +357,8 @@ export async function publishUnderPolicy(
     `select p.id::text, p.per_day as "perDay", p.set_by::text as "setBy",
             s.display_name as "setByName", ar.name as "areaName",
             cl_has_area_role(p.set_by, p.area_id, 'owner', now()) as standing,
-            ('suggest_context' = any (a.tools)
-              and coalesce((select enabled from tool_config where tool = 'suggest_context'), false)) as "toolOn",
+            ('send_draft' = any (a.tools)
+              and coalesce((select enabled from tool_config where tool = 'send_draft'), false)) as "toolOn",
             (select count(*)::int from decisions d
               where d.auto_policy_id = p.id and d.decided_at > now() - interval '24 hours') as used
        from agent_policies p

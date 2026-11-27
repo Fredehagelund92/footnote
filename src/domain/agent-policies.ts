@@ -18,8 +18,8 @@ export type PolicyPause = (typeof policyPauses)[number]
 /** What a policy's paused line says, after "It waits for review now:". */
 export const policyPauseWords: Record<PolicyPause, (setBy: string) => string> = {
   not_owner: (setBy) => `${setBy} is no longer an owner of the domain.`,
-  tool_off: () => 'suggest_context is off for this agent.',
-  workspace_tool_off: () => 'suggest_context is off for every agent.',
+  tool_off: () => 'send_draft is off for this agent.',
+  workspace_tool_off: () => 'send_draft is off for every agent.',
 }
 
 /**
@@ -49,6 +49,6 @@ export const policySkipWords: Record<PolicySkip, string> = {
   needs_care: 'something in it needs care',
   daily_cap: 'the permission published its most for today',
   not_owner: 'the person who gave the permission is no longer an owner of the domain',
-  tool_off: 'suggest_context is off',
+  tool_off: 'send_draft is off',
   checks: 'a check did not pass',
 }

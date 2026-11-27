@@ -34,7 +34,7 @@ const unusedRegistrationDays = 30
 export const browserCookie = 'footnote_oauth_browser'
 /**
  * What a sign-in grants when the agent asks for nothing in particular: read, report and suggest,
- * so suggest_context is on with the scope granted at consent (FR-121 as changed). The consent
+ * so the draft tools are on with the scope granted at consent (FR-121 as changed). The consent
  * screen names each one.
  */
 export const defaultScopes = ['read', 'feedback', 'propose'] as const

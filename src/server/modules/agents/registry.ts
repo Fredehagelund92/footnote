@@ -147,7 +147,7 @@ export async function listAgents(tx: Queryable, now: Date): Promise<Agent[]> {
  * An administrator switches one tool on or off for one agent, with a reason the history log keeps
  * beside the agent's name, the tool and the switch. It acts at the agent's next request. Whether it
  * changed; false when it was so already, null when the signed-in person is no longer an
- * administrator, undefined when there is no such agent or an access key would get suggest_context.
+ * administrator, undefined when there is no such agent or an access key would get a draft tool.
  */
 export async function setAgentTool(
   tx: Queryable,

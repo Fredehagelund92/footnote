@@ -480,7 +480,7 @@ test('Usage: tools with their results, agents by kind, and spend against the cap
   await expect(page.getByText('Tool calls').locator('..').locator('..')).toContainText('312')
   const tools = page.getByRole('table', { name: 'Calls by tool' })
   await expect(tools.getByRole('row').filter({ hasText: 'get_context' })).toContainText('142')
-  await expect(tools.getByRole('row').filter({ hasText: 'suggest_context' })).toContainText('2')
+  await expect(tools.getByRole('row').filter({ hasText: 'send_draft' })).toContainText('2')
   const agents = page.getByRole('table', { name: 'Calls by kind of agent' })
   await expect(agents.getByRole('row')).toHaveCount(6)
   await expect(

@@ -102,7 +102,7 @@ describe('access keys', () => {
     expect(JSON.stringify(audit.rows)).not.toContain(stored.rows[0]!.key_hash)
   })
 
-  it('can never suggest: suggest_context is not offered to a key, and is refused', async () => {
+  it('can never suggest: send_draft is not offered to a key, and is refused', async () => {
     const boss = await signedIn('admin')
     const { key } = await createKey(boss)
     const proposals = async () =>
@@ -111,11 +111,15 @@ describe('access keys', () => {
     const wire = await mcpClient(key)
     const names = (await wire.listTools()).tools.map((t) => t.name)
     expect(names).toContain('get_context')
-    expect(names).not.toContain('suggest_context')
+    expect(names).not.toContain('send_draft')
+    expect(names).not.toContain('write_draft')
     await wire.close()
     const refused = await call(key, {
       method: 'tools/call',
-      params: { name: 'suggest_context', arguments: { text: 'Returns are not part of Orders.' } },
+      params: {
+        name: 'send_draft',
+        arguments: { draft_id: '0193b2c4-5d6e-7f80-9a1b-2c3d4e5f6a7b', revision: 1 },
+      },
     })
     // A key never holds the propose scope, so the gateway refuses it before the tool runs.
     expect(refused.status).toBe(403)

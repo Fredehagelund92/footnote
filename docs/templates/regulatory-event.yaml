@@ -4,7 +4,7 @@
 #   npm run footnote -- import my-event.yaml --as <your email>           # dry run: checks only
 #   npm run footnote -- import my-event.yaml --apply --as <your email>   # a proposal, sent for review
 #
-# An agent with suggest_context follows the same shape. Replace the scope with your own
+# An agent with write_draft follows the same shape. Replace the scope with your own
 # vocabulary's keys (Definitions, or `npm run footnote -- schema`): the keys below are an example and
 # are not in the demo data.
 #

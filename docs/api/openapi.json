@@ -29742,9 +29742,9 @@
                                 "find_context",
                                 "read_context",
                                 "report",
-                                "suggest_context",
                                 "write_draft",
-                                "read_draft"
+                                "read_draft",
+                                "send_draft"
                               ],
                               "type": "string"
                             },
@@ -30498,7 +30498,7 @@
     "/agents/{id}/tools": {
       "post": {
         "operationId": "agents.setTool",
-        "summary": "Switch one tool on or off for one agent. It acts at the agent's next request and never widens what a person allowed; an access key never gets suggest_context. The history log keeps the reason",
+        "summary": "Switch one tool on or off for one agent. It acts at the agent's next request and never widens what a person allowed; an access key never gets the draft tools. The history log keeps the reason",
         "tags": [
           "admin"
         ],
@@ -30526,9 +30526,9 @@
                       "find_context",
                       "read_context",
                       "report",
-                      "suggest_context",
                       "write_draft",
-                      "read_draft"
+                      "read_draft",
+                      "send_draft"
                     ],
                     "type": "string"
                   },

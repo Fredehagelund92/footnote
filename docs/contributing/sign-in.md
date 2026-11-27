@@ -37,12 +37,12 @@ itself, kept up to date at each sign-in and shown as it says it; an access key's
 administrator gives it.
 
 - **One switch per tool.** An administrator switches each MCP tool (`get_context`,
-  `find_context`, `read_context`, `report`, `suggest_context`) on or off for each
+  `find_context`, `read_context`, `report`, `write_draft`, `read_draft`, `send_draft`) on or off for each
   agent (`agents.setTool`, with a reason the history log keeps as `agent.tool_switched`, with the
   agent's name, the tool and the switch). A switch bounds what the person allowed at consent and
   never widens it: a tool works only when it is switched on and its scope was allowed, so an app the
   person allowed only to read never suggests, whatever its switch says. An access key can never have
-  `suggest_context`: it names no person. An agent with every tool off gets nothing. A new app starts
+  `write_draft`, `read_draft` or `send_draft`: it names no person. An agent with every tool off gets nothing. A new app starts
   with every tool on, bounded by the consent; one an administrator changed keeps its switches
   across a new sign-in of the same app. An app that registers again gets a new client id; a new
   agent of the same person by the same name starts with only the tools every one of theirs an
@@ -85,24 +85,24 @@ false on a new install). Switching it off again ends every policy at once.
   (`agentPolicies.end`) ends it, with who and why. Whoever set it, an owner of the domain, an
   administrator and the person the agent works for may turn it off. It never expires. When the last
   open connection of the app is revoked, on any path, the database ends its policies too.
-- **What it publishes.** After `suggest_context` sends a suggestion for review, in the same
-  transaction, the service publishes it when the open policy for its agent and domain covers it:
+- **What it publishes.** After `send_draft` sends a draft its own agent wrote for review, in the
+  same transaction, the service publishes it when the open policy for its agent and domain covers it:
   a new item (never a change to a live item or an archive), at low
   risk as the server derived it (an agent never sets the risk level, so its suggestion keeps the
   default for its kind: low for a Rule, normal for every other kind), with no provenance flag, no
   detail to compare and no clash with live context (FR-225), under the daily cap, while the person who
-  set it is still an owner of the domain and `suggest_context` is on for the agent and the
+  set it is still an owner of the domain and `send_draft` is on for the agent and the
   workspace. It goes through the owner's own publish path, run as the owner who set the policy:
   every required check runs again, the decision names that owner as decider with a link to the
   policy (`decisions.auto_policy_id`), and the edition and the history log name them. Anything else
-  waits for review as before, and the tool's reply says why (`status: "suggestion_sent"` with
-  `policy.waits_because`); a publish says `status: "suggestion_published"`.
+  waits for review as before, and the tool's reply says why (`status: "sent"` with
+  `policy.waits_because`); a publish says `status: "published"`.
 - **The database checks it again.** A decision that names a policy is refused unless every rule
   holds at that moment (`cl_policy_decision_problem`): the policy is open and the workspace switch
   is on, the decider is the person who set it, deciding as themselves and still an owner of the
   domain, and the suggestion is a new, low-risk item from the policy's agent in its domain, under
   the daily cap, with
-  `suggest_context` on. The serving guard (FR-205) is unchanged: it still requires an accept by an
+  `send_draft` on. The serving guard (FR-205) is unchanged: it still requires an accept by an
   owner of the domain or an administrator, and every required check passed.
 - **Named and undone.** The item's history says "Published by Claude Code for Kofi under Jon's
   policy", and its sheet has **Undo this publish**. Nobody read it before agents got it, so an owner
@@ -193,14 +193,13 @@ AI agent                Footnote MCP server         Footnote login server       
   `person_inactive`). An administrator's disconnect names them as the actor and keeps their reason
   in the entry's reason column; the connections of one person ended together share a batch id.
 - **Suggestions.** With the `propose` scope, which a sign-in grants by default and the consent
-  page names, a person's app may call `suggest_context` (FR-121), on by default: after the person
-  says yes, it saves the suggestion as the person and sends it for review, so it waits for the
-  owner of its domain, who checks it and publishes it, unless that owner lets the agent
-  [publish without review](../help/publish-without-review.md) there (FR-421). If the review checks
-  refuse it, it stays the person's draft. It is the only MCP call that names the person, as the proposer, on the proposal and its history; the
-  request log still keeps only `signed-in`. A dev token names no person, so it is refused. When the
-  app can show forms, the tool asks its open questions there first, in a request state bound to the
-  tool, the person and the app (`FOOTNOTE_MCP_STATE_KEY_FILE`, below).
+  page names, a person's app may write a draft with `write_draft` and, after the person says yes,
+  send it with `send_draft` (FR-121), on by default: it sends exactly the revision the person saw
+  for review, so it waits for the owner of its domain, who checks it and publishes it, unless that
+  owner lets the agent [publish without review](../help/publish-without-review.md) there (FR-421).
+  If the review checks refuse it, it stays the person's draft. The draft tools are the only MCP
+  calls that name the person, as the proposer, on the proposal and its history; the request log
+  still keeps only `signed-in`. A dev token names no person, so it is refused.
 - **Rates.** Per caller address and minute: discovery 120, registration 10, authorize 30, token
   60, revocation 30; the web API's own limits cover the consent operations. Failed token requests
   count per client and caller address, 30 a minute; successful code exchanges and refreshes never
@@ -218,7 +217,7 @@ its access token.
   it, and it is never shown again. The service keeps its SHA-256 only, and that answer is never
   kept for a retry. A key is `hak_` and 43 random characters (256 bits).
 - **No person.** A key acts as a service with the `read` and `feedback` scopes. It names no person,
-  so `suggest_context` refuses it, as it refuses a dev token, and it reads the live edition. Every
+  so the draft tools refuse it, as they refuse a dev token, and it reads the live edition. Every
   key shares the client label `access-key` in the MCP request log, deliveries and client policies
   (FR-410), where an administrator can switch it off or give it a rate; the per-person rate counts
   each key on its own.

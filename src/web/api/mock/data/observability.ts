@@ -357,7 +357,7 @@ const TOOL_CALLS: {
   { name: 'read_context', calls: 100, answered: 100, detail: 0, nothing: 0, failed: 0 },
   { name: 'find_context', calls: 61, answered: 54, detail: 0, nothing: 7, failed: 0 },
   { name: 'report', calls: 5, answered: 5, detail: 0, nothing: 0, failed: 0 },
-  { name: 'suggest_context', calls: 4, answered: 2, detail: 0, nothing: 0, failed: 2 },
+  { name: 'send_draft', calls: 4, answered: 2, detail: 0, nothing: 0, failed: 2 },
 ]
 
 /** Calls by kind of agent this week, and its last call. */

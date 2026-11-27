@@ -97,7 +97,7 @@ export function createSettings() {
       agents = agents.map((r) => (r.id === id ? { ...r, agent: name } : r))
       return true
     },
-    /** Switches one tool for one agent. Null for no agent, or suggest_context on an access key. */
+    /** Switches one tool for one agent. Null for no agent, or a draft tool on an access key. */
     setAgentTool(id: string, tool: AgentToolName, on: boolean, by: string) {
       const row = agents.find((r) => r.id === id)
       if (!row || (on && !toolsFor(row.kind).includes(tool))) return null

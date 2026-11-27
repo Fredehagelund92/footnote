@@ -20,7 +20,7 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
 
 The server offers seven tools ([the product page](../product.md#10-what-agents-get)), described in
 one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
-`read_context`, `report`, `suggest_context`, `write_draft` and `read_draft`. A call by any other id
+`read_context`, `report`, `write_draft`, `read_draft` and `send_draft`. A call by any other id
 is refused as an unknown tool. Each description says what the tool is for and what it is not: only `get_context` says to
 call it before answering, and only for a question about a metric. `get_context` carries
 `_meta: { "anthropic/alwaysLoad": true }`, so Claude Code loads it when a session starts, while
@@ -32,9 +32,9 @@ to call `get_context` first for a metric, how to read each status and its answer
 result's `say`, which starts with the answer line, and to follow its `next`, the step for the agent
 (every read result has them, FR-344, so they reach a client that drops the instructions), how to
 speak about a context item with people, how dates in a question's words are read and that a question
-without dates is read at today, that the reply is short by default, when to `report` and when to
-`suggest_context` (after the person says yes), and never to put question text or personal data in
-a note. The call-first and absence rules come first, within the first 512 characters, since some
+without dates is read at today, that the reply is short by default, when to `report`, to write
+context with `write_draft` and to call `send_draft` only after the person says yes, and never to put
+question text or personal data in a note. The call-first and absence rules come first, within the first 512 characters, since some
 clients (the OpenAI Apps SDK) read no further; Claude Code reads up to 4,096. The rules are one
 text: the Connect page's setup line and its skill file read the same sentences from
 `src/domain/mcp-text.ts`.
@@ -191,81 +191,70 @@ metrics, markets and dates instead and is recorded as a gap. The reply says who 
 "the owner of Sales"); a report about no single domain reaches no owner's Inbox, and the reply says
 an admin sees it in Observability. It never keeps who asked (FR-602).
 
-**`suggest_context`** (FR-121) lets an agent send a suggestion, as the person it acts for, after
-the person says yes. **It is on by default**, and the `propose` scope is granted at consent (the
-consent page names it). Only a person signed in through a login server may call it: a dev or
-service token names no person and is refused with a 403 that says so, and is never offered the
-tool. The agent passes the words (`text`, at most 2,000 characters, never a transcript) and
-optional hints: `title`, `summary`, `kind`, `scope` (names, as in its `get_context` call), `window`
-(inclusive dates), `evidence` (links and one sentence each), `not_to_conclude` (if the person said),
-`area` (only when the person chose one) and `item_id` to suggest a change. Footnote calls no model here.
+**`write_draft`**, **`read_draft`** and **`send_draft`** (FR-121, FR-145) let the person and
+their agent work on one draft and send it: the person in the editor, the agent through the tools,
+as the person, on the application's database (`src/server/mcp/draft-session.ts`). **They are on by
+default**, and the `propose` scope is granted at consent (the consent page names it). Only a person
+signed in through a login server may call them: a dev or service token names no person and is
+refused with a 403 that says so, and is never offered the tools; an access key never has them.
+
+`write_draft` never sends a draft. Without `draft_id` the agent passes the words (`text`, at most
+2,000 characters, never a transcript) and optional hints: `title`, `summary`, `kind`, `scope`
+(names, as in its `get_context` call), `window` (inclusive dates), `evidence` (links and one
+sentence each), `not_to_conclude` (if the person said), `area` (only when the person chose one) and
+`item_id` to start a change to a published item. Footnote calls no model here.
 `src/domain/agent-draft.ts` derives what it can exactly: names to vocabulary keys (never a key the
 agent made up), the domain when every scoped metric belongs to one domain (the vocabulary's domain,
 otherwise the Cube domain), dates the words name, and the kind by the shape of the words. It never
 sets the risk above its default, a claim with a stated effect, an audience, an owner,
 replacements, conflicts or mentions; words that suggest a legal or regulatory matter only raise a
-"may be high risk" flag for the owner, and words that read like orders to a model are kept as text
-and flagged. Every field carries a mark (`derived`, `default`, `prefilled`, `not_inferred`), stored
-on the proposal (`provenance`) and sent by the API, so the owner sees what the agent filled in.
-Text that looks like personal data or a secret (FR-117) is refused and nothing is saved. Before
-saving, accepted items whose scope and dates overlap and whose words read alike are returned as
-`possible_duplicate`, so the agent asks the person and calls again with `item_id` or
-`new_item: true`; without one domain it answers `needs_area`. Then it saves the draft through the
-`saveAgentDraft` and sends it for review through
-the same path as the person's own Send for review (`proposals.submit`), so it waits in the owner's
-queue (`status: "suggestion_sent"`, with a link to it waiting in the person's Inbox). Nothing is
-accepted or published by the tool: only the owner does that, in the review or in advance with a
-policy for the agent and domain (FR-421). Under a policy that covers it, a new low-risk item is
-published in the same transaction, as that owner's decision (`status: "suggestion_published"`, with
-`policy` and a link to the item); when a policy is on but does not cover it, `policy.waits_because`
-says why it waits. If the review checks refuse it (a blocking finding), it stays
-the person's draft and the reply says why (`status: "draft_saved"`, `blocking`, and a
-link that opens the draft in the editor). It names the person on the proposal and its history only: the MCP request log keeps the
-shared `signed-in` label. The setting `limits.agent_drafts` caps one person's agent drafts at 10 in
-24 hours and 20 waiting unsubmitted. `npm run eval:drafts` measures the derivation over the 1,500
-seeded items with a held-out third (`scripts/draft-eval.ts`, also run by `npm test`).
+"may be high risk" flag for the owner. Every field carries a mark (`derived`, `default`,
+`prefilled`, `not_inferred`), stored on the proposal (`provenance`) and sent by the API, so the
+owner sees what the agent filled in. Before saving, published items whose scope and dates overlap
+and whose words read alike are returned as `possible_duplicate`, so the agent asks the person and
+calls again with `item_id` or `new_item: true`; without one domain it answers `needs_area`. Then
+it saves the draft through `saveAgentDraft`, counted by `limits.agent_drafts`, which caps one
+person's agent drafts at 10 in 24 hours and 20 waiting unsubmitted. The open questions only the
+person can answer come back in `questions`, for the agent to ask in its own words.
 
-When the person's agent can show forms (MCP 2026-07-28 multi round-trip elicitation: the app
-declares `elicitation`, form mode, on the request), the tool asks up to four of its open
-questions there before it saves anything: the domain, the kind when the agent's hint and the
-words disagree, the term an ambiguous name means, the first day, whether an issue is still going
-on, and the source link and sentence, as one form of flat fields with closed choices where there
-are any. The app retries the call with the answers and the request state the tool returned. That
-state is signed with `FOOTNOTE_MCP_STATE_KEY_FILE` (HMAC-SHA256, through the SDK's request state
-codec), bound to the tool, the person and the app, carries a digest of the call's arguments, expires after
-ten minutes, and saves at most one draft (`proposals.answers_round` is unique). A changed,
-foreign, expired or reused state saves nothing and is refused with a `reason`. Answers are read as
-untrusted data: a value outside the choices offered, a malformed date or link counts as no answer
-and its question stays open. The answers go through the same derivation and `saveAgentDraft`,
-marked `confirmed` ("Confirmed" in the draft editor and on the review screen), and the result
-lists them in `answered`. If the person declines or cancels, it is saved and sent as before. An
-app that cannot show forms (Claude.ai and ChatGPT today, every 2025-era connection, an app that
-shows only links) gets the link and the question list exactly as before. Which attributes the tool derives, defaults, prefills or never infers is one table
-shared with the form: `src/domain/proposal-attributes.ts` (CONTRIBUTING.md, "Proposal
-attributes").
-
-**`write_draft`** and **`read_draft`** let the person and their agent work on one draft: the
-person in the editor, the agent through the tools, as the person, on the application's database
-(`src/server/mcp/draft-session.ts`). Like `suggest_context` they need the `propose` scope and a
-person signed in through a login server, and an access key never has them. `write_draft` never
-sends a draft. Without `draft_id` it saves a new one through `saveAgentDraft`, derived and marked
-as a suggestion is, and counted by `limits.agent_drafts`. With `draft_id` and `revision`, the
-revision the agent read, it changes only the fields passed (`deriveAgentPatch`, then
-`patchAgentDraft`, then `proposals.save`). Each proposal keeps who last changed each field, the
-person or an agent, at which revision and when (`proposals.field_stamps`,
+With `draft_id` and `revision`, the revision the agent read, it changes only the fields passed
+(`deriveAgentPatch`, then `patchAgentDraft`, then `proposals.save`). Each proposal keeps who last
+changed each field, the person or an agent, at which revision and when (`proposals.field_stamps`,
 `src/domain/draft-stamps.ts`): a field the person changed after the agent's revision keeps the
 person's words and comes back in `conflicts` with its value now, while the other fields apply. A
 person's change marks a field `confirmed`, and an agent's marks it as the agent's (`prefilled`).
-Every write passes the checks a first one does: text that looks like personal data or a secret,
-and words that read like orders to a model, are refused and nothing changes. A draft that was
-sent is refused ("It was sent. Withdraw it to change it."), and one draft takes 60 changes an hour
-from the person's agents (`AGENT_WRITES_PER_HOUR`). Each change is `proposal.updated` in the
-history log, naming the agent, with the person as the actor. `read_draft` returns the person's own
-draft, or their suggestion still waiting, with its revision, each field with `by`, `at` and its
-mark, `changed_since` after `since_revision`, and what blocks sending; row security and a check on
-the writer keep everyone else's out, and an owner gets no one else's suggestion through it. The
-draft's words reach only that agent and never an answer: `get_context`, `find_context`,
-`read_context` and Ask read published context only (VISION.md).
+Every write, a first one or a change, passes the same checks: text that looks like personal data or
+a secret (FR-117), and words that read like orders to a model (NFR-024), are refused and nothing
+changes. A draft that was sent is refused ("It was sent. Withdraw it to change it."), and one draft
+takes 60 changes an hour from the person's agents (`AGENT_WRITES_PER_HOUR`). Each change is
+`proposal.updated` in the history log, naming the agent, with the person as the actor.
+`read_draft` returns the person's own draft, or their suggestion still waiting, with its revision,
+each field with `by`, `at` and its mark, `changed_since` after `since_revision`, and what blocks
+sending; row security and a check on the writer keep everyone else's out, and an owner gets no one
+else's suggestion through it. The draft's words reach only that agent and never an answer:
+`get_context`, `find_context`, `read_context` and Ask read published context only (VISION.md).
+
+`send_draft` is the one send step, after the person says yes. It takes `draft_id` and `revision`,
+the revision the person saw, and no words, and sends that revision for review through the same
+path as the person's own Send for review (`proposals.submit`), so it waits in the owner's queue
+(`status: "sent"`, with a link to it waiting in the person's Inbox). If the draft changed after
+that revision, by the person or an agent, nothing is sent (`status: "changed"`, with
+`changed_since`), so the person's edits are never left behind in a second draft. Nothing is
+accepted or published by the tool: only the owner does that, in the review or in advance with a
+permission for the agent and domain (FR-421). Under a permission that covers it, a new low-risk
+item is published in the same transaction, as that owner's decision (`status: "published"`, with
+`policy` and a link to the item); when one is on but does not cover it, `policy.waits_because`
+says why it waits. A permission covers only a draft its own agent wrote: one the person started in
+the app, or another agent wrote, waits for review. If the review checks refuse it (a blocking
+finding), it stays the person's draft and the reply says why (`status: "kept"`, `blocking`, and a
+link that opens the draft in the editor). It names the person on the proposal and its history
+only: the MCP request log keeps the shared `signed-in` label. `send_draft` has its own switch
+(FR-420), so an admin can let agents write drafts and keep them from sending.
+
+`npm run eval:drafts` measures the derivation over the 1,500 seeded items with a held-out third
+(`scripts/draft-eval.ts`, also run by `npm test`). Which attributes the tools derive, default,
+prefill or never infer is one table shared with the form: `src/domain/proposal-attributes.ts`
+(CONTRIBUTING.md, "Proposal attributes").
 
 `token:dev` creates a reusable Ed25519 key in `.footnote-dev-key.pem` with owner-only permissions.
 The file is ignored by Git. Tokens expire after eight hours; mint a new one and update the
