@@ -8,9 +8,14 @@ export function isTyping(target: EventTarget | null) {
   return target instanceof Element && !!target.closest(TYPING)
 }
 
-/** A plain key press for a page shortcut: nothing typed into, no modifier held. */
+// A dialog or sheet drawn over the page (its backdrop open) takes every key, from the moment it
+// opens: it moves the focus inside a frame later, and a key pressed meanwhile reaches the page from
+// the body, where Esc would also put away the Inbox's card.
+const COVERED = '[data-slot=dialog-overlay][data-open], [data-slot=sheet-overlay][data-open]'
+
+/** A plain key press for a page shortcut: nothing typed into, no modifier held, no dialog open. */
 export const pageKey = (e: KeyboardEvent) =>
-  !isTyping(e.target) && !e.metaKey && !e.ctrlKey && !e.altKey
+  !isTyping(e.target) && !e.metaKey && !e.ctrlKey && !e.altKey && !document.querySelector(COVERED)
 
 /** G then a letter goes to a place (lib/go-to.ts). */
 export const GO_TO = [

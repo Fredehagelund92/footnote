@@ -9,7 +9,7 @@ import {
 import { Kbd } from '@/components/ui/kbd'
 import { SHORTCUTS, type Keys } from '@/lib/help-content'
 import { onOpen } from '@/lib/events'
-import { isTyping } from '@/lib/keys'
+import { pageKey } from '@/lib/keys'
 
 function Combo({ row }: { row: Keys }) {
   return (
@@ -43,7 +43,7 @@ export function ShortcutsDialog() {
   React.useEffect(() => onOpen('shortcuts', () => setOpen(true)), [])
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key !== '?' || e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return
+      if (e.key !== '?' || !pageKey(e)) return
       e.preventDefault()
       setOpen((o) => !o)
     }
