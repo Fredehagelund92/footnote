@@ -16,7 +16,7 @@ Connect Claude, Cursor or another agent, so it reads your published context befo
 
 ## Before you start
 
-You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never drafts or comments: [How agents use it](how-agents-use-it.md).
+You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never comments, and a draft only for the person it writes with: [How agents use it](how-agents-use-it.md).
 
 A job that runs on its own, with nobody there to approve a sign-in, does not use this prompt. It uses an access key, which an admin makes in Agents and access, under Tools and access keys.
 
