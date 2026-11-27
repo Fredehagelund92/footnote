@@ -25,26 +25,28 @@ const NORWAY_CAVEAT = 'Fewer orders in Norway after 4 August do not mean fewer c
 
 const sentences = (text: string) => text.match(/[^.!?]+[.!?]+(\s|$)/g) ?? [text]
 
-/** Whether the draft holds nothing to write from yet: no text, and no title of its own. */
-const blank = (draft: Fact) =>
-  !draft.summary.trim() && !draft.body?.trim() && (!draft.title || /^Untitled/.test(draft.title))
+/** Whether the draft has no text yet: the message becomes its first draft. */
+const noText = (draft: Fact) => !draft.summary.trim() && !draft.body?.trim()
+/** Whether the person gave it a title of their own, which stays theirs. */
+const titled = (draft: Fact) => !!draft.title && !/^Untitled/.test(draft.title)
 
 /** What the mock does with a message, by rule: the fields it writes and what it says. */
 export function mockTurn(draft: Fact, message: string, owner: string): MockTurn {
   const said = message.trim().toLowerCase()
-  if (blank(draft)) {
+  if (noText(draft)) {
     const from = norwayDraft
     const read = linksIn(message).length ? 'your message and the notice' : 'your message'
+    const kept = titled(draft)
     return {
       writes: [
-        { field: 'title', patch: { title: from.title } },
+        ...(kept ? [] : [{ field: 'title' as const, patch: { title: from.title } }]),
         { field: 'kind', patch: { kind: from.kind } },
         { field: 'where', patch: { where: from.where, scope: from.scope } },
         { field: 'when', patch: { valid: from.valid, when: from.when } },
         { field: 'source', patch: { source: from.source, quote: from.quote } },
         { field: 'text', patch: { summary: from.summary, body: from.body } },
       ],
-      reply: `I wrote a draft from ${read}. Check each field, then send it to ${owner}.`,
+      reply: `I wrote a draft from ${read}${kept ? ', and kept your title' : ''}. Check each field, then send it to ${owner}.`,
       question: {
         text: `Don't conclude is empty. Should it say: “${NORWAY_CAVEAT}”?`,
         answers: ['Yes, add it', 'No, leave it empty'],

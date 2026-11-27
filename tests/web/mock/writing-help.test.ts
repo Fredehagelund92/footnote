@@ -77,6 +77,24 @@ describe('writing help on the mock', () => {
     expect(draft.session!.fields.kind).toBeUndefined()
   })
 
+  it('writes around a title the person wrote, in a draft that kept itself', async () => {
+    const { api } = createMockApi()
+    await on(api)
+    // The page kept its words as a draft before the person asked: it holds their title only.
+    const { id } = await api.saveDraft({ fact: { ...blank, title: 'Norway' }, isNew: true })
+    const reply = await played(
+      api.writingHelp({ draftId: id, message: 'Ops told us about Norway.' }),
+    )
+    expect(reply).toMatchObject({
+      reply:
+        'I wrote a draft from your message, and kept your title. Check each field, then send it to the owner of Sales.',
+      changed: ['where', 'when', 'source', 'text'],
+    })
+    const draft = (await api.draftNow({ id }))!
+    expect(draft.title).toBe('Norway')
+    expect(draft.session!.fields.text).toMatchObject({ by: 'writing_help' })
+  })
+
   it('adds what not to conclude, makes the text shorter, and says what it cannot do here', async () => {
     const { api } = createMockApi()
     await on(api)

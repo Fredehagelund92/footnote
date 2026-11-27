@@ -688,7 +688,9 @@ function Editor({
   // leaves its source alone keeps the sentence it has.
   const quoteNeeded =
     mode === 'new' || form.source !== initial.source || form.quote !== initial.quote
-  const asksWhen = datesOpen && form.kind === 'event' && !whenChosen
+  // A date somebody gave is not asked for again: the person's pick, or one their agent or writing
+  // help wrote into the draft while it is open.
+  const asksWhen = datesOpen && form.kind === 'event' && !whenChosen && form.when === 'always'
   const missing = [
     !domains[form.domain] && 'a domain',
     !form.title && 'a title',
