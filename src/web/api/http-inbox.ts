@@ -175,7 +175,8 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
           ready: card.ready,
           flagged: card.flagged,
           families: card.families,
-          tools: card.tools,
+          values: card.values,
+          tool: card.tool,
         },
       }
     case 'drafts': {
@@ -923,6 +924,7 @@ export function reviewOf(
           },
         }
       : {}),
+    ...(sheet.newValues.length ? { newValues: sheet.newValues } : {}),
     ...(sheet.instructionLike.length
       ? {
           instructionLike: sheet.instructionLike.map((f) => ({

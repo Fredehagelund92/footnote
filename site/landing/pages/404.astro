@@ -9,7 +9,9 @@ import { readSettings } from '../../lib/settings.ts'
 import Ground from '../../shared/Ground.astro'
 import SiteFooter from '../../shared/SiteFooter.astro'
 import Head from '../components/Head.astro'
-import Header from '../components/Header.astro'
+import serif from '@fontsource-variable/source-serif-4/files/source-serif-4-latin-opsz-normal.woff2?url'
+import sans from '@fontsource-variable/schibsted-grotesk/files/schibsted-grotesk-latin-wght-normal.woff2?url'
+import Header from '../components/PaperHeader.astro'
 
 /* The page a wrong address anywhere on the site opens, in the landing page's design. */
 const { docs, home } = siteLinks(readSettings(process.env))
@@ -17,7 +19,11 @@ const { docs, home } = siteLinks(readSettings(process.env))
 
 <html lang="en">
   <head>
-    <Head title="Not found - Footnote" description="This address leads to no page of Footnote's site." />
+    <Head
+      title="Not found - Footnote"
+      description="This address leads to no page of Footnote's site."
+      fonts={[serif, sans]}
+    />
   </head>
   <body>
     <Header home={home} install={`${home}#run`} />

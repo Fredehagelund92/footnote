@@ -29,7 +29,7 @@ async function startedAs(name: string | undefined) {
   ])
   return {
     productName: brand.productName,
-    instructions: tools.serverInstructions(['Cube'], ''),
+    instructions: tools.serverInstructions('Cube', ''),
     toolDescriptions: Object.values(tools.tools).map((tool) => tool.description),
     // What a failed read tells the person: the agent says where it looked, so never the name.
     failed: service.failure().structuredContent.say as string,

@@ -8,6 +8,7 @@ import * as z from 'zod/mini'
 import { bulkActions, bulkRowSkipCodes } from '../domain/context-bulk.ts'
 import { clashRelations } from '../domain/readiness.ts'
 import { draftSchema } from '../domain/draft.ts'
+import { newValuesSchema } from '../domain/values.ts'
 import { itemKinds, itemSchema } from '../domain/item.ts'
 import { itemChecks, itemTrusts } from '../domain/status.ts'
 import { reviewFieldsSchema } from './review-path.ts'
@@ -214,6 +215,8 @@ export const definitionRelatedInputSchema = z.strictObject({
  */
 export const publishItemInputSchema = z.strictObject({
   draft: draftSchema,
+  /** Values the writer added in "Applies to" that the vocabulary has no term for yet. */
+  newValues: z.optional(newValuesSchema),
   /** The item it changes; left out for a new item. */
   itemId: z.optional(itemIdSchema),
   /**
@@ -276,6 +279,8 @@ export const publishItemResultSchema = z.union([
  */
 export const saveDraftInputSchema = z.strictObject({
   draft: draftSchema,
+  /** Values the writer added in "Applies to" that the vocabulary has no term for yet. */
+  newValues: z.optional(newValuesSchema),
   /** The published item it changes; left out for a new item. */
   itemId: z.optional(itemIdSchema),
   /** The version of the item the words were written from, sent with `itemId`. */

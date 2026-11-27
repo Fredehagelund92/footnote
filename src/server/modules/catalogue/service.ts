@@ -43,8 +43,7 @@ import { liveSeq, standingSplits } from '../../db/family-splits.ts'
 import { connectorType, connectorTypes, modelFolderOf } from '../connectors/index.ts'
 import { libraryIndexItems } from '../library/index.ts'
 
-const withoutRemoved = <T extends { removed: boolean; modelFolder: string | null }>({
-  removed: _removed,
+const withoutFolder = <T extends { modelFolder: string | null }>({
   modelFolder: _folder,
   ...source
 }: T) => source
@@ -89,6 +88,8 @@ type VocabularyRow = {
   /** The domain the definition source gave the term, as the live edition carries it. */
   sourceAreaId: string | null
   definitionRefs: string[]
+  /** How the data writes a value; empty for any other term. */
+  writtenAs: string[]
 }
 
 type DefinitionRow = Omit<CatalogueDefinition, 'state' | 'fileUrl'> & {
@@ -153,7 +154,6 @@ export function createCatalogueService(
       > & { sourceId: string; baseName: string | null })[]
       sources: (Omit<CatalogueSource, 'tool' | 'connector'> & {
         type: string
-        removed: boolean
         fromServer: boolean
         config: SourceConfig
       })[]
@@ -180,7 +180,8 @@ export function createCatalogueService(
     }>(
       `with vocabulary as materialized (
          select t.key, t.kind::text as kind, t.parent_key as "parentKey", t.name, t.aliases,
-                t.area_id as "areaId", d.area_id as "sourceAreaId", t.definition_refs as "definitionRefs"
+                t.area_id as "areaId", d.area_id as "sourceAreaId", t.definition_refs as "definitionRefs",
+                t.written_as as "writtenAs"
            from serving_vocabulary((select seq from live_edition)) t
            left join serving_source_domains((select seq from live_edition)) d on d.key = t.key),
        -- Accepted items that recorded another mark than the definition has now, counted in one
@@ -241,14 +242,15 @@ export function createCatalogueService(
        sources as (
          select c.id, c.name, c.type, ${iso('ok.fetched_at')} as "readAt", ok.source_version as "sourceVersion",
                 coalesce(latest.status = 'failed', false) as failing,
-                c.removed_at is not null as removed, c.origin = 'server' as "fromServer", c.config
+                c.origin = 'server' as "fromServer", c.config
            from connectors c
            left join lateral (select s.fetched_at, s.source_version from connector_snapshots s
                                where s.connector_id = c.id and s.status <> 'failed'
                                order by s.fetched_at desc limit 1) ok on true
            left join lateral (select s.status from connector_snapshots s where s.connector_id = c.id
                                order by s.fetched_at desc limit 1) latest on true
-          where c.kind = 'definition_source'),
+          -- The definitions integration that is on: one at a time (CON-120).
+          where c.kind = 'definition_source' and c.enabled),
        -- Counted as the item list counts mentions: current versions, accepted or retired.
        mentions as (
          select m.term_key as key, count(distinct l.id)::int as items
@@ -289,14 +291,14 @@ export function createCatalogueService(
       row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
-    const sources: (CatalogueSource & { removed: boolean; modelFolder: string | null })[] =
-      row!.sources.map(({ type, removed, fromServer, config, ...source }) => ({
+    const sources: (CatalogueSource & { modelFolder: string | null })[] = row!.sources.map(
+      ({ type, fromServer, config, ...source }) => ({
         ...source,
-        removed,
         tool: connectorType(type, source.name).tool,
         connector: type,
         modelFolder: modelFolderOf({ type, fromServer, config }, (key) => settings.get(key)),
-      }))
+      }),
+    )
     const gaps = row!.gaps.map((keys) => ({ keys }))
     return {
       vocabulary,
@@ -473,6 +475,7 @@ export function createCatalogueService(
         aliases: row.aliases,
         // Its view, in words: `booked_revenue` is "Booked revenue".
         group: view ? { key: `view:${view}`, name: viewWords(view) } : null,
+        values: [],
         family: {
           by,
           // A family an owner published from names that look alike was found by its names.
@@ -536,6 +539,16 @@ export function createCatalogueService(
       }
     }
 
+    // A dimension's values, by name (FR-136): the ones people and owners published.
+    const valuesOf = new Map<string, CatalogueTerm['values']>()
+    for (const row of data.vocabulary)
+      if (row.kind === 'dimension_value' && row.parentKey)
+        valuesOf.set(row.parentKey, [
+          ...(valuesOf.get(row.parentKey) ?? []),
+          { key: row.key, name: row.name, aliases: row.aliases, writtenAs: row.writtenAs },
+        ])
+    for (const values of valuesOf.values()) values.sort(byName)
+
     function term(row: VocabularyRow): CatalogueTerm | null {
       const listed = listedOf(row)
       if (!listed) return null
@@ -553,6 +566,7 @@ export function createCatalogueService(
             ? { key: row.parentKey, name: groupNames.get(row.parentKey)! }
             : null,
         family: null,
+        values: kind === 'dimension' ? (valuesOf.get(row.key) ?? []) : [],
         // The live edition's map, the one serving and gap topics read.
         domain: termDomain(row.areaId, row.sourceAreaId),
         definition,
@@ -742,7 +756,7 @@ export function createCatalogueService(
             return name ? [{ key, name }] : []
           }),
         })),
-        sources: data.sources.filter((source) => !source.removed).map(withoutRemoved),
+        sources: data.sources.map(withoutFolder),
         coverage: {
           metrics: metrics.length,
           withoutDomain: metrics.filter((metric) => metric.domain.areaId === null).length,

@@ -1,7 +1,7 @@
 import { expect, go, test } from './go.ts'
 
 // J86, families of metrics (FR-142): a dbt model with a metric per currency and channel, which a
-// read found as twenty families (the mock's ?demo=families), beside the demo's Cube. Definitions lists one entry per family and
+// read found as twenty families (the mock's ?demo=families), dbt the one definitions tool on. Definitions lists one entry per family and
 // never a variant, a row at a metric row's height marked as a family by its stack alone, which says
 // what tells the variants apart on hover, the same at 1440 and 390 wide; a search for a variant
 // finds its family by the family's name, never the variant; the
@@ -45,15 +45,10 @@ for (const { name, width, height } of widths) {
       }
       // No variant is ever a row.
       await expect(main.locator('tbody tr').filter({ hasText: /\(EUR\)/ })).toHaveCount(0)
-      // The families come from dbt, beside the demo's Cube: each row says which tool (F8).
-      await expect(main.getByText(/^From Cube and dbt - change them there\./)).toBeVisible()
-      await expect(row.getByRole('img', { name: 'From dbt' })).toBeVisible()
-      await expect(
-        main
-          .locator('tbody tr')
-          .filter({ hasText: 'Customer lifetime value' })
-          .getByRole('img', { name: 'From Cube' }),
-      ).toBeVisible()
+      // The families come from dbt, the one definitions tool on, which reads the demo's model: the
+      // line above the table says so once, and no row says it again (CON-120).
+      await expect(main.getByText(/^From dbt - change them there\./)).toBeVisible()
+      await expect(main.locator('tbody').getByRole('img', { name: /^From / })).toHaveCount(0)
       await search.fill('')
       await expect(page.getByText(/\(5,011 variants\)/).first()).toBeVisible()
     })

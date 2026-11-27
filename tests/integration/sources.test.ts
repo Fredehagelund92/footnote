@@ -24,8 +24,9 @@ import { apiDatabase, testDatabase } from './support.ts'
   with a real Git host on this machine that wants a token. The token goes into the secret store
   and nowhere else: no answer, no row, no history log entry, no retry record and no log line holds
   it. Only administrators reach any of it. The hourly read fetches the repository with the stored
-  token, keeps the commit as the read's version and cursor, and leaves members another source
-  already reads with that source.
+  token and keeps the commit as the read's version and cursor. One definitions integration is on
+  at a time (CON-120): a second is turned away, with how to switch, and the one turned on in its
+  place takes over the members the first read.
 */
 
 const TOKEN = 'sources-it-token-4b8e21c9'
@@ -48,7 +49,7 @@ const logger = createLogger({
 })
 const secretsDir = await mkdtemp(join(tmpdir(), 'footnote-sources-secrets-'))
 const store = await openLocalSecretStore(join(secretsDir, 'store'))
-// The server's own source reads the fixture model, so a Git source of the same model collides.
+// The server's own source reads the fixture model, which a Git source of the same model takes over.
 const registry = new ConnectorRegistry(
   [
     createCubeSource({
@@ -192,6 +193,30 @@ describe('sources an administrator adds', () => {
     expect(await readdir(join(secretsDir, 'store'))).toEqual([])
   })
 
+  it('turns a second definitions integration away while one is on, and says how to switch', async () => {
+    const refused = await call(
+      'ravi',
+      'POST',
+      '/sources',
+      sourceInput(host.address('analytics')),
+      retryKey(),
+    )
+    expect(refused.status).toBe(409)
+    expect(JSON.parse(refused.body)).toMatchObject({
+      message:
+        'Only one definitions integration is on at a time, and Cube local model is on. To read Analytics in Git instead, turn Cube local model off, then turn Analytics in Git on.',
+    })
+    expect(
+      (await client.query("select 1 from connectors where origin = 'workspace'")).rowCount,
+    ).toBe(0)
+    // Turned off, the server's own source makes room.
+    const off = await call('ravi', 'PUT', '/sources/cube/paused', {
+      paused: true,
+      reason: 'Read the model from Git instead',
+    })
+    expect(off.status).toBe(200)
+  })
+
   it('keeps the token in the secret store only: in no answer, row, entry, retry or log', async () => {
     const key = { 'idempotency-key': 'a1b2c3d4e5f60718293a4b5c6d7e8f90' }
     const added = await call(
@@ -279,8 +304,9 @@ describe('sources an administrator adds', () => {
       logger,
       signal: new AbortController().signal,
     })
+    // The server's own source is off, so only the added one is read.
+    expect(Object.keys(summary.connectors as object)).toEqual(['analytics-in-git'])
     expect(summary.connectors).toMatchObject({
-      cube: { status: 'ok' },
       'analytics-in-git': { status: 'ok', definitionsSeen: 7 },
     })
     const [snapshot] = (
@@ -410,44 +436,53 @@ describe('sources an administrator adds', () => {
     expect(await readdir(join(secretsDir, 'store'))).toHaveLength(1)
   }, 60_000)
 
-  it('leaves members another source already reads with it, and says so', async () => {
-    const added = await call(
-      'ravi',
-      'POST',
-      '/sources',
-      {
-        ...sourceInput(host.address('copy')),
-        name: 'Copy of the local model',
-        config: { repository: host.address('copy'), ref: 'main', folder: 'cube/model' },
-      },
-      retryKey(),
-    )
-    expect(added.status).toBe(201)
+  it('hands over what the integration turned off read to the one turned on in its place', async () => {
+    // The server's own source is not turned on again while the added one is.
+    const refused = await call('ravi', 'PUT', '/sources/cube/paused', {
+      paused: false,
+      reason: 'Read the local model again',
+    })
+    expect(refused.status).toBe(409)
+    expect(JSON.parse(refused.body)).toMatchObject({
+      message:
+        'Only one definitions integration is on at a time, and Analytics in Git is on. To read Cube local model instead, turn Analytics in Git off, then turn Cube local model on.',
+    })
+    const gone = await call('ravi', 'POST', '/sources/analytics-in-git/disconnect', {
+      reason: 'Read a copy of the local model',
+    })
+    expect(gone.status).toBe(200)
+    // A copy of the model the server's own source read, which is off: the copy reads it all.
+    const copy = { repository: host.address('copy'), ref: 'main', folder: 'cube/model' }
     const test = JSON.parse(
       (
         await call('ravi', 'POST', '/sources/test', {
           type: 'cube',
-          config: { repository: host.address('copy'), ref: 'main', folder: 'cube/model' },
+          config: copy,
           secrets: { token: TOKEN },
         })
       ).body,
     ) as { ok: boolean; complete: boolean; warnings: { code: string }[] }
-    expect(test.ok).toBe(true)
-    expect(test.complete).toBe(false)
-    expect(test.warnings.filter((warning) => warning.code === 'taken')).toHaveLength(7)
+    expect(test).toMatchObject({ ok: true, complete: true })
+    const added = await call(
+      'ravi',
+      'POST',
+      '/sources',
+      { ...sourceInput(host.address('copy')), name: 'Copy of the local model', config: copy },
+      retryKey(),
+    )
+    expect(added.status).toBe(201)
     const summary = await connectorSyncJob(registry).run({
       database,
       logger,
       signal: new AbortController().signal,
     })
     expect(summary.connectors).toMatchObject({
-      'copy-of-the-local-model': { status: 'partial', definitionsSeen: 0 },
+      'copy-of-the-local-model': { status: 'ok', definitionsSeen: 7 },
     })
-    // They stay with the server's source; the copy holds none of them.
     const owners = await client.query<{ connector_id: string }>(
       `select distinct connector_id from definitions where ref like 'cube:sales.%'`,
     )
-    expect(owners.rows).toEqual([{ connector_id: 'cube' }])
+    expect(owners.rows).toEqual([{ connector_id: 'copy-of-the-local-model' }])
   }, 60_000)
 })
 
@@ -500,6 +535,12 @@ describe('a source of a connector written to interface 3', () => {
     )
     expect(refused.status).toBe(422)
     expect(refused.body).toContain('Entry 1 needs a name')
+    // One definitions integration is on at a time: the copy makes room.
+    const off = await call('ravi', 'PUT', '/sources/copy-of-the-local-model/paused', {
+      paused: true,
+      reason: 'Try a static list',
+    })
+    expect(off.status).toBe(200)
     const added = await call(
       'ravi',
       'POST',

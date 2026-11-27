@@ -3,11 +3,13 @@ import type { ItemVersion } from '../../../domain/item-version.ts'
 import { mentionsInFields, parseMentions } from '../../../domain/mentions.ts'
 import { relevantRefs } from '../../../domain/vocabulary.ts'
 import type { Queryable } from '../../db/database.ts'
+import { dimensionOfValue, valueRefusal, type NewValues } from '../../../domain/values.ts'
 
 type LiveTerm = {
   key: string
   kind: string
   name: string
+  aliases: string[]
   definition_refs: string[]
   area_id: string | null
 }
@@ -18,6 +20,7 @@ type Definition = {
   area_hint: string | null
   change_mark: string
   name: string
+  value_type: string | null
 }
 /** What level 1 checks a draft against, by key. */
 type FormatReference = {
@@ -57,11 +60,13 @@ async function formatReference(tx: Queryable): Promise<FormatReference> {
                  from live, (select $1::text as held) h)
      select seq,
        case when read then (select coalesce(json_agg(json_build_object('key', t.key, 'kind', t.kind,
-                 'name', t.name, 'definition_refs', t.definition_refs, 'area_id', t.area_id)), '[]')
+                 'name', t.name, 'aliases', t.aliases, 'definition_refs', t.definition_refs,
+                 'area_id', t.area_id)), '[]')
           from serving_vocabulary((select seq from live_edition)) t) end as terms,
        case when read then (select coalesce(json_agg(json_build_object('ref', d.ref, 'kind', d.kind,
                  'missing', d.missing_since_snapshot is not null, 'area_hint', d.area_hint,
-                 'change_mark', d.change_mark, 'name', coalesce(d.title, d.name))), '[]')
+                 'change_mark', d.change_mark, 'name', coalesce(d.title, d.name),
+                 'value_type', d.value_type)), '[]')
           from definitions d) end as definitions,
        case when read then (select coalesce(json_agg(json_build_object('id', a.id, 'name', a.name)), '[]')
           from areas a) end as areas,
@@ -91,6 +96,8 @@ export async function checkDraft(
   proposer: string | null,
   channel: ItemVersion['createdVia'],
   itemId: string | null,
+  /** The values its writer added in "Applies to" (values without figures). */
+  newValues: NewValues = [],
 ) {
   const result = formatDraft(draft, proposer, channel)
   const add = (
@@ -111,6 +118,12 @@ export async function checkDraft(
     relevantRefs(term.definition_refs, metricRefs).some(
       (ref) => !defs.has(ref) || defs.get(ref)?.missing,
     )
+  // The dimensions that have values in the live edition, by key: `val:market/norway` is market's.
+  const valued = new Set(
+    [...known.values()].flatMap((t) =>
+      t.kind === 'dimension_value' ? [`dim:${t.key.slice(4, t.key.indexOf('/'))}`] : [],
+    ),
+  )
   for (const key of draft.scope?.dimensions ?? []) {
     const term = known.get(key)
     if (term && term.kind !== 'dimension')
@@ -119,21 +132,55 @@ export async function checkDraft(
         'scope',
         `"Any" works for a market, a product or a brand, not for ${term.name}.`,
       )
-    // FR-505: a dimension with any value is broad, so the reviewer is told; it never blocks.
+    // FR-505: a dimension with any value is broad, so the reviewer is told; it never blocks. With
+    // no values kept, no question names one of them: only one that names the dimension gets it.
     else if (term)
       add(
         'broad_scope',
         'scope',
-        `Broad: it applies to all of ${term.name}, so agents get it for any question about ${term.name}.`,
+        valued.has(key)
+          ? `Broad: it applies to all of ${term.name}, so agents get it for any question about ${term.name}.`
+          : `Broad: it applies to all of ${term.name}. No values of ${term.name} are kept yet, so agents get it only when a question names ${term.name} itself, not one of its values.`,
         'warning',
       )
   }
+  // A value the writer added in "Applies to" goes to the owner with the item, and is published with
+  // it (values without figures): said, never refused, when its dimension is live and takes values.
+  const added = new Map(newValues.map((value) => [value.key, value.name]))
+  const newValue = (dimension: string, key: string) => {
+    const name = added.get(key)
+    const of = known.get(dimension)
+    if (name === undefined || of?.kind !== 'dimension' || dimensionOfValue(key) !== dimension)
+      return false
+    const held = [...known.values()].flatMap((t) =>
+      t.kind === 'dimension_value' && dimensionOfValue(t.key) === dimension
+        ? [{ key: t.key, name: t.name, words: [t.name, ...t.aliases], waiting: false }]
+        : [],
+    )
+    const types = of.definition_refs.map((ref) => defs.get(ref)?.value_type ?? null)
+    const refusal = valueRefusal({ name: of.name, types }, { key, name, aliases: [] }, held)
+    if (refusal) add('new_value', 'scope', refusal)
+    else
+      add(
+        'new_value',
+        'scope',
+        `New value: ${name} (${of.name}). Publishing this item publishes it too.`,
+        'warning',
+      )
+    return true
+  }
+  const handled = new Set(
+    (draft.scope?.dimensionValues ?? []).flatMap(({ dimension, value }) =>
+      !known.has(value) && newValue(dimension, value) ? [value] : [],
+    ),
+  )
   for (const key of [
     ...(draft.scope?.metrics ?? []),
     ...(draft.scope?.dimensions ?? []),
     ...(draft.scope?.dimensionValues.flatMap((v) => [v.dimension, v.value]) ?? []),
   ]) {
     const term = known.get(key)
+    if (!term && handled.has(key)) continue
     if (!term)
       add('unknown_scope', 'scope', `We don't know the name ${key}. Choose one from the list.`)
     else if (sourceMissing(term))

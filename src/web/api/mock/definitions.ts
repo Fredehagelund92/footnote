@@ -8,6 +8,7 @@ import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
 import { familyDefinitions, variantDefinitions } from './data/variants'
 import { dbtFolderDefinitions } from './data/dbt-folder'
+import { dimensionTermOf, valuesOf, valuesPublished } from './scope'
 import { ApiError } from '@/api/errors'
 import { today } from '@/lib/today'
 import type { DomainId } from '@/model/items'
@@ -79,15 +80,14 @@ const seed: Definition[] = [
     ...fromModel('Segments', d.name),
     sourceNames: [],
     group: 'Segments',
-    values: d.values,
     updated: '22 Oct 2026',
   })),
   ...TERMS,
 ]
 
 const same = (a: string, b: string) => termWord(a) === termWord(b)
-/** The definitions tool whose read finds the demo's families. */
-const FAMILIES_DEFINITIONS = 'dbt-metricflow'
+/** The definitions tool whose read finds the demo's families, and reads its model in `?demo=dbt`. */
+export const FAMILIES_DEFINITIONS = 'dbt-metricflow'
 
 /** An owner's choice of what a family means, as the service keeps it, variants by name. */
 type Chosen = FamilyMeaningVersion
@@ -136,15 +136,56 @@ function withMeaning(d: Definition, chosen: Chosen | undefined): Definition {
 
 export { seed as definitionSeed }
 
-export function createDefinitions() {
+/**
+ * `on` says whether a definitions tool is on: one is at a time (CON-120), and the definitions of
+ * one that is off are not listed.
+ */
+export function createDefinitions(on: (connector: string) => boolean = () => true) {
   let all = seed
   /** Every choice of what a family means, by the family's name, newest last. */
   const meanings = new Map<string, Chosen[]>()
   /** The families split back into their metrics, newest first, each with the entry it was. */
   let splits: { family: Definition; split: SplitFamily }[] = []
+  /** What `list` gave last while a tool was off, kept so the same list is given again. */
+  let shown: { all: Definition[]; off: string; list: Definition[] } | null = null
 
+  /** A dimension with the values the demo's vocabulary has for it now, as the catalogue sends. */
+  const withValues = (d: Definition): Definition => {
+    const key = d.type === 'dimension' && d.synced ? dimensionTermOf(d.name)?.key : undefined
+    return key ? { ...d, values: valuesOf(key) } : d
+  }
+  // The same valued list while nothing changed it, so an Undo that puts a list back gives that list.
+  const valued = new WeakMap<Definition[], { at: number; list: Definition[] }>()
   return {
-    list: () => all,
+    /**
+     * What is listed: the list itself while every tool it reads is on, so it stays the same, each
+     * dimension with the values the demo's vocabulary has for it now.
+     */
+    list: () => {
+      const isOff = (d: Definition) => d.synced && d.connector !== undefined && !on(d.connector)
+      const off = [...new Set(all.filter(isOff).map((d) => d.connector))].join()
+      if (off && (shown?.all !== all || shown.off !== off))
+        shown = { all, off, list: all.filter((d) => !isOff(d)) }
+      const base = off ? shown!.list : all
+      const held = valued.get(base)
+      if (held?.at === valuesPublished()) return held.list
+      const list = base.map(withValues)
+      valued.set(base, { at: valuesPublished(), list })
+      return list
+    },
+
+    /**
+     * Reads the demo's model with another definitions tool, the install's one in its place
+     * (`?demo=dbt`, `?demo=families`): one definitions tool is on at a time (CON-120).
+     */
+    readWith(connector: string) {
+      all = all.map((d) => {
+        if (!d.synced || d.connector !== DEMO_DEFINITIONS) return d
+        // Its links lead to the demo's Cube files, which the other tool does not read.
+        const { fileUrl: _file, ...read } = d
+        return { ...read, connector, source: connector, tool: demoTool(connector) }
+      })
+    },
 
     /** Adds a metric per currency and channel, 5,000 of them, for Definitions at that size. */
     loadVariants() {
@@ -152,15 +193,14 @@ export function createDefinitions() {
         all = [...all, ...variantDefinitions(demoTool(DEMO_DEFINITIONS))]
     },
 
-    /** Adds what a dbt folder on the server holds, beside the demo's Cube model. */
+    /** Adds what a dbt folder on the server holds, to the demo's model it reads. */
     loadDbtFolder() {
-      if (!all.some((d) => d.connector === 'dbt-metricflow'))
-        all = [...all, ...dbtFolderDefinitions()]
+      if (!all.some((d) => d.ref?.startsWith('dbt:'))) all = [...all, ...dbtFolderDefinitions()]
     },
 
     /**
      * Adds the same 5,000 metrics as the 20 families a read of a dbt project finds in them (FR-142),
-     * beside the demo's own: an install with two definitions tools, as the Names card says.
+     * to the demo's own, which dbt reads too.
      */
     loadFamilies() {
       if (!all.some((d) => d.family))

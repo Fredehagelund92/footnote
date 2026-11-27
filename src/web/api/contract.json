@@ -1409,6 +1409,18 @@
           "path": "/vocabulary/search"
         }
       }
+    },
+    "addValues": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "propose"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/vocabulary/values"
+        }
+      }
     }
   },
   "inbox": {

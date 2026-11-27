@@ -1,7 +1,7 @@
 import { searchScope, type ScopeUsage } from '@domain/scope-search'
 import type { Term } from '@domain/vocabulary'
 import type { ScopeSearch, ScopeSearchInput } from '../client'
-import type { Definition } from '@/lib/definitions'
+import type { Definition, DefinitionValue } from '@/lib/definitions'
 import type { Fact, ScopeTerm } from '@/model/items'
 import { markets, metrics } from './data/world'
 
@@ -81,6 +81,47 @@ const terms: Term[] = [
   }),
 ]
 const byKey = new Map(terms.map((t) => [t.key, t]))
+/** How the data writes a value people added this visit, by key. */
+const spelled = new Map<string, string[]>()
+/** How many times values were published this visit: a list of them read before is out of date. */
+let published = 0
+export const valuesPublished = () => published
+
+/** A dimension of the demo by its name, as its term. */
+export const dimensionTermOf = (name: string) =>
+  terms.find((t) => t.kind === 'dimension' && t.name.toLowerCase() === name.toLowerCase())
+
+/** A dimension's values, as Definitions lists them: by name, with their other names. */
+export function valuesOf(dimensionKey: string): DefinitionValue[] {
+  return terms
+    .filter((t) => t.kind === 'dimension_value' && t.parentKey === dimensionKey)
+    .map((t) => ({ name: t.name, aliases: t.aliases, writtenAs: spelled.get(t.key) ?? [] }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'en'))
+}
+
+/**
+ * Publishes values of a dimension in the demo, as an owner or an admin does: the picker and
+ * Definitions read them at once, until the page reloads.
+ */
+export function publishValues(
+  dimensionKey: string,
+  values: readonly (Pick<DefinitionValue, 'name'> & Partial<DefinitionValue> & { key: string })[],
+) {
+  for (const value of values) {
+    if (byKey.has(value.key)) continue
+    const added = term(value.key, 'dimension_value', value.name, dimensionKey, value.aliases ?? [])
+    terms.push(added)
+    byKey.set(value.key, added)
+    if (value.writtenAs?.length) spelled.set(value.key, value.writtenAs)
+  }
+  published++
+}
+
+/** The values a dimension has, live, by the words each is written with. */
+export const heldValuesOf = (dimensionKey: string) =>
+  terms
+    .filter((t) => t.kind === 'dimension_value' && t.parentKey === dimensionKey)
+    .map((t) => ({ key: t.key, name: t.name, words: [t.name, ...t.aliases], waiting: false }))
 
 /** A term as "Applies to" holds it. */
 function scopeTermOf(t: Term): ScopeTerm {

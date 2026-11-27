@@ -42,6 +42,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import {
   BarSpacer,
   barButton,
+  barGroup,
   Count,
   FilterChip,
   FilterRow,
@@ -759,14 +760,12 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
         render={
           <Button
             variant="ghost"
-            className={cn(barButton, groupBy !== 'none' && 'bg-muted text-foreground')}
+            className={cn(barButton, barGroup, groupBy !== 'none' && 'bg-muted text-foreground')}
           />
         }
       >
         <ListTreeIcon />
-        <span className="@max-3xl/main:sr-only">
-          {groupBy === 'none' ? 'Group' : fieldLabel(groupBy)}
-        </span>
+        {groupBy === 'none' ? 'Group' : fieldLabel(groupBy)}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
         <DropdownMenuGroup>

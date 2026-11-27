@@ -4,7 +4,7 @@ line: How to add a context item, what it is, what to put in it, its source and i
 group: Write and review
 order: 1
 minutes: 7
-reviewed: 2026-11-24
+reviewed: 2026-11-26
 open:
   label: Write context
   href: /context/new
@@ -53,6 +53,10 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 5. Don't conclude: the one line that stops an agent from reading a cause into it.
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
+
+A market or another value that isn't there yet can be added where you write. Open a dimension in Applies to, such as Market, type the value, and choose the row that adds it, such as Add “Norway” to Market. Words that find nothing at all offer to add them to each dimension instead.
+
+The new value goes to the owner with your item, and publishing the item publishes the value too.
 
 ## Save as draft
 

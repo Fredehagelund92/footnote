@@ -8,7 +8,8 @@ export const termRefs = (version: string) =>
   `coalesce((select array_agg(r.definition_ref order by r.definition_ref collate "C") from vocab_term_refs r where r.version_id=${version}),'{}')`
 
 /**
- * The current members of the definition sources, the live terms, and the terms of the open
+ * The current members of the definitions integration that is on (CON-120), the live terms served,
+ * and the terms of the open
  * vocabulary proposals the reader may read (row security: an administrator reads them all). With
  * `everyone`, only the members whose source shows them to every reader: a member its source
  * limits to some groups is left out, as serving leaves its definition out (groups are parked).
@@ -30,7 +31,7 @@ export async function sourceVocabulary(tx: Queryable, everyone = false) {
                  then jsonb_build_object('refs',d.built_from_refs,'columns',d.built_from_columns)
             end as "builtFrom"
        from definitions d left join connectors c on c.id=d.connector_id
-      where d.missing_since_snapshot is null and (c.id is null or c.removed_at is null)
+      where d.missing_since_snapshot is null and (c.id is null or c.enabled)
         and c.type is distinct from 'demo'
         ${everyone ? 'and d.visible_groups is null' : ''}`,
   )
@@ -41,10 +42,9 @@ export async function sourceVocabulary(tx: Queryable, everyone = false) {
       type === null ? 'by-name' : connectorType(type, sourceName ?? member.source).mergeDimensions,
   }))
   const known = await tx.query<KnownTerm>(
-    `select s.term_key as key,t.kind::text as kind,v.name,v.aliases,v.area_id as "areaId",
-            ${termRefs('v.id')} as "definitionRefs",false as open
-       from vocab_term_service s join vocab_term_versions v on v.id=s.version_id
-       join vocab_terms t on t.key=s.term_key where s.editions @> (select seq from live_edition)
+    `select t.key,t.kind::text as kind,t.name,t.aliases,t.area_id as "areaId",
+            t.definition_refs as "definitionRefs",false as open
+       from serving_vocabulary((select seq from live_edition)) t
      union all
      select tv.term_key,t.kind::text,tv.name,tv.aliases,tv.area_id,${termRefs('tv.id')},true
        from proposals p join vocab_term_versions tv on tv.id=p.vocab_version_id

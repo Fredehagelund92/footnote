@@ -540,6 +540,7 @@ export function* lookUp(
       readAs: (names.loose ?? []).flatMap((hit) =>
         shownName(hit.key).map((name) => ({ words: hit.words, name, by: hit.by })),
       ),
+      ...(read.unkept ? { unkept: read.unkept } : {}),
     },
     voice,
   )

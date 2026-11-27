@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@/lib/toast'
-import type { SourceNameRead } from '@contract/inbox'
+import type { SourceNameRead, WaitingValue } from '@contract/inbox'
 import { toApiError } from '@/api/errors'
 import { namesQuery, queryKeys, useWrite } from '@/api/queries'
 import { Domain, Fold, PaneFoot, PaneHead, PrimaryAction } from '@/components/footnote/inbox-pane'
@@ -139,6 +139,46 @@ function ReadyRow({
             Leave out
           </Button>
         )}
+      </span>
+    </li>
+  )
+}
+
+/**
+ * A value someone added to a dimension in Definitions (values without figures): its dimension,
+ * its other names, how the data writes it and who added it, with Publish and Leave out.
+ */
+function ValueRow({
+  value,
+  busy,
+  onPublish,
+  onLeaveOut,
+}: {
+  value: WaitingValue
+  busy: boolean
+  onPublish: () => void
+  onLeaveOut: () => void
+}) {
+  const said = [
+    `Value of ${value.dimension.name}`,
+    value.aliases.length > 0 && `also ${value.aliases.join(', ')}`,
+    value.writtenAs.length > 0 && `the data writes ${value.writtenAs.join(', ')}`,
+    value.by.name && `added by ${value.by.name}`,
+  ].filter(Boolean)
+  return (
+    <li className="grid min-w-0 grid-cols-(--cols-trail-auto) items-center gap-x-3 py-2">
+      <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-medium text-foreground">{value.name}</span>
+        <span className="text-xs text-muted-foreground">{said.join(' · ')}</span>
+        {value.areaId && <Domain id={value.areaId} />}
+      </span>
+      <span className="flex items-center gap-1">
+        <Button variant="outline" disabled={busy} onClick={onPublish}>
+          Publish
+        </Button>
+        <Button variant="ghost" disabled={busy} onClick={onLeaveOut}>
+          Leave out
+        </Button>
       </span>
     </li>
   )
@@ -321,8 +361,7 @@ function ReadyGroups({
   return (
     <ul className="flex flex-col">
       {groups.map(({ kind, of }) => {
-        const tools = [...new Set(of.map((name) => name.tool))].join(', ')
-        const said = foundKindWords(kind, tools)
+        const said = foundKindWords(kind, of[0]!.tool)
         const title =
           kind === 'names'
             ? 'Look alike, published as one family'
@@ -382,10 +421,6 @@ const Count = ({ n: count }: { n: number }) => (
 /** How many ready families open at once, each kind's list shown; past it they start folded. */
 const OPEN_READY = 8
 
-function toolsOf(names: readonly SourceNameRead[]) {
-  return [...new Set(names.map((name) => name.tool))].sort().join(', ')
-}
-
 /** The part asked for, unless it has nothing open and the other has. */
 function partWithOpen(part: NamesShow, families: number, singles: number): NamesShow {
   if (part === 'families' && !families && singles) return 'names'
@@ -422,7 +457,9 @@ export default function NamesReview({
   const [all, setAll] = React.useState(false)
   const [picked, setPicked] = React.useState<NamesShow | undefined>(undefined)
   const names = read.data?.names ?? []
-  const tools = [...new Set(names.map((name) => name.tool))].sort()
+  const values = read.data?.values ?? []
+  // The definitions integration's tool: one is on at a time (CON-120).
+  const tool = names[0]?.tool ?? 'your definitions tool'
   const looking = names.filter((name) => name.state !== 'left_out')
   const families = names.filter((name) => name.family)
   const singles = names.filter((name) => !name.family)
@@ -450,12 +487,18 @@ export default function NamesReview({
     picks: { key: string; name?: string; apart?: true }[],
     leaveOut: string[],
     message: string,
+    decided: { accept: string[]; leaveOut: string[] } = { accept: [], leaveOut: [] },
   ) => {
     if (!read.data) return
     setBusy(true)
     setProblems({})
     try {
-      await write('decideNames', { revision: read.data.revision, accept: picks, leaveOut })
+      await write('decideNames', {
+        revision: read.data.revision,
+        accept: picks,
+        leaveOut,
+        values: decided,
+      })
       toast(message)
       const open = names.filter(
         (name) =>
@@ -463,7 +506,10 @@ export default function NamesReview({
           !leaveOut.includes(name.key) &&
           !picks.some((pick) => pick.key === name.key),
       )
-      if (!open.length) onFinished?.()
+      const still = values.filter(
+        (value) => !decided.accept.includes(value.id) && !decided.leaveOut.includes(value.id),
+      )
+      if (!open.length && !still.length) onFinished?.()
     } catch (e) {
       const error = toApiError(e)
       const key = picks.length === 1 ? picks[0]!.key : undefined
@@ -484,6 +530,10 @@ export default function NamesReview({
       `${chosen} is published`,
     )
   const leaveOut = (name: SourceNameRead) => decide([], [name.key], `${name.name} is left out`)
+  const publishValues = (ids: string[], message: string) =>
+    decide([], [], message, { accept: ids, leaveOut: [] })
+  const leaveValueOut = (value: WaitingValue) =>
+    decide([], [], `${value.name} is left out`, { accept: [], leaveOut: [value.id] })
   const apart = (name: SourceNameRead) =>
     decide(
       [{ key: name.key, apart: true }],
@@ -518,18 +568,64 @@ export default function NamesReview({
     ready: names.filter((name) => name.state === 'ready').length,
     flagged: names.filter((name) => name.state === 'flagged').length,
     families: familiesOpen.length,
-    tools,
+    values: values.length,
+    tool,
   }
-  const tool = tools.length ? tools.join(', ') : 'your definitions tool'
-  const alikeTool = toolsOf(alike)
+  const valuesSection = values.length > 0 && (
+    <section aria-labelledby="names-values" className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <h3 id="names-values" className="font-medium">
+          Values people added <Count n={values.length} />
+        </h3>
+        {values.length > 1 && (
+          <Button
+            variant="outline"
+            disabled={busy || !online}
+            onClick={() =>
+              void publishValues(
+                values.map((value) => value.id),
+                `${n(values.length)} values are published`,
+              )
+            }
+          >
+            Publish {n(values.length)} values
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Added in Definitions. Once published, people can say an item is about one of them, and
+        agents can name it.
+      </p>
+      <ul className="divide-y divide-border">
+        {values.map((value) => (
+          <ValueRow
+            key={value.id}
+            value={value}
+            busy={busy || !online}
+            onPublish={() => void publishValues([value.id], `${value.name} is published`)}
+            onLeaveOut={() => void leaveValueOut(value)}
+          />
+        ))}
+      </ul>
+    </section>
+  )
   const body = (
     <>
       <PaneHead
-        state={{ label: 'New metrics and dimensions', icon: 'names', tone: 'neutral' }}
+        state={{
+          label: looking.length || !values.length ? 'New metrics and dimensions' : 'New values',
+          icon: 'names',
+          tone: 'neutral',
+        }}
         title={namesWords(counts).title}
-        summary={`These metrics and dimensions were found in ${tool}. Publish them, and people can write context about them and agents can use them.${familiesOpen.length ? ' A family of near-identical metrics is published as one name, with its variants.' : ''}`}
+        summary={
+          looking.length || !values.length
+            ? `These metrics and dimensions were found in ${tool}. Publish them, and people can write context about them and agents can use them.${familiesOpen.length ? ' A family of near-identical metrics is published as one name, with its variants.' : ''}`
+            : 'People added these values of a dimension in Definitions. Publish the ones that are right.'
+        }
       />
       <div className="flex max-w-2xl flex-col gap-5 px-4 pb-6 text-sm @md:px-7">
+        {valuesSection}
         {parts && (
           <TextSwitch
             label="Families or names"
@@ -548,7 +644,7 @@ export default function NamesReview({
               Each family is published as one metric, with its variants.
               {onOpenFamily && ' Open one to see what it would mean.'}
             </p>
-            <FamiliesFound found={found} tool={toolsOf(familiesOpen)} as="line" />
+            <FamiliesFound found={found} tool={tool} as="line" />
           </div>
         )}
         {alike.length > 0 && (
@@ -560,7 +656,7 @@ export default function NamesReview({
               {alike.length === 1
                 ? 'These metrics have one name in other currencies'
                 : `${n(alike.length)} sets of metrics have one name in other currencies`}
-              , and nothing in {alikeTool} says they are one metric. Each waits for you.
+              , and nothing in {tool} says they are one metric. Each waits for you.
             </p>
             <ul>
               {alike.map((name) => (

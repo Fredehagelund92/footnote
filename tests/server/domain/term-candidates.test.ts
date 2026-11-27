@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import {
   keyPart,
   memberName,
-  pastedValues,
   termCandidates,
   type CandidateMember,
   type KnownTerm,
@@ -371,19 +370,5 @@ describe('termCandidates against the live vocabulary', () => {
       // Only a metric of the same name counts: a dimension may share it.
       ['metric:spend', 'Spend'],
     ])
-  })
-})
-
-describe('pastedValues', () => {
-  it('reads one value per line with its other names, once each', () => {
-    expect(
-      pastedValues('dim:market', 'Norway, Norge\n\nPoland, Polska, EM\nNorway\n***\n'),
-    ).toEqual({
-      values: [
-        { key: 'val:market/norway', name: 'Norway', aliases: ['Norge'] },
-        { key: 'val:market/poland', name: 'Poland', aliases: ['Polska', 'EM'] },
-      ],
-      unreadable: ['***'],
-    })
   })
 })

@@ -123,7 +123,7 @@ export function createInboxFeedService(
     path: ReviewPath
     gaps: GapsService
     comments: Pick<CommentsService, 'mentionCards' | 'markMentionsRead'>
-    names: Pick<NamesService, 'waiting'>
+    names: Pick<NamesService, 'waiting' | 'waitingValues'>
     context: Pick<ContextService, 'pointAtSplitMetrics'>
   },
 ) {
@@ -806,14 +806,22 @@ export function createInboxFeedService(
     }
   }
 
-  /** The one card of the names a read made; none when nothing is left to look at. */
+  /**
+   * The one card of the names a read made and the values people added that wait for the person;
+   * none when nothing is left to look at.
+   */
   async function namesCard(): Promise<Card[]> {
     const { names, at } = await deps.names.waiting()
+    const values = await deps.names.waitingValues()
     const looking = names.filter((name) => name.state !== 'left_out')
     const left = names.filter((name) => name.leftByOwner)
-    if (!looking.length && !left.length) return []
-    const [area, ...others] = new Set(looking.map((name) => name.areaId))
-    const when = at ?? clock.now().toISOString()
+    if (!looking.length && !left.length && !values.length) return []
+    const [area, ...others] = new Set([
+      ...looking.map((name) => name.areaId),
+      ...values.map((value) => value.areaId),
+    ])
+    const newest = [at, ...values.map((value) => value.at)].filter((when) => when !== null).sort()
+    const when = newest.at(-1) ?? clock.now().toISOString()
     return [
       {
         id: cardKey.names(),
@@ -821,11 +829,13 @@ export function createInboxFeedService(
         areaId: others.length ? null : (area ?? null),
         at: when,
         opened: false,
-        done: looking.length ? null : { outcome: 'Left out', at: when },
+        done: looking.length || values.length ? null : { outcome: 'Left out', at: when },
         ready: names.filter((name) => name.state === 'ready').length,
         flagged: names.filter((name) => name.state === 'flagged').length,
         families: looking.filter((name) => name.family).length,
-        tools: [...new Set(names.map((name) => name.tool))].sort(),
+        values: values.length,
+        // A card of values alone names no tool: its words never say one.
+        tool: names[0]?.tool ?? '',
       },
     ]
   }

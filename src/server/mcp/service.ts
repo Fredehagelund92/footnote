@@ -1375,6 +1375,7 @@ export function createToolService(
                 about: metrics.length > 1,
                 unread,
                 readAs,
+                ...(scope.unkept ? { unkept: scope.unkept } : {}),
               },
               contextVoice,
             ),

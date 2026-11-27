@@ -72,13 +72,16 @@ describe('a tool on its page, in every cell', () => {
     expect(said(kind, s)).not.toMatch(/paused/i)
   })
 
-  it.each(cells)('%s, %j: a paused tool says it is paused, and has no next read', (kind, s) => {
-    if (s.intent !== 'paused') return
-    const view = sourceView(kind, source(s, kind === 'context' ? contentOf : {}), null)
-    expect(view.banner).toMatchObject({ kind: 'paused' })
-    expect(view.pending).toBeNull()
-    expect(view.numbers[1]).toMatchObject({ value: 'Paused' })
-  })
+  it.each(cells)(
+    '%s, %j: a paused tool says it is paused, off for definitions, and has no next read',
+    (kind, s) => {
+      if (s.intent !== 'paused') return
+      const view = sourceView(kind, source(s, kind === 'context' ? contentOf : {}), null)
+      expect(view.banner).toMatchObject({ kind: 'paused' })
+      expect(view.pending).toBeNull()
+      expect(view.numbers[1]).toMatchObject({ value: kind === 'definitions' ? 'Off' : 'Paused' })
+    },
+  )
 
   it.each(cells)('%s, %j: a tool never read is never "soon"', (kind, s) => {
     expect(said(kind, s)).not.toMatch(/soon/)
@@ -131,14 +134,29 @@ describe('the cells the audit found', () => {
   })
 
   it('a tool paused after a failed read says why it failed, and after a refused key what it needs', () => {
-    expect(sourceView('definitions', source(paused('failed')), null).banner).toEqual({
+    expect(sourceView('context', source(paused('failed'), contentOf), null).banner).toEqual({
       kind: 'paused',
       words: "Paused. Its last read failed: it couldn't be reached.",
     })
-    expect(sourceView('definitions', source(paused('refused')), null).banner).toEqual({
+    expect(sourceView('context', source(paused('refused'), contentOf), null).banner).toEqual({
       kind: 'paused',
       words: 'Paused. It will need a new key.',
     })
+  })
+
+  it('a definitions integration paused is off, and says so in every case', () => {
+    expect(sourceView('definitions', source(paused('failed')), null).banner).toEqual({
+      kind: 'paused',
+      words: "Off. Its last read failed: it couldn't be reached.",
+    })
+    expect(sourceView('definitions', source(paused('ok')), null).banner).toEqual({
+      kind: 'paused',
+      words: 'Off.',
+    })
+    const never = sourceView('definitions', source(paused('never')), null)
+    expect(never.banner).toEqual({ kind: 'paused', words: 'Off before its first read.' })
+    expect(never.numbers[0]).toMatchObject({ sub: 'first read once it is turned on' })
+    expect(never.numbers[1]).toMatchObject({ value: 'Off' })
   })
 
   it('a failure tried again sooner than its period is backing off; one a period on is not', () => {

@@ -88,6 +88,9 @@ export const policies = {
   'sources.remove': 'admin',
   'vocabulary.get': 'read',
   'vocabulary.search': 'read',
+  // Values people write (values without figures): an owner of the dimension's domain or an admin
+  // publishes at once; anyone else's wait for one on the Names card.
+  'vocabulary.addValues': 'propose',
   'library.index': 'read',
   'search.all': 'read',
   'catalogue.list': 'read',

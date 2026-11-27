@@ -12,7 +12,7 @@ import type { Definition } from '@/lib/definitions'
 import type { ObsData, Topic } from '@/model/observability'
 import type { ObsDimensionList, ObsFilterView, ObsValueList, ObsValuesInput } from '../client'
 import type { Term } from '@domain/vocabulary'
-import { markets, metrics } from './data/world'
+import { dimensions, markets, metrics } from './data/world'
 
 // Overview's filter in the demo: the dimensions and their values counted for a view exactly as
 // the service counts them (src/domain/obs-filters.ts), from the page's own topics after their
@@ -24,12 +24,14 @@ const slug = (name: string) => name.toLowerCase().replace(/\W+/g, '_')
  * A dimension's values as the demo world lists them: the markets, or the names its definition
  * gives ("Footwear, Clothing, Camping, Climbing"). One it only counts ("2,400 campaigns") lists none.
  */
-const definitionValues = (d: Definition) =>
-  d.name === 'Market'
+const definitionValues = (d: Definition) => {
+  const listed = dimensions.find((x) => x.name === d.name)?.values ?? ''
+  return d.name === 'Market'
     ? markets
-    : /,\s/.test(d.values ?? '')
-      ? d.values!.split(/,\s+/).map((v) => v.trim())
+    : /,\s/.test(listed)
+      ? listed.split(/,\s+/).map((v) => v.trim())
       : []
+}
 
 /** The vocabulary as the engine names it: the metrics and dimensions with their domains, and their values. */
 export function termsOf(definitions: readonly Definition[]): Term[] {

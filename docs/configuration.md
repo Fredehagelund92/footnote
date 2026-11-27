@@ -77,11 +77,13 @@ Ask answers with one model that reads with Footnote's own read tools, as the per
 | `FOOTNOTE_EGRESS_PRIVATE_HOSTS` | None    | Hosts on a private network connectors may reach over https, comma-separated                                                                                                                            |
 | `FOOTNOTE_SECRETS_DIR`          | None    | The folder that keeps the tokens of sources added in Integrations                                                                                                                                      |
 
-`FOOTNOTE_SERVER_FOLDERS` looks like `{"dbt-metricflow":"/srv/dbt/target"}`. Each folder is read by that connector as one of the server's own sources, and the demo definitions stop. In Docker, share the folder into the container and name its path there.
+`FOOTNOTE_SERVER_FOLDERS` looks like `{"dbt-metricflow":"/srv/dbt/target"}`. The folder is read by that connector as the server's own source, and the demo definitions stop. In Docker, share the folder into the container and name its path there.
+
+One definitions integration is on at a time. If the server names more than one definitions folder (`CUBE_MODEL_DIR` and an entry in `FOOTNOTE_SERVER_FOLDERS`, or two entries), the service starts, and the source of the first one it reads is on. The sources of the others are registered off: in Settings, Integrations, turn the one on off, then turn another on.
 
 A connector that cannot read a folder stops the service at start. A folder that is not there shows as a failed read in Settings, Integrations.
 
-> **Moving off a server folder.** Moving a project from a server folder to a source of the same definitions is not supported yet. A server source taken out of the configuration keeps its definitions, so a source added later cannot take them.
+> **Moving off a server folder.** Turn the server's source off in Settings, Integrations, then connect the new source. Its first read takes over the definitions it shares. A server source taken out of the configuration stays in Integrations: turn it off there before you connect another.
 
 `FOOTNOTE_EGRESS_PRIVATE_HOSTS` applies to files and APIs read over https, not to Git. An admin in the app cannot add a host: see [Connector security](connectors/security.md#what-a-connector-may-reach).
 

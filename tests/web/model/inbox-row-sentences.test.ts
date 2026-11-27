@@ -48,14 +48,14 @@ describe('a suggestion row in sentences', () => {
   })
 
   it('names new metrics and dimensions, not "names"', () => {
-    expect(namesWords({ ready: 3, flagged: 2, tools: ['Cube'] }).title).toBe(
+    expect(namesWords({ ready: 3, flagged: 2, tool: 'Cube' }).title).toBe(
       '5 new metrics and dimensions from Cube',
     )
     // Families are counted apart from the single names (D1).
-    expect(namesWords({ ready: 35, flagged: 8, families: 37, tools: ['dbt'] }).title).toBe(
+    expect(namesWords({ ready: 35, flagged: 8, families: 37, tool: 'dbt' }).title).toBe(
       '37 families and 6 names from dbt',
     )
-    expect(namesWords({ ready: 1, flagged: 0, families: 1, tools: ['dbt'] }).title).toBe(
+    expect(namesWords({ ready: 1, flagged: 0, families: 1, tool: 'dbt' }).title).toBe(
       '1 family from dbt',
     )
     expect(cardTypeLabel.names).toBe('New metrics and dimensions')

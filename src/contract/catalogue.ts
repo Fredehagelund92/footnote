@@ -153,6 +153,17 @@ export const familyUsualSchema = z.object({
   revision: z.number(),
 })
 
+/** A value of a dimension (FR-136): a name people and owners published, never read from data. */
+export const catalogueValueSchema = z.object({
+  /** `val:market/norway`. */
+  key: z.string(),
+  name: z.string(),
+  /** Other names for the value (FR-107). */
+  aliases: z.array(z.string()),
+  /** How the data writes it ("NO"), as an agent's filter passes it. */
+  writtenAs: z.array(z.string()),
+})
+
 export const catalogueTermSchema = z.object({
   /** The vocabulary key: `metric:orders`, `dim:market`. */
   key: z.string(),
@@ -198,6 +209,8 @@ export const catalogueTermSchema = z.object({
       declared: z.nullable(z.string()),
     }),
   ),
+  /** A dimension's values, by name; empty for a metric and a family. */
+  values: z.array(catalogueValueSchema),
   /** The vocabulary's area first, the source's hint second, no domain third. */
   domain: z.object({ areaId: z.nullable(z.string()), source: z.enum(termDomainSources) }),
   /**
@@ -253,19 +266,6 @@ export const catalogueSchema = z.object({
   /** Metrics with no domain, against all metrics (CON-516). */
   coverage: z.object({ metrics: z.number(), withoutDomain: z.number() }),
   today: calendarDateSchema,
-})
-
-export const catalogueValueSchema = z.object({
-  /** `val:market/norway`. */
-  key: z.string(),
-  id: z.string(),
-  name: z.string(),
-  /** Other names for the value (FR-107). */
-  aliases: z.array(z.string()),
-  /** Accepted items whose scope names the value. */
-  items: z.number(),
-  /** Items whose text mentions the value. */
-  mentionedBy: z.number(),
 })
 
 /** How a definition relates to another, or to a column, as its source's structure says (D3). */

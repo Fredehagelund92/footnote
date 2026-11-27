@@ -12,8 +12,8 @@ import sharp from 'sharp'
     npm run capture                      # or BASE=http://localhost:5517 npm run capture
     npm run capture -- landing           # only the landing page's; `-- readme` or `-- docs` the same
 
-  The landing page's are taken in English, in light and dark, at 1280 x 800 for wide screens and
-  at 390 x 780 for phones, both at twice the pixels, with motion reduced. The README's is one wide
+  The landing page's are taken in English, in light and dark, at 1280 x 800 and twice the pixels,
+  with motion reduced; its tour shows three of the docs' beside them. The README's is one wide
   picture in light, as GitHub shows a README on white. The docs' are wide, in light and dark, each
   cropped to the part of the screen its page is about. The web build's demo is the invented
   company's, and no picture may show the line that says the build is a design preview.
@@ -34,7 +34,7 @@ type Shot = {
   path: string
   ready: (page: Page) => Promise<unknown>
   prepare?: (page: Page) => Promise<unknown>
-  /** On wide screens, the part of the screen to keep; a phone keeps all of it. */
+  /** The part of the screen to keep. */
   clip: (page: Page) => Promise<{ x: number; y: number; width: number; height: number }>
 }
 
@@ -237,10 +237,7 @@ async function takeDocsPictures() {
   }
 }
 
-const sizes = [
-  { suffix: '', viewport: { width: 1280, height: 800 }, phone: false, width: 1600 },
-  { suffix: '-phone', viewport: { width: 390, height: 780 }, phone: true, width: 780 },
-]
+const screen = { width: 1280, height: 800 }
 
 /**
  * The README's picture: Ask's answer on the demo, with the panel that shows where its first
@@ -280,13 +277,11 @@ async function takeReadmePicture() {
 
 const browser = await chromium.launch()
 try {
-  for (const size of takes('landing') ? sizes : [])
+  if (takes('landing'))
     for (const colorScheme of ['light', 'dark'] as const) {
       const context = await browser.newContext({
-        viewport: size.viewport,
+        viewport: screen,
         deviceScaleFactor: 2,
-        isMobile: size.phone,
-        hasTouch: size.phone,
         locale: 'en-GB',
         timezoneId: 'Europe/London',
         colorScheme,
@@ -297,11 +292,11 @@ try {
         await page.goto(base + shot.path)
         await shot.ready(page)
         await shot.prepare?.(page)
-        await page.mouse.move(0, size.viewport.height - 1)
+        await page.mouse.move(0, screen.height - 1)
         await page.waitForTimeout(1200)
-        const png = await page.screenshot({ clip: size.phone ? undefined : await shot.clip(page) })
-        const name = `${shot.name}-${colorScheme}${size.suffix}.webp`
-        await sharp(png).resize({ width: size.width }).webp({ quality: 78 }).toFile(join(out, name))
+        const png = await page.screenshot({ clip: await shot.clip(page) })
+        const name = `${shot.name}-${colorScheme}.webp`
+        await sharp(png).resize({ width: 1600 }).webp({ quality: 78 }).toFile(join(out, name))
         console.log('took', name)
         await page.close()
       }

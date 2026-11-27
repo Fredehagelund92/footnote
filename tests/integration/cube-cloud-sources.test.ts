@@ -31,8 +31,10 @@ import { apiDatabase, queueReads, testDatabase, transaction } from './support.ts
   metadata token nowhere, and the sources' job reads it through the connector's runtime and the
   definitions pipeline. A build that has not changed is not read again. A changed member flags the
   live items that rely on it, a member that left marks them, and a read never publishes (I-2).
-  A model that moves from Cube model files keeps its `cube:` refs: once the files source is
-  disconnected, Cube Cloud takes them over without flagging any item (CON-117).
+  A model that moves from Cube model files keeps its `cube:` refs. One definitions integration is
+  on at a time (CON-120): Cube Cloud is turned away while the files source is on, and once the
+  files source is disconnected, Cube Cloud takes its refs over, and the items that relied on them
+  meanwhile are no longer flagged (CON-117).
 */
 
 const GIT_TOKEN = 'cube-cloud-it-git-token-4f1a9c'
@@ -234,9 +236,8 @@ describe('a model that moves from Cube model files to Cube Cloud', () => {
         secrets: { apiKey: cloud.apiKey },
       }),
     )
-    // The refs the files source reads are taken: a test says so, as a read would, and is in part.
-    expect(check).toMatchObject({ ok: true, complete: false, metrics: 5, dimensions: 3 })
-    expect(check.warnings).toContainEqual({ code: 'taken', target: 'cube:operations.revenue' })
+    // What it would read once it is on, the refs the files source reads now among them.
+    expect(check).toMatchObject({ ok: true, complete: true, metrics: 5, dimensions: 3 })
     expect(check.steps.map((step) => [step.id, step.status])).toEqual([
       ['reach', 'ok'],
       ['environment', 'ok'],
@@ -259,7 +260,29 @@ describe('a model that moves from Cube model files to Cube Cloud', () => {
     expect(await rows()).toBe(before)
   }, 120_000)
 
-  it('is added beside the files, and leaves out each ref the files source holds', async () => {
+  it('is turned away while the files source is on, and says how to switch', async () => {
+    const refused = await call('POST', '/sources', 'admin', {
+      type: 'cube-cloud',
+      name: 'Cube Cloud',
+      config: config(),
+      secrets: { apiKey: cloud.apiKey },
+      reason: 'The model moved to Cube Cloud',
+    })
+    expect(refused.statusCode).toBe(409)
+    expect(refused.json<{ message: string }>().message).toBe(
+      'Only one definitions integration is on at a time, and Analytics model is on. To read Cube Cloud instead, turn Analytics model off, then turn Cube Cloud on.',
+    )
+  }, 120_000)
+
+  it('takes them over once the files source is disconnected, and its read clears the flags', async () => {
+    await ok(
+      call('POST', `/sources/${filesId}/disconnect`, 'admin', {
+        reason: 'The model moved to Cube Cloud',
+      }),
+    )
+    // Off, the files' definitions are not served: the item that relies on one says so.
+    expect(await flags(operations)).toEqual(['source_missing'])
+    const before = await published()
     const added = await ok<SourceSettings>(
       call('POST', '/sources', 'admin', {
         type: 'cube-cloud',
@@ -272,29 +295,6 @@ describe('a model that moves from Cube model files to Cube Cloud', () => {
     )
     cloudId = added.id
     expect(added).toMatchObject({ type: 'cube-cloud', secrets: [{ key: 'apiKey', set: true }] })
-    const result = (await read(cloudId))[cloudId]
-    // Only the member the files do not have is its own; the rest stay with the files.
-    expect(result).toMatchObject({ status: 'partial', definitionsSeen: 1 })
-    const owners = (
-      await client.query<{ connector_id: string; n: number }>(
-        `select connector_id, count(*)::int as n from definitions where connector_id = any($1)
-          group by connector_id order by n`,
-        [[cloudId, filesId]],
-      )
-    ).rows
-    expect(owners).toEqual([
-      { connector_id: cloudId, n: 1 },
-      { connector_id: filesId, n: 7 },
-    ])
-  }, 120_000)
-
-  it('takes them over once the files source is disconnected, and flags no item for it', async () => {
-    await ok(
-      call('POST', `/sources/${filesId}/disconnect`, 'admin', {
-        reason: 'The model moved to Cube Cloud',
-      }),
-    )
-    const before = await published()
     const result = (await read(cloudId))[cloudId]
     expect(result).toMatchObject({ status: 'ok', definitionsSeen: 8 })
     const refs = (

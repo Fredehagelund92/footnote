@@ -1,0 +1,80 @@
+---
+import { metrics } from '../definitions.ts'
+
+/* The definitions window (landing/page.ts): the demo's metrics in a list, one open, with what it
+   means, its other name, what it is built from, and beside it the notes people wrote about it.
+   Every metric is drawn here, hidden but the first, and pressing one in the list opens it. */
+
+const open = metrics[0]!
+const groups = new Set<string>()
+---
+
+<div class="def glow rv" id="def">
+  <i class="gl" aria-hidden="true"></i>
+  <div class="win-bar">
+    <div><svg class="logo" aria-hidden="true"><use href="#i-logo"></use></svg><b>Definitions</b></div>
+    <div class="about">Read from your semantic layer, read only</div>
+    <div class="about">Notes about it</div>
+  </div>
+  <div class="side" role="group" aria-label="Metrics">
+    {
+      metrics.map((m) => {
+        const head = !groups.has(m.group)
+        groups.add(m.group)
+        return (
+          <Fragment>
+            {head && <p class="grp">{m.group}</p>}
+            <button type="button" data-m={m.key} aria-pressed={m === open ? 'true' : 'false'}>
+              <i class="tile" aria-hidden="true">&Sigma;</i>
+              <span>{m.name}</span>
+            </button>
+          </Fragment>
+        )
+      })
+    }
+  </div>
+  {
+    metrics.map((m) => (
+      <Fragment>
+        <div class="def-main" data-metric={m.key} hidden={m !== open}>
+          <h3 class="swapin">{m.name}</h3>
+          <p class="meta swapin">
+            <span class="chipx">Metric</span>
+            <span class="chipx">{m.group}</span>
+            {m.aka && <span class="chipx">also called {m.aka}</span>}
+          </p>
+          <p class="text swapin" style="--i:1">{m.definition}</p>
+          {m.columns.length > 0 && (
+            <Fragment>
+              <p class="lab swapin" style="--i:2">Built from</p>
+              <ul class="tree swapin" style="--i:2">
+                {m.columns.map((column) => (
+                  <li>
+                    <span class="leaf">
+                      <i class="tile" aria-hidden="true">&Sigma;</i>column <code>{column}</code>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
+          )}
+        </div>
+        <aside class="panel" data-metric={m.key} hidden={m !== open} aria-label={`Notes about ${m.name}`}>
+          <ul class="ctx">
+            {m.notes.length ? (
+              m.notes.map((note, i) => (
+                <li class="swapin" style={`--i:${i}`}>
+                  {note.title}
+                  <span class="chipx">{note.market}</span>
+                </li>
+              ))
+            ) : (
+              <li class="none swapin">No note about it in this example.</li>
+            )}
+          </ul>
+        </aside>
+      </Fragment>
+    ))
+  }
+</div>
+<p class="win-cap">An example with the demo's metrics and some of the notes about each. Press one to open it.</p>

@@ -43,7 +43,7 @@ async function asOwner(page: Page) {
   const size = page.viewportSize()!
   await page.setViewportSize({ width: 1440, height: 900 })
   await go(page, '/definitions?demo=families')
-  await expect(page.getByText(/^From Cube and dbt/)).toBeVisible()
+  await expect(page.getByText(/^From dbt - change them there/)).toBeVisible()
   await signInAs(page, 'Sofia Brandt')
   await page.setViewportSize(size)
 }

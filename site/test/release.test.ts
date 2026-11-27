@@ -18,7 +18,7 @@ describe('the release switch', () => {
     const words = all(false)
     expect(releaseWords(false).startCommands.at(-1)).toBe('docker compose up')
     expect(words).toContain('builds Footnote from the code you cloned')
-    expect(words).toContain('It can take ten minutes.')
+    expect(words).toContain('which can take ten minutes.')
     expect(words).toContain('Not released yet')
     for (const claim of ['0.1.0', 'two minutes', 'pulls', 'published images', 'compose.images'])
       expect(words).not.toContain(claim)

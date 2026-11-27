@@ -19,7 +19,7 @@ import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
 import { familyMeaningHistoryOf } from '../http-family-meaning'
-import { connectorById } from '@/model/catalogue'
+import { connectorById, oneOnWords } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
 import { cards, demoQuestions, questionDays, waiting, week } from './data/inbox'
@@ -70,7 +70,7 @@ import {
 } from './integrations'
 import { reportedOn, type Answer, type AskInput } from '@/model/ask'
 import { failedAnswer } from '@/api/http-ask'
-import { createDefinitions } from './definitions'
+import { createDefinitions, FAMILIES_DEFINITIONS } from './definitions'
 import { builtFromFor, relationsFor } from './data/relations'
 import { dimensionsOf, valuesOf } from './obs-filters'
 import { publishEffects, touchedBy } from './publish'
@@ -78,7 +78,16 @@ import { SAVED_TREND } from './data/saved-questions'
 import { createSaved } from './saved'
 import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
-import { createScopeSearch, withScope, withValues } from './scope'
+import {
+  createScopeSearch,
+  dimensionTermOf,
+  heldValuesOf,
+  publishValues,
+  withScope,
+  withValues,
+} from './scope'
+import { textFindings } from '@domain/draft'
+import { dimensionOfValue, valueKeyOf, valueRefusal } from '@domain/values'
 import { factsOf, reduce, start, type Action, type State } from './store'
 import { familyFacts } from './data/variants'
 import { IMPORTED, backlogDrafts, importedDrafts } from './data/imported'
@@ -110,7 +119,6 @@ export function createMockApi() {
   const scenario = createScenario()
   const workspace = createWorkspace()
   const comments = createComments()
-  const definitions = createDefinitions()
   /** The dimensions an admin pinned on Overview in this visit (observability.pinned_dimensions). */
   let pins: Pins = { keys: [] }
   let automatic: Automatic = { on: false, version: 1 }
@@ -130,7 +138,15 @@ export function createMockApi() {
   const chats = createChats()
   const scope = createScopeSearch()
   const settings = createSettings()
-  const names = createMockNames()
+  // A value that waited for an owner is published with its other names and how the data writes it.
+  const names = createMockNames(undefined, (values) =>
+    values.forEach((v) => publishValues(v.dimension.key, [v])),
+  )
+  /** The values a writer added in "Applies to", published with the item (values without figures). */
+  const publishAdded = (terms: Fact['scope']) => {
+    for (const t of terms ?? [])
+      if (t.added && t.key) publishValues(dimensionOfValue(t.key), [{ key: t.key, name: t.name }])
+  }
   const policies = createPolicies()
   /** What the connect flow set for each tool this visit. */
   const kept = new Map<string, Kept>()
@@ -138,6 +154,25 @@ export function createMockApi() {
     () => settings.read().connected,
     (id) => kept.get(id),
   )
+  /** The definitions tool that is on, other than `except`: one is at a time (CON-120). */
+  const definitionsOn = (except?: string) =>
+    settings
+      .read()
+      .connected.find(
+        (id) =>
+          id !== except && connectorById(id)?.kind === 'definitions' && !integrations.paused(id),
+      )
+  /** Refused while another definitions tool is on, as the service refuses it. */
+  const makeRoomFor = (id: string) => {
+    if (connectorById(id)?.kind !== 'definitions') return
+    const on = definitionsOn(id)
+    if (on)
+      throw new ApiError(
+        'conflict',
+        oneOnWords(connectorById(on)?.label ?? on, connectorById(id)?.label ?? id),
+      )
+  }
+  const definitions = createDefinitions((connector) => definitionsOn() === connector)
   let views: SavedView[] = []
   readDefinitionsFrom(definitions.list)
   let state: State = start
@@ -908,6 +943,7 @@ export function createMockApi() {
             )
           mayDecide(fact.id, 'publish')
           const itemId = `itm_new_${Date.now().toString(36)}`
+          publishAdded(fact.scope)
           scope.used(fact.scope)
           dispatch({ type: 'addFact', fact: { ...fact, id: itemId, version: 1, by: waits.by } })
           dispatch({ type: 'complete', card: fact.id, outcome: 'Published' })
@@ -935,6 +971,7 @@ export function createMockApi() {
           ...(replaces ? { replaces } : {}),
           ...(disagreesWith ? { disagreesWith } : {}),
         }
+        publishAdded(fact.scope)
         scope.used(fact.scope)
         if (isNew) dispatch({ type: 'addFact', fact: { ...saved, id } })
         else dispatch({ type: 'editFact', id, patch: saved })
@@ -1277,6 +1314,65 @@ export function createMockApi() {
             ).length,
         ),
       ),
+    // As the service: every value is checked first, and an admin publishes them at once. The demo's
+    // dimensions have no domain, so anyone else's wait for an admin on the Names card.
+    addValues: ({ dimension, values }) =>
+      now(() => {
+        const of = dimensionTermOf(dimension)
+        if (!of) throw new ApiError('not-found', `“${dimension}” isn't in Definitions any more.`)
+        const held = [
+          ...heldValuesOf(of.key),
+          ...names
+            .waitingValues()
+            .filter((v) => v.dimension.key === of.key)
+            .map((v) => ({
+              key: v.key,
+              name: v.name,
+              words: [v.name, ...v.aliases],
+              waiting: true,
+            })),
+        ]
+        const added: { key: string; name: string; aliases: string[]; writtenAs: string[] }[] = []
+        for (const written of values) {
+          const name = written.name.trim()
+          const key = valueKeyOf(of.key, name)
+          const aliases = [
+            ...new Set((written.aliases ?? []).map((a) => a.trim()).filter((a) => a && a !== name)),
+          ]
+          const writtenAs = [
+            ...new Set((written.writtenAs ?? []).map((w) => w.trim()).filter(Boolean)),
+          ]
+          if (textFindings({ name, aliases, writtenAs }).length)
+            throw new ApiError(
+              'invalid',
+              'A value is a name: it may not hold an email address, a phone number or a key.',
+            )
+          if (!key)
+            throw new ApiError('invalid', `“${name}” has no letter or digit to name a value with.`)
+          const refusal =
+            valueRefusal({ name: of.name, types: [] }, { key, name, aliases }, held) ??
+            (added.some((v) => v.key === key) ? `${name} is in the list twice.` : null)
+          if (refusal) throw new ApiError('invalid', refusal)
+          added.push({ key, name, aliases, writtenAs })
+        }
+        const listed = added.map(({ key, name }) => ({ key, name }))
+        if (obsReader().admin) {
+          publishValues(of.key, added)
+          return { outcome: 'published' as const, values: listed, edition: 'today.1' }
+        }
+        const by = meAsPerson()
+        names.suggest(
+          added.map((v) => ({
+            id: crypto.randomUUID(),
+            ...v,
+            dimension: { key: of.key, name: of.name },
+            areaId: null,
+            by: { personId: by.id, name: by.name },
+            at: new Date().toISOString(),
+          })),
+        )
+        return { outcome: 'waiting' as const, values: listed, edition: null }
+      }),
     saveTerm: ({ previous, term }) => now(() => definitions.saveTerm(previous, term)),
     addSynonym: ({ target, word }) => now(() => definitions.addSynonym(target, word, me())),
     removeTerm: ({ name }) => now(() => remember(definitions.removeTerm(name))),
@@ -1717,6 +1813,7 @@ export function createMockApi() {
     connectIntegration: ({ connector, config, chosen, readsAll, reason }) =>
       now(() => {
         checkConnect(connector, { chosen, reason })
+        makeRoomFor(connector)
         settings.connect(connector)
         kept.set(connector, { config, chosen, readsAll, revision: 1 })
         // A definitions tool's read makes names, and the owner accepts them.
@@ -1777,7 +1874,11 @@ export function createMockApi() {
     integrationPage: ({ id }) =>
       read('integrationPage', id, () => integrations.sourcePage(id, scenario.address())),
     readIntegration: ({ id }) => now(() => integrations.readAgain(id, new Date())),
-    pauseIntegration: ({ id, paused }) => now(() => integrations.pause(id, paused)),
+    pauseIntegration: ({ id, paused }) =>
+      now(() => {
+        if (!paused) makeRoomFor(id)
+        integrations.pause(id, paused)
+      }),
     listAgentConnections: () =>
       now(() =>
         settings
@@ -1924,6 +2025,12 @@ export function createMockApi() {
         lastDemo = demo
         if (demo === 'names') names.load()
         if (demo === 'variants') definitions.loadVariants()
+        // dbt reads the demo's model in Cube's place: one definitions tool is on at a time.
+        if (demo === 'dbt' || demo === 'families') {
+          settings.disconnect(DEMO_DEFINITIONS)
+          settings.connect(FAMILIES_DEFINITIONS)
+          definitions.readWith(FAMILIES_DEFINITIONS)
+        }
         if (demo === 'dbt') definitions.loadDbtFolder()
         if (demo === 'families') {
           familiesShop = true

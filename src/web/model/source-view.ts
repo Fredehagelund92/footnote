@@ -55,18 +55,23 @@ export function sourceView(
   const active = state.intent === 'active' ? state : null
   const failed = state.last === 'failed' || state.last === 'refused'
 
+  // A definitions integration paused is off (CON-120): it says so, as its switch does.
+  const off = kind === 'definitions'
+  const paused = off ? 'Off' : 'Paused'
   const banner: SourceBanner | null =
     state.intent === 'paused'
       ? {
           kind: 'paused',
           words:
             state.last === 'never'
-              ? 'Paused before its first read.'
+              ? `${paused} before its first read.`
               : state.last === 'failed'
-                ? `Paused. Its last read failed: ${source.failure ?? "it couldn't be read"}.`
+                ? `${paused}. Its last read failed: ${source.failure ?? "it couldn't be read"}.`
                 : state.last === 'refused'
-                  ? 'Paused. It will need a new key.'
-                  : 'Reading is paused.',
+                  ? `${paused}. It will need a new key.`
+                  : off
+                    ? 'Off.'
+                    : 'Reading is paused.',
         }
       : state.last === 'failed'
         ? { kind: 'failed' }
@@ -77,7 +82,11 @@ export function sourceView(
   const last = source.last
   const lastNumber: SourceNumber =
     state.last === 'never'
-      ? { label: 'Last read', value: 'Not yet', sub: `first read ${firstReadWords(state)}` }
+      ? {
+          label: 'Last read',
+          value: 'Not yet',
+          sub: `first read ${off && state.intent === 'paused' ? 'once it is turned on' : firstReadWords(state)}`,
+        }
       : state.last === 'refused'
         ? {
             label: 'Last read',
@@ -105,7 +114,7 @@ export function sourceView(
 
   const label = failed ? 'Next try' : 'Next read'
   const nextNumber: SourceNumber = !active
-    ? { label, value: 'Paused', sub: source.every }
+    ? { label, value: paused, sub: source.every }
     : active.read === 'reading'
       ? { label, value: 'Now', sub: 'being read' }
       : active.read === 'queued'

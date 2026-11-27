@@ -175,8 +175,16 @@ export function textToService(text: string, words: Words): { plain: string; mark
 
 const NO_SCOPE: Scope = { metrics: [], dimensions: [], dimensionValues: [] }
 
-/** A scope as "Applies to" holds it: each term by its key, with the name people read. */
-export function scopeTermsOf(scope: Scope, words: Words): ScopeTerm[] {
+/**
+ * A scope as "Applies to" holds it: each term by its key, with the name people read. A value the
+ * writer added (`added`, a draft's `newValues`) is named as they wrote it.
+ */
+export function scopeTermsOf(
+  scope: Scope,
+  words: Words,
+  added: readonly { key: string; name: string }[] = [],
+): ScopeTerm[] {
+  const addedName = new Map(added.map((value) => [value.key, value.name]))
   return [
     ...scope.metrics
       .flatMap((key) => words.formerOf?.(key) ?? [key])
@@ -186,12 +194,16 @@ export function scopeTermsOf(scope: Scope, words: Words): ScopeTerm[] {
       kind: 'dimension' as const,
       name: words.nameOf(key),
     })),
-    ...scope.dimensionValues.map(({ dimension, value }) => ({
-      key: value,
-      kind: 'value' as const,
-      name: words.nameOf(value),
-      dimension: words.nameOf(dimension),
-    })),
+    ...scope.dimensionValues.map(({ dimension, value }) => {
+      const name = addedName.get(value)
+      return {
+        key: value,
+        kind: 'value' as const,
+        name: name ?? words.nameOf(value),
+        dimension: words.nameOf(dimension),
+        ...(name !== undefined ? { added: true as const } : {}),
+      }
+    }),
   ]
 }
 
@@ -323,12 +335,13 @@ export function factOfPage(page: ServiceItemPage, names: Names, words: Words): F
 
 /** A draft that was never published, as the Context list and its page read it. */
 export function factOfDraft(
-  proposal: Pick<ProposalRecord, 'id' | 'title' | 'areaId' | 'draft' | 'proposerId'>,
+  proposal: Pick<ProposalRecord, 'id' | 'title' | 'areaId' | 'draft' | 'proposerId'> &
+    Partial<Pick<ProposalRecord, 'newValues'>>,
   names: Names,
   words: Words,
 ): Fact {
   const draft = proposal.draft
-  const scope = scopeTermsOf(draft.scope ?? NO_SCOPE, words)
+  const scope = scopeTermsOf(draft.scope ?? NO_SCOPE, words, proposal.newValues)
   const valid = draft.validity
     ? validityOf({ validity: draft.validity, reviewQuestion: 'still_correct' })
     : {}
@@ -550,6 +563,13 @@ export function draftOf(fact: Fact, words: Words, today: string, before?: Fact):
   if (changed('dontConclude')) draft.notToConclude = fact.dontConclude || defaultNotToConclude
   return draft
 }
+
+/**
+ * The values the writer added in "Applies to" that no vocabulary has yet, by the key its scope
+ * names each with: they go with the suggestion, beside its draft (values without figures).
+ */
+export const newValuesOf = (fact: Fact) =>
+  (fact.scope ?? []).flatMap((t) => (t.added && t.key ? [{ key: t.key, name: t.name }] : []))
 
 /** The words a draft read from text has, as the editor's item: every field it could read. */
 export function factOfReadDraft(draft: Draft, names: Names, words: Words): Fact {

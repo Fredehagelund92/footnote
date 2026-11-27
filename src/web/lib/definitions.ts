@@ -108,6 +108,9 @@ export type SplitFamily = {
   on: string
 }
 
+/** A value of a dimension: its name, other names people say, and how the data writes it. */
+export type DefinitionValue = { name: string; aliases: string[]; writtenAs: string[] }
+
 export type Definition = {
   name: string
   type: DefinitionType
@@ -135,8 +138,8 @@ export type Definition = {
   domain?: DomainId
   /** Its tool's group, for metrics and dimensions. */
   group?: string
-  /** A dimension's values, as its tool lists them. */
-  values?: string
+  /** A dimension's values, by name: the ones people and owners published. */
+  values?: DefinitionValue[]
   /** A metric that is a family of variants, one entry for them all (FR-142). */
   family?: Family
   /** Its tool changed it at the last sync. */
@@ -191,25 +194,17 @@ export const kindName = (
 ) => (d.family ? 'Family of metrics' : d.sameAs ? 'Synonym' : typeLabel[d.type])
 
 /**
- * The tool synced definitions come from, as people say it, when they all come from one; undefined
- * when none is synced or they come from several, so a screen says it in neutral words instead.
+ * The tool synced definitions come from, as people say it; undefined when none is synced, so a
+ * screen says it in neutral words. One definitions integration is on at a time (CON-120), so they
+ * all come from one.
  */
 export function toolOf(defs: readonly Pick<Definition, 'synced' | 'tool'>[]): string | undefined {
-  const tools = toolsOf(defs)
-  return tools.length === 1 ? tools[0] : undefined
+  return defs.find((d) => d.synced && d.tool)?.tool
 }
 
-/** The tools the synced definitions come from, by name, A to Z. */
-export function toolsOf(defs: readonly Pick<Definition, 'synced' | 'tool'>[]): string[] {
-  return [...new Set(defs.flatMap((d) => (d.synced && d.tool ? [d.tool] : [])))].sort((a, b) =>
-    a.localeCompare(b, 'en'),
-  )
-}
-
-/** The connector the synced definitions are read by, when it is one; undefined when none or several. */
+/** The connector the synced definitions are read by; undefined when none is synced. */
 export function connectorOf(defs: readonly Pick<Definition, 'synced' | 'connector'>[]) {
-  const ids = new Set(defs.flatMap((d) => (d.synced && d.connector ? [d.connector] : [])))
-  return ids.size === 1 ? [...ids][0] : undefined
+  return defs.find((d) => d.synced && d.connector)?.connector
 }
 
 // Words are compared as the service compares them: case, spaces and accents aside. Each name's

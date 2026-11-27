@@ -22,6 +22,8 @@ export type ExportedTerm = {
   areaId: string | null
   /** The source members it names (CON-208). */
   definitionRefs: string[]
+  /** How the data writes a value; empty for any other term. */
+  writtenAs: string[]
   digest: string
 }
 export type EditionExport = {

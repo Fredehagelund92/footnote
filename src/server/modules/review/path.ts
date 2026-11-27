@@ -13,6 +13,7 @@ import { CLAIMS_SHOWN, claimCheck } from '../../../domain/claim-check.ts'
 import { docDiff, docMarkdown, plainText, type DocSide } from '../../../domain/doc-diff.ts'
 import { publishable, type ItemVersion } from '../../../domain/item-version.ts'
 import { linksToConfirm } from '../../../domain/questions.ts'
+import { addedValues, dimensionOfValue } from '../../../domain/values.ts'
 import { anyDate, shiftDate } from '../../../domain/validity.ts'
 import { sourceDiff } from '../../../domain/source-diff.ts'
 import { staleWords, standingOf, type Standing } from '../../../domain/suggestion-standing.ts'
@@ -237,6 +238,7 @@ export function createReviewPath(
         itemId: version.itemId,
         scope: ownScope(bundle, version.itemId),
         clashes: [] as string[],
+        added: [] as { key: string; name: string }[],
         gapId,
         standing: waits(p) ? standingOf({ written: p.itemVersionId, live }) : 'current',
       }
@@ -245,12 +247,20 @@ export function createReviewPath(
     const after = await stored(p.itemVersionId)
     const baseId = await baseOf(after.id)
     const before = baseId ? await stored(baseId) : null
-    const candidate = candidateBundle(bundle, {
-      id: after.itemId,
-      versionNo: after.versionNo,
-      proposerId: after.version.proposerId,
-      version: after.version,
-    })
+    const added = addedValues(
+      { scope: after.version.scope, newValues: p.newValues },
+      new Set(bundle.terms.map((term) => term.key)),
+    )
+    const candidate = candidateBundle(
+      bundle,
+      {
+        id: after.itemId,
+        versionNo: after.versionNo,
+        proposerId: after.version.proposerId,
+        version: after.version,
+      },
+      added,
+    )
     const scope = ownScope(candidate, after.itemId)
     // A clash: a live item agents would get in the same answer, that the suggestion neither
     // changes nor already names as replaced or conflicting (FR-225, decided 26 October 2026). An
@@ -291,6 +301,7 @@ export function createReviewPath(
       itemId: after.itemId,
       scope,
       clashes,
+      added,
       gapId,
       standing,
     }
@@ -466,7 +477,10 @@ export function createReviewPath(
     const ask = r.scope ? { scope: r.scope } : null
     const empty = { state: 'missing' as const, say: '', items: [] }
     const options = { today, voice: peopleVoice }
-    const before = ask ? brief(answer(r.bundle, ask, options)) : empty
+    // The same question on both sides, by the same names: a value its writer added is named so today.
+    const before = ask
+      ? brief(answer({ ...r.bundle, terms: r.candidate.terms }, ask, options))
+      : empty
     const after = ask ? brief(answer(r.candidate, ask, options)) : empty
     const live = new Map(r.candidate.items.map((i) => [i.id, i]))
     const whyNot = await publishRight(p)
@@ -495,6 +509,13 @@ export function createReviewPath(
         ? { sentence: claims.sentence, rows: claims.rows.slice(0, CLAIMS_SHOWN) }
         : null,
       instructionLike: instructionLikeOf(r),
+      // A value its writer added, which publishing it publishes too (values without figures).
+      newValues: r.added.map((value) => ({
+        name: value.name,
+        dimension:
+          r.bundle.terms.find((term) => term.key === dimensionOfValue(value.key))?.name ??
+          dimensionOfValue(value.key),
+      })),
       clashes: r.clashes.map((itemId) => ({
         itemId,
         title: live.get(itemId)?.title ?? itemId,

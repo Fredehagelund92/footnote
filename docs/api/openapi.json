@@ -243,6 +243,29 @@
                       }
                     ]
                   },
+                  "newValues": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
                   "itemId": {
                     "type": "string",
                     "pattern": "^itm_[a-z0-9]{8,16}$"
@@ -417,6 +440,12 @@
                               ]
                             },
                             "definitionRefs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "writtenAs": {
                               "type": "array",
                               "items": {
                                 "type": "string"
@@ -671,6 +700,29 @@
                       },
                       "additionalProperties": false
                     },
+                    "newValues": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "provenance": {
                       "anyOf": [
                         {
@@ -892,6 +944,7 @@
                     "channel",
                     "revision",
                     "draft",
+                    "newValues",
                     "provenance",
                     "agent",
                     "findings",
@@ -1251,6 +1304,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -1501,6 +1560,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -1722,6 +1804,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -2099,6 +2182,12 @@
                                     "items": {
                                       "type": "string"
                                     }
+                                  },
+                                  "writtenAs": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "required": [
@@ -2349,6 +2438,29 @@
                             },
                             "additionalProperties": false
                           },
+                          "newValues": {
+                            "type": "array",
+                            "maxItems": 50,
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string",
+                                  "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                },
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 200
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "provenance": {
                             "anyOf": [
                               {
@@ -2570,6 +2682,7 @@
                           "channel",
                           "revision",
                           "draft",
+                          "newValues",
                           "provenance",
                           "agent",
                           "findings",
@@ -2953,6 +3066,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -3203,6 +3322,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -3424,6 +3566,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -3739,6 +3882,12 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "writtenAs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -3989,6 +4138,29 @@
                       },
                       "additionalProperties": false
                     },
+                    "newValues": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "provenance": {
                       "anyOf": [
                         {
@@ -4210,6 +4382,7 @@
                     "channel",
                     "revision",
                     "draft",
+                    "newValues",
                     "provenance",
                     "agent",
                     "findings",
@@ -4569,6 +4742,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -4819,6 +4998,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -5040,6 +5242,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -5376,6 +5579,12 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "writtenAs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -5626,6 +5835,29 @@
                       },
                       "additionalProperties": false
                     },
+                    "newValues": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "provenance": {
                       "anyOf": [
                         {
@@ -5847,6 +6079,7 @@
                     "channel",
                     "revision",
                     "draft",
+                    "newValues",
                     "provenance",
                     "agent",
                     "findings",
@@ -6206,6 +6439,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -6456,6 +6695,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -6677,6 +6939,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -7019,6 +7282,12 @@
                               "items": {
                                 "type": "string"
                               }
+                            },
+                            "writtenAs": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
                             }
                           },
                           "required": [
@@ -7269,6 +7538,29 @@
                       },
                       "additionalProperties": false
                     },
+                    "newValues": {
+                      "type": "array",
+                      "maxItems": 50,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "provenance": {
                       "anyOf": [
                         {
@@ -7490,6 +7782,7 @@
                     "channel",
                     "revision",
                     "draft",
+                    "newValues",
                     "provenance",
                     "agent",
                     "findings",
@@ -7849,6 +8142,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -8099,6 +8398,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -8320,6 +8642,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -10345,6 +10668,24 @@
                         ]
                       }
                     },
+                    "newValues": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "dimension": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "dimension"
+                        ]
+                      }
+                    },
                     "clashes": {
                       "type": "array",
                       "items": {
@@ -10854,6 +11195,7 @@
                     "source",
                     "claims",
                     "instructionLike",
+                    "newValues",
                     "clashes",
                     "overlaps",
                     "readiness",
@@ -13493,6 +13835,24 @@
                               ]
                             }
                           },
+                          "newValues": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string"
+                                },
+                                "dimension": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "name",
+                                "dimension"
+                              ]
+                            }
+                          },
                           "clashes": {
                             "type": "array",
                             "items": {
@@ -14002,6 +14362,7 @@
                           "source",
                           "claims",
                           "instructionLike",
+                          "newValues",
                           "clashes",
                           "overlaps",
                           "readiness",
@@ -38799,6 +39160,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -39049,6 +39416,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -39270,6 +39660,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -39643,6 +40034,29 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "newValues": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
                   },
                   "itemId": {
                     "type": "string",
@@ -42835,6 +43249,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -43085,6 +43505,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -43306,6 +43749,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -43679,6 +44123,29 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "newValues": {
+                    "type": "array",
+                    "maxItems": 50,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "key": {
+                          "type": "string",
+                          "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        }
+                      },
+                      "required": [
+                        "key",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
                   },
                   "itemId": {
                     "type": "string",
@@ -44079,6 +44546,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -44329,6 +44802,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -44550,6 +45046,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -46571,6 +47068,38 @@
                               }
                             ]
                           },
+                          "values": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "aliases": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                "writtenAs": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "name",
+                                "aliases",
+                                "writtenAs"
+                              ]
+                            }
+                          },
                           "domain": {
                             "type": "object",
                             "properties": {
@@ -46920,6 +47449,7 @@
                           "aliases",
                           "group",
                           "family",
+                          "values",
                           "domain",
                           "definition",
                           "definitions",
@@ -58954,7 +59484,7 @@
                         },
                         "message": {
                           "type": "string",
-                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                          "default": "Only one definitions integration is on at a time."
                         },
                         "data": {}
                       },
@@ -68671,6 +69201,1125 @@
         }
       }
     },
+    "/vocabulary/values": {
+      "post": {
+        "operationId": "vocabulary.addValues",
+        "summary": "Add values to a dimension, one or a pasted list: an owner of the dimension's domain or an admin publishes them at once, and anyone else's wait for one on the Names card. A word another value has already is refused (FR-125)",
+        "tags": [
+          "reference"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dimension": {
+                    "type": "string",
+                    "pattern": "^dim:[a-z0-9_]+$"
+                  },
+                  "values": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "aliases": {
+                          "type": "array",
+                          "maxItems": 20,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "default": []
+                        },
+                        "writtenAs": {
+                          "type": "array",
+                          "maxItems": 5,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "default": []
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "dimension",
+                  "values"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "outcome": {
+                      "enum": [
+                        "published",
+                        "waiting"
+                      ],
+                      "type": "string"
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name"
+                        ]
+                      }
+                    },
+                    "edition": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "outcome",
+                    "values",
+                    "edition"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find it. It may have been deleted, or you may not have access."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this suggestion after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "current": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "number": {
+                                  "type": "number"
+                                },
+                                "subject": {
+                                  "enum": [
+                                    "item",
+                                    "vocabulary"
+                                  ],
+                                  "type": "string"
+                                },
+                                "action": {
+                                  "enum": [
+                                    "create",
+                                    "change",
+                                    "retire",
+                                    "recheck"
+                                  ],
+                                  "type": "string"
+                                },
+                                "state": {
+                                  "enum": [
+                                    "draft",
+                                    "submitted",
+                                    "in_review",
+                                    "changes_requested",
+                                    "accepted",
+                                    "rejected",
+                                    "withdrawn"
+                                  ],
+                                  "type": "string"
+                                },
+                                "areaId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "itemId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "itemVersionId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "vocabularyVersionId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "reason": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "vocabulary": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "key": {
+                                          "type": "string"
+                                        },
+                                        "kind": {
+                                          "enum": [
+                                            "metric",
+                                            "metric_group",
+                                            "dimension",
+                                            "dimension_value"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        },
+                                        "aliases": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "parentKey": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "areaId": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        },
+                                        "definitionRefs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "key",
+                                        "kind",
+                                        "name",
+                                        "aliases",
+                                        "parentKey",
+                                        "areaId",
+                                        "definitionRefs"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "proposerId": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "channel": {
+                                  "enum": [
+                                    "form",
+                                    "chat",
+                                    "command_line",
+                                    "mcp",
+                                    "import",
+                                    "source",
+                                    "question"
+                                  ],
+                                  "type": "string"
+                                },
+                                "revision": {
+                                  "type": "number"
+                                },
+                                "draft": {
+                                  "type": "object",
+                                  "properties": {
+                                    "kind": {
+                                      "enum": [
+                                        "note",
+                                        "event",
+                                        "guide",
+                                        "issue"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "areaId": {
+                                      "type": "string"
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "maxLength": 200
+                                    },
+                                    "summaryMarkup": {
+                                      "type": "string"
+                                    },
+                                    "bodyMarkup": {
+                                      "type": "string"
+                                    },
+                                    "scope": {
+                                      "type": "object",
+                                      "properties": {
+                                        "metrics": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "pattern": "^(metric|group):[a-z0-9_]+$"
+                                          }
+                                        },
+                                        "dimensions": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string",
+                                            "pattern": "^dim:[a-z0-9_]+$"
+                                          },
+                                          "default": []
+                                        },
+                                        "dimensionValues": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "dimension": {
+                                                "type": "string",
+                                                "pattern": "^dim:[a-z0-9_]+$"
+                                              },
+                                              "value": {
+                                                "type": "string",
+                                                "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                              }
+                                            },
+                                            "required": [
+                                              "dimension",
+                                              "value"
+                                            ]
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "metrics",
+                                        "dimensionValues"
+                                      ]
+                                    },
+                                    "validity": {
+                                      "type": "object",
+                                      "properties": {
+                                        "start": {
+                                          "type": "string",
+                                          "maxLength": 10
+                                        },
+                                        "end": {
+                                          "anyOf": [
+                                            {
+                                              "type": "string",
+                                              "maxLength": 10
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      "required": [
+                                        "start",
+                                        "end"
+                                      ]
+                                    },
+                                    "reviewDate": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "maxLength": 10
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "evidence": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "url": {
+                                            "type": "string",
+                                            "maxLength": 2000
+                                          },
+                                          "quote": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                          },
+                                          "date": {
+                                            "type": "string",
+                                            "maxLength": 10
+                                          }
+                                        },
+                                        "required": [
+                                          "url",
+                                          "quote",
+                                          "date"
+                                        ]
+                                      }
+                                    },
+                                    "references": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "changeMarks": {
+                                      "type": "object",
+                                      "propertyNames": {
+                                        "type": "string"
+                                      },
+                                      "additionalProperties": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "claimLevel": {
+                                      "enum": [
+                                        "fact_only",
+                                        "effect_stated"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "claimAuthority": {
+                                      "type": "string"
+                                    },
+                                    "claimQuote": {
+                                      "type": "string"
+                                    },
+                                    "riskLevel": {
+                                      "enum": [
+                                        "low",
+                                        "normal",
+                                        "high"
+                                      ],
+                                      "type": "string"
+                                    },
+                                    "audience": {
+                                      "type": "object",
+                                      "properties": {
+                                        "kind": {
+                                          "const": "everyone"
+                                        }
+                                      },
+                                      "required": [
+                                        "kind"
+                                      ]
+                                    },
+                                    "ownerId": {
+                                      "type": "string",
+                                      "format": "uuid"
+                                    },
+                                    "notToConclude": {
+                                      "type": "string"
+                                    },
+                                    "replaces": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^itm_[a-z0-9]{8,16}$"
+                                      }
+                                    },
+                                    "conflicts": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "pattern": "^itm_[a-z0-9]{8,16}$"
+                                      }
+                                    },
+                                    "summary": {
+                                      "type": "string",
+                                      "maxLength": 20000
+                                    },
+                                    "body": {
+                                      "type": "string",
+                                      "maxLength": 40000
+                                    }
+                                  },
+                                  "additionalProperties": false
+                                },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "provenance": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "by": {
+                                          "enum": [
+                                            "agent",
+                                            "source"
+                                          ],
+                                          "type": "string"
+                                        },
+                                        "fields": {
+                                          "type": "object",
+                                          "propertyNames": {
+                                            "enum": [
+                                              "kind",
+                                              "areaId",
+                                              "ownerId",
+                                              "title",
+                                              "summary",
+                                              "body",
+                                              "scope",
+                                              "validity",
+                                              "reviewDate",
+                                              "evidence",
+                                              "references",
+                                              "changeMarks",
+                                              "claimLevel",
+                                              "riskLevel",
+                                              "audience",
+                                              "notToConclude",
+                                              "replaces",
+                                              "conflicts"
+                                            ],
+                                            "type": "string"
+                                          },
+                                          "additionalProperties": {
+                                            "enum": [
+                                              "derived",
+                                              "default",
+                                              "prefilled",
+                                              "confirmed",
+                                              "not_inferred"
+                                            ],
+                                            "type": "string"
+                                          }
+                                        },
+                                        "flags": {
+                                          "type": "array",
+                                          "maxItems": 20,
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "code": {
+                                                "enum": [
+                                                  "may_be_high_risk",
+                                                  "instruction_like_text",
+                                                  "uncertain_dates"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "field": {
+                                                "enum": [
+                                                  "kind",
+                                                  "areaId",
+                                                  "ownerId",
+                                                  "title",
+                                                  "summary",
+                                                  "body",
+                                                  "scope",
+                                                  "validity",
+                                                  "reviewDate",
+                                                  "evidence",
+                                                  "references",
+                                                  "changeMarks",
+                                                  "claimLevel",
+                                                  "riskLevel",
+                                                  "audience",
+                                                  "notToConclude",
+                                                  "replaces",
+                                                  "conflicts"
+                                                ],
+                                                "type": "string"
+                                              },
+                                              "words": {
+                                                "type": "array",
+                                                "maxItems": 10,
+                                                "items": {
+                                                  "type": "string",
+                                                  "maxLength": 60
+                                                }
+                                              }
+                                            },
+                                            "required": [
+                                              "code",
+                                              "field",
+                                              "words"
+                                            ],
+                                            "additionalProperties": false
+                                          }
+                                        }
+                                      },
+                                      "required": [
+                                        "by",
+                                        "fields",
+                                        "flags"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "agent": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ]
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "findings": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "code": {
+                                        "type": "string"
+                                      },
+                                      "field": {
+                                        "type": "string"
+                                      },
+                                      "message": {
+                                        "type": "string"
+                                      },
+                                      "severity": {
+                                        "enum": [
+                                          "error",
+                                          "warning"
+                                        ],
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "code",
+                                      "field",
+                                      "message",
+                                      "severity"
+                                    ]
+                                  }
+                                },
+                                "claimedBy": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "dueAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "submittedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "createdAt": {
+                                  "type": "string"
+                                },
+                                "updatedAt": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "number",
+                                "subject",
+                                "action",
+                                "state",
+                                "areaId",
+                                "itemId",
+                                "itemVersionId",
+                                "vocabularyVersionId",
+                                "title",
+                                "reason",
+                                "vocabulary",
+                                "proposerId",
+                                "channel",
+                                "revision",
+                                "draft",
+                                "newValues",
+                                "provenance",
+                                "agent",
+                                "findings",
+                                "claimedBy",
+                                "dueAt",
+                                "submittedAt",
+                                "createdAt",
+                                "updatedAt"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "current"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNPROCESSABLE_CONTENT"
+                        },
+                        "status": {
+                          "const": 422
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Some details need attention. Fix the problems shown, then try again."
+                        },
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "findings": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "code": {
+                                    "type": "string"
+                                  },
+                                  "field": {
+                                    "type": "string"
+                                  },
+                                  "message": {
+                                    "type": "string"
+                                  },
+                                  "severity": {
+                                    "enum": [
+                                      "error",
+                                      "warning"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "code",
+                                  "field",
+                                  "message",
+                                  "severity"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "findings"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/inbox/feed": {
       "get": {
         "operationId": "inbox.feed",
@@ -68847,11 +70496,11 @@
                               "families": {
                                 "type": "number"
                               },
-                              "tools": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
+                              "values": {
+                                "type": "number"
+                              },
+                              "tool": {
+                                "type": "string"
                               }
                             },
                             "required": [
@@ -68864,7 +70513,8 @@
                               "ready",
                               "flagged",
                               "families",
-                              "tools"
+                              "values",
+                              "tool"
                             ]
                           },
                           {
@@ -70611,11 +72261,102 @@
                           "family"
                         ]
                       }
+                    },
+                    "values": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "aliases": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "writtenAs": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "dimension": {
+                            "type": "object",
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "name"
+                            ]
+                          },
+                          "areaId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "by": {
+                            "type": "object",
+                            "properties": {
+                              "personId": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "personId",
+                              "name"
+                            ]
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "key",
+                          "name",
+                          "aliases",
+                          "writtenAs",
+                          "dimension",
+                          "areaId",
+                          "by",
+                          "at"
+                        ]
+                      }
                     }
                   },
                   "required": [
                     "revision",
-                    "names"
+                    "names",
+                    "values"
                   ]
                 }
               }
@@ -70914,6 +72655,36 @@
                       "type": "string",
                       "pattern": "^(?:metric|dim|group):[a-z0-9_]+$"
                     }
+                  },
+                  "values": {
+                    "type": "object",
+                    "properties": {
+                      "accept": {
+                        "type": "array",
+                        "maxItems": 20000,
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      },
+                      "leaveOut": {
+                        "type": "array",
+                        "maxItems": 20000,
+                        "items": {
+                          "type": "string",
+                          "format": "uuid"
+                        }
+                      }
+                    },
+                    "required": [
+                      "accept",
+                      "leaveOut"
+                    ],
+                    "additionalProperties": false,
+                    "default": {
+                      "accept": [],
+                      "leaveOut": []
+                    }
                   }
                 },
                 "required": [
@@ -70949,6 +72720,21 @@
                     },
                     "leftOut": {
                       "type": "number"
+                    },
+                    "values": {
+                      "type": "object",
+                      "properties": {
+                        "accepted": {
+                          "type": "number"
+                        },
+                        "leftOut": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "accepted",
+                        "leftOut"
+                      ]
                     },
                     "waiting": {
                       "type": "object",
@@ -71181,11 +72967,102 @@
                               "family"
                             ]
                           }
+                        },
+                        "values": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "aliases": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "writtenAs": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "dimension": {
+                                "type": "object",
+                                "properties": {
+                                  "key": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "key",
+                                  "name"
+                                ]
+                              },
+                              "areaId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "by": {
+                                "type": "object",
+                                "properties": {
+                                  "personId": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "personId",
+                                  "name"
+                                ]
+                              },
+                              "at": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "key",
+                              "name",
+                              "aliases",
+                              "writtenAs",
+                              "dimension",
+                              "areaId",
+                              "by",
+                              "at"
+                            ]
+                          }
                         }
                       },
                       "required": [
                         "revision",
-                        "names"
+                        "names",
+                        "values"
                       ]
                     }
                   },
@@ -71193,6 +73070,7 @@
                     "edition",
                     "accepted",
                     "leftOut",
+                    "values",
                     "waiting"
                   ]
                 }
@@ -74861,6 +76739,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -75111,6 +76995,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -75332,6 +77239,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
@@ -92947,6 +94855,12 @@
                                           "items": {
                                             "type": "string"
                                           }
+                                        },
+                                        "writtenAs": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "string"
+                                          }
                                         }
                                       },
                                       "required": [
@@ -93197,6 +95111,29 @@
                                   },
                                   "additionalProperties": false
                                 },
+                                "newValues": {
+                                  "type": "array",
+                                  "maxItems": 50,
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "key": {
+                                        "type": "string",
+                                        "pattern": "^val:[a-z0-9_]+\\/[a-z0-9_]+$"
+                                      },
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 200
+                                      }
+                                    },
+                                    "required": [
+                                      "key",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "provenance": {
                                   "anyOf": [
                                     {
@@ -93418,6 +95355,7 @@
                                 "channel",
                                 "revision",
                                 "draft",
+                                "newValues",
                                 "provenance",
                                 "agent",
                                 "findings",
