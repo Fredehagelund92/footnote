@@ -63,7 +63,13 @@ Writing help is a panel beside the editor: a person says what happened or what t
 | `writing_help.on`     | Off as installed. Settings, Advanced, Writing help turns it on                     |
 | `limits.writing_help` | Turns one person may take in 24 hours (40), and characters in one message (12,000) |
 
-Turn it on only once your company approves the model provider for draft text: on, the words of a person's own draft, what they write to writing help and the text of one page they link go to the model set for Ask (`models.assistant`), for that turn. Off, nothing of a draft leaves the service. It is there only with a real model (`MODELS=live`); with none, the switch changes nothing people see.
+Turn it on only once your company approves the model provider for draft text. On, three things go to the model set for Ask (`models.assistant`), for that turn:
+
+- the words of the person's own draft
+- what they write to writing help
+- the text of one page they link
+
+Off, nothing of a draft leaves the service. It is there only with a real model (`MODELS=live`); with none, the switch changes nothing people see.
 
 The turns are counted in the database with who and when, never a word, for 24 hours. Its model calls count under `limits.llm_feature_monthly_micros.writing_help` and the person's daily limit. Nothing of a chat is stored: the browser keeps it for the visit. The history of a draft names the person as the one who changed it and writing help as the writer.
 
