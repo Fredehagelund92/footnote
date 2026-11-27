@@ -213,7 +213,8 @@ test("the service's reason is marked at the field it is about, not in a sentence
     await expect(banner).not.toContainText('Fix the problems shown')
     await expect(page.getByText(/This looks like a private detail/)).toBeVisible()
     await expect(page.getByText('Not published', { exact: true })).toBeVisible()
-    await expect(status(page)).toHaveText('Not saved')
+    // The draft it keeps of itself is refused for the same detail, so it is not saved either.
+    await expect(status(page)).toHaveText('Not savedTry again')
     // The title is not cut off by the banner coming into view.
     await expect(page.getByRole('textbox', { name: 'Title' })).toBeInViewport()
 
