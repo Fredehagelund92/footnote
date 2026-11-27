@@ -724,7 +724,7 @@ function Editor({
   const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
   const unchanged = mode !== 'new' && !edited && !asIs
   // A new item, and the writer's own draft, keep themselves as a draft once there are words and a
-  // domain to keep them in (FR-139): a reload, a closed tab or a crash loses nothing. A change to a
+  // domain to keep them in (FR-230): a reload, a closed tab or a crash loses nothing. A change to a
   // published item, or to someone else's draft, is kept only by its Save.
   const ownDraft = original?.status === 'Draft' && !original.returned && original.by === me.name
   const hasWords = !!(form.title.trim() || form.body.trim())

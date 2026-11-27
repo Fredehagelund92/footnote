@@ -39,6 +39,9 @@ function ownManifest(): Manifest {
   })
   const region = model('customers').dimensions.find((dimension) => dimension.name === 'region')!
   model('orders').dimensions.push(structuredClone(region))
+  // A metric titled as Cube titles one with no title of its own: "Mrr".
+  const orders = file.metrics.find((metric) => metric.name === 'orders')!
+  file.metrics.push({ ...structuredClone(orders), name: 'mrr', label: 'Mrr' })
   return file
 }
 
@@ -137,6 +140,13 @@ async function getContext(page: Page, key: string, args: object) {
 test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   const shot = (name: string) =>
     process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${name}.png` }) : null
+  // Asked this week has nothing to say before anything is shared with agents: it says so in its
+  // answer, so no page of a new install logs a failed request for it.
+  const refused: string[] = []
+  page.on('response', (response) => {
+    if (response.url().includes('/api/v1/ask/asked') && !response.ok())
+      refused.push(`${response.status()} ${response.url()}`)
+  })
   await page.goto('/')
   // Not the demo, though people pick who they are: nothing says the company is invented, and the
   // install's label says which install this is, there and in the header after.
@@ -224,7 +234,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await shot('11-address-on-the-server')
   await address.fill(store.link('/link/semantic_manifest.json'))
   await button(page, 'Test connection').click()
-  await expect(page.getByText('A read would hold 13 metrics and 12 dimensions.')).toBeVisible({
+  await expect(page.getByText('A read would hold 14 metrics and 12 dimensions.')).toBeVisible({
     timeout: 30_000,
   })
   await button(page, 'Continue').click()
@@ -241,7 +251,10 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await shot('11-names-waiting')
   await waiting.click()
   const review = page.getByRole('dialog')
-  await expect(review.getByText('Net revenue', { exact: true })).toBeVisible()
+  // Every ready name is a box, to rename before it is published; a short form is in capitals.
+  const ready = review.getByRole('region', { name: /^Ready to publish/ })
+  await expect(ready.getByRole('textbox', { name: /net_revenue$/ })).toHaveValue('Net revenue')
+  await expect(ready.getByRole('textbox', { name: /mrr$/ })).toHaveValue('MRR')
   await expect(review.getByRole('textbox', { name: 'Domain' })).toHaveValue('Sales')
   await expect(review.getByText('A new domain, owned by you.')).toBeVisible()
   await shot('12-names-review')
@@ -253,8 +266,11 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
     'Another definition is called “Revenue”',
   )
   await expect(flagged).toContainText('2 others are called “Region”')
-  // Focus starts on Publish all, so the Enter it shows publishes every ready name.
+  // Focus starts on Publish all, so the Enter it shows publishes every ready name, each with the
+  // name it was given.
   await expect(review.getByRole('button', { name: /^Publish all/ })).toBeFocused()
+  await ready.getByRole('textbox', { name: /weekly_ordering_customers$/ }).fill('Weekly buyers')
+  await review.getByRole('button', { name: /^Publish all/ }).focus()
   await page.keyboard.press('Enter')
   await expect(page.getByText(/^\d+ names are published under Sales$/)).toBeVisible()
   await expect(page.getByText('1 of 4 done')).toBeVisible()
@@ -314,9 +330,12 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(review).toBeHidden()
   await expect(page.getByRole('button', { name: /^Publish \d+ names?$/ })).toBeHidden()
 
-  // The vocabulary is live: Definitions lists the metric, and it has its domain.
+  // The vocabulary is live: Definitions lists the metric, and it has its domain; the renamed one
+  // under its new name, and the short form in capitals.
   await page.goto('/definitions')
   await expect(page.getByRole('row', { name: /^Select Net revenue/ })).toBeVisible()
+  await expect(page.getByRole('row', { name: /^Select Weekly buyers/ })).toBeVisible()
+  await expect(page.getByRole('row', { name: /^Select MRR\b/ })).toBeVisible()
   await shot('13-definitions')
 
   // Nothing written yet: Context and Ask say what to write and to ask without the demo's words.
@@ -329,6 +348,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   // No model is connected, and whoever hosts the app connects one: on a trial that is this
   // admin, so the line leads to how.
   await expect(page.getByText(/^No AI model is connected/)).toBeVisible()
+  expect(refused, 'Asked this week before anything is shared').toEqual([])
   await expect(page.getByRole('link', { name: /^How to connect a model/ })).toHaveAttribute(
     'href',
     /\/docs\/model-providers\/$/,
@@ -345,6 +365,12 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.keyboard.insertText(
     'Nobody could pay at the checkout for most of the day. Net revenue reads low for it because of that, not because fewer people came.',
   )
+  // The text gives a cause, and agents pass it on as the writer's: Don't conclude says so.
+  await expect(
+    page.getByText('Your text gives a cause (“because”), and agents pass it on as yours.', {
+      exact: false,
+    }),
+  ).toBeVisible()
   await page.getByRole('button', { name: /^Applies to/ }).click()
   await page.getByRole('combobox', { name: 'Search Applies to' }).fill('Net revenue')
   await page
@@ -700,4 +726,84 @@ test('values people write, on an install that has none', async ({ browser }) => 
   await expect(values).toContainText('Online')
   await expect(values).toContainText('Retailalso Shops')
   await shot('25-values-all')
+})
+
+/*
+  A new owner's first item, on the same install (wave 2 of the cold first-use test): it keeps
+  itself as a draft once it has words, so a reload loses nothing; When offers the day its text
+  names; and agents get the item with no line its writer never wrote. Ravi, whose last calls were
+  minutes ago, so the reload stays inside what one person may ask in a minute.
+*/
+test("a new owner's first item is never lost, and agents get only what was written", async ({
+  browser,
+}) => {
+  const page = await signedInAs(browser, 'Ravi Kapoor')
+  const shot = (name: string) =>
+    process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${name}.png` }) : null
+  const title = 'Annual price went up on 1 September 2026'
+  await moveTo(page, '/context/new')
+  await button(page, 'Write it yourself').click()
+  await page.getByRole('textbox', { name: 'Title' }).fill(title)
+  await page.getByRole('textbox', { name: 'What agents should know' }).click()
+  await page.keyboard.insertText(
+    'Net revenue rose in September because annual customers renewed at the new price.',
+  )
+  // Kept as a draft a moment after the typing stops, and the address names it.
+  const status = page.locator('header [aria-live=polite]')
+  await expect(status).toHaveText('Saved')
+  await expect(page).toHaveURL(/\/context\/new\?saved=/)
+  await shot('30-new-item-saved')
+
+  // A reload opens the same draft, with every word.
+  await page.reload()
+  await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue(title)
+  await expect(page.getByRole('textbox', { name: 'What agents should know' })).toContainText(
+    'renewed at the new price',
+  )
+
+  // When offers the day the title names, as that day or from it on, and a box to type one in.
+  await page.getByRole('button', { name: /^When/ }).click()
+  const offered = page.getByRole('group', { name: 'Dates in your text' })
+  await expect(offered.getByRole('button')).toHaveText(['1 Sept 2026', 'From 1 Sept 2026'])
+  await expect(page.getByRole('radio', { name: 'Ongoing' })).toHaveAccessibleDescription(
+    'Not over yet',
+  )
+  await shot('31-when-offers')
+  await offered.getByRole('button', { name: 'From 1 Sept 2026' }).click()
+  await expect(page.getByRole('textbox', { name: 'Type a date' })).toBeVisible()
+  await page.getByRole('button', { name: 'Done' }).click()
+  await expect(page.getByRole('button', { name: /^When/ })).toContainText('From 1 Sept 2026')
+
+  await page.getByRole('button', { name: /^Applies to/ }).click()
+  await page.getByRole('combobox', { name: 'Search Applies to' }).fill('Net revenue')
+  await page
+    .getByRole('listbox', { name: 'Applies to' })
+    .getByRole('option', { name: /^Net revenue/ })
+    .first()
+    .click()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: /Add a source/ }).click()
+  await page.locator('#fact-source').fill('https://finance.example/pricing-2026')
+  await page.locator('#fact-quote').fill('Annual plan up 12% from 1 September.')
+  await page.keyboard.press('Escape')
+  await button(page, 'Publish').click()
+  await expect(page.getByText(/^Published just now by you/)).toBeVisible()
+
+  // Published as itself: no draft is left beside it in Context.
+  await moveTo(page, '/context')
+  await page.getByPlaceholder('Search context').fill('Annual price went up')
+  await expect(page.locator('tbody [data-row-open]')).toHaveCount(1)
+  await expect(page.locator('tbody [data-row-open]')).not.toContainText('Draft')
+
+  // Don't conclude was left empty: agents get the item and its cause as written, and no line
+  // saying the cause is not proven.
+  const reply = await getContext(page, agentKey, {
+    question: 'Why did Net revenue rise in September 2026?',
+    metrics: ['Net revenue'],
+    window: { from: '2026-09-01', to: '2026-09-30' },
+  })
+  const item = (reply.context as { title: string }[]).find((i) => i.title === title)
+  expect(item, JSON.stringify(reply)).toBeTruthy()
+  expect(item).not.toHaveProperty('not_to_conclude')
+  await page.close()
 })
