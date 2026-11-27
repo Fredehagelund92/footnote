@@ -169,7 +169,7 @@ function Turn({
       )}
       {turn.state === 'stopped' && <Line>{stoppedByPersonLine(turn.changed)}</Line>}
       {turn.state === 'failed' && (
-        <Problem {...(again ? { onAgain: again } : {})}>{failedLine(turn.problem)}</Problem>
+        <Problem {...(again ? { onAgain: again } : {})}>{failedLine(turn.problem, turn.changed)}</Problem>
       )}
       {turn.state !== 'asking' && <Changed turn={turn} undoable={undoable} />}
       {reply && reply.kept.length > 0 && <Line>{keptLine(reply.kept)}</Line>}

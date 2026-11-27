@@ -195,11 +195,16 @@ export function stoppedLine(reply: HelpReply): string {
   }
 }
 
-/** A turn that could not be asked at all: the service's reason, or that it could not be reached. */
-export const failedLine = (problem: string | null) =>
-  problem
-    ? `Couldn't ask writing help. ${problem}`
-    : "Couldn't reach writing help. Nothing changed. Try again."
+/**
+ * A turn that could not be asked, or whose stream dropped: the service's reason, or that it could
+ * not be reached, and what it changed before that is in the draft.
+ */
+export function failedLine(problem: string | null, changed: readonly SessionField[]) {
+  const safe = whatIsSafe(changed)
+  return problem
+    ? `Couldn't ask writing help. ${problem}${changed.length ? ` ${safe}` : ''}`
+    : `Couldn't reach writing help. ${safe} Try again.`
+}
 
 /** A turn the person stopped. */
 export const stoppedByPersonLine = (changed: readonly SessionField[]) =>

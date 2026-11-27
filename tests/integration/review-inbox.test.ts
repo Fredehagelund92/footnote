@@ -350,6 +350,41 @@ describe('the review sheet (FR-224)', () => {
   })
 })
 
+describe('a draft for a Not found card that writing help wrote first (readiness)', () => {
+  const forACard = async (provenanceBy: string, stamps: object) => {
+    const topic = await client.query<{ id: string }>(
+      `insert into topics (key,area_id,metric_keys,value_keys,month)
+       values ($1,'finance','{metric:orders}','{val:market/spain}','2026-09-01') returning id::text`,
+      [`finance|orders|spain|2026-09|${randomUUID()}`],
+    )
+    const gap = await client.query<{ id: string }>(
+      `insert into gaps (topic_id,type,opened_by_case) values ($1,'missing',1) returning id::text`,
+      [topic.rows[0]!.id],
+    )
+    const p = await submitted({ title: `Orders in Spain ${randomUUID().slice(0, 8)}` })
+    await client.query(
+      `update proposals set source_gap_id=$2, provenance=$3::jsonb, field_stamps=$4::jsonb where id=$1`,
+      [
+        p.id,
+        gap.rows[0]!.id,
+        JSON.stringify({ by: provenanceBy, fields: {}, flags: [] }),
+        JSON.stringify(stamps),
+      ],
+    )
+    return (await sheet(p.id)).readiness.state
+  }
+  const stamp = (by: string) => ({ title: { by, revision: 1, at: '2026-10-01T00:00:00.000Z' } })
+
+  it('is the person’s own when only writing help wrote it', async () => {
+    expect(await forACard('writing_help', stamp('writing_help'))).not.toBe('draft')
+  })
+
+  it('still says an agent drafted it once the person’s own agent wrote a field after', async () => {
+    expect(await forACard('writing_help', stamp('agent'))).toBe('draft')
+    expect(await forACard('agent', stamp('agent'))).toBe('draft')
+  })
+})
+
 describe('the review sheets of an Inbox in one read', () => {
   it('gives each sheet in the order asked, the same as one at a time, and leaves out one it cannot show', async () => {
     const first = await submitted({ title: 'Payments delayed in Spain' })

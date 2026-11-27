@@ -121,6 +121,31 @@ describe('writing help on the mock', () => {
     expect(now.session!.fields.dontConclude).toMatchObject({ by: 'writing_help' })
   })
 
+  it('keeps a draft untitled when the person, or an Undo, clears its title', async () => {
+    const { api } = createMockApi()
+    await on(api)
+    const { id } = await api.startWritingHelp({ fact: blank, isNew: true })
+    await played(api.writingHelp({ draftId: id, message: 'Ops told us about Norway.' }))
+    const filled = (await api.draftNow({ id }))!
+    expect(filled.untitled ?? false).toBe(false)
+    // The title is saved as the form has it: empty, not a stand-in that would read as a title.
+    await api.autosaveDraft({
+      fact: { ...filled, title: '' },
+      before: filled,
+      revision: filled.session!.revision,
+    })
+    const cleared = (await api.draftNow({ id }))!
+    expect(cleared).toMatchObject({ title: 'Untitled draft', untitled: true })
+    expect(cleared.session!.fields.title).toMatchObject({ by: 'person' })
+    // Saved again with the page's own empty title, it is still untitled, and nothing else moved.
+    await api.autosaveDraft({
+      fact: { ...cleared, title: '' },
+      before: cleared,
+      revision: cleared.session!.revision,
+    })
+    expect(await api.draftNow({ id })).toMatchObject({ title: 'Untitled draft', untitled: true })
+  })
+
   it('is refused while it is off, over the most characters, and on a draft that is not there', async () => {
     const { api } = createMockApi()
     await api.signIn({ name: 'Jon Abara' })

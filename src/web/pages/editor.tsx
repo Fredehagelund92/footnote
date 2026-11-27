@@ -624,7 +624,11 @@ function Editor({
     form,
     setForm,
     formOf: (f) => fromFact(f, domains, vocabulary),
-    factOf: (f) => toFact(f, original?.id ?? kept?.id ?? 'draft', me.name, domains, original),
+    // The form's own title, an empty one as empty: the draft stays untitled, as start has it.
+    factOf: (f) => ({
+      ...toFact(f, original?.id ?? kept?.id ?? 'draft', me.name, domains, original),
+      title: f.title,
+    }),
     typing: (field) => {
       const active = document.activeElement
       if (field === 'title') return active === titleRef.current
@@ -767,18 +771,28 @@ function Editor({
     !!domains[form.domain] &&
     hasWords
   const gapId = query.get('gap') ?? undefined
-  const autosave = useAutosave<Fact>({
-    save: async (fact) => {
-      let id = savedRef.current
-      if (!id) {
-        const saved = await write('saveDraft', { fact, isNew: true, gap: gapId })
-        id = saved.id
+  // The page's one draft is made once: the autosave and writing help's first turn share the
+  // creation in flight, so a message sent while the page keeps itself finds one draft, not two.
+  const creating = React.useRef<Promise<string> | null>(null)
+  const draftMade = (make: () => Promise<{ id: string }>) => {
+    if (savedRef.current) return Promise.resolve(savedRef.current)
+    creating.current ??= make()
+      .then(({ id }) => {
         savedRef.current = id
         setSavedId(id)
         // The address names the draft, so a reload opens it again; the page stays as it is, with
         // the cursor where it was.
         navigate('/context/new', { ...Object.fromEntries(query), saved: id }, { replace: true })
-      }
+        return id
+      })
+      .finally(() => {
+        creating.current = null
+      })
+    return creating.current
+  }
+  const autosave = useAutosave<Fact>({
+    save: async (fact) => {
+      const id = await draftMade(() => write('saveDraft', { fact, isNew: true, gap: gapId }))
       const stored = await queryClient.fetchQuery(draftNowQuery(id))
       if (stored?.session) setKept(stored)
     },
@@ -1106,13 +1120,7 @@ function Editor({
         // A new item is the draft it keeps itself as (FR-230): the one already on its way, or one
         // started now for a page with no words yet. The page goes on as that draft, where it is.
         if (keepsItself || savedRef.current) await autosave.flush()
-        let id = savedRef.current
-        if (!id) {
-          id = (await start(true)).id
-          savedRef.current = id
-          setSavedId(id)
-          navigate('/context/new', { ...Object.fromEntries(query), saved: id }, { replace: true })
-        }
+        const id = await draftMade(() => start(true))
         const stored = await queryClient.fetchQuery({ ...draftNowQuery(id), staleTime: 0 })
         if (!stored?.session) throw new ApiError('not-found', 'This draft was sent or deleted.')
         moveHelpChat(id)

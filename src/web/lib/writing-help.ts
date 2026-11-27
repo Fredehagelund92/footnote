@@ -114,11 +114,8 @@ async function run(ask: HelpDesk['ask'], draft: string, id: string) {
         },
       },
     )
-    await refresh(draft)
     update(draft, id, (t) => doneTurn(t, reply))
   } catch (error) {
-    // What it wrote before it stopped or failed is in the draft: the page shows it.
-    await refresh(draft)
     if (controller.signal.aborted) update(draft, id, stoppedTurn)
     else {
       const failure = toApiError(error)
@@ -127,6 +124,10 @@ async function run(ask: HelpDesk['ask'], draft: string, id: string) {
       )
     }
   } finally {
+    // The turn has ended: what it wrote before is in the draft, which the page reads again now. The
+    // turn stays the one running until that read has settled, so what it brings in joins its
+    // Undo; offline the read waits, and the turn does not.
+    await refresh(draft)
     if (running.get(draft)?.controller === controller) running.delete(draft)
     set({})
   }
@@ -161,6 +162,14 @@ function startWaiting() {
   if (!desk?.draftId || waiting?.draft !== desk.draftId) return
   set({ waiting: null })
   void run(desk.ask, waiting.draft, waiting.turn)
+}
+
+/** The turn that waited for a draft's page ends as failed: no page came to hold the draft. */
+function failWaiting() {
+  const { waiting } = state
+  if (!waiting) return
+  set({ waiting: null })
+  update(waiting.draft, waiting.turn, (t) => failedTurn(t, 'The draft did not open.'))
 }
 
 /**
@@ -227,11 +236,14 @@ export function undoHelp() {
  */
 export function setHelpDesk(desk: HelpDesk | null) {
   set({ desk })
+  // A page that holds another draft is not the one the turn waits for.
+  if (desk?.draftId && state.waiting && state.waiting.draft !== desk.draftId) failWaiting()
   startWaiting()
   if (desk) return
   // After the page has settled: a page that was only drawn again is there once more by then.
   setTimeout(() => {
     for (const [draft, turn] of running) if (!deskOf(draft)) turn.controller.abort()
+    if (state.waiting && !deskOf(state.waiting.draft)) failWaiting()
   }, 0)
 }
 
@@ -242,10 +254,11 @@ const subscribe = (listener: () => void) => {
 
 /** Writing help for the draft on the page, from what is kept here. */
 function viewOf(now: State) {
-  const draft = now.desk?.draftId ?? NEW
+  // A page with no draft yet shows the chat of the draft it is moving to, while a turn waits there.
+  const draft = now.desk?.draftId ?? now.waiting?.draft ?? NEW
   const turns = now.chats.get(draft) ?? []
   const last = (now.changes.get(draft) ?? []).at(-1)
-  const busy = turns.at(-1)?.state === 'asking'
+  const busy = !!now.waiting || turns.at(-1)?.state === 'asking'
   // The fields that kept the person's words in the latest turn, said with its change.
   const kept = last?.turn ? turns.find((t) => t.id === last.turn)?.reply?.kept : undefined
   return {

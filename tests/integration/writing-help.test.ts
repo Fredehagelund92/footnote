@@ -231,6 +231,23 @@ beforeEach(async () => {
 })
 
 describe('the switch', () => {
+  /** A turn on an existing draft of the person's is refused as the start is: nothing is sent or kept. */
+  const refusesTurns = async (draftId: string, message: string, on: App) => {
+    decide = writes({ title: 'Not written' })
+    const asked = await call(
+      'POST',
+      '/writing-help/turns',
+      'author',
+      { draftId, message: 'Write it up.' },
+      on,
+    )
+    expect(asked.statusCode, asked.body).toBe(412)
+    expect(asked.json<{ message: string }>().message).toBe(message)
+    expect(sent).toEqual([])
+    expect((await client.query('select 1 from writing_help_turns')).rowCount).toBe(0)
+    expect((await proposal(draftId)).draft.title).not.toBe('Not written')
+  }
+
   it('is off as installed, and an admin turns it on', async () => {
     const [installed] = (
       await client.query<{ value: unknown }>(
@@ -238,6 +255,7 @@ describe('the switch', () => {
       )
     ).rows
     expect(installed?.value).toBe(false)
+    const draft = await start()
     await setting('writing_help.on', false)
     expect(await ok(call('GET', '/workspace', 'author'))).toMatchObject({ writingHelp: false })
     const refused = await call('POST', '/writing-help/drafts', 'author', {
@@ -247,6 +265,7 @@ describe('the switch', () => {
     expect(refused.json<{ message: string }>().message).toBe(
       'An admin has turned off writing help.',
     )
+    await refusesTurns(draft.proposalId, 'An admin has turned off writing help.', app)
 
     // A member cannot turn it on; an admin can, with a reason, and it is in the history log.
     const listed = await ok<{ key: string; version: number }[]>(call('GET', '/settings', 'admin'))
@@ -258,6 +277,7 @@ describe('the switch', () => {
   })
 
   it('is not there without a model, even when it is on', async () => {
+    const draft = await start()
     expect(await ok(call('GET', '/workspace', 'author', undefined, bare))).toMatchObject({
       writingHelp: false,
     })
@@ -271,6 +291,11 @@ describe('the switch', () => {
     expect(refused.statusCode, refused.body).toBe(412)
     expect(refused.json<{ message: string }>().message).toBe(
       'Writing help needs an AI model, and none is connected to this workspace.',
+    )
+    await refusesTurns(
+      draft.proposalId,
+      'Writing help needs an AI model, and none is connected to this workspace.',
+      bare,
     )
   })
 })
@@ -497,6 +522,28 @@ describe('field by field', () => {
     }
   })
 
+  it('writes the final value of a field a call repeats, not the first or a cut one', async () => {
+    const draft = await start()
+    const streamed = build({
+      writingHelpModel: streaming([
+        '{"title":"Orders stopped in Norway","summary":"A new customs rule stopped Orders.","title":"Final par',
+        'tial title"}',
+      ]),
+    })
+    try {
+      sessions.set(streamed, sessions.get(app)!)
+      const done = await turn('author', draft.proposalId, 'Write it up.', undefined, streamed)
+      expect(done.status, done.body).toBe(200)
+      expect((await proposal(draft.proposalId)).draft).toMatchObject({
+        title: 'Final partial title',
+        summary: 'A new customs rule stopped Orders.',
+      })
+      expect(done.turn.changed).toEqual(expect.arrayContaining(['title', 'summary']))
+    } finally {
+      await streamed.close()
+    }
+  })
+
   it("keeps the person's words in a field they change while it works", async () => {
     const draft = await start('author', { areaId: 'finance', title: 'Norway' })
     const racing = build({
@@ -715,16 +762,25 @@ describe('what it reads', () => {
       title: 'An unpublished secret about Orders',
       summary: 'Orders unpublished words.',
     })
-    decide = (prompt) =>
+    const searching = (words: string) => (prompt: ScriptedPrompt) =>
       prompt.results.length
         ? { text: 'A published item already covers Orders.' }
-        : { calls: [{ toolName: 'find_context', input: { words: 'Orders' } }] }
+        : { calls: [{ toolName: 'find_context', input: { words } }] }
+    decide = searching('Orders')
     const done = await turn('author', draft.proposalId, 'Is there anything about Orders already?')
     expect(done.events).toContainEqual({ type: 'progress', doing: 'looking' })
     const found = JSON.stringify(sent.at(-1)!.prompt.at(-1))
     expect(found).toContain('"title":"A note"')
     expect(found).toContain('published context item you can see')
     expect(found).not.toContain('unpublished')
+
+    // Words only the draft holds find nothing published, and nothing of the draft comes back.
+    sent.length = 0
+    decide = searching('unpublished')
+    await turn('author', draft.proposalId, 'Is there anything about that already?')
+    const none = JSON.stringify(sent.at(-1)!.prompt.at(-1))
+    expect(none).not.toContain('secret')
+    expect(none).not.toContain('Orders unpublished words')
   })
 
   it('sends the earlier turns the browser kept, and the draft as it is stored', async () => {

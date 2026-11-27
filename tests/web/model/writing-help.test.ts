@@ -144,10 +144,14 @@ describe('what the dock says under a reply', () => {
   })
 
   it('says a turn that could not be asked, and one the person stopped', () => {
-    expect(failedLine('An admin has turned off writing help.')).toBe(
+    expect(failedLine('An admin has turned off writing help.', [])).toBe(
       "Couldn't ask writing help. An admin has turned off writing help.",
     )
-    expect(failedLine(null)).toBe("Couldn't reach writing help. Nothing changed. Try again.")
+    expect(failedLine(null, [])).toBe("Couldn't reach writing help. Nothing changed. Try again.")
+    // A stream that dropped after fields landed says they are in the draft, not that nothing changed.
+    expect(failedLine(null, ['title', 'kind'])).toBe(
+      "Couldn't reach writing help. What it changed is in your draft: Title and Kind. Try again.",
+    )
     expect(stoppedByPersonLine([])).toBe('Stopped. Nothing changed.')
     expect(stoppedByPersonLine(['title'])).toBe('Stopped. What it changed is in your draft: Title.')
   })

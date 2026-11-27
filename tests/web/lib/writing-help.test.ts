@@ -195,6 +195,34 @@ describe('a turn of writing help', () => {
   })
 })
 
+describe('a turn that ended while the page cannot read the draft', () => {
+  it('ends as done, stopped or failed before the read settles, and its changes still join its Undo', async () => {
+    let settle!: () => void
+    const page = desk('d13')
+    page.desk.refresh = () => new Promise<void>((resolve) => (settle = resolve))
+    setHelpDesk(page.desk)
+    const asking = askHelp('Write it up.')
+    await settled()
+    noteHelpChange('d13', change(['title'], { title: 'Norway' }))
+    await settled()
+    expect(helpNow().turns[0]).toMatchObject({ state: 'done' })
+    expect(helpNow().busy).toBe(false)
+    // The read is still waiting, and what comes in now is still this turn's change.
+    noteHelpChange('d13', change(['text'], { title: 'Norway', body: 'Stopped.' }))
+    settle()
+    await asking
+    expect(helpNow().latest).toMatchObject({ change: { fields: ['title', 'text'] } })
+
+    page.desk.ask = () => Promise.reject(new ApiError('unanswered', "You're offline."))
+    page.desk.refresh = () => new Promise<void>(() => undefined)
+    void askHelp('Offline.')
+    await settled()
+    expect(helpNow().turns[1]).toMatchObject({ state: 'failed', problem: null })
+    expect(helpNow().busy).toBe(false)
+    setHelpDesk(null)
+  })
+})
+
 describe('a page with no draft yet', () => {
   it('keeps its words as a draft, moves to it, and starts the turn once that page is there', async () => {
     const fresh = desk(null)
@@ -249,6 +277,74 @@ describe('a page with no draft yet', () => {
       expect(helpNow().turns[0], id).toMatchObject({ state: 'done' })
       setHelpDesk(null)
     }
+  })
+
+  it('shows the turn that waits for its draft’s page, busy, until the page is there', async () => {
+    const fresh = desk(null)
+    fresh.desk.ready = () => {
+      moveHelpChat('d8')
+      return Promise.resolve(null)
+    }
+    setHelpDesk(fresh.desk)
+    await askHelp('Ops told us about Norway.')
+    // The chat is filed under the draft, and no page holds it yet: the dock still shows it.
+    setHelpDesk(null)
+    expect(helpNow()).toMatchObject({ busy: true })
+    expect(helpNow().turns).toHaveLength(1)
+    expect(helpNow().turns[0]).toMatchObject({ said: 'Ops told us about Norway.' })
+    // A message now is not taken while one waits.
+    await askHelp('Another.')
+    expect(helpNow().turns).toHaveLength(1)
+    const page = desk('d8')
+    setHelpDesk(page.desk)
+    await settled()
+    expect(helpNow()).toMatchObject({ busy: false })
+    expect(helpNow().turns[0]).toMatchObject({ state: 'done' })
+    setHelpDesk(null)
+  })
+
+  it('ends a waiting turn as failed when the page that comes holds another draft', async () => {
+    const fresh = desk(null)
+    fresh.desk.ready = () => {
+      moveHelpChat('d9')
+      return Promise.resolve(null)
+    }
+    setHelpDesk(fresh.desk)
+    await askHelp('Ops told us about Norway.')
+    const other = desk('d10')
+    setHelpDesk(other.desk)
+    expect(other.calls.filter((c) => c.startsWith('ask'))).toEqual([])
+    // Another page is there: the next message is taken, and the failed turn is on its own draft.
+    expect(helpNow().busy).toBe(false)
+    setHelpDesk(null)
+    setHelpDesk(desk('d9').desk)
+    await settled()
+    expect(helpNow().turns[0]).toMatchObject({
+      state: 'failed',
+      problem: 'The draft did not open.',
+    })
+    setHelpDesk(null)
+  })
+
+  it('ends a waiting turn as failed when no page holds its draft once the page settled', async () => {
+    const fresh = desk(null)
+    fresh.desk.ready = () => {
+      moveHelpChat('d11')
+      return Promise.resolve(null)
+    }
+    setHelpDesk(fresh.desk)
+    await askHelp('Ops told us about Norway.')
+    setHelpDesk(null)
+    expect(helpNow().busy).toBe(true)
+    await settled()
+    expect(helpNow().busy).toBe(false)
+    expect(helpNow().turns[0]).toMatchObject({ state: 'failed' })
+    // Nothing stays stuck: the next message on another draft is taken.
+    const next = desk('d12')
+    setHelpDesk(next.desk)
+    await askHelp('Again.')
+    expect(next.calls).toContain('ask Again.')
+    setHelpDesk(null)
   })
 
   it('stops a turn once no page holds its draft', async () => {

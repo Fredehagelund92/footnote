@@ -350,28 +350,32 @@ export async function* writingHelpTurn(
     }
   }
 
-  /** Each call's fields as they are written: a field of a call is written once, whoever asks. */
-  const calls = new Map<string, Map<HelpFieldName, Promise<Outcome>>>()
-  const writeOnce = (call: string, field: HelpFieldName, value: unknown) => {
-    const fields = calls.get(call) ?? new Map<HelpFieldName, Promise<Outcome>>()
+  /**
+   * Each call's fields as they are written: a field of a call is written once as it streams, and
+   * again when the call's final value for it differs from what was written, so the final input wins.
+   */
+  type Written = { value: string; write: Promise<Outcome> }
+  const calls = new Map<string, Map<HelpFieldName, Written>>()
+  const writeOnce = (call: string, field: HelpFieldName, value: unknown, final = false) => {
+    const fields = calls.get(call) ?? new Map<HelpFieldName, Written>()
     calls.set(call, fields)
-    let write = fields.get(field)
-    if (!write) {
-      write = writeField(field, value).then((outcome) => {
+    const seen = fields.get(field)
+    const text = String(JSON.stringify(value))
+    if (seen && !(final && seen.value !== text)) return seen.write
+    const run = () =>
+      writeField(field, value).then((outcome) => {
         outbox.push(outcome)
         if (outcome.did === 'applied' && !changed.includes(field)) changed.push(field)
         if (outcome.did === 'kept' && !kept.includes(field)) kept.push(field)
-        if (outcome.did === 'refused') {
-          const at = refused.findIndex((r) => r.field === field)
-          if (at >= 0) refused.splice(at, 1)
-          refused.push({ field, why: outcome.why })
-        }
+        const at = refused.findIndex((r) => r.field === field)
+        if (at >= 0) refused.splice(at, 1)
+        if (outcome.did === 'refused') refused.push({ field, why: outcome.why })
         return outcome
       })
-      // A write that fails is the tool's to report; nothing waits on it unhandled.
-      write.catch(() => undefined)
-      fields.set(field, write)
-    }
+    const write = seen ? seen.write.catch(() => undefined).then(run) : run()
+    // A write that fails is the tool's to report; nothing waits on it unhandled.
+    write.catch(() => undefined)
+    fields.set(field, { value: text, write })
     return write
   }
 
@@ -460,7 +464,7 @@ export async function* writingHelpTurn(
         const names = Object.keys(given).filter(isHelpField)
         if (!names.length) return { error: 'Give at least one field to change.' }
         const outcomes = await Promise.all(
-          names.map((field) => writeOnce(toolCallId, field, given[field])),
+          names.map((field) => writeOnce(toolCallId, field, given[field], true)),
         )
         const now = await draftNow()
         return {

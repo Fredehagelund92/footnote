@@ -1035,8 +1035,11 @@ export function createMockApi() {
             (part) => JSON.stringify(mine[part]) !== JSON.stringify(fact[part]),
           ),
         )
-        // A draft with no title yet keeps its stand-in until the person writes one.
-        const titled = mine.untitled && !changed.includes('title') ? { title: mine.title } : {}
+        // A draft with no title keeps its stand-in until the person writes one; clearing one gives it back.
+        const titled =
+          !fact.title || (mine.untitled && !changed.includes('title'))
+            ? { title: mine.untitled ? mine.title : 'Untitled draft' }
+            : {}
         dispatch({
           type: 'editFact',
           id: fact.id,
