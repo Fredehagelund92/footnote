@@ -576,8 +576,7 @@ export function connectFormOf(
 const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
   missing_domain: {
     title: 'No domain named',
-    detail:
-      'Choose its domain in Domain names, under More settings, or name its domain in the tool.',
+    detail: 'Give it a domain where you choose what to read, or name its domain in the tool.',
   },
   invalid_domain: {
     title: 'A domain we do not have',
