@@ -42,7 +42,9 @@ Later, say what the business is about in [About our business](write-context.md#a
 
 Each time your definitions are read, a name is made for every metric and dimension that has none yet. They wait on one card in the Inbox, and nothing is published until you publish it.
 
-On a new workspace there is no domain yet. A domain is a part of the business with an owner, such as Sales. When names have no domain, the card's **Domain** field says where they go, filled in: the domain your tool names, or one named for the view most of them are in. Change it if you like. Published, they go under it, a new domain is made with them and owned by you, and their views are mapped to it, so the names read later go there too. Left empty, they stay shared.
+On a new workspace there is no domain yet. A domain is a part of the business with an owner, such as Sales.
+
+When names have no domain, the card's **Domain** field says where they go: the domain your tool names, or one named for the view most are in. Change it if you like. Published, they go under it, a new domain is made with them and owned by you, and their views are mapped to it, so the names read later go there too. Left empty, they stay shared.
 
 ![The card 5 new metrics and dimensions from dbt. Under Look at these first is Publish these as suggested, then Basket value, Total and Total (refunds), each with a name to keep or change, Publish and Leave out. Under Ready to publish is Completed orders, and at the foot Publish all.](../images/docs/names-light.webp)
 

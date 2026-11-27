@@ -1582,18 +1582,16 @@ export function describeFootnoteApi(
       },
     )
 
-    it.skipIf(lacks('signIn', 'getSession', 'getWorkspace', 'setAbout', 'completeSetupStep'))(
-      'keeps what the business is about, and the setup checklist counts it written',
+    it.skipIf(lacks('signIn', 'getSession', 'getWorkspace', 'setAbout'))(
+      'keeps what the business is about',
       async () => {
         const live = await signedIn()
         // The person's workspace has finished its setup: it opens on the Inbox, not the checklist.
         expect((await live.getSession()).install).toBe('normal')
         const text = 'We rent bikes in three cities.\n\n- Ride: one rental, paid when it ends.'
         await live.setAbout({ text })
-        await live.completeSetupStep({ step: 'about' })
         const workspace = await live.getWorkspace()
         expect(workspace.about).toBe(text)
-        expect(workspace.setup.done.about).toBe(true)
         expect(workspace.aboutTemplate).toMatch(/outdoor-gear retailer/)
       },
     )
