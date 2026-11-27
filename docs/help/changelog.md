@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-27
 ---
 
+## A phone's width keeps what a page holds
+
+2026-11-27
+
+A window made narrow enough to show a phone's layout started the page again, so a tested connection, and anything typed but not yet saved, was gone. The page now keeps it at every width.
+
 ## Room on a tablet, and buttons a finger can hit
 
 2026-11-27
