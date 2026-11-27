@@ -20,6 +20,10 @@ import { loadStory, norwayStop, type StoryCounts } from './seed/story.ts'
      demo Cube model, so it loads only while CUBE_MODEL_DIR holds that model (db/seed/cube); beside
      your own model it loads nothing and says so. SEED_DEMO is off unless set, and refused when
      NODE_ENV=production, so a real install never gets demo data by accident.
+
+  Before step 3 it refuses a database that holds the demo when the start names definitions of your
+  own (a Cube model that is not the demo's, or a folder of the server's own): the service would
+  read your names into the demo company's workspace. It says so, with the way out, and stops.
 */
 
 export const demoModelDir = fileURLToPath(new URL('./seed/cube/', import.meta.url))
@@ -119,6 +123,53 @@ export async function isMissingStory(client: pg.Client): Promise<boolean> {
 export const composeRecovery =
   'docker compose down --volumes, which deletes the whole database of this demo install, then docker compose up again'
 
+/** Whether a database holds the demo: its Sandbox domain, which only the demo seed makes and nobody can delete. */
+export async function holdsDemo(client: pg.Client): Promise<boolean> {
+  const result = await client.query<{ demo: boolean }>(
+    'select exists (select 1 from areas where is_demo) as demo',
+  )
+  return result.rows[0]!.demo
+}
+
+/** The settings with which a start names definitions of your own, each as the refusal says it. */
+const OWN_DEFINITIONS = {
+  CUBE_MODEL_DIR: 'CUBE_MODEL_DIR names a Cube model of your own',
+  FOOTNOTE_SERVER_FOLDERS:
+    'FOOTNOTE_SERVER_FOLDERS, which docker compose sets from DBT_MANIFEST_DIR, names a folder of your own definitions',
+}
+export type OwnDefinitionsSetting = keyof typeof OWN_DEFINITIONS
+
+/**
+ * The setting with which a start names definitions of your own, or undefined when it names none: a
+ * Cube model folder that is not the demo's, or a folder of the server's own.
+ */
+export async function ownDefinitionsSetting(settings: {
+  cubeModelDir: string | undefined
+  serverFolders: boolean
+}): Promise<OwnDefinitionsSetting | undefined> {
+  if (settings.cubeModelDir && !(await isDemoModel(settings.cubeModelDir))) return 'CUBE_MODEL_DIR'
+  return settings.serverFolders ? 'FOOTNOTE_SERVER_FOLDERS' : undefined
+}
+
+/**
+ * Refuses to go on when the database holds the demo and the start names definitions of your own
+ * (`setting`): the service would read your names into the demo company's workspace, beside its
+ * people and its context, and nothing in the app could tell the two apart again.
+ */
+export async function refuseOwnDefinitionsInDemo(options: {
+  url: string
+  setting: OwnDefinitionsSetting | undefined
+}): Promise<void> {
+  if (!options.setting || !(await withClient(options.url, holdsDemo))) return
+  throw new PrepareError(
+    `The database ${databaseName(options.url)} holds the demo, and ${OWN_DEFINITIONS[options.setting]}. ` +
+      "Starting would mix the two: your names in the demo company's workspace, beside its people and its context. So this start stops here. " +
+      'To start empty on your own definitions, run docker compose down --volumes, which deletes the whole database of this demo install, then start again the same way. ' +
+      'Without Docker, name an empty database in DATABASE_URL_MIGRATE. ' +
+      'To go back to the demo, start without that setting.',
+  )
+}
+
 /**
  * Step 3: the demo into an empty database, as the superuser. Returns what it added, or why it
  * added nothing.
@@ -170,6 +221,26 @@ export function prepareSettings(env: Record<string, string | undefined>) {
     migrateUrl,
     seedDemo: seedDemo === 'on',
     cubeModelDir: value('CUBE_MODEL_DIR'),
+    serverFolders: namesServerFolder(value('FOOTNOTE_SERVER_FOLDERS')),
+  }
+}
+
+/**
+ * Whether FOOTNOTE_SERVER_FOLDERS names a folder: a JSON object with an entry. A value that is not
+ * one names none here, and the service refuses it at its own start with what it expects.
+ */
+function namesServerFolder(value: string | undefined): boolean {
+  if (!value) return false
+  try {
+    const folders: unknown = JSON.parse(value)
+    return (
+      typeof folders === 'object' &&
+      folders !== null &&
+      !Array.isArray(folders) &&
+      Object.keys(folders).length > 0
+    )
+  } catch {
+    return false
   }
 }
 
@@ -199,6 +270,10 @@ export async function prepare(env: Record<string, string | undefined>): Promise<
   console.log(
     `${created ? `Created the database ${database}` : `Database ${database}`}: applied ${applied} ${applied === 1 ? 'migration' : 'migrations'}`,
   )
+  await refuseOwnDefinitionsInDemo({
+    url: settings.migrateUrl,
+    setting: await ownDefinitionsSetting(settings),
+  })
   if (!settings.seedDemo) return
   const seeded = await seedDemoIfEmpty({
     seedUrl: onDatabase(settings.bootstrapUrl!, database),

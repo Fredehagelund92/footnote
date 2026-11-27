@@ -3,10 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import {
+  databaseName,
   demoModelDir,
   isEmpty,
   isMissingStory,
   migrateDatabase,
+  prepare,
+  PrepareError,
   seedDemoIfEmpty,
 } from '../../db/prepare.ts'
 import { migrationDirectory } from '../../src/server/db/migrate.ts'
@@ -54,4 +57,45 @@ it('migrates a new database once, and leaves the demo out beside another model o
   expect(await seedDemoIfEmpty({ seedUrl: url, cubeModelDir: demoModelDir })).toBe('not-empty')
   const [items] = (await client.query<{ n: number }>('select count(*)::int as n from items')).rows
   expect(items!.n).toBe(0)
+})
+
+/*
+  The demo first, your own definitions second, on the same database: what `docker compose up` and
+  then `CUBE_MODEL_DIR=... docker compose up` give on one Docker volume. The start stops before the
+  service can read your names into the demo company's workspace, and says the way out.
+*/
+it('refuses a database that holds the demo when the start names definitions of your own', async () => {
+  const owner = new URL(url)
+  owner.searchParams.set('options', `-c role=${localRoles.owner}`)
+  const env = { DATABASE_URL_MIGRATE: owner.href }
+  const model = await mkdtemp(join(tmpdir(), 'footnote-model-'))
+  try {
+    await writeFile(join(model, 'invoices.yml'), 'cubes: []\n')
+    // Not the demo's database yet: your own model starts on it, as it did in the test above.
+    await expect(prepare({ ...env, CUBE_MODEL_DIR: model })).resolves.toBeUndefined()
+    // The demo's Sandbox domain, which only its seed makes: the database holds the demo.
+    await client.query(
+      "insert into areas (id, name, label, summary, description, is_demo) values ('area_sandbox', 'Sandbox', 'gray', '', '', true)",
+    )
+    const refusal = await prepare({ ...env, CUBE_MODEL_DIR: model }).catch((e: unknown) => e)
+    expect(refusal).toBeInstanceOf(PrepareError)
+    expect((refusal as Error).message).toBe(
+      `The database ${databaseName(url)} holds the demo, and CUBE_MODEL_DIR names a Cube model of your own. ` +
+        "Starting would mix the two: your names in the demo company's workspace, beside its people and its context. So this start stops here. " +
+        'To start empty on your own definitions, run docker compose down --volumes, which deletes the whole database of this demo install, then start again the same way. ' +
+        'Without Docker, name an empty database in DATABASE_URL_MIGRATE. ' +
+        'To go back to the demo, start without that setting.',
+    )
+    // A dbt folder of your own is refused the same way, by the setting docker compose gives it.
+    await expect(
+      prepare({ ...env, FOOTNOTE_SERVER_FOLDERS: JSON.stringify({ 'dbt-metricflow': model }) }),
+    ).rejects.toThrow(
+      'FOOTNOTE_SERVER_FOLDERS, which docker compose sets from DBT_MANIFEST_DIR, names a folder of your own definitions',
+    )
+  } finally {
+    await rm(model, { recursive: true })
+  }
+  // The demo beside its own model, or no model named, starts as before.
+  await expect(prepare({ ...env, CUBE_MODEL_DIR: demoModelDir })).resolves.toBeUndefined()
+  await expect(prepare(env)).resolves.toBeUndefined()
 })
