@@ -202,12 +202,7 @@ function Turn({
           {latest && reply.question.answers.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {reply.question.answers.map((answer) => (
-                <Button
-                  key={answer}
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => ask(answer)}
-                >
+                <Button key={answer} variant="outline" disabled={busy} onClick={() => ask(answer)}>
                   {answer}
                 </Button>
               ))}

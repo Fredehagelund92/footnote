@@ -1091,7 +1091,7 @@ function Editor({
   const helpChange = help.latest
   const [helpChangeHidden, setHelpChangeHidden] = React.useState<string | null>(null)
   // What the dock reaches the draft through, as the page is now.
-  const desk = React.useRef<Omit<HelpDesk, 'draftId'>>(null)
+  const desk = React.useRef<Omit<HelpDesk, 'draftId' | 'page'>>(null)
   React.useLayoutEffect(() => {
     desk.current = {
       ready: async () => {

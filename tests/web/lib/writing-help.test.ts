@@ -453,7 +453,15 @@ describe('a page with no draft yet', () => {
     expect(helpNow().busy).toBe(true)
     await settled()
     expect(helpNow().busy).toBe(false)
-    expect(helpNow().turns[0]).toMatchObject({ state: 'failed' })
+    // The page that holds the draft later finds the turn failed, and does not ask it.
+    const late = desk('d11')
+    setHelpDesk(late.desk)
+    expect(helpNow().turns[0]).toMatchObject({
+      state: 'failed',
+      problem: 'The draft did not open.',
+    })
+    await settled()
+    expect(late.calls.filter((c) => c.startsWith('ask'))).toEqual([])
     // Nothing stays stuck: the next message on another draft is taken.
     const next = desk('d12')
     setHelpDesk(next.desk)

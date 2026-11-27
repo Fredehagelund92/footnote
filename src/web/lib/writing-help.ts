@@ -142,6 +142,9 @@ async function run(ask: HelpDesk['ask'], draft: string, id: string) {
   }
 }
 
+/** The turn that waits for its draft's page now: ready() may have set it since a guard read it. */
+const waitingNow = () => state.waiting
+
 /** The person says something to writing help about the draft on the page. */
 export async function askHelp(message: string) {
   const desk = state.desk
@@ -166,8 +169,9 @@ export async function askHelp(message: string) {
   }
   // Stopped before it started: it is never asked.
   if (controller.signal.aborted) {
-    if (state.waiting?.turn === id) set({ waiting: null })
-    update(draft ?? state.waiting?.draft ?? from, id, stoppedTurn)
+    const waiting = waitingNow()
+    if (waiting?.turn === id) set({ waiting: null })
+    update(draft ?? waiting?.draft ?? from, id, stoppedTurn)
     return
   }
   // The page is moving to the draft it just kept: the turn starts there (`setHelpDesk`).
@@ -289,8 +293,7 @@ const subscribe = (listener: () => void) => {
 /** Writing help for the draft on the page, from what is kept here. */
 function viewOf(now: State) {
   // A page with no draft yet shows the chat of the draft it is moving to, while a turn waits there.
-  const draft =
-    now.desk?.draftId ?? now.waiting?.draft ?? (now.desk ? pageChat(now.desk) : NEW)
+  const draft = now.desk?.draftId ?? now.waiting?.draft ?? (now.desk ? pageChat(now.desk) : NEW)
   const turns = now.chats.get(draft) ?? []
   const last = (now.changes.get(draft) ?? []).at(-1)
   const busy = !!now.waiting || turns.at(-1)?.state === 'asking'

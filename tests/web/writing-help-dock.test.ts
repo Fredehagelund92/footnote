@@ -125,17 +125,20 @@ describe('the dock’s box after a button that leaves the page', () => {
   })
 
   it('has the focus after Undo', async () => {
-    await mount(deskOf('f3', () => Promise.resolve(reply({ changed: ['title'] }))))
-    await step(() => askHelp('Ops told us.'))
-    await step(() =>
-      noteHelpChange('f3', {
-        agent: 'Writing help',
-        fields: ['title'],
-        at: '2026-11-27T10:00:00.000Z',
-        before: {},
-        after: {},
-      } as unknown as AgentChange),
+    await mount(
+      deskOf('f3', () => {
+        // The field lands while the turn runs, as the editor notes it.
+        noteHelpChange('f3', {
+          agent: 'Writing help',
+          fields: ['title'],
+          at: '2026-11-27T10:00:00.000Z',
+          before: {},
+          after: {},
+        } as unknown as AgentChange)
+        return Promise.resolve(reply({ changed: ['title'] }))
+      }),
     )
+    await step(() => askHelp('Ops told us.'))
     await press('Undo')
     expect(document.activeElement).toBe(composer())
   })
