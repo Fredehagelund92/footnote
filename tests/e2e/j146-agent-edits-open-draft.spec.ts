@@ -99,6 +99,7 @@ test("an agent's change shows in the open draft, never over what the person is t
   try {
     const written = await claude.write({
       title: 'Norway customs rule',
+      new_item: true,
       text: 'Online sales of Orders to Norway stopped on 4 August 2026 under a new customs rule.',
       scope: { metrics: ['Orders'] },
       window: { from: '2026-08-04' },
