@@ -6,6 +6,7 @@ import {
   declaredFamily,
   descriptionCopy,
   domainHint,
+  invalidDomain,
   filterVariant,
   meaningMark,
   synonymsOf,
@@ -478,6 +479,8 @@ export async function mapDefinitions(
   let complete = true
   const warn = (code: string, target: string) =>
     warned.set(`${code}:${target}`, { type: 'warning', code, target })
+  const warnInvalid = (target: string, value: unknown) =>
+    warned.set(`invalid_domain:${target}`, { type: 'warning', ...invalidDomain(target, value) })
 
   const models = new Map(file.semantic_models.map((model) => [model.name, model]))
   const measures = new Map(
@@ -489,7 +492,7 @@ export async function mapDefinitions(
   for (const model of models.values()) {
     const domain = domainHint(metaOf(model).domain, domainNames)
     domains.set(model.name, domain)
-    if (domain.invalid) warn('invalid_domain', model.name)
+    if (domain.invalid) warnInvalid(model.name, metaOf(model).domain)
     else if (domain.areaHint === null) warn('missing_domain', model.name)
   }
 
@@ -575,7 +578,7 @@ export async function mapDefinitions(
     const owners = [...known.models]
     const group = groupOf(known)
     const own = domainHint(metaOf(metric).domain, domainNames)
-    if (own.invalid) warn('invalid_domain', `${group}.${metric.name}`)
+    if (own.invalid) warnInvalid(`${group}.${metric.name}`, metaOf(metric).domain)
     const hints = new Set(owners.map((model) => domains.get(model.name)!.areaHint))
     const agreed = hints.size === 1 ? domains.get(owners[0]!.name)! : null
     // Its own valid domain wins, then the one its semantic models agree on.
@@ -619,7 +622,7 @@ export async function mapDefinitions(
       // dbt copies a model's meta onto its dimensions: only a value of its own is the dimension's.
       const value = metaOf(dimension).domain
       const own = domainHint(value === metaOf(model).domain ? undefined : value, domainNames)
-      if (own.invalid) warn('invalid_domain', name)
+      if (own.invalid) warnInvalid(name, value)
       const type = dimension.type && dimensionTypes.has(dimension.type) ? dimension.type : null
       if (type === null) warn(`${manifest.id}.unknown_type`, name)
       await add(

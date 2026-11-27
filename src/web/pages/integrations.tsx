@@ -1999,6 +1999,13 @@ function ReadFound({ read, tool, saved }: { read: ConnectRead; tool: string; sav
                   ` and ${(warning.count - warning.files.length).toLocaleString('en-GB')} more`}
               </span>
             )}
+            {warning.named && (
+              <span className="block font-mono text-xs break-all text-muted-foreground">
+                {warning.named.join(', ')}
+                {warning.count > warning.named.length &&
+                  ` and ${(warning.count - warning.named.length).toLocaleString('en-GB')} more`}
+              </span>
+            )}
             {warning.detail && (
               <span className="block text-muted-foreground">{warning.detail}</span>
             )}

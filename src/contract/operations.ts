@@ -120,7 +120,11 @@ export const sourceServerSettingKeys = [
 ] as const
 export type SourceServerSettingKey = (typeof sourceServerSettingKeys)[number]
 
-const sourceWarningSchema = z.object({ code: z.string(), target: z.string() })
+const sourceWarningSchema = z.object({
+  code: z.string(),
+  target: z.string(),
+  value: z.optional(z.string()),
+})
 export const connectorOverviewSchema = z.object({
   id: z.string(),
   name: z.string(),

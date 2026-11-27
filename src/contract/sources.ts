@@ -215,7 +215,9 @@ export const sourceCheckSchema = z.object({
   views: z.number(),
   metrics: z.number(),
   dimensions: z.number(),
-  warnings: z.array(z.object({ code: z.string(), target: z.string() })),
+  warnings: z.array(
+    z.object({ code: z.string(), target: z.string(), value: z.optional(z.string()) }),
+  ),
   /**
    * The scopes an admin may choose, each with the domain it most likely belongs to: a content
    * connector's folders, spaces or pages (discover); a definitions connector's groups (a Cube

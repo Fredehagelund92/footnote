@@ -3,6 +3,7 @@ import type { RuntimeDefinition, RuntimeMessage } from '../../domain/connector-r
 import {
   descriptionCopy,
   domainHint,
+  invalidDomain,
   meaningMark,
   synonymsOf,
 } from '../../domain/definition-helpers.ts'
@@ -93,7 +94,8 @@ export async function mapDefinitions(
 
   for (const group of file.groups) {
     const groupDomain = domainHint(group.domain, domainNames)
-    if (groupDomain.invalid) warn('invalid_domain', group.name)
+    if (groupDomain.invalid)
+      warnings.push({ type: 'warning', ...invalidDomain(group.name, group.domain) })
     else if (groupDomain.areaHint === null) warn('missing_domain', group.name)
     const metrics = new Map((group.metrics ?? []).map((metric) => [metric.name, metric]))
 
@@ -116,7 +118,7 @@ export async function mapDefinitions(
       // A name the group has twice is one definition: the first.
       if (definitions.some((definition) => definition.name === name)) return
       const own = domainHint(entry.domain, domainNames)
-      if (own.invalid) warn('invalid_domain', name)
+      if (own.invalid) warnings.push({ type: 'warning', ...invalidDomain(name, entry.domain) })
       // A member's own valid domain wins over its group's.
       const domain = own.areaHint === null ? groupDomain : own
       const description = descriptionCopy(entry.description)

@@ -994,4 +994,37 @@ describe('a tool whose file lives in a place you choose', () => {
     ])
     expect(test.chosen).toEqual({ all: false, groups: 3, missing: ['segments'] })
   })
+
+  it('names the domain a tool wrote and the view that wrote it', () => {
+    const test = connectTestOf(
+      {
+        ok: true,
+        steps: [],
+        version: 'abc',
+        complete: true,
+        views: 2,
+        metrics: 3,
+        dimensions: 1,
+        warnings: [
+          { code: 'invalid_domain', target: 'moon_orders', value: 'Lunar Sales' },
+          { code: 'invalid_domain', target: 'moon_orders.rock_count', value: 'Regolith' },
+          { code: 'missing_domain', target: 'comet_visits' },
+        ],
+      },
+      'cube',
+    )
+    expect(test.read?.warnings).toEqual([
+      expect.objectContaining({
+        title: 'A domain we do not have',
+        count: 2,
+        named: ['moon_orders: Lunar Sales', 'moon_orders.rock_count: Regolith'],
+      }),
+      expect.objectContaining({
+        title: 'No domain named',
+        count: 1,
+        named: ['comet_visits'],
+        detail: expect.not.stringContaining('next steps'),
+      }),
+    ])
+  })
 })

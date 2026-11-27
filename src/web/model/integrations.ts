@@ -407,6 +407,8 @@ export type ConnectRead = {
     count: number
     /** The files a warning about a file names, the first few. */
     files?: string[]
+    /** The views and members a domain warning is about, with the domain each names, the first few. */
+    named?: string[]
   }[]
   /**
    * When many metrics look like variants of a few, such as a metric per currency, and the read
