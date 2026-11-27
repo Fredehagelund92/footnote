@@ -128,7 +128,7 @@ source read by another server or by the seed has none.
 | `sourceVersion` | What was read: a Git commit or tag, an etag, or a digest of the files.                                                                          |
 | `complete`      | True when every object was read. Only a complete read marks absent definitions missing; a partial read updates what it read and keeps the rest. |
 | `definitions`   | Each public member, never a calculation or SQL (CON-207).                                                                                       |
-| `warnings`      | Codes and targets only (below).                                                                                                                 |
+| `warnings`      | Codes and targets only, and for `invalid_domain` the domain named (below).                                                                      |
 | `renames`       | Members gone with their new id, from configuration (CON-512).                                                                                   |
 | `cursor`        | Optional: where the next read may start (a commit, a change token). The core stores it with the read and hands the newest good one back.        |
 
@@ -359,7 +359,8 @@ definition's domain changed, and `source.marks_rebaselined` once per domain for 
 stored new marks without flagging ([mark version](#versions)). The relay puts them in the inbox
 of the domain's owners.
 
-Snapshot warnings contain only codes and targets. A public view or cube without `meta.domain`
+Snapshot warnings contain only codes and targets, and an `invalid_domain` warning also carries
+the domain the tool named as `value` (up to 200 characters), so Test connection can say which. A public view or cube without `meta.domain`
 is reported as `missing_domain` (CON-516). `domain_override` warnings retain domain
 provenance without a schema change; `list` exposes that provenance from the member's last-seen
 snapshot. Consumers can compute coverage with `domainCoverage`. Invalid domains and overrides
@@ -462,7 +463,7 @@ type Message =
   | { type: 'definition'; definition: Definition } // kind definitions
   | { type: 'document'; document: SourceDocument } // kind content
   | { type: 'deleted'; id: string } // a tombstone, in a delta read
-  | { type: 'warning'; code: string; target: string }
+  | { type: 'warning'; code: string; target: string; value?: string } // value: the domain an invalid_domain names
   | { type: 'progress'; done: number; total?: number }
   | { type: 'end'; version: string; complete: boolean; cursor?: string }
 

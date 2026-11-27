@@ -61,6 +61,11 @@ export type Connector = {
    * semantic model in dbt, for one and for more. A view when unset.
    */
   group?: { one: string; many: string }
+  /**
+   * The group a definitions connector makes of its own, for metrics drawn from more than one of
+   * the tool's groups, with what people read in its place: dbt's `_shared`.
+   */
+  sharedGroup?: { id: string; label: string }
   /** The setting a definitions tool names a group's domain with, as people write it there. */
   domainField?: string
   /** The server setting that names where it reads from, when the server's operator sets it. */
@@ -402,6 +407,8 @@ export type ConnectRead = {
     count: number
     /** The files a warning about a file names, the first few. */
     files?: string[]
+    /** The views and members a domain warning is about, with the domain each names, the first few. */
+    named?: string[]
   }[]
   /**
    * When many metrics look like variants of a few, such as a metric per currency, and the read

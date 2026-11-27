@@ -1,6 +1,11 @@
 import { contentDigest } from '../../domain/canonical.ts'
 import { defineRuntime, SourceError } from '../../domain/connector-runtime.ts'
-import { descriptionCopy, domainHint, meaningMark } from '../../domain/definition-helpers.ts'
+import {
+  descriptionCopy,
+  domainHint,
+  invalidDomain,
+  meaningMark,
+} from '../../domain/definition-helpers.ts'
 import { manifest } from './manifest.ts'
 import { parseStaticEntries, staticCheckReport, type StaticEntry } from './entries.ts'
 
@@ -39,7 +44,7 @@ export const runtime = defineRuntime<Config>({
     const names = config.domainNames ?? {}
     for (const entry of entries) {
       const domain = domainHint(entry.domain, names)
-      if (domain.invalid) yield { type: 'warning', code: 'invalid_domain', target: entry.name }
+      if (domain.invalid) yield { type: 'warning', ...invalidDomain(entry.name, entry.domain) }
       const description = descriptionCopy(entry.description)
       if (description.cut)
         yield { type: 'warning', code: `${manifest.id}.description_cut`, target: entry.name }

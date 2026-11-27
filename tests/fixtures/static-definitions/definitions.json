@@ -68,6 +68,6 @@
   ],
   "warnings": [
     { "code": "static-definitions.description_cut", "target": "payments.fees" },
-    { "code": "invalid_domain", "target": "refunds.count" }
+    { "code": "invalid_domain", "target": "refunds.count", "value": "Bad Domain" }
   ]
 }

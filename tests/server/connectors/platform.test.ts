@@ -235,7 +235,7 @@ describe('a runtime read, checked message by message', () => {
     ])
     expect(snapshot.definitions[2]!.descriptionCopy).toHaveLength(500)
     expect(snapshot.warnings).toEqual([
-      { code: 'invalid_domain', target: 'payments.market' },
+      { code: 'invalid_domain', target: 'payments.market', value: 'Finance' },
       { code: 'static-definitions.description_cut', target: 'payments.fees' },
     ])
     // The same list gives the same marks; a changed title moves only its own.

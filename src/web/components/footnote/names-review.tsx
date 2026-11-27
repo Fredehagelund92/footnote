@@ -83,12 +83,15 @@ function FamilyName({
  * A name that is ready: what it is, and the source's own words for it. A family says what it holds
  * and is published with one press, its variants with it; they are never listed here. `grouped`
  * rows sit under how their family was found, so they leave that out. The buttons keep a column of
- * their own, so every row is as tall as its words.
+ * their own, so every row is as tall as its words. With `onRename`, the name is a box: a model
+ * with no titles gives names such as "Trial Starts", and the one published is the one people read.
  */
 function ReadyRow({
   name,
   busy,
   grouped = false,
+  chosen,
+  onRename,
   onLeaveOut,
   onPublish,
   onOpen,
@@ -96,17 +99,35 @@ function ReadyRow({
   name: SourceNameRead
   busy: boolean
   grouped?: boolean
+  chosen?: string
+  onRename?: (chosen: string) => void
   onLeaveOut: () => void
   onPublish: () => void
   onOpen?: (key: string) => void
 }) {
   return (
-    <li className="grid min-w-0 grid-cols-(--cols-trail-auto) items-center gap-x-3 py-2">
+    // A name box keeps the buttons beside it, as a row that waits for a look does.
+    <li
+      className={cn(
+        'grid min-w-0 grid-cols-(--cols-trail-auto) gap-x-3 py-2',
+        onRename ? 'items-start' : 'items-center',
+      )}
+    >
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <FamilyName name={name} onOpen={onOpen}>
-            {name.name}
-          </FamilyName>
+          {onRename ? (
+            <Input
+              value={chosen ?? name.name}
+              maxLength={120}
+              aria-label={`Name for ${memberOf(name.definitionRefs[0] ?? name.key)}`}
+              className="w-60 max-w-full"
+              onChange={(e) => onRename(e.target.value)}
+            />
+          ) : (
+            <FamilyName name={name} onOpen={onOpen}>
+              {name.name}
+            </FamilyName>
+          )}
           <span className="text-xs text-muted-foreground">
             {name.family
               ? grouped
@@ -129,7 +150,7 @@ function ReadyRow({
           </span>
         )}
       </span>
-      <span className="flex items-center gap-1">
+      <span className={cn('flex items-center gap-1', onRename && 'h-8')}>
         {name.family && (
           <Button variant="outline" disabled={busy} onClick={onPublish}>
             Publish
@@ -505,6 +526,12 @@ export default function NamesReview({
   const [busy, setBusy] = React.useState(false)
   const [problems, setProblems] = React.useState<Record<string, string>>({})
   const [all, setAll] = React.useState(false)
+  // Ready names the person renamed, by key: Publish all sends each with its new name.
+  const [renames, setRenames] = React.useState<Record<string, string>>({})
+  const named = (name: SourceNameRead) => {
+    const chosen = renames[name.key]?.trim()
+    return chosen && chosen !== name.name ? { key: name.key, name: chosen } : { key: name.key }
+  }
   const [picked, setPicked] = React.useState<NamesShow | undefined>(undefined)
   const place = read.data?.place ?? null
   // The domain the names with none go under, as the card offers it until the person types.
@@ -820,6 +847,12 @@ export default function NamesReview({
                       key={name.key}
                       name={name}
                       busy={busy}
+                      chosen={renames[name.key]}
+                      onRename={
+                        name.linked.length
+                          ? undefined
+                          : (chosen) => setRenames((was) => ({ ...was, [name.key]: chosen }))
+                      }
                       onLeaveOut={() => void leaveOut(name)}
                       onPublish={() => void acceptOne(name, name.name)}
                       onOpen={onOpenFamily}
@@ -894,7 +927,7 @@ export default function NamesReview({
           disabled={busy || !online}
           onClick={() =>
             void decide(
-              ready.map((name) => ({ key: name.key })),
+              ready.map(named),
               [],
               `${count} ${ready.length === 1 ? 'is' : 'are'} published`,
             )

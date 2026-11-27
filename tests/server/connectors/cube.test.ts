@@ -275,10 +275,15 @@ describe('offline Cube source', () => {
     expect(
       partial.definitions.find((entry) => entry.ref === 'cube:operations.revenue')?.areaHint,
     ).toBeNull()
-    expect(partial.warnings).toContainEqual({ code: 'invalid_domain', target: 'sales.count' })
+    expect(partial.warnings).toContainEqual({
+      code: 'invalid_domain',
+      target: 'sales.count',
+      value: 'INVALID',
+    })
     expect(partial.warnings).toContainEqual({
       code: 'invalid_domain',
       target: 'override:operations',
+      value: '17',
     })
     // A view the server's domain names map has a domain: information, not a missing domain.
     const missing = partial.warnings.filter((warning) => warning.code === 'missing_domain')
@@ -322,7 +327,11 @@ describe('offline Cube source', () => {
       areaHint: 'finance',
       domainSource: 'source',
     })
-    expect(snapshot.warnings).toContainEqual({ code: 'invalid_domain', target: 'sales.count' })
+    expect(snapshot.warnings).toContainEqual({
+      code: 'invalid_domain',
+      target: 'sales.count',
+      value: 'Sales Area',
+    })
     expect(snapshot.warnings).not.toContainEqual({ code: 'invalid_domain', target: 'sales' })
   }, 15_000)
 
@@ -349,7 +358,11 @@ describe('offline Cube source', () => {
     )
     expect(snapshot.definitions.some((entry) => entry.ref === 'cube:orders.country')).toBe(true)
     expect(snapshot.definitions.some((entry) => entry.ref === 'cube:orders.revenue')).toBe(false)
-    expect(snapshot.warnings).toContainEqual({ code: 'invalid_domain', target: 'sales' })
+    expect(snapshot.warnings).toContainEqual({
+      code: 'invalid_domain',
+      target: 'sales',
+      value: 'Not an area',
+    })
     expect(
       snapshot.definitions.find((entry) => entry.ref === 'cube:sales.country')?.areaHint,
     ).toBeNull()

@@ -123,6 +123,8 @@ export const runtimeMessageSchema = z.discriminatedUnion('type', [
     type: z.literal('warning'),
     code: runtimeWarningCode,
     target: z.string().check(z.maxLength(500)),
+    /** The domain a tool named, which an `invalid_domain` warning says. */
+    value: z.optional(z.string().check(z.maxLength(500))),
   }),
   z.strictObject({
     type: z.literal('progress'),

@@ -1,3 +1,5 @@
+import { datesInText } from '@domain/text-dates'
+import { shiftDate } from '@domain/validity'
 import { monthOfName } from '@/lib/dates'
 import { dateLabel, whenLabel, type Validity } from '@/model/validity'
 
@@ -5,13 +7,14 @@ import { dateLabel, whenLabel, type Validity } from '@/model/validity'
 
 export type WhenMode = 'always' | 'from' | 'until' | 'between' | 'ongoing' | 'day'
 
-export const WHEN_PRESETS: { value: WhenMode; label: string }[] = [
-  { value: 'always', label: 'Always' },
-  { value: 'from', label: 'From a date' },
-  { value: 'until', label: 'Until a date' },
-  { value: 'between', label: 'Between dates' },
-  { value: 'ongoing', label: 'Ongoing' },
-  { value: 'day', label: 'A single day' },
+/** Each choice, with the line under it that tells it from the others. */
+export const WHEN_PRESETS: { value: WhenMode; label: string; hint: string }[] = [
+  { value: 'always', label: 'Always', hint: 'Any dates asked about' },
+  { value: 'from', label: 'From a date', hint: 'From a day on, for good' },
+  { value: 'until', label: 'Until a date', hint: 'Up to a day, and not after' },
+  { value: 'between', label: 'Between dates', hint: 'From one day to another' },
+  { value: 'ongoing', label: 'Ongoing', hint: 'Not over yet' },
+  { value: 'day', label: 'A single day', hint: 'One day only' },
 ]
 
 export type WhenValue = { mode: WhenMode; from: string; until: string }
@@ -108,4 +111,48 @@ function readPeriod(period: string): WhenValue | null {
   m = read(`up to ${D} ${M} ${Y}`)
   if (m) return { mode: 'until', from: '', until: dayOf(m[1]!, m[2]!, m[3]!) }
   return null
+}
+
+/** Whether two Whens say the same dates. */
+export const sameWhen = (a: WhenValue, b: WhenValue) =>
+  JSON.stringify(validOfWhen(a)) === JSON.stringify(validOfWhen(b))
+
+/**
+ * The Whens the dates in a text could mean, to offer in one press: a range as Between dates, and
+ * one day as that day or from it on. None when the text names no date.
+ */
+export function whensOfText(text: string, today: string): WhenValue[] {
+  const dates = datesInText(text, today)
+  if (!dates) return []
+  if (dates.end) return [{ mode: 'between', from: dates.start, until: shiftDate(dates.end, -1) }]
+  return [
+    { mode: 'day', from: dates.start, until: dates.start },
+    { mode: 'from', from: dates.start, until: '' },
+  ]
+}
+
+/**
+ * The When a typed date gives in the mode picked: "4 Aug 2024", "2024-08-04" or, for Between
+ * dates, "3 to 14 August 2024". One day typed for Between dates is its start, or its end once the
+ * start is there. Null when the words name no day.
+ */
+export function whenOfTyped(typed: string, value: WhenValue, today: string): WhenValue | null {
+  const dates = datesInText(typed, today)
+  if (!dates) return null
+  const day = dates.start
+  switch (value.mode) {
+    case 'always':
+      return null
+    case 'between':
+      if (dates.end) return { ...value, from: day, until: shiftDate(dates.end, -1) }
+      return value.from && !value.until && day >= value.from
+        ? { ...value, until: day }
+        : { ...value, from: day, until: '' }
+    case 'until':
+      return { ...value, until: day }
+    case 'day':
+      return { ...value, from: day, until: day }
+    default:
+      return { ...value, from: day }
+  }
 }

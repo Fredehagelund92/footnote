@@ -458,8 +458,8 @@ function checkedOutput(item: ServingItem, bundle: ServingBundle) {
 }
 /**
  * A context item as the agent contract gives it (docs/product.md, section 10): what it is and
- * says, when and where it applies, who checked it and when, its first source, its don't conclude
- * line, and whether it may be out of date or disagrees with another item in the same reply (the
+ * says, when and where it applies, who checked it and when, its first source, the don't conclude
+ * line its writer wrote, and whether it may be out of date or disagrees with another item in the same reply (the
  * overlap notice, FR-350). It never carries a comment, a report or a saved question: it is built
  * from the served edition only.
  */
@@ -482,7 +482,8 @@ export function contextEntry(
     applies: appliesWords(bundle, item.scope),
     ...checkedOutput(item, bundle),
     ...(source ? { source: { url: source.url, quote: source.quote } } : {}),
-    not_to_conclude: item.notToConclude,
+    // The writer's own line only (FR-104): the default says what the claim level already says.
+    ...(ownCaveat(item.notToConclude) ? { not_to_conclude: ownCaveat(item.notToConclude)! } : {}),
     ...(unverified ? { may_be_out_of_date: true } : {}),
     ...(extra.disagrees?.length ? { disagrees_with: [...extra.disagrees] } : {}),
     url,

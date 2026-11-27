@@ -84,6 +84,15 @@ export function domainHint(
     : { areaHint: null, domainSource: 'none', invalid: true }
 }
 
+/** An `invalid_domain` warning: the view, group or member that names it, and the domain it names. */
+export function invalidDomain(
+  target: string,
+  value: unknown,
+): { code: 'invalid_domain'; target: string; value: string } {
+  const named = typeof value === 'string' ? value : (JSON.stringify(value) ?? '')
+  return { code: 'invalid_domain', target, value: named.slice(0, 200) }
+}
+
 /** True for a value that says nothing: null, false, an empty text, list or object. */
 const isEmpty = (value: unknown) =>
   value === undefined ||

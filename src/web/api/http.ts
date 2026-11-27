@@ -1030,14 +1030,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   const readVocabulary = () => read(() => client.vocabulary.get())
 
   /** Asked this week, or nothing while nothing is shared with agents yet. */
-  async function readAsked(): Promise<Asked | null> {
-    try {
-      return await read(() => client.ask.asked())
-    } catch (error) {
-      if (toApiError(error).status === 412) return null
-      throw error
-    }
-  }
+  const readAsked = (): Promise<Asked | null> => read(() => client.ask.asked())
 
   /**
    * A turn of Ask's loop: what each read does as it starts, the words so far as each sentence

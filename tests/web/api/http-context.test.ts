@@ -392,6 +392,12 @@ describe("a context item's page", () => {
     })
   })
 
+  it("shows only the writer's own line of what not to conclude, never the default", () => {
+    // The default, as the service keeps it and as the web app once wrote it, is no line.
+    for (const notToConclude of ['cause not proven', 'Cause not proven.'])
+      expect(factOfPage(page({ notToConclude }), names, words)?.dontConclude).toBe('')
+  })
+
   it('names its own owners only when they are not its domain’s, and its trust as its status', () => {
     const own = factOfPage(page({}, { owners: ['per_ines'], trust: 'needs_check' }), names, words)
     expect(own).toMatchObject({ owners: ['Ines Duarte'], status: 'Due for a check' })

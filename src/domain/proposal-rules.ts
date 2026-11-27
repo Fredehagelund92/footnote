@@ -32,10 +32,11 @@ export const defaultNotToConclude = 'cause not proven'
 /**
  * What the contributor wrote must not be concluded, or null for the default or nothing. The
  * default says what the claim level already says, so only the contributor's own words are served.
+ * The web app once wrote the default as a sentence, "Cause not proven.", which is the default too.
  */
 export function ownCaveat(text: string | null | undefined): string | null {
   const caveat = text?.trim() ?? ''
-  return caveat && caveat.toLowerCase() !== defaultNotToConclude ? caveat : null
+  return caveat && caveat.toLowerCase().replace(/\.$/, '') !== defaultNotToConclude ? caveat : null
 }
 
 /**

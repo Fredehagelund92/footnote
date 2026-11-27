@@ -36,6 +36,7 @@ const fileWarning = z.object({
     'invalid_family',
   ]),
   target: z.string().check(z.maxLength(500)),
+  value: z.optional(z.string().check(z.maxLength(500))),
 })
 
 /** The worker's answer, checked before anything of it is passed on (I-7). */

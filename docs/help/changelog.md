@@ -28,6 +28,21 @@ Write context now offers your own agent beside Fill it in. Write with Claude ope
 
 Your agent reads the draft again before each change, so it keeps your words. It looks again when you write to it, not while you type. In Claude Code, the same prompt is /footnote:write_context. [Write with your agent](write-with-your-agent.md) has the steps, and the line to keep in a Claude Project.
 
+## A first item that is never lost, and nothing to guess
+
+2026-11-27
+
+A new owner's first hour lost words, or left them to guess. Now:
+
+- A new context item saves itself as your draft once it has a title or a sentence. A reload loses nothing.
+- When says how each choice differs, offers the date your text names, and takes a date you type.
+- Don't conclude, left empty, adds nothing to what agents get. When your text gives a cause, the field says so.
+- Every ready name on the Names card can be renamed before it is published, and short forms such as MRR keep their capitals.
+- A definition with no description says where to add one in its tool.
+- `SEED_DEMO=off docker compose up` starts with no demo and no definitions.
+
+See [Write context](write-context.md).
+
 ## Metrics kept apart, and made one family later
 
 2026-11-27

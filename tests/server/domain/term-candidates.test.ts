@@ -62,6 +62,21 @@ describe('termCandidates', () => {
     expect(keyPart("Côte d'Ivoire")).toBe('cote_d_ivoire')
   })
 
+  it('writes short forms such as MRR in capitals, from a title or a name alike', () => {
+    // Cube titles `subscriptions.mrr` "Subscriptions Mrr" when the model gives none.
+    const name = (member: string, title: string | null) =>
+      memberName({ name: member, title, baseName: null })
+    expect(name('subscriptions.mrr', 'Subscriptions Mrr')).toBe('MRR')
+    expect(name('subscriptions.churned_mrr', 'Subscriptions Churned Mrr')).toBe('Churned MRR')
+    expect(name('subscriptions.new_arr', null)).toBe('New ARR')
+    expect(name('orders.aov', null)).toBe('AOV')
+    // Inside a word, or a word of its own, it stays as it is.
+    expect(name('crm.arrivals', null)).toBe('Arrivals')
+    expect(name('crm.mrr_rate', 'Monthly recurring revenue rate')).toBe(
+      'Monthly recurring revenue rate',
+    )
+  })
+
   it('keeps a title that only starts with its model’s words', () => {
     // dbt names a metric after its semantic model: "(EUR)" alone says nothing (N4).
     expect(

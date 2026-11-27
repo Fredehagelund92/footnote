@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import {
-  datesInText,
   deriveAgentDraft,
   deriveAgentPatch,
   kindByRule,
@@ -8,6 +7,7 @@ import {
   type DerivationContext,
 } from '../../../src/domain/agent-draft.ts'
 import { draftingGuide } from '../../../src/domain/drafting-guide.ts'
+import { datesInText } from '../../../src/domain/text-dates.ts'
 import {
   instructionWords,
   keepMarks,

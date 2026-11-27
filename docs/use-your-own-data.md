@@ -3,7 +3,7 @@ title: Use your own data
 line: Run it on one computer with your own semantic layer instead of the demo, and keep a private profile apart.
 group: Run the service
 order: 2
-reviewed: 2026-11-20
+reviewed: 2026-11-27
 ---
 
 Run it on one computer with your own semantic layer instead of the demo, and sign in as yourself. It starts the same way as [Try the demo](try-the-demo.md), with `docker compose`.
@@ -33,6 +33,16 @@ DBT_MANIFEST_DIR=/path/to/your/dbt/project/target docker compose up
 The folder is shared into the container read only, as a Cube model's is, and the service reads it as its own dbt source, with no demo data. After the demo, the start stops as it does for a Cube model, with the same way out. After the next `dbt parse`, use Read again on the source's page, in Settings, Integrations.
 
 A semantic model takes its domain from its `meta`, as [dbt MetricFlow](connectors/dbt-metricflow.md#where-meta-goes) shows. On a Mac the folder needs the same file sharing as a Cube model's.
+
+## Start empty
+
+When your definitions are not in a folder on this computer, such as in dbt Cloud, Cube Cloud or a Git host, start with no demo and no definitions:
+
+```sh
+SEED_DEMO=off docker compose up
+```
+
+Sign in as Ravi Kapoor, the admin, then connect your tool in Settings, Integrations. If you tried the demo first, run `docker compose down --volumes` before you start, as above.
 
 ## Read dbt or another tool
 

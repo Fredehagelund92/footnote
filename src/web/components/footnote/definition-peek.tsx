@@ -11,6 +11,7 @@ import { DockFrame, DockMissing, DockWaiting, PeekBar } from '@/components/dock'
 import {
   AnotherNameFor,
   builtFromParts,
+  NoMeaning,
   SynonymTags,
   TypeTile,
 } from '@/components/footnote/definition'
@@ -131,7 +132,7 @@ export function DefinitionPeek({ name }: { name: string }) {
                 {subject.definition ? (
                   <MentionText text={subject.definition} />
                 ) : (
-                  'No meaning written yet.'
+                  <NoMeaning d={subject} />
                 )}
               </p>
             )}

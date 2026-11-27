@@ -78,7 +78,12 @@ describe('a semantic manifest from a real dbt parse', () => {
   it('names what it cannot give a domain, rather than guess', async () => {
     const { warnings } = await read('core')
     expect(warnings).toEqual([
-      { type: 'warning', code: 'invalid_domain', target: 'orders.is_food_order' },
+      {
+        type: 'warning',
+        code: 'invalid_domain',
+        target: 'orders.is_food_order',
+        value: 'Customer Care',
+      },
       { type: 'warning', code: 'missing_domain', target: '_shared.order_gross_profit' },
       { type: 'warning', code: 'missing_domain', target: 'order_items' },
     ])
