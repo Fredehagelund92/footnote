@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-27
 ---
 
+## Metrics kept apart, and made one family later
+
+2026-11-27
+
+Metrics you keep separate on the Names card are now listed in Definitions, under Kept apart in the Families view, beside the families split since. An owner of their domain, or an admin, can make them one family there. A source's page in Integrations lists them too.
+
+A family's History now names the person who published it, split it or made it one again, not the tool that reads its metrics. Delete on a family says to split it on its page instead.
+
 ## Counts in the thousands on a source's page
 
 2026-11-27

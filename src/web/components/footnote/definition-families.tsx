@@ -7,16 +7,17 @@ import { Th } from '@/components/footnote/list'
 import { SourceText } from '@/components/footnote/source-text'
 import { TriangleAlertIcon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
-import { familyBy, type Definition, type SplitFamily } from '@/lib/definitions'
+import { familyBy, type Definition, type KeptApart } from '@/lib/definitions'
 import { openFromRow } from '@/lib/dock'
 import { useReported } from '@/lib/reported'
 import { toast } from '@/lib/toast'
 import { useDomains, useMe } from '@/lib/workspace'
 
 // Definitions' Families tab (FR-142, D1): every family with how it was found, what it means or
-// that it means nothing yet, and what needs a look, each opening its quick view; then the families
-// split back into their metrics, which an owner of the domain or an admin makes one family again.
-// Everyone reads it; only the way back is an owner's.
+// that it means nothing yet, and what needs a look, each opening its quick view; then what was kept
+// apart, families split back into their metrics and the metrics of suggested families kept
+// separate when published, which an owner of the domain or an admin makes one family. Everyone reads it;
+// only the way back is an owner's.
 
 const n = (x: number) => x.toLocaleString('en-GB')
 
@@ -33,7 +34,7 @@ export function DefinitionFamilies({
   rows,
   loading,
   onClear,
-  splits,
+  kept,
   meaningOf,
   dueOf,
 }: {
@@ -43,7 +44,8 @@ export function DefinitionFamilies({
   loading: boolean
   /** Ends the search and the filters, as the main table's empty state offers. */
   onClear: () => void
-  splits: readonly SplitFamily[]
+  /** What was kept apart: families split into their metrics, and metrics kept separate. */
+  kept: readonly KeptApart[]
   /** A family's meaning as its row says it, or null for none yet. */
   meaningOf: (d: Definition) => string | null
   /** How many context items about the family, or any of its variants, are due for a check. */
@@ -84,7 +86,7 @@ export function DefinitionFamilies({
           </tbody>
         </table>
       </div>
-      {splits.length > 0 && <Splits splits={splits} />}
+      {kept.length > 0 && <KeptApartList kept={kept} />}
     </>
   )
 }
@@ -156,43 +158,57 @@ function FamilyRow({ d, meaning, due }: { d: Definition; meaning: string | null;
   )
 }
 
-/** The families split back into their metrics, while they stand, with the way back. */
-function Splits({ splits }: { splits: readonly SplitFamily[] }) {
+/**
+ * What was kept apart, while it stands so, newest first, with the way back: families split into
+ * their metrics, and the metrics of suggested families kept separate when they were published.
+ */
+function KeptApartList({ kept }: { kept: readonly KeptApart[] }) {
   return (
-    <section aria-label="Split into metrics" className="flex flex-col px-4 pt-5 pb-8 md:px-6">
+    <section aria-label="Kept apart" className="flex flex-col px-4 pt-5 pb-8 md:px-6">
       <h2 className="flex items-baseline gap-2 text-sm font-semibold">
-        Split into metrics
-        <span className="font-normal text-muted-foreground tabular-nums">{n(splits.length)}</span>
+        Kept apart
+        <span className="font-normal text-muted-foreground tabular-nums">{n(kept.length)}</span>
       </h2>
+      <p className="mt-1 max-w-reading text-sm text-muted-foreground">
+        Each metric here stands on its own, and the next read keeps them apart.
+      </p>
       <ul className="mt-2 flex flex-col">
-        {splits.map((split) => (
-          <SplitRow key={split.name} split={split} />
+        {kept.map((entry) => (
+          <KeptApartRow key={`${entry.how}:${entry.name}`} kept={entry} />
         ))}
       </ul>
     </section>
   )
 }
 
-function SplitRow({ split }: { split: SplitFamily }) {
+/** What a row of Kept apart says happened: "split by you on 20 Nov", or kept separate. */
+function keptLine(kept: KeptApart, by: string): string {
+  if (kept.how === 'apart')
+    return `${andList(kept.metrics)}, kept separate by ${by} on ${kept.on}, when published.`
+  return `${andList(kept.metrics)}, split by ${by} on ${kept.on}. ${
+    kept.items
+      ? `${n(kept.items)} context ${kept.items === 1 ? 'item is' : 'items are'} still about the family, due for a check.`
+      : 'No context is about the family now.'
+  }`
+}
+
+function KeptApartRow({ kept }: { kept: KeptApart }) {
   const me = useMe()
   const domains = useDomains()
   const write = useWrite()
-  const mayJoin = me.admin || (!!split.domain && me.owns.includes(split.domain))
+  const mayJoin = me.admin || (!!kept.domain && me.owns.includes(kept.domain))
+  const again = kept.how === 'split' ? ' again' : ''
   const joining = useReported<void>({
-    wasnt: `${split.name} wasn't made one family again.`,
-    done: () => toast(`${split.name} is one family again`),
+    wasnt: `${kept.name} wasn't made one family${again}.`,
+    done: () => toast(`${kept.name} is one family${again}`),
   })
-  const by = split.by === me.name ? 'you' : split.by
+  const by = kept.by === me.name ? 'you' : kept.by
   return (
     <li className="flex flex-col gap-2 border-b py-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-3">
-      <div className="max-w-reading min-w-0 flex-1 text-sm">
-        <p className="font-medium">{split.name}</p>
-        <p className="text-muted-foreground">
-          {andList(split.metrics)}, split by {by} on {split.on}.{' '}
-          {split.items
-            ? `${n(split.items)} context ${split.items === 1 ? 'item is' : 'items are'} still about the family, due for a check.`
-            : 'No context is about the family now.'}
-        </p>
+      {/* The words keep a reading width; the way back sits at the row's end, under the table's. */}
+      <div className="min-w-0 flex-1 text-sm">
+        <p className="font-medium">{kept.name}</p>
+        <p className="max-w-reading text-muted-foreground">{keptLine(kept, by)}</p>
         {joining.problem && (
           <p role="alert" className="mt-1 text-destructive">
             {joining.problem}
@@ -204,14 +220,14 @@ function SplitRow({ split }: { split: SplitFamily }) {
           variant="outline"
           className="shrink-0 self-start"
           aria-disabled={joining.state === 'sending' || undefined}
-          onClick={() => joining.act(() => write('joinFamily', { name: split.name }))}
+          onClick={() => joining.act(() => write('joinFamily', { name: kept.name }))}
         >
-          Make them one family again
+          Make them one family{again}
         </Button>
       ) : (
         <p className="shrink-0 text-xs text-muted-foreground">
-          {split.domain && domains[split.domain]
-            ? `Owners of ${domains[split.domain]!.name} decide`
+          {kept.domain && domains[kept.domain]
+            ? `Owners of ${domains[kept.domain]!.name} decide`
             : 'An admin decides'}
         </p>
       )}

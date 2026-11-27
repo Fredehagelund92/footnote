@@ -5,7 +5,7 @@ import { expect, go, moveTo, signInAs, test } from './go.ts'
 // J106, a member meets a family, and one that was split (FR-142, D3): on the mock's ?demo=families
 // Ines Duarte, who owns no domain, reads a family's page with no Split, told who decides whether it
 // is one family: the owners of its domain, by name. Once Jon Abara, an owner of Sales, splits it,
-// the Families tab lists it under Split into metrics for her too, with who may make it one family
+// the Families tab lists it under Kept apart for her too, with who may make it one family
 // again and no button, and her Inbox holds no card for its item. At 390 and 1440 wide, in light and
 // dark, nothing is wider than the screen and axe finds nothing.
 
@@ -75,12 +75,12 @@ for (const { name, width, height } of widths) {
         await moveTo(page, '/definitions/Accrued%20share%20front%20loaded')
         await page.getByRole('button', { name: 'Split into 2 metrics' }).click()
         await page.getByRole('dialog').getByRole('button', { name: 'Split into 2 metrics' }).click()
-        await expect(page.getByRole('region', { name: 'Split into metrics' })).toBeVisible()
+        await expect(page.getByRole('region', { name: 'Kept apart' })).toBeVisible()
         await signInAs(page, 'Ines Duarte')
         await page.setViewportSize(size)
 
         await families(page)
-        const split = page.getByRole('region', { name: 'Split into metrics' })
+        const split = page.getByRole('region', { name: 'Kept apart' })
         await expect(split).toContainText(
           'Accrued share front loaded (EUR) and Accrued share front loaded (USD), split by Jon Abara on',
         )

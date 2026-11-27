@@ -1057,6 +1057,9 @@ export function createRouter({
       familyMeaningHistory: authorized.definitions.familyMeaningHistory.handler(
         ({ input, context }) => context.familyMeaning.history(input.key),
       ),
+      familyChanges: authorized.definitions.familyChanges.handler(({ input, context }) =>
+        context.familySplit.changes(input.key),
+      ),
     },
     areas: {
       list: authorized.areas.list.handler(({ context }) => context.areas.list()),

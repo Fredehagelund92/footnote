@@ -96,7 +96,7 @@ for (const { name, width, height } of widths) {
         )
         await dialog.getByRole('button', { name: 'Split into 2 metrics' }).click()
         await expect(page).toHaveURL(/\/definitions\?show=families$/)
-        await expect(page.getByRole('region', { name: 'Split into metrics' })).toContainText(
+        await expect(page.getByRole('region', { name: 'Kept apart' })).toContainText(
           'Partner payouts (EUR) and Partner payouts (USD), split by you on',
         )
         // The toast's time stands still while the pointer is over it, so the checks below, slow

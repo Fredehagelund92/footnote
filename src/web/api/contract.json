@@ -974,6 +974,18 @@
         }
       }
     },
+    "familyChanges": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "read"
+        },
+        "route": {
+          "method": "GET",
+          "path": "/definitions/families/{key}/changes"
+        }
+      }
+    },
     "familyMeaningHistory": {
       "~orpc": {
         "errorMap": {},

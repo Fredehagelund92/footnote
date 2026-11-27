@@ -200,6 +200,7 @@ import {
   definitionRelationsInputSchema,
   definitionRelationsSchema,
   definitionBuiltFromSchema,
+  familyChangeSchema,
   familyJoinedSchema,
   familyKeyInputSchema,
   familyMeaningInputSchema,
@@ -374,6 +375,7 @@ export type {
 } from './comments.ts'
 export type {
   Catalogue,
+  CatalogueApart,
   CatalogueDefinition,
   CatalogueSource,
   CatalogueSplit,
@@ -383,6 +385,7 @@ export type {
   DefinitionRelation,
   DefinitionRelations,
   DefinitionBuiltFrom,
+  FamilyChange,
   FamilyJoined,
   FamilyMeaningData,
   FamilyMeaningInput,
@@ -1342,14 +1345,26 @@ export const contract = {
         method: 'POST',
         path: '/definitions/families/{key}/join',
         tags: ['library'],
-        summary: 'Make a split family one family again, of the metrics it had (FR-142)',
+        summary:
+          'Make a split family one family again, of the metrics it had, or metrics whose names look alike and were kept separate one family: an owner of its domain or an admin (FR-142)',
       })
       .errors({
-        NOT_FOUND: { message: 'This family is not split.' },
-        CONFLICT: { message: 'Its metrics changed since it was split.' },
+        NOT_FOUND: { message: 'This family is not split, and its metrics are not kept apart.' },
+        CONFLICT: { message: 'Its metrics changed since they were split or kept apart.' },
       })
       .input(familyKeyInputSchema)
       .output(familyJoinedSchema),
+    familyChanges: read
+      .route({
+        method: 'GET',
+        path: '/definitions/families/{key}/changes',
+        tags: ['library'],
+        summary:
+          'Who published a family of metrics, split it and made it one family again, newest first (FR-142)',
+      })
+      .errors(familyNotFound)
+      .input(familyKeyInputSchema)
+      .output(z.array(familyChangeSchema)),
     familyMeaningHistory: read
       .route({
         method: 'GET',

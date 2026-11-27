@@ -3,6 +3,7 @@ import type {
   IndexedItem,
   CatalogueDefinition,
   CatalogueSource,
+  CatalogueApart,
   CatalogueSplit,
   CatalogueTerm,
   DefinitionBuiltFrom,
@@ -175,6 +176,7 @@ export function createCatalogueService(
       }[]
       mentions: { key: string; items: number }[]
       splits: (Omit<CatalogueSplit, 'metrics'> & { metrics: string[] })[]
+      apart: (Omit<CatalogueApart, 'metrics'> & { metrics: string[] })[]
       gaps: string[][]
       items: IndexedItem[]
     }>(
@@ -278,6 +280,15 @@ export function createCatalogueService(
                               where upper_inf(s.editions) and m.metric_key = x.family_key),
                    'personId', t.split_by::text, 'at', ${iso('x.split_at')}) order by x.split_at desc), '[]')
             from ${standingSplits(liveSeq)} x join family_splits t on t.id = x.id) as splits,
+         -- Kept apart while each of its metrics is live in no family.
+         (select coalesce(json_agg(json_build_object(
+                   'key', k.family_key, 'name', k.name, 'areaId', k.area_id, 'metrics', k.variants,
+                   'personId', k.kept_by::text, 'at', ${iso('k.kept_at')}) order by k.kept_at desc), '[]')
+            from family_kept_apart k
+           where k.joined_in is null
+             and not exists (select 1 from unnest(k.variants) m(key)
+                              where not exists (select 1 from vocabulary v
+                                                 where v.key = m.key and v."parentKey" is null))) as apart,
          (select coalesce(json_agg(s), '[]') from (
             select distinct on (key) key, value from settings_versions
              where key = any($2::text[]) order by key, version desc) s) as settings,
@@ -287,8 +298,17 @@ export function createCatalogueService(
          ${libraryIndexItems} as items`,
       [groups, linkSettings],
     )
-    const { vocabulary, definitions, familyMembers, mentions, meanings, usuals, splits, items } =
-      row!
+    const {
+      vocabulary,
+      definitions,
+      familyMembers,
+      mentions,
+      meanings,
+      usuals,
+      splits,
+      apart,
+      items,
+    } = row!
     const settings = new Map(row!.settings.map(({ key, value }) => [key, value]))
     // The words on screen name the tool the source reads (CON-101: core names no vendor).
     const sources: (CatalogueSource & { modelFolder: string | null })[] = row!.sources.map(
@@ -309,6 +329,7 @@ export function createCatalogueService(
       meanings,
       usuals,
       splits,
+      apart,
       gaps,
       items,
     }
@@ -747,15 +768,15 @@ export function createCatalogueService(
       const { today, terms } = build(data)
       const metrics = terms('metric')
       const nameOf = new Map(data.vocabulary.map((row) => [row.key, row.name]))
+      const named = (keys: readonly string[]) =>
+        keys.flatMap((key) => {
+          const name = nameOf.get(key)
+          return name ? [{ key, name }] : []
+        })
       return {
         terms: [...metrics, ...terms('dimension')],
-        splits: data.splits.map((split) => ({
-          ...split,
-          metrics: split.metrics.flatMap((key) => {
-            const name = nameOf.get(key)
-            return name ? [{ key, name }] : []
-          }),
-        })),
+        splits: data.splits.map((split) => ({ ...split, metrics: named(split.metrics) })),
+        apart: data.apart.map((kept) => ({ ...kept, metrics: named(kept.metrics) })),
         sources: data.sources.map(withoutFolder),
         coverage: {
           metrics: metrics.length,

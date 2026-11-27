@@ -7,6 +7,7 @@ import type {
   Catalogue,
   CatalogueTerm,
   DefinitionRelations,
+  FamilyChange,
   FamilyJoined,
   FamilyMeaningVersion,
   FamilySplit,
@@ -328,11 +329,17 @@ describe('the Names card', () => {
     const ready = list.names
       .filter((n) => n.state === 'ready' && n.key !== converted.key)
       .map(({ key }) => ({ key }))
+    await client.query('update definitions set area_hint = null where ref = any($1::text[])', [
+      converted.definitionRefs,
+    ])
+    const unplaced = await names()
+    expect(unplaced.names.find((n) => n.key === converted.key)?.areaId).toBeNull()
     const decided = await ok<NamesDecision>(
       call('POST', '/inbox/names/decide', 'admin', {
-        revision: list.revision,
+        revision: unplaced.revision,
         accept: [...ready, { key: fee.key, apart: true }, { key: converted.key, apart: true }],
         leaveOut: [],
+        domain: { id: 'partners' },
       }),
     )
     expect(decided.waiting.names.filter((n) => n.state !== 'left_out')).toEqual([])
@@ -355,6 +362,13 @@ describe('the Names card', () => {
     expect(apart.rows).toEqual([
       { kind: 'metric', parent: null },
       { kind: 'metric', parent: null },
+    ])
+    const kept = await client.query<{ name: string; area: string | null }>(
+      'select name, area_id as area from family_kept_apart order by name',
+    )
+    expect(kept.rows).toEqual([
+      { name: 'Accrued share 2', area: 'partners' },
+      { name: 'Partner fee', area: 'partners' },
     ])
   })
 })
@@ -1071,5 +1085,105 @@ describe('splitting a family (D2-D4)', () => {
     expect(flagsOfFresh).toEqual([])
     const page = await ok<{ chips: string[] }>(call('GET', `/items/${fresh}/page`, 'owner'))
     expect(page.chips).not.toContain(eur!.name)
+  })
+})
+
+describe('metrics kept separate when they were published (D1)', () => {
+  const catalogue = (who: Who = 'member') => ok<Catalogue>(call('GET', '/catalogue', who))
+  const join = (key: string, who: Who) =>
+    call('POST', `/definitions/families/${encodeURIComponent(key)}/join`, who, { key })
+  const changes = (key: string, who: Who = 'member') =>
+    ok<FamilyChange[]>(call('GET', `/definitions/families/${encodeURIComponent(key)}/changes`, who))
+  const kept = async (name: string) => (await catalogue()).apart.find((k) => k.name === name)
+
+  it('lists each family whose metrics were kept separate, with who did it, for everyone', async () => {
+    const { apart } = await catalogue()
+    expect(apart.map((k) => k.name).sort()).toEqual(['Accrued share 2', 'Partner fee'])
+    expect(await kept('Partner fee')).toMatchObject({
+      areaId: 'partners',
+      metrics: [{ name: 'Partner fee (EUR)' }, { name: 'Partner fee (USD)' }],
+      personId: people.admin,
+    })
+    // The next read keeps them apart: nothing waits on the Names card for their metrics.
+    await read()
+    const refs = (await catalogue()).terms
+      .filter((t) => t.name.startsWith('Partner fee ('))
+      .flatMap((t) => t.definitions.map((d) => d.ref))
+    expect(refs).toHaveLength(2)
+    expect(
+      (await names()).names.filter((n) => n.definitionRefs.some((ref) => refs.includes(ref))),
+    ).toEqual([])
+  })
+
+  it('is made one family by an owner of its domain, never a member, and only once', async () => {
+    const fee = (await kept('Partner fee'))!
+    const refused = await join(fee.key, 'member')
+    expect(refused.statusCode, refused.body).toBe(403)
+    expect(refused.json<{ message: string }>().message).toBe(
+      'Only an owner of Partners or an admin can make them one family.',
+    )
+    expect(await ok<FamilyJoined>(join(fee.key, 'owner'))).toMatchObject({ name: 'Partner fee' })
+    const after = await catalogue()
+    expect(after.apart.map((k) => k.name)).toEqual(['Accrued share 2'])
+    expect(after.terms.find((t) => t.key === fee.key)).toMatchObject({
+      name: 'Partner fee',
+      family: {
+        found: 'names',
+        variants: fee.metrics.map((m) => ({ key: m.key, name: m.name })),
+      },
+    })
+    // Its metrics are its variants now, never listed on their own.
+    expect(after.terms.filter((t) => t.name.startsWith('Partner fee ('))).toEqual([])
+    const twice = await join(fee.key, 'owner')
+    expect(twice.statusCode, twice.body).toBe(404)
+    // It stays one family on the next read, with nothing new on the Names card.
+    await read()
+    expect((await catalogue()).terms.find((t) => t.key === fee.key)?.family).toBeTruthy()
+    expect((await names()).names.find((n) => n.key === fee.key)).toBeUndefined()
+  })
+
+  it('is refused under a name something else was given meanwhile, and says what has it', async () => {
+    const accrued = (await kept('Accrued share 2'))!
+    await ok(
+      call('POST', '/terms', 'owner', {
+        name: 'Accrued share 2',
+        meaning: 'What a partner is owed and not yet paid, in the second ledger.',
+        areaId: 'partners',
+      }),
+    )
+    const taken = await join(accrued.key, 'admin')
+    expect(taken.statusCode, taken.body).toBe(409)
+    expect(taken.json<{ message: string }>().message).toContain(
+      "So Accrued share 2 can't be one family under that name.",
+    )
+    expect(await kept('Accrued share 2')).toBeDefined()
+  })
+
+  it('says who published a family, split it and made it one again, never the tool that read it', async () => {
+    const terms = (await catalogue()).terms
+    const line = terms.find((t) => t.name === 'Net revenue by line')!
+    expect(await changes(line.key)).toEqual([
+      { kind: 'published', personId: people.admin, at: expect.any(String) as unknown },
+    ])
+    // Made one family from metrics kept apart: that join is how it was first published.
+    const fee = terms.find((t) => t.name === 'Partner fee')!
+    expect(await changes(fee.key)).toEqual([
+      { kind: 'joined', personId: people.owner, at: expect.any(String) as unknown },
+    ])
+    // Split and joined many times over above, and closed since: its changes are still read.
+    const { rows } = await client.query<{ key: string }>(
+      "select term_key as key from vocab_term_versions where name = 'Accrued share 1' limit 1",
+    )
+    const accrued = await changes(rows[0]!.key)
+    expect(accrued.at(-1)).toMatchObject({ kind: 'published', personId: people.admin })
+    expect(accrued.some((c) => c.kind === 'split' && c.personId === people.owner)).toBe(true)
+    expect(accrued.some((c) => c.kind === 'joined' && c.personId === people.admin)).toBe(true)
+    expect(accrued.map((c) => c.at)).toEqual([...accrued.map((c) => c.at)].sort().reverse())
+    const unknown = await call(
+      'GET',
+      '/definitions/families/group%3Ano_such_family/changes',
+      'member',
+    )
+    expect(unknown.statusCode, unknown.body).toBe(404)
   })
 })

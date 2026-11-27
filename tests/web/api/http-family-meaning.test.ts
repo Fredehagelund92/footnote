@@ -5,7 +5,9 @@ import { createHttpApi } from '@/api/http'
 // A family's meaning and usual variant go to the service by the family's key, and a usual variant
 // by its key. A family or a variant the tool stopped reading since the dialog opened is told so,
 // not sent on to the service as a choice of nobody. A split goes by the family's key too, and
-// joining one again by the key the catalogue's splits name it by.
+// joining one again by the key the catalogue's splits name it by, as does making one family of
+// metrics kept separate when they were published. A family's History names the people who made
+// it, never the tool that reads its metrics.
 
 const family = {
   key: 'group:revenue',
@@ -58,7 +60,33 @@ function serviceOf() {
           at: '2026-11-22T10:00:00.000Z',
         },
       ],
+      apart: [
+        {
+          key: 'group:tip_amount',
+          name: 'Tip amount',
+          areaId: null,
+          metrics: [
+            { key: 'metric:tip_amount_eur', name: 'Tip amount (EUR)' },
+            { key: 'metric:tip_amount_gbp', name: 'Tip amount (GBP)' },
+          ],
+          personId: 'p1',
+          at: '2026-11-24T09:00:00.000Z',
+        },
+      ],
     },
+    '/api/v1/definitions/families/group%3Arevenue/meaning/history': [
+      {
+        revision: 1,
+        choice: 'written',
+        words: 'Money taken in.',
+        personId: 'p1',
+        at: '2026-11-23T08:00:00.000Z',
+      },
+    ],
+    '/api/v1/definitions/families/group%3Arevenue/changes': [
+      { kind: 'split', personId: 'p1', at: '2026-11-25T08:00:00.000Z' },
+      { kind: 'published', personId: 'p1', at: '2026-11-21T08:00:00.000Z' },
+    ],
     '/api/v1/definitions/families/group%3Arevenue/split': {
       edition: '2026-11-23.1',
       metrics: [{ key: 'metric:revenue_eur', name: 'Revenue (EUR)' }],
@@ -143,19 +171,84 @@ describe('splitFamily and joinFamily', () => {
     expect(writes).toEqual([])
   })
 
-  it('lists the split families by name, who split them and when, and joins one by its key', async () => {
+  it('lists what was kept apart, newest first, with who did it and when, and joins each by its key', async () => {
     const { api, writes } = serviceOf()
-    expect(await api.getFamilySplits()).toEqual([
+    expect(await api.getKeptApart()).toEqual([
       {
+        how: 'apart',
+        name: 'Tip amount',
+        metrics: ['Tip amount (EUR)', 'Tip amount (GBP)'],
+        items: 0,
+        by: 'Ines Duarte',
+        on: expect.stringMatching(/24 Nov 2026$/) as unknown,
+      },
+      {
+        how: 'split',
         name: 'Accrued share',
         domain: 'sales',
         metrics: ['Accrued share (EUR)', 'Accrued share (USD)'],
         items: 2,
         by: 'Ines Duarte',
-        on: expect.stringMatching(/Nov 2026$/) as unknown,
+        on: expect.stringMatching(/22 Nov 2026$/) as unknown,
       },
     ])
     await api.joinFamily({ name: 'Accrued share' })
-    expect(writes).toEqual(['/api/v1/definitions/families/group%3Aaccrued_share/join'])
+    await api.joinFamily({ name: 'Tip amount' })
+    expect(writes).toEqual([
+      '/api/v1/definitions/families/group%3Aaccrued_share/join',
+      '/api/v1/definitions/families/group%3Atip_amount/join',
+    ])
+  })
+
+  it('says something no longer kept apart is gone, without asking the service', async () => {
+    const { api, writes } = serviceOf()
+    const error = await api.joinFamily({ name: 'Late fee' }).catch((e: unknown) => e)
+    expect(error).toMatchObject({
+      kind: 'not-found',
+      message: "“Late fee” isn't kept apart any more.",
+    })
+    expect(writes).toEqual([])
+  })
+})
+
+describe("a family's History", () => {
+  it('names who published it, chose its meaning and split it, newest first, never its tool', async () => {
+    const { api } = serviceOf()
+    const history = await api.getDefinitionHistory({ name: 'Revenue' })
+    expect(
+      history.map(({ v, who, kind, field, before, after }) => ({
+        v,
+        who,
+        kind,
+        field,
+        before,
+        after,
+      })),
+    ).toEqual([
+      {
+        v: 3,
+        who: 'Ines Duarte',
+        kind: 'split',
+        field: 'Its metrics',
+        before: 'One family',
+        after: 'Separate metrics',
+      },
+      {
+        v: 2,
+        who: 'Ines Duarte',
+        kind: 'wording',
+        field: 'Meaning',
+        before: 'Worked out from its variants',
+        after: 'Money taken in.',
+      },
+      {
+        v: 1,
+        who: 'Ines Duarte',
+        kind: 'family',
+        field: 'Its metrics',
+        before: 'Metrics waiting to be published',
+        after: 'One family',
+      },
+    ])
   })
 })

@@ -19,6 +19,9 @@ export type VersionKind =
   | 'retyped'
   | 'owners'
   | 'conflict'
+  | 'family'
+  | 'split'
+  | 'joined'
 
 export type Version = {
   v: number
@@ -82,6 +85,9 @@ export const VERB: Record<VersionKind, string> = {
   retyped: 'changed its kind',
   owners: 'changed its owners',
   conflict: 'changed a conflict',
+  family: 'published it as a family',
+  split: 'split it into its metrics',
+  joined: 'made it one family',
 }
 
 /** The demo world's today, as the mock dates its data; the app reads the service's (`today()`). */
