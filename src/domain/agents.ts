@@ -5,7 +5,8 @@ import { agentToolNames, type AgentToolName } from './mcp-text.ts'
   signed in with, acting for that person, or an access key an admin made for a bot or a scheduled
   job, which names no person. An admin switches each tool on or off per agent. A switch only
   narrows what the person allowed when the app connected: it never widens it, an access key never
-  gets suggest_context, and an agent with every tool off gets nothing. The service enforces it at
+  gets a tool that writes or reads as a person (suggest_context, write_draft, read_draft), and an
+  agent with every tool off gets nothing. The service enforces it at
   every MCP request, and Settings, Agents and access shows it in these words.
 */
 
@@ -26,11 +27,20 @@ export const toolScopes: Record<AgentToolName, AgentScope> = {
   read_context: 'read',
   report: 'feedback',
   suggest_context: 'propose',
+  write_draft: 'propose',
+  read_draft: 'propose',
 }
 
-/** The tools an agent of a kind can ever have on: an access key names no person, so never suggest_context. */
+/** The tools that write or read as the person an agent acts for: never an access key's. */
+export const personTools: readonly AgentToolName[] = [
+  'suggest_context',
+  'write_draft',
+  'read_draft',
+]
+
+/** The tools an agent of a kind can ever have on: an access key names no person, so none of personTools. */
 export const toolsFor = (kind: AgentKind): AgentToolName[] =>
-  agentToolNames.filter((tool) => kind === 'app' || tool !== 'suggest_context')
+  agentToolNames.filter((tool) => kind === 'app' || !personTools.includes(tool))
 
 /** The tools an agent may call now: switched on, and allowed by the scopes it was given. */
 export const toolsWith = (on: readonly string[], scopes: readonly string[]): AgentToolName[] =>

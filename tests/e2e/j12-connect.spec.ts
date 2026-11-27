@@ -1,3 +1,4 @@
+import { agentToolNames } from '../../src/domain/agents.ts'
 import { agentSignsIn, expect, go, test, unfold } from './go.ts'
 
 // J12, connect an agent: copy the prompt, the page waits and checks every 3 seconds, the agent
@@ -137,16 +138,16 @@ test('an admin switches one tool off for one agent', async ({ page }) => {
     .getByRole('list', { name: 'Connected agents' })
     .getByRole('listitem')
     .filter({ hasText: 'Kofi Mensah' })
-  await expect(kofi.first()).toContainText('Claude CodeAll 5 tools')
+  await expect(kofi.first()).toContainText('Claude CodeAll 7 tools')
   await kofi.getByRole('button', { name: 'Details of Claude Code for Kofi Mensah' }).click()
   const tools = page.getByRole('list', { name: 'Tools Claude Code may call' })
-  for (const tool of ['get_context', 'find_context', 'read_context', 'report', 'suggest_context'])
+  for (const tool of agentToolNames)
     await expect(tools.getByRole('switch', { name: tool })).toBeChecked()
   await expect(kofi.first()).toContainText('Payment provider delays order data in Poland')
   await tools.getByRole('switch', { name: 'suggest_context' }).click()
   await expect(page.getByText('suggest_context off for Claude Code')).toBeVisible()
   await expect(tools.getByRole('switch', { name: 'suggest_context' })).not.toBeChecked()
-  await expect(kofi.first()).toContainText('Claude Code4 of 5 tools')
+  await expect(kofi.first()).toContainText('Claude Code6 of 7 tools')
   await expect(kofi.first()).toContainText('Changed by Jon Abara')
 })
 

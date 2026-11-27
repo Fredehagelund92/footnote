@@ -35,6 +35,8 @@ export const exampleCalls: Record<ToolName, Record<string, unknown>> = {
   read_context: { id: 'itm_0a1b2c3d' },
   report: { kind: 'wrong', reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e' },
   suggest_context: draftCall,
+  write_draft: draftCall,
+  read_draft: { draft_id: '0193b2c4-5d6e-7f80-9a1b-2c3d4e5f6a7b', since_revision: 2 },
 }
 
 /**

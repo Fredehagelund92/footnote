@@ -66,7 +66,8 @@ export const toolInputLimits = {
  * Where a field of a draft that an agent or the assistant wrote came from (FR-121, FR-707):
  * `derived`: Footnote worked it out exactly. `default`: the documented default (FR-104 to FR-106).
  * `prefilled`: the agent suggested it, and the person must confirm it. `confirmed`: the agent
- * suggested it or asked, and the person answered or confirmed it in their agent. `not_inferred`:
+ * suggested it or asked, and the person answered or confirmed it in their agent, or the person
+ * changed it in the draft themselves. `not_inferred`:
  * left for people; Footnote never fills it from what an agent says.
  */
 export const fieldMarks = ['derived', 'default', 'prefilled', 'confirmed', 'not_inferred'] as const

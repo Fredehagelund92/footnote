@@ -10,7 +10,13 @@ export {
   type ProposalsService,
 } from './service.ts'
 export { retryWrite } from './retry.ts'
-export { saveAgentDraft, type AgentDraftRequest } from './agent-drafts.ts'
+export {
+  AGENT_WRITES_PER_HOUR,
+  patchAgentDraft,
+  saveAgentDraft,
+  type AgentDraftRequest,
+  type AgentPatchResult,
+} from './agent-drafts.ts'
 export { candidateBundle, draftBundle, previewDelivery } from './preview.ts'
 export { checkDraft } from './checks.ts'
 export { insertVersion, readVersion, readVersions, type StoredVersion } from './versions.ts'

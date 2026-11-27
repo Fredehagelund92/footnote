@@ -179,6 +179,7 @@ import {
   type PageReader,
 } from '../modules/web/index.ts'
 import { productName } from '../brand.ts'
+import { personTools } from '../../domain/agents.ts'
 import { footnoteVersion } from '../version.ts'
 
 export interface ApiServices {
@@ -836,10 +837,9 @@ export function createRouter({
           })
         if (changed === undefined)
           throw new ORPCError('NOT_FOUND', {
-            message:
-              input.tool === 'suggest_context'
-                ? "We couldn't find this agent, or it is an access key, which can't have suggest_context: it names no person."
-                : "We couldn't find this agent.",
+            message: personTools.includes(input.tool)
+              ? `We couldn't find this agent, or it is an access key, which can't have ${input.tool}: it names no person.`
+              : "We couldn't find this agent.",
           })
         return { changed }
       }),

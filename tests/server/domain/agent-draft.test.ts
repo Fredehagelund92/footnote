@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   datesInText,
   deriveAgentDraft,
+  deriveAgentPatch,
   kindByRule,
   summaryCut,
   type DerivationContext,
@@ -437,14 +438,34 @@ describe('provenance', () => {
     fields: { title: 'prefilled', summary: 'prefilled', areaId: 'derived', riskLevel: 'default' },
     flags: [],
   }
-  it('drops the mark of a field the person changed, and keeps the rest', () => {
+  it('marks a field the person changed confirmed, and keeps the rest', () => {
     const before = { title: 'Orders closed', summary: 'Closed.', areaId: 'commercial' }
     const after = { ...before, summary: 'Closed in Norway on 4 August.' }
     expect(keepMarks(provenance, before, after).fields).toEqual({
       title: 'prefilled',
+      summary: 'confirmed',
       areaId: 'derived',
       riskLevel: 'default',
     })
+    // A field the person emptied has nothing left to mark.
+    expect(keepMarks(provenance, before, { ...before, title: '' }).fields).not.toHaveProperty(
+      'title',
+    )
+  })
+  it("gives a field the agent changed the agent's mark, and keeps the person's", () => {
+    const before = { title: 'Orders closed', summary: 'Closed.', areaId: 'commercial' }
+    const confirmed = keepMarks(provenance, before, { ...before, title: 'Webshop closed' })
+    const after = { ...before, title: 'Webshop closed', summary: 'Closed in Norway.' }
+    expect(
+      keepMarks(confirmed, { ...before, title: 'Webshop closed' }, after, {
+        marks: { summary: 'prefilled' },
+      }).fields,
+    ).toEqual({ title: 'confirmed', summary: 'prefilled', areaId: 'derived', riskLevel: 'default' })
+    // New dates the person was unsure of are flagged; other dates are not.
+    const dated = { ...before, validity: { start: '2026-08-04', end: null } }
+    const unsure = keepMarks(provenance, before, dated, { marks: {}, datesUncertain: true })
+    expect(unsure.flags).toContainEqual({ code: 'uncertain_dates', field: 'validity', words: [] })
+    expect(keepMarks(provenance, before, dated, { marks: {} }).flags).toEqual([])
   })
   it('works the flags out again from the words as they are now', () => {
     expect(
@@ -498,5 +519,46 @@ describe('the drafting guide', () => {
     ])
       expect(draftingGuide).toContain(words)
     expect(draftingGuide).not.toContain('\u2014')
+  })
+})
+
+describe("an agent's change to a draft", () => {
+  it('works out only the fields given, by the rules of a new draft', () => {
+    const patch = deriveAgentPatch(
+      {
+        summary: ' Online sales to Norway stopped on 4 August 2026.\u200b ',
+        scope: {
+          metrics: ['Orders', 'Gross margin'],
+          dimension_filters: [{ dimension: 'market', values: ['NL'] }],
+        },
+        window: { from: '2026-08-04', to: '2026-08-31' },
+        area: 'Finance',
+      },
+      context,
+    )
+    expect(patch.draft).toEqual({
+      summary: 'Online sales to Norway stopped on 4 August 2026.',
+      scope: {
+        metrics: ['metric:orders'],
+        dimensions: [],
+        dimensionValues: [{ dimension: 'dim:market', value: 'val:market/norway' }],
+      },
+      validity: { start: '2026-08-04', end: '2026-09-01' },
+      areaId: 'finance',
+    })
+    expect(patch.marks).toEqual({
+      summary: 'prefilled',
+      scope: 'prefilled',
+      validity: 'prefilled',
+      areaId: 'prefilled',
+    })
+    expect(patch.unresolved.map((u) => u.name)).toEqual(['Gross margin'])
+    expect(deriveAgentPatch({ text: 'More detail.' }, context).draft).toEqual({
+      body: 'More detail.',
+    })
+  })
+  it('names a domain that is no active one, and changes none', () => {
+    const patch = deriveAgentPatch({ area: 'Logistics' }, context)
+    expect(patch).toMatchObject({ draft: {}, unknownArea: 'Logistics' })
   })
 })

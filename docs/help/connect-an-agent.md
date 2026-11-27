@@ -16,7 +16,7 @@ Connect Claude, Cursor or another agent, so it reads your published context befo
 
 ## Before you start
 
-You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never drafts or comments: [How agents use it](how-agents-use-it.md).
+You need to be signed in. Anyone in the workspace can connect their own agent. In Agents and access, an admin sees every agent, and anyone else sees their own. An agent reads only context an owner has published, never comments, and a draft only for the person it writes with: [How agents use it](how-agents-use-it.md).
 
 A job that runs on its own, with nobody there to approve a sign-in, does not use this prompt. It uses an access key, which an admin makes in Agents and access, under Tools and access keys.
 
@@ -80,6 +80,7 @@ Open Details on a row to see each tool the agent can call, such as:
 - read_context, to read one context item or one definition in full, with its links
 - report, to say what is missing or wrong
 - suggest_context, to send a suggestion that an owner checks before anything changes
+- write_draft and read_draft, to write a draft with you and read it back as you left it, never sending it
 
 An agent publishes only where an owner lets it [publish without review](publish-without-review.md), and Details shows where, with Turn off. Details also lists the suggestions it sent lately.
 

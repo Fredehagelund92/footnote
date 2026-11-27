@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { agentToolNames } from '../../src/domain/agents.ts'
 import { openEdition, people } from './fixtures.ts'
 import { signInHarness } from './sign-in-harness.ts'
 
@@ -604,7 +605,7 @@ describe('the instructions an agent gets at connect', () => {
       await wire.close()
     }
   }
-  const all = ['get_context', 'find_context', 'read_context', 'report', 'suggest_context']
+  const all = [...agentToolNames]
 
   it('names the domain, the owner and the limit of an open permission, and changes nothing else', async () => {
     const plain = await connect('author')

@@ -284,8 +284,9 @@ it('gives agents the item, and no word of a comment, from every tool', async () 
     { name: 'find_context', arguments: {} },
     { name: 'find_context', arguments: { kind: 'rule' } },
   ]
-  // Every read tool an agent is offered is called here; report and the suggestion tools write.
-  const writes = ['report', 'suggest_context']
+  // Every read tool an agent is offered is called here; report and the suggestion tools write,
+  // and read_draft reads only the person's own drafts.
+  const writes = ['report', 'suggest_context', 'write_draft', 'read_draft']
   expect(listed.filter((t) => !writes.includes(t)).sort()).toEqual(
     [...new Set(calls.map((c) => c.name))].filter((t) => listed.includes(t)).sort(),
   )

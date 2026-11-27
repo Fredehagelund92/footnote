@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { agentToolNames } from '../../src/domain/agents.ts'
 import { card, expect, go, mode, test, unfold } from './go.ts'
 
 // J21, following links: Related shows what an agent can follow with read_context in two groups,
@@ -83,10 +84,10 @@ test('on the service, a draft has no empty History and the Inbox counts no zero'
   await expect(page.getByText(/\b0 questions/)).toHaveCount(0)
 })
 
-test('Settings lists the five tools agents call, with no switch for links', async ({ page }) => {
+test('Settings lists the seven tools agents call, with no switch for links', async ({ page }) => {
   await go(page, '/settings/agents')
   await unfold(page, 'Tools and access keys')
-  for (const tool of ['get_context', 'find_context', 'read_context', 'report', 'suggest_context'])
+  for (const tool of agentToolNames)
     await expect(page.getByRole('switch', { name: new RegExp(tool) })).toBeChecked()
   await expect(page.getByRole('switch', { name: /Let agents follow links/ })).toHaveCount(0)
   await expect(page.getByText('get_related')).toHaveCount(0)

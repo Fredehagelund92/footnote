@@ -33,6 +33,7 @@ Answers, in Ask and to agents, draw their context only from published items that
 Any way of finding published items is welcome, search by meaning included, as long as each reader finds only the items they may read and the answer still names its sources; finding by name alone was a gap, not a value.
 Nothing an edit says changes an answer, in Ask or to an agent, until a person with the right publishes it, however it was edited, alone or together, now or later, and Footnote does not learn on its own.
 The words of a draft, a suggestion, a comment, a report or a saved question never reach an agent and never shape an answer.
+A draft's words never reach an answer; the agent a person writes with may read back that person's own draft.
 Ask may show, apart from the answer and under a clear Not published yet label, what waits for review that the asker may read, and the asker's own drafts.
 When nothing is published but a suggestion waits, the answer stays Not found, and an agent is told only that a suggestion waits for that domain's owner, never what it says.
 An agent may get a published item in the reader's language, as a machine translation marked as translated from the checked text.
