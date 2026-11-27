@@ -28,6 +28,8 @@ import {
   type Nouns,
 } from '@/components/footnote/loop-nouns'
 import { SourcePassages, SourceText } from '@/components/footnote/source-text'
+import { WriteWithButton } from '@/components/footnote/write-with-agent'
+import { writePrompt } from '@/lib/agents'
 import { useReveal } from '@/lib/ask-motion'
 import type { Answer, QuestionPart } from '@/model/ask'
 import type { Turn } from '@/model/ask-turn'
@@ -1224,7 +1226,7 @@ function GapCard({
                   Write context
                 </P.Button>
                 {/* The same, with the person's own agent: about what is missing, never the question. */}
-                <P.WriteWithButton prompt={P.writePrompt(topicOf(loop, said))} />
+                <WriteWithButton prompt={writePrompt(topicOf(loop, said))} />
               </>
             ) : (
               // Each word opens a new term with that word already in it.

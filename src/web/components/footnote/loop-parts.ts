@@ -41,9 +41,7 @@ import { FoldTrigger } from '@/components/footnote/fold'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { ReadingLine } from '@/components/footnote/reading'
 import { DefinitionHelp, StateHelp } from '@/components/footnote/state-help'
-import { WriteWithButton } from '@/components/footnote/write-with-agent'
 import { useWrite } from '@/api/queries'
-import { writePrompt } from '@/lib/agents'
 import { PRODUCT } from '@/lib/brand'
 import { useDefinitions } from '@/lib/definitions'
 import { docHref, docTitle } from '@/lib/doc-links'
@@ -111,8 +109,6 @@ export const loopParts = {
   ReadingLine,
   DefinitionHelp,
   StateHelp,
-  WriteWithButton,
-  writePrompt,
   useWrite,
   PRODUCT,
   useDefinitions,
