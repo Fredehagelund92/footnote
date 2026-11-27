@@ -29,6 +29,7 @@ function settingsOf(
   automatic: Automatic,
   links: Links,
   sharing: Sharing,
+  helping: Helping,
 ) {
   const values: [key: string, value: unknown, changed?: SettingChange][] = [
     ['workspace.name', name, { who: 'Jon Abara', when: '1 Oct', why: 'Name the workspace' }],
@@ -54,6 +55,11 @@ function settingsOf(
     sharing.changed
       ? ['ask.share_chats', sharing.on, sharing.changed]
       : ['ask.share_chats', sharing.on],
+    // Writing help: off as installed, until an admin turns it on in the demo.
+    helping.changed
+      ? ['writing_help.on', helping.on, helping.changed]
+      : ['writing_help.on', helping.on],
+    ['limits.writing_help', { turns_per_day: 40, paste_characters: 12_000 }],
     // Publishing without review: off as installed, until an admin switches it on in the demo.
     autoPublish
       ? [
@@ -78,7 +84,11 @@ function settingsOf(
     ['serving.max_overlay_age_seconds', 60],
     ['limits.llm_monthly_cap_micros', 50_000_000, capped],
     ['limits.llm_daily_micros_per_person', 2_000_000],
-    ['limits.llm_feature_monthly_micros', { eval: 20_000_000, assistant: 250_000_000 }, capped],
+    [
+      'limits.llm_feature_monthly_micros',
+      { eval: 20_000_000, assistant: 250_000_000, writing_help: 250_000_000 },
+      capped,
+    ],
     ['evals.run_budget_micros', 2_000_000],
     ['models.assistant', { provider: 'anthropic', model: 'claude-sonnet-5-5' }],
     ['ask.max_steps', 6],
@@ -108,6 +118,8 @@ export type Pins = { keys: string[]; changed?: SettingChange }
 export type Automatic = { on: boolean; version: number; changed?: SettingChange }
 /** Sharing Ask chats as links in this visit, and who changed it last. */
 export type Sharing = NonNullable<Advanced['sharing']> & { changed?: SettingChange }
+/** Writing help's switch in this visit, and who changed it last. */
+export type Helping = NonNullable<Advanced['writingHelp']> & { changed?: SettingChange }
 /** Reading the links people paste in this visit, and who changed each setting last. */
 export type Links = NonNullable<Advanced['links']> & {
   changed?: SettingChange
@@ -129,10 +141,20 @@ export function advancedOf(
   left: Advanced['left'] = [],
   links: Links = { on: true, version: 1, hosts: [], hostsVersion: 1 },
   sharing: Sharing = { on: true, version: 1 },
+  helping: Helping = { on: false, version: 1 },
 ): Advanced {
   return {
     left,
-    settings: settingsOf(WORKSPACE_NAME, about, autoPublish, pins, automatic, links, sharing),
+    settings: settingsOf(
+      WORKSPACE_NAME,
+      about,
+      autoPublish,
+      pins,
+      automatic,
+      links,
+      sharing,
+      helping,
+    ),
     // Newest first: drafts and terms. Published context is archived, never deleted.
     deleted: [
       ...log
@@ -254,6 +276,7 @@ export function advancedOf(
       hostsVersion: links.hostsVersion,
     },
     sharing: { on: sharing.on, version: sharing.version },
+    writingHelp: { on: helping.on, version: helping.version },
   }
 }
 

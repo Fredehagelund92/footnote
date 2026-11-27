@@ -342,10 +342,10 @@ export function createReviewPath(
     return new Map(rows.map((row) => [row.item, row.relation]))
   }
 
-  /** Whether an agent or the assistant wrote it for the person, from its provenance. */
+  /** Whether an agent or writing help wrote it with the person, or a read made it, from its provenance. */
   const writtenBy = (p: LoadedProposal) => p.provenance?.by ?? null
 
-  /** The claims of what an agent or the assistant wrote, against the sentence it copied. */
+  /** The claims of what an agent or writing help wrote, against the sentence it copied. */
   function claimsOf(r: Reading) {
     // A read's suggestion is the document's own words, with its link: no sentence was copied.
     if (!r.after || !writtenBy(r.p) || writtenBy(r.p) === 'source') return null
@@ -395,8 +395,9 @@ export function createReviewPath(
     const clashItem = unanswered ?? r.clashes[0]
     const ready = readiness({
       diff,
-      // Drafted for a Not found card by an agent: nobody has checked its words.
-      drafted: r.gapId !== null && writtenBy(r.p) !== null,
+      // Drafted for a Not found card by an agent: nobody has checked its words. One its writer
+      // wrote with writing help is theirs: they saw each field land, and sent it themselves.
+      drafted: r.gapId !== null && writtenBy(r.p) !== null && writtenBy(r.p) !== 'writing_help',
       claims: claims?.rows ?? null,
       clash: clashItem
         ? { itemId: clashItem, relation: unanswered ? null : (relations.get(clashItem) ?? null) }

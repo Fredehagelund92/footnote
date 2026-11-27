@@ -11,6 +11,7 @@ import {
   takeField,
   undoChange,
   unsavedFields,
+  writerName,
   type AgentChange,
   type FieldBy,
   type SessionField,
@@ -23,7 +24,9 @@ import type { Fact } from '@/model/items'
 // the window. What their agent changed comes into each field they are not writing in, said on a
 // strip with Undo; in a field they are writing in, the agent's words wait beside theirs. A save
 // over a revision the agent has moved on is refused by the service (409): the editor reads the
-// draft again, merges, and saves once more. The rules are model/draft-session.ts.
+// draft again, merges, and saves once more. The rules are model/draft-session.ts. Writing help, the
+// editor's dock, changes the same draft: what it changed comes in the same way, and the dock keeps
+// each turn's change for its own Undo (lib/writing-help.ts).
 
 /** How often an open draft is read again. */
 export const DRAFT_REFRESH_MS = 5_000
@@ -44,6 +47,8 @@ type Options<F extends SessionForm> = {
   /** The text came in from elsewhere (the agent, Undo): put it into the text editor. */
   setText: (body: string) => void
   onError: (error: unknown) => void
+  /** Writing help changed fields the person was not writing in: what came into the form. */
+  onHelped?: (change: AgentChange) => void
 }
 
 export function useDraftSession<F extends SessionForm>(options: Options<F>) {
@@ -101,7 +106,9 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
       )
     const came = merged.change
     if (came) setChange((older) => joinChanges(older, came))
-    const agentOf = (f: SessionField) => fact.session?.fields[f]?.agent ?? 'Your agent'
+    // Writing help's change is its turn's to gather: the editor's dock keeps them (lib/writing-help).
+    if (merged.helped) latest.current.onHelped?.(merged.helped)
+    const agentOf = (f: SessionField) => writerName(fact.session?.fields[f] ?? { by: 'agent' })
     const { settled } = merged
     if (settled.length || merged.waiting.length)
       setWaiting((w) => {
@@ -192,6 +199,29 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
   }, [on, form])
 
   const without = (field: SessionField) => setWaiting(({ [field]: _, ...rest }) => rest)
+  const autosaveStatus = React.useRef(autosave.status)
+  React.useLayoutEffect(() => {
+    autosaveStatus.current = autosave.status
+  })
+
+  // The draft read again now and merged, without waiting for the next read on its own. One read
+  // at a time: asked again while one is on its way, it reads once more after it, so what it
+  // answers is never older than the asking, and a read is never cut short by the next.
+  const refreshing = React.useRef<Promise<void> | null>(null)
+  const refreshAgain = React.useRef(false)
+  const refresh = () => {
+    refreshAgain.current = true
+    refreshing.current ??= (async () => {
+      while (refreshAgain.current) {
+        refreshAgain.current = false
+        const now = await refetch()
+        if (now.data?.session && autosaveStatus.current !== 'saving') merge(now.data)
+      }
+    })().finally(() => {
+      refreshing.current = null
+    })
+    return refreshing.current
+  }
 
   return {
     on,
@@ -208,6 +238,13 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
       setChange(null)
     },
     dismiss: () => setChange(null),
+    /** The draft read again now, so a writer's change shows at once. */
+    refresh,
+    /**
+     * Takes a change back: each of its fields as it was before, unless the person has changed it
+     * since. Writing help's Undo, which the editor's dock keeps a turn at a time.
+     */
+    revert: (change: AgentChange) => put(undoChange(formRef.current, change), change.fields),
     /**
      * The agent's words for a field the person is writing in, until they take them or keep their
      * own; none once the field says the same.
@@ -230,13 +267,14 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
       if (theirs && !sameField(formRef.current, theirs.form, field)) autosave.change(++tick.current)
     },
     /**
-     * Who wrote a field the person has not changed since: their agent, by its name, when it was
-     * the last to change it and nobody has confirmed it.
+     * Who wrote a field the person has not changed since: their agent, by its name, or writing
+     * help, when it was the last to change it and nobody has confirmed it.
      */
     agentIn: (field: SessionField) => {
       const stamp = stamps[field]
-      if (stamp?.by !== 'agent' || stamp.mark === 'confirmed' || unsaved.includes(field)) return
-      return stamp.agent ?? 'Your agent'
+      if (!stamp || stamp.by === 'person' || stamp.mark === 'confirmed' || unsaved.includes(field))
+        return
+      return writerName(stamp)
     },
   }
 }

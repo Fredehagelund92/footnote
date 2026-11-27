@@ -100,6 +100,11 @@ const ConflictDock = React.lazy(() =>
   import('@/pages/conflicts').then((m) => ({ default: m.ConflictDock })),
 )
 
+// Writing help opens from the editor, so its dock comes with its own code.
+const WritingHelpDock = React.lazy(() =>
+  import('@/pages/writing-help').then((m) => ({ default: m.WritingHelpDock })),
+)
+
 // Something wrong? opens from Bad answer or More under an answer; its form comes with its own code.
 const ReportPanel = React.lazy(() =>
   import('@/components/footnote/report-panel').then((m) => ({ default: m.ReportPanel })),
@@ -203,6 +208,12 @@ function DockContent() {
       return <AskDock />
     case 'try':
       return <TryIt cardId={dock.id} />
+    case 'write':
+      return (
+        <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.write} />}>
+          <WritingHelpDock />
+        </React.Suspense>
+      )
     case 'topic':
       return (
         <React.Suspense fallback={<DockWaiting title={DOCK_TITLE.topic} />}>

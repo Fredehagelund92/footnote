@@ -16,8 +16,9 @@ import * as z from 'zod'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import type { WritingHelpEvent, WritingHelpTurn } from '../../../contract/writing-help.ts'
 import { aboutBusinessBlock } from '../../../domain/about-business.ts'
-import { deriveAgentPatch, type AgentPatchInput } from '../../../domain/agent-draft.ts'
+import { deriveAgentPatch } from '../../../domain/agent-draft.ts'
 import { instructionWords } from '../../../domain/instruction-words.ts'
+import { ownCaveat } from '../../../domain/proposal-rules.ts'
 import { kinds } from '../../../domain/words.ts'
 import {
   fixedReply,
@@ -139,7 +140,7 @@ What a draft holds, by the fields you write:
 
 How to work:
 - Write with write_draft. Give only the fields you change, each one whole, the title first. Give every field a first draft needs in one call.
-- The draft as it is now comes with the person's message, each field with who wrote it last. A field the person wrote is theirs: change it only when they ask you to. write_draft keeps the person's words in a field they change while you work, and tells you so.
+- The draft as it is now comes with the person's message, each field with who wrote it last. A field the person wrote is theirs: change it only when they ask you to. A field with no value is empty: fill it in. When the draft has no summary and no text yet, it is new: write every field you can, the kind too. write_draft keeps the person's words in a field they change while you work, and tells you so.
 - Write only what the message, the page or the person says. When something a draft needs is missing (where it applies, from which day, its source), leave that field as it is and say what is missing.
 - You may look up what is already published about the same subject with find_context, and read one item with read_context. When a published item already covers it, say so. Never copy an item's words as new.
 - A write that is refused changes nothing in that field. Say why in your reply, in plain words, and do not send the same words again.
@@ -306,7 +307,7 @@ export async function* writingHelpTurn(
     const given = { [field]: parsed.data } as HelpWrite
     try {
       return await inTx(async (tx): Promise<Outcome> => {
-        const patch = deriveAgentPatch(given as AgentPatchInput, {
+        const patch = deriveAgentPatch(given, {
           ...(await draftVocabulary(tx)),
           today: deps.today,
         })
@@ -374,11 +375,31 @@ export async function* writingHelpTurn(
     return write
   }
 
-  /** The draft as the model reads it: its fields, and what stops it being sent. */
-  const shown = async (tx: Queryable, record: ProposalRecord) => ({
-    fields: await draftFieldsOf(tx, record),
-    blocking: blockingOf(record),
-  })
+  /**
+   * The draft as the model reads it: its fields, and what stops it being sent. A field nobody
+   * filled in reads as empty, with no writer: the words agents are told when nobody wrote what not
+   * to conclude are a default, not the person's.
+   */
+  const shown = async (tx: Queryable, record: ProposalRecord) => {
+    const fields = await draftFieldsOf(tx, record)
+    const empty = (name: keyof typeof fields, value: unknown) =>
+      value === null ||
+      value === '' ||
+      (Array.isArray(value) && !value.length) ||
+      (name === 'not_to_conclude' && typeof value === 'string' && ownCaveat(value) === null) ||
+      (name === 'scope' &&
+        !(value as { metrics: unknown[] }).metrics.length &&
+        !(value as { dimension_filters: unknown[] }).dimension_filters.length)
+    return {
+      fields: Object.fromEntries(
+        Object.entries(fields).map(([name, field]) => [
+          name,
+          empty(name as keyof typeof fields, field.value) ? { value: null } : field,
+        ]),
+      ),
+      blocking: blockingOf(record),
+    }
+  }
   /** The draft as it is now, read as the person; null once it is no draft of theirs any more. */
   const draftNow = () =>
     inTx(async (tx) => {

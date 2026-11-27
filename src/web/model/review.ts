@@ -168,6 +168,8 @@ export type Review = {
   from: string
   /** Set when an agent sent it, with the person's OK: the agent's name (FR-420). */
   agent?: string
+  /** Its writer wrote it with writing help, the editor's dock: the review says so. */
+  helped?: boolean
   via: string
   on: string
   note?: string

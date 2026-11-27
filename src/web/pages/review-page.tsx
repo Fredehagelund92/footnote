@@ -615,7 +615,9 @@ function suggestedBy(r: Review) {
       ? `from ${r.synced.tool}, read ${midSentence(r.synced.read)}`
       : r.agent
         ? `by ${r.agent}, with ${r.from}'s OK, ${r.on}`
-        : `by ${r.from}, ${r.via === 'editor' ? 'in the editor' : `from ${r.via}`}, ${r.on}`
+        : r.helped
+          ? `by ${r.from}, written with writing help, ${r.on}`
+          : `by ${r.from}, ${r.via === 'editor' ? 'in the editor' : `from ${r.via}`}, ${r.on}`
   return r.mode === 'retire' ? `to archive it, ${by}` : by
 }
 

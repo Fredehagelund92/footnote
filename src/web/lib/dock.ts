@@ -10,6 +10,7 @@ export type DockKind =
   | 'family'
   | 'ask'
   | 'try'
+  | 'write'
   | 'topic'
   | 'share'
   | 'report'
@@ -25,6 +26,7 @@ export const DOCK_TITLE: Record<DockKind, string> = {
   family: 'Suggested family',
   ask: 'Ask',
   try: 'Try it',
+  write: 'Writing help',
   topic: 'Answer',
   share: 'Share chat',
   report: 'Something wrong?',

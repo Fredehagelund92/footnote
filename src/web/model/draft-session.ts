@@ -1,3 +1,4 @@
+import type { DraftWriter } from '@domain/draft-stamps'
 import type { FieldMark } from '@domain/provenance'
 import type { ScopeTerm } from './items'
 
@@ -7,7 +8,15 @@ import type { ScopeTerm } from './items'
   the agent changed comes into each field the person is not writing in; in a field they are writing
   in, the agent's words wait beside theirs to be taken, and never replace what they typed. Who
   changed what is the service's stamp on each field, so the editor never guesses it from the words.
+  Writing help, the editor's dock (Route 3), is a writer of the same kind: what it changed comes in
+  the same way, under its own name.
 */
+
+/**
+ * Writing help's name, as a label and at the start of a sentence, where a writer is named as an
+ * agent is by the name the person gave it; mid-sentence it is "writing help" (`inSentence`).
+ */
+export const HELP_NAME = 'Writing help'
 
 /** The fields of a draft as the editor names them, each one of the service's or two (the text). */
 export const sessionFields = [
@@ -34,9 +43,12 @@ export const sessionFieldLabel: Record<SessionField, string> = {
   dontConclude: "Don't conclude",
 }
 
-/** Who last changed a field: the person, or their agent by its name, at which revision and when. */
+/**
+ * Who last changed a field: the person, their agent by its name, or writing help, at which
+ * revision and when.
+ */
 export type FieldBy = {
-  by: 'person' | 'agent'
+  by: 'person' | DraftWriter
   agent?: string
   revision: number
   /** ISO time. */
@@ -94,11 +106,20 @@ export const takeField = <F extends SessionForm>(into: F, from: SessionForm, fie
 export const unsavedFields = (form: SessionForm, saved: SessionForm) =>
   sessionFields.filter((field) => !sameField(form, saved, field))
 
-/** What the agent changed, put into the fields the person was not writing in: Undo puts back `before`. */
+/** The writer of a stamp by name: the agent's as the person named it, or writing help's. */
+export const writerName = (stamp: Pick<FieldBy, 'by' | 'agent'>) =>
+  stamp.by === 'writing_help' ? HELP_NAME : (stamp.agent ?? 'Your agent')
+
+/** A writer's name inside a sentence: an agent's is a name, writing help's a plain noun. */
+export const inSentence = (writer: string) => (writer === HELP_NAME ? 'writing help' : writer)
+
+/** What a writer changed, put into the fields the person was not writing in: Undo puts back `before`. */
 export type AgentChange = {
-  /** The agent's name, as the person named it when they connected it. */
+  /** The agent's name, as the person named it when they connected it, or writing help's. */
   agent: string
   fields: SessionField[]
+  /** For a turn of writing help: the fields the person changed while it worked, kept as theirs. */
+  kept?: SessionField[]
   /** ISO time of its last change. */
   at: string
   /** The form before the change, and after it, for Undo: a field changed since stays as it is. */
@@ -113,7 +134,9 @@ export type Merged<F extends SessionForm> = {
   revision: number
   /** The agent's change that went into the form, if it changed a field the person was not in. */
   change: AgentChange | null
-  /** Fields the person is writing in that the agent changed too: its words wait there. */
+  /** Writing help's change that went into the form, the same way. */
+  helped: AgentChange | null
+  /** Fields the person is writing in that a writer changed too: its words wait there. */
   waiting: SessionField[]
   /** Fields changed since the editor's revision that did not go to waiting: any older wait is over. */
   settled: SessionField[]
@@ -135,11 +158,12 @@ export function mergeDraft<F extends SessionForm>(
   if (revision <= mine.revision) return null
   let form = mine.form
   let saved = mine.saved
-  const changed: SessionField[] = []
+  const changed: Record<DraftWriter, { fields: SessionField[]; at: string; name: string }> = {
+    agent: { fields: [], at: '', name: '' },
+    writing_help: { fields: [], at: '', name: HELP_NAME },
+  }
   const waiting: SessionField[] = []
   const settled: SessionField[] = []
-  let at = ''
-  let agent = ''
   for (const field of sessionFields) {
     const stamp = fields[field]
     if (!stamp || stamp.revision <= mine.revision) continue
@@ -152,28 +176,37 @@ export function mergeDraft<F extends SessionForm>(
       saved = takeField(saved, theirs.form, field)
       continue
     }
-    const byAgent = stamp.by === 'agent'
     const edited = !sameField(mine.form, mine.saved, field)
     if (typing(field) || edited) {
       // A field the person only stands in stays as last saved: nothing of theirs to save over it.
       if (edited) saved = takeField(saved, theirs.form, field)
-      if (byAgent) waiting.push(field)
+      if (stamp.by !== 'person') waiting.push(field)
       continue
     }
     saved = takeField(saved, theirs.form, field)
     form = takeField(form, theirs.form, field)
-    if (!byAgent) continue
-    changed.push(field)
-    if (stamp.at > at) at = stamp.at
-    agent ||= stamp.agent ?? ''
+    if (stamp.by === 'person') continue
+    const writer = changed[stamp.by]
+    writer.fields.push(field)
+    if (stamp.at > writer.at) writer.at = stamp.at
+    writer.name ||= stamp.agent ?? ''
   }
+  const changeBy = (writer: DraftWriter): AgentChange | null =>
+    changed[writer].fields.length
+      ? {
+          agent: changed[writer].name || 'Your agent',
+          fields: changed[writer].fields,
+          at: changed[writer].at,
+          before: mine.form,
+          after: form,
+        }
+      : null
   return {
     form,
     saved,
     revision,
-    change: changed.length
-      ? { agent: agent || 'Your agent', fields: changed, at, before: mine.form, after: form }
-      : null,
+    change: changeBy('agent'),
+    helped: changeBy('writing_help'),
     waiting,
     settled,
   }
@@ -225,3 +258,37 @@ export function agoWords(at: Date, now: Date) {
 /** "Claude changed Title and When, 20 seconds ago". */
 export const changeLine = (change: AgentChange, now: Date) =>
   `${change.agent} changed ${fieldList(change.fields)}, ${agoWords(new Date(change.at), now)}`
+
+/** Whether a field of a form holds nothing yet. */
+const emptyIn = (form: SessionForm, field: SessionField) =>
+  field === 'when'
+    ? form.when === 'always'
+    : field === 'where'
+      ? !form.where.length
+      : field === 'text'
+        ? !form.body.trim()
+        : field === 'source'
+          ? !form.source
+          : field === 'dontConclude'
+            ? !form.dontConclude
+            : field === 'title'
+              ? !form.title
+              : false
+
+/**
+ * What a turn of writing help did, as the strip says it: a first fill of several empty fields by
+ * their count ("Writing help filled in 6 fields from your message. Check each one."), any other
+ * change by its fields and how long ago, and the fields that kept the person's words.
+ */
+export function helpChangeLine(change: AgentChange, now: Date) {
+  const filled =
+    change.fields.length > 2 &&
+    change.fields.filter((field) => emptyIn(change.before, field)).length > 2
+  const did = filled
+    ? `${change.agent} filled in ${change.fields.length} fields from your message. Check each one.`
+    : `${changeLine(change, now)}.`
+  const kept = change.kept ?? []
+  if (!kept.length) return did
+  const yours = fieldList(kept)
+  return `${did} ${yours} ${kept.length > 1 ? 'were' : 'was'} kept as you wrote ${kept.length > 1 ? 'them' : 'it'}.`
+}

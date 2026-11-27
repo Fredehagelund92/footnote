@@ -174,6 +174,12 @@ export function chatSharingOf(settings: readonly Setting[]): Advanced['sharing']
   return on ? { on: on.value !== false, version: on.version } : null
 }
 
+/** Whether people may write with writing help, from the settings as read: off as installed. */
+export function writingHelpOf(settings: readonly Setting[]): Advanced['writingHelp'] {
+  const on = settings.find((s) => s.key === 'writing_help.on')
+  return on ? { on: on.value === true, version: on.version } : null
+}
+
 /** Drafts and terms deleted for good, newest first, each with who deleted it and when. */
 export function deletedOf(
   drafts: readonly DeletedDraft[],

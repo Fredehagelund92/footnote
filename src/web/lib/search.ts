@@ -52,7 +52,9 @@ export const shellSearch = lenient(
       z
         .string()
         .check(
-          z.regex(/^(review|context|def|family|ask|try|topic|share|report|where|conflict)(\..+)?$/),
+          z.regex(
+            /^(review|context|def|family|ask|try|write|topic|share|report|where|conflict)(\..+)?$/,
+          ),
         ),
     ),
     flag: text,

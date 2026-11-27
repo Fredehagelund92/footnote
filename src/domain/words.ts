@@ -171,6 +171,14 @@ export const concepts = {
     definition: 'The page where a person asks and sees the same answer line an agent gets.',
     internal: ['assistant'],
   },
+  writingHelp: {
+    name: 'writing help',
+    definition:
+      'Help with writing one draft, in a panel beside the editor. It changes the fields of your draft, and you check each one. It cannot send or publish.',
+    internal: ['writing_help', 'writer loop'],
+    only: 'the editor, and Settings, Advanced, where an admin turns it on',
+    phrases: ['Writing help', 'Written with writing help'],
+  },
   topic: {
     name: 'topic',
     definition: 'The exact scope agents asked about: domain, metric, market and the month.',

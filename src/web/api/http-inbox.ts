@@ -99,8 +99,12 @@ export function workspaceOf(input: {
 
 /* ---------- the Inbox ---------- */
 
-/** Who sent a suggestion and how, in the mock's words: "a chat" or "editor". */
-const viaOf = (channel: string) => (channel === 'form' ? 'editor' : 'a chat')
+/**
+ * Who sent a suggestion and how, in the mock's words: "a chat" or "editor". A draft started in
+ * writing help was written in the editor, beside it.
+ */
+const viaOf = (channel: string) =>
+  channel === 'form' || channel === 'writing_help' ? 'editor' : 'a chat'
 
 /** A context item a card names, as the quick view and Try it read it before the review loads. */
 const draftStub: Fact = {
@@ -850,7 +854,9 @@ export function reviewOf(
       b.kind === 'wording' && 'runs' in b && b.rewrite,
   )
   // Drafted for a Not found card by the drafting helper: nobody wrote it, so it is the queue's own.
-  const drafted = sheet.gapId !== null && sheet.writtenBy !== null
+  // One its writer wrote with writing help is theirs.
+  const drafted =
+    sheet.gapId !== null && sheet.writtenBy !== null && sheet.writtenBy !== 'writing_help'
   const from = drafted
     ? 'Drafted for you'
     : sheet.synced
@@ -868,6 +874,7 @@ export function reviewOf(
     title: proposal.title,
     from,
     ...(sheet.writtenBy === 'agent' ? { agent: sheet.agent ?? 'An agent' } : {}),
+    ...(sheet.writtenBy === 'writing_help' ? { helped: true } : {}),
     via: viaOf(proposal.channel),
     on: dayWords(proposal.submittedAt ?? proposal.createdAt),
     ...(sheet.synced

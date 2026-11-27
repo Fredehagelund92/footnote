@@ -14,6 +14,7 @@ import type {
 } from '@contract/context'
 import type { ProposalRecord } from '@contract/proposals'
 import type { TermVersion } from '@contract/terms'
+import type { WritingHelpEvent, WritingHelpTurn } from '@contract/writing-help'
 import type { Draft } from '@domain/draft'
 import type { MarkedField } from '@domain/provenance'
 import type { Scope, Vocabulary as ServiceVocabulary } from '@domain/item'
@@ -27,6 +28,7 @@ import type { DraftSession, FieldBy, SessionField } from '@/model/draft-session'
 import type { Version, VersionKind } from '@/model/history'
 import type { Fact, LogEntry, ScopeTerm } from '@/model/items'
 import { dateLabel, whenLabel } from '@/model/validity'
+import { editorFields, type HelpEvent, type HelpReply } from '@/model/writing-help'
 import type { ItemPage } from './client'
 import { dueWords, ownersOf, statusOf, validityOf, type Names } from './http-map'
 
@@ -352,6 +354,7 @@ export function factOfDraft(
   return {
     id: proposal.id,
     title: draft.title || proposal.title || 'Untitled draft',
+    ...(draft.title || proposal.title ? {} : { untitled: true }),
     summary: text(draft.summary, draft.summaryMarkup, words),
     ...(body ? { body } : {}),
     domain: draft.areaId ?? proposal.areaId ?? '',
@@ -633,4 +636,33 @@ export function itemPageOf(
     history: historyOf(page.history, names, shift),
     ...(pair ? { conflict: { key: pair.key, canSettle: pair.canSettle, asked: pair.asked } } : {}),
   }
+}
+
+/** A turn of writing help as it ended, by the editor's fields. */
+export function helpReplyOf(turn: WritingHelpTurn): HelpReply {
+  return {
+    reply: turn.reply,
+    changed: editorFields(turn.changed),
+    kept: editorFields(turn.kept),
+    refused: turn.refused.map((r) => ({ field: editorFields([r.field])[0]!, why: r.why })),
+    question: turn.question,
+    links: turn.links,
+    stopped: turn.stopped,
+    limit: turn.limit,
+  }
+}
+
+/**
+ * What a turn of writing help tells the page as it runs, by the editor's fields; null for a write
+ * that changed nothing, such as one that only kept the person's words.
+ */
+export function helpEventOf(event: Exclude<WritingHelpEvent, { type: 'turn' }>): HelpEvent | null {
+  if (event.type === 'words') return event
+  if (event.type === 'written')
+    return event.applied.length ? { type: 'written', changed: editorFields(event.applied) } : null
+  if (event.doing === 'reading')
+    return { type: 'progress', progress: { doing: 'reading', links: event.links ?? 0 } }
+  if (event.doing === 'looking') return { type: 'progress', progress: { doing: 'looking' } }
+  const [field] = event.field ? editorFields([event.field]) : []
+  return { type: 'progress', progress: { doing: 'writing', ...(field ? { field } : {}) } }
 }

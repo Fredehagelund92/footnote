@@ -36,8 +36,18 @@ import {
   agentMark,
   AgentVersion,
   AgentWroteLine,
+  HelpWorkingStrip,
 } from '@/components/footnote/agent-change'
-import { sessionFieldLabel, type SessionField } from '@/model/draft-session'
+import { helpChangeLine, sessionFieldLabel, type SessionField } from '@/model/draft-session'
+import {
+  moveHelpChat,
+  noteHelpChange,
+  setHelpDesk,
+  stopHelp,
+  undoHelp,
+  useHelp,
+  type HelpDesk,
+} from '@/lib/writing-help'
 import { problemsOf, sourceProblem, type EditorField } from '@/lib/editor-problems'
 import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
@@ -130,7 +140,14 @@ import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
 import { relationWords } from '@domain/clash-relations'
 import { instructionWords } from '@domain/instruction-words'
-import { draftFromTextQuery, itemPageQuery, useInbox, useVocabulary, useWrite } from '@/api/queries'
+import {
+  draftFromTextQuery,
+  itemPageQuery,
+  useInbox,
+  useVocabulary,
+  useWorkspace,
+  useWrite,
+} from '@/api/queries'
 import { useGlossary, type Definition } from '@/lib/definitions'
 import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '@/lib/workspace'
 import { useWide } from '@/hooks/use-wide'
@@ -213,7 +230,8 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
   // From the stored dates, so the editor shows the real ones.
   const w = whenOfValid(f.valid)
   return {
-    title: f.title,
+    // A draft with no title yet asks for one: its stand-in is a list's, never words to keep.
+    title: f.untitled ? '' : f.title,
     body: [f.summary, f.body].filter(Boolean).join('\n\n'),
     kind: f.kind,
     domain: f.domain,
@@ -227,7 +245,8 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
     source: f.source,
     quote: f.quote,
     causes: !!f.causes,
-    dontConclude: f.dontConclude,
+    // The line agents are told when nobody wrote one is the field left empty, not words in it.
+    dontConclude: /^cause not proven\.?$/i.test(f.dontConclude.trim()) ? '' : f.dontConclude,
   }
 }
 
@@ -606,6 +625,8 @@ function Editor({
       editor?.commands.setContent(body, { contentType: 'markdown', emitUpdate: false }),
     onError: (error) =>
       toast("Couldn't save your draft", { description: toApiError(error).message }),
+    // What writing help changed is its turn's change, kept beside the chat for its Undo.
+    onHelped: (change) => original && noteHelpChange(original.id, change),
   })
 
   const trying = useDock()?.kind === 'try'
@@ -958,6 +979,55 @@ function Editor({
   }
   const mobile = useIsMobile()
 
+  // Writing help, in the dock beside the draft (Route 3): there when an admin turned it on, for
+  // the person's own draft, and for words that can be kept as one, a new item or a change to a
+  // published one, which the first thing they say to it does. A phone has no dock beside a page.
+  const helping = useDock()?.kind === 'write'
+  const helpThere = useWorkspace().writingHelp && !mobile && (session.on || savesDraft)
+  const help = useHelp()
+  const helpChange = help.latest
+  const [helpChangeHidden, setHelpChangeHidden] = React.useState<string | null>(null)
+  // What the dock reaches the draft through, as the page is now.
+  const desk = React.useRef<Omit<HelpDesk, 'draftId'>>(null)
+  React.useLayoutEffect(() => {
+    desk.current = {
+      ready: async () => {
+        if (session.on) {
+          await session.flush()
+          return original!.id
+        }
+        // Kept as the person's own draft, as Save as draft keeps it; what the form left empty
+        // stays empty, for writing help or the person to fill in.
+        const { id } = await write('startWritingHelp', {
+          fact: { ...draft, title: form.title, dontConclude: form.dontConclude },
+          isNew: !original,
+          gap: query.get('gap') ?? undefined,
+        })
+        guard.release()
+        moveHelpChat(id)
+        // Read before the page moves there, so the draft opens at once.
+        await queryClient.fetchQuery({ ...itemPageQuery(id), staleTime: 0 }).catch(() => null)
+        navigate(`/context/${id}/edit`, { dock: 'write' }, { replace: true })
+        return null
+      },
+      ask: (input, live) => write('writingHelp', { ...input, live }),
+      refresh: session.refresh,
+      revert: session.revert,
+    }
+  })
+  const helpDraft = session.on ? original!.id : null
+  React.useEffect(() => {
+    if (!helpThere) return
+    setHelpDesk({
+      draftId: helpDraft,
+      ready: () => desk.current!.ready(),
+      ask: (input, live) => desk.current!.ask(input, live),
+      refresh: () => desk.current!.refresh(),
+      revert: (change) => desk.current!.revert(change),
+    })
+    return () => setHelpDesk(null)
+  }, [helpThere, helpDraft])
+
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')
 
@@ -1220,6 +1290,16 @@ function Editor({
                 />
               )
             )}
+            {/* Writing help and Try it swap in the one dock: write it, then see what agents would say. */}
+            {helpThere && (
+              <ViewToggle
+                pressed={helping}
+                onPressedChange={(p) => (p ? openDock('write') : closeDock())}
+                icon={<SparklesIcon />}
+                on="Writing help"
+                off="Close writing help"
+              />
+            )}
             {/* Write or try it: the same draft, seen two ways, so a quiet toggle rather than tabs. */}
             <ViewToggle
               pressed={trying}
@@ -1437,6 +1517,21 @@ function Editor({
             onUndo={session.undo}
             onClose={session.dismiss}
           />
+        )}
+        {/* Writing help: that it is writing, with Stop; then what its last turn changed, with Undo. */}
+        {session.on && <AgentChangeSaid change={help.busy ? null : (helpChange?.change ?? null)} />}
+        {help.busy && session.on ? (
+          <HelpWorkingStrip onStop={stopHelp} />
+        ) : (
+          helpChange &&
+          helpChangeHidden !== helpChange.change.at && (
+            <AgentChangeStrip
+              change={helpChange.change}
+              words={helpChangeLine}
+              onUndo={undoHelp}
+              onClose={() => setHelpChangeHidden(helpChange.change.at)}
+            />
+          )
         )}
         <textarea
           ref={titleRef}

@@ -172,6 +172,17 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
         what: 'Whether people can share an Ask chat as a link, which lasts 90 days',
         value: (v) => (v === false ? 'Off: no chat is shared, and no link opens' : 'On'),
       },
+      {
+        key: 'writing_help.on',
+        what: 'Whether people can write a draft with writing help, which sends the draft’s words to the AI model set for Ask',
+        value: (v) => (v === true ? 'On' : 'Off: nothing of a draft leaves this app'),
+      },
+      {
+        key: 'limits.writing_help',
+        what: 'How much one person can use writing help',
+        value: (v) =>
+          `${count(field(v, 'turns_per_day'), 'time')} in 24 hours, and ${n(field(v, 'paste_characters')).toLocaleString('en-GB')} characters in one message`,
+      },
     ],
   },
   {
@@ -262,15 +273,17 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
       },
       {
         key: 'limits.llm_feature_monthly_micros',
-        what: 'Model use in a month by answer tests and by the assistant',
+        what: 'Model use in a month by answer tests, by the assistant and by writing help',
         value: (v) => {
           const eval_ = field(v, 'eval')
           const assistant = field(v, 'assistant')
-          return eval_ === undefined && assistant === undefined
+          const help = field(v, 'writing_help')
+          return eval_ === undefined && assistant === undefined && help === undefined
             ? 'No limit of their own'
             : [
                 eval_ === undefined ? null : `answer tests ${dollars(eval_)}`,
                 assistant === undefined ? null : `assistant ${dollars(assistant)}`,
+                help === undefined ? null : `writing help ${dollars(help)}`,
               ]
                 .filter(Boolean)
                 .join(', ')

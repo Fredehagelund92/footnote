@@ -31,6 +31,7 @@ import type {
 import type { Link } from '@/lib/links'
 import type { Answer, AskedWeek, AskInput, Example, SentReport, Thread } from '@/model/ask'
 import type { AskLive } from '@/model/ask-turn'
+import type { HelpLive, HelpReply } from '@/model/writing-help'
 import type { CommentAnchor, Comments, MentionNote, Subject } from '@/model/comments'
 import type { DomainId, Fact, Kind, LogEntry, Metric, Sent } from '@/model/items'
 import type { Version, VersionPair } from '@/model/history'
@@ -89,6 +90,11 @@ export type Workspace = {
   invites: Invite[]
   /** What the company does, in its own words: Ask and agents read it as background. */
   about: string
+  /**
+   * Whether writing help is there to ask in the editor: an admin turned it on, and an AI model is
+   * connected.
+   */
+  writingHelp: boolean
   /**
    * Which steps of a new install's setup checklist are done, by step id (lib/setup.ts), and the
    * definitions the server's own configuration reads, such as a model folder: its source's id and
@@ -292,10 +298,15 @@ export type Advanced = {
   links: LinkReading | null
   /** Whether people may share an Ask chat as a link; null when unread. */
   sharing: ChatSharing | null
+  /** Whether people may write with writing help; null when unread. */
+  writingHelp: WritingHelpSwitch | null
 }
 
 /** Sharing an Ask chat as a link (FR-721): on as installed, and the setting's version. */
 export type ChatSharing = { on: boolean; version: number }
+
+/** Writing help's switch: off as installed, and the setting's version. */
+export type WritingHelpSwitch = { on: boolean; version: number }
 
 /**
  * Reading the links people paste (FR-144): on as installed, and the hosts an admin listed never
@@ -516,6 +527,25 @@ export interface FootnoteApi {
   clearLeftDrafts: (input: { id: string }) => Promise<{ deleted: number }>
   /** A draft made from pasted text or a link: every field filled in, for the writer to check. */
   draftFromText: (input: { text: string }) => Promise<Fact>
+  /**
+   * Keeps what the editor holds as the person's own draft, for writing help to write in: as Save
+   * as draft does, and its history says it started in writing help. Refused while writing help is
+   * not there to ask. Its id is the draft's.
+   */
+  startWritingHelp: (input: { fact: Fact; isNew: boolean; gap?: string }) => Promise<{
+    id: string
+  }>
+  /**
+   * One turn of writing help on the person's own draft (Route 3): it changes the draft's fields
+   * and never sends it. `turns` are the chat's earlier turns, which only the browser keeps. Given
+   * `live`, what it is doing and each field it writes as it goes, and its `signal` stops it.
+   */
+  writingHelp: (input: {
+    draftId: string
+    message: string
+    turns?: { said: string; reply: string }[]
+    live?: HelpLive
+  }) => Promise<HelpReply>
   /**
    * Changes many items at once, with its line in History. It acts on every row it can; `failed`
    * names the rows a failure left unchanged, to try again, and `skipped` the drafts a Publish left
@@ -821,6 +851,8 @@ export interface FootnoteApi {
   setLinkReading: (input: { on: boolean; version: number }) => Promise<void>
   /** Turns sharing Ask chats as links on or off, at the version read. Admins only. */
   setChatSharing: (input: { on: boolean; version: number }) => Promise<void>
+  /** Turns writing help on or off, at the version read. Admins only. */
+  setWritingHelp: (input: { on: boolean; version: number }) => Promise<void>
   /** Sets the hosts links are never read on, at the version read. Admins only. */
   setNeverReadHosts: (input: { hosts: string[]; version: number }) => Promise<void>
   /**
@@ -1026,6 +1058,8 @@ export const footnoteApiMethods = [
   'markViewed',
   'editItem',
   'draftFromText',
+  'startWritingHelp',
+  'writingHelp',
   'saveItem',
   'saveDraft',
   'autosaveDraft',
@@ -1118,6 +1152,7 @@ export const footnoteApiMethods = [
   'setAutomaticRuns',
   'setLinkReading',
   'setChatSharing',
+  'setWritingHelp',
   'setNeverReadHosts',
   'checkHistory',
   'exportHistory',

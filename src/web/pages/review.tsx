@@ -85,7 +85,12 @@ export function Sender({ r, when, short }: { r: Review; when?: string; short?: b
         ) : (
           <>
             <span className="font-medium text-foreground">{r.from}</span>,{' '}
-            {r.via === 'editor' ? 'in the editor' : `from ${r.via}`}, {when ?? r.on}
+            {r.helped
+              ? 'written with writing help'
+              : r.via === 'editor'
+                ? 'in the editor'
+                : `from ${r.via}`}
+            , {when ?? r.on}
           </>
         )}
       </span>
