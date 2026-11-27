@@ -270,7 +270,7 @@ describe('a draft the person writes with their agent', () => {
     expect(after.out).toMatchObject({
       fields: { text: { by: 'agent', mark: 'prefilled' } },
     })
-    expect(after.out.fields.title.mark).toBeUndefined()
+    expect(after.out.fields.title).not.toHaveProperty('mark')
   })
 
   it('AT4: refuses to change a draft that was sent', async () => {
