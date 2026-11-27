@@ -223,6 +223,7 @@ describe('Save as draft', () => {
       call('POST', '/drafts', 'author', {
         draft: { ...words, title: 'Orders leave out every test account' },
         draftId: saved.proposalId,
+        revision: saved.revision,
       }),
     )
     expect(again.proposalId).toBe(saved.proposalId)
@@ -230,16 +231,57 @@ describe('Save as draft', () => {
     const reread = await ok<ProposalRecord>(call('GET', `/proposals/${saved.proposalId}`, 'author'))
     expect(reread).toMatchObject({ state: 'draft' })
     expect(reread.draft.title).toBe('Orders leave out every test account')
+    // Who changed each field, and at which revision: the person, as the editor says it.
+    expect(reread.fieldStamps.title).toMatchObject({ by: 'person', revision: again.revision })
+  })
+
+  it('saves over the revision the words were written from, and nothing over a newer one', async () => {
+    const words = draft({ evidence: [] })
+    const saved = await ok<SavedDraft>(call('POST', '/drafts', 'author', { draft: words }))
+    const again = { draft: { ...words, title: 'Orders leave out test accounts' } }
+    // Saved again with no revision says which one it needs.
+    const unnamed = await call('POST', '/drafts', 'author', {
+      ...again,
+      draftId: saved.proposalId,
+    })
+    expect(unnamed.statusCode).toBe(400)
+    await ok(
+      call('POST', '/drafts', 'author', {
+        ...again,
+        draftId: saved.proposalId,
+        revision: saved.revision,
+      }),
+    )
+    // An editor still on the first revision (the agent wrote since) saves nothing, and gets the
+    // draft as it is now to merge its words with.
+    const stale = await call('POST', '/drafts', 'author', {
+      draft: { ...words, title: 'Orders leave out staff accounts' },
+      draftId: saved.proposalId,
+      revision: saved.revision,
+    })
+    expect(stale.statusCode).toBe(409)
+    const current = stale.json<{ data: { current: ProposalRecord } }>().data.current
+    expect(current).toMatchObject({ id: saved.proposalId, revision: saved.revision + 1 })
+    expect(current.draft.title).toBe('Orders leave out test accounts')
+    expect(current.fieldStamps.title).toMatchObject({ by: 'person' })
   })
 
   it("never saves into someone else's draft, or into one that was sent", async () => {
     const theirs = await aDraft('author')
-    const refused = await call('POST', '/drafts', 'owner', { draft: draft(), draftId: theirs })
+    const refused = await call('POST', '/drafts', 'owner', {
+      draft: draft(),
+      draftId: theirs,
+      revision: 1,
+    })
     expect(refused.statusCode).toBe(404)
     const sent = await ok<ProposalRecord>(
       call('POST', `/proposals/${await aDraft('author')}/submit`, 'author', { revision: 1 }),
     )
-    const late = await call('POST', '/drafts', 'author', { draft: draft(), draftId: sent.id })
+    const late = await call('POST', '/drafts', 'author', {
+      draft: draft(),
+      draftId: sent.id,
+      revision: sent.revision,
+    })
     expect(late.statusCode).toBe(404)
   })
 

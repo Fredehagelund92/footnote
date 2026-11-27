@@ -242,7 +242,7 @@ One person's agents can save 10 new drafts in 24 hours, with 20 waiting unsent. 
 - `changed_since`, what changed after your revision;
 - `blocking`, what stops it being sent.
 
-The agent sees the person's edits only when it reads the draft, which is when the person writes to it: nothing can tell it that a draft changed. So a write names the revision the agent read. A field the person changed since then keeps their words, and comes back in `conflicts` with its value now; the other fields change.
+The agent sees the person's edits only when it reads the draft, which is when the person writes to it: nothing can tell it that a draft changed. The other way round is quicker: a draft open in the app saves as the person types, and shows the agent's change within a few seconds, with Undo, never over a field the person is writing in. So a write names the revision the agent read. A field the person changed since then keeps their words, and comes back in `conflicts` with its value now; the other fields change.
 
 - Every write is checked as a new draft is. Text that looks like personal data or a secret is refused, and so are words that read like orders to an AI agent. Nothing changes.
 - A draft that was sent can't be changed. Withdraw it first.

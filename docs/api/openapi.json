@@ -838,6 +838,61 @@
                         }
                       ]
                     },
+                    "fieldStamps": {
+                      "type": "object",
+                      "propertyNames": {
+                        "enum": [
+                          "kind",
+                          "areaId",
+                          "ownerId",
+                          "title",
+                          "summary",
+                          "body",
+                          "scope",
+                          "validity",
+                          "reviewDate",
+                          "evidence",
+                          "references",
+                          "changeMarks",
+                          "claimLevel",
+                          "riskLevel",
+                          "audience",
+                          "notToConclude",
+                          "replaces",
+                          "conflicts"
+                        ],
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "by": {
+                            "enum": [
+                              "person",
+                              "agent"
+                            ],
+                            "type": "string"
+                          },
+                          "agent": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "by",
+                          "revision",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "agent": {
                       "anyOf": [
                         {
@@ -946,6 +1001,7 @@
                     "draft",
                     "newValues",
                     "provenance",
+                    "fieldStamps",
                     "agent",
                     "findings",
                     "claimedBy",
@@ -1698,6 +1754,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -1806,6 +1917,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -2576,6 +2688,61 @@
                               }
                             ]
                           },
+                          "fieldStamps": {
+                            "type": "object",
+                            "propertyNames": {
+                              "enum": [
+                                "kind",
+                                "areaId",
+                                "ownerId",
+                                "title",
+                                "summary",
+                                "body",
+                                "scope",
+                                "validity",
+                                "reviewDate",
+                                "evidence",
+                                "references",
+                                "changeMarks",
+                                "claimLevel",
+                                "riskLevel",
+                                "audience",
+                                "notToConclude",
+                                "replaces",
+                                "conflicts"
+                              ],
+                              "type": "string"
+                            },
+                            "additionalProperties": {
+                              "type": "object",
+                              "properties": {
+                                "by": {
+                                  "enum": [
+                                    "person",
+                                    "agent"
+                                  ],
+                                  "type": "string"
+                                },
+                                "agent": {
+                                  "type": "string"
+                                },
+                                "revision": {
+                                  "type": "integer",
+                                  "minimum": 1,
+                                  "maximum": 9007199254740991
+                                },
+                                "at": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "by",
+                                "revision",
+                                "at"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "agent": {
                             "anyOf": [
                               {
@@ -2684,6 +2851,7 @@
                           "draft",
                           "newValues",
                           "provenance",
+                          "fieldStamps",
                           "agent",
                           "findings",
                           "claimedBy",
@@ -3460,6 +3628,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -3568,6 +3791,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -4276,6 +4500,61 @@
                         }
                       ]
                     },
+                    "fieldStamps": {
+                      "type": "object",
+                      "propertyNames": {
+                        "enum": [
+                          "kind",
+                          "areaId",
+                          "ownerId",
+                          "title",
+                          "summary",
+                          "body",
+                          "scope",
+                          "validity",
+                          "reviewDate",
+                          "evidence",
+                          "references",
+                          "changeMarks",
+                          "claimLevel",
+                          "riskLevel",
+                          "audience",
+                          "notToConclude",
+                          "replaces",
+                          "conflicts"
+                        ],
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "by": {
+                            "enum": [
+                              "person",
+                              "agent"
+                            ],
+                            "type": "string"
+                          },
+                          "agent": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "by",
+                          "revision",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "agent": {
                       "anyOf": [
                         {
@@ -4384,6 +4663,7 @@
                     "draft",
                     "newValues",
                     "provenance",
+                    "fieldStamps",
                     "agent",
                     "findings",
                     "claimedBy",
@@ -5136,6 +5416,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -5244,6 +5579,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -5973,6 +6309,61 @@
                         }
                       ]
                     },
+                    "fieldStamps": {
+                      "type": "object",
+                      "propertyNames": {
+                        "enum": [
+                          "kind",
+                          "areaId",
+                          "ownerId",
+                          "title",
+                          "summary",
+                          "body",
+                          "scope",
+                          "validity",
+                          "reviewDate",
+                          "evidence",
+                          "references",
+                          "changeMarks",
+                          "claimLevel",
+                          "riskLevel",
+                          "audience",
+                          "notToConclude",
+                          "replaces",
+                          "conflicts"
+                        ],
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "by": {
+                            "enum": [
+                              "person",
+                              "agent"
+                            ],
+                            "type": "string"
+                          },
+                          "agent": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "by",
+                          "revision",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "agent": {
                       "anyOf": [
                         {
@@ -6081,6 +6472,7 @@
                     "draft",
                     "newValues",
                     "provenance",
+                    "fieldStamps",
                     "agent",
                     "findings",
                     "claimedBy",
@@ -6833,6 +7225,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -6941,6 +7388,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -7676,6 +8124,61 @@
                         }
                       ]
                     },
+                    "fieldStamps": {
+                      "type": "object",
+                      "propertyNames": {
+                        "enum": [
+                          "kind",
+                          "areaId",
+                          "ownerId",
+                          "title",
+                          "summary",
+                          "body",
+                          "scope",
+                          "validity",
+                          "reviewDate",
+                          "evidence",
+                          "references",
+                          "changeMarks",
+                          "claimLevel",
+                          "riskLevel",
+                          "audience",
+                          "notToConclude",
+                          "replaces",
+                          "conflicts"
+                        ],
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "by": {
+                            "enum": [
+                              "person",
+                              "agent"
+                            ],
+                            "type": "string"
+                          },
+                          "agent": {
+                            "type": "string"
+                          },
+                          "revision": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 9007199254740991
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "by",
+                          "revision",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
                     "agent": {
                       "anyOf": [
                         {
@@ -7784,6 +8287,7 @@
                     "draft",
                     "newValues",
                     "provenance",
+                    "fieldStamps",
                     "agent",
                     "findings",
                     "claimedBy",
@@ -8536,6 +9040,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -8644,6 +9203,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -39558,6 +40118,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -39666,6 +40281,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -43647,6 +44263,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -43755,6 +44426,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -44163,6 +44835,11 @@
                   "draftId": {
                     "type": "string",
                     "format": "uuid"
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
                   },
                   "reason": {
                     "type": "string",
@@ -44944,6 +45621,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -45052,6 +45784,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -70418,6 +71151,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -70526,6 +71314,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -77599,6 +78388,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -77707,6 +78551,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",
@@ -95713,6 +96558,61 @@
                                     }
                                   ]
                                 },
+                                "fieldStamps": {
+                                  "type": "object",
+                                  "propertyNames": {
+                                    "enum": [
+                                      "kind",
+                                      "areaId",
+                                      "ownerId",
+                                      "title",
+                                      "summary",
+                                      "body",
+                                      "scope",
+                                      "validity",
+                                      "reviewDate",
+                                      "evidence",
+                                      "references",
+                                      "changeMarks",
+                                      "claimLevel",
+                                      "riskLevel",
+                                      "audience",
+                                      "notToConclude",
+                                      "replaces",
+                                      "conflicts"
+                                    ],
+                                    "type": "string"
+                                  },
+                                  "additionalProperties": {
+                                    "type": "object",
+                                    "properties": {
+                                      "by": {
+                                        "enum": [
+                                          "person",
+                                          "agent"
+                                        ],
+                                        "type": "string"
+                                      },
+                                      "agent": {
+                                        "type": "string"
+                                      },
+                                      "revision": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 9007199254740991
+                                      },
+                                      "at": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "by",
+                                      "revision",
+                                      "at"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
                                 "agent": {
                                   "anyOf": [
                                     {
@@ -95821,6 +96721,7 @@
                                 "draft",
                                 "newValues",
                                 "provenance",
+                                "fieldStamps",
                                 "agent",
                                 "findings",
                                 "claimedBy",

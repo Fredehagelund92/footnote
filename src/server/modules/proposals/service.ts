@@ -10,7 +10,7 @@ import type {
 import { type Draft, formatOutcome, textFindings } from '../../../domain/draft.ts'
 import { defaultRiskFor, type ItemKind } from '../../../domain/item.ts'
 import { parseMentions } from '../../../domain/mentions.ts'
-import { fieldStampsSchema, stampsAfter, type FieldStamps } from '../../../domain/draft-stamps.ts'
+import { stampsAfter } from '../../../domain/draft-stamps.ts'
 import {
   keepMarks,
   type FieldMark,
@@ -35,7 +35,7 @@ const fields = `id::text,number::float8,subject,action,state,area_id as "areaId"
  case when subject='vocabulary' then draft - 'base' else null end as vocabulary,
  item_version_id::text as "itemVersionId",proposer_id::text as "proposerId",channel,revision,
  case when subject='item' then coalesce(draft,'{}'::jsonb) else '{}'::jsonb end as draft,new_values as "newValues",
- provenance,draft_findings as findings,claimed_by::text as "claimedBy",due_at::text as "dueAt",
+ provenance,field_stamps as "fieldStamps",draft_findings as findings,claimed_by::text as "claimedBy",due_at::text as "dueAt",
  submitted_at::text as "submittedAt",created_at::text as "createdAt",updated_at::text as "updatedAt",
  case when agent_id is null then null else jsonb_build_object('id',agent_id::text,'name',agent_name) end as agent`
 /**
@@ -227,13 +227,13 @@ function proposalsService(
         message: 'Another owner is already reviewing this suggestion.',
       })
   }
-  /** Who last changed each field of a proposal, and at which revision (draft-stamps.ts). */
-  async function stampsOf(id: string): Promise<FieldStamps> {
-    const [row] = await tx.query<{ stamps: unknown }>(
-      'select field_stamps as stamps from proposals where id=$1',
-      [id],
-    )
-    return fieldStampsSchema.parse(row?.stamps ?? {})
+  /** An agent's name, as its stamps and the history say it. */
+  async function agentName(id: string | undefined) {
+    if (!id) return undefined
+    const [agent] = await tx.query<{ name: string }>('select name from auth.agents where id=$1', [
+      id,
+    ])
+    return agent?.name
   }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
     await tx.query(
@@ -463,7 +463,6 @@ function proposalsService(
   return {
     get,
     getItem,
-    stampsOf,
     /** One proposal as the API returns it to the reader. */
     async read(id: string) {
       const [p] = await forReaders(tx, [await get(id)])
@@ -543,10 +542,12 @@ function proposalsService(
         })
       const provenance = options.provenance?.(draft) ?? null
       // Every field it holds is its writer's: the person's, or their agent's. A read's is nobody's.
+      const agent = provenance?.by === 'agent' ? await agentName(options.agentId) : undefined
       const stamps = author
         ? {}
         : stampsAfter({}, {}, draft, {
             by: provenance?.by === 'agent' ? 'agent' : 'person',
+            ...(agent ? { agent } : {}),
             revision: 1,
             at: clock.now().toISOString(),
           })
@@ -620,8 +621,10 @@ function proposalsService(
           ? keepMarks(p.provenance ?? { by: 'agent', fields: {}, flags: [] }, p.draft, draft, agent)
           : null
       // The update below is the next revision (proposals_guard): each changed field is stamped with it.
-      const stamps = stampsAfter(await stampsOf(id), p.draft, draft, {
+      const writer = await agentName(agent?.id)
+      const stamps = stampsAfter(p.fieldStamps, p.draft, draft, {
         by: agent ? 'agent' : 'person',
+        ...(writer ? { agent: writer } : {}),
         revision: p.revision + 1,
         at: clock.now().toISOString(),
       })
@@ -641,11 +644,8 @@ function proposalsService(
       const saved = await get(id)
       // The history names the agent on each of its writes, with the person as the actor (FR-420),
       // also on a draft the person started themselves.
-      const [writer] = agent?.id
-        ? await tx.query<{ name: string }>('select name from auth.agents where id=$1', [agent.id])
-        : []
       await event(
-        writer ? { ...saved, agent: { id: agent!.id!, name: writer.name } } : saved,
+        writer ? { ...saved, agent: { id: agent!.id!, name: writer } } : saved,
         agent ? 'updated' : 'saved',
       )
       return saved

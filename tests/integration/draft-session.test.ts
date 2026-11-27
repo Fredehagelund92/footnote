@@ -101,10 +101,11 @@ async function personSaves(id: string, change: Record<string, unknown>) {
   const person = await signedIn()
   const current = (await (await person.api(`/proposals/${id}`)).json()) as {
     draft: Record<string, unknown>
+    revision: number
   }
   const saved = await person.api(
     '/drafts',
-    { draftId: id, draft: { ...current.draft, ...change } },
+    { draftId: id, revision: current.revision, draft: { ...current.draft, ...change } },
     { 'idempotency-key': randomUUID() },
   )
   expect(saved.status).toBe(200)
@@ -266,6 +267,17 @@ describe('a draft the person writes with their agent', () => {
       [id],
     )
     expect(history.rows.map((r) => r.details.agent?.id)).toEqual([agentId])
+    // The editor reads who changed each field from the draft's record, the agent by its name.
+    const [agent] = (
+      await admin.query<{ name: string }>('select name from auth.agents where id=$1', [agentId])
+    ).rows
+    const record = (await (await person.api(`/proposals/${id}`)).json()) as {
+      fieldStamps: Record<string, unknown>
+    }
+    expect(record.fieldStamps).toMatchObject({
+      title: { by: 'person', revision: 1 },
+      body: { by: 'agent', agent: agent!.name, revision: 2 },
+    })
     const after = await call(token, 'read_draft', { draft_id: id })
     expect(after.out).toMatchObject({
       fields: { text: { by: 'agent', mark: 'prefilled' } },

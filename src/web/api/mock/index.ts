@@ -222,6 +222,8 @@ export function createMockApi() {
   const dispatch = (action: Action) => {
     state = reduce(state, action)
   }
+  /** The revision of each of the person's drafts the editor saved, by id: 1 until it is saved. */
+  const revisions = new Map<string, number>()
 
   /** Conflicts kept as both, by pair: off the lists while both items are as the decision saw them. */
   const keptPairs = new Map<string, KeptPair>()
@@ -768,8 +770,13 @@ export function createMockApi() {
         const pair = item.disagreesWith ? pairAt(item.id, item.disagreesWith) : undefined
         const conflict =
           pair && conflictOf(pair[0], pair[1], meAsPerson(), workspace.domainMap(), undefined)
+        // The person's own draft saves itself as they write it, at its revision.
+        const session =
+          item.status === 'Draft' && item.by === me()
+            ? { session: { revision: revisions.get(item.id) ?? 1, fields: {} } }
+            : {}
         return {
-          item: withScope(item),
+          item: { ...withScope(item), ...session },
           // A draft was never published, so it has no versions yet, as the service has it.
           history: item.status === 'Draft' ? [] : historyOf(item, state.log),
           ...(conflict
@@ -782,6 +789,12 @@ export function createMockApi() {
               }
             : {}),
         }
+      }),
+    draftNow: ({ id }) =>
+      read('draftNow', id, () => {
+        const item = shownFacts().find((f) => f.id === id)
+        if (item?.status !== 'Draft' || item.by !== me()) return null
+        return { ...withScope(item), session: { revision: revisions.get(id) ?? 1, fields: {} } }
       }),
     conflicts: ({ whose }) => read('conflicts', whose, () => conflictRows(whose)),
     conflict: ({ holderId, otherId }) =>
@@ -937,16 +950,34 @@ export function createMockApi() {
     saveDraft: ({ fact, isNew }) =>
       now(() => {
         const mine = isNew ? undefined : shownFacts().find((f) => f.id === fact.id)
-        if (mine && mine.status !== 'Draft' && !fact.id.startsWith('itm_'))
+        if (mine?.status === 'Draft')
+          throw new ApiError(
+            'conflict',
+            'A draft saves itself as you write it: it has nothing to save.',
+          )
+        if (!isNew && !mine)
           throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
         const saved = { ...fact, status: 'Draft' as const, by: me(), checkedBy: '', checkedOn: '' }
-        if (mine?.status === 'Draft') {
-          dispatch({ type: 'editFact', id: fact.id, patch: saved })
-          return { id: fact.id }
-        }
         const id = `itm_draft_${Date.now().toString(36)}`
         dispatch({ type: 'addFact', fact: { ...saved, id } })
         return { id }
+      }),
+    // A draft of the person's own, saved as they type, over the revision the editor read. The
+    // mock has no agent to change it meanwhile: only another tab of the editor moves it on.
+    autosaveDraft: ({ fact, revision }) =>
+      now(() => {
+        const mine = shownFacts().find((f) => f.id === fact.id && f.status === 'Draft')
+        if (!mine) throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+        const at = revisions.get(fact.id) ?? 1
+        if (revision !== at)
+          throw new ApiError(
+            'conflict',
+            'Someone changed this suggestion after you opened it. Look at the latest version, then try again.',
+          )
+        const { session: _, ...words } = fact
+        dispatch({ type: 'editFact', id: fact.id, patch: { ...words, status: 'Draft', by: me() } })
+        revisions.set(fact.id, at + 1)
+        return { revision: at + 1 }
       }),
     clearLeftDrafts: ({ id }) =>
       now(() => {

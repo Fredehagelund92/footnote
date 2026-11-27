@@ -1,6 +1,7 @@
 import type { TermDomainSource } from '@domain/catalogue'
 import type { CheckFlag, ItemKind, ItemStatus } from '@domain/item'
 import { kinds } from '@domain/words'
+import type { DraftSession } from './draft-session'
 import { whenLabel, type Validity } from './validity'
 
 // A context item as the app's screens read it, from the app's API (src/web/api). Pure types, the
@@ -105,6 +106,11 @@ export type Fact = {
    * is no draft of theirs alone, so it is sent, never saved as a draft.
    */
   returned?: boolean
+  /**
+   * The person's own draft, read on its own: its revision and who changed each field, the person
+   * or their agent. The editor saves it as they type and keeps up with their agent's changes.
+   */
+  session?: DraftSession
 }
 
 /** A status in the server's words: accepted or retired, with the flags that wait for a look. A draft, or a suggestion waiting for review, is no item yet. */

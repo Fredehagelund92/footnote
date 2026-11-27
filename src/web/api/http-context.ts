@@ -15,6 +15,7 @@ import type {
 import type { ProposalRecord } from '@contract/proposals'
 import type { TermVersion } from '@contract/terms'
 import type { Draft } from '@domain/draft'
+import type { MarkedField } from '@domain/provenance'
 import type { Scope, Vocabulary as ServiceVocabulary } from '@domain/item'
 import { defaultNotToConclude } from '@domain/proposal-rules'
 import { parseMentions, serializeMentions, type MentionPart } from '@domain/mentions'
@@ -22,6 +23,7 @@ import { anyDate, shiftDate } from '@domain/validity'
 import { metricKeyOf } from '@domain/vocabulary'
 import type { Link, LinkEnd, Rel } from '@/lib/links'
 import { mentionParts, mentionToken, parseMentionId } from '@/lib/mentions'
+import type { DraftSession, FieldBy, SessionField } from '@/model/draft-session'
 import type { Version, VersionKind } from '@/model/history'
 import type { Fact, LogEntry, ScopeTerm } from '@/model/items'
 import { dateLabel, whenLabel } from '@/model/validity'
@@ -366,6 +368,47 @@ export function factOfDraft(
     quote: evidence?.quote ?? '',
     dontConclude: draft.notToConclude ?? '',
   }
+}
+
+/** The service's fields of a draft by the editor's: the text is the summary and the detail. */
+const sessionParts: Record<SessionField, readonly MarkedField[]> = {
+  title: ['title'],
+  text: ['summary', 'body'],
+  kind: ['kind'],
+  domain: ['areaId'],
+  where: ['scope'],
+  when: ['validity'],
+  source: ['evidence'],
+  dontConclude: ['notToConclude'],
+}
+
+/**
+ * The person's own draft as the editor keeps up with it: its revision, and for each field who
+ * changed it last, by the latest stamp of the service's fields it is made of, with that field's mark.
+ */
+export function sessionOf(
+  proposal: Pick<ProposalRecord, 'revision' | 'fieldStamps' | 'provenance'>,
+): DraftSession {
+  const fields: DraftSession['fields'] = {}
+  for (const [field, of] of Object.entries(sessionParts) as [SessionField, MarkedField[]][]) {
+    const last = of
+      .flatMap((part) => {
+        const stamp = proposal.fieldStamps[part]
+        return stamp ? [{ part, stamp }] : []
+      })
+      .sort((a, b) => b.stamp.revision - a.stamp.revision)[0]
+    if (!last) continue
+    const mark = proposal.provenance?.fields[last.part]
+    const by: FieldBy = {
+      by: last.stamp.by,
+      revision: last.stamp.revision,
+      at: last.stamp.at,
+      ...(last.stamp.agent ? { agent: last.stamp.agent } : {}),
+      ...(mark ? { mark } : {}),
+    }
+    fields[field] = by
+  }
+  return { revision: proposal.revision, fields }
 }
 
 /**

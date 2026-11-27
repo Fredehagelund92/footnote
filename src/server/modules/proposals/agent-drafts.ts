@@ -6,7 +6,6 @@ import {
   draftFields,
   personChangedSince,
   type DraftFieldName,
-  type FieldStamps,
 } from '../../../domain/draft-stamps.ts'
 import {
   changedFields,
@@ -114,7 +113,6 @@ export type AgentPatchRequest = {
 export type AgentPatchResult = {
   /** The draft after the change, or as it is when nothing changed. */
   proposal: ProposalRecord
-  stamps: FieldStamps
   applied: DraftFieldName[]
   /** The fields the person changed since the agent's revision, left as they are. */
   conflicts: DraftFieldName[]
@@ -161,8 +159,7 @@ export async function patchAgentDraft(
     throw new ORPCError('TOO_MANY_REQUESTS', {
       message: `Your agents changed this draft ${AGENT_WRITES_PER_HOUR} times in the last hour, the most allowed. Try again later, or finish it in ${productName}`,
     })
-  const stamps = await proposals.stampsOf(p.id)
-  const conflicts = personChangedSince(stamps, request.names, request.revision)
+  const conflicts = personChangedSince(p.fieldStamps, request.names, request.revision)
   const applied = request.names.filter((name) => !conflicts.includes(name))
   const next: Draft = { ...p.draft }
   for (const name of applied) {
@@ -172,7 +169,7 @@ export async function patchAgentDraft(
     if (field === 'summary') delete next.summaryMarkup
     if (field === 'body') delete next.bodyMarkup
   }
-  if (!changedFields(p.draft, next).length) return { proposal: p, stamps, applied: [], conflicts }
+  if (!changedFields(p.draft, next).length) return { proposal: p, applied: [], conflicts }
   const saved = await proposals.save(p.id, p.revision, next, undefined, {
     agent: {
       marks: request.patch.marks,
@@ -180,5 +177,5 @@ export async function patchAgentDraft(
       ...(request.agentId ? { id: request.agentId } : {}),
     },
   })
-  return { proposal: saved, stamps: await proposals.stampsOf(p.id), applied, conflicts }
+  return { proposal: saved, applied, conflicts }
 }

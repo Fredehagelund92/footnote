@@ -78,6 +78,7 @@ import {
   factOfWaiting,
   factOfReadDraft,
   itemPageOf,
+  sessionOf,
   linksOfRelated,
   logOf,
   serviceDay,
@@ -157,6 +158,7 @@ export const wiredMethods = [
   'getLibrary',
   'contextPage',
   'itemPage',
+  'draftNow',
   'getItemHistory',
   'compareVersions',
   'getRelated',
@@ -165,6 +167,7 @@ export const wiredMethods = [
   'editItem',
   'saveItem',
   'saveDraft',
+  'autosaveDraft',
   'clearLeftDrafts',
   'draftFromText',
   'applyBulk',
@@ -793,6 +796,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         item: {
           ...factOfDraft(proposal, names, vocabulary),
           ...(proposal.state === 'changes_requested' ? { returned: true } : {}),
+          // Only its writer reads a draft: the editor keeps up with their agent's changes to it.
+          ...(proposal.state === 'draft' ? { session: sessionOf(proposal) } : {}),
         },
         history: [] as Version[],
       }
@@ -853,16 +858,18 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /**
-   * Save as draft from the editor (FR-139): a new item, a change to a published one written from
-   * the version the editor opened, or the person's own draft saved again in place. Only a draft is
-   * saved so: a suggestion is sent or published.
+   * Save as draft from the editor (FR-139): a new item, or a change to a published one written from
+   * the version the editor opened. The person's own draft saves itself (autosaveDraft). Only a
+   * draft is saved so: a suggestion is sent or published.
    */
   async function saveDraftFromEditor(fact: Fact, isNew: boolean, card?: string) {
     const vocabulary = await readWords()
-    const started = !isNew && isUuid(fact.id) ? await readDraft(fact.id) : null
-    if (started && started.state !== 'draft')
-      throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
-    const itemId = isNew || started ? undefined : fact.id
+    const itemId = isNew ? undefined : fact.id
+    if (itemId && !isItemId(itemId))
+      throw new ApiError(
+        'conflict',
+        'A draft saves itself as you write it: it has nothing to save.',
+      )
     const before = itemId ? (await itemPage(itemId))?.item : undefined
     if (itemId && !before)
       throw new ApiError('not-found', "This context item isn't in Context any more.")
@@ -870,11 +877,9 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     const input = {
       draft: draftOf(fact, vocabulary, calendar.today, before),
       newValues: newValuesOf(fact),
-      ...(started
-        ? { draftId: started.id }
-        : itemId
-          ? { itemId, ...(fact.version !== undefined ? { version: fact.version } : {}) }
-          : {}),
+      ...(itemId
+        ? { itemId, ...(fact.version !== undefined ? { version: fact.version } : {}) }
+        : {}),
       ...(gap?.kind === 'gap' ? { gapId: gap.id } : {}),
     }
     return write('drafts.save', input, (o) => client.drafts.save(input, o))
@@ -1444,6 +1449,23 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     },
     contextPage: async () => (await contextRows()).items,
     itemPage: ({ id }) => itemPage(id),
+    // One read of the proposal: who the person is and the words a scope names are read already.
+    draftNow: async ({ id }) => {
+      if (!isUuid(id)) return null
+      const [proposal, who, vocabulary] = await Promise.all([
+        orNull(() => read(() => client.proposals.get({ id }))),
+        signedIn(),
+        readWords(),
+      ])
+      if (
+        proposal?.subject !== 'item' ||
+        proposal.state !== 'draft' ||
+        proposal.proposerId !== who.id
+      )
+        return null
+      const names = { person: () => who.name, domainOwners: () => [] }
+      return { ...factOfDraft(proposal, names, vocabulary), session: sessionOf(proposal) }
+    },
     conflicts: async ({ whose }) =>
       (await read(() => client.conflicts.list({ whose }))).rows.map(conflictRowOf),
     conflict: async ({ holderId, otherId }) => {
@@ -1551,6 +1573,20 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     saveDraft: async ({ fact, isNew, gap }) => ({
       id: (await saveDraftFromEditor(fact, isNew, gap)).proposalId,
     }),
+    autosaveDraft: async ({ fact, before, revision }) => {
+      // Only what the person changed, over the draft as it is stored: a field they left alone is
+      // never written back from the editor's reading of it, so it keeps its writer and its mark.
+      const [vocabulary, stored] = await Promise.all([readWords(), readDraft(fact.id)])
+      if (stored.state !== 'draft')
+        throw new ApiError('conflict', 'It was sent already, so it is no draft to save.')
+      const changes = draftOf(fact, vocabulary, calendar.today, before)
+      const draft = { ...stored.draft, ...changes }
+      if ('summary' in changes && !changes.summaryMarkup) delete draft.summaryMarkup
+      if ('body' in changes && !changes.bodyMarkup) delete draft.bodyMarkup
+      const input = { draft, newValues: newValuesOf(fact), draftId: fact.id, revision }
+      const saved = await write('drafts.save', input, (o) => client.drafts.save(input, o))
+      return { revision: saved.revision }
+    },
     clearLeftDrafts: ({ id }) =>
       write('drafts.clearLeft', { personId: id }, (o) =>
         client.drafts.clearLeft({ personId: id }, o),

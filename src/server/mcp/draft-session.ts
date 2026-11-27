@@ -15,7 +15,6 @@ import {
   draftFields,
   type DraftFieldName,
   type FieldStamp,
-  type FieldStamps,
 } from '../../domain/draft-stamps.ts'
 import {
   provenanceFlags,
@@ -165,7 +164,7 @@ type DraftFieldView = {
 }
 
 /** A draft's fields as an agent reads them: by its names, with who changed each last and when. */
-async function fieldsOf(tx: Queryable, p: ProposalRecord, stamps: FieldStamps) {
+async function fieldsOf(tx: Queryable, p: ProposalRecord) {
   const names = new Map(
     (
       await tx.query<{ key: string; name: string }>(
@@ -214,7 +213,7 @@ async function fieldsOf(tx: Queryable, p: ProposalRecord, stamps: FieldStamps) {
   const fields = {} as Record<DraftFieldName, DraftFieldView>
   for (const name of draftFieldNames) {
     const field = draftFields[name]
-    const stamp = stamps[field]
+    const stamp = p.fieldStamps[field]
     const mark = p.provenance?.fields[field]
     fields[name] = {
       value: values[name],
@@ -311,7 +310,6 @@ export function createDraftSession(options: {
         if (!(await principalFor(tx, personId)))
           return refusal("Your account isn't active, so nothing was saved.")
         const context = { ...(await draftVocabulary(tx)), today: clock.today() }
-        const proposals = createProposalsService(tx, clock, personId)
         if (args.draft_id === undefined) {
           const first = { ...args, text: args.text! }
           const cut = summaryCut(first)
@@ -359,7 +357,7 @@ export function createDraftSession(options: {
             status: 'draft_saved',
             saved: true,
             message: `Saved as draft ${saved.number}. It is the person's draft, and it is not sent.`,
-            ...(await shown(tx, saved, await proposals.stampsOf(saved.id))),
+            ...(await shown(tx, saved)),
             questions: derived.questions.map(({ field, question, options }) => ({
               field,
               question,
@@ -390,7 +388,7 @@ export function createDraftSession(options: {
           ...(args.window?.uncertain ? { datesUncertain: true } : {}),
           ...(principal.agent ? { agentId: principal.agent.id } : {}),
         })
-        const view = await shown(tx, result.proposal, result.stamps)
+        const view = await shown(tx, result.proposal)
         const conflicts = result.conflicts.map((name) => ({
           field: name,
           value: view.fields[name].value,
@@ -443,14 +441,14 @@ export function createDraftSession(options: {
   }
 
   /** The draft as a reply shows it: its id, revision, link, fields and what stops it being sent. */
-  async function shown(tx: Queryable, p: ProposalRecord, stamps: FieldStamps) {
+  async function shown(tx: Queryable, p: ProposalRecord) {
     const blocking = blockingOf(p)
     return {
       draft_id: p.id,
       number: p.number,
       revision: p.revision,
       url: p.state === 'draft' ? linkTo(p.id) : waitingAt(p.id),
-      fields: await fieldsOf(tx, p, stamps),
+      fields: await fieldsOf(tx, p),
       ...(blocking.length ? { blocking } : {}),
     }
   }
@@ -470,14 +468,13 @@ export function createDraftSession(options: {
         const p = await proposals.read(args.draft_id).catch(() => null)
         // Row security lets an owner read a suggestion sent to them: only the writer's own is theirs here.
         if (!ownDraft(p, personId)) return notFound
-        const stamps = await proposals.stampsOf(p.id)
         return resultFor({
           status: p.state === 'draft' ? 'draft' : 'sent',
           title: p.title,
-          ...(await shown(tx, p, stamps)),
+          ...(await shown(tx, p)),
           ...(args.since_revision === undefined
             ? {}
-            : { changed_since: changedSince(stamps, args.since_revision) }),
+            : { changed_since: changedSince(p.fieldStamps, args.since_revision) }),
           instructions: p.state === 'draft' ? readInstructions : sentInstructions,
         })
       })

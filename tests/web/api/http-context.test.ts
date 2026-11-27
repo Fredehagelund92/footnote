@@ -13,6 +13,7 @@ import {
   scopeTermsOf,
   logOf,
   serviceDay,
+  sessionOf,
   termHistoryOf,
   textFromService,
   textToService,
@@ -602,6 +603,44 @@ describe('a draft, as the Context list and its page read it', () => {
       words,
     )
     expect(fact).toMatchObject({ title: 'Untitled draft', kind: 'note', where: [], domain: '' })
+  })
+})
+
+describe('a draft the person writes with their agent, as the editor keeps up with it', () => {
+  const at = (s: number) => `2026-11-27T10:00:${String(s).padStart(2, '0')}.000Z`
+  it("names each field by the editor's words: the text is the summary and the detail", () => {
+    const session = sessionOf({
+      revision: 4,
+      fieldStamps: {
+        title: { by: 'person', revision: 2, at: at(2) },
+        summary: { by: 'agent', agent: 'Claude', revision: 1, at: at(1) },
+        body: { by: 'agent', agent: 'Claude', revision: 4, at: at(4) },
+        validity: { by: 'agent', agent: 'Claude', revision: 3, at: at(3) },
+        notToConclude: { by: 'agent', revision: 3, at: at(3) },
+      },
+      provenance: {
+        by: 'agent',
+        fields: { title: 'confirmed', body: 'prefilled', summary: 'derived', validity: 'derived' },
+        flags: [],
+      },
+    })
+    expect(session).toEqual({
+      revision: 4,
+      fields: {
+        title: { by: 'person', revision: 2, at: at(2), mark: 'confirmed' },
+        // The later of its two parts, with that part's mark.
+        text: { by: 'agent', agent: 'Claude', revision: 4, at: at(4), mark: 'prefilled' },
+        when: { by: 'agent', agent: 'Claude', revision: 3, at: at(3), mark: 'derived' },
+        dontConclude: { by: 'agent', revision: 3, at: at(3) },
+      },
+    })
+  })
+
+  it('has no field for a draft nobody changed since Footnote kept who does', () => {
+    expect(sessionOf({ revision: 1, fieldStamps: {}, provenance: null })).toEqual({
+      revision: 1,
+      fields: {},
+    })
   })
 })
 

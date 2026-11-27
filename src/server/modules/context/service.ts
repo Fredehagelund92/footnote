@@ -1177,18 +1177,21 @@ export function createContextService(
     version?: number | undefined
     reason?: string | undefined
     draftId?: string | undefined
+    revision?: number | undefined
     gapId?: string | undefined
   }): Promise<SavedDraft> {
     if (input.gapId) await createGapsService(tx).linkable(input.gapId)
     let saved
     if (input.draftId) {
-      const [row] = await tx.query<{ revision: number }>(
-        `select revision from proposals
+      const [row] = await tx.query(
+        `select 1 from proposals
           where id = $1 and subject = 'item' and state = 'draft' and proposer_id = cl_person()`,
         [input.draftId],
       )
       if (!row) throw new ORPCError('NOT_FOUND', { message: "This draft isn't here any more." })
-      saved = await proposals.save(input.draftId, row.revision, input.draft, input.reason, {
+      // Saved over the revision the words were written from: once the person's agent changed the
+      // draft since, nothing is saved, and the 409 carries the draft as it is now to merge with.
+      saved = await proposals.save(input.draftId, input.revision!, input.draft, input.reason, {
         newValues: input.newValues,
       })
     } else
