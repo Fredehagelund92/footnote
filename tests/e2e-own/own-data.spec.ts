@@ -180,6 +180,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   // inside the app, as its own links do: each load reads every shared read again, and a person
   // may make 600 calls a minute.
   await moveTo(page, '/context/new')
+  await button(page, 'Write it yourself').click()
   await page.getByRole('button', { name: /^Domain/ }).click()
   const noDomain = page.getByRole('dialog', { name: 'Domain' })
   await expect(noDomain.getByText('No domain yet')).toBeVisible()
