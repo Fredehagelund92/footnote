@@ -27,6 +27,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { WithAction } from '@/components/footnote/bits'
 import { Frame, FrameSection } from '@/components/footnote/frame'
 import { Loadable } from '@/components/footnote/load-state'
 import { SortMenu } from '@/components/footnote/list'
@@ -1084,16 +1085,23 @@ function NothingConnected() {
                 className="flex items-center gap-3 border-b px-3.5 py-2.5 last:border-b-0"
               >
                 {s.done ? (
-                  <CircleCheckIcon className="size-4 text-good" aria-hidden />
+                  <CircleCheckIcon className="size-4 shrink-0 text-good" aria-hidden />
                 ) : (
-                  <CircleDashedIcon className="size-4 text-muted-foreground" aria-hidden />
+                  <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 )}
-                <span className="min-w-0 flex-1 text-sm">
-                  <span className={cn(s.done && 'text-muted-foreground')}>{s.title}</span>
-                  {s.done && <span className="sr-only">, done</span>}
-                  {s.line && <span className="block text-xs text-muted-foreground">{s.line}</span>}
-                </span>
-                {s.act && <Button onClick={() => open('connect')}>Connect an agent</Button>}
+                <WithAction
+                  action={
+                    s.act && <Button onClick={() => open('connect')}>Connect an agent</Button>
+                  }
+                >
+                  <span className="block text-sm">
+                    <span className={cn(s.done && 'text-muted-foreground')}>{s.title}</span>
+                    {s.done && <span className="sr-only">, done</span>}
+                    {s.line && (
+                      <span className="block text-xs text-muted-foreground">{s.line}</span>
+                    )}
+                  </span>
+                </WithAction>
               </li>
             ))}
           </ol>

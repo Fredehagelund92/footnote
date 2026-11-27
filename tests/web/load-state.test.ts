@@ -48,12 +48,12 @@ describe('TableSkeleton', () => {
     expect(status).toHaveLength(1)
     expect(status[0]!.getAttribute('aria-label')).toBe('Loading')
     const bars = [...status[0]!.children] as HTMLElement[]
-    // Definitions' three bars as the page measures them: 45, 39 and 49px wide, 89, 57 and 81 on a phone.
+    // Definitions' three bars as the page measures them: 45, 39 and 49px wide, 89, 57 and 97 on a phone.
     const heights = bars.slice(0, 3).map((b) => [...b.classList].filter((c) => /h-\[/.test(c)))
     expect(heights).toEqual([
       ['h-[45px]', '@max-md/main:h-[89px]'],
       ['h-[39px]', '@max-md/main:h-[57px]'],
-      ['h-[49px]', '@max-md/main:h-[81px]'],
+      ['h-[49px]', '@max-md/main:h-[97px]'],
     ])
     // The header band, then the rows: 36px like the table's, two lines on a phone.
     expect(bars.slice(3).every((b) => b.classList.contains('h-9'))).toBe(true)

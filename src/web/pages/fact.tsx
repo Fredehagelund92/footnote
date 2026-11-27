@@ -337,19 +337,35 @@ export function FactPage({ id }: { id: string }) {
           <>
             {!isMobile && decides && (
               <>
-                <Button variant="ghost" onClick={() => decision.ask('close')}>
-                  Don't publish
-                </Button>
-                <Button variant="outline" onClick={() => decision.ask('return')}>
-                  Send back with a note
-                </Button>
-                <Button
-                  variant="outline"
-                  nativeButton={false}
-                  render={<a href={href(`/context/${fact.id}/edit`)} />}
-                >
-                  Edit
-                </Button>
+                {/* In a narrow header (a tablet) they fold into More, as on a phone, so the title
+                    keeps its words (data-narrow, styles/index.css). */}
+                <div data-narrow="wide" className="flex items-center gap-2 sm:gap-3">
+                  <Button variant="ghost" onClick={() => decision.ask('close')}>
+                    Don't publish
+                  </Button>
+                  <Button variant="outline" onClick={() => decision.ask('return')}>
+                    Send back with a note
+                  </Button>
+                  <Button
+                    variant="outline"
+                    nativeButton={false}
+                    render={<a href={href(`/context/${fact.id}/edit`)} />}
+                  >
+                    Edit
+                  </Button>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="outline" size="icon" aria-label="More" data-narrow="more" />
+                    }
+                  >
+                    <EllipsisIcon />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {waitingItems}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
             {decides && (
@@ -406,13 +422,14 @@ export function FactPage({ id }: { id: string }) {
                 {owner ? (
                   'Publish'
                 ) : (
-                  <>
+                  // One run of words: the button's gap would stand between two parts of it.
+                  <span>
                     Send
                     <span className="hidden sm:inline">
                       {' '}
                       to the owner of {domains[fact.domain]?.name}
                     </span>
-                  </>
+                  </span>
                 )}
               </Button>
             )}

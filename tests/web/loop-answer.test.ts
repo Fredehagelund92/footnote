@@ -440,7 +440,7 @@ describe("Ask's loop answer, state by state", () => {
   it('Outdated: the item stays in sight saying it may be out of date, and an admin can mark it still true', () => {
     const el = render(example('loop-stale'))
     expect(text(el)).toContain('Some of this may be old.')
-    expect(text(el.querySelector('[data-pinned]')!)).toContain('May be out of date')
+    expect(text(el.querySelector('[data-sources]')!)).toContain('May be out of date')
     expect([...el.querySelectorAll('button')].some((b) => text(b) === 'Mark it still true')).toBe(
       true,
     )
@@ -448,26 +448,23 @@ describe("Ask's loop answer, state by state", () => {
     expect(el.querySelector('time')?.getAttribute('dateTime')).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 
-  it('Sources: the first three as chips with their titles, the rest behind +n', () => {
+  it('Sources: one row each in the order of their numbers, the first three, the rest behind Show n more', () => {
     const turn = usedTurn(5)
     const el = render(turn)
-    const chips = el.querySelector('[data-sources]')!
-    // A chip's name is what it shows: its number, its title and the day it was checked.
-    const named = () => buttons(chips, /^Source \d+: /).map(nameOf)
-    expect(named().map((name) => name.replace(/, checked .+$/, ''))).toEqual(
-      turn.items.slice(0, 3).map((i) => `Source ${i.n}: ${i.title}`),
-    )
-    for (const name of named()) expect(name).toMatch(/, checked \d+ \w+ \d{4}$/)
-    for (const i of turn.items.slice(0, 3)) expect(text(chips)).toContain(i.title)
-    const more = buttons(chips, /^Show 2 more sources$/)
+    const sources = el.querySelector('[data-sources]')!
+    const rows = () => [...sources.querySelectorAll('ul[aria-label="Sources"] > li')]
+    // A row's number names its item; the row says the day it was checked at its end.
+    const named = () => rows().map((li) => nameOf(buttons(li, /^Source \d+: /)[0]!))
+    expect(named()).toEqual(turn.items.slice(0, 3).map((i) => `Source ${i.n}: ${i.title}`))
+    for (const li of rows()) expect(text(li)).toMatch(/checked \d+ \w+ \d{4}$/)
+    const more = buttons(sources, /^Show 2 more sources$/)
     expect(more).toHaveLength(1)
-    expect(text(more[0]!)).toBe('+2')
     act(() => (more[0] as HTMLElement).click())
     expect(named()).toHaveLength(5)
-    expect(buttons(chips, /more sources?$/)).toHaveLength(0)
+    expect(buttons(sources, /more sources?$/)).toHaveLength(0)
   })
 
-  it('Sources: pointing at a chip lights its marks in the words', () => {
+  it('Sources: pointing at a row lights its marks in the words', () => {
     const el = render(usedTurn(2))
     const chip = buttons(el.querySelector('[data-sources]')!, /^Source 2: /)[0] as HTMLElement
     const marks = () =>
@@ -483,7 +480,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(marks().every((m) => !m.className.includes('bg-foreground'))).toBe(true)
   })
 
-  it('Sources: an item due, out of date or archived is never a chip; it stays under them, one line each', () => {
+  it('Sources: an item due, out of date or archived is a row of the same shape, in its place, ending in why', () => {
     const base = usedTurn(5)
     const el = render({
       ...base,
@@ -498,25 +495,24 @@ describe("Ask's loop answer, state by state", () => {
       ),
     })
     const sources = el.querySelector('[data-sources]')!
-    const pinned = [...sources.querySelectorAll('[data-pinned] > li')]
-    expect(pinned.map((li) => buttons(li, /^Source \d+: /)[0]?.getAttribute('aria-label'))).toEqual(
-      [
-        expect.stringMatching(/^Source 2: /),
-        expect.stringMatching(/^Source 3: /),
-        expect.stringMatching(/^Source 5: /),
-      ],
-    )
-    expect(pinned.map(text)).toEqual([
+    const rows = [...sources.querySelectorAll('ul[aria-label="Sources"] > li')]
+    // In the order of the numbers: three that need a look are always shown, so with two live ones
+    // all five are, and nothing folds.
+    expect(rows.map((li) => buttons(li, /^Source \d+: /)[0]?.getAttribute('aria-label'))).toEqual([
+      expect.stringMatching(/^Source 1: /),
+      expect.stringMatching(/^Source 2: /),
+      expect.stringMatching(/^Source 3: /),
+      expect.stringMatching(/^Source 4: /),
+      expect.stringMatching(/^Source 5: /),
+    ])
+    expect(rows.map(text)).toEqual([
+      expect.stringMatching(/checked \d+ \w+ \d{4}$/),
       expect.stringContaining('Due for a check'),
       expect.stringContaining(answerLines.stale.long),
+      expect.stringMatching(/checked \d+ \w+ \d{4}$/),
       expect.stringContaining('Archived'),
     ])
-    // The live ones are the chips: sources 1 and 4.
-    const chips = [...sources.querySelectorAll('ul[aria-label="Sources"] > li')]
-    expect(chips.map((li) => nameOf(buttons(li, /^Source \d+: /)[0]!))).toEqual([
-      expect.stringMatching(/^Source 1: /),
-      expect.stringMatching(/^Source 4: /),
-    ])
+    expect(buttons(sources, /more sources?$/)).toHaveLength(0)
   })
 
   it('Sources: each pinned item due for a check has its own Mark it still true, naming its title', () => {
@@ -528,7 +524,9 @@ describe("Ask's loop answer, state by state", () => {
       ),
     }
     const el = render(turn)
-    const pinned = [...el.querySelectorAll('[data-sources] [data-pinned] > li')]
+    const pinned = [...el.querySelectorAll('[data-sources] li')].filter(
+      (li) => text(li).includes('Due for a check') || text(li).includes(answerLines.stale.long),
+    )
     expect(pinned).toHaveLength(2)
     const marks = pinned.map((li) => buttons(li, /^Mark it still true/))
     expect(marks.map((b) => b.map((m) => m.getAttribute('aria-label')))).toEqual([
@@ -544,9 +542,11 @@ describe("Ask's loop answer, state by state", () => {
     ])
   })
 
-  it('Sources: an answer whose items are all live pins none', () => {
+  it('Sources: an answer whose items are all live has no row that needs a look', () => {
     const el = render(usedTurn(4))
-    expect(el.querySelectorAll('[data-sources] [data-pinned]')).toHaveLength(0)
+    const rows = [...el.querySelectorAll('[data-sources] li')]
+    expect(rows.length).toBeGreaterThan(0)
+    for (const li of rows) expect(text(li)).toMatch(/checked \d+ \w+ \d{4}$/)
   })
 
   it("A list: the count bold with what it is out of, then the read's items as rows", () => {

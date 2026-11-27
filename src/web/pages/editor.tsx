@@ -34,7 +34,13 @@ import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
 import { conflictPath } from '@/model/conflicts'
-import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/editor-readiness'
+import {
+  holdLine,
+  readinessOf,
+  standingLine,
+  SUMMARY_LIMIT,
+  type Readiness,
+} from '@/model/editor-readiness'
 import {
   missingDates,
   validOfWhen,
@@ -165,6 +171,14 @@ const BLANK: Form = {
   causes: false,
   dontConclude: '',
 }
+
+/** What the foot says after "Not ready", where it has room for more than those words. */
+const notReadyWhy = (r: Readiness) =>
+  r.state === 'missing'
+    ? `: add ${r.missing.join(', ')}`
+    : r.state === 'too-long'
+      ? ': shorten the first paragraph'
+      : ': say how it relates'
 
 /** An item's scope by key; an item read only as names (a list row, a gap's draft) by its names. */
 const scopeOf = (f: Fact, vocabulary: Vocabulary) => f.scope ?? termsOfNames(f.where, vocabulary)
@@ -1092,13 +1106,14 @@ function Editor({
                 }
               >
                 {isSuggest ? (
-                  <>
+                  // One run of words: the button's gap would stand between two parts of it.
+                  <span>
                     Send
                     <span className="hidden sm:inline">
                       {' '}
                       to the owner of {domains[form.domain]?.name}
                     </span>
-                  </>
+                  </span>
                 ) : (
                   verb
                 )}
@@ -1190,8 +1205,8 @@ function Editor({
               </>
             ) : readiness.state === 'bad-link' ? (
               <>
-                <CircleDashedIcon className="size-3.5" aria-hidden />
-                <span>
+                <CircleDashedIcon className="size-3.5 shrink-0" aria-hidden />
+                <span className="truncate" title="Not ready: fix the link in Source">
                   Not ready<span className="hidden sm:inline">: fix the link in Source</span>
                 </span>
               </>
@@ -1202,16 +1217,11 @@ function Editor({
               </>
             ) : (
               <>
-                <CircleDashedIcon className="size-3.5" aria-hidden />
-                <span>
+                <CircleDashedIcon className="size-3.5 shrink-0" aria-hidden />
+                {/* One line in the bar: where the words are cut, they are whole on hover. */}
+                <span className="truncate" title={`Not ready${notReadyWhy(readiness)}`}>
                   Not ready
-                  <span className="hidden sm:inline">
-                    {readiness.state === 'missing'
-                      ? `: add ${readiness.missing.join(', ')}`
-                      : readiness.state === 'too-long'
-                        ? ': shorten the first paragraph'
-                        : ': say how it relates'}
-                  </span>
+                  <span className="hidden sm:inline">{notReadyWhy(readiness)}</span>
                 </span>
               </>
             )

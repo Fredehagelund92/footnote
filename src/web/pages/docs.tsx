@@ -202,6 +202,8 @@ function DocsHeader({
           <span className="h-4 w-px bg-border" aria-hidden />
           <span className="text-sm font-medium text-foreground">Docs</span>
         </a>
+        {/* Under 64rem the search is its magnifier and under 48rem the app's link goes, as on a
+            phone, so the header keeps to one row of a tablet's width and the tabs to their words. */}
         <nav aria-label="Documentation" className="ml-2 flex items-center gap-1 max-sm:hidden">
           {tabs.map((t) => (
             <a
@@ -209,7 +211,7 @@ function DocsHeader({
               href={t.href}
               aria-current={t.on ? 'page' : undefined}
               className={cn(
-                'rounded-md px-2.5 py-1 text-sm',
+                'rounded-md px-2.5 py-1 text-sm whitespace-nowrap',
                 t.on
                   ? 'bg-muted font-medium text-foreground'
                   : 'text-muted-foreground hover:text-foreground',
@@ -223,16 +225,16 @@ function DocsHeader({
           <button
             type="button"
             onClick={onSearch}
-            className="flex size-7 items-center justify-center gap-2 rounded-md border border-input bg-background text-sm text-muted-foreground outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-60 sm:justify-start sm:px-2.5"
+            className="flex size-7 items-center justify-center gap-2 rounded-md border border-input bg-background text-sm text-muted-foreground outline-none hover:border-foreground/40 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 lg:w-60 lg:justify-start lg:px-2.5"
           >
             <SearchIcon className="size-4 shrink-0" aria-hidden />
-            <span className="flex-1 text-left max-sm:hidden">Search the docs</span>
-            <Kbd className="max-sm:hidden">⌘K</Kbd>
-            <span className="sr-only sm:hidden">Search the docs</span>
+            <span className="flex-1 text-left max-lg:hidden">Search the docs</span>
+            <Kbd className="max-lg:hidden">⌘K</Kbd>
+            <span className="sr-only lg:hidden">Search the docs</span>
           </button>
           <a
             href={appHref('/inbox')}
-            className={cn(buttonVariants({ variant: 'outline' }), 'max-sm:hidden')}
+            className={cn(buttonVariants({ variant: 'outline' }), 'max-md:hidden')}
           >
             Open the app
             <ArrowUpRightIcon />

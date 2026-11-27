@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
-import { PersonAvatar } from '@/components/footnote/bits'
+import { PersonAvatar, WithAction } from '@/components/footnote/bits'
 import { AnotherNameFor, TypeTile } from '@/components/footnote/definition'
 import {
   Tooltip,
@@ -178,7 +178,7 @@ const toggle = <T,>(list: T[], v: T) =>
   list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 const plural = (n: number, one: string) =>
   `${n.toLocaleString('en-GB')} ${one}${n === 1 ? '' : 's'}`
-const COLS = 8
+const COLS = 7
 
 /* ---------- the list ---------- */
 
@@ -753,15 +753,18 @@ export function DefinitionsPage() {
             <span title={`${n} context ${n === 1 ? 'item' : 'items'} about it`}>{n}</span>
           )}
         </td>
-        <td className="w-8 px-1 align-middle">
-          {flag && (
-            <span title={flag.tip} className="inline-flex text-caution">
-              <flag.icon aria-hidden className="size-4" />
-              <span className="sr-only">{flag.tip}</span>
-            </span>
-          )}
+        {/* Its marks in one column: what needs a look first, then who wrote a term. */}
+        <td className="px-1 align-middle">
+          <span className="flex items-center gap-1">
+            {flag && (
+              <span title={flag.tip} className="inline-flex text-caution">
+                <flag.icon aria-hidden className="size-4" />
+                <span className="sr-only">{flag.tip}</span>
+              </span>
+            )}
+            {source}
+          </span>
         </td>
-        <td className="w-8 px-1 align-middle">{source}</td>
         <td className="w-11 pr-2 align-middle md:pr-4" onClick={(e) => e.stopPropagation()}>
           <RowMenu
             title={d.name}
@@ -1036,23 +1039,28 @@ export function DefinitionsPage() {
             </p>
             {/* Coverage first: how much of what agents can be asked has nothing written down. */}
             {view !== 'family' && uncovered.length > 0 && (
-              <p className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2.5 text-sm md:px-6">
+              <div className="flex shrink-0 items-center gap-3 border-b px-4 py-2.5 text-sm md:px-6">
                 <CircleDashedIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="font-medium">
-                    {uncovered.length.toLocaleString('en-GB')} of{' '}
-                    {measurable.length.toLocaleString('en-GB')} have no context yet.
-                  </span>{' '}
-                  <span className="text-muted-foreground">
-                    Agents asking about them get Not found.
-                  </span>
-                </span>
-                {!cues.includes('none') && (
-                  <Button variant="outline" onClick={() => void setCues(['none'])}>
-                    Show only these
-                  </Button>
-                )}
-              </p>
+                <WithAction
+                  action={
+                    !cues.includes('none') && (
+                      <Button variant="outline" onClick={() => void setCues(['none'])}>
+                        Show only these
+                      </Button>
+                    )
+                  }
+                >
+                  <p>
+                    <span className="font-medium">
+                      {uncovered.length.toLocaleString('en-GB')} of{' '}
+                      {measurable.length.toLocaleString('en-GB')} have no context yet.
+                    </span>{' '}
+                    <span className="text-muted-foreground">
+                      Agents asking about them get Not found.
+                    </span>
+                  </p>
+                </WithAction>
+              </div>
             )}
             {view === 'family' ? (
               <DefinitionFamilies
@@ -1108,11 +1116,8 @@ export function DefinitionsPage() {
                         onSort={onSort}
                         className="hidden w-20 min-w-20 px-2 text-right @xl/main:table-cell"
                       />
-                      <Th className="w-8 min-w-6 px-1">
-                        <span className="sr-only">Needs a look</span>
-                      </Th>
-                      <Th className="w-8 min-w-7 px-1">
-                        <span className="sr-only">Source</span>
+                      <Th className="w-12 px-1">
+                        <span className="sr-only">Needs a look, and who wrote it</span>
                       </Th>
                       <Th className="w-11 min-w-9 pr-2 md:min-w-11 md:pr-4">
                         <span className="sr-only">Actions</span>
@@ -1214,7 +1219,7 @@ export function DefinitionsPage() {
                         )}
                       />
                       <td className="hidden px-2 @xl/main:table-cell" />
-                      <td colSpan={3} className="pr-4 pl-1 text-right md:pr-6">
+                      <td colSpan={2} className="pr-4 pl-1 text-right md:pr-6">
                         {shown.filter((d) => flagOf(d)).length.toLocaleString('en-GB')} to look at
                       </td>
                     </tr>
