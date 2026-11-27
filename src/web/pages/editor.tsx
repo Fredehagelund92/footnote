@@ -1727,6 +1727,7 @@ function Editor({
                 label="Applies to"
                 value={form.where}
                 onChange={(w) => set('where', w)}
+                nothingPublished={noWords}
                 placeholder={
                   exampleDimension
                     ? `Add a metric, or a dimension such as ${exampleDimension}`

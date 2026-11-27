@@ -1618,7 +1618,7 @@ export function TryIt({ cardId, embedded }: { cardId?: string; embedded?: boolea
     if (!draft) return []
     const question =
       cardId === 'editor'
-        ? `What should I know about ${draft.where[0]?.toLowerCase() ?? 'this'}${draft.where[1] ? ` in ${draft.where[1]}` : ''}?`
+        ? `What should I know about ${draft.where[0] ?? 'this'}${draft.where[1] ? ` in ${draft.where[1]}` : ''}?`
         : card?.id === 'sug-agent'
           ? 'Why are Poland orders low this week?'
           : card?.id === 'sug-jon'

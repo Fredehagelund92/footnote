@@ -130,7 +130,7 @@ export function FactPeek({ id }: { id: string }) {
   const page = `/context/${fact.id}`
   const flag = flagCard?.flag && !done[flagCard.id] ? flagCard : undefined
   const stale = fact.status === 'Due for a check' || !!fact.outOfDate
-  const question = `What should I know about ${fact.where[0]?.toLowerCase() ?? 'this'}${fact.where[1] ? ` in ${fact.where[1]}` : ''}?`
+  const question = `What should I know about ${fact.where[0] ?? 'this'}${fact.where[1] ? ` in ${fact.where[1]}` : ''}?`
   const nComments = countComments(comments)
 
   // One decision at most, the most pressing first.

@@ -15,11 +15,9 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
-import { useConnected } from '@/lib/integrations'
 import { BACK_TO_APP } from '@/lib/brand'
 import { useMe } from '@/lib/workspace'
 
@@ -51,7 +49,6 @@ export const settingsSections = [
 ] as const
 
 export function SettingsNav({ section, close }: { section: string; close: () => void }) {
-  const connected = useConnected()
   const me = useMe()
   // Someone who isn't an admin sees the places they can use: an owner's domains and people, and their agents.
   const allowed = memberSections(me.owns.length > 0)
@@ -88,9 +85,6 @@ export function SettingsNav({ section, close }: { section: string; close: () => 
                       <item.icon />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
-                    {item.id === 'integrations' && connected.length > 0 && (
-                      <SidebarMenuBadge>{connected.length}</SidebarMenuBadge>
-                    )}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>

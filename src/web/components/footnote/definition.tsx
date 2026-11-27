@@ -381,7 +381,7 @@ export function SynonymTags({
           icon={conflict ? <TriangleAlertIcon aria-hidden /> : <EqualIcon aria-hidden />}
           title={conflict ? conflict.message : `${name}, added by ${by}`}
           onRemove={canEdit ? () => remove(name) : undefined}
-          removeLabel={`Remove the synonym ${name}`}
+          removeLabel={`Remove the other name ${name}`}
           className={cn(
             'max-w-48',
             (selected === name || (flash && same(flash, name))) && 'ring-2 ring-ring',

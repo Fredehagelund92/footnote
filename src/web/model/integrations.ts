@@ -61,6 +61,11 @@ export type Connector = {
    * semantic model in dbt, for one and for more. A view when unset.
    */
   group?: { one: string; many: string }
+  /**
+   * The group a definitions connector makes of its own, for metrics drawn from more than one of
+   * the tool's groups, with what people read in its place: dbt's `_shared`.
+   */
+  sharedGroup?: { id: string; label: string }
   /** The setting a definitions tool names a group's domain with, as people write it there. */
   domainField?: string
   /** The server setting that names where it reads from, when the server's operator sets it. */

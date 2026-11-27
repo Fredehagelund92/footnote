@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useDebounced } from '@/lib/mentions'
 import { anyValue, holds, termOfHit, termWords, toggleTerm } from '@/lib/scope'
+import { href } from '@/lib/router'
 import { cn } from '@/lib/utils'
 import type { ScopeTerm } from '@/model/items'
 import { valueKeyOf } from '@domain/values'
@@ -76,12 +77,14 @@ function ScopePicker({
   onToggle,
   announcement,
   inputRef,
+  nothingPublished,
 }: {
   label: string
   value: ScopeTerm[]
   onToggle: (t: ScopeTerm) => void
   announcement: string
   inputRef: React.RefObject<HTMLInputElement | null>
+  nothingPublished?: boolean
 }) {
   const ids = React.useId()
   const listId = `${ids}-list`
@@ -542,6 +545,18 @@ function ScopePicker({
                   Nothing in {within!.name} is called that. A new value is published with your item.
                 </p>
               </>
+            ) : nothingPublished ? (
+              // Nothing to find before a name is published: the names wait on a card in the Inbox.
+              <p className="text-muted-foreground">
+                No metric or dimension is published yet. Their names wait in the{' '}
+                <a
+                  href={href('/inbox')}
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  Inbox
+                </a>
+                .
+              </p>
             ) : typed ? (
               <>
                 <p className="font-medium">
@@ -579,12 +594,15 @@ export function ScopeField({
   value,
   onChange,
   placeholder,
+  nothingPublished,
 }: {
   labelId: string
   label: string
   value: ScopeTerm[]
   onChange: (terms: ScopeTerm[]) => void
   placeholder: string
+  /** No metric or dimension is published yet, so the list says where their names wait. */
+  nothingPublished?: boolean
 }) {
   const [open, setOpen] = React.useState(false)
   const [announcement, setAnnouncement] = React.useState('')
@@ -614,6 +632,7 @@ export function ScopeField({
       onToggle={toggle}
       announcement={announcement}
       inputRef={input}
+      nothingPublished={nothingPublished}
     />
   )
 
