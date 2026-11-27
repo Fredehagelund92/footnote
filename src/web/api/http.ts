@@ -181,7 +181,7 @@ export const wiredMethods = [
   'setFamilyUsual',
   'splitFamily',
   'joinFamily',
-  'getFamilySplits',
+  'getKeptApart',
   'addValues',
   'saveTerm',
   'addSynonym',
@@ -661,6 +661,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       ],
       /** The families split back into their metrics, as the catalogue has them. */
       splits: catalogue.splits,
+      /** The metrics of suggested families kept separate when published, as the catalogue has them. */
+      apart: catalogue.apart,
       /** The family Definitions lists by this name, as the catalogue has it. */
       familyOf: (name: string) =>
         catalogue.terms.find((t) => t.family && same(t.name, name)) ?? null,
@@ -1667,15 +1669,20 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (!synced) return []
       const family = glossary.familyOf(name)
       if (!family) return glossary.syncedHistory(synced)
-      const [versions, people, { familyMeaningHistoryOf }] = await Promise.all([
+      const [meanings, changes, people, { familyHistoryOf }] = await Promise.all([
         read(() => client.definitions.familyMeaningHistory({ key: family.key })),
+        read(() => client.definitions.familyChanges({ key: family.key })),
         readPeople(),
         import('./http-family-meaning'),
       ])
-      return [
-        ...familyMeaningHistoryOf(versions, people.name, (at) => serviceDay(at, calendar.shift)),
-        ...glossary.syncedHistory(synced),
-      ]
+      // Its tool wrote only a family it declares: any other, people made.
+      return familyHistoryOf(
+        meanings,
+        changes,
+        family.family?.declared ? glossary.syncedHistory(synced) : [],
+        people.name,
+        (at) => serviceDay(at, calendar.shift),
+      )
     },
     setFamilyMeaning: async ({ name, choice, words, revision }) => {
       const family = (await readGlossary()).familyOf(name)
@@ -1709,21 +1716,28 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return { metrics: split.metrics.map((m) => m.name), items: split.items }
     },
     joinFamily: async ({ name }) => {
-      const split = (await readGlossary()).splits.find((x) => same(x.name, name))
-      if (!split) throw new ApiError('not-found', `“${name}” isn't split any more.`)
-      const input = { key: split.key }
+      const glossary = await readGlossary()
+      const kept = [...glossary.splits, ...glossary.apart].find((x) => same(x.name, name))
+      if (!kept) throw new ApiError('not-found', `“${name}” isn't kept apart any more.`)
+      const input = { key: kept.key }
       await write('definitions.joinFamily', input, (o) => client.definitions.joinFamily(input, o))
     },
-    getFamilySplits: async () => {
+    getKeptApart: async () => {
       const [glossary, people] = await Promise.all([readGlossary(), readPeople()])
-      return glossary.splits.map((split) => ({
-        name: split.name,
-        ...(split.areaId ? { domain: split.areaId } : {}),
-        metrics: split.metrics.map((m) => m.name),
-        items: split.items,
-        by: people.name(split.personId),
-        on: dateLabel(serviceDay(split.at, calendar.shift)),
-      }))
+      return [
+        ...glossary.splits.map((split) => ({ ...split, how: 'split' as const })),
+        ...glossary.apart.map((kept) => ({ ...kept, how: 'apart' as const, items: 0 })),
+      ]
+        .sort((a, b) => b.at.localeCompare(a.at))
+        .map((kept) => ({
+          how: kept.how,
+          name: kept.name,
+          ...(kept.areaId ? { domain: kept.areaId } : {}),
+          metrics: kept.metrics.map((m) => m.name),
+          items: kept.items,
+          by: people.name(kept.personId),
+          on: dateLabel(serviceDay(kept.at, calendar.shift)),
+        }))
     },
     saveTerm: async ({ previous, term }) => {
       if (term.synced) return

@@ -20,6 +20,8 @@ grant insert, update on family_meanings to :api;
 grant insert, update on family_usual to :api;
 -- A family split back into its variants (FR-142): who split it, and joining them again.
 grant insert, update on family_splits to :api;
+-- Metrics that look alike, kept separate when published (FR-142): who did, and making them one family.
+grant insert, update on family_kept_apart to :api;
 grant execute on function edition_close_family(bigint, text) to :api;
 grant execute on function cl_family_area(text) to :api;
 -- Which records questions Ask was asked, by id and week only (FR-718).

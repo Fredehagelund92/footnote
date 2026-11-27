@@ -25,7 +25,7 @@ import type {
   Definition,
   DefinitionRelation,
   DefinitionType,
-  SplitFamily,
+  KeptApart,
   SynonymCheck,
 } from '@/lib/definitions'
 import type { Link } from '@/lib/links'
@@ -609,10 +609,13 @@ export interface FootnoteApi {
    * reaching agents through each, and are due for a check by their owners.
    */
   splitFamily: (input: { name: string }) => Promise<{ metrics: string[]; items: number }>
-  /** Makes a split family one family again, of the metrics it had: Undo, and later too. */
+  /**
+   * Makes a split family one family again, of the metrics it had (Undo, and later too), or metrics
+   * kept separate when they were published one family, by an owner of its domain or an admin.
+   */
   joinFamily: (input: { name: string }) => Promise<void>
-  /** The families split back into their metrics, newest first. */
-  getFamilySplits: () => Promise<SplitFamily[]>
+  /** The families split back into their metrics and the metrics kept separate, newest first. */
+  getKeptApart: () => Promise<KeptApart[]>
   /**
    * Adds values to a dimension, by its name: one, or a pasted list. An owner of its domain or an
    * admin publishes them at once; anyone else's wait for one on the Names card.
@@ -1040,7 +1043,7 @@ export const footnoteApiMethods = [
   'setFamilyUsual',
   'splitFamily',
   'joinFamily',
-  'getFamilySplits',
+  'getKeptApart',
   'addValues',
   'saveTerm',
   'addSynonym',
@@ -1172,7 +1175,7 @@ export const readMethods = [
   'getDefinitionRelations',
   'getBuiltFrom',
   'getDefinitionHistory',
-  'getFamilySplits',
+  'getKeptApart',
   'getInbox',
   'inboxPage',
   'getReviews',

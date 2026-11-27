@@ -6,6 +6,7 @@ import {
   CornerUpLeftIcon,
   FolderInputIcon,
   GitMergeIcon,
+  LayersIcon,
   LinkIcon,
   RefreshCwIcon,
   ShapesIcon,
@@ -67,6 +68,9 @@ const KIND_ICON: Record<VersionKind, LucideIcon> = {
   checked: CheckIcon,
   synced: RefreshCwIcon,
   conflict: SplitIcon,
+  family: LayersIcon,
+  split: SplitIcon,
+  joined: LayersIcon,
 }
 
 function Row({ version, onOpen }: { version: Version; onOpen: () => void }) {

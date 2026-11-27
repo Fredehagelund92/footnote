@@ -63,7 +63,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useQuery } from '@tanstack/react-query'
-import { definitionsPageQuery, familySplitsQuery } from '@/api/queries'
+import { definitionsPageQuery, keptApartQuery } from '@/api/queries'
 import { DefinitionFamilies } from '@/components/footnote/definition-families'
 import type { DomainId } from '@/model/items'
 import {
@@ -76,7 +76,7 @@ import {
   type Definition,
   type ListIndex,
   type DefinitionType,
-  type SplitFamily,
+  type KeptApart,
   useDefinitions,
   useGlossary,
 } from '@/lib/definitions'
@@ -193,7 +193,7 @@ function cueFor(d: Definition, index: ListIndex, synonymRows: boolean): Cue | un
 }
 
 const NO_DEFINITIONS: Definition[] = []
-const NO_SPLITS: SplitFamily[] = []
+const NO_KEPT_APART: KeptApart[] = []
 /** A line of the list: a group's heading, or a definition. */
 type Line = { heading: string; rows: Definition[]; open: boolean } | Definition
 const NO_LINES: Line[] = []
@@ -321,7 +321,7 @@ export function DefinitionsPage() {
   useListAddress('/definitions')
   const view = VIEW_OF[listOf(query.get('show'), VIEW_KEYS)[0] ?? 'all']
   const setView = (next: View) => changeQuery({ show: VIEW_KEY[next] })
-  const splits = useQuery(familySplitsQuery()).data ?? NO_SPLITS
+  const keptApart = useQuery(keptApartQuery()).data ?? NO_KEPT_APART
   const [text, setText] = useSearchWords()
   const domain: DomainId[] = query.get('domain')?.split(',').filter(Boolean) ?? []
   const setDomain = (next: DomainId[]) => changeQuery({ domain: listTo(next) })
@@ -513,7 +513,9 @@ export function DefinitionsPage() {
   const views: View[] = [
     'all',
     'metric',
-    ...(byView.family > 0 || splits.length > 0 || view === 'family' ? (['family'] as const) : []),
+    ...(byView.family > 0 || keptApart.length > 0 || view === 'family'
+      ? (['family'] as const)
+      : []),
     'dimension',
     'term',
   ]
@@ -1057,7 +1059,7 @@ export function DefinitionsPage() {
                 rows={rowsShown ? shown : NO_DEFINITIONS}
                 loading={!rowsShown}
                 onClear={clearAll}
-                splits={splits}
+                kept={keptApart}
                 meaningOf={(d) =>
                   d.family?.meaning?.words ? tidyMeaning(d.family.meaning.words, d.family.by) : null
                 }

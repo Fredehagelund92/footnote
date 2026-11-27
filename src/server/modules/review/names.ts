@@ -151,9 +151,10 @@ export function createNamesService(tx: Queryable) {
     const holders = await wordHolders(tx, [
       ...new Set([...wordsOf(draft), ...members.map((member) => termWord(memberName(member)))]),
     ])
-    // A split family keeps its key, to be joined again: a new family takes another.
+    // A split family keeps its key, to be joined again, and so does one whose metrics were kept
+    // apart, to be made one family: a new family takes another.
     const split = await tx.query<{ key: string }>(
-      'select distinct family_key as key from family_splits',
+      'select family_key as key from family_splits union select family_key from family_kept_apart',
     )
     const names = sourceNames(
       mapped,
@@ -456,6 +457,27 @@ export function createNamesService(tx: Queryable) {
         )
       : null
     if (recorded && edition) await recorded.decided(edition.label)
+    // A family's metrics kept separate: the next read keeps them apart by itself, as live
+    // metrics make no new family; Definitions lists them with the way to make them one family.
+    const apart = input.accept.flatMap(({ key, apart }) => (apart ? [found(key)] : []))
+    if (apart.length && edition)
+      await tx.query(
+        `insert into family_kept_apart(family_key,name,area_id,variants,kept_by,kept_in)
+         select e->>'key',e->>'name',e->>'areaId',array(select jsonb_array_elements_text(e->'variants')),
+                cl_person(),(select seq from editions where label=$2)
+           from jsonb_array_elements($1::jsonb) as e`,
+        [
+          JSON.stringify(
+            apart.map((family) => ({
+              key: family.key,
+              name: family.name,
+              areaId: family.areaId,
+              variants: family.family!.variants.map((variant) => variant.key),
+            })),
+          ),
+          edition.label,
+        ],
+      )
     await decidedValues.decided(edition?.label ?? null)
     if (under && mapViews) {
       const views = new Map<string, Set<string>>()

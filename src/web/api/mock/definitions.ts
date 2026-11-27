@@ -1,4 +1,4 @@
-import type { FamilyMeaningVersion } from '@contract/catalogue'
+import type { FamilyChange, FamilyMeaningVersion } from '@contract/catalogue'
 import { REPOSITORY_URL } from '@domain/brand'
 import { familyMeaning } from '@domain/family-meaning'
 import { FAMILY_WORDS_MAX, type FamilyMeaningChoice } from '@domain/family-meaning-line'
@@ -6,10 +6,11 @@ import { termWord } from '@domain/terms'
 import { DEMO_DEFINITIONS, demoTool } from './data/integrations'
 import { dimensions, metrics } from './data/world'
 import { term, TERMS } from './data/terms'
-import { familyDefinitions, variantDefinitions } from './data/variants'
+import { familyDefinitions, tipAmounts, variantDefinitions } from './data/variants'
 import { dbtFolderDefinitions } from './data/dbt-folder'
 import { dimensionTermOf, valuesOf, valuesPublished } from './scope'
 import { ApiError } from '@/api/errors'
+import { parseDay } from '@/lib/dates'
 import { today } from '@/lib/today'
 import type { DomainId } from '@/model/items'
 import { dateLabel } from '@/model/validity'
@@ -19,7 +20,7 @@ import {
   goesWith,
   meaningOf,
   type Definition,
-  type SplitFamily,
+  type KeptApart,
   type SynonymCheck,
 } from '@/lib/definitions'
 
@@ -144,8 +145,18 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
   let all = seed
   /** Every choice of what a family means, by the family's name, newest last. */
   const meanings = new Map<string, Chosen[]>()
-  /** The families split back into their metrics, newest first, each with the entry it was. */
-  let splits: { family: Definition; split: SplitFamily }[] = []
+  /**
+   * The metrics kept apart, newest first, each with the family entry it was or would be: families
+   * split back into their metrics, and the metrics of suggested families kept separate when published.
+   */
+  let splits: { family: Definition; split: KeptApart }[] = []
+  /** Who split each family and made it one again, by the family's name, oldest first. */
+  const changes = new Map<string, FamilyChange[]>()
+  const changed = (name: string, kind: FamilyChange['kind'], by: string) =>
+    changes.set(name, [
+      ...(changes.get(name) ?? []),
+      { kind, personId: by, at: new Date().toISOString() },
+    ])
   /** What `list` gave last while a tool was off, kept so the same list is given again. */
   let shown: { all: Definition[]; off: string; list: Definition[] } | null = null
 
@@ -203,16 +214,35 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
      * to the demo's own, which dbt reads too.
      */
     loadFamilies() {
-      if (!all.some((d) => d.family))
-        all = [
-          ...all,
-          ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) =>
-            withMeaning(
-              { ...d, connector: FAMILIES_DEFINITIONS, source: FAMILIES_DEFINITIONS },
-              meanings.get(d.name)?.at(-1),
-            ),
-          ),
-        ]
+      if (all.some((d) => d.family)) return
+      const read = (d: Definition): Definition => ({
+        ...d,
+        connector: FAMILIES_DEFINITIONS,
+        source: FAMILIES_DEFINITIONS,
+      })
+      const tips = tipAmounts(demoTool(FAMILIES_DEFINITIONS))
+      all = [
+        ...all,
+        ...familyDefinitions(demoTool(FAMILIES_DEFINITIONS)).map((d) =>
+          withMeaning(read(d), meanings.get(d.name)?.at(-1)),
+        ),
+        ...tips.metrics.map(read),
+      ]
+      splits = [
+        ...splits,
+        {
+          family: withMeaning(read(tips.family), undefined),
+          split: {
+            how: 'apart',
+            name: tips.family.name,
+            domain: 'sales',
+            metrics: tips.metrics.map((m) => m.name),
+            items: 0,
+            by: 'Jon Abara',
+            on: '20 Nov 2026',
+          },
+        },
+      ]
     },
 
     /**
@@ -310,10 +340,12 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
         updated: d.updated,
       }))
       all = [...all.filter((x) => x !== d), ...metrics]
+      changed(d.name, 'split', by)
       splits = [
         {
           family: d,
           split: {
+            how: 'split',
             name: d.name,
             ...(d.domain ? { domain: d.domain } : {}),
             metrics: metrics.map((m) => m.name),
@@ -327,23 +359,53 @@ export function createDefinitions(on: (connector: string) => boolean = () => tru
       return metrics.map((m) => m.name)
     },
 
-    /** Makes a split family one family again, of the metrics it had, while they stand as they were. */
-    joinFamily(name: string) {
+    /**
+     * Makes a split family one family again, of the metrics it had, or metrics kept separate when
+     * published one family, while they stand as they were.
+     */
+    joinFamily(name: string, by: string) {
       const entry = splits.find((x) => same(x.split.name, name))
-      if (!entry) throw new ApiError('not-found', `“${name}” isn't split any more.`)
+      if (!entry) throw new ApiError('not-found', `“${name}” isn't kept apart any more.`)
       const metrics = entry.split.metrics
       if (!metrics.every((m) => all.some((x) => same(x.name, m) && !x.family)))
         throw new ApiError(
           'conflict',
-          `The metrics of ${entry.split.name} changed since it was split, so they can't be one family again here.`,
+          entry.split.how === 'split'
+            ? `The metrics of ${entry.split.name} changed since it was split, so they can't be one family again here.`
+            : `The metrics of ${entry.split.name} changed since they were kept separate, so they can't be one family here.`,
         )
       all = [...all.filter((x) => !metrics.some((m) => same(x.name, m))), entry.family]
       splits = splits.filter((x) => x !== entry)
+      changed(entry.family.name, 'joined', by)
     },
 
-    /** The families split back into their metrics, newest first, with their items counted now. */
-    splits: (itemsAbout: (family: string) => number): SplitFamily[] =>
-      splits.map(({ split }) => ({ ...split, items: itemsAbout(split.name) })),
+    /** The metrics kept apart, newest first, with the items about a split family counted now. */
+    splits: (itemsAbout: (family: string) => number): KeptApart[] =>
+      splits.map(({ split }) => ({
+        ...split,
+        items: split.how === 'split' ? itemsAbout(split.name) : 0,
+      })),
+
+    /**
+     * Who published a family, split it and made it one again, newest first, as the service says
+     * it: one made of metrics kept apart was first published by that join.
+     */
+    familyChanges(name: string, publishedBy: string): FamilyChange[] {
+      const d = all.find((x) => x.family && same(x.name, name))
+      if (!d) return []
+      const made = changes.get(d.name) ?? []
+      const first: FamilyChange[] =
+        made[0]?.kind === 'joined'
+          ? []
+          : [
+              {
+                kind: 'published',
+                personId: publishedBy,
+                at: new Date(parseDay(d.updated) ?? Date.parse(today())).toISOString(),
+              },
+            ]
+      return [...first, ...made].reverse()
+    },
 
     /** Every choice of what a family means, newest first. */
     familyMeaningHistory: (name: string) =>

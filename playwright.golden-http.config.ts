@@ -140,6 +140,9 @@ export default defineConfig({
     /\/j104-family-split\.spec\.ts$/,
     /\/j105-definitions-families\.spec\.ts$/,
     /\/j106-family-member\.spec\.ts$/,
+    // J140 makes the mock's ?demo=families Tip amount, kept apart, one family; the service records
+    // a family kept apart, lists it and makes it one in tests/integration/declared-families.test.ts.
+    /\/j140-kept-apart\.spec\.ts$/,
     // J110 mentions a family of the mock's ?demo=families in Ask; the service's catalogue gives the
     // app the same family, which tests/web/lib/mentions.test.ts finds in Ask's '@' list.
     /\/j110-ask-mention-family\.spec\.ts$/,

@@ -56,7 +56,7 @@ export const queryKeys = {
   comments: ['getComments'] as const,
   definitions: ['getDefinitions'] as const,
   definitionsPage: ['definitionsPage'] as const,
-  familySplits: ['getFamilySplits'] as const,
+  keptApart: ['getKeptApart'] as const,
   definitionPage: (name: string) => ['definitionPage', name.toLowerCase()] as const,
   definitionPages: ['definitionPage'] as const,
   definitionRelations: (name: string) => ['getDefinitionRelations', name.toLowerCase()] as const,
@@ -230,8 +230,8 @@ export const definitionsQuery = () =>
 export const definitionsPageQuery = () =>
   queryOptions({ queryKey: queryKeys.definitionsPage, queryFn: () => api.definitionsPage() })
 
-export const familySplitsQuery = () =>
-  queryOptions({ queryKey: queryKeys.familySplits, queryFn: () => api.getFamilySplits() })
+export const keptApartQuery = () =>
+  queryOptions({ queryKey: queryKeys.keptApart, queryFn: () => api.getKeptApart() })
 
 export const definitionPageQuery = (name: string) =>
   queryOptions({
@@ -554,14 +554,14 @@ const items: QueryKey[] = [
   queryKeys.conflictLists,
   queryKeys.conflictPairs,
   // A split family counts the items still about it.
-  queryKeys.familySplits,
+  queryKeys.keptApart,
 ]
 /** What a change to comments makes stale: the threads, and the Inbox's mentions. */
 const comments: QueryKey[] = [queryKeys.comments, queryKeys.inbox, queryKeys.inboxPage]
 const definitions: QueryKey[] = [
   queryKeys.definitions,
   queryKeys.definitionsPage,
-  queryKeys.familySplits,
+  queryKeys.keptApart,
   queryKeys.definitionPages,
   queryKeys.definitionRelationLists,
   queryKeys.builtFromLists,

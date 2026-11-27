@@ -243,7 +243,20 @@ export function planTerms(
   for (const d of defs) {
     const skip = (why: string, reason: string) =>
       skipped.push({ id: d.name, title: d.name, why, reason })
-    if (d.synced)
+    // A family Footnote found is no tool's to change: it is ended by Split, on its page (S5).
+    if (action === 'delete' && d.family && !d.family.declared)
+      skip(
+        'a family',
+        me.admin || (!!d.domain && !!domains[d.domain]?.owners.includes(me.name))
+          ? "A family isn't deleted: split it on its page, and each of its metrics stays."
+          : `A family isn't deleted: ${d.domain && domains[d.domain] ? `owners of ${domains[d.domain]!.name}` : 'an admin'} can split it on its page, and each of its metrics stays.`,
+      )
+    else if (action === 'delete' && d.family?.declared)
+      skip(
+        `declared in ${d.tool ?? 'its tool'}`,
+        `${d.tool ?? 'Its tool'} declares it as one family: change it there.`,
+      )
+    else if (d.synced)
       skip(
         `read from ${d.tool ?? 'its tool'}`,
         `Metrics and dimensions are read-only here: change them in ${d.tool ?? 'their tool'}.`,

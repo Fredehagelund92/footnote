@@ -179,6 +179,30 @@ describe('terms', () => {
     expect(planTerms('delete', [webshop], tomas, domains).skipped[0]!.why).toBe('owned by Sales')
   })
 
+  it('refuses to delete a family: one Footnote found is split on its page, a declared one changed in its tool', () => {
+    const definitions = createDefinitions()
+    definitions.loadFamilies()
+    const all = definitions.list()
+    // Names that look alike, published as one family: there is nothing in dbt to change (S5).
+    const fees = findDefinition(all, 'Partner fees')!
+    const buyers = findDefinition(all, 'Active buyers')!
+    expect(planTerms('delete', [fees], sofia, domains).skipped).toEqual([
+      expect.objectContaining({
+        why: 'a family',
+        reason: "A family isn't deleted: split it on its page, and each of its metrics stays.",
+      }),
+    ])
+    expect(planTerms('delete', [fees], tomas, domains).skipped[0]!.reason).toBe(
+      "A family isn't deleted: owners of Sales can split it on its page, and each of its metrics stays.",
+    )
+    expect(planTerms('delete', [buyers], sofia, domains).skipped).toEqual([
+      expect.objectContaining({
+        why: 'declared in dbt',
+        reason: 'dbt declares it as one family: change it there.',
+      }),
+    ])
+  })
+
   it("takes a term's synonyms with it, and Undo brings all of them back", () => {
     const definitions = createDefinitions()
     const before = definitions.list()

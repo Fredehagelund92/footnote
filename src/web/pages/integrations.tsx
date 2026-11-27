@@ -126,6 +126,7 @@ import {
   integrationLeftOutQuery,
   integrationPageQuery,
   integrationsPageQuery,
+  keptApartQuery,
   namesQuery,
   useWrite,
 } from '@/api/queries'
@@ -239,6 +240,8 @@ const familyState = {
     text: 'text-muted-foreground',
   },
   alike: { words: 'Look alike: waits for a yes', dot: 'bg-caution', text: 'text-caution' },
+  split: { words: 'Split into metrics', dot: 'bg-muted-foreground', text: 'text-muted-foreground' },
+  apart: { words: 'Kept separate', dot: 'bg-muted-foreground', text: 'text-muted-foreground' },
 } as const
 
 /**
@@ -265,11 +268,13 @@ function MakeFamily({ c, open }: { c: Connector; open: boolean }) {
 
 /**
  * The families of metrics a definitions source holds (FR-142, D1), always shown (A): those its
- * reads found that wait for an owner on the Names card, and those published, each with how it was
- * found, and where they are decided. With none, what a family is, and how to make one in the tool.
+ * reads found that wait for an owner on the Names card, those published, and those kept apart,
+ * each with how it was found, and where they are decided. With none, what a family is, and how to
+ * make one in the tool.
  */
 function SourceFamilies({ source, c, metrics }: { source: string; c: Connector; metrics: number }) {
   const names = useQuery(namesQuery())
+  const keptApart = useQuery(keptApartQuery()).data
   const definitions = useDefinitions()
   const domains = useDomains()
   const n = (x: number) => x.toLocaleString('en-GB')
@@ -279,6 +284,10 @@ function SourceFamilies({ source, c, metrics }: { source: string; c: Connector; 
       name.family && name.source === source && name.state !== 'left_out' && !name.linked.length,
   )
   const published = definitions.filter((d) => d.family && d.source === source)
+  // Kept apart: a family split since, or metrics kept separate when published, read from here.
+  const apart = (keptApart ?? []).filter((kept) =>
+    kept.metrics.some((m) => definitions.some((d) => d.name === m && d.source === source)),
+  )
   const all = [
     ...waiting.map((name) => ({ found: name.family!.found, variants: name.family!.variants })),
     ...published.map((d) => ({ found: d.family!.found, variants: d.family!.variants.length })),
@@ -289,7 +298,7 @@ function SourceFamilies({ source, c, metrics }: { source: string; c: Connector; 
       Families
     </span>
   )
-  if (!all.length)
+  if (!all.length && !apart.length)
     return (
       <PanelSection
         title={title}
@@ -359,35 +368,53 @@ function SourceFamilies({ source, c, metrics }: { source: string; c: Connector; 
           ? familyState.alike
           : familyState.waiting,
     })),
+    ...apart.map((kept) => ({
+      key: `a:${kept.how}:${kept.name}`,
+      name: kept.name,
+      page: href('/definitions', { show: 'families' }),
+      // Kept apart, it is no family: how one would be found is not kept.
+      found: '–',
+      // No family holds them: they are metrics, each on its own.
+      variants: `${n(kept.metrics.length)} metrics`,
+      state: kept.how === 'split' ? familyState.split : familyState.apart,
+    })),
   ]
   return (
     <PanelSection
       title={title}
-      description={`${familyCount(all.length)} in ${n(inFamilies)} of ${n(metrics)} metrics. Each is one metric in Definitions and for agents, with its variants.`}
+      description={
+        all.length
+          ? `${familyCount(all.length)} in ${n(inFamilies)} of ${n(metrics)} metrics. Each is one metric in Definitions and for agents, with its variants.`
+          : `None of ${tool}'s metrics is in a family now. Each kept apart below stands on its own.`
+      }
       action={
-        published.length > 0 ? (
+        published.length > 0 || apart.length > 0 ? (
           <Button variant="outline" onClick={() => navigate('/definitions', { show: 'families' })}>
             See them in Definitions
           </Button>
         ) : undefined
       }
     >
-      <FrameBody className="flex flex-col gap-4">
-        <FamiliesFound found={found} tool={tool} />
-        {waiting.length > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-frame bg-primary/8 px-4 py-3 text-sm">
-            <p className="min-w-0 flex-1 basis-64">
-              {waiting.length === all.length
-                ? `${waiting.length === 1 ? 'It waits' : `All ${n(waiting.length)} wait`}`
-                : `${familyCount(waiting.length)} ${waiting.length === 1 ? 'waits' : 'wait'}`}{' '}
-              in the Inbox for {whose}. Nothing is published before.{rest}
-            </p>
-            <Button onClick={() => navigate('/inbox', { card: 'names:waiting', show: 'families' })}>
-              Review families
-            </Button>
-          </div>
-        )}
-      </FrameBody>
+      {all.length > 0 && (
+        <FrameBody className="flex flex-col gap-4">
+          <FamiliesFound found={found} tool={tool} />
+          {waiting.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-frame bg-primary/8 px-4 py-3 text-sm">
+              <p className="min-w-0 flex-1 basis-64">
+                {waiting.length === all.length
+                  ? `${waiting.length === 1 ? 'It waits' : `All ${n(waiting.length)} wait`}`
+                  : `${familyCount(waiting.length)} ${waiting.length === 1 ? 'waits' : 'wait'}`}{' '}
+                in the Inbox for {whose}. Nothing is published before.{rest}
+              </p>
+              <Button
+                onClick={() => navigate('/inbox', { card: 'names:waiting', show: 'families' })}
+              >
+                Review families
+              </Button>
+            </div>
+          )}
+        </FrameBody>
+      )}
       <DataTable
         head={['Family', 'How it was found', 'Variants', 'State']}
         rows={rows.map((row) => [

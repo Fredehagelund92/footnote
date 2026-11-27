@@ -94,15 +94,21 @@ export type Family = {
   declared?: string
 }
 
-/** A family split back into its metrics, while it stands (FR-142): Definitions lists it. */
-export type SplitFamily = {
-  /** Its name when it was split. */
+/**
+ * Metrics kept apart, while they stand so (FR-142): a family split back into its metrics, or the
+ * metrics of a family Footnote suggested that an owner kept separate when publishing them.
+ * Definitions lists them, with the way to make them one family.
+ */
+export type KeptApart = {
+  /** A family split after it was published, or metrics kept separate when they were. */
+  how: 'split' | 'apart'
+  /** The family's name: when it was split, or as it was suggested. */
   name: string
-  /** The domain it was in: its owners and admins may make it one family again. */
+  /** The domain it was in: its owners and admins may make them one family. */
   domain?: DomainId
-  /** Its former variants, each a metric of its own now, by name. */
+  /** The metrics, each a metric of its own now, by name. */
   metrics: string[]
-  /** Live context items still about it, which reach agents through its metrics. */
+  /** Live context items still about a split family, which reach agents through its metrics. */
   items: number
   by: string
   on: string

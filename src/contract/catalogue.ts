@@ -257,11 +257,30 @@ export const catalogueSplitSchema = z.object({
   at: z.string(),
 })
 
+/**
+ * The metrics of a family Footnote suggested, kept separate when an owner published them, while
+ * they stand so (FR-142, D1): Definitions lists them, with the way to make them one family.
+ */
+export const catalogueApartSchema = z.object({
+  /** The key the family was suggested by, `group:tip_amount`, which makes them one family. */
+  key: z.string(),
+  /** The name the family was suggested by. */
+  name: z.string(),
+  /** The domain the family was in; its owners and admins may make them one family. */
+  areaId: z.nullable(z.string()),
+  /** The metrics kept separate, each by its key and name. */
+  metrics: z.array(z.object({ key: z.string(), name: z.string() })),
+  personId: z.string(),
+  at: z.string(),
+})
+
 export const catalogueSchema = z.object({
   /** Metrics and families first, then dimensions, each by name; a family's variants are in it. */
   terms: z.array(catalogueTermSchema),
   /** The families split back into their metrics, newest first. */
   splits: z.array(catalogueSplitSchema),
+  /** The metrics of suggested families kept separate when published, newest first. */
+  apart: z.array(catalogueApartSchema),
   sources: z.array(catalogueSourceSchema),
   /** Metrics with no domain, against all metrics (CON-516). */
   coverage: z.object({ metrics: z.number(), withoutDomain: z.number() }),
@@ -366,8 +385,18 @@ export const familySplitSchema = z.object({
   items: z.number(),
 })
 
-/** A split family made one again, of the metrics it had. */
+/** A split family made one again, of the metrics it had, or metrics kept apart made one. */
 export const familyJoinedSchema = z.object({ edition: z.string(), name: z.string() })
+
+/** What happened to a family's metrics: published as one family, split, made one family. */
+export const familyChangeKinds = ['published', 'split', 'joined'] as const
+
+/** One change to what a family holds, by whom and when (FR-142). */
+export const familyChangeSchema = z.object({
+  kind: z.enum(familyChangeKinds),
+  personId: z.string(),
+  at: z.string(),
+})
 
 /** One choice of what a family means, as it was made. */
 export const familyMeaningVersionSchema = z.object({
@@ -384,6 +413,8 @@ export type CatalogueVariant = z.infer<typeof catalogueVariantSchema>
 export type CatalogueDefinition = z.infer<typeof catalogueDefinitionSchema>
 export type CatalogueSource = z.infer<typeof catalogueSourceSchema>
 export type CatalogueSplit = z.infer<typeof catalogueSplitSchema>
+export type CatalogueApart = z.infer<typeof catalogueApartSchema>
+export type FamilyChange = z.infer<typeof familyChangeSchema>
 export type CatalogueValue = z.infer<typeof catalogueValueSchema>
 export type DefinitionRelation = z.infer<typeof definitionRelationSchema>
 export type DefinitionRelations = z.infer<typeof definitionRelationsSchema>

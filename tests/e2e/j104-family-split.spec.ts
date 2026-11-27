@@ -7,7 +7,7 @@ import { expect, go, moveTo, signInAs, test } from './go.ts'
 // family was found. One dialog says what happens: each variant a metric of its own, the family's
 // meaning kept in its history, the one context item about it applying to both and its owners each
 // given a card, questions that name only the family asked back, and the next read keeping them
-// apart. Split, the family is in the Families tab's Split into metrics, its variants are metrics,
+// apart. Split, the family is in the Families tab's Kept apart, its variants are metrics,
 // and the item reads as about both, due. On the Inbox card Keep for both points it at both, and
 // Make them one family again joins them. A family dbt declares is never split here: its page says
 // where it is declared, links the file and copies the key. At 390 and 1440 wide, in light and
@@ -82,7 +82,7 @@ for (const { name, width, height } of widths) {
         await expect(toasts(page)).toContainText(
           'Each is in Definitions now. 1 context item waits for a check by its owner.',
         )
-        const splits = page.getByRole('region', { name: 'Split into metrics' })
+        const splits = page.getByRole('region', { name: 'Kept apart' })
         await expect(splits).toContainText(`${ACCRUED} (EUR) and ${ACCRUED} (USD), split by you on`)
         await expect(splits).toContainText(
           '1 context item is still about the family, due for a check.',
@@ -120,7 +120,7 @@ for (const { name, width, height } of widths) {
 
         await splits.getByRole('button', { name: 'Make them one family again' }).click()
         await expect(toasts(page)).toContainText(`${ACCRUED} is one family again`)
-        await expect(splits).toHaveCount(0)
+        await expect(splits.getByRole('listitem').filter({ hasText: ACCRUED })).toHaveCount(0)
         await expect(page.getByRole('button', { name: ACCRUED, exact: true })).toBeVisible()
       })
 

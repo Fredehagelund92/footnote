@@ -18,7 +18,7 @@ import { today } from '@/lib/today'
 import { createComments } from './comments'
 import { createAlerts } from './data/alerts'
 import { historyOf, historyOfDefinition, versionPairOf } from './data/history'
-import { familyMeaningHistoryOf } from '../http-family-meaning'
+import { familyHistoryOf } from '../http-family-meaning'
 import { connectorById, oneOnWords } from '@/model/catalogue'
 import { DEMO_DEFINITIONS, demoTool, demoTools } from './data/integrations'
 import { linksOf } from '@/lib/links'
@@ -1219,16 +1219,16 @@ export function createMockApi() {
         const d = definitions.list().find((x) => x.name.toLowerCase() === name.toLowerCase())
         if (!d) return []
         const read = historyOfDefinition(d, d.tool ?? demoTool(DEMO_DEFINITIONS))
-        return d.family
-          ? [
-              ...familyMeaningHistoryOf(
-                definitions.familyMeaningHistory(d.name),
-                (by) => by,
-                (at) => at.slice(0, 10),
-              ),
-              ...read,
-            ]
-          : read
+        if (!d.family) return read
+        // As the service: people made the family, unless its tool declares it. The demo's dbt was
+        // connected, and its families published, by Ravi Kapoor, an admin.
+        return familyHistoryOf(
+          definitions.familyMeaningHistory(d.name),
+          definitions.familyChanges(d.name, 'Ravi Kapoor'),
+          d.family.declared ? read : [],
+          (by) => by,
+          (at) => at.slice(0, 10),
+        )
       }),
     setFamilyMeaning: (input) =>
       now(() => {
@@ -1310,9 +1310,9 @@ export function createMockApi() {
         if (split && !person.admin && !(split.domain && person.owns.includes(split.domain)))
           throw new ApiError(
             'forbidden',
-            `Only an owner of ${domainOf(split.domain ?? '')?.name ?? 'its domain'} or an admin can make them one family again.`,
+            `Only an owner of ${domainOf(split.domain ?? '')?.name ?? 'its domain'} or an admin can make them one family${split.how === 'split' ? ' again' : ''}.`,
           )
-        definitions.joinFamily(name)
+        definitions.joinFamily(name, me())
         const restored: string[] = []
         // The items it left due are about the family again, and their cards go.
         for (const fact of factsOf(state).filter(
@@ -1343,7 +1343,7 @@ export function createMockApi() {
             !factsOf(state).some((f) => f.id === c.factId && f.status === 'Live'),
         )
       }),
-    getFamilySplits: () =>
+    getKeptApart: () =>
       now(() =>
         definitions.splits(
           (family) =>

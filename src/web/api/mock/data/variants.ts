@@ -286,6 +286,56 @@ export function partnerPairs(tool: string): Definition[] {
   ]
 }
 
+/**
+ * Tips in EUR and GBP, whose names alone look alike: Jon Abara, an owner of Sales, kept them
+ * separate when he published them (D1), so each is a metric of its own, and the family Footnote
+ * suggested for them is what they would be made one of.
+ */
+export function tipAmounts(tool: string): { metrics: Definition[]; family: Definition } {
+  const variants = [
+    {
+      name: 'Tip amount (EUR)',
+      values: ['EUR'],
+      description: 'Tips riders are given on orders paid in EUR.',
+      ref: refOf('Tip amount EUR'),
+    },
+    {
+      name: 'Tip amount (GBP)',
+      values: ['GBP'],
+      description: 'Tips riders are given on orders paid in GBP.',
+      ref: refOf('Tip amount GBP'),
+    },
+  ]
+  const base = (): Omit<Definition, 'name' | 'definition'> => ({
+    type: 'metric',
+    synced: true,
+    tool,
+    sourceNames: [],
+    domain: 'sales',
+    group: 'orders',
+    updated: '22 Oct 2026',
+  })
+  return {
+    metrics: variants.map((v) => ({
+      ...base(),
+      name: v.name,
+      definition: v.description,
+      ref: v.ref,
+    })),
+    family: {
+      ...base(),
+      name: 'Tip amount',
+      definition: '',
+      family: {
+        by: ['Currency'],
+        found: 'names',
+        derivations: derivationsOf(variants.map((v) => ({ ...v, said: v.name }))),
+        variants,
+      },
+    },
+  }
+}
+
 /** The 5,000 metrics, each read-only from the definitions tool. */
 export function variantDefinitions(tool: string): Definition[] {
   return measures.flatMap((label) =>
