@@ -176,8 +176,10 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   ).toBeVisible()
 
   // Out of order, as a new owner may go: New context before any domain exists. The Domain field
-  // says there is none yet and leads to adding one, where it opened on an empty box.
-  await page.goto('/context/new')
+  // says there is none yet and leads to adding one, where it opened on an empty box. Moved to
+  // inside the app, as its own links do: each load reads every shared read again, and a person
+  // may make 600 calls a minute.
+  await moveTo(page, '/context/new')
   await page.getByRole('button', { name: /^Domain/ }).click()
   const noDomain = page.getByRole('dialog', { name: 'Domain' })
   await expect(noDomain.getByText('No domain yet')).toBeVisible()
@@ -187,7 +189,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   )
   await shot('10-no-domain-yet')
   await page.keyboard.press('Escape')
-  await page.goto('/inbox')
+  await moveTo(page, '/inbox')
 
   // Connect dbt from the checklist: the fixture's file at an address, through all five steps.
   await button(page, 'Connect').click()
@@ -455,13 +457,13 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByText(/ of 4 done$/)).toHaveCount(0)
 
   // Nobody has signed an agent in: the access key is no sign-in, so the line still says so.
-  await page.goto('/settings/agents')
+  await moveTo(page, '/settings/agents')
   await expect(page.getByRole('status').filter({ hasText: 'Not connected yet' })).toBeVisible()
   await expect(page.getByText('1 access key.')).toBeVisible()
 
   // People pick who they are here, and nobody invited is on that list: Invite people says so
   // before a link is sent, and so does the toast with the link.
-  await page.goto('/settings/people')
+  await moveTo(page, '/settings/people')
   await button(page, 'Invite people').click()
   const invite = page.getByRole('dialog', { name: 'Invite people' })
   await expect(invite.getByRole('note')).toContainText(
@@ -479,7 +481,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
 
   // About our business: Start from the guide puts the shape of the text there, never another
   // company's words, and saves nothing.
-  await page.goto('/settings/general')
+  await moveTo(page, '/settings/general')
   await button(page, 'Start from the guide').click()
   const about = page.getByRole('textbox', { name: 'About our business' })
   await expect(about).toHaveText('We sell [what] to [whom], in [where], through [which channels].')
