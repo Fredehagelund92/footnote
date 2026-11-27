@@ -310,13 +310,15 @@ describe('tool switch and client policies', () => {
         'select tool, enabled from tool_config order by tool',
       )
     ).rows
-    // The five tools of the agent contract, every one on: suggest_context too (FR-121).
+    // The seven tools of the agent contract, every one on: those that write too (FR-121).
     expect(tools.map((t) => t.tool)).toEqual([
       'find_context',
       'get_context',
       'read_context',
+      'read_draft',
       'report',
       'suggest_context',
+      'write_draft',
     ])
     expect(tools.filter((t) => !t.enabled)).toEqual([])
   })

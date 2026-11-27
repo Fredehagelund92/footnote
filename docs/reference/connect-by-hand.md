@@ -144,7 +144,7 @@ A job that runs on its own, with nobody there to approve a sign-in, uses an acce
    Authorization: Bearer hak_...
    ```
 
-A key reads published context and sends reports. It names no person, so it never sends a suggestion: a key can never have suggest_context.
+A key reads published context and sends reports. It names no person, so it never sends a suggestion or writes a draft: a key can never have suggest_context, write_draft or read_draft.
 
 It shows in Connected agents by its name, with who made it and when it was last used. Rename it, or switch its tools off for a while, in its Details. A key has no end date, and it keeps working after the person who made it leaves, so delete it when the job ends. Deleting it ends it at once.
 

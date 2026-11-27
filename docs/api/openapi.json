@@ -29742,7 +29742,9 @@
                                 "find_context",
                                 "read_context",
                                 "report",
-                                "suggest_context"
+                                "suggest_context",
+                                "write_draft",
+                                "read_draft"
                               ],
                               "type": "string"
                             },
@@ -30524,7 +30526,9 @@
                       "find_context",
                       "read_context",
                       "report",
-                      "suggest_context"
+                      "suggest_context",
+                      "write_draft",
+                      "read_draft"
                     ],
                     "type": "string"
                   },
@@ -43905,7 +43909,7 @@
     "/drafts": {
       "post": {
         "operationId": "drafts.save",
-        "summary": "Save as draft: the words kept as your own draft, which only you can read and agents never get, to finish later (FR-139)",
+        "summary": "Save as draft: the words kept as your own draft, which only you and the agent you write with can read and no answer uses, to finish later (FR-139)",
         "tags": [
           "library"
         ],

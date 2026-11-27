@@ -198,7 +198,7 @@ describe('an AI agent drafts context for the person it acts for', () => {
     })
   })
 
-  it('drops the mark of a field the person changes before submitting', async () => {
+  it('marks a field the person changes before submitting confirmed', async () => {
     const wire = await mcpClient(await personToken())
     const reply = await wire.callTool(
       // No source: the review checks keep it as the person's draft.
@@ -240,7 +240,7 @@ describe('an AI agent drafts context for the person it acts for', () => {
     const after = (await (await author.api(`/proposals/${id}`)).json()) as {
       provenance: { fields: Record<string, string> }
     }
-    expect(after.provenance.fields.title).toBeUndefined()
+    expect(after.provenance.fields.title).toBe('confirmed')
     expect(after.provenance.fields.summary).toBe('prefilled')
   })
 

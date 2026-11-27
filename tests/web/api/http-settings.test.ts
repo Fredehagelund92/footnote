@@ -200,6 +200,8 @@ describe('the switches', () => {
         read_context: false,
         report: false,
         suggest_context: false,
+        write_draft: false,
+        read_draft: false,
       },
       pause: { all: false, domain: 'area_marketing' },
     })

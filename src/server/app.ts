@@ -11,6 +11,7 @@ import { registerApiRoutes } from './http/api.ts'
 import { registerHealthRoutes } from './http/health.ts'
 import { registerMetricsRoutes } from './http/metrics.ts'
 import { registerRateLimit } from './http/rate-limit.ts'
+import { createDraftSession } from './mcp/draft-session.ts'
 import { createDraftTool } from './mcp/draft-tool.ts'
 import { createServingReads } from './mcp/reads.ts'
 import { registerMcpRoutes, type McpDependencies } from './mcp/gateway.ts'
@@ -182,6 +183,8 @@ export function buildApp({
       app,
       {
         drafts: createDraftTool({ database, clock, web: origins[0] ?? null }),
+        // The person's own drafts, written and read with their agent, as them.
+        sessions: createDraftSession({ database, clock, web: origins[0] ?? null }),
         // Where the agent may publish without review, for its instructions at connect (FR-421).
         permissions: ({ personId, agentId }) =>
           database.transaction(personId, (tx) => publishingPermissions(tx, agentId)),

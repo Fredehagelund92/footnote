@@ -10,7 +10,13 @@ import type {
 import { type Draft, formatOutcome, textFindings } from '../../../domain/draft.ts'
 import { defaultRiskFor, type ItemKind } from '../../../domain/item.ts'
 import { parseMentions } from '../../../domain/mentions.ts'
-import { keepMarks, type Provenance } from '../../../domain/provenance.ts'
+import { fieldStampsSchema, stampsAfter, type FieldStamps } from '../../../domain/draft-stamps.ts'
+import {
+  keepMarks,
+  type FieldMark,
+  type MarkedField,
+  type Provenance,
+} from '../../../domain/provenance.ts'
 import { addWorkingDays } from '../../../domain/review.ts'
 import { isCalendarDate, shiftDate } from '../../../domain/validity.ts'
 import { addedValues, type NewValues } from '../../../domain/values.ts'
@@ -220,6 +226,14 @@ function proposalsService(
       throw new ORPCError('CONFLICT', {
         message: 'Another owner is already reviewing this suggestion.',
       })
+  }
+  /** Who last changed each field of a proposal, and at which revision (draft-stamps.ts). */
+  async function stampsOf(id: string): Promise<FieldStamps> {
+    const [row] = await tx.query<{ stamps: unknown }>(
+      'select field_stamps as stamps from proposals where id=$1',
+      [id],
+    )
+    return fieldStampsSchema.parse(row?.stamps ?? {})
   }
   async function event(p: ProposalRecord, kind: string, data: Record<string, unknown> = {}) {
     await tx.query(
@@ -449,6 +463,7 @@ function proposalsService(
   return {
     get,
     getItem,
+    stampsOf,
     /** One proposal as the API returns it to the reader. */
     async read(id: string) {
       const [p] = await forReaders(tx, [await get(id)])
@@ -528,9 +543,18 @@ function proposalsService(
         throw new ORPCError('CONFLICT', {
           message: 'That version of this context item does not exist, so nothing was saved.',
         })
+      const provenance = options.provenance?.(draft) ?? null
+      // Every field it holds is its writer's: the person's, or their agent's. A read's is nobody's.
+      const stamps = author
+        ? {}
+        : stampsAfter({}, {}, draft, {
+            by: provenance?.by === 'agent' ? 'agent' : 'person',
+            revision: 1,
+            at: clock.now().toISOString(),
+          })
       const [p] = await tx.query<ProposalRecord>(
-        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id,new_values)
-        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16,$17)
+        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id,new_values,field_stamps)
+        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16,$17,$18)
         returning ${fields}`,
         [
           action,
@@ -541,7 +565,7 @@ function proposalsService(
           JSON.stringify(checks.findings),
           input.derivedFrom ?? null,
           options.importBatchId ?? null,
-          options.provenance ? JSON.stringify(options.provenance(draft)) : null,
+          provenance ? JSON.stringify(provenance) : null,
           options.answersRound ?? null,
           reason,
           author?.source ?? null,
@@ -550,6 +574,7 @@ function proposalsService(
           options.agentId ?? null,
           written?.id ?? null,
           JSON.stringify(input.newValues ?? []),
+          JSON.stringify(stamps),
         ],
       )
       await event(p!, 'created', {})
@@ -557,7 +582,8 @@ function proposalsService(
     },
     /**
      * `reason` left out keeps the stored one; null or empty clears it. `newValues` left out keeps
-     * the values its writer added in "Applies to".
+     * the values its writer added in "Applies to". `agent` is set when the person's agent wrote it
+     * (write_draft), with the mark of each field it wrote; only `patchAgentDraft` passes it.
      */
     async save(
       id: string,
@@ -567,7 +593,17 @@ function proposalsService(
       {
         byDomainOwners = false,
         newValues: newValuesInput,
-      }: { byDomainOwners?: boolean; newValues?: NewValues | undefined } = {},
+        agent,
+      }: {
+        byDomainOwners?: boolean
+        newValues?: NewValues | undefined
+        agent?: {
+          marks: Partial<Record<MarkedField, FieldMark>>
+          datesUncertain?: boolean
+          /** The agent that wrote it, named in the history of this change. */
+          id?: string
+        }
+      } = {},
     ) {
       const p = await current(id, revision)
       await writerOr(p, byDomainOwners)
@@ -580,10 +616,17 @@ function proposalsService(
       const reason = reasonInput === undefined ? p.reason : changeReason(reasonInput, p.action)
       const newValues = newValuesInput ?? p.newValues
       const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId, newValues)
-      // A field the person changed is theirs from now on: it loses the agent's mark (FR-121).
-      const provenance = p.provenance ? keepMarks(p.provenance, p.draft, draft) : null
+      // A field the person changed is theirs from now on: it is marked confirmed (FR-121). One
+      // their agent changed takes the agent's mark.
+      const provenance = p.provenance ? keepMarks(p.provenance, p.draft, draft, agent) : null
+      // The update below is the next revision (proposals_guard): each changed field is stamped with it.
+      const stamps = stampsAfter(await stampsOf(id), p.draft, draft, {
+        by: agent ? 'agent' : 'person',
+        revision: p.revision + 1,
+        at: clock.now().toISOString(),
+      })
       await tx.query(
-        'update proposals set draft=$2,area_id=$3,draft_saved_at=now(),draft_findings=$4,provenance=$5,reason=$6,new_values=$7 where id=$1',
+        'update proposals set draft=$2,area_id=$3,draft_saved_at=now(),draft_findings=$4,provenance=$5,reason=$6,new_values=$7,field_stamps=$8 where id=$1',
         [
           id,
           JSON.stringify(draft),
@@ -592,10 +635,19 @@ function proposalsService(
           provenance ? JSON.stringify(provenance) : null,
           reason,
           JSON.stringify(newValues),
+          JSON.stringify(stamps),
         ],
       )
       const saved = await get(id)
-      await event(saved, 'saved')
+      // The history names the agent on each of its writes, with the person as the actor (FR-420),
+      // also on a draft the person started themselves.
+      const [writer] = agent?.id
+        ? await tx.query<{ name: string }>('select name from auth.agents where id=$1', [agent.id])
+        : []
+      await event(
+        writer ? { ...saved, agent: { id: agent!.id!, name: writer.name } } : saved,
+        agent ? 'updated' : 'saved',
+      )
       return saved
     },
     async submit(

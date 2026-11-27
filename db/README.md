@@ -201,10 +201,12 @@ the area's maintainers until a decision.
 
 ## Agent drafts
 
-`proposals.provenance` is set on a draft an AI agent (the MCP tool
-`suggest_context`, FR-121) wrote for the person: who wrote it, a mark per field and
-the flags of its words; null for a draft a person wrote. `suggest_context` is on in
-`tool_config` unless an admin switched it off, and the setting `limits.agent_drafts` allows each person 10 in 24 hours and 20
+`proposals.provenance` is set on a draft an AI agent (the MCP tools
+`suggest_context` and `write_draft`, FR-121, FR-145) wrote for the person: who wrote it, a mark per field and
+the flags of its words; null for a draft a person wrote. `proposals.field_stamps` keeps who last
+changed each field, the person or their agent, at which revision and when, so an agent's
+`write_draft` from an older revision leaves the fields the person changed since. Both tools are on in
+`tool_config` unless an admin switched one off, and the setting `limits.agent_drafts` allows each person 10 new drafts in 24 hours and 20
 waiting. `cl_similar_items` is an owner-run read of the accepted items whose title or summary reads like a
 draft (pg_trgm's `similarity`, which the API role does not hold). The limits count the person's
 own `mcp` proposals, so no counter names anyone, and the person is named only where every proposal

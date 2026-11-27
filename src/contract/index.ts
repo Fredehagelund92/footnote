@@ -1112,7 +1112,7 @@ export const contract = {
         path: '/drafts',
         tags: ['library'],
         summary:
-          'Save as draft: the words kept as your own draft, which only you can read and agents never get, to finish later (FR-139)',
+          'Save as draft: the words kept as your own draft, which only you and the agent you write with can read and no answer uses, to finish later (FR-139)',
       })
       .errors(notFound)
       .input(saveDraftInputSchema)
