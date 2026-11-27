@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { ArrowLeftRightIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/footnote/fold'
@@ -197,38 +196,86 @@ export type FrameColumn = {
 }
 
 /**
- * A table's scroller under a section's header row. While the table is wider than the page it scrolls
- * sideways, says so above it (a cut column looks like the table's end), and takes a tab stop so
- * the keys can scroll it too (WCAG 2.1.1).
+ * A table under a section's header row, or, where the frame is narrower than its columns need,
+ * its rows stacked (`stacked`): a column cut by the frame read as the table's end, and words cut
+ * mid-word as broken. It goes by what the table needs, so a phone, a tablet and a panel beside it
+ * all stack it, and it is a table again once there is room.
  */
-export function FrameScroll({ children }: { children: React.ReactNode }) {
+export function FrameFit({
+  children,
+  stacked,
+}: {
+  children: React.ReactNode
+  stacked: React.ReactNode
+}) {
   const [el, setEl] = React.useState<HTMLDivElement | null>(null)
-  const [scrolls, setScrolls] = React.useState(false)
+  // The least width the table took, once it was too wide; 0 while it fits.
+  const [need, setNeed] = React.useState(0)
   React.useLayoutEffect(() => {
     if (!el) return
-    const measure = () => setScrolls(el.scrollWidth > el.clientWidth)
+    const measure = () => {
+      const table = el.querySelector(':scope > table')
+      if (table) {
+        const width = table.getBoundingClientRect().width
+        if (width > el.clientWidth + 0.5) setNeed(width)
+      } else if (el.clientWidth >= need) setNeed(0)
+    }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     for (const child of el.children) ro.observe(child)
     return () => ro.disconnect()
-  }, [el])
+  }, [el, need])
   return (
-    <>
-      {scrolls && (
-        <p className="flex items-center gap-1.5 border-t px-4 py-2 text-xs text-muted-foreground md:px-5">
-          <ArrowLeftRightIcon className="size-3.5 shrink-0" aria-hidden />
-          Wider than the page: scroll sideways for every column.
-        </p>
-      )}
-      <div
-        ref={setEl}
-        tabIndex={scrolls ? 0 : undefined}
-        className="overflow-x-auto border-t outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
-      >
-        {children}
-      </div>
-    </>
+    <div ref={setEl} className="border-t">
+      {need ? stacked : children}
+    </div>
+  )
+}
+
+/**
+ * A table's rows stacked, for a frame too narrow for its columns: a block a row, its first cell on
+ * top, then each other cell under its column's name, so nothing is cut and nothing slides sideways.
+ */
+export function FrameStacked({
+  columns,
+  rows,
+  label,
+}: {
+  columns: FrameColumn[]
+  rows: React.ReactNode[][]
+  label?: string
+}) {
+  return (
+    <ul aria-label={label} className="text-sm">
+      {rows.map((r, i) => (
+        <li key={i} className="border-t px-4 py-3 first:border-t-0 md:px-5">
+          {/* A cell that keeps to one line in a column may wrap here. */}
+          <div className={cn('wrap-break-word *:whitespace-normal', columns[0]?.cell)}>{r[0]}</div>
+          <dl className="mt-1.5 grid grid-cols-(--cols-lead-auto) items-baseline gap-x-3 gap-y-1">
+            {r.slice(1).map((cell, j) => {
+              const c = columns[j + 1]
+              if (cell === null || cell === undefined || cell === '' || !c) return null
+              return (
+                <React.Fragment key={j}>
+                  <dt className={cn('text-muted-foreground', c.srOnly && 'sr-only')}>{c.label}</dt>
+                  <dd
+                    className={cn(
+                      'min-w-0 wrap-break-word',
+                      c.srOnly && 'col-span-2',
+                      c.align === 'right' && 'tabular-nums',
+                      c.cell,
+                    )}
+                  >
+                    {cell}
+                  </dd>
+                </React.Fragment>
+              )
+            })}
+          </dl>
+        </li>
+      ))}
+    </ul>
   )
 }
 
@@ -243,7 +290,7 @@ export function FrameTable({
   label?: string
 }) {
   return (
-    <FrameScroll>
+    <FrameFit stacked={<FrameStacked columns={columns} rows={rows} label={label} />}>
       <table className="w-full text-sm" aria-label={label}>
         <thead>
           <tr className="bg-band text-xs text-muted-foreground">
@@ -281,7 +328,7 @@ export function FrameTable({
           ))}
         </tbody>
       </table>
-    </FrameScroll>
+    </FrameFit>
   )
 }
 

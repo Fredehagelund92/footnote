@@ -13,7 +13,15 @@
   /* The hairline under a row, as --shadow-hairline-bottom, which named here would add itself to the
      first-load stylesheet. */
   --time-rule: inset 0 -1px 0 var(--border);
-  --time-bar: color-mix(in oklab, var(--foreground) 7%, var(--background));
+
+  /* A fill lets a little through: the today line runs under a bar's words, faint, never over them. */
+  --time-veil: 85%;
+  --time-bar: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--foreground) 7%, var(--background)) var(--time-veil),
+    transparent
+  );
+  --time-ground: color-mix(in oklab, var(--background) var(--time-veil), transparent);
   --time-bar-line: color-mix(in oklab, var(--foreground) 16%, var(--background));
   --time-bar-edge: inset 0 0 0 1px var(--time-bar-line);
   --time-due-line: color-mix(in oklab, var(--caution) 55%, var(--background));
@@ -24,7 +32,11 @@
       color-mix(in oklab, var(--caution) 28%, transparent) 0 2px,
       transparent 2px 6px
     ),
-    color-mix(in oklab, var(--caution) 8%, var(--background));
+    color-mix(
+      in oklab,
+      color-mix(in oklab, var(--caution) 8%, var(--background)) var(--time-veil),
+      transparent
+    );
   --time-ended-edge: inset 0 0 0 1px var(--time-bar-line), inset -2px 0 0 var(--muted-foreground);
   --time-waiting-line: 1.5px dashed var(--input);
   --time-future: repeating-linear-gradient(
@@ -41,16 +53,22 @@
   --time-pad: calc(var(--spacing) * 1.5);
   --time-bar-h: calc(100% - 2 * var(--spacing));
   --time-name-left: calc(var(--time-gut) + var(--spacing));
+  --time-label-left: var(--time-gut);
 
   isolation: isolate;
 }
 
+/* With no names' column, the axis's words stop short of the screen's edge, as the groups' do. */
 .time-view[data-narrow] {
   --time-gut: 0rem;
+  --time-label-left: var(--time-inset);
 }
 
-/* The scroller holds the axis, the names down the side and the lanes. */
+/* The scroller holds the axis, the names down the side and the lanes. It keeps how far it is
+   scrolled across in --time-sl, so a bar's name can give up what has gone past the edge. */
 .time-scroller {
+  --time-sl: 0px;
+
   position: relative;
   overflow: auto;
   overscroll-behavior-x: contain;
@@ -108,7 +126,7 @@
 .time-tick-top > span,
 .time-tick > span {
   position: sticky;
-  left: var(--time-gut);
+  left: var(--time-label-left);
   display: inline-block;
   padding-inline: var(--time-inset);
 }
@@ -161,7 +179,7 @@
 }
 
 /* The names' column stays blank below the last row: no line or bar shows through it. The today
-   line is drawn over the bars and the groups' bands, and under the names. */
+   line is drawn over the groups' bands and under the bars, which come after it, and the names. */
 .time-gut-fill {
   position: sticky;
   left: 0;
@@ -251,6 +269,7 @@
   text-align: left;
   outline: none;
   cursor: pointer;
+  z-index: 1;
 }
 
 .time-bar {
@@ -264,12 +283,12 @@
 }
 
 .time-bar[data-state='ended'] {
-  background: var(--background);
+  background: var(--time-ground);
   box-shadow: var(--time-ended-edge);
 }
 
 .time-bar[data-state='waiting'] {
-  background: transparent;
+  background: var(--time-ground);
   box-shadow: none;
   border: var(--time-waiting-line);
 }
@@ -294,13 +313,20 @@
 }
 
 .time-bar:hover {
-  --time-bar: color-mix(in oklab, var(--foreground) 11%, var(--background));
+  --time-bar: color-mix(
+    in oklab,
+    color-mix(in oklab, var(--foreground) 11%, var(--background)) var(--time-veil),
+    transparent
+  );
 }
 
 .time-beside {
   background: transparent;
 }
 
+/* A name sticks to the left edge while its box, the bar or the box beside it, is on screen, and
+   gives up from its end what of the box has gone past that edge (--time-x is where the box starts),
+   so it is cut with an ellipsis, never by the edge. */
 .time-name {
   position: sticky;
   left: var(--time-name-left);
@@ -308,18 +334,23 @@
   align-items: center;
   gap: var(--time-pad);
   min-width: 0;
-  max-width: 100%;
+  max-width: calc(
+    100% - clamp(0px, var(--time-sl) + var(--time-name-left) - var(--time-x, 0px), 100%)
+  );
   padding-inline: var(--time-pad);
   white-space: nowrap;
 }
 
+/* The words give up their room first, the mark only once they are gone: a box leaving the screen
+   takes its name with it, never leaving a sliver of a word or a mark. */
 .time-name > span {
+  flex-shrink: 1000;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .time-name > svg {
-  flex-shrink: 0;
+  min-width: 0;
   width: 0.875rem;
   height: 0.875rem;
   color: var(--muted-foreground);
@@ -328,6 +359,11 @@
 .time-bar[data-state='due'] .time-name > svg,
 .time-beside[data-state='due'] .time-name > svg {
   color: var(--caution);
+}
+
+.time-beside .time-name {
+  border-radius: var(--radius-xs);
+  background: var(--time-ground);
 }
 
 .time-beside:hover .time-name {

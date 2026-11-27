@@ -146,7 +146,8 @@ import {
   FrameBody,
   FrameNumbers,
   FramePage,
-  FrameScroll,
+  FrameFit,
+  FrameStacked,
   FrameSection,
 } from '@/components/footnote/frame'
 
@@ -462,8 +463,11 @@ function DataTable({
   rows: React.ReactNode[][]
   align?: ('left' | 'right')[]
 }) {
+  const stacked = (
+    <FrameStacked columns={head.map((label, i) => ({ label, align: align?.[i] }))} rows={rows} />
+  )
   return (
-    <FrameScroll>
+    <FrameFit stacked={stacked}>
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-band text-xs text-muted-foreground">
@@ -498,7 +502,7 @@ function DataTable({
           ))}
         </tbody>
       </table>
-    </FrameScroll>
+    </FrameFit>
   )
 }
 

@@ -13,6 +13,10 @@ import { expect, go, newContext, signInAs, test } from './go.ts'
 // More, and the editor's foot keeps to its bar (P10). A small avatar has its initials (P11). Ask's
 // sources are one row shape (J70, P12). The documentation's header fits a tablet (P13). On a phone
 // a button beside a few words goes under them (P14).
+//
+// Wave 3: in Context by time the today line runs under the bars and their names, and a name whose
+// box starts off the screen keeps its start in view, cut with an ellipsis, never by the edge (P15).
+// A table too wide for its frame stacks its rows, so Advanced and Google Drive cut nothing (P16).
 
 /** Where an element is on the screen. */
 const boxOf = (page: Page, selector: string) =>
@@ -577,5 +581,202 @@ test.describe('wave 2, on a phone', () => {
     const step = page.getByRole('listitem').filter({ hasText: 'Write what you know' })
     const words = step.getByText(/^Two sentences/)
     expect((await words.boundingBox())!.height).toBeLessThanOrEqual(2 * 20)
+  })
+})
+
+/** Each name in By time whose box is on screen: where it is against the box and the screen's edge. */
+const timeNames = (page: Page) =>
+  page.locator('.time-scroller').evaluate((scroller) => {
+    const view = scroller.getBoundingClientRect()
+    const gut = scroller.querySelector('.time-lane-gut')?.getBoundingClientRect().width ?? 0
+    const edge = view.left + gut
+    return [...scroller.querySelectorAll<HTMLElement>('.time-name')].flatMap((name) => {
+      const box = name.parentElement!.getBoundingClientRect()
+      if (box.right <= edge + 1 || box.left >= view.right) return []
+      const r = name.getBoundingClientRect()
+      return [
+        {
+          title: name.textContent ?? '',
+          fromEdge: r.left - edge,
+          pastBox: r.right - box.right,
+          startsOff: box.left < edge - 1,
+        },
+      ]
+    })
+  })
+
+/** What is drawn on top where the today line crosses a name's words, for each name it crosses. */
+const overTheLine = (page: Page) =>
+  page.locator('.time-scroller').evaluate((scroller) => {
+    const view = scroller.getBoundingClientRect()
+    const line = scroller.querySelector('.time-today')!.getBoundingClientRect()
+    const x = line.left + line.width / 2
+    return [...scroller.querySelectorAll<HTMLElement>('.time-name > span')]
+      .map((words) => words.getBoundingClientRect())
+      .filter((r) => r.left < x - 2 && r.right > x + 2 && r.width > 0)
+      .filter((r) => r.top >= view.top && r.bottom <= view.bottom)
+      .map((r) => {
+        const top = document.elementFromPoint(x, r.top + r.height / 2)
+        return top?.closest('.time-today') ? 'line' : top?.closest('.time-name') ? 'name' : 'other'
+      })
+  })
+
+/** A colour's opacity, as the browser resolves it. */
+const alphaOf = (color: string) => Number(/\/\s*([\d.]+)\)$/.exec(color)?.[1] ?? 1)
+
+for (const [width, height] of [
+  [1440, 900],
+  [768, 1024],
+  [390, 844],
+] as const)
+  test(`by time at ${width} px, the today line runs under the names, and none is cut by the edge (P15)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height })
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/context?view=time')
+      const scroller = page.locator('.time-scroller')
+      await expect(scroller.locator('.time-today')).toBeVisible()
+      await expect.poll(async () => (await timeNames(page)).length).toBeGreaterThan(3)
+
+      // The line once drew over the bars: "28 | April 2026", "Fra | nce".
+      const crossed = await overTheLine(page)
+      expect(crossed.length, colorScheme).toBeGreaterThan(0)
+      expect(
+        crossed.filter((top) => top !== 'name'),
+        colorScheme,
+      ).toEqual([])
+      // A bar lets a little through, so the line still shows, faint, under its words.
+      const fill = await scroller
+        .locator('.time-bar[data-state=checked]')
+        .first()
+        .evaluate((bar) => getComputedStyle(bar).backgroundColor)
+      expect(alphaOf(fill), `${colorScheme} ${fill}`).toBeGreaterThan(0.5)
+      expect(alphaOf(fill), `${colorScheme} ${fill}`).toBeLessThan(1)
+
+      // Where the view opens, and moved back and on: a name keeps its start in view while its box
+      // is on screen, and ends inside its box. On a phone short bars' names were once sliced.
+      for (const by of [0, -160, 320]) {
+        await scroller.evaluate((el, d) => el.scrollBy({ left: d }), by)
+        await page.evaluate(() => new Promise(requestAnimationFrame))
+        const names = await timeNames(page)
+        const where = `${colorScheme}, moved ${by}`
+        expect(
+          names.filter((n) => n.fromEdge < -0.5).map((n) => n.title),
+          where,
+        ).toEqual([])
+        expect(
+          names.filter((n) => n.pastBox > 0.5).map((n) => n.title),
+          where,
+        ).toEqual([])
+      }
+      await scroller.evaluate((el) => el.scrollBy({ left: -160 }))
+      await page.evaluate(() => new Promise(requestAnimationFrame))
+      expect((await timeNames(page)).some((n) => n.startsOff)).toBe(true)
+    }
+    if (width !== 390) return
+    // The year over the months stops short of the screen's edge, as the groups' names do.
+    const year = await page
+      .locator('.time-tick-top > span')
+      .first()
+      .evaluate((label) => {
+        const range = document.createRange()
+        range.selectNodeContents(label)
+        return range.getBoundingClientRect().left
+      })
+    // "2026" once sat 4 px from the edge.
+    expect(year).toBeGreaterThanOrEqual(8)
+  })
+
+/** Whatever in the page slides sideways inside its box, by how much. */
+const slides = (page: Page) =>
+  page.locator('[data-slot=sidebar-inset]').evaluate((inset) =>
+    [...inset.querySelectorAll<HTMLElement>('*')]
+      .filter((el) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowX))
+      .filter((el) => el.scrollWidth > el.clientWidth + 1)
+      .map((el) => `${el.className.slice(0, 40)} ${el.scrollWidth - el.clientWidth}`),
+  )
+
+test.describe('wave 3, on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+  test('Advanced stacks each setting: its key, its value, then the rest, nothing cut (P16)', async ({
+    page,
+  }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/settings/advanced')
+      const settings = page.getByRole('group', { name: 'Tuning settings' })
+      const setting = settings
+        .getByRole('listitem')
+        .filter({ hasText: 'calendar.fiscal_year_start' })
+      // It was a 1,029 px table in a 356 px frame: "Not set: f", cut at the screen's edge.
+      await expect(setting).toBeVisible()
+      await expect(setting).toContainText('Not set: fiscal years read as calendar years')
+      await expect(setting).toContainText('Default, from the install')
+      await expect(page.getByRole('table', { name: 'Tuning settings' })).toHaveCount(0)
+      await expect(page.getByText(/scroll sideways/)).toHaveCount(0)
+      const frame = (await page
+        .locator('[data-slot=sidebar-inset] .rounded-frame')
+        .first()
+        .boundingBox())!
+      for (const block of await settings.getByRole('listitem').all()) {
+        const box = (await block.boundingBox())!
+        expect(box.x + box.width, colorScheme).toBeLessThanOrEqual(frame.x + frame.width + 0.5)
+      }
+      expect(await slides(page), colorScheme).toEqual([])
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+    }
+  })
+
+  test("Google Drive's folders stack, each owner's name whole (P16)", async ({ page }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      // A whole load: the mock takes a page's state (a refused key) from the address it opens at.
+      await page.goto('/settings/integrations/google-drive?state=reauth')
+      const folder = page
+        .getByRole('listitem')
+        .filter({ hasText: 'Data team / Definitions' })
+        .filter({ hasText: 'Owners' })
+      await expect(folder).toBeVisible()
+      // The Owners column was cut: "Jon Abara...".
+      const owners = folder.getByText('Jon Abara and Sofia Brandt')
+      await expect(owners).toBeVisible()
+      expect(await owners.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true)
+      await expect(folder.getByRole('definition').filter({ hasText: /^6$/ })).toBeVisible()
+      await expect(page.getByRole('table')).toHaveCount(0)
+      expect(await slides(page), colorScheme).toEqual([])
+    }
+  })
+})
+
+test.describe('wave 3, wider', () => {
+  test('a table that fits stays a table, and one that does not stacks, never cut (P16)', async ({
+    page,
+  }) => {
+    // At 1440 the five columns of the tuning settings fit whole.
+    await go(page, '/settings/advanced')
+    const table = page.getByRole('table', { name: 'Tuning settings' })
+    await expect(table.getByRole('columnheader', { name: 'What it does' })).toBeInViewport()
+    expect(await slides(page)).toEqual([])
+    // At 1280 they did not: "The workspace's name, on th". Each setting is a block of two halves.
+    await page.setViewportSize({ width: 1280, height: 900 })
+    const setting = page
+      .getByRole('group', { name: 'Tuning settings' })
+      .getByRole('listitem')
+      .filter({ hasText: 'workspace.name' })
+    await expect(setting).toBeVisible()
+    expect(
+      await setting.evaluate((li) => getComputedStyle(li).gridTemplateColumns.split(' ').length),
+    ).toBe(2)
+    await expect(page.getByRole('table', { name: 'History log' })).toBeVisible()
+    expect(await slides(page)).toEqual([])
+    // A tablet has room for Google Drive's tables.
+    await page.setViewportSize({ width: 768, height: 1024 })
+    await page.goto('/settings/integrations/google-drive?state=reauth')
+    await expect(page.getByRole('table').first()).toBeVisible()
+    await expect(page.getByRole('table')).toHaveCount(2)
+    expect(await slides(page)).toEqual([])
   })
 })

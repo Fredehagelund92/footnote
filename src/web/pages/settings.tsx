@@ -54,7 +54,7 @@ import {
   Frame,
   FramePage,
   FrameRows,
-  FrameScroll,
+  FrameFit,
   FrameSection,
   FrameTable,
   type FrameColumn,
@@ -309,12 +309,63 @@ function Advanced() {
   )
 }
 
-/** Every tuning setting in one table, a header row for each group, so the columns line up. */
+/**
+ * Every tuning setting in one table, a header row for each group, so the columns line up. Where
+ * the frame is too narrow for the five columns, a setting is a block: its key, its value, what it
+ * does, and then whether it was changed.
+ */
 function SettingsTable({ groups }: { groups: AdvancedPage['settings'] }) {
   const cell = 'px-4 py-2 align-middle first:md:pl-5 last:md:pr-5'
   const columns = ['Setting', 'Value', 'Default or changed', 'Set by', 'What it does']
+  const id = React.useId()
+  const stacked = (
+    <div aria-label="Tuning settings" role="group" className="@container text-sm">
+      {groups.map((g, i) => (
+        <div
+          key={g.group}
+          role="group"
+          aria-labelledby={`${id}-${i}`}
+          className="border-t first:border-t-0"
+        >
+          <h4
+            id={`${id}-${i}`}
+            className="flex h-9 items-center bg-band px-4 text-xs font-medium md:px-5"
+          >
+            {g.group}
+          </h4>
+          <ul>
+            {g.rows.map((r) => (
+              <li
+                key={r.key}
+                className="grid gap-x-6 gap-y-1 border-t px-4 py-3 md:px-5 @xl:grid-cols-2"
+              >
+                <div>
+                  <p className="font-mono text-xs wrap-anywhere">{r.key}</p>
+                  <p className="mt-1 wrap-anywhere">
+                    {r.value}
+                    {r.note && (
+                      <span className="block text-xs text-muted-foreground">{r.note}</span>
+                    )}
+                  </p>
+                </div>
+                <div className="text-muted-foreground">
+                  <p>{r.what}</p>
+                  <p className="mt-1 text-xs">
+                    {r.changed
+                      ? `Changed by ${r.changed.who ?? 'an update or a script'}, ${r.changed.when}`
+                      : 'Default, from the install'}
+                    {r.changed?.why && <span className="block">{r.changed.why}</span>}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  )
   return (
-    <FrameScroll>
+    <FrameFit stacked={stacked}>
       <table className="w-full text-sm" aria-label="Tuning settings">
         <thead>
           <tr className="bg-band text-xs text-muted-foreground">
@@ -366,14 +417,14 @@ function SettingsTable({ groups }: { groups: AdvancedPage['settings'] }) {
                     'Install'
                   )}
                 </td>
-                {/* On a phone the table scrolls sideways rather than squeeze this to a word a line. */}
+                {/* Where this would be squeezed to a word a line, the settings stack instead. */}
                 <td className={cn(cell, 'min-w-64 text-muted-foreground')}>{r.what}</td>
               </tr>
             ))}
           </tbody>
         ))}
       </table>
-    </FrameScroll>
+    </FrameFit>
   )
 }
 

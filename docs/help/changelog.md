@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-27
 ---
 
+## Whole words in Context by time and in wide tables
+
+2026-11-27
+
+In Context by time the line for today runs under the bars and their titles, not through them. A title whose bar starts before the left edge of the screen keeps its first words in view and ends in "...", on a phone too.
+
+On a phone, and wherever a table is too wide for the page, Advanced and an integration's page show each row as a block: a setting's key, its value and what it does, or a folder with its domain, owners and documents. Nothing is cut mid-word and nothing scrolls sideways.
+
 ## Write context with your agent
 
 2026-11-27
