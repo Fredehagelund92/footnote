@@ -78,7 +78,7 @@ describe('a dbt folder on this computer in compose', () => {
     ])
   })
 
-  it("leaves the image's demo model out beside a server folder, and keeps it otherwise", async () => {
+  it("reads the image's demo model only for the demo, and never beside a server folder", async () => {
     const dockerfile = await readFile(new URL('Dockerfile', root), 'utf8')
     const start = JSON.parse(/^CMD (\[.*\])$/m.exec(dockerfile)![1]!) as string[]
     const line = start[2]!.replace(
@@ -88,15 +88,24 @@ describe('a dbt folder on this computer in compose', () => {
     const cubeFolder = async (env: Record<string, string>) =>
       (await promisify(execFile)('sh', ['-c', line], { env: { PATH: process.env.PATH, ...env } }))
         .stdout
-    expect(await cubeFolder({ NODE_ENV: 'development' })).toBe('/app/db/seed/cube')
+    const demo = { NODE_ENV: 'development', SEED_DEMO: 'on' }
+    expect(await cubeFolder(demo)).toBe('/app/db/seed/cube')
     expect(
       await cubeFolder({
-        NODE_ENV: 'development',
+        ...demo,
         FOOTNOTE_SERVER_FOLDERS: service({ DBT_MANIFEST_DIR: '/x' }).folders,
       }),
     ).toBe('')
-    expect(await cubeFolder({ NODE_ENV: 'development', FOOTNOTE_SERVER_FOLDERS: '' })).toBe(
-      '/app/db/seed/cube',
+    expect(await cubeFolder({ ...demo, FOOTNOTE_SERVER_FOLDERS: '' })).toBe('/app/db/seed/cube')
+    // Your own model, demo or not, is the one read.
+    expect(await cubeFolder({ ...demo, CUBE_MODEL_DIR: '/cube-model' })).toBe('/cube-model')
+    expect(await cubeFolder({ NODE_ENV: 'development', CUBE_MODEL_DIR: '/cube-model' })).toBe(
+      '/cube-model',
     )
+    // Start empty (docs/use-your-own-data.md): with the demo off and no folder named, no
+    // definitions are read, so no source of the demo's 27 names is there to publish.
+    expect(await cubeFolder({ NODE_ENV: 'development', SEED_DEMO: 'off' })).toBe('')
+    expect(await cubeFolder({ NODE_ENV: 'development' })).toBe('')
+    expect(await cubeFolder({ NODE_ENV: 'production' })).toBe('')
   })
 })
