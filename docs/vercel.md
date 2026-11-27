@@ -39,7 +39,7 @@ To see what Vercel would build without deploying, run `vercel build` in a copy o
 
 ### Only a release builds
 
-The demo builds only for a release. The ignored build step in `vercel.json` (`scripts/vercel-ignore.ts`) skips every push and every pull request. Production builds a commit only when its version has its release tag and the deployment it replaces runs an older one. A redeploy of the commit already deployed builds, and so does production's first deployment.
+The demo builds only for a release. The ignored build step in `vercel.json` skips every push and every pull request. Production builds a commit only when its version has its release tag and the deployment it replaces runs an older one. A redeploy of the commit already deployed builds, and so does production's first deployment.
 
 A tag starts no build on Vercel, so after a release the **App on Vercel** job in `release.yml` calls the project's deploy hook, which builds `main` with the new version.
 
