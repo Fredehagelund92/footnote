@@ -28,6 +28,7 @@ describe('search params', () => {
   it("know the dock's kinds", () => {
     expect(shellSearch({ dock: 'context.itm_1' }).dock).toBe('context.itm_1')
     expect(shellSearch({ dock: 'ask' }).dock).toBe('ask')
+    expect(shellSearch({ dock: 'write' }).dock).toBe('write')
     expect(shellSearch({ dock: 'sidebar.x' }).dock).toBeUndefined()
   })
 

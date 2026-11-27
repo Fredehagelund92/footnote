@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   agoWords,
   changeLine,
+  helpChangeLine,
+  inSentence,
   joinChanges,
   mergeDraft,
   undoChange,
   unsavedFields,
+  writerName,
   type DraftSession,
   type SessionForm,
 } from '@/model/draft-session'
@@ -209,5 +212,76 @@ describe('the strip', () => {
     expect(after(61)).toBe('a minute ago')
     expect(after(60 * 12)).toBe('12 minutes ago')
     expect(after(60 * 90)).toMatch(/^at \d\d:\d\d$/)
+  })
+})
+
+describe('writing help as a writer of the draft', () => {
+  const byHelp = (revision: number) => ({ by: 'writing_help' as const, revision, at })
+  const blank: SessionForm = { ...form, title: '', body: '', when: 'always', from: '' }
+
+  it('comes into the form as its own change, apart from an agent’s', () => {
+    const theirs = {
+      ...form,
+      title: 'Webshop sales to Norway stopped',
+      dontConclude: 'Not demand.',
+    }
+    const merged = mergeDraft(
+      { form, saved: form, revision: 1 },
+      { form: theirs, session: session({ title: byHelp(2), dontConclude: byAgent(2) }) },
+      nobodyTyping,
+    )!
+    expect(merged.form).toEqual(theirs)
+    expect(merged.helped).toMatchObject({ agent: 'Writing help', fields: ['title'], at })
+    expect(merged.change).toMatchObject({ agent: 'Claude', fields: ['dontConclude'] })
+    // Each takes back its own fields only.
+    expect(undoChange(merged.form, merged.helped!)).toEqual({ ...theirs, title: form.title })
+  })
+
+  it('never writes over the field the cursor is in: its words wait there', () => {
+    const theirs = { ...form, title: 'Webshop sales to Norway stopped', body: 'Parcels are held.' }
+    const merged = mergeDraft(
+      { form, saved: form, revision: 1 },
+      { form: theirs, session: session({ title: byHelp(2), text: byHelp(2) }) },
+      (field) => field === 'title',
+    )!
+    expect(merged.form).toEqual({ ...form, body: 'Parcels are held.' })
+    expect(merged.waiting).toEqual(['title'])
+    expect(merged.helped?.fields).toEqual(['text'])
+  })
+
+  it('is named as a writer at the start of a sentence, and as a plain noun inside one', () => {
+    expect(writerName({ by: 'writing_help' })).toBe('Writing help')
+    expect(writerName({ by: 'agent', agent: 'Claude' })).toBe('Claude')
+    expect(writerName({ by: 'agent' })).toBe('Your agent')
+    expect(inSentence('Writing help')).toBe('writing help')
+    expect(inSentence('Claude')).toBe('Claude')
+  })
+
+  it('says a first fill by its count, any other change by its fields, and what kept the person’s words', () => {
+    const now = new Date('2026-11-27T10:00:04.000Z')
+    const filled = {
+      agent: 'Writing help',
+      fields: ['title', 'text', 'when'] as const,
+      at,
+      before: blank,
+      after: form,
+    }
+    expect(helpChangeLine({ ...filled, fields: [...filled.fields] }, now)).toBe(
+      'Writing help filled in 3 fields from your message. Check each one.',
+    )
+    const changed = {
+      agent: 'Writing help',
+      fields: ['text' as const],
+      at,
+      before: form,
+      after: form,
+    }
+    expect(helpChangeLine(changed, now)).toBe('Writing help changed Text, just now.')
+    expect(helpChangeLine({ ...changed, kept: ['title'] }, now)).toBe(
+      'Writing help changed Text, just now. Title was kept as you wrote it.',
+    )
+    expect(helpChangeLine({ ...changed, kept: ['title', 'when'] }, now)).toBe(
+      'Writing help changed Text, just now. Title and When were kept as you wrote them.',
+    )
   })
 })

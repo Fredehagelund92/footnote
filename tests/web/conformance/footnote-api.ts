@@ -720,6 +720,79 @@ export function describeFootnoteApi(
       await api().signIn({ name: person })
     })
 
+    it.skipIf(
+      lacks(
+        'signIn',
+        'getWorkspace',
+        'getLibrary',
+        'itemPage',
+        'advancedPage',
+        'setWritingHelp',
+        'startWritingHelp',
+        'writingHelp',
+        'draftNow',
+      ),
+    )(
+      "keeps writing help off until an admin turns it on, and then writes fields of the person's own draft as its own",
+      async () => {
+        const live = await signedIn()
+        const { fact } = await newItem(live, '', '06')
+        const blank = { ...fact, status: 'Draft' as const, summary: '', body: undefined }
+        // Off as installed: not there to ask, and no draft starts in it.
+        const installed = (await live.advancedPage()).writingHelp!
+        expect(installed.on).toBe(false)
+        expect((await live.getWorkspace()).writingHelp).toBe(false)
+        const refused = await live
+          .startWritingHelp({ fact: blank, isNew: true })
+          .catch((e: unknown) => e)
+        expect(refused).toMatchObject({ message: 'An admin has turned off writing help.' })
+        // Only an admin turns it on.
+        await api().signIn({ name: bystander })
+        const denied = await api()
+          .setWritingHelp({ on: true, version: installed.version })
+          .catch((e: unknown) => e)
+        expect(denied).toMatchObject({ kind: 'forbidden' })
+        await api().signIn({ name: person })
+        await live.setWritingHelp({ on: true, version: installed.version })
+        try {
+          expect((await live.advancedPage()).writingHelp).toMatchObject({ on: true })
+          expect((await live.getWorkspace()).writingHelp).toBe(true)
+          // What the editor holds is kept as the person's own draft, with no title yet.
+          const { id } = await live.startWritingHelp({ fact: blank, isNew: true })
+          const opened = (await live.draftNow({ id }))!
+          expect(opened).toMatchObject({ status: 'Draft', untitled: true })
+          const heard: string[] = []
+          const reply = await live.writingHelp({
+            draftId: id,
+            message: 'Ops told us a new customs rule stops our webshop orders to Norway.',
+            live: { onEvent: (event) => void heard.push(event.type) },
+          })
+          expect(reply.stopped).toBeNull()
+          expect(reply.reply).not.toBe('')
+          expect(reply.changed).toContain('title')
+          expect(heard).toContain('progress')
+          expect(heard).toContain('written')
+          // The draft holds what it wrote, each field stamped as writing help's, and is still a draft.
+          const now = (await live.draftNow({ id }))!
+          expect(now.title).not.toBe('')
+          expect(now.untitled ?? false).toBe(false)
+          expect(now.status).toBe('Draft')
+          expect(now.session!.revision).toBeGreaterThan(opened.session!.revision)
+          expect(now.session!.fields.title).toMatchObject({ by: 'writing_help' })
+          // It writes only in the person's own draft.
+          await api().signIn({ name: colleague })
+          const theirs = await api()
+            .writingHelp({ draftId: id, message: 'Change the title.' })
+            .catch((e: unknown) => e)
+          expect(theirs).toMatchObject({ kind: 'not-found' })
+          await api().signIn({ name: person })
+        } finally {
+          const on = (await live.advancedPage()).writingHelp!
+          await live.setWritingHelp({ on: false, version: on.version })
+        }
+      },
+    )
+
     it.skipIf(lacks('signIn', 'searchScope'))(
       'searches what an item applies to without listing every value of a dimension (FR-107)',
       async () => {

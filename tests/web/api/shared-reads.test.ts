@@ -49,6 +49,17 @@ describe('the http binding shares identical reads', () => {
     ])
   })
 
+  it('reads again once told the service changed something while a request was open', async () => {
+    const { send, sent } = service()
+    const fetch = sharedReads(send, () => 0)
+    await fetch(at('/proposals/1'))
+    await fetch(at('/proposals/1'))
+    // A turn of writing help wrote a field of the draft, mid-way through its own request.
+    fetch.changed()
+    expect(await (await fetch(at('/proposals/1'))).json()).toEqual({ n: 2 })
+    expect(sent).toHaveLength(2)
+  })
+
   it('does not keep a read that was in flight while a change was sent', async () => {
     const sent: string[] = []
     const pending: Array<() => void> = []

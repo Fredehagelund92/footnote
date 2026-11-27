@@ -4,6 +4,7 @@ import { MockLanguageModelV4 } from 'ai/test'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { SavedDraft } from '../../src/contract/context.ts'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
+import type { ReviewSheet } from '../../src/contract/review-path.ts'
 import type { WritingHelpEvent, WritingHelpTurn } from '../../src/contract/writing-help.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
@@ -593,6 +594,14 @@ describe('what it may do', () => {
     const again = await turn('author', draft.proposalId, 'Change the title.')
     expect(again.status, again.body).toBe(404)
     expect(sent).toEqual([])
+    // The owner's review says it was written with writing help, by the person who sent it.
+    const sheet = await ok<ReviewSheet>(call('GET', `/review/${draft.proposalId}/sheet`, 'owner'))
+    expect(sheet).toMatchObject({
+      writtenBy: 'writing_help',
+      agent: null,
+      from: { personId: people.author },
+      proposal: { channel: 'writing_help' },
+    })
   })
 
   it('asks one question, with up to two answers to tap', async () => {
@@ -702,7 +711,14 @@ describe('what it reads', () => {
     const prompt = sent[0]!.prompt
     expect(prompt.filter((m) => m.role === 'user').length).toBe(2)
     expect(JSON.stringify(prompt)).toContain('I wrote a draft.')
-    expect(JSON.stringify(prompt.at(-1))).toContain('Stored title')
+    const draftSent = JSON.stringify(prompt.at(-1))
+    expect(draftSent).toContain('Stored title')
+    // What the person wrote is theirs; a field nobody filled in reads as empty, with no writer:
+    // the line agents are told by default is not the person's words.
+    expect(draftSent).toContain('\\"title\\":{\\"value\\":\\"Stored title\\",\\"by\\":\\"person\\"')
+    expect(draftSent).toContain('\\"not_to_conclude\\":{\\"value\\":null}')
+    expect(draftSent).toContain('\\"summary\\":{\\"value\\":null}')
+    expect(draftSent).not.toContain('cause not proven')
   })
 })
 

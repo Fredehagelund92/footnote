@@ -138,7 +138,8 @@ export async function askHelp(message: string) {
   const said = message.trim()
   if (!desk || !said) return
   const from = desk.draftId ?? NEW
-  if (running.has(from) || state.waiting) return
+  // One turn at a time: a turn asked and not yet ended, or one waiting for its draft's page.
+  if (chatOf(from).at(-1)?.state === 'asking' || state.waiting) return
   const id = nextId()
   setChat(from, [...chatOf(from), askedTurn(id, said)])
   let draft: string | null
@@ -223,7 +224,7 @@ export function setHelpDesk(desk: HelpDesk | null) {
   }
   if (desk) return
   // After the page has settled: a page that was only drawn again is there once more by then.
-  window.setTimeout(() => {
+  setTimeout(() => {
     for (const [draft, turn] of running) if (!deskOf(draft)) turn.controller.abort()
   }, 0)
 }
@@ -233,9 +234,8 @@ const subscribe = (listener: () => void) => {
   return () => void listeners.delete(listener)
 }
 
-/** Writing help as the dock and the editor's strip read it, for the draft on the page. */
-export function useHelp() {
-  const now = React.useSyncExternalStore(subscribe, () => state)
+/** Writing help for the draft on the page, from what is kept here. */
+function viewOf(now: State) {
   const draft = now.desk?.draftId ?? NEW
   const turns = now.chats.get(draft) ?? []
   const last = (now.changes.get(draft) ?? []).at(-1)
@@ -253,3 +253,9 @@ export function useHelp() {
       last && !busy ? { ...last, change: { ...last.change, ...(kept ? { kept } : {}) } } : null,
   }
 }
+
+/** Writing help as it stands now, outside a component. */
+export const helpNow = () => viewOf(state)
+
+/** Writing help as the dock and the editor's strip read it, for the draft on the page. */
+export const useHelp = () => viewOf(React.useSyncExternalStore(subscribe, () => state))
