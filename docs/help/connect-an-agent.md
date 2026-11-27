@@ -56,6 +56,8 @@ The agent stays connected for 30 days, or until it goes 7 days unused. Then it a
 
 > **Cursor and VS Code.** They have one-click install links on the same page. Claude's app and ChatGPT take the address as a connector; their steps are under Prefer to do it by hand. Codex signs in with its one command, which opens the browser; `codex mcp login` is only for when it did not.
 
+> **Claude's app.** It has no instructions file. Its steps give the line to paste into a Project's instructions instead.
+
 ## If nothing signs in
 
 The page looks every few seconds. After two minutes it shows what usually helps, and after ten it stops, with Keep waiting:
@@ -79,7 +81,7 @@ Open Details on a row to see each tool the agent can call, such as:
 - find_context, to look a name up or see what is defined and written down
 - read_context, to read one context item or one definition in full, with its links
 - report, to say what is missing or wrong
-- write_draft and read_draft, to write a draft with you and read it back as you left it, never sending it
+- write_draft and read_draft, to write a draft with you and read it back as you left it, never sending it: [Write with your agent](write-with-your-agent.md)
 - send_draft, to send your draft, after you say yes, to an owner who checks it before anything changes
 
 An agent publishes only where an owner lets it [publish without review](publish-without-review.md), and Details shows where, with Turn off. Details also lists the suggestions it sent lately.

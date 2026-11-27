@@ -256,6 +256,14 @@ only: the MCP request log keeps the shared `signed-in` label. `send_draft` has i
 prefill or never infer is one table shared with the form: `src/domain/proposal-attributes.ts`
 (CONTRIBUTING.md, "Proposal attributes").
 
+An agent offered `write_draft` also gets the server's one prompt, `write_context` (`writeContext` in
+`src/server/mcp/tools.ts`), with an optional `topic` argument, and a line in the server
+instructions on writing with the person (`draftRule`): save with `write_draft`, read with
+`read_draft` before each change, and say it looks again when the person writes to it. Claude Code
+lists the prompt as `/footnote:write_context`. Its words are `writeContextPrompt` in
+`src/domain/mcp-text.ts`, which the web app's Write with Claude button sends too; a token that
+names no person gets neither the prompt nor the line.
+
 `token:dev` creates a reusable Ed25519 key in `.footnote-dev-key.pem` with owner-only permissions.
 The file is ignored by Git. Tokens expire after eight hours; mint a new one and update the
 client header when it expires. Tokens contain a client label and scopes, never a person or

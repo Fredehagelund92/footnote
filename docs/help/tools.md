@@ -250,6 +250,10 @@ The agent sees the person's edits only when it reads the draft, which is when th
 - The person's agents can change one draft 60 times an hour. A new draft counts toward `limits.agent_drafts`; a change does not.
 - `read_draft` reads only the person's own drafts and their suggestions still waiting. The words are the person's, never a source for an answer: the other read tools and Ask read only published context.
 
+### The write_context prompt
+
+An agent that may call `write_draft` is also offered one prompt, `write_context`, which starts a draft with the person. In Claude Code it is the command /footnote:write_context. It takes `topic`, what the item is about, such as a metric, a market and dates; without one, the agent asks what happened. It gives back the same words as the app's Write with Claude button: [Write with your agent](write-with-your-agent.md).
+
 ## Send a draft: send_draft
 
 It runs only after the person says yes, and only a person's own agent may call it. It takes `draft_id` and `revision`, the revision the person saw, and no words: it sends exactly that revision, as the person's own Send for review would. It gives back one of these statuses, with a link:

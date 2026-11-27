@@ -109,7 +109,7 @@ async function filled(path: string, source: string) {
 }
 
 describe('the docs check', () => {
-  it("has the nineteen Help pages, in their order, and What's new", () => {
+  it("has the twenty Help pages, in their order, and What's new", () => {
     expect(DOC_PAGES.map((p) => p.slug)).toEqual([
       'set-up-your-workspace',
       'connect-an-agent',
@@ -118,6 +118,7 @@ describe('the docs check', () => {
       'answer-lines',
       'privacy',
       'write-context',
+      'write-with-your-agent',
       'review-a-suggestion',
       'keep-context-up-to-date',
       'when-nothing-is-written-yet',

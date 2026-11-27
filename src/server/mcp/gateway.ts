@@ -33,11 +33,13 @@ import {
   dataToolOf,
   isToolName,
   personOnly,
+  promptArgsSchema,
   serverInstructions,
   toolNames,
   tools,
   toolSchemaDigest,
   toolOutputSchema,
+  writeContext,
   type ToolName,
 } from './tools.ts'
 
@@ -376,6 +378,7 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       policy.about,
       policy.calendar,
       permits,
+      allowed.includes('write_draft'),
     )
     const handler = createMcpHandler(
       () => {
@@ -461,6 +464,17 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
           )
         }
         for (const tool of allowed) list(tool)
+        // The prompt that starts a draft with the person comes with the tool that writes it.
+        if (allowed.includes('write_draft'))
+          server.registerPrompt(
+            writeContext.name,
+            {
+              title: writeContext.title,
+              description: writeContext.description,
+              argsSchema: promptArgsSchema(),
+            },
+            ({ topic }: { topic?: string }) => ({ messages: writeContext.messages(topic) }),
+          )
         return server
       },
       {

@@ -29,7 +29,7 @@ import {
   CommandDialog,
 } from '@/components/ui/command'
 import { Kbd } from '@/components/ui/kbd'
-import { AGENT_TOOLS, CHECKS, PROMPT } from '@/lib/agents'
+import { AGENT_TOOLS, CHECKS, PROMPT, writePrompt } from '@/lib/agents'
 import { setupSteps } from '@/lib/setup'
 import { kindHint, kindLabel, type Kind } from '@/model/items'
 import { ANSWER_LINES, supportHref, supportTarget, WORDS } from '@/lib/help-content'
@@ -352,6 +352,8 @@ function Include({ block }: { block: Extract<DocBlock, { type: 'include' }> }) {
       )
     case 'prompt':
       return <Code label="The prompt, exactly as the app shows it" text={PROMPT} />
+    case 'write-prompt':
+      return <Code label="What Write with Claude sends" text={writePrompt()} />
     case 'checks':
       return <List items={CHECKS} />
     case 'kinds':
