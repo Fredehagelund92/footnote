@@ -77,7 +77,9 @@ Your own agent can write a draft for you and change it, with `write_draft` (see 
 - A small mark beside a field means only your agent has written it, and nobody has read it yet. It goes once you change the field.
 - Claude looks again when you write to it: it sees your changes the next time it reads the draft, not while you type.
 
-Drafts you imported, drafts your agents wrote for you, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts. An agent can turn a page of your wiki into several drafts at once, and sends none of them: you read them here and publish them together. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
+Drafts you imported, drafts your agents wrote for you, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts.
+
+An agent can turn a page of your wiki into several drafts at once, and sends none of them: you read them here and publish them together. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
 
 Open a draft on the card to read it in the card's place. The bar says where you are, such as 5 of 21, and J and K go to the next draft and the one before. Esc, or the arrow beside 21 drafts, goes back to the list where you left it.
 
