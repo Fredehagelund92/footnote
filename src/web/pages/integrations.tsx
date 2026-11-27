@@ -9,6 +9,7 @@ import {
   CircleCheckIcon,
   ClockIcon,
   EllipsisIcon,
+  EyeIcon,
   EyeOffIcon,
   GitPullRequestArrowIcon,
   InfoIcon,
@@ -70,6 +71,12 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -2237,6 +2244,46 @@ export function ConnectFlow({ id }: { id: string }) {
   )
 }
 
+/**
+ * A secret as it is typed: masked, with a button that shows it, so a mistake in a long key or a
+ * pasted link can be seen before it is tested. Once kept it is never read back.
+ */
+function SecretInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+}: {
+  id: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  const [shown, setShown] = React.useState(false)
+  return (
+    <InputGroup>
+      <InputGroupInput
+        id={id}
+        type={shown ? 'text' : 'password'}
+        autoComplete="off"
+        spellCheck={false}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+      <InputGroupAddon align="inline-end">
+        <InputGroupButton
+          size="icon-xs"
+          aria-label={shown ? 'Hide what you typed' : 'Show what you typed'}
+          onClick={() => setShown((s) => !s)}
+        >
+          {shown ? <EyeOffIcon /> : <EyeIcon />}
+        </InputGroupButton>
+      </InputGroupAddon>
+    </InputGroup>
+  )
+}
+
 function ConnectSteps({
   form,
   c,
@@ -2600,12 +2647,10 @@ function ConnectSteps({
               {typed.map((secret) => (
                 <Field key={secret.key}>
                   <FieldLabel htmlFor={`secret-${secret.key}`}>{secret.label}</FieldLabel>
-                  <Input
+                  <SecretInput
                     id={`secret-${secret.key}`}
-                    type="password"
-                    autoComplete="off"
                     value={values.secrets[secret.key] ?? ''}
-                    onChange={(e) => setSecret(secret.key, e.target.value)}
+                    onChange={(value) => setSecret(secret.key, value)}
                     placeholder={secret.set ? 'Set. Leave it empty to keep it' : undefined}
                   />
                   <FieldDescription>

@@ -5,6 +5,7 @@ import {
   CLAUDE_CODE_COMMAND,
   cursorLink,
   GUIDES,
+  liveCopy,
   PROMPT,
   PROMPT_PARTS,
   vscodeLink,
@@ -55,5 +56,29 @@ describe('by hand', () => {
   it('has one Claude for the terminal and one for the app, never two of the same name', () => {
     const names = GUIDES.map((g) => g.name)
     expect(new Set(names).size).toBe(names.length)
+  })
+})
+
+describe('the live line before a wait begins', () => {
+  const idle = (connected?: number) =>
+    liveCopy('idle', 'prompt', 'Claude Code', 'Jon Abara', connected)
+
+  it('says Not connected yet only while no agent is connected', () => {
+    expect(idle().title).toBe('Not connected yet')
+    expect(idle(0).title).toBe('Not connected yet')
+  })
+
+  it('says how many agents are connected, so it never contradicts the list under it', () => {
+    expect(idle(1)).toEqual({
+      title: '1 agent is connected',
+      body: 'To connect another, paste the prompt. This page says Connected when it signs in.',
+    })
+    expect(idle(2).title).toBe('2 agents are connected')
+  })
+
+  it('says what the wait is doing, whatever is connected already', () => {
+    expect(liveCopy('waiting', 'prompt', 'Claude Code', 'Jon Abara', 2).title).toBe(
+      'Waiting for your agent to connect…',
+    )
   })
 })

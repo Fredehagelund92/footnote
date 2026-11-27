@@ -177,9 +177,12 @@ describe('the words people read', () => {
       PROMPT,
       ...GUIDES.flatMap((g) => g.steps.map((s) => s.what)),
       ...CHECKS,
-      ...LIVE_PHASES.flatMap((p) =>
-        vias.map((v) => liveCopy(p, v, 'Claude Code', 'Jon Abara')),
-      ).flatMap((c) => [c.title, c.body ?? '']),
+      ...[
+        ...LIVE_PHASES.flatMap((p) => vias.map((v) => liveCopy(p, v, 'Claude Code', 'Jon Abara'))),
+        // Before a wait begins, with agents connected already.
+        liveCopy('idle', 'prompt', 'Claude Code', 'Jon Abara', 1),
+        liveCopy('idle', 'prompt', 'Claude Code', 'Jon Abara', 3),
+      ].flatMap((c) => [c.title, c.body ?? '']),
     ]
     const commands = new RegExp(
       `${ADDRESS.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}|^.*\\b(mcp add|mcp login)\\b.*$`,

@@ -1,6 +1,7 @@
 import type { AlertCardRule } from '@domain/alerts'
 import { DRAFT_OLD_DAYS } from '@domain/inbox'
 import type { CheckAnswer } from '@domain/question-link'
+import { opensOnlyHere } from '@/lib/local-address'
 import type { DomainId, Fact } from './items'
 
 // The Inbox as the app reads it (src/web/api): cards that need someone, what they sent that waits
@@ -106,6 +107,15 @@ export type FieldChange = { label: string; before: string; after: string }
 
 /** The third action of a Nothing written yet and a Due for a check card: it copies the card's link. */
 export const ASK_SOMEONE = 'Ask someone who knows'
+
+/**
+ * What the toast says once that link is copied, from the address the app is open at (`origin`):
+ * where to paste it, or, for a link to this computer itself, that it opens nowhere else.
+ */
+export const askSomeoneCopied = (origin: string) =>
+  opensOnlyHere(origin)
+    ? 'It opens only on this computer: the app runs here, at an address nobody else can reach.'
+    : 'Paste it to the person who knows.'
 
 /** What someone answered on a Due for a check card's link, under their name. */
 export type CheckAnswerRow = {

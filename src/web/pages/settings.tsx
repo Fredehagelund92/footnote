@@ -36,7 +36,7 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { isHost, NEVER_READ_HOSTS_MAX, normalizeHost } from '@domain/never-read-hosts'
-import { GuideLink } from '@/components/footnote/guide-link'
+import { GuideLink, PublicGuideLink } from '@/components/footnote/guide-link'
 import { servedToAgents } from '@/model/items'
 import { useQuery } from '@tanstack/react-query'
 import type { Advanced as AdvancedPage, AnswerTestRuns, Exported } from '@/api/client'
@@ -432,7 +432,8 @@ function AdvancedSections({ page }: { page: AdvancedPage }) {
             Default means the value the app was installed with. Changed names who changed it last:
             an Admin, or, with no person, an update of the app or a script run on the database.
             Whether a real model is called at all, and its key, are set by the person who hosts this
-            app, where it runs, not here.
+            app, where it runs, not here.{' '}
+            <PublicGuideLink slug="model-providers">How to connect a model</PublicGuideLink>
           </p>
         </div>
         <SettingsTable groups={page.settings} />

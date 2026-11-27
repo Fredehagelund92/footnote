@@ -10,7 +10,15 @@ import { card, expect, go, moveTo, onMockOnly, signInAs, signOut, test } from '.
 /** Presses Ask someone who knows on the open card, and reads the link it copied. */
 async function copyLink(page: Page) {
   await page.getByRole('button', { name: 'Ask someone who knows' }).click()
-  await expect(page.getByText('Paste it to the person who knows.').last()).toBeVisible()
+  // The journey's app is open at localhost, and a link to this computer opens nowhere else: the
+  // toast says so in place of where to paste it.
+  await expect(
+    page
+      .getByText(
+        'It opens only on this computer: the app runs here, at an address nobody else can reach.',
+      )
+      .last(),
+  ).toBeVisible()
   const link = await page.evaluate(() => navigator.clipboard.readText())
   expect(link).toMatch(/\/question\/[\w-]+$/)
   return new URL(link).pathname

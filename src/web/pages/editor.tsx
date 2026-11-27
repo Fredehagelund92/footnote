@@ -57,6 +57,7 @@ import {
   WhenField,
   type Option,
 } from '@/components/footnote/field-controls'
+import { NoDomainYet } from '@/components/footnote/no-domain-yet'
 import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { ScopeField } from '@/components/footnote/scope-field'
 import { termsOfNames } from '@/lib/scope'
@@ -1394,6 +1395,7 @@ function Editor({
                     <Ghost>Choose a domain</Ghost>
                   )
                 }
+                empty={<NoDomainYet />}
               />
             </PropertyRow>
             <PropertyRow id={fieldId('kind')} label="Kind" icon={<ShapesIcon />}>

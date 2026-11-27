@@ -696,6 +696,34 @@ describe('the connect flow, on the manifests', () => {
     expect(said.failure).toBeUndefined()
   })
 
+  it('says an address on the server itself may not be on your computer, when it is not reached', () => {
+    const unreached = (target: string): SourceCheck => ({
+      ok: false,
+      steps: [],
+      version: null,
+      complete: false,
+      views: 0,
+      metrics: 0,
+      dimensions: 0,
+      warnings: [{ code: 'unreachable', target }],
+    })
+    const local =
+      'This address is on the server itself, which may not be your computer. For a file on your computer, share its folder with the server instead.'
+    // The browser opens localhost on the reader's computer, so "the host is up" is no help.
+    expect(connectTestOf(unreached('localhost:8988'))).toMatchObject({
+      failure: "It couldn't be read: it couldn't be reached.",
+      fix: `${local} If the server runs on your computer, try 127.0.0.1 in place of localhost.`,
+    })
+    expect(connectTestOf(unreached('files.localhost')).fix).toContain('127.0.0.1')
+    for (const target of ['127.0.0.1:8988', '[::1]:8988', '0.0.0.0'])
+      expect(connectTestOf(unreached(target)).fix, target).toBe(local)
+    // Any other host is checked as before.
+    for (const target of ['files.example', 'localhost.example:443', '10.0.0.7'])
+      expect(connectTestOf(unreached(target)).fix, target).toBe(
+        'Check the address, and that the host is up, then test again.',
+      )
+  })
+
   it('says a read of a metric per currency and channel looks like variants of a few', () => {
     const check: SourceCheck = {
       ok: true,

@@ -87,6 +87,8 @@ import { openDock, useDock, useTyped } from '@/lib/dock'
 import { dayMonth } from '@/lib/dates'
 import { linksByChat, sharedChatPath, type ChatLinks } from '@/model/shared-chat'
 import { navigate, setQuery, useRoute } from '@/lib/router'
+import { PublicGuideLink } from '@/components/footnote/guide-link'
+import { useMe } from '@/lib/workspace'
 import { composerSurface } from '@/lib/surfaces'
 import { useThreadActions, useThreads, type Day, type Thread } from '@/lib/threads'
 import { TruncatedText } from '@/components/footnote/truncated'
@@ -329,6 +331,7 @@ export function AskChat({
     motion.current?.dockFrom(el, from)
   }, [up])
   const { fresh, answeredBy } = useSession()
+  const me = useMe()
   const examples = useAskExamples()
   // What agents asked this week; with nothing asked yet (a new workspace), its starters instead.
   const week = useQuery(askedWeekQuery()).data
@@ -607,6 +610,16 @@ export function AskChat({
                   <p className="mt-2 text-sm text-balance text-muted-foreground">
                     {answeredBySaid[answeredBy]}
                   </p>
+                  {/* Whoever hosts the app connects a model where it runs. On a trial that is the
+                      admin reading this, so a line of its own leads to how; the line above stays
+                      one line. */}
+                  {answeredBy === 'reader' && me.admin && (
+                    <p className="mt-1">
+                      <PublicGuideLink slug="model-providers">
+                        How to connect a model
+                      </PublicGuideLink>
+                    </p>
+                  )}
                 </div>
                 {!up && start}
               </div>

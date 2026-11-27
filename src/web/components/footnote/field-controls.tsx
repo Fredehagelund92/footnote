@@ -233,6 +233,7 @@ export function SelectField<T extends string>({
   onChange,
   disabled,
   display,
+  empty,
 }: {
   labelId: string
   label: string
@@ -242,10 +243,25 @@ export function SelectField<T extends string>({
   disabled?: boolean
   /** What the field shows, when it is more than the option's label. */
   display?: React.ReactNode
+  /** What it opens on with no option to pick: why there is none, and what to do about it. */
+  empty?: React.ReactNode
 }) {
   const [open, setOpen] = React.useState(false)
   const list = React.useRef<HTMLDivElement>(null)
   const current = options.find((o) => o.value === value)
+  if (!options.length && empty)
+    return (
+      <PickerField
+        labelId={labelId}
+        label={label}
+        value={display}
+        open={open}
+        onOpenChange={setOpen}
+        disabled={disabled}
+      >
+        {empty}
+      </PickerField>
+    )
   return (
     <PickerField
       labelId={labelId}

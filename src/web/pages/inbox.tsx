@@ -73,7 +73,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { questionAbout } from '@/model/ask'
-import { ASK_SOMEONE, type InboxCard, type Waiting } from '@/model/inbox'
+import { ASK_SOMEONE, askSomeoneCopied, type InboxCard, type Waiting } from '@/model/inbox'
 import { questionPath } from '@domain/question-link'
 import type { DomainId, Fact } from '@/model/items'
 import { questionDates } from '@/model/validity'
@@ -709,7 +709,8 @@ function useActions(card: InboxCard) {
       ).catch(reject)
     })
     copyLater(link).then(
-      () => toast('Link copied', { description: 'Paste it to the person who knows.' }),
+      // A link to this computer itself opens for nobody else: said, before it is sent.
+      () => toast('Link copied', { description: askSomeoneCopied(window.location.origin) }),
       // The service's refusal, or the browser's when it would not copy, says what to do.
       (error: Error) => toast.error("Couldn't copy the link", { description: error.message }),
     )

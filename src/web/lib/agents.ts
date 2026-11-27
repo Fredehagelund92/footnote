@@ -221,19 +221,29 @@ export const CHECKS = [
   'If it says the server already exists, ask it to remove the old one and try again.',
 ]
 
-/** The live line's two lines, per state. Connected names the agent as it reported itself, and the person. */
+/**
+ * The live line's two lines, per state. Connected names the agent as it reported itself, and the
+ * person. Before a wait begins it says how many agents are connected already (`connected`, the
+ * ones Connected agents lists for this person), so it never says Not connected yet above them.
+ */
 export function liveCopy(
   phase: LivePhase,
   via: Via,
   agent: string,
   me: string,
+  connected = 0,
 ): { title: string; body?: string } {
   switch (phase) {
     case 'idle':
-      return {
-        title: 'Not connected yet',
-        body: 'After you paste it, this page says Connected. It looks every few seconds.',
-      }
+      return connected > 0
+        ? {
+            title: connected === 1 ? '1 agent is connected' : `${connected} agents are connected`,
+            body: 'To connect another, paste the prompt. This page says Connected when it signs in.',
+          }
+        : {
+            title: 'Not connected yet',
+            body: 'After you paste it, this page says Connected. It looks every few seconds.',
+          }
     case 'waiting':
       return { title: 'Waiting for your agent to connect…', body: WAIT_HINT[via] }
     case 'hint':

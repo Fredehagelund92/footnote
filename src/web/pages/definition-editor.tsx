@@ -35,6 +35,7 @@ import {
   SelectField,
   StaticField,
 } from '@/components/footnote/field-controls'
+import { NoDomainYet } from '@/components/footnote/no-domain-yet'
 import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { ResizableAside } from '@/components/resizable-aside'
 import { SiteHeader } from '@/components/site-header'
@@ -486,6 +487,7 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
                       <Ghost>Add a domain</Ghost>
                     )
                   }
+                  empty={<NoDomainYet />}
                 />
               )}
             </PropertyRow>

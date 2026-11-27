@@ -31,6 +31,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { DomainId } from '@/model/items'
 import {
   emailOf,
+  inviteLinkWords,
   listOf,
   partyActions,
   type Allowed,
@@ -42,10 +43,11 @@ import { domainHue } from '@/lib/tones'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
 import { href, setQuery, useRoute } from '@/lib/router'
 import { useReported } from '@/lib/reported'
+import { PublicGuideLink } from '@/components/footnote/guide-link'
 import { useQuery } from '@tanstack/react-query'
 import type { Invited } from '@/api/client'
 import { toApiError } from '@/api/errors'
-import { activityQuery, useSession, useWrite } from '@/api/queries'
+import { activityQuery, signInMethodQuery, useSession, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useDomainList, useDomains, useInvites, usePeople } from '@/lib/workspace'
 import { useMe } from '@/lib/workspace'
@@ -136,7 +138,7 @@ function standingLine({ standing, voidBecause }: Invite) {
  * What inviting did, as a toast: the link to send each person (Footnote sends no email yet), and who
  * was left out because they are here or invited already.
  */
-function toastInvited({ links, skipped }: Invited) {
+function toastInvited({ links, skipped }: Invited, picker: boolean) {
   const left = skipped.length
     ? ` ${skipped.map((s) => s.email).join(', ')} ${skipped.length === 1 ? 'is' : 'are'} here or invited already.`
     : ''
@@ -145,7 +147,7 @@ function toastInvited({ links, skipped }: Invited) {
     return
   }
   toast(links.length === 1 ? 'Invited' : `Invited ${links.length} people`, {
-    description: `Send ${links.length === 1 ? 'them the link' : 'each their link'} to sign in. It works for 7 days.${left}`,
+    description: `${inviteLinkWords(links, picker)}${left}`,
     action: {
       label: links.length === 1 ? 'Copy link' : 'Copy links',
       onClick: () =>
@@ -190,10 +192,13 @@ function InviteBody({
   const domainIds = useDomainList().map((d) => d.id)
   const write = useWrite()
   const [text, setText] = React.useState('')
+  // Where people pick who they are from a list, nobody invited is on it: the dialog says so before
+  // a link is sent to someone it cannot let in.
+  const picker = useQuery(signInMethodQuery()).data?.kind === 'picker'
   const inviting = useReported<Invited>({
     wasnt: 'Nobody was invited.',
     done: (invited) => {
-      toastInvited(invited)
+      toastInvited(invited, picker)
       onOpenChange(false)
     },
   })
@@ -213,6 +218,18 @@ function InviteBody({
           domain's context.
         </DialogDescription>
       </DialogHeader>
+      {picker && (
+        <div
+          role="note"
+          className="flex flex-col items-start gap-1 rounded-md border bg-muted/50 px-3 py-2 text-sm text-muted-foreground"
+        >
+          <p>
+            People sign in here by picking who they are from a list, and someone you invite is not
+            on it. An invite lets them in once company sign-in is set up.
+          </p>
+          <PublicGuideLink slug="company-sign-in">How to set up company sign-in</PublicGuideLink>
+        </div>
+      )}
       <form
         id="invite-form"
         className="flex flex-col gap-5"

@@ -4,6 +4,7 @@
  * pages use. Pure, so it is unit tested (tests/web/api/http-integrations.test.ts).
  */
 import { dayMonth, dayMonthYear } from '@/lib/dates'
+import { localHost } from '@/lib/local-address'
 import { secretsInUse } from '@domain/connector-config'
 import type { ConnectorManifest } from '@domain/connector-manifest'
 import type {
@@ -118,6 +119,30 @@ const FIXES: Record<string, string> = {
   compile_error: 'Fix the model in the tool, then test again.',
   compile_timeout: 'Test again in a moment, or read fewer views.',
   private_address: 'Use an https address on a public host.',
+}
+
+/**
+ * Whether a warning's target, a host with or without a port, is the machine the server runs on.
+ * The browser opens such an address on the reader's computer, the server on its own, which in a
+ * container is not the same one.
+ */
+const onTheServerItself = (target: string) =>
+  localHost(URL.parse(`http://${target}`)?.hostname ?? target)
+
+/**
+ * What to do when an address on the server itself could not be reached: "the host is up" is no
+ * help to someone whose browser opens the same address, on their own computer.
+ */
+const LOCAL_FIX =
+  'This address is on the server itself, which may not be your computer. For a file on your computer, share its folder with the server instead.'
+/** A server on the reader's own computer may listen at 127.0.0.1 and not at what localhost names. */
+const LOCALHOST_FIX = `${LOCAL_FIX} If the server runs on your computer, try 127.0.0.1 in place of localhost.`
+
+/** What to do about one warning of a test that could not read, when there is something to do. */
+function fixOf({ code, target }: SourceCheck['warnings'][number]): string | undefined {
+  const local = code === 'unreachable' ? onTheServerItself(target) : null
+  if (local) return local === 'localhost' ? LOCALHOST_FIX : LOCAL_FIX
+  return FIXES[code]
 }
 
 /** Why a read failed, by the first of its warnings that says so. */
@@ -658,7 +683,7 @@ function testFailureOf(
 
 /** What to do about a test that could not read, by the first warning that has a fix. */
 const testFixOf = (warnings: SourceCheck['warnings']) =>
-  warnings.flatMap(({ code }) => FIXES[code] ?? [])[0]
+  warnings.flatMap((warning) => fixOf(warning) ?? [])[0]
 
 /** The words one split takes: "eur, usd, gbp and 47 more". */
 const splitWords = ({ words, examples }: { words: number; examples: string[] }) =>

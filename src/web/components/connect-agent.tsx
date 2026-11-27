@@ -50,7 +50,12 @@ import { onOpen } from '@/lib/events'
 import { storageKey } from '@/lib/brand'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api'
-import { agentConnectionsQuery, connectReviewQuery, useSettings } from '@/api/queries'
+import {
+  agentConnectionsQuery,
+  connectReviewQuery,
+  useAgentConnections,
+  useSettings,
+} from '@/api/queries'
 import { useMe } from '@/lib/workspace'
 
 // Connect an agent: one prompt first, shown in full and copied exactly as shown, with a live line
@@ -189,15 +194,21 @@ function LiveLine({
   onCopyAgain: () => void
 }) {
   const { phase } = live
+  // The agents people signed in with, as Connected agents counts them: an access key is no sign-in.
+  const connected = useAgentConnections().filter((r) => r.kind !== 'key').length
   const icon = {
-    idle: <CircleDashedIcon className="text-muted-foreground" />,
+    idle: connected ? (
+      <CircleCheckIcon className="text-muted-foreground" />
+    ) : (
+      <CircleDashedIcon className="text-muted-foreground" />
+    ),
     waiting: <LoaderCircleIcon className="animate-spin text-primary" />,
     hint: <LoaderCircleIcon className="animate-spin text-primary" />,
     connected: <CircleCheckIcon className="text-primary" />,
     timeout: <ClockIcon className="text-muted-foreground" />,
     declined: <CircleXIcon className="text-destructive" />,
   }[phase]
-  const { title, body } = liveCopy(live.phase, live.via, live.agent ?? 'your agent', me)
+  const { title, body } = liveCopy(live.phase, live.via, live.agent ?? 'your agent', me, connected)
   return (
     <div
       role="status"
