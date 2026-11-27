@@ -213,7 +213,9 @@ Add a short note. It is checked for sensitive text, and the report never keeps w
 
 ## Write a draft together: write_draft and read_draft
 
-The person and their agent work on one draft: the person in the app, the agent with these tools. Only a person's own agent may call them. An access key or a dev token names no person, so it is refused. Neither tool sends anything: the person sends the draft for review in the app, or says yes and the agent calls `send_draft`.
+The person and their agent work on one draft: the person in the app, the agent with these tools. Only a person's own agent may call them. An access key or a dev token names no person, so it is refused.
+
+Neither tool sends anything. The person sends the draft for review in the app, or says yes and the agent calls `send_draft`.
 
 `write_draft` takes one of two shapes:
 
