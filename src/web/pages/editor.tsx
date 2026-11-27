@@ -567,9 +567,7 @@ function Editor({
   // service keeps a start for every item, so a silent default would be a date they never chose. So
   // does a draft that kept itself before a date was picked: its Always was never chosen either.
   const datesOpen = mode === 'new' || original?.status === 'Draft'
-  const [whenChosen, setWhenChosen] = React.useState(
-    () => !datesOpen || initial.when !== 'always',
-  )
+  const [whenChosen, setWhenChosen] = React.useState(() => !datesOpen || initial.when !== 'always')
 
   const editor = useEditor({
     immediatelyRender: true,
