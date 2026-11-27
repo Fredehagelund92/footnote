@@ -63545,6 +63545,9 @@
                           },
                           "target": {
                             "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -64175,6 +64178,9 @@
                             "type": "string"
                           },
                           "target": {
+                            "type": "string"
+                          },
+                          "value": {
                             "type": "string"
                           }
                         },
@@ -93427,6 +93433,9 @@
                                           "type": "string"
                                         },
                                         "target": {
+                                          "type": "string"
+                                        },
+                                        "value": {
                                           "type": "string"
                                         }
                                       },

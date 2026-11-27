@@ -27,7 +27,7 @@ On a phone, and wherever a table is too wide for the page, Advanced and an integ
 Write context now offers your own agent beside Fill it in. Write with Claude opens Claude's app on a new chat with a prompt ready: Claude writes the item with you as your draft, and you change the same draft in the app. Another agent you connected gets the prompt copied. It is also under a Not found answer and in the editor's More menu.
 
 Your agent reads the draft again before each change, so it keeps your words. It looks again when you write to it, not while you type. In Claude Code, the same prompt is /footnote:write_context. [Write with your agent](write-with-your-agent.md) has the steps, and the line to keep in a Claude Project.
-=======
+
 ## A first item that is never lost, and nothing to guess
 
 2026-11-27
@@ -42,7 +42,6 @@ A new owner's first hour lost words, or left them to guess. Now:
 - `SEED_DEMO=off docker compose up` starts with no demo and no definitions.
 
 See [Write context](write-context.md).
->>>>>>> 74804647 (docs: say a new item keeps itself as a draft, in FR-230 and What's new)
 
 ## Metrics kept apart, and made one family later
 
