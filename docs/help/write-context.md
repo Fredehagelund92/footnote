@@ -3,7 +3,7 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 8
+minutes: 9
 reviewed: 2026-11-27
 open:
   label: Write context
@@ -65,6 +65,17 @@ The new value goes to the owner with your item, and publishing the item publishe
 ## Save as draft
 
 Not finished yet? Choose **Save as draft** in the editor. A draft is yours alone: only you see it in Context, with the chip Draft, and agents don't get it. Open it to finish it, then publish it, or send it to the domain's owners, from its page. You can also delete it there.
+
+Once it is a draft, it saves itself as you write: the top of the editor says Saved.
+
+## Write a draft with your agent
+
+Your own agent can write a draft for you and change it, with `write_draft` (see [Tools](tools.md)). Open the draft in the app beside the chat, and you both work on the same draft.
+
+- While the draft is open, the app looks for your agent's changes every few seconds, and when you come back to the window. What it changed comes in, and a line says so, such as Claude changed Title and When, 20 seconds ago. Undo, on that line, puts those fields back as they were.
+- A field you are writing in keeps your words. Your agent's version waits under it, to use or to leave: Keep mine leaves it.
+- A small mark beside a field means only your agent has written it, and nobody has read it yet. It goes once you change the field.
+- Claude looks again when you write to it: it sees your changes the next time it reads the draft, not while you type.
 
 Drafts you imported, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
 

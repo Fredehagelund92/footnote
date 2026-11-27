@@ -85,6 +85,7 @@ export function PropertyRow({
   icon,
   required,
   problem,
+  mark,
   children,
 }: {
   id: string
@@ -93,6 +94,12 @@ export function PropertyRow({
   required?: boolean
   /** Why what is here is refused, in a sentence, under the value. */
   problem?: string
+  /**
+   * Who wrote the value, when nobody has read it yet, such as the person's agent: a small icon by
+   * the label, its words on hover, and to a screen reader beside the value, never in the name of
+   * the control the label names.
+   */
+  mark?: { icon: React.ReactNode; words: string }
   children: React.ReactNode
 }) {
   return (
@@ -103,6 +110,16 @@ export function PropertyRow({
       >
         {icon}
         {label}
+        {mark && (
+          <span
+            data-mark
+            aria-hidden
+            className="inline-flex text-muted-foreground"
+            title={mark.words}
+          >
+            {mark.icon}
+          </span>
+        )}
         {required && (
           <span className="size-1.5 shrink-0 rounded-full bg-primary/70" title="Needed to publish">
             <span className="sr-only">, needed to publish</span>
@@ -111,6 +128,7 @@ export function PropertyRow({
       </dt>
       <dd className="min-w-0 pl-1.5 max-sm:pb-1.5">
         {children}
+        {mark && <span className="sr-only">{mark.words}</span>}
         {problem && (
           <p data-problem className="pt-0.5 pb-1 text-xs text-destructive">
             {problem}

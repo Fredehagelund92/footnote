@@ -463,6 +463,11 @@ export interface FootnoteApi {
   contextPage: () => Promise<Fact[]>
   /** A context item's page; null for an unknown id. */
   itemPage: (input: { id: string }) => Promise<ItemPage | null>
+  /**
+   * The person's own draft as it is now, with its session: what the editor reads every few
+   * seconds while the draft is open (Route 1). Null once it is no draft of theirs any more.
+   */
+  draftNow: (input: { id: string }) => Promise<Fact | null>
   /** An item's versions, newest first. */
   getItemHistory: (input: { id: string }) => Promise<Version[]>
   /**
@@ -494,11 +499,19 @@ export interface FootnoteApi {
   }) => Promise<{ id: string }>
   /**
    * Save as draft (FR-139): the words kept as the person's own draft, which only they can see and
-   * agents don't get, to finish later. `fact` is a new item, a change to a published one, or a
-   * draft of theirs saved again; `gap` is the Not found card it was written for. Its id is the
-   * draft's.
+   * agents don't get, to finish later. `fact` is a new item or a change to a published one; `gap`
+   * is the Not found card it was written for. Its id is the draft's.
    */
   saveDraft: (input: { fact: Fact; isNew: boolean; gap?: string }) => Promise<{ id: string }>
+  /**
+   * The person's own draft saved as they type (Route 1): the fields where `fact` differs from
+   * `before`, what the editor last read or saved, over the `revision` it was read at. Once their
+   * agent changed the draft since, nothing is saved ('conflict'): the editor reads it again and
+   * merges. Answers the draft's new revision.
+   */
+  autosaveDraft: (input: { fact: Fact; before: Fact; revision: number }) => Promise<{
+    revision: number
+  }>
   /** Deletes every draft of someone who left, unread, and says how many (FR-139). */
   clearLeftDrafts: (input: { id: string }) => Promise<{ deleted: number }>
   /** A draft made from pasted text or a link: every field filled in, for the writer to check. */
@@ -1005,6 +1018,7 @@ export const footnoteApiMethods = [
   'searchScope',
   'contextPage',
   'itemPage',
+  'draftNow',
   'getItemHistory',
   'compareVersions',
   'getRelated',
@@ -1014,6 +1028,7 @@ export const footnoteApiMethods = [
   'draftFromText',
   'saveItem',
   'saveDraft',
+  'autosaveDraft',
   'clearLeftDrafts',
   'applyBulk',
   'sendSuggestion',
@@ -1162,6 +1177,7 @@ export const readMethods = [
   'searchScope',
   'contextPage',
   'itemPage',
+  'draftNow',
   'conflicts',
   'conflict',
   'getItemHistory',

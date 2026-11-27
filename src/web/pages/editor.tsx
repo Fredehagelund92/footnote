@@ -29,6 +29,15 @@ import { hostOf } from '@/lib/host'
 import { useSideChoice } from '@/lib/side-panel'
 import { useSend } from '@/lib/send'
 import { useLeaveGuard } from '@/lib/leave-guard'
+import { useDraftSession } from '@/lib/draft-session'
+import {
+  AgentChangeSaid,
+  AgentChangeStrip,
+  agentMark,
+  AgentVersion,
+  AgentWroteLine,
+} from '@/components/footnote/agent-change'
+import { sessionFieldLabel, type SessionField } from '@/model/draft-session'
 import { problemsOf, sourceProblem, type EditorField } from '@/lib/editor-problems'
 import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
@@ -568,6 +577,37 @@ function Editor({
     onUpdate: ({ editor }) => set('body', editor.getMarkdown()),
   })
 
+  // The person's own draft saves itself as they write, and keeps up with their agent's changes to
+  // it (Route 1): what it changed comes into each field they are not writing in.
+  const ids = React.useId()
+  const fieldId = (name: string) => `${ids}-${name}`
+  const rowOf: Record<Exclude<SessionField, 'title' | 'text'>, string> = {
+    kind: 'kind',
+    domain: 'domain',
+    where: 'where',
+    when: 'when',
+    source: 'source',
+    dontConclude: 'dont',
+  }
+  const session = useDraftSession({
+    draft: original?.session && original.by === me.name ? original : undefined,
+    form,
+    setForm,
+    formOf: (f) => fromFact(f, domains, vocabulary),
+    factOf: (f) => toFact(f, original?.id ?? 'draft', me.name, domains, original),
+    typing: (field) => {
+      const active = document.activeElement
+      if (field === 'title') return active === titleRef.current
+      if (field === 'text') return !!editor?.isFocused
+      const row = document.getElementById(fieldId(rowOf[field]))?.parentElement
+      return !!active && !!row?.contains(active)
+    },
+    setText: (body) =>
+      editor?.commands.setContent(body, { contentType: 'markdown', emitUpdate: false }),
+    onError: (error) =>
+      toast("Couldn't save your draft", { description: toApiError(error).message }),
+  })
+
   const trying = useDock()?.kind === 'try'
   const owner = me.owns.includes(form.domain) || me.admin
   const isSuggest = mode === 'suggest' || !owner
@@ -584,9 +624,7 @@ function Editor({
     owner: ownerName,
     domain: domains[form.domain]?.name ?? '',
   })
-  const ids = React.useId()
   const KindIcon = kindIcons[form.kind]
-  const fieldId = (name: string) => `${ids}-${name}`
   const draft = {
     ...toFact(form, original?.id ?? 'draft', me.name, domains, original),
     ...(base ? { version: base } : {}),
@@ -671,8 +709,13 @@ function Editor({
   // A draft nobody has published goes as it is: publishing its words is the change.
   const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
   const unchanged = mode !== 'new' && !edited && !asIs
-  // Words in the first box are the person's too, until they are filled in.
-  const guard = useLeaveGuard(edited || (starting && !!pasted.trim()))
+  // Words in the first box are the person's too, until they are filled in. A draft that saves
+  // itself holds back only what it could not save: the rest is sent on the way out.
+  const guard = useLeaveGuard(
+    session.on
+      ? session.status === 'failed' || session.status === 'offline'
+      : edited || (starting && !!pasted.trim()),
+  )
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
   const tooLong = summaryLength > SUMMARY_LIMIT
@@ -756,6 +799,8 @@ function Editor({
   }
 
   const commit = async () => {
+    // A draft that saves itself is stored as it reads before it goes.
+    if (session.on) await session.flush()
     if (asIs) return publishAsIs(asIs)
     if (isSuggest) {
       // It waits visibly: a line on the item, and a row under All in your Inbox.
@@ -873,15 +918,11 @@ function Editor({
   const held =
     blocked || (!online ? `You're offline. ${verb} once you're back; your text stays here.` : '')
 
-  // Save as draft (FR-139): a new item, the person's own draft, or a change to a published item,
-  // kept where only they can see it, to finish later. A suggestion that waits for review, or one an
-  // owner returned, is sent instead.
+  // Save as draft (FR-139): a new item, or a change to a published item, kept where only they can
+  // see it, to finish later. Their own draft saves itself. A suggestion that waits for review, or
+  // one an owner returned, is sent instead.
   const savesDraft =
-    !beside &&
-    !query.get('setup') &&
-    (mode === 'new' ||
-      (original?.status === 'Draft' && !original.returned && original.by === me.name) ||
-      (!!original && !unpublished(original)))
+    !beside && !query.get('setup') && (mode === 'new' || (!!original && !unpublished(original)))
   const [savingDraft, setSavingDraft] = React.useState(false)
   const draftHeld = !online
     ? "You're offline. Save it once you're back; your text stays here."
@@ -1026,13 +1067,47 @@ function Editor({
             </span>
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            <span className="text-foreground">Don't conclude:</span> {draft.dontConclude}
+            {/* As a sentence, before the next one: the service's own line is "cause not proven". */}
+            <span className="text-foreground">Don't conclude:</span>{' '}
+            {draft.dontConclude.charAt(0).toUpperCase() +
+              draft.dontConclude.slice(1).replace(/[^.!?]$/, '$&.')}
             {form.causes ? '' : " The source doesn't say this caused a change."}
           </p>
         </div>
       </PanelGroup>
     </>
   )
+  // Who wrote a field nobody has read yet, and the agent's words waiting at one being written in.
+  const markOf = (field: SessionField) => {
+    const agent = session.agentIn(field)
+    return agent ? agentMark(agent) : undefined
+  }
+  const wordsOf: Record<SessionField, (f: Form) => React.ReactNode> = {
+    title: (f) => f.title,
+    text: (f) => <ContextText text={f.body} dense />,
+    kind: (f) => kindLabel[f.kind],
+    domain: (f) => domains[f.domain]?.name ?? f.domain,
+    where: (f) => scopeWords(f.where) || 'Nowhere yet',
+    when: (f) => whenText(f),
+    source: (f) => f.source || 'No source',
+    dontConclude: (f) => f.dontConclude || 'Empty',
+  }
+  const versionOf = (field: SessionField, className: string) => {
+    const theirs = session.waitingIn(field)
+    return (
+      theirs && (
+        <AgentVersion
+          agent={theirs.agent}
+          field={sessionFieldLabel[field]}
+          onTake={() => session.take(field)}
+          onLeave={() => session.leave(field)}
+          className={className}
+        >
+          {wordsOf[field](theirs.form)}
+        </AgentVersion>
+      )
+    )
+  }
   const back = original
     ? { href: href(`/context/${original.id}`), label: 'Back to the context item' }
     : { href: href('/context'), label: 'Back to Context' }
@@ -1126,20 +1201,24 @@ function Editor({
         <>
           <SiteHeader title={heading} icon={<FilePenLineIcon />} back={back} bare>
             {/* Nothing is kept until Save, so a new page that holds nothing yet has nothing to say. */}
-            {(mode !== 'new' || edited) && (
-              <SaveStatus
-                status={
-                  sendState === 'failed'
-                    ? 'failed'
-                    : sendState === 'sending'
-                      ? 'saving'
-                      : !edited
-                        ? 'clean'
-                        : online
-                          ? 'dirty'
-                          : 'offline'
-                }
-              />
+            {session.on ? (
+              <SaveStatus status={session.status} retry={session.retry} />
+            ) : (
+              (mode !== 'new' || edited) && (
+                <SaveStatus
+                  status={
+                    sendState === 'failed'
+                      ? 'failed'
+                      : sendState === 'sending'
+                        ? 'saving'
+                        : !edited
+                          ? 'clean'
+                          : online
+                            ? 'dirty'
+                            : 'offline'
+                  }
+                />
+              )
             )}
             {/* Write or try it: the same draft, seen two ways, so a quiet toggle rather than tabs. */}
             <ViewToggle
@@ -1351,6 +1430,14 @@ function Editor({
             {standing}
           </p>
         )}
+        {session.on && <AgentChangeSaid change={session.change} />}
+        {session.change && (
+          <AgentChangeStrip
+            change={session.change}
+            onUndo={session.undo}
+            onClose={session.dismiss}
+          />
+        )}
         <textarea
           ref={titleRef}
           aria-label="Title"
@@ -1366,6 +1453,14 @@ function Editor({
             {problemAt('title')}
           </p>
         )}
+        {versionOf('title', 'mb-4')}
+        <AgentWroteLine
+          agent={session.agentIn('title') ?? session.agentIn('text') ?? ''}
+          parts={[
+            ...(session.agentIn('title') ? ['the title'] : []),
+            ...(session.agentIn('text') ? ['the text'] : []),
+          ]}
+        />
         {orders.length > 0 && (
           <p
             aria-label="Words that read like orders"
@@ -1461,6 +1556,7 @@ function Editor({
           <PropertyGroup>
             <PropertyRow
               id={fieldId('domain')}
+              mark={markOf('domain')}
               label="Domain"
               icon={<FolderIcon />}
               required={!domains[form.domain]}
@@ -1487,8 +1583,14 @@ function Editor({
                 }
                 empty={<NoDomainYet />}
               />
+              {versionOf('domain', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
-            <PropertyRow id={fieldId('kind')} label="Kind" icon={<ShapesIcon />}>
+            <PropertyRow
+              id={fieldId('kind')}
+              label="Kind"
+              icon={<ShapesIcon />}
+              mark={markOf('kind')}
+            >
               <SelectField
                 labelId={fieldId('kind')}
                 label="Kind"
@@ -1497,6 +1599,7 @@ function Editor({
                 onChange={(k) => set('kind', k)}
                 display={<TagChip icon={<KindIcon aria-hidden />}>{kindLabel[form.kind]}</TagChip>}
               />
+              {versionOf('kind', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             <PropertyRow id={fieldId('status')} label="Status" icon={<CircleDotIcon />}>
               {notLive ? (
@@ -1544,6 +1647,7 @@ function Editor({
           <PropertyGroup>
             <PropertyRow
               id={fieldId('where')}
+              mark={markOf('where')}
               label="Applies to"
               icon={<MapPinIcon />}
               required={!form.where.length}
@@ -1560,9 +1664,11 @@ function Editor({
                     : 'Add a metric or a dimension'
                 }
               />
+              {versionOf('where', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             <PropertyRow
               id={fieldId('when')}
+              mark={markOf('when')}
               label="When"
               icon={<CalendarIcon />}
               required={asksWhen}
@@ -1577,11 +1683,13 @@ function Editor({
                   setForm((f) => ({ ...f, when: w.mode, from: w.from, until: w.until }))
                 }}
               />
+              {versionOf('when', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
           </PropertyGroup>
           <PropertyGroup>
             <PropertyRow
               id={fieldId('source')}
+              mark={markOf('source')}
               label="Source"
               icon={<LinkIcon />}
               required={!form.source}
@@ -1639,9 +1747,11 @@ function Editor({
                   </Field>
                 </div>
               </PickerField>
+              {versionOf('source', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             <PropertyRow
               id={fieldId('dont')}
+              mark={markOf('dontConclude')}
               label="Don't conclude"
               icon={<ShieldAlertIcon />}
               problem={problemAt('dont')}
@@ -1652,6 +1762,7 @@ function Editor({
                 onChange={(v) => set('dontConclude', v)}
                 placeholder="Left empty, agents are told: Cause not proven."
               />
+              {versionOf('dontConclude', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             {/* A draft, or a suggestion sent back, was never checked: it has no such row. */}
             {original?.checkedBy && (
@@ -1667,6 +1778,7 @@ function Editor({
           </PropertyGroup>
         </PropertyList>
         <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-48! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
+        {versionOf('text', 'mt-3 max-w-reading')}
         {problemAt('text') && (
           <p data-problem className="mt-2 text-sm text-destructive">
             {problemAt('text')}

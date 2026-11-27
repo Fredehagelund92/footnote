@@ -398,8 +398,10 @@ and a concurrent request using the same key returns 409. A rolled-back request c
   recheck and vocabulary), newest first by actual timestamp. `total` counts the readable matches
   before pagination. `GET /proposals/{id}` reads a proposal under row security; `draft` holds
   item form content only and is empty for the other kinds. `submittedAt` is when it was last sent
-  for review, null for a draft never sent. Every mutation checks `revision`; a stale write returns
-  409 with the current record.
+  for review, null for a draft never sent. `fieldStamps` says who last changed each field, the
+  person or their agent (by its name), at which revision and when: the editor tells the person
+  what their agent changed. Every mutation checks `revision`; a stale write returns 409 with the
+  current record.
 - `POST /proposals/{id}/submit` takes `{ revision }`. The proposer submits an immutable version,
   scope, evidence, references, mention rows, digests and format checks in one transaction with
   the proposal state, audit and outbox records. Resubmit creates another version, still written
@@ -717,10 +719,13 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   `data.stale.version`, the version agents get now, so an older view never takes away a newer
   change. A check since then changes no words and does not count.
 - `POST /drafts` is Save as draft (FR-230): it takes `{ draft, itemId?, version?, draftId?,
-reason?, gapId? }` and keeps the words as the person's own draft, which only they read and agents
-  never get: a new item, a change to the published item named (written from `version`), or, with
-  `draftId`, a draft of theirs saved again in place (404 for anything else). `gapId` makes it the
-  draft of that Not found card. It answers `{ proposalId, revision }`.
+revision?, reason?, gapId? }` and keeps the words as the person's own draft, which only they read
+  and agents never get: a new item, a change to the published item named (written from
+  `version`), or, with `draftId` and the `revision` the words were written from, a draft of theirs
+  saved again in place (404 for anything else, 400 without the revision). The editor saves a draft
+  so as the person types (FR-147). Once their agent changed it after that revision, nothing is
+  saved: 409 with the current record, which the editor merges field by field before it saves
+  again. `gapId` makes it the draft of that Not found card. It answers `{ proposalId, revision }`.
 - `GET /drafts/left` (admins) lists the people who left with drafts they never sent, each with how
   many: counted, never read. `POST /drafts/left/{personId}/clear` deletes them all, unread, and
   answers `{ deleted }`; each draft's history says so, and the History log says how many and whose

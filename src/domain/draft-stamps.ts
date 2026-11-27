@@ -28,6 +28,8 @@ export const draftFieldNames = Object.keys(draftFields) as DraftFieldName[]
 
 export const fieldStampSchema = z.strictObject({
   by: z.enum(['person', 'agent']),
+  /** The agent's name, as the person named it when they connected it: the editor says it. */
+  agent: z.optional(z.string()),
   revision: z.number().check(z.int(), z.minimum(1)),
   at: z.string(),
 })

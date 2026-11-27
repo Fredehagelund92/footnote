@@ -41,6 +41,7 @@ export const queryKeys = {
   scopeSearches: ['searchScope'] as const,
   contextPage: ['contextPage'] as const,
   itemPage: (id: string) => ['itemPage', id] as const,
+  draftNow: (id: string) => ['draftNow', id] as const,
   conflicts: (whose: 'mine' | 'all') => ['conflicts', whose] as const,
   conflictLists: ['conflicts'] as const,
   conflict: (key: string) => ['conflict', key] as const,
@@ -193,6 +194,10 @@ export const contextPageQuery = () =>
 
 export const itemPageQuery = (id: string) =>
   queryOptions({ queryKey: queryKeys.itemPage(id), queryFn: () => api.itemPage({ id }) })
+
+/** The person's own draft as it is now, read again while its editor is open. */
+export const draftNowQuery = (id: string) =>
+  queryOptions({ queryKey: queryKeys.draftNow(id), queryFn: () => api.draftNow({ id }) })
 
 /** The Conflicts list, mine or all. */
 export const conflictsQuery = (whose: 'mine' | 'all') =>
@@ -620,6 +625,8 @@ export const invalidations: {
   saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
   // A draft saved from a Not found card is that card's draft.
   saveDraft: () => [...items, ...inbox],
+  // Saved as the person types, from the editor, which reads the draft again itself (`later`).
+  autosaveDraft: () => [],
   // Published or sent from the list or the Inbox's drafts card, drafts leave that card too.
   applyBulk: () => [...live, ...inbox, queryKeys.advancedPage],
   clearLeftDrafts: () => [queryKeys.advancedPage],
@@ -827,6 +834,8 @@ const later: { [K in WriteOperation]?: QueryKey[] } = {
     ...integrations,
     queryKeys.advancedPage,
   ],
+  // The draft's row in Context and on the Inbox's drafts card, read again where it shows next.
+  autosaveDraft: [...items, ...inbox],
   // A value its writer added is published with the item (values without figures).
   saveItem: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],
   publishReview: [queryKeys.vocabulary, ...definitions, queryKeys.scopeSearches],

@@ -672,7 +672,16 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(
-      lacks('signIn', 'getWorkspace', 'getLibrary', 'contextPage', 'itemPage', 'saveDraft'),
+      lacks(
+        'signIn',
+        'getWorkspace',
+        'getLibrary',
+        'contextPage',
+        'itemPage',
+        'saveDraft',
+        'autosaveDraft',
+        'draftNow',
+      ),
     )('saves a draft that only its writer sees, and saves it again in place (FR-230)', async () => {
       const live = await signedIn()
       const { fact } = await newItem(live, 'Conformance: a draft only its writer sees', '05')
@@ -682,13 +691,32 @@ export function describeFootnoteApi(
         status: 'Draft',
         by: person,
       })
-      const again = { ...(await live.itemPage({ id }))!.item, title: `${fact.title}, again` }
-      expect(await live.saveDraft({ fact: again, isNew: false })).toEqual({ id })
+      // Its page has its revision: the editor saves it as the person types, over that revision.
+      const opened = (await live.itemPage({ id }))!.item
+      const revision = opened.session!.revision
+      const again = { ...opened, title: `${fact.title}, again` }
+      const saved = await live.autosaveDraft({ fact: again, before: opened, revision })
+      expect(saved.revision).toBeGreaterThan(revision)
+      const reread = (await live.itemPage({ id }))!.item
+      expect(reread).toMatchObject({ title: again.title, session: { revision: saved.revision } })
+      // What the open editor reads every few seconds: the same draft, at the same revision.
+      expect(await live.draftNow({ id })).toMatchObject({
+        id,
+        title: again.title,
+        status: 'Draft',
+        session: { revision: saved.revision },
+      })
+      // A save over a revision moved on since saves nothing: the editor reads it again first.
+      const stale = await live
+        .autosaveDraft({ fact: { ...again, title: 'Not saved' }, before: again, revision })
+        .catch((e: unknown) => e)
+      expect(stale).toMatchObject({ kind: 'conflict' })
       expect((await live.itemPage({ id }))!.item.title).toBe(again.title)
       // Nobody else sees it: not in their list, and its page is not found.
       await api().signIn({ name: colleague })
       expect((await api().contextPage()).some((f) => f.id === id)).toBe(false)
       expect(await api().itemPage({ id })).toBeNull()
+      expect(await api().draftNow({ id })).toBeNull()
       await api().signIn({ name: person })
     })
 

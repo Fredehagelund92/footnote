@@ -1,5 +1,6 @@
 import * as z from 'zod/mini'
 import { draftSchema } from '../domain/draft.ts'
+import { fieldStampsSchema } from '../domain/draft-stamps.ts'
 import { provenanceSchema } from '../domain/provenance.ts'
 import { proposalStates } from '../domain/proposal-state.ts'
 import { creationChannels, itemKinds, personChannels } from '../domain/item.ts'
@@ -68,6 +69,12 @@ export const proposalRecordSchema = z.object({
    * (FR-121, FR-707); null for a draft a person wrote.
    */
   provenance: z.nullable(provenanceSchema),
+  /**
+   * Who last changed each field, the person or their agent, at which revision and when (Route 1):
+   * the editor tells the person what their agent changed. Empty for a field nobody changed since
+   * Footnote kept who does.
+   */
+  fieldStamps: fieldStampsSchema,
   /**
    * The agent that sent it for the person (FR-420), by its name when it did; null for anything
    * else.
