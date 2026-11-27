@@ -56,6 +56,7 @@ import {
   validOfWhen,
   whenOfPeriod,
   whenOfValid,
+  whensOfText,
   whenSummary,
   type WhenMode,
   type WhenValue,
@@ -671,6 +672,11 @@ function Editor({
   const orders = React.useMemo(
     () => instructionWords([form.title, text, form.quote].join('\n')),
     [form.title, text, form.quote],
+  )
+  // The dates the title and the text name, offered in When in one press.
+  const whenOffers = React.useMemo(
+    () => whensOfText(`${form.title}\n${text}`, today()),
+    [form.title, text],
   )
   // A cause the text gives, which agents pass on as the writer's words.
   const cause = causeIn(`${form.title}\n${text}`)
@@ -1678,6 +1684,7 @@ function Editor({
                 labelId={fieldId('when')}
                 value={whenOf(form)}
                 asking={asksWhen ? 'When did it happen? Pick a date' : undefined}
+                offers={whenOffers}
                 onChange={(w) => {
                   setWhenChosen(true)
                   setForm((f) => ({ ...f, when: w.mode, from: w.from, until: w.until }))

@@ -3,6 +3,7 @@ import { CalendarIcon, XIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
+import { Input } from '@/components/ui/input'
 import {
   Command,
   CommandEmpty,
@@ -17,7 +18,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { today } from '@/lib/today'
-import { missingDates, WHEN_PRESETS, whenSummary, type WhenMode, type WhenValue } from '@/lib/when'
+import {
+  missingDates,
+  sameWhen,
+  WHEN_PRESETS,
+  whenOfTyped,
+  whenSummary,
+  type WhenMode,
+  type WhenValue,
+} from '@/lib/when'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { PersonAvatar } from '@/components/footnote/bits'
 
@@ -433,19 +442,24 @@ const toIso = (d: Date | undefined) =>
 
 /**
  * When as one picker: the presets and the calendar in the same popover. A preset with dates shows
- * the calendar beside it (a range for Between dates); Always shows none.
+ * the calendar beside it (a range for Between dates), and a box to type the day in, for a day many
+ * months back; Always shows none. Each preset says in a line how it differs from the others, and
+ * the dates the text names are offered in one press (`offers`).
  */
 export function WhenField({
   labelId,
   value,
   onChange,
   asking,
+  offers = [],
 }: {
   labelId: string
   value: WhenValue
   onChange: (value: WhenValue) => void
   /** What to ask while nothing is picked: no preset is shown as chosen until one is. */
   asking?: string
+  /** Whens read from what the writer typed, such as "1 Sep 2026" from "on 1 September 2026". */
+  offers?: WhenValue[]
 }) {
   const [open, setOpen] = React.useState(false)
   const mobile = useIsMobile()
@@ -453,7 +467,27 @@ export function WhenField({
   const missing = missingDates(value)
   // Today is the service's day, so the calendar marks it and, with no day picked, opens on its month.
   const now = toDate(today())
-  const month = toDate(value.mode === 'until' ? value.until : value.from) ?? now
+  const dayOf = (w: WhenValue) => toDate(w.mode === 'until' ? w.until : w.from)
+  // The month shown: the picked day's when it opens, then where the arrows, a typed day or an
+  // offered one take it.
+  const [month, setMonth] = React.useState(() => dayOf(value) ?? now)
+  const [typed, setTyped] = React.useState('')
+  const [typedProblem, setTypedProblem] = React.useState('')
+  const typedId = React.useId()
+  const pick = (next: WhenValue) => {
+    onChange(next)
+    const day = dayOf(next)
+    if (day) setMonth(day)
+  }
+  const takeTyped = () => {
+    if (!typed.trim()) return setTypedProblem('')
+    const next = whenOfTyped(typed, value, today())
+    if (!next) return setTypedProblem('Type a day, such as 4 Aug 2024.')
+    setTypedProblem('')
+    setTyped('')
+    pick(next)
+  }
+  const offered = offers.filter((o) => asking || !sameWhen(o, value))
   const single = value.mode === 'until' ? value.until : value.from
   const hint = asking
     ? asking
@@ -484,7 +518,10 @@ export function WhenField({
         )
       }
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(next) => {
+        if (next) setMonth(dayOf(value) ?? now)
+        setOpen(next)
+      }}
       // Focus lands on the chosen preset; arrows move between presets, Tab goes on to the calendar.
       initialFocus={() =>
         presets.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')
@@ -497,15 +534,23 @@ export function WhenField({
           aria-label="When it applies"
           value={asking ? '' : value.mode}
           onValueChange={(v) => onChange({ ...value, mode: v as WhenMode })}
-          className="grid shrink-0 grid-cols-2 gap-0.5 p-1 sm:flex sm:w-40 sm:flex-col sm:border-r sm:pr-2"
+          className="grid shrink-0 grid-cols-2 gap-0.5 p-1 sm:flex sm:w-48 sm:flex-col sm:border-r sm:pr-2"
         >
           {WHEN_PRESETS.map((p) => (
             <label
               key={p.value}
-              className="flex h-9 cursor-default items-center gap-2.5 rounded-md px-2 text-sm hover:bg-muted has-data-checked:bg-muted has-data-checked:font-medium pointer-coarse:h-11"
+              className="flex cursor-default items-start gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-muted has-data-checked:bg-muted has-data-checked:font-medium pointer-coarse:py-2.5"
             >
-              <RadioGroupItem value={p.value} />
-              {p.label}
+              <RadioGroupItem
+                value={p.value}
+                aria-label={p.label}
+                aria-description={p.hint}
+                className="mt-0.5"
+              />
+              <span className="flex min-w-0 flex-col">
+                <span>{p.label}</span>
+                <span className="text-xs font-normal text-muted-foreground">{p.hint}</span>
+              </span>
             </label>
           ))}
         </RadioGroup>
@@ -513,11 +558,58 @@ export function WhenField({
           <p className="px-2 pt-1.5 pb-1 text-xs text-muted-foreground" aria-live="polite">
             {hint}
           </p>
+          {offered.length > 0 && (
+            <div
+              role="group"
+              aria-label="Dates in your text"
+              className="flex flex-wrap items-center gap-1.5 px-2 pt-0.5 pb-2"
+            >
+              <span className="w-full text-xs text-muted-foreground">In your text</span>
+              {offered.map((o) => (
+                <Button key={`${o.mode}-${o.from}`} variant="outline" onClick={() => pick(o)}>
+                  {whenSummary(o)}
+                </Button>
+              ))}
+            </div>
+          )}
+          {value.mode !== 'always' && !asking && (
+            <div className="flex flex-col gap-1 px-1 pb-1">
+              <label htmlFor={typedId} className="sr-only">
+                {value.mode === 'between' ? 'Type the dates' : 'Type a date'}
+              </label>
+              <Input
+                id={typedId}
+                value={typed}
+                placeholder={
+                  value.mode === 'between' ? '3 to 14 Aug 2024' : 'Type a date: 4 Aug 2024'
+                }
+                aria-invalid={typedProblem ? true : undefined}
+                aria-describedby={typedProblem ? `${typedId}-problem` : undefined}
+                onChange={(e) => {
+                  setTyped(e.target.value)
+                  setTypedProblem('')
+                }}
+                onBlur={takeTyped}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return
+                  e.preventDefault()
+                  takeTyped()
+                }}
+              />
+              {typedProblem && (
+                <p id={`${typedId}-problem`} className="px-1 text-xs text-destructive">
+                  {typedProblem}
+                </p>
+              )}
+            </div>
+          )}
           {value.mode !== 'always' &&
+            !asking &&
             (value.mode === 'between' ? (
               <Calendar
                 mode="range"
-                defaultMonth={month}
+                month={month}
+                onMonthChange={setMonth}
                 today={now}
                 selected={{ from: toDate(value.from), to: toDate(value.until) }}
                 onSelect={(r) => onChange({ ...value, from: toIso(r?.from), until: toIso(r?.to) })}
@@ -529,7 +621,8 @@ export function WhenField({
             ) : (
               <Calendar
                 mode="single"
-                defaultMonth={month}
+                month={month}
+                onMonthChange={setMonth}
                 today={now}
                 selected={toDate(single)}
                 onSelect={(d) =>
@@ -546,7 +639,10 @@ export function WhenField({
               />
             ))}
           <div className="mt-auto flex items-center justify-between gap-2 border-t px-1 pt-2 pb-1">
-            <span className="min-w-0 truncate px-1 text-xs font-medium">{whenSummary(value)}</span>
+            {/* Nothing is said until something is picked: "Always" is a choice, not a start. */}
+            <span className="min-w-0 truncate px-1 text-xs font-medium">
+              {asking ? '' : whenSummary(value)}
+            </span>
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Done
             </Button>
