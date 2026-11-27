@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-27
 ---
 
+## Counts in the thousands on a source's page
+
+2026-11-27
+
+A source's page in Integrations wrote counts in the thousands without a comma, such as "5062 definitions read". Its numbers, its activity and its list of what it reads now write 5,062.
+
 ## A phone's width keeps what a page holds
 
 2026-11-27

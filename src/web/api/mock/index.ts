@@ -56,7 +56,7 @@ import {
 import { loopExample, playAnswer, recordedAnswer } from './ask-live'
 import { createChats } from './chats'
 import { askedThisWeek } from './data/asked-week'
-import { createMockNames } from './names'
+import { createMockNames, familiesShopHeld } from './names'
 import { createSettings } from './settings'
 import { createPolicies } from './policies'
 import {
@@ -65,6 +65,7 @@ import {
   createIntegrations,
   leftOutOf,
   MOCK_TEST_MS,
+  scopesOf,
   testFor,
   type Kept,
 } from './integrations'
@@ -164,6 +165,27 @@ export function createMockApi() {
   const integrations = createIntegrations(
     () => settings.read().connected,
     (id) => kept.get(id),
+    // The dbt project of ?demo=families reads the demo's model, its families and the shop: its page
+    // counts all it holds, each variant a metric, not the shop alone that its test finds.
+    (id) =>
+      familiesShop && id === FAMILIES_DEFINITIONS
+        ? scopesOf([
+            ...definitions.list().flatMap((d) =>
+              d.synced && d.source === id && d.type !== 'term'
+                ? [
+                    {
+                      // As dbt names a semantic model: "Gift cards" is gift_cards.
+                      group: d.group?.toLowerCase().replaceAll(' ', '_') ?? '_shared',
+                      kind: d.type,
+                      count: d.family?.variants.length ?? 1,
+                      domain: d.domain ?? null,
+                    },
+                  ]
+                : [],
+            ),
+            ...familiesShopHeld(),
+          ])
+        : undefined,
   )
   /** The definitions tool that is on, other than `except`: one is at a time (CON-120). */
   const definitionsOn = (except?: string) =>

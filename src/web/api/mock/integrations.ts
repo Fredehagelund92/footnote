@@ -45,7 +45,8 @@ export const MOCK_READ_MS = 1_200
 /** How long Test connection takes on the mock: its checks, one after another. */
 export const MOCK_TEST_MS = 1_500
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
 
 /** The manifest a tool's connect form is drawn from: its connector's, when it has one. */
 const manifestOf = (id: string): ConnectorManifest | undefined =>
@@ -127,6 +128,14 @@ export function leftOutOf(
 /** The domain names a source's settings map, as the form keeps them: none, on the mock. */
 const NO_NAMES: Readonly<Record<string, string>> = {}
 
+/** A definition a tool holds, as a read counts it: a family's variants are each a metric. */
+export type HeldDefinition = {
+  group: string
+  kind: 'metric' | 'dimension'
+  count: number
+  domain: string | null
+}
+
 /**
  * What a test finds in a static list: its groups (a name up to its last dot), each with what it
  * holds and the domain most of it names, as the service's check finds a definitions tool's views.
@@ -134,17 +143,27 @@ const NO_NAMES: Readonly<Record<string, string>> = {}
 function staticScopes(text: string): ConnectScope[] {
   const parsed = parseStaticEntries(text)
   if ('problem' in parsed) return []
+  return scopesOf(
+    parsed.entries.map((entry) => ({
+      group: entry.name.includes('.')
+        ? entry.name.slice(0, entry.name.lastIndexOf('.'))
+        : entry.name,
+      kind: entry.kind === 'metric' ? 'metric' : 'dimension',
+      count: 1,
+      domain: domainHint(entry.domain, NO_NAMES).areaHint,
+    })),
+  )
+}
+
+/** A tool's groups, each with what it holds and the domain most of it is in. */
+export function scopesOf(held: readonly HeldDefinition[]): ConnectScope[] {
   const groups = new Map<string, { metrics: number; dimensions: number; domains: string[] }>()
-  for (const entry of parsed.entries) {
-    const id = entry.name.includes('.')
-      ? entry.name.slice(0, entry.name.lastIndexOf('.'))
-      : entry.name
-    const group = groups.get(id) ?? { metrics: 0, dimensions: 0, domains: [] }
-    if (entry.kind === 'metric') group.metrics += 1
-    else group.dimensions += 1
-    const hint = domainHint(entry.domain, NO_NAMES).areaHint
-    if (hint) group.domains.push(hint)
-    groups.set(id, group)
+  for (const entry of held) {
+    const group = groups.get(entry.group) ?? { metrics: 0, dimensions: 0, domains: [] }
+    if (entry.kind === 'metric') group.metrics += entry.count
+    else group.dimensions += entry.count
+    if (entry.domain) group.domains.push(entry.domain)
+    groups.set(entry.group, group)
   }
   return [...groups].map(([id, g]) => {
     const most = [...new Set(g.domains)].sort(
@@ -386,9 +405,15 @@ const readAfter = (time: string, schedule: string) => {
 /**
  * A tool connected this visit that the demo world has no page for, its settings as its manifest
  * words them. A definitions tool was read when it was connected, as on the service, and holds what
- * its test found, each view with the domain it was mapped to; a content tool reads first at 07:00.
+ * its test found, or what it holds when the demo gives it more (`held`), each view with the domain
+ * it was mapped to; a content tool reads first at 07:00.
  */
-function keptPage(id: string, kept: Kept | undefined, connectedAt: string): SourcePage | null {
+function keptPage(
+  id: string,
+  kept: Kept | undefined,
+  connectedAt: string,
+  held: readonly ConnectScope[] | undefined,
+): SourcePage | null {
   const tool = connectorById(id)
   const manifest = manifestOf(id)
   if (!tool || !manifest) return null
@@ -397,7 +422,9 @@ function keptPage(id: string, kept: Kept | undefined, connectedAt: string): Sour
   const readsAll = kept?.readsAll ?? true
   // Every view, or only those chosen; each with its domain chosen, or the one the tool names.
   const views = (
-    definitions ? checkOf(manifest, { config: kept?.config ?? {}, secrets: {} }).scopes : []
+    definitions
+      ? (held ?? checkOf(manifest, { config: kept?.config ?? {}, secrets: {} }).scopes)
+      : []
   ).flatMap((scope) => {
     const choice = chosen.find((c) => c.id === scope.id)
     if (!readsAll && !choice) return []
@@ -515,6 +542,8 @@ function keptPage(id: string, kept: Kept | undefined, connectedAt: string): Sour
 export function createIntegrations(
   connected: () => string[],
   kept: (id: string) => Kept | undefined,
+  /** What a tool connected this visit holds, by view, when it is more than its test finds. */
+  held: (id: string) => readonly ConnectScope[] | undefined = () => undefined,
 ) {
   const paused = new Set<string>()
   /** The tools read again this visit, and until when they read. */
@@ -527,7 +556,7 @@ export function createIntegrations(
     `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   const keptAt = (id: string) => {
     if (!connectedAt.has(id)) connectedAt.set(id, timeOf(new Date()))
-    return keptPage(id, kept(id), connectedAt.get(id)!)
+    return keptPage(id, kept(id), connectedAt.get(id)!, held(id))
   }
 
   const stateAt = (address: Address) =>

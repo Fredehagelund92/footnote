@@ -166,6 +166,23 @@ describe('the cells the audit found', () => {
     expect(next('period')).toEqual({ label: 'Next try', value: '11:00', sub: 'every hour' })
   })
 
+  it('writes a count of thousands as English does, in its number and its line', () => {
+    const many = source(active('scheduled', 'ok'), {
+      definitions: {
+        metrics: 5_053,
+        dimensions: 9,
+        views: 10,
+        noDomain: 0,
+        notSelected: 0,
+        flagged: 1_200,
+      },
+    })
+    expect(sourceView('definitions', many, null).numbers.slice(2)).toEqual([
+      { label: 'Definitions', value: '5,062', sub: '5,053 metrics, 9 dimensions' },
+      { label: 'Context to check', value: '1,200', sub: 'after a change' },
+    ])
+  })
+
   it('a read that ended is told by how it went, with one full stop', () => {
     expect(readEndedWords('Cube', 'refused', 'Cube refused the key.')).toEqual({
       title: "Couldn't read Cube",
