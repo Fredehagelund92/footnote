@@ -210,7 +210,9 @@ export function SiteHeader({
       <header
         ref={ref}
         data-site-header
+        data-touch-targets
         className={cn(
+          // It folds by its own width, not the window's: its parts say how with data-narrow (styles/index.css).
           'relative z-header flex h-bar shrink-0 items-center justify-between gap-2 px-4 shadow-hairline-bottom sm:gap-3 md:px-6',
           'bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50',
           className,
@@ -218,13 +220,11 @@ export function SiteHeader({
       >
         <div className="flex min-w-0 grow items-center gap-3">
           {!lean && <NavToggle />}
+          {/* A narrow header's title needs the room more than the line (U10). */}
           <Separator
             orientation="vertical"
-            className={cn(
-              'h-4 data-vertical:self-center',
-              // On a phone the title needs the room more than the line (U10).
-              lean ? 'hidden' : way ? 'max-md:hidden' : 'mr-2 max-md:hidden',
-            )}
+            data-narrow="gone"
+            className={cn('h-4 data-vertical:self-center', lean ? 'hidden' : !way && 'mr-2')}
           />
           {way && (
             <Tooltip>
@@ -234,7 +234,6 @@ export function SiteHeader({
                     variant="ghost"
                     size="icon"
                     aria-label={way.label}
-                    className="pointer-coarse:min-w-11"
                     nativeButton={false}
                     render={<a href={way.href} onClick={way.onBack && plainClick(way.onBack)} />}
                   />
@@ -246,8 +245,11 @@ export function SiteHeader({
             </Tooltip>
           )}
           {typeof title === 'string' ? (
-            // A phone's title gives up its icon before a letter of its words: "Definitions", never "Defini…".
-            <h1 className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground [&>svg]:size-3.5 [&>svg]:shrink-0 max-md:[&>svg]:hidden">
+            // A narrow header's title gives up its icon before a letter of its words: "Definitions", never "Defini…".
+            <h1
+              data-narrow="title"
+              className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground [&>svg]:size-3.5 [&>svg]:shrink-0"
+            >
               {icon}
               {/* A long title is cut with an ellipsis and shown in full on hover or focus. */}
               <TruncatedText text={title} className="min-w-0" />

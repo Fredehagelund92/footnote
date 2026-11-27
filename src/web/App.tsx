@@ -32,8 +32,9 @@ import { allFloors, floorUnder, useFloorsVersion } from '@/lib/toast-floor'
 import { ShareChatPanel } from '@/components/footnote/share-chat'
 import { WherePanel } from '@/components/footnote/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsMobile, useIsNarrow } from '@/hooks/use-mobile'
 import { onOpen, open } from '@/lib/events'
+import { foldStep, startFold } from '@/lib/sidebar-fold'
 import { clamp, readWidth, saveWidth } from '@/lib/pane-width'
 import { navigate, redirectTo, useInAppLinks, useRoute } from '@/lib/router'
 import { rememberSignedOut } from '@/lib/demo-profiles'
@@ -280,30 +281,24 @@ function Shell() {
     if (!node || isMobile || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     setLeavingDock(pictureOf(node, dockWidth.current, dockScrolls.current))
   }, [dockOpen, isMobile])
-  // The sidebar folds to its rail while the dock is open or a review is on screen, and comes back
-  // when they close. A page that loads that way starts folded, so nothing jumps after the first paint.
-  const hasDock = !!dock || (parts[0] === 'inbox' && parts[2] === 'review')
-  const [open, setOpen] = React.useState(!hasDock)
+  // The sidebar folds to its rail while the dock is open or a review is on screen, and in a window
+  // under 1024 px wide, and comes back when they close or the window widens. A page that loads that
+  // way starts folded, so nothing jumps after the first paint.
+  const narrow = useIsNarrow()
+  const reasons = { dock: !!dock || (parts[0] === 'inbox' && parts[2] === 'review'), narrow }
+  const [fold, setFold] = React.useState(() => startFold(reasons))
   // The left navigation's width, dragged on its rail, kept for the session.
   const [sidebarWidth, setSidebarWidth] = React.useState(() =>
     clamp(readWidth('sidebar', 256), 200, 360),
   )
   // The fold follows the dock in the same render as the dock itself, so the page reflows once, in one
   // frame, and that fold is instant (data-fold="auto"). Only a person's own fold animates.
-  const [had, setHad] = React.useState(hasDock)
-  const [before, setBefore] = React.useState<boolean | null>(hasDock ? true : null)
+  const [had, setHad] = React.useState(reasons)
   const [auto, setAuto] = React.useState(false)
-  if (had !== hasDock) {
-    setHad(hasDock)
+  if (had.dock !== reasons.dock || had.narrow !== reasons.narrow) {
+    setHad(reasons)
     setAuto(true)
-    if (hasDock && before === null) {
-      setBefore(open)
-      setOpen(false)
-    }
-    if (!hasDock && before !== null) {
-      setOpen(before)
-      setBefore(null)
-    }
+    setFold(foldStep(fold, had, reasons))
   }
 
   React.useEffect(() => {
@@ -320,10 +315,10 @@ function Shell() {
 
   return (
     <SidebarProvider
-      open={open}
+      open={fold.open}
       onOpenChange={(o) => {
         setAuto(false)
-        setOpen(o)
+        setFold((f) => ({ ...f, open: o }))
       }}
       data-fold={auto ? 'auto' : undefined}
       className="h-svh overflow-clip"

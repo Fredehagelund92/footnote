@@ -47,9 +47,13 @@ export function DockFrame({
       onClose={isMobile ? undefined : closeDock}
       footer={
         // One footer language for every dock: the bar's height, actions on the right at the header's
-        // button size, full width on a phone.
+        // button size, on a second row before one of them is cut. On a phone they are full width and
+        // 44px for a finger, the main action on a row of its own (data-dock-footer, styles/index.css).
         footer ? (
-          <div className="flex h-bar items-center justify-end gap-2 px-4 md:px-5 max-sm:[&>*]:flex-1">
+          <div
+            data-dock-footer
+            className="flex min-h-bar flex-wrap items-center justify-end gap-2 px-4 py-2.5 md:px-5"
+          >
             {footer}
           </div>
         ) : (

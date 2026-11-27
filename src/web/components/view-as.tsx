@@ -84,21 +84,18 @@ export function ViewAs() {
   if (!viewAs) return null
   return (
     <DropdownMenu>
+      {/* In a narrow header it gives up its name, then the rest of its words, before a page's own action folds (data-narrow, styles/index.css). */}
       <DropdownMenuTrigger
         render={
-          <Button
-            variant="outline"
-            aria-label={`View as: ${viewAs.name}`}
-            className="max-sm:size-7 max-sm:px-0"
-          />
+          <Button variant="outline" aria-label={`View as: ${viewAs.name}`} data-narrow="as-icon" />
         }
       >
         <PersonAvatar name={viewAs.name} size={16} />
-        <span className="max-sm:hidden">View as</span>
-        <span className="max-w-32 truncate font-normal text-muted-foreground max-md:hidden">
+        <span data-narrow="as">View as</span>
+        <span data-narrow="name" className="max-w-32 truncate font-normal text-muted-foreground">
           {viewAs.name}
         </span>
-        <ChevronsUpDownIcon className="max-sm:hidden" />
+        <ChevronsUpDownIcon data-narrow="as" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <ViewAsChoices />

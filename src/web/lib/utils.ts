@@ -11,6 +11,9 @@ export const cn = createCn(tables)
 export const and = (names: string[]) =>
   names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
 
+/** Words as a sentence: a full stop after them, unless they end one already (a title that asks: "...?"). */
+export const ended = (words: string) => (/[.!?]$/.test(words) ? words : `${words}.`)
+
 /** The names of days and months, which keep their capital inside a sentence. */
 const CALENDAR = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/
 

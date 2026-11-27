@@ -27,7 +27,14 @@ import { marksExceptions } from '@/lib/marks'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { pairOfKey } from '@/model/conflicts'
 import { integrationHref, lookOf } from '@/model/integrations'
-import { askedWords, careLine, changeWords, gapRowWords, type Review } from '@/model/review'
+import {
+  askedWords,
+  careLine,
+  changeWords,
+  flagRowWords,
+  gapRowWords,
+  type Review,
+} from '@/model/review'
 import { QuickHead, QuickReview } from '@/pages/review'
 import {
   AskedAbout,
@@ -40,7 +47,7 @@ import {
 } from '@/components/footnote/inbox-pane'
 import { Panel } from '@/components/footnote/panel'
 import { follows, paneState, primaryLabel } from '@/model/inbox-pane'
-import { TOUCH } from '@/lib/touch'
+import { TOUCH, TOUCH_LINK } from '@/lib/touch'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -205,7 +212,7 @@ function meta(row: InboxRow, reviews: Review[], care?: React.ReactNode): React.R
     )
   }
   if (card.gap) return gapRowWords(card.gap)
-  if (card.flag) return `Reported as ${card.flag.reason}: “${card.flag.note}”`
+  if (card.flag) return flagRowWords(card.flag)
   if (card.look) return 'Raised by an alert: saved questions answer worse'
   if (card.alert) return `Raised by an alert: ${card.alert.name}`
   return card.due === 'family'
@@ -303,11 +310,29 @@ function InboxList({
   React.useEffect(() => arriveRef(list.current), [list])
   // What a suggestion needs is marked on its row, unless every row needs the same look.
   const plain = !marksExceptions(rows, (row) => !!rowCare(row, reviews))
-  // The selected row stays in sight: on a click, on J and K, and on a link straight to a card.
+  // The selected row stays in sight: on a click, on J and K, and on a link straight to a card. A
+  // card opened by its address is found before the list has its shape (the two panes and the week
+  // line are still arriving), so the row is brought back as the list or its box changes size,
+  // until the person scrolls the list themselves.
   React.useEffect(() => {
-    list.current
-      ?.querySelector<HTMLElement>(`[data-row="${CSS.escape(selected ?? '')}"]`)
-      ?.scrollIntoView({ block: 'nearest' })
+    const ul = list.current
+    const box = ul?.parentElement
+    if (!ul || !box || !selected) return
+    const show = () =>
+      ul
+        .querySelector<HTMLElement>(`[data-row="${CSS.escape(selected)}"]`)
+        ?.scrollIntoView({ block: 'nearest' })
+    show()
+    const watch = new ResizeObserver(show)
+    watch.observe(ul)
+    watch.observe(box)
+    const release = () => watch.disconnect()
+    const moves = ['wheel', 'touchmove', 'keydown', 'pointerdown'] as const
+    for (const move of moves) box.addEventListener(move, release, { passive: true })
+    return () => {
+      release()
+      for (const move of moves) box.removeEventListener(move, release)
+    }
   }, [list, selected])
   return (
     <ul
@@ -371,7 +396,7 @@ function InboxList({
                   </span>
                   <ChevronDownIcon
                     aria-hidden
-                    className={cn('size-3.5', folded.has(group) && '-rotate-90')}
+                    className={cn('size-3.5 shrink-0', folded.has(group) && '-rotate-90')}
                   />
                 </button>
               </li>
@@ -387,12 +412,17 @@ function InboxList({
                 </span>
                 {/* The read's page is in an admin's Settings: an owner reads the header alone. */}
                 {mayOpenSettings(integrationHref(source.connector), me) && (
-                  <a
-                    href={`${integrationHref(source.connector)}?state=suggestions`}
-                    className="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                  >
-                    About this read
-                  </a>
+                  <span className="ml-auto shrink-0 whitespace-nowrap">
+                    <a
+                      href={`${integrationHref(source.connector)}?state=suggestions`}
+                      className={cn(
+                        'text-muted-foreground underline-offset-4 hover:text-foreground hover:underline',
+                        TOUCH_LINK,
+                      )}
+                    >
+                      About this read
+                    </a>
+                  </span>
                 )}
               </li>
             )}
@@ -747,6 +777,7 @@ function CardDetail({
 }) {
   const { primary, secondary, online, writes } = useActions(card)
   const me = useMe()
+  const isMobile = useIsMobile()
   const admins = useAdminsSaid()
   // An alert whose page is in an admin's Settings, such as a tool that could not be read: anyone
   // else is told who looks into it, and has no button to a page that refuses them.
@@ -781,7 +812,7 @@ function CardDetail({
         offline
           ? "Offline: changes wait until you're back."
           : opens
-            ? follows(card, review)
+            ? follows(card, review, isMobile)
             : `An admin looks into it${admins}.`
       }
     >
@@ -1931,8 +1962,9 @@ export function InboxPage() {
           </CardAction>
           <form className="col-span-full mt-3" onSubmit={(e) => e.preventDefault()}>
             <div className="relative">
+              {/* In the middle of the field at any height: under a finger the field is 44px. */}
               <SearchIcon
-                className="absolute top-2 left-2.5 size-4 text-muted-foreground"
+                className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
               />
               <Input
@@ -2007,7 +2039,7 @@ export function InboxPage() {
   )
 
   return (
-    <div className={cn('flex h-full min-h-0 flex-col', TOUCH)}>
+    <div className="flex h-full min-h-0 flex-col">
       <SiteHeader title="Inbox" icon={<InboxIcon />}>
         <Button
           variant="outline"
@@ -2019,10 +2051,12 @@ export function InboxPage() {
         </Button>
       </SiteHeader>
       {/* On a phone an open card is a screen of its own, edge to edge, not a box inside the frame. */}
+      {/* Under a finger the list and the card are 44px controls; the header keeps its own size, as on every page. */}
       <div
         className={cn(
           '@container/main flex min-h-0 flex-1 flex-col',
-          !(isMobile && selected) && 'px-4 pt-4 md:px-6 md:pt-6',
+          !(isMobile && selected) && 'p-4 md:p-6',
+          TOUCH,
         )}
         ref={frameRef}
       >

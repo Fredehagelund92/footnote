@@ -180,13 +180,15 @@
 
   /* The scrollbar's thumb, at 3:1 on the page and darker under the pointer; a changed value's
      tint; and on a touch screen, a 44 px tap area around a smaller control, with the gap that
-     keeps two of them apart, and what a header's own 8 px gap needs added to make that gap. */
+     keeps two of them apart, and what a header's own 8 px gap, and the 12 px one before its
+     title, need added to make that gap. */
   --scrollbar-thumb: color-mix(in oklab, var(--foreground) 45%, transparent);
   --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 60%, transparent);
   --changed: color-mix(in oklab, var(--primary) 18%, transparent);
   --touch-inset: min(0px, calc((100% - 44px) / 2));
   --touch-gap: 1.125rem;
   --touch-gap-rest: calc(var(--touch-gap) - var(--space-2));
+  --touch-gap-lead: calc(var(--touch-gap) - var(--space-3));
 
   /* A format note sits a pixel above the line. */
   --nudge: 1px;

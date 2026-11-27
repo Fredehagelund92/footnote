@@ -55,9 +55,15 @@ export function ClaimCheck({
                 <tr key={r.claim} className="border-t">
                   <td className="px-3 py-2.5">{r.claim}</td>
                   <td className="px-3 py-2.5 text-muted-foreground">{r.source}</td>
-                  <td className={cn('px-3 py-2.5 font-medium whitespace-nowrap', v.cls)}>
-                    <span className="inline-flex items-center gap-1.5">
-                      <v.icon aria-hidden className="size-4" />
+                  {/* On a phone the verdict wraps under its icon's line, so the table keeps to its frame. */}
+                  <td
+                    className={cn(
+                      'px-3 py-2.5 font-medium whitespace-nowrap @max-md:whitespace-normal',
+                      v.cls,
+                    )}
+                  >
+                    <span className="inline-flex items-start gap-1.5">
+                      <v.icon aria-hidden className="mt-0.5 size-4 shrink-0" />
                       {v.label}
                     </span>
                   </td>

@@ -794,15 +794,16 @@ export function DefinitionsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <SiteHeader title="Definitions" icon={<BookAIcon />}>
         {/* With a definition's quick view open, its own action (Write context) is the one solid blue button. */}
-        {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
+        {/* In a narrow header it is its plus alone, so the install's label beside it keeps its words. */}
         {mayWriteTerms && (
           <Button
             variant={dock?.kind === 'def' ? 'outline' : 'default'}
-            className="max-sm:size-7 max-sm:px-0"
+            data-narrow="icon"
+            aria-label="New term"
             onClick={() => navigate('/definitions/new')}
           >
             <PlusIcon data-icon="inline-start" />
-            <span className="max-sm:sr-only">New term</span>
+            <span data-narrow="gone">New term</span>
           </Button>
         )}
       </SiteHeader>

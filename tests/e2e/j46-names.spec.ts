@@ -76,6 +76,8 @@ test('an owner leaves one ready name out, and can still edit and publish it from
   await expect(page.getByText('Completed orders is left out')).toBeVisible()
   await expect(ready.getByRole('listitem')).toHaveCount(1)
 
+  // The toast sits over the corner the fold is in: close it, as a person would.
+  await page.getByRole('button', { name: 'Close' }).click()
   await main.getByRole('button', { name: /Left out/ }).click()
   const row = main.getByRole('textbox', { name: 'Name for orders.completed_orders' })
   await row.fill('Finished orders')

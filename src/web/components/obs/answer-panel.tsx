@@ -102,7 +102,7 @@ export function AnswerPanel({ id }: { id: string }) {
       actions={<DockStepper list="obs-topics" kind="topic" id={t.id} />}
       footer={
         <>
-          <a href={write} className={cn(buttonVariants())}>
+          <a href={write} data-variant="default" className={cn(buttonVariants())}>
             <PencilLineIcon data-icon="inline-start" />
             Write context for this
           </a>

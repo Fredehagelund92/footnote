@@ -627,7 +627,7 @@ export function ScopeField({
         !value.length && '-ml-1.5 h-8 text-sm',
       )}
     >
-      <PlusIcon aria-hidden className="size-3" />
+      <PlusIcon aria-hidden className="size-3 shrink-0" />
       <span id={`${addId}-t`}>{value.length ? 'Add' : placeholder}</span>
     </button>
   )

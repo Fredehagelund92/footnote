@@ -99,21 +99,61 @@
   min-width: calc-size(fit-content, round(up, size, 1px));
 }
 
-[data-header-actions] :is(button, a):not(.size-7, .size-9) {
+[data-header-actions] :where(button, a):not(.size-7, .size-9) {
   justify-content: flex-start;
 }
 
-/* A text button that is its icon alone below a width (Ask's History, a page's New term on a
-   phone) is an icon button there, so it keeps its centre too. */
-@media (width < 64rem) {
-  [data-header-actions] :is(button, a)[class*='max-lg:w-7'] {
-    justify-content: center;
+/* The page header folds by its own width, not the window's: the sidebar and the dock change the
+   room it has (design contract 3.6). Its parts say how with data-narrow. View as gives up its name
+   first, then the rest of its words, a step before the page's own parts fold: `gone` steps aside
+   (a crumb, a count, the words of an action that is named for a screen reader), an `icon` action
+   is its icon alone, an icon button that keeps its centre, and the `title` gives up its icon
+   before a letter of its words. */
+[data-site-header] {
+  container: header / inline-size;
+}
+
+@container header (width < 48rem) {
+  [data-narrow='name'] {
+    display: none;
   }
 }
 
-@media (width < 40rem) {
-  [data-header-actions] :is(button, a)[class*='max-sm:size-7'] {
+@container header (width < 44rem) {
+  [data-narrow='as'] {
+    display: none;
+  }
+
+  [data-header-actions] [data-narrow='as-icon'] {
     justify-content: center;
+    width: calc(var(--spacing) * 7);
+    padding-inline: 0;
+  }
+}
+
+@container header (width < 36rem) {
+  [data-narrow='gone'],
+  [data-narrow='title'] > svg {
+    display: none;
+  }
+
+  [data-header-actions] [data-narrow='icon'] {
+    justify-content: center;
+    width: calc(var(--spacing) * 7);
+    padding-inline: 0;
+  }
+}
+
+/* A dock's footer on a phone: its actions fill the row and are 44px for a finger, the main one
+   (data-variant='default', wherever it sits), on a row of its own. */
+@media (width < 40rem) {
+  [data-dock-footer] > * {
+    flex: 1;
+    height: calc(var(--spacing) * 11);
+  }
+
+  [data-dock-footer] > [data-variant='default'] {
+    flex-basis: 100%;
   }
 }
 
@@ -161,9 +201,10 @@
   }
 }
 
-/* On a touch screen every control in Ask can be hit with a finger: its tap area grows to 44px
-   around it, the control itself stays the size it is drawn. Controls that already make their own
-   tap area (with an after: class) are left alone; one marked static covers its own row. */
+/* On a touch screen every control in Ask and in every page's header can be hit with a finger: its
+   tap area grows to 44px around it, the control itself stays the size it is drawn. Controls that
+   already make their own tap area (with an after: class) are left alone; one marked static covers
+   its own row. */
 @media (pointer: coarse) {
   [data-touch-targets]
     :where(button, a[href], [role='button']):not(.absolute, .fixed, .sticky, .static) {
@@ -177,20 +218,38 @@
     inset-inline: var(--touch-inset);
   }
 
-  /* 28px header buttons 18px apart: a 46px pitch, so no two 44px tap areas overlap. The header
-     holds two groups of them, the install's label between. The title and the label take no tap,
-     so a tap area may reach over them: the header's own gap stays narrow, and the two groups keep
-     the pitch only where they meet, with no label between. */
-  [data-touch-targets] [data-header-actions] {
+  /* 28px header buttons 18px apart: a 46px pitch, so no two 44px tap areas overlap, in the
+     header's two groups of actions and in a group of buttons inside one. The title and the
+     install's label take no tap, so a tap area may reach over them: the header's own gap stays
+     narrow, and two groups keep the pitch only where they meet, with no label between. */
+  [data-header-actions],
+  [data-header-actions] > div {
     column-gap: var(--touch-gap);
   }
 
-  [data-touch-targets] [data-site-header] {
+  [data-site-header] {
     column-gap: var(--space-2);
   }
 
-  [data-touch-targets] [data-header-actions] + [data-header-actions] {
+  [data-header-actions] + [data-header-actions] {
     margin-inline-start: var(--touch-gap-rest);
+  }
+
+  /* Before the title the sidebar's toggle and the way back meet, and keep the same pitch. */
+  [data-sidebar='trigger'] ~ a {
+    margin-inline-start: var(--touch-gap-lead);
+  }
+
+  /* A switch in the header (Context's List and By time) is spaced as the buttons are, also from
+     the actions after it, and a choice that is its icon alone is as wide as an icon button. */
+  [data-site-header] [role='radiogroup'] {
+    column-gap: var(--touch-gap);
+    margin-inline-end: var(--touch-gap-rest);
+  }
+
+  [data-site-header] [role='radio'] {
+    min-width: calc(var(--spacing) * 7);
+    justify-content: center;
   }
 }
 

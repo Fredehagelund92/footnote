@@ -197,6 +197,9 @@ function ContextHeader({ view }: { view: 'list' | 'time' }) {
     <SiteHeader
       title="Context"
       icon={<NotebookTextIcon />}
+      // A phone's header has no room for its two views, Write context, search, the theme and the
+      // person at a finger's pitch: search and the theme go in More, as on Ask.
+      fold
       views={
         <TextSwitch
           label="View"
@@ -206,12 +209,14 @@ function ContextHeader({ view }: { view: 'list' | 'time' }) {
           options={[
             {
               value: 'list',
-              label: <span className="max-md:sr-only">List</span>,
+              name: 'List',
+              label: <span data-narrow="gone">List</span>,
               icon: <ListIcon />,
             },
             {
               value: 'time',
-              label: <span className="max-md:sr-only">By time</span>,
+              name: 'By time',
+              label: <span data-narrow="gone">By time</span>,
               icon: <CalendarIcon />,
             },
           ]}
@@ -219,14 +224,15 @@ function ContextHeader({ view }: { view: 'list' | 'time' }) {
       }
     >
       {/* With a context item's quick view open, its own action (Edit) is the one solid blue button. */}
-      {/* On a phone it is its plus alone, so the install's label beside it keeps its words. */}
+      {/* In a narrow header it is its plus alone, so the install's label beside it keeps its words. */}
       <Button
         variant={dock?.kind === 'context' ? 'outline' : 'default'}
-        className="max-sm:size-7 max-sm:px-0"
+        data-narrow="icon"
+        aria-label="Write context"
         onClick={() => navigate('/context/new')}
       >
         <PlusIcon data-icon="inline-start" />
-        <span className="max-sm:sr-only">Write context</span>
+        <span data-narrow="gone">Write context</span>
       </Button>
     </SiteHeader>
   )
@@ -952,17 +958,30 @@ function ContextList() {
                   <tr className="text-xs whitespace-nowrap text-muted-foreground tabular-nums shadow-hairline-top">
                     <td className={cn('hidden @xl/main:table-cell', boxes && 'table-cell')} />
                     <td />
-                    <td className="h-bar px-1.5 @max-xl/main:px-3">{totals(filtered)}</td>
-                    <td className="hidden px-1.5 @min-[60rem]/main:table-cell" />
-                    <td colSpan={2} className="hidden px-1.5 @xl/main:table-cell">
-                      {count(
-                        filtered.filter((f) => servedToAgents(f) && inForce(parseWhen(f.when)))
-                          .length,
-                      )}{' '}
-                      apply today
-                    </td>
-                    <td colSpan={2} className="px-1.5 @max-xl/main:pr-4 @max-xl/main:text-right">
-                      {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a check
+                    {/* One cell under the rest of the columns: a sentence in a column of its own
+                        would set that column's width, and take it from the titles above. The
+                        sentences go onto a second line before one of them is cut. */}
+                    <td
+                      colSpan={COLS - 2}
+                      className="h-bar px-1.5 py-2 md:pr-4 @max-xl/main:px-3 @max-xl/main:pr-4"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5">
+                        <span>{totals(filtered)}</span>
+                        <span className="flex gap-x-4">
+                          <span className="@max-xl/main:hidden">
+                            {count(
+                              filtered.filter(
+                                (f) => servedToAgents(f) && inForce(parseWhen(f.when)),
+                              ).length,
+                            )}{' '}
+                            apply today
+                          </span>
+                          <span>
+                            {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a
+                            check
+                          </span>
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 </tfoot>

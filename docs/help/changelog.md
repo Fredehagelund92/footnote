@@ -10,6 +10,16 @@ reviewed: 2026-11-27
 
 A window made narrow enough to show a phone's layout started the page again, so a tested connection, and anything typed but not yet saved, was gone. The page now keeps it at every width.
 
+## Room on a tablet, and buttons a finger can hit
+
+2026-11-27
+
+In a window under 1024 px wide the sidebar starts as its row of icons, so the Inbox, Ask and the lists have room on a tablet. The button at the top left opens it again.
+
+The top bar of a page folds when it is narrow: its buttons show their icons before a title is cut short. On a touch screen the buttons in the top bar are the same size on every page, with room around each for a finger.
+
+On a phone a side panel keeps all its buttons on the screen, the Context list gives its titles more room, and the table that compares a summary with its source fits the screen.
+
 ## One definitions tool at a time
 
 2026-11-26

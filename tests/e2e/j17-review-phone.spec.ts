@@ -2,10 +2,11 @@ import { devices } from '@playwright/test'
 import { claimsToCheck, cardIn, expect, go, place, test } from './go.ts'
 
 // J17, the review on a phone: the decision bar says the state in words and where you are, its
-// actions are 44px, nothing you can press is under 44px, and the source and its preview are both
-// in reach. A tap on a line of the text offers to comment on it there (J33). The comparison
-// stacks: a field's values one under the other, the text now above suggested, nothing cut and
-// nothing sideways (K4).
+// actions are 44px, nothing you can press has a tap area under 44px, and the source and its
+// preview are both in reach. The header's buttons are drawn 28px, as on every page, and a link in
+// a line of words keeps its size: their tap areas grow instead. A tap on a line of the text offers
+// to comment on it there (J33). The comparison stacks: a field's values one under the other, the
+// text now above suggested, nothing cut and nothing sideways (K4).
 
 test.use({ ...devices['iPhone 13'], browserName: 'chromium' })
 
@@ -45,7 +46,7 @@ test('a tap on a line offers to comment on it', async ({ page }) => {
   ).toContainText('On the phone')
 })
 
-test('no control is under 44px', async ({ page }) => {
+test('no control has a tap area under 44px', async ({ page }) => {
   for (const route of [
     '/inbox/sug-lars-retire/review',
     '/inbox/sug-ines-long/review',
@@ -53,25 +54,51 @@ test('no control is under 44px', async ({ page }) => {
   ]) {
     await go(page, route)
     await page.waitForTimeout(400)
-    type Target = {
-      getAttribute(n: string): string | null
-      textContent: string | null
-      getBoundingClientRect(): { width: number; height: number }
-    }
-    const small = await page.locator('button, a[href], input').evaluateAll((els: Target[]) =>
+    const small = await page.locator('button, a[href], input').evaluateAll((els: Element[]) =>
       els
         .filter((e) => !e.textContent?.includes('Skip to the content'))
         // A switch's own checkbox is hidden from everyone: the switch is the control.
         .filter((e) => e.getAttribute('aria-hidden') !== 'true')
-        .map((e) => ({ e, r: e.getBoundingClientRect() }))
-        .filter(({ r }) => r.width > 0 && r.height > 0 && (r.width < 44 || r.height < 44))
+        .map((e) => {
+          // What a finger can hit: the control's own box, or the tap area it grows around it.
+          const box = e.getBoundingClientRect()
+          const area = getComputedStyle(e, '::after')
+          const grown = area.content !== 'none' && area.position === 'absolute'
+          return {
+            e,
+            shown: box.width > 0 && box.height > 0,
+            width: Math.max(box.width, grown ? parseFloat(area.width) : 0),
+            height: Math.max(box.height, grown ? parseFloat(area.height) : 0),
+          }
+        })
+        .filter((t) => t.shown && (t.width < 44 || t.height < 44))
         .map(
-          ({ e, r }) =>
-            `${(e.getAttribute('aria-label') ?? e.textContent ?? '').trim().slice(0, 30)} ${Math.round(r.width)}x${Math.round(r.height)}`,
+          ({ e, width, height }) =>
+            `${(e.getAttribute('aria-label') ?? e.textContent ?? '').trim().slice(0, 30)} ${Math.round(width)}x${Math.round(height)}`,
         ),
     )
     expect(small, route).toEqual([])
   }
+})
+
+test("the header's buttons are drawn 28px, and a link in the words keeps its line", async ({
+  page,
+}) => {
+  await go(page, '/inbox/sug-lars-retire/review')
+  const header = page.locator('[data-site-header]')
+  await expect(header.getByRole('button', { name: 'More' })).toBeVisible()
+  const drawn = await header.locator('button, a[href]').evaluateAll((els: Element[]) =>
+    els
+      .map((e) => e.getBoundingClientRect())
+      .filter((r) => r.width > 0)
+      .map((r) => `${r.width}x${r.height}`),
+  )
+  // The way back, the preview and More: three icon buttons, none grown to 44px.
+  expect(drawn).toEqual(['28x28', '28x28', '28x28'])
+  // The source's address is a line of words, not a 44px box with a hole under it.
+  const source = page.getByRole('link', { name: /wiki\.example/ }).first()
+  await expect(source).toBeVisible()
+  expect((await source.boundingBox())!.height).toBeLessThan(28)
 })
 
 test('the comparison stacks, with nothing cut and nothing sideways', async ({ page }) => {
