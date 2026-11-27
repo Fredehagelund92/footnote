@@ -129,7 +129,7 @@ it('gives the round 4 question the dates its words give, and says how it read th
   }
   const reply = (await deliver(served, clock, { question: natural.text, ...names })) as Dated
   expect(reply).toMatchObject({
-    status: 'matched',
+    status: 'partial',
     scope_used: { window: { start: c.scope!.window!.from, end: '2026-10-08' } },
     dates_read: {
       words: 'this past week',

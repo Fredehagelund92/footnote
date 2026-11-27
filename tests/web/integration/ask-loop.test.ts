@@ -374,7 +374,7 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(plain.sources).toEqual([])
   })
 
-  it('keeps what a search found by every word when the subject read finds nothing', async () => {
+  it('keeps what a search found by every word, beside the items the subject read gives', async () => {
     let found: { id: string; match?: string }[] = []
     const a = await asked(
       'should we bring the norway campaigns back?',
@@ -393,8 +393,8 @@ describe("Ask's loop on the rules' gaps (the retrieval test, 2026-11-10)", () =>
     expect(a.state).not.toBe('missing')
     expect(a.sources).toEqual(found.map((i) => i.id))
     expect(a.text).toContain('campaigns.[1] [2]')
-    // How many of what it is out of it cites, in a sentence, never that none apply under them.
-    expect(a.footer?.denominator).toBe('2 of 21 published context items you can see are cited.')
+    // A market with no metric reads every item about it, so the count says what applies.
+    expect(a.footer?.denominator).toBe('6 of 21 published context items you can see apply.')
   })
 
   it('under Not found, leaves out the words that only listed what it cited', async () => {

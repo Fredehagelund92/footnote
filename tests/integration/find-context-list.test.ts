@@ -267,7 +267,7 @@ describe('give me 10 random metrics', () => {
     // A cursor belongs to its filters.
     const other = await list({ kind: 'dimension', cursor: first.page.next_cursor })
     expect(other.reply.isError).toBe(true)
-    expect(other.page.status).toBe('check_failed')
+    expect(other.page.status).toBe('invalid_input')
   })
 
   it('says so when a cursor starts past the end of a list that shrank', async () => {

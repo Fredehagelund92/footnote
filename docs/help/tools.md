@@ -3,7 +3,7 @@ title: Agent tools
 line: The five tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 10
+minutes: 11
 reviewed: 2026-11-24
 ---
 
@@ -118,7 +118,9 @@ When the question names no metric, `unread` gives each word that could have name
 
 A question that names a value and no metric, such as "What happened in Norway in August 2026?", reads the items of every metric that apply to that value. `say` tells you each item may be about a different metric: answer for each apart, from `applies`.
 
-A word where a value goes that names no value here, such as "Denmark" for a market, is read as every value, and `say` says so. It appears in `unread` with `value_of`, the dimensions it could be a value of, and `closest`, the values it is a typo away from. Tell the person the answer is for every value, and call again with the name if they meant a close one. Sending `dimension_filters`, even an empty list, does not switch this off.
+A word where a value goes that names no value here, such as "Denmark" for a market, is read as every value, and `say` says so. It appears in `unread` with `value_of`, the dimensions it could be a value of, and `closest`, the values it is a typo away from.
+
+Tell the person the answer is for every value, and call again with the name if they meant a close one. Sending dimension filters, even an empty list, does not switch this off.
 
 ## Search or list: find_context
 
@@ -197,7 +199,9 @@ Add a short note. It is checked for sensitive text, and the report never keeps w
 
 It runs only after the person says yes, and only a person's own agent may call it. An access key or a dev token names no person, so it is refused.
 
-It takes `text`, at most 2,000 characters, and hints such as `title`, `kind` and `area`. An `area` counts only when the metrics it names give no single domain. It gives back one of these statuses, with a link:
+It takes `text`, at most 2,000 characters, and hints such as `title`, `kind` and `area`.
+
+An area counts only when the metrics it names give no single domain. It gives back one of these statuses, with a link:
 
 | `status`               | What happened                                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------------------------ |
