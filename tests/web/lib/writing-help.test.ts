@@ -282,6 +282,26 @@ describe('Undo and Stop around the ends of a turn', () => {
   })
 })
 
+describe('Stop while the draft is being made ready, with its page already there', () => {
+  it('never asks the turn, and nothing overwrites its stopped state', async () => {
+    const fresh = desk(null)
+    const kept = desk('d19')
+    fresh.desk.ready = () => {
+      setHelpDesk(kept.desk)
+      stopHelp()
+      moveHelpChat('d19')
+      return Promise.resolve(null)
+    }
+    setHelpDesk(fresh.desk)
+    await askHelp('Ops told us about Norway.')
+    await settled()
+    expect(kept.calls.filter((c) => c.startsWith('ask'))).toEqual([])
+    expect(helpNow().turns[0]).toMatchObject({ state: 'stopped' })
+    expect(helpNow().busy).toBe(false)
+    setHelpDesk(null)
+  })
+})
+
 describe('the chat of a page with no draft yet', () => {
   it('is the page’s own: another page with no draft does not show it', async () => {
     const first = desk(null, undefined, 'item-1')

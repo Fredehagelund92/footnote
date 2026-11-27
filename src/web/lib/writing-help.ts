@@ -203,8 +203,13 @@ export function moveHelpChat(draft: string) {
   const chats = new Map(state.chats)
   chats.delete(from)
   chats.set(draft, turns)
-  set({ chats, waiting: last?.state === 'asking' ? { draft, turn: last.id } : null })
-  startWaiting()
+  const stopped = last?.state === 'asking' && !!starting?.signal.aborted
+  set({
+    chats,
+    waiting: last?.state === 'asking' && !stopped ? { draft, turn: last.id } : null,
+  })
+  if (stopped) update(draft, last.id, stoppedTurn)
+  else startWaiting()
 }
 
 /**
