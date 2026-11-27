@@ -14,6 +14,8 @@ import {
   type ScriptedStep,
 } from '../../src/server/modules/answer/index.ts'
 import type { ModelChoice, ModelPort } from '../../src/server/modules/models/index.ts'
+import { createProposalsService } from '../../src/server/modules/proposals/index.ts'
+import { writingHelpTurn } from '../../src/server/modules/writing-help/index.ts'
 import {
   PageReadError,
   type PageRead,
@@ -33,7 +35,7 @@ import { apiDatabase, testDatabase, transaction } from './support.ts'
   win in a field they change while it works; a field the checks refuse says why and the rest land.
   It has no way to send a draft. Then each limit and guard the wrong way: someone else's draft, a
   sent one, a paste over the limit, the daily turns, a link that is not the person's, the spending
-  limits, and a model that fails.
+  limits, a model that fails, one that takes too long, and a Stop.
 */
 
 const { client, url } = testDatabase()
@@ -396,6 +398,29 @@ function streaming(
         }),
       }
     },
+  })
+  return { ...scripted, model }
+}
+
+/**
+ * A model whose write never ends: its input comes so far and no further, until the call is
+ * stopped, as a provider's request is when its signal fires.
+ */
+function hanging(pieces: readonly string[]): ModelChoice {
+  const model = new MockLanguageModelV4({
+    doStream: (options: LanguageModelV4CallOptions) =>
+      Promise.resolve({
+        stream: new ReadableStream<LanguageModelV4StreamPart>({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] })
+            controller.enqueue({ type: 'tool-input-start', id: 'w1', toolName: 'write_draft' })
+            for (const delta of pieces)
+              controller.enqueue({ type: 'tool-input-delta', id: 'w1', delta })
+            const signal = options.abortSignal!
+            signal.addEventListener('abort', () => controller.error(signal.reason), { once: true })
+          },
+        }),
+      }),
   })
   return { ...scripted, model }
 }
@@ -816,5 +841,58 @@ describe('the limits', () => {
     decide = () => ({ refuse: 401 })
     const refused = await turn('author', draft.proposalId, 'Write it up.')
     expect(refused.turn).toMatchObject({ changed: [], stopped: 'key' })
+  })
+
+  it('keeps what it wrote when it runs out of time, and says nothing more after a Stop', async () => {
+    const database = apiDatabase(url)
+    /** One turn of the loop itself, on a model that never finishes its call. */
+    const run = async (id: string, limits: { timeoutMs?: number; signal?: AbortSignal }) => {
+      const draft = await database.transaction(people.author, (tx) =>
+        createProposalsService(tx, clock, people.author).read(id),
+      )
+      const events: WritingHelpEvent[] = []
+      for await (const event of writingHelpTurn(
+        {
+          database,
+          clock,
+          person: people.author,
+          // Nothing is published to read here: the turn is about when it ends.
+          toolsIn: () => ({
+            card: () => Promise.resolve(null),
+            run: () => Promise.resolve({ error: 'Nothing to read.', ids: [] }),
+          }),
+          readLink: () => Promise.reject(new PageReadError('unreachable')),
+          model: hanging(['{"title":"Written before it stopped","summary":"A new customs']),
+          limits: null,
+          today: '2026-11-27',
+          ...limits,
+        },
+        { draft, message: 'Write it up.' },
+      ))
+        events.push(event)
+      return events
+    }
+
+    try {
+      // Out of time: the title was whole and is in the draft, and the turn says why it ended.
+      const slow = await start()
+      const late = await run(slow.proposalId, { timeoutMs: 400 })
+      expect(late.at(-1)).toMatchObject({
+        type: 'turn',
+        turn: { reply: '', changed: ['title'], stopped: 'time' },
+      })
+      expect((await proposal(slow.proposalId)).draft.title).toBe('Written before it stopped')
+
+      // A Stop: what landed stays, the page is told of it, and no turn follows.
+      const stopped = await start()
+      const stop = new AbortController()
+      setTimeout(() => stop.abort(), 400)
+      const cut = await run(stopped.proposalId, { signal: stop.signal })
+      expect(cut.filter((e) => e.type === 'written').flatMap((e) => e.applied)).toEqual(['title'])
+      expect(cut.some((e) => e.type === 'turn')).toBe(false)
+      expect((await proposal(stopped.proposalId)).draft.title).toBe('Written before it stopped')
+    } finally {
+      await database.close()
+    }
   })
 })

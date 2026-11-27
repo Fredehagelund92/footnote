@@ -168,7 +168,7 @@ export type HelpDeps = {
   clock: Clock
   person: string
   /** Ask's tools inside one transaction of the person's, reading published context only. */
-  toolsIn: (tx: Queryable) => AskTools
+  toolsIn: (tx: Queryable) => Pick<AskTools, 'card' | 'run'>
   /** Opens one link for the person, under the workspace's link rules. */
   readLink: LinkReader
   model: ModelChoice
