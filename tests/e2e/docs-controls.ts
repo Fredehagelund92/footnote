@@ -211,6 +211,12 @@ export const docControls: DocControl[] = [
     drawn: 'button',
     open: 'Write a first version for me',
   },
+  {
+    phrase: 'Start from the guide',
+    page: 'write-context',
+    at: '/settings/general?demo=setup',
+    drawn: 'button',
+  },
   { phrase: 'Settings', page: 'integrations', at: '/inbox', drawn: 'link' },
   { phrase: 'Integrations', page: 'integrations', at: '/settings/general', drawn: 'link' },
   { phrase: 'Connect', page: 'integrations', at: '/settings/integrations', drawn: 'link' },

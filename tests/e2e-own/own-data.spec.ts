@@ -175,10 +175,45 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
     page.getByText(/Context goes to the domain your names are published under\./),
   ).toBeVisible()
 
+  // Out of order, as a new owner may go: New context before any domain exists. The Domain field
+  // says there is none yet and leads to adding one, where it opened on an empty box. Moved to
+  // inside the app, as its own links do: each load reads every shared read again, and a person
+  // may make 600 calls a minute.
+  await moveTo(page, '/context/new')
+  await page.getByRole('button', { name: /^Domain/ }).click()
+  const noDomain = page.getByRole('dialog', { name: 'Domain' })
+  await expect(noDomain.getByText('No domain yet')).toBeVisible()
+  await expect(noDomain.getByRole('link', { name: 'Add a domain' })).toHaveAttribute(
+    'href',
+    '/settings/domains/new',
+  )
+  await shot('10-no-domain-yet')
+  await page.keyboard.press('Escape')
+  await moveTo(page, '/inbox')
+
   // Connect dbt from the checklist: the fixture's file at an address, through all five steps.
   await button(page, 'Connect').click()
   await page.goto('/settings/integrations/dbt-metricflow/connect?setup=1&step=2')
-  await page.getByLabel('File address').fill(store.link('/link/semantic_manifest.json'))
+  // An address on this computer where nothing answers: the browser's own localhost is not the
+  // server's, and the result says so in place of "check that the host is up". What was typed is
+  // masked, and can be shown to look for a mistake.
+  const address = page.getByLabel('File address')
+  await address.fill('http://localhost:1/target/semantic_manifest.json')
+  await expect(address).toHaveAttribute('type', 'password')
+  await button(page, 'Show what you typed').click()
+  await expect(address).toHaveAttribute('type', 'text')
+  await expect(address).toHaveValue('http://localhost:1/target/semantic_manifest.json')
+  await button(page, 'Test connection').click()
+  await expect(page.getByText("It couldn't be read: it couldn't be reached.")).toBeVisible({
+    timeout: 30_000,
+  })
+  await expect(
+    page.getByText(
+      'This address is on the server itself, which may not be your computer. For a file on your computer, share its folder with the server instead. If the server runs on your computer, try 127.0.0.1 in place of localhost.',
+    ),
+  ).toBeVisible()
+  await shot('11-address-on-the-server')
+  await address.fill(store.link('/link/semantic_manifest.json'))
   await button(page, 'Test connection').click()
   await expect(page.getByText('A read would hold 13 metrics and 12 dimensions.')).toBeVisible({
     timeout: 30_000,
@@ -282,6 +317,13 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.goto('/ask')
   await expect(page.getByRole('textbox', { name: 'Ask a question' })).toBeVisible()
   expect(await demoWords(page), 'Ask').toEqual([])
+  // No model is connected, and whoever hosts the app connects one: on a trial that is this
+  // admin, so the line leads to how.
+  await expect(page.getByText(/^No AI model is connected/)).toBeVisible()
+  await expect(page.getByRole('link', { name: /^How to connect a model/ })).toHaveAttribute(
+    'href',
+    /\/docs\/model-providers\/$/,
+  )
 
   // A context item that applies to the synced metric, published in one step by its owner.
   await page.goto('/context/new')
@@ -293,7 +335,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Title' }).fill('Checkout was down for a day')
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText(
-    'Nobody could pay at the checkout for most of the day, so Net revenue reads low for it.',
+    'Nobody could pay at the checkout for most of the day. Net revenue reads low for it because of that, not because fewer people came.',
   )
   await page.getByRole('button', { name: /^Applies to/ }).click()
   await page.getByRole('combobox', { name: 'Search Applies to' }).fill('Net revenue')
@@ -340,6 +382,11 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
     timeout: 30_000,
   })
   await expect(page.getByRole('log')).toContainText('Checkout was down for a day')
+  // With no model the answer lists what is written, each item whole: its second sentence, the
+  // reason, is there too.
+  await expect(page.getByRole('log')).toContainText(
+    'Nobody could pay at the checkout for most of the day. Net revenue reads low for it because of that, not because fewer people came.',
+  )
   await shot('15-ask')
 
   // Asked again, setup is at 3 of 4, one step left: the agent. Ten more items rely on Net revenue,
@@ -408,6 +455,43 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   expect(JSON.stringify(reply)).toContain('Checkout was down for a day')
   await page.goto('/inbox')
   await expect(page.getByText(/ of 4 done$/)).toHaveCount(0)
+
+  // Nobody has signed an agent in: the access key is no sign-in, so the line still says so.
+  await moveTo(page, '/settings/agents')
+  await expect(page.getByRole('status').filter({ hasText: 'Not connected yet' })).toBeVisible()
+  await expect(page.getByText('1 access key.')).toBeVisible()
+
+  // People pick who they are here, and nobody invited is on that list: Invite people says so
+  // before a link is sent, and so does the toast with the link.
+  await moveTo(page, '/settings/people')
+  await button(page, 'Invite people').click()
+  const invite = page.getByRole('dialog', { name: 'Invite people' })
+  await expect(invite.getByRole('note')).toContainText(
+    'People sign in here by picking who they are from a list, and someone you invite is not on it. An invite lets them in once company sign-in is set up.',
+  )
+  await expect(
+    invite.getByRole('link', { name: /^How to set up company sign-in/ }),
+  ).toHaveAttribute('href', /\/docs\/company-sign-in\/$/)
+  await shot('17-invite')
+  await invite.getByLabel('Email addresses').fill('kim@tallyfield.example')
+  await invite.getByRole('button', { name: 'Invite', exact: true }).click()
+  await expect(
+    page.getByText('The link lets them in once company sign-in is set up. It works for 7 days.'),
+  ).toBeVisible()
+
+  // About our business: Start from the guide puts the shape of the text there, never another
+  // company's words, and saves nothing.
+  await moveTo(page, '/settings/general')
+  await button(page, 'Start from the guide').click()
+  const about = page.getByRole('textbox', { name: 'About our business' })
+  await expect(about).toHaveText('We sell [what] to [whom], in [where], through [which channels].')
+  expect(await demoWords(page), 'the guide').toEqual([])
+  await expect(page.getByText('Not saved yet', { exact: true })).toBeVisible()
+  const guide = page.getByRole('group', { name: 'Guide' })
+  await expect(guide.getByRole('button', { name: 'Keep it' })).toBeDisabled()
+  await shot('18-guide')
+  await guide.getByRole('button', { name: 'Discard' }).click()
+  await expect(about).toHaveText('')
 
   // Jon owns Sales with Ravi: the next journey is his.
   const people = await read<{ id: string; name: string }[]>('/people')
@@ -578,6 +662,10 @@ test('values people write, on an install that has none', async ({ browser }) => 
   // Jon reads it with its new value, and publishing it publishes both.
   // Loaded again: what Maria sent in her own browser is news to this one.
   await page.goto(`/inbox?card=${sent.proposalId as string}`)
+  // The agent first asked today. The week counts the 7 full days before it, which are empty, and
+  // the Inbox says agents asked today, never that they asked nothing this week.
+  await expect(page.getByText('Agents asked today, for the first time this week.')).toBeVisible()
+  await expect(page.getByText('Agents asked nothing this week.')).toHaveCount(0)
   await expect(
     page.getByText('New value: Online (Channel). Publishing it publishes the value too.'),
   ).toBeVisible()

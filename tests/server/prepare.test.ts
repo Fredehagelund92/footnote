@@ -8,6 +8,7 @@ import {
   demoModelDir,
   isDemoModel,
   onDatabase,
+  ownDefinitionsSetting,
   PrepareError,
   prepareSettings,
 } from '../../db/prepare.ts'
@@ -23,8 +24,17 @@ describe('the settings', () => {
       migrateUrl: 'postgres://context_layer_owner@localhost:5432/context_layer_dev',
       seedDemo: false,
       cubeModelDir: undefined,
+      serverFolders: false,
     })
     expect(prepareSettings({ SEED_DEMO: '' }).seedDemo).toBe(false)
+  })
+
+  it('say whether a folder of the server is named, as docker compose names a dbt folder', () => {
+    const folders = (value: string) =>
+      prepareSettings({ FOOTNOTE_SERVER_FOLDERS: value }).serverFolders
+    expect(folders('{"dbt-metricflow":"/dbt-manifest"}')).toBe(true)
+    // No entry names no folder, and the service's own start refuses a value that is not a map.
+    for (const none of ['', '{}', '[]', 'null', 'not json']) expect(folders(none), none).toBe(false)
   })
 
   it('load the demo only when asked, with a superuser, and never in production', () => {
@@ -84,6 +94,32 @@ describe('the demo model', () => {
     expect(await isDemoModel(added)).toBe(false)
     expect(await isDemoModel(join(tmpdir(), 'footnote-no-such-model'))).toBe(false)
     expect(await isDemoModel(undefined)).toBe(false)
+  })
+})
+
+describe('definitions of your own', () => {
+  it('are a Cube model that is not the demo, or a folder of the server', async () => {
+    const own = await mkdtemp(join(tmpdir(), 'footnote-own-model-'))
+    try {
+      await writeFile(join(own, 'invoices.yml'), 'cubes: []\n')
+      expect(await ownDefinitionsSetting({ cubeModelDir: own, serverFolders: false })).toBe(
+        'CUBE_MODEL_DIR',
+      )
+    } finally {
+      await rm(own, { recursive: true })
+    }
+    expect(await ownDefinitionsSetting({ cubeModelDir: undefined, serverFolders: true })).toBe(
+      'FOOTNOTE_SERVER_FOLDERS',
+    )
+  })
+
+  it('are not the demo model, or no folder at all', async () => {
+    expect(
+      await ownDefinitionsSetting({ cubeModelDir: demoModelDir, serverFolders: false }),
+    ).toBeUndefined()
+    expect(
+      await ownDefinitionsSetting({ cubeModelDir: undefined, serverFolders: false }),
+    ).toBeUndefined()
   })
 })
 

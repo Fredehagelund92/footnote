@@ -1047,12 +1047,16 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
      * What agents asked in the last 7 days as this person may have it (`readerSubjects`): the one
      * source of the counts Ask states and of Asked this week. Open to everyone, unlike the page: a
      * person with no Observability page gets the strictest view the owners of each domain have.
+     * The 7 days are full days and end yesterday, so `today` says beside them whether an agent
+     * asked today: a yes or no, never a count, a topic or a domain, for the line that would else
+     * say nobody asked (the Inbox's week line, which says it only when the 7 days are empty).
      */
     async asked(): Promise<{
       subjects: (ReaderSubject & Pick<TopicRow, 'metrics' | 'values' | 'dimensions'>)[]
       domains: Record<string, number>
       minimum: number
       start: string
+      today: boolean
     }> {
       const least = await minimum(tx)
       const { start, end } = daysOf(clock.today(), 7)
@@ -1097,6 +1101,14 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
       }
       const subjects = readerSubjects(views)
       const parts = new Map([...rows.values()].map((t) => [subjectOf(t), t]))
+      // The same calls the 7 days count, so what was asked today is in tomorrow's week.
+      const [since] = await tx.query<{ today: boolean }>(
+        `select exists (select 1 from deliveries d join topics t on t.id = d.topic_id
+                         where d.caller = 'agent'
+                           and d.answer_state in ('grounded','partial','conflict','stale','missing')
+                           and d.delivered_hour >= $1::date) as today`,
+        [end],
+      )
       return {
         subjects: subjects.map((s) => {
           const { metrics, values, dimensions } = parts.get(s.key)!
@@ -1105,6 +1117,7 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
         domains: readerDomains(views),
         minimum: least,
         start,
+        today: since!.today,
       }
     },
 

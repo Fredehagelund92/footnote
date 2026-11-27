@@ -89,8 +89,6 @@ export type Workspace = {
   invites: Invite[]
   /** What the company does, in its own words: Ask and agents read it as background. */
   about: string
-  /** What Start from the guide fills in: a worked example of that text. */
-  aboutTemplate: string
   /**
    * Which steps of a new install's setup checklist are done, by step id (lib/setup.ts), and the
    * definitions the server's own configuration reads, such as a model folder: its source's id and
@@ -222,11 +220,13 @@ export type Inbox = {
   /**
    * This week's questions from agents, as counts: no question text, no names. A count under the
    * minimum is null, and so is what most questions that found nothing were about. The same count
-   * as Ask's Asked this week: `askedAtLeast` is what its rows show together.
+   * as Ask's Asked this week: `askedAtLeast` is what its rows show together. The week is the last
+   * 7 full days, so `askedToday` says an agent asked today when those days hold no call.
    */
   week: {
     asked: number | null
     askedAtLeast: number
+    askedToday: boolean
     found: number | null
     nothing: number | null
     mostAbout: string | null

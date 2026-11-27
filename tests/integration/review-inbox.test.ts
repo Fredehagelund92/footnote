@@ -1364,6 +1364,48 @@ describe('the Inbox (docs/product.md, section 5)', () => {
       expect(value === null || value === 0 || value >= 5).toBe(true)
     expect(JSON.stringify(f.week)).not.toMatch(/claude-code/)
   })
+
+  it('says an agent asked today, which the week of 7 full days leaves out', async () => {
+    // The database's own day, where calls can be stored: the day the first agent connects.
+    const [days] = (
+      await client.query<{ day: string; next: string }>(
+        `select (now() at time zone 'UTC')::date::text as day,
+                ((now() at time zone 'UTC')::date + 1)::text as next`,
+      )
+    ).rows
+    today = days!.day
+    try {
+      // Nothing was asked in the 7 days before it, so the week alone would say nobody asked.
+      expect((await feed()).week).toMatchObject({ asked: 0, askedToday: false })
+      await transaction(client, async () => {
+        await client.query('select cl_ensure_delivery_partitions(2)')
+        const [topic] = (
+          await client.query<{ id: string }>(
+            `insert into topics (key, area_id, metric_keys, value_keys, month)
+             values ('test|metric:asked_today', 'finance', '{metric:asked_today}', '{}',
+                     date_trunc('month', $1::date)::date)
+             returning id`,
+            [today],
+          )
+        ).rows
+        await client.query(
+          `insert into deliveries (delivered_hour, client_label, caller, edition_seq, overlay_seq,
+                                   tool_schema_digest, topic_id, scope, status, answer_state, delivered)
+           select $1::date + interval '12 hours', 'claude-code', 'agent', seq, 0, 'test', $2,
+                  '{}'::jsonb, 'no_match', 'missing', '[]'::jsonb from live_edition`,
+          [today, topic!.id],
+        )
+      })
+      // The count is still the 7 full days', and the line can say agents asked today.
+      expect((await feed()).week).toMatchObject({ asked: 0, askedToday: true })
+      expect((await feed('author')).week.askedToday).toBe(true)
+      // The day after, the call is in the week, under the minimum: a floor, not nothing.
+      today = days!.next
+      expect((await feed()).week).toMatchObject({ asked: null, askedToday: false })
+    } finally {
+      today = '2026-10-08'
+    }
+  })
 })
 
 describe('the setup checklist (FR-816)', () => {

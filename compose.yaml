@@ -8,9 +8,11 @@
 # it is shared into the container read only, and the demo is then left out. For dbt, name the
 # folder that holds the semantic_manifest.json `dbt parse` writes (most often the project's target)
 # in DBT_MANIFEST_DIR: it is shared the same way, read as the server's own dbt source, and the demo
-# is left out too (docs/use-your-own-data.md, "Read dbt on this computer"). FOOTNOTE_WEB_PORT and
-# FOOTNOTE_PORT move the web app (8080) and the service (3000). Both listen on this computer only:
-# anyone who reaches them can sign in as any of the demo people.
+# is left out too (docs/use-your-own-data.md, "Read dbt on this computer"). On a database that
+# already holds the demo, a start on your own definitions stops and says how to start empty
+# (docker compose down --volumes). FOOTNOTE_WEB_PORT and FOOTNOTE_PORT move the web app (8080) and
+# the service (3000). Both listen on this computer only: anyone who reaches them can sign in as any
+# of the demo people.
 #
 # Ask and the test runs answer on scripted models and send nothing out. MODELS=live with a key
 # answers on a real model (docs/model-providers.md, "Start on a real model"):

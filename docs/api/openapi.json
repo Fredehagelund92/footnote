@@ -70366,6 +70366,9 @@
                         "askedAtLeast": {
                           "type": "number"
                         },
+                        "askedToday": {
+                          "type": "boolean"
+                        },
                         "found": {
                           "anyOf": [
                             {
@@ -70400,6 +70403,7 @@
                       "required": [
                         "asked",
                         "askedAtLeast",
+                        "askedToday",
                         "found",
                         "nothing",
                         "mostAbout"

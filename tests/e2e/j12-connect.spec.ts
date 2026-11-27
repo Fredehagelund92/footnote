@@ -9,7 +9,9 @@ test('copy the prompt, wait, and the agent joins the list', async ({ page }) => 
   await page.clock.install()
   await go(page, '/settings/agents')
   const live = page.getByRole('status').filter({ hasText: /connected|connect…/i })
-  await expect(live).toContainText('Not connected yet')
+  // Before a wait begins the line counts the agents the list under it holds, so the two agree.
+  await expect(live).toContainText('4 agents are connected')
+  await expect(page.getByText('4 agents people have connected.')).toBeVisible()
   await page.getByRole('button', { name: 'Copy prompt' }).click()
   await expect(live).toContainText('Waiting for your agent to connect…')
   await agentSignsIn(page)
@@ -41,7 +43,7 @@ test('each state has an address', async ({ page }) => {
   // On the service a wait runs out in ten minutes of the page's own time.
   await page.clock.install()
   for (const [flag, text] of [
-    ['idle', 'Not connected yet'],
+    ['idle', '4 agents are connected'],
     ['connected', 'It can call get_context'],
     ['declined', 'The connection was declined in the browser.'],
     // Last: on the service, ten minutes of the page's own time pass.

@@ -59,3 +59,5 @@ Everyone is an Admin or a Member. Owning a domain isn't a role: it's set on the 
 ## Signing in
 
 People sign in with their company account. An invite is accepted the first time they sign in with the address it was sent to. A session ends after 12 hours unused, or 7 days after signing in.
+
+Where people pick who they are from a list, as on an install for trying it out, nobody invited is on the list. Invite people says so, and the link lets them in once company sign-in is set up.

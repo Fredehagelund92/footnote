@@ -31,7 +31,6 @@ import type { ProposalRecord } from '@contract/proposals'
 import { refusals } from '@contract/refusals'
 import { REVIEW_SHEETS_MAX } from '@contract/limits'
 import type { ReviewSheet } from '@contract/review-path'
-import { ABOUT_BUSINESS_STARTER } from '@domain/about-business'
 import { thresholdOfWords } from '@domain/alerts'
 import type { ChatTurn } from '@domain/ask-chat'
 import { canonicalJson } from '@domain/canonical'
@@ -1356,8 +1355,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       }
     },
     // What the business is about is an admin's setting; the setup checklist's steps are read from
-    // what exists. Start from the guide fills in the worked example, an outdoor-gear retailer.
-    // The people are the workspace's members, Admin or Member, and its open invites.
+    // what exists. The people are the workspace's members, Admin or Member, and its open invites.
     getWorkspace: async () => {
       const [{ workspace }, setup, about, members, invites, named] = await Promise.all([
         readPeopleAndAreas(),
@@ -1379,7 +1377,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         people,
         invites: invited,
         about: about?.text ?? '',
-        aboutTemplate: ABOUT_BUSINESS_STARTER,
         setup: {
           done: Object.fromEntries(setup.steps.map((s) => [s.id, s.done])),
           serverSource: setup.serverSource,

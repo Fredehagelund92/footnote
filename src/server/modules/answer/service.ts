@@ -200,7 +200,10 @@ export async function askedThisWeek(
  * beside them. Asked this week and the Inbox's week line both count from here, so the two agree.
  */
 export async function askedCounts(tx: Queryable, clock: Clock) {
-  const { subjects, domains, minimum, start } = await createObservabilityService(tx, clock).asked()
+  const { subjects, domains, minimum, start, today } = await createObservabilityService(
+    tx,
+    clock,
+  ).asked()
   const size = (s: (typeof subjects)[number]) => s.count ?? s.atLeast
   const listed = subjects
     .filter((s) => size(s) >= minimum)
@@ -215,7 +218,7 @@ export async function askedCounts(tx: Queryable, clock: Clock) {
     domains,
     minimum,
   )
-  return { subjects, listed, unshown, domains, minimum, start, asked, askedAtLeast, hidden }
+  return { subjects, listed, unshown, domains, minimum, start, today, asked, askedAtLeast, hidden }
 }
 
 /** Asked this week, with the minimum count it shows. */

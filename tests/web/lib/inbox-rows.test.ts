@@ -14,7 +14,7 @@ const inbox = (extra: Partial<Inbox> = {}): Inbox => ({
   done: {},
   opened: {},
   reviewed: {},
-  week: { asked: 0, askedAtLeast: 0, found: 0, nothing: 0, mostAbout: null },
+  week: { asked: 0, askedAtLeast: 0, askedToday: false, found: 0, nothing: 0, mostAbout: null },
   mentions: [],
   ...extra,
 })

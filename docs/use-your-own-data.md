@@ -16,7 +16,9 @@ Footnote reads metric and dimension names from your semantic layer, and never wr
 CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
 ```
 
-With your own model it starts empty, with no demo data. The sign-in page offers the sample people of [the local people file](../db/seed/people.local.yml). Sign in as Ravi Kapoor, the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context applies to those names.
+With your own model it starts empty, with no demo data. If you tried the demo first, its data is still in Docker's volume, and the two would be mixed: the start stops and says so. Run `docker compose down --volumes`, which deletes the demo's database and keys, then start again the same way.
+
+The sign-in page offers the sample people of [the local people file](../db/seed/people.local.yml). Sign in as Ravi Kapoor, the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context applies to those names.
 
 On a Mac the folder must be one Docker shares, or the service refuses to start and says so. Docker Desktop shares only the folders under Settings, Resources, File sharing, and Colima shares your home folder unless told otherwise. [The Cube connector](connectors/cube.md) says what the model needs.
 
@@ -28,7 +30,7 @@ For a dbt project on this computer, run `dbt parse` in it, then name the folder 
 DBT_MANIFEST_DIR=/path/to/your/dbt/project/target docker compose up
 ```
 
-The folder is shared into the container read only, as a Cube model's is, and the service reads it as its own dbt source, with no demo data. After the next `dbt parse`, use Read again on the source's page, in Settings, Integrations.
+The folder is shared into the container read only, as a Cube model's is, and the service reads it as its own dbt source, with no demo data. After the demo, the start stops as it does for a Cube model, with the same way out. After the next `dbt parse`, use Read again on the source's page, in Settings, Integrations.
 
 A semantic model takes its domain from its `meta`, as [dbt MetricFlow](connectors/dbt-metricflow.md#where-meta-goes) shows. On a Mac the folder needs the same file sharing as a Cube model's.
 

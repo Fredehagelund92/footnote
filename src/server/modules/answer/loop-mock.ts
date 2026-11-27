@@ -173,8 +173,13 @@ export function scriptedLoopChoice(
 type Obj = Record<string, unknown>
 const isObj = (v: unknown): v is Obj => !!v && typeof v === 'object' && !Array.isArray(v)
 const objs = (v: unknown): Obj[] => (Array.isArray(v) ? v.filter(isObj) : [])
-const firstSentence = (text: string) => text.split(/(?<=[.!?])\s/)[0]!.replace(/[.!?]$/, '')
-/** A title before its sentence: a colon after it, unless it ends a sentence itself ("...in August 2026?"). */
+/** A summary whole, on one line and without its last stop: the citation comes before the stop. */
+const wholeSummary = (text: string) =>
+  text
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[.!?]+$/, '')
+/** A title before its summary: a colon after it, unless it ends a sentence itself ("...in August 2026?"). */
 const titled = (title: string) => (/[.!?]$/.test(title) ? title : `${title}:`)
 const list = (names: readonly string[]) =>
   names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
@@ -225,12 +230,13 @@ export type PlainStep =
 
 /**
  * The plain read: the person's message looked up once, with get_context and find_context, the
- * engine agents get; then what applies, each item's title and first sentence with its id, or with
- * nothing found, one sentence that says so and who owns the subject. A message that names nothing
- * and points back at the chat ("and who decides?") is looked up once more with the question
- * before it (`before`). Asked what a metric is, it gives the definition, in its own words, marked
- * as the answer; under Conflict, the two items that disagree come first. It follows no
- * instruction in a message or an item, never asks back, and claims nothing a model would write.
+ * engine agents get; then what applies, each item's title and whole summary with its id (the
+ * summary is what its writer wants agents to know, and its second sentence is often the reason),
+ * or with nothing found, one sentence that says so and who owns the subject. A message that names
+ * nothing and points back at the chat ("and who decides?") is looked up once more with the
+ * question before it (`before`). Asked what a metric is, it gives the definition, in its own
+ * words, marked as the answer; under Conflict, the two items that disagree come first. It follows
+ * no instruction in a message or an item, never asks back, and claims nothing a model would write.
  * The scripted reader runs it, and a turn of the loop that stopped shows it (decision 5).
  */
 export function plainStep({
@@ -316,7 +322,7 @@ export function plainStep({
           .slice(0, 4)
           .map(
             (i) =>
-              `${titled(String(i.title))} ${firstSentence(String(i.summary))} [${String(i.id)}].`,
+              `${titled(String(i.title))} ${wholeSummary(String(i.summary))} [${String(i.id)}].`,
           ),
       ].join('\n\n'),
     }

@@ -22,7 +22,7 @@ A job that runs on its own, with nobody there to approve a sign-in, does not use
 
 ## Paste the prompt
 
-![Connect an agent in Agents and access: the prompt to paste into your agent, with Copy prompt, and under it Not connected yet: after you paste it, this page says Connected.](../images/docs/agents-light.webp)
+![Connect an agent in Agents and access: the prompt to paste into your agent, with Copy prompt, and under it the line that says whether an agent is connected.](../images/docs/agents-light.webp)
 
 1. Open **Settings**, then **Agents and access**.
 2. Press **Copy prompt** and paste it into your agent.

@@ -1592,7 +1592,6 @@ export function describeFootnoteApi(
         await live.setAbout({ text })
         const workspace = await live.getWorkspace()
         expect(workspace.about).toBe(text)
-        expect(workspace.aboutTemplate).toMatch(/outdoor-gear retailer/)
       },
     )
 

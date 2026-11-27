@@ -1,4 +1,5 @@
 import titles from 'virtual:help-docs-titles'
+import { DOCS_URL } from '@domain/brand'
 import { CHANGELOG, docPath } from '@domain/docs'
 
 // Links into the documentation from anywhere in the app: where it opens, a page's address and its
@@ -12,6 +13,12 @@ export const CHANGELOG_SLUG = CHANGELOG
 
 /** Where a page opens, at a heading when there is one. */
 export const docHref = (slug: string, hash = '') => docPath(DOCS_HOME, slug, hash)
+
+/**
+ * A page of the public docs the app's own Docs do not hold: one for whoever runs the service, such
+ * as the model providers' (docs/model-providers.md), at the newest release's address.
+ */
+export const publicDocHref = (slug: string) => `${DOCS_URL}/${slug}/`
 
 /** A page's title by its slug; undefined for a page that does not exist. */
 export const docTitle = (slug: string): string | undefined => titles[slug]

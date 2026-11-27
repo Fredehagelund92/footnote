@@ -79,7 +79,14 @@ const suggestion = (patch: Partial<Extract<Card, { group: 'suggestion' }>> = {})
   ...patch,
 })
 const feed = (cards: Card[], patch: Partial<Feed> = {}): Feed => ({
-  week: { asked: 142, askedAtLeast: 142, found: 117, nothing: 25, mostAbout: 'Orders in Spain' },
+  week: {
+    asked: 142,
+    askedAtLeast: 142,
+    askedToday: false,
+    found: 117,
+    nothing: 25,
+    mostAbout: 'Orders in Spain',
+  },
   groups: [],
   cards,
   waiting: [],
@@ -679,7 +686,14 @@ describe('the Inbox', () => {
   })
 
   it('passes the week’s counts on, hidden ones as they are', () => {
-    const week = { asked: null, askedAtLeast: 143, found: null, nothing: null, mostAbout: null }
+    const week = {
+      asked: null,
+      askedAtLeast: 143,
+      askedToday: false,
+      found: null,
+      nothing: null,
+      mostAbout: null,
+    }
     expect(inboxOf(feed([], { week }), 'Jon Abara', domains, now).week).toEqual(week)
   })
 })

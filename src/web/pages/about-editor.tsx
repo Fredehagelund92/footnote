@@ -1,5 +1,8 @@
 import * as React from 'react'
 import { useEditor } from '@tiptap/react'
+import type { Node } from '@tiptap/pm/model'
+import { TextSelection } from '@tiptap/pm/state'
+import type { EditorView } from '@tiptap/pm/view'
 import { PanelRightIcon } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -23,8 +26,11 @@ import { useMe } from '@/lib/workspace'
 import { useGlossary } from '@/lib/definitions'
 import { definedInAbout, definedWords } from '@/lib/about-words'
 import {
+  ABOUT_BUSINESS_GUIDE,
   ABOUT_BUSINESS_MAX,
+  ABOUT_GUIDE_PARTS,
   aboutBusinessLength,
+  aboutGuidePartsIn,
   normalizeAboutBusiness,
 } from '@domain/about-business'
 
@@ -33,11 +39,32 @@ import {
 // saves itself, so a quiet status replaces a Save button. The help panel is closed until asked for.
 // The text says what the company does; words and their meanings go in Definitions, so a line
 // that defines a word Definitions already has says so under the field. Write a first version for
-// me drafts the text from the install; the draft is shown to change and saved only when kept, so
-// nothing reaches Ask or an agent before then. Loaded on its own, like the other editors, to keep
-// Tiptap out of the first load.
+// me drafts the text from the install, and Start from the guide puts the shape of the text on the
+// sheet, a part in brackets for each thing to say. Either is shown to change and saved only when
+// kept, the guide only with every part filled in, so nothing reaches Ask or an agent before then.
+// Loaded on its own, like the other editors, to keep Tiptap out of the first load.
 
 const LIMIT = ABOUT_BUSINESS_MAX
+
+/** Where the guide's parts still stand on the sheet, in its order: each with its brackets. */
+function guidePartsOn(doc: Node): { from: number; to: number }[] {
+  const found: { from: number; to: number }[] = []
+  doc.descendants((node, at) => {
+    for (const part of ABOUT_GUIDE_PARTS) {
+      const from = node.text?.indexOf(part) ?? -1
+      if (from >= 0) found.push({ from: at + from, to: at + from + part.length })
+    }
+  })
+  return found.sort((a, b) => a.from - b.from)
+}
+
+/** One part of the guide selected whole, so the next words typed take its place. */
+function selectGuidePart(view: EditorView, part: { from: number; to: number }) {
+  view.dispatch(
+    view.state.tr.setSelection(TextSelection.create(view.state.doc, part.from, part.to)),
+  )
+  view.focus()
+}
 
 export function AboutPage({
   title,
@@ -47,7 +74,7 @@ export function AboutPage({
   helpText: React.ReactNode
 }) {
   const me = useMe()
-  const { about, aboutTemplate, domains } = useWorkspace()
+  const { about, domains } = useWorkspace()
   // A first version is written from the domains and the metrics: offered once there are some.
   const { metrics } = useVocabulary()
   const draftable = metrics.length > 0 || domains.some((d) => !d.sandbox)
@@ -57,9 +84,16 @@ export function AboutPage({
   const setup = query.get('setup')
   // Null until the first keystroke; until then the count and the words are what the editor writes back.
   const [typed, setTyped] = React.useState<string | null>(null)
-  // A first version on the sheet that is not kept yet: what is typed into it is not saved either.
-  const [draft, setDraft] = React.useState<'writing' | 'shown' | null>(null)
+  // A first version or the guide on the sheet that is not kept yet: what is typed into it is not
+  // saved either.
+  const [draft, setDraft] = React.useState<'writing' | 'first' | 'guide' | null>(null)
+  const shown = draft === 'first' || draft === 'guide'
   const drafting = React.useRef(false)
+  // Whether the guide is on the sheet, for the editor's own handlers, which are set once.
+  const guiding = React.useRef(false)
+  React.useEffect(() => {
+    guiding.current = draft === 'guide'
+  }, [draft])
   const autosave = useAutosave({
     save: (text: string) => write('setAbout', { text }),
     onError: (e) =>
@@ -81,7 +115,25 @@ export function AboutPage({
     ),
     content: about,
     contentType: 'markdown',
-    editorProps: { attributes: { 'aria-label': 'About our business' } },
+    editorProps: {
+      attributes: { 'aria-label': 'About our business' },
+      // While the guide is on the sheet its parts are filled in like a form's fields: a click on
+      // one selects it whole, and Tab goes to the next one that is left. With none left, and with
+      // Shift, Tab leaves the text as it always does.
+      handleClick: (view, at) => {
+        if (!guiding.current) return false
+        const part = guidePartsOn(view.state.doc).find((p) => at > p.from && at < p.to)
+        if (part) selectGuidePart(view, part)
+        return !!part
+      },
+      handleKeyDown: (view, event) => {
+        if (!guiding.current || event.key !== 'Tab' || event.shiftKey) return false
+        const parts = guidePartsOn(view.state.doc)
+        const next = parts.find((p) => p.from >= view.state.selection.to) ?? parts[0]
+        if (next) selectGuidePart(view, next)
+        return !!next
+      },
+    },
     onUpdate: ({ editor }) => save(editor.getMarkdown()),
   })
   // Count what the editor writes back, so the number never jumps on the first keystroke, as the
@@ -99,7 +151,7 @@ export function AboutPage({
         drafting.current = true
         editor.commands.setContent(text, { contentType: 'markdown' })
         setTyped(editor.getMarkdown())
-        setDraft('shown')
+        setDraft('first')
       },
       (e: unknown) => {
         setDraft(null)
@@ -107,6 +159,17 @@ export function AboutPage({
       },
     )
   }
+  // The guide's first part is selected, so the first words typed take its place.
+  const startFromGuide = () => {
+    drafting.current = true
+    editor.commands.setContent(ABOUT_BUSINESS_GUIDE, { contentType: 'markdown' })
+    setTyped(editor.getMarkdown())
+    setDraft('guide')
+    const [first] = guidePartsOn(editor.state.doc)
+    if (first) selectGuidePart(editor.view, first)
+  }
+  // The guide's parts nobody has put words in place of yet: with one left, it cannot be kept.
+  const unfilled = draft === 'guide' ? aboutGuidePartsIn(typed ?? '') : []
   const keepDraft = () => {
     drafting.current = false
     setDraft(null)
@@ -122,11 +185,11 @@ export function AboutPage({
   const help = useHelpAside(me.name)
   const [paneRef, wide] = useWide<HTMLDivElement>()
 
-  // Too long is not saved, and the footer says how to save it. A first version not kept yet is not
-  // saved either, whatever the last save stored.
+  // Too long is not saved, and the footer says how to save it. A first version or the guide not
+  // kept yet is not saved either, whatever the last save stored.
   const status = (
     <SaveStatus
-      status={tooLong ? 'failed' : draft === 'shown' ? 'dirty' : autosave.status}
+      status={tooLong ? 'failed' : shown ? 'dirty' : autosave.status}
       retry={tooLong ? undefined : autosave.retry}
     />
   )
@@ -215,40 +278,35 @@ export function AboutPage({
           One or two sentences: what you sell, to whom, where and through which channels.
         </p>
         <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-48! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
-        {draft === 'shown' && (
+        {shown && (
           <div
             role="group"
-            aria-label="First version"
+            aria-label={draft === 'guide' ? 'Guide' : 'First version'}
             className="mt-4 flex max-w-reading flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-md border bg-muted/50 px-3 py-2 text-sm"
           >
             <p className="text-muted-foreground">
-              Written from your domains, metrics and definitions. Not saved until you keep it.
+              {draft === 'guide'
+                ? 'Click a part in brackets, or press Tab, and type your own words. Not saved until you keep it.'
+                : 'Written from your domains, metrics and definitions. Not saved until you keep it.'}
             </p>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={discardDraft}>
                 Discard
               </Button>
-              <Button disabled={tooLong || length === 0} onClick={keepDraft}>
+              <Button disabled={tooLong || length === 0 || unfilled.length > 0} onClick={keepDraft}>
                 Keep it
               </Button>
             </div>
           </div>
         )}
-        {length === 0 && draft !== 'shown' && (
+        {length === 0 && !shown && (
           <div className="mt-4 flex flex-wrap gap-2">
             {draftable && (
               <Button variant="outline" disabled={draft === 'writing'} onClick={writeFirstVersion}>
                 {draft === 'writing' ? 'Writing…' : 'Write a first version for me'}
               </Button>
             )}
-            <Button
-              variant="outline"
-              disabled={draft === 'writing'}
-              onClick={() => {
-                editor.commands.setContent(aboutTemplate, { contentType: 'markdown' })
-                save(editor.getMarkdown())
-              }}
-            >
+            <Button variant="outline" disabled={draft === 'writing'} onClick={startFromGuide}>
               Start from the guide
             </Button>
           </div>
