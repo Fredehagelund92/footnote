@@ -109,6 +109,7 @@ async function server(
           sessions: {
             write: () => Promise.reject(new Error('Not called')),
             read: () => Promise.reject(new Error('Not called')),
+            send: () => Promise.reject(new Error('Not called')),
           },
         }
       : {}),
