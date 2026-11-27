@@ -61,7 +61,7 @@ that data. Its default reply is short:
         "url": "https://example.test/law",
         "quote": "Online sales are stopped from 4 August."
       },
-      "not_to_conclude": "cause not proven",
+      "not_to_conclude": "Fewer orders after 4 August do not mean fewer customers.",
       "url": "/context/itm_norway01"
     }
   ],
