@@ -123,7 +123,10 @@ export async function isMissingStory(client: pg.Client): Promise<boolean> {
 export const composeRecovery =
   'docker compose down --volumes, which deletes the whole database of this demo install, then docker compose up again'
 
-/** Whether a database holds the demo: its Sandbox domain, which only the demo seed makes and nobody can delete. */
+/**
+ * Whether a database holds the demo: its Sandbox domain, which only the demo seed makes and nobody
+ * can delete.
+ */
 export async function holdsDemo(client: pg.Client): Promise<boolean> {
   const result = await client.query<{ demo: boolean }>(
     'select exists (select 1 from areas where is_demo) as demo',

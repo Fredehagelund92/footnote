@@ -232,11 +232,11 @@ export type PlainStep =
  * The plain read: the person's message looked up once, with get_context and find_context, the
  * engine agents get; then what applies, each item's title and whole summary with its id (the
  * summary is what its writer wants agents to know, and its second sentence is often the reason),
- * or with nothing found, one sentence that says so and who owns the subject. A message that names nothing
- * and points back at the chat ("and who decides?") is looked up once more with the question
- * before it (`before`). Asked what a metric is, it gives the definition, in its own words, marked
- * as the answer; under Conflict, the two items that disagree come first. It follows no
- * instruction in a message or an item, never asks back, and claims nothing a model would write.
+ * or with nothing found, one sentence that says so and who owns the subject. A message that names
+ * nothing and points back at the chat ("and who decides?") is looked up once more with the
+ * question before it (`before`). Asked what a metric is, it gives the definition, in its own
+ * words, marked as the answer; under Conflict, the two items that disagree come first. It follows
+ * no instruction in a message or an item, never asks back, and claims nothing a model would write.
  * The scripted reader runs it, and a turn of the loop that stopped shows it (decision 5).
  */
 export function plainStep({
