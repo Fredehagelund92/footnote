@@ -167,6 +167,10 @@ function labelWidth(title: string) {
   return w
 }
 
+/** Where a box that holds a name is, with its start for the name (--time-x, in context-time.css). */
+const boxAt = (left: number, width: number) =>
+  ({ left, width, '--time-x': `${left}px` }) as React.CSSProperties
+
 /** The part of the content that is drawn: rows down to `yb`, time from `xa` to `xb`. */
 type Win = { ya: number; yb: number; xa: number; xb: number; width: number; height: number }
 const NO_WIN: Win = { ya: 0, yb: 0, xa: 0, xb: 0, width: 0, height: 0 }
@@ -327,7 +331,9 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
   }, [])
   const onScroll = () => {
     const el = scroller.current
-    if (el && !inside(el, win, gut)) setWin(winAround(el, gut))
+    if (!el) return
+    el.style.setProperty('--time-sl', `${el.scrollLeft}px`)
+    if (!inside(el, win, gut)) setWin(winAround(el, gut))
     hideCard()
   }
 
@@ -696,7 +702,7 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
           type="button"
           {...common}
           className="time-beside"
-          style={{ left: gut + bar.x0 + bar.w + 2, width: bar.ext - bar.x0 - bar.w - 2 }}
+          style={boxAt(gut + bar.x0 + bar.w + 2, bar.ext - bar.x0 - bar.w - 2)}
         >
           {name}
         </button>
@@ -708,7 +714,7 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
         {...common}
         className="time-bar"
         data-open={open}
-        style={{ left: gut + bar.x0, width: bar.w }}
+        style={boxAt(gut + bar.x0, bar.w)}
       >
         {name}
       </button>

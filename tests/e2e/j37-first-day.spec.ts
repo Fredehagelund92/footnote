@@ -66,18 +66,19 @@ test('the counts read alike and stay inside the screen', async ({ page }) => {
   expect(await right(look)).toBeLessThanOrEqual(width(page) - 16)
 })
 
-test('the Advanced table fits a wide screen and says when it scrolls', async ({ page }) => {
+test('the Advanced table fits a wide screen, and on a phone its settings stack', async ({
+  page,
+}) => {
   await go(page, '/settings/advanced')
   const table = page.getByRole('table', { name: 'Tuning settings' })
   await expect(table.getByRole('columnheader', { name: 'What it does' })).toBeInViewport({
     ratio: 1,
   })
-  await expect(
-    page.getByText('Wider than the page: scroll sideways for every column.'),
-  ).toHaveCount(0)
+  // On a phone a cut column read as the table's end: a setting is a block instead (J137, P16).
   await page.setViewportSize({ width: 390, height: 844 })
+  await expect(table).toHaveCount(0)
   await expect(
-    page.getByText('Wider than the page: scroll sideways for every column.').first(),
+    page.getByRole('group', { name: 'Tuning settings' }).getByText('workspace.name'),
   ).toBeVisible()
 })
 
