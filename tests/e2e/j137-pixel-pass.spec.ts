@@ -244,7 +244,7 @@ test.describe('on a phone', () => {
       '/ask',
       '/context',
       '/context/itm_norway_stop',
-      '/context/new',
+      '/context/new?draft=norway',
       '/definitions',
       '/observability',
       '/settings/general',

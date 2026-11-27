@@ -974,6 +974,11 @@ describe('a draft from pasted text', () => {
     expect(r.draft.summary).toBe(
       'Orders in Norway paused from 3 October 2026 while the payment provider moved.',
     )
+    // Said in a sentence, it has no title of its own: its first sentence is the title to check.
+    expect(r.draft.title).toBe(
+      'Orders in Norway paused from 3 October 2026 while the payment provider moved.',
+    )
+    expect(r.unsure).toContain('title')
     expect(r.draft.validity?.start).toBe('2026-10-03')
     expect(r.draft.scope?.metrics).toContain('metric:orders')
     expect(r.unsure).toContain('kind')

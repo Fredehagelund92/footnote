@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, mode, test } from './go.ts'
+import { expect, go, mode, newContext, test } from './go.ts'
 
 // J36, writing a first context item: the editor starts in a domain that exists and says by name
 // everything the service needs before Publish works (where it applies, a source and a sentence
@@ -17,7 +17,7 @@ async function write(page: Page, title: string) {
 }
 
 test('a new item starts in a real domain and names what it still needs', async ({ page }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   // The domain has its name, never a bare dot.
   const domain = page.getByRole('button', { name: /^Domain/ })
   await expect(domain).toHaveAccessibleName(/^Domain \S/)
@@ -43,7 +43,7 @@ test('a new item starts in a real domain and names what it still needs', async (
 
 /** A whole item about Orders, which other live items about Orders clash with. */
 async function writeComplete(page: Page) {
-  await go(page, '/context/new')
+  await newContext(page)
   await write(page, 'Orders are counted when they ship')
   await page.locator('#fact-quote').fill('An order counts on the day it ships.')
   await page.keyboard.press('Escape')

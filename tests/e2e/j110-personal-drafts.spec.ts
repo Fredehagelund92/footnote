@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { card, expect, go, mode, signInAs, test } from './go.ts'
+import { card, expect, go, mode, newContext, signInAs, test } from './go.ts'
 
 // J110, drafts are personal (FR-230): the editor's Save as draft keeps the words as the writer's
 // own draft, which only they see in Context; its page sends it to the domain's owners as it is;
@@ -13,7 +13,7 @@ const said = (page: Page, text: string) => page.getByText(text, { exact: true })
 test('Save as draft keeps the words where only their writer sees them', async ({ page }) => {
   const title = 'Store visits in Italy are counted at the door'
   await signInAs(page, 'Ines Duarte')
-  await go(page, '/context/new')
+  await newContext(page)
   await page.getByRole('textbox', { name: 'Title' }).fill(title)
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText('A visit counts when someone walks in, whether they buy or not.')

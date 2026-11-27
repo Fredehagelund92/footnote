@@ -180,6 +180,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   // inside the app, as its own links do: each load reads every shared read again, and a person
   // may make 600 calls a minute.
   await moveTo(page, '/context/new')
+  await button(page, 'Write it yourself').click()
   await page.getByRole('button', { name: /^Domain/ }).click()
   const noDomain = page.getByRole('dialog', { name: 'Domain' })
   await expect(noDomain.getByText('No domain yet')).toBeVisible()
@@ -327,11 +328,10 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
 
   // A context item that applies to the synced metric, published in one step by its owner.
   await page.goto('/context/new')
-  await button(page, 'More').click()
-  await page.getByRole('menuitem', { name: 'Draft from text' }).click()
-  await expect(page.getByRole('dialog', { name: 'Draft from text' })).toBeVisible()
-  expect(await demoWords(page), 'the editor and Draft from text').toEqual([])
-  await page.keyboard.press('Escape')
+  await expect(page.getByRole('textbox', { name: 'What happened?' })).toBeVisible()
+  expect(await demoWords(page), "Write context's first box").toEqual([])
+  await button(page, 'Write it yourself').click()
+  expect(await demoWords(page), 'the editor').toEqual([])
   await page.getByRole('textbox', { name: 'Title' }).fill('Checkout was down for a day')
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText(
@@ -575,6 +575,7 @@ test('values people write, on an install that has none', async ({ browser }) => 
 
   // Where an item is written: a channel nobody added yet, added in Applies to.
   await moveTo(page, '/context/new')
+  await button(page, 'Write it yourself').click()
   await page.getByRole('textbox', { name: 'Title' }).fill('Direct sales paused for a week')
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText('Direct sales were paused for a week, so Net revenue reads low.')

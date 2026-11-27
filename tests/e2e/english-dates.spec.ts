@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, test } from './go.ts'
+import { expect, go, newContext, test } from './go.ts'
 
 // English dates in a Danish browser (copy.md 2.11, release slice H24): Footnote is English only,
 // so no screen writes a date in the browser's language ("6. okt."), the When calendar opens on
@@ -48,7 +48,7 @@ test('a Danish browser reads every date in English', async ({ page }) => {
 test('the When calendar opens on this month, starts on Monday and says what it shows', async ({
   page,
 }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   await page.getByRole('button', { name: /^When/ }).click()
   await page.getByRole('radio', { name: 'A single day' }).click()
 

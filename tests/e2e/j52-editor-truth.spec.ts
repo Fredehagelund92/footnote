@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, inHttpOnly, onMockOnly, test } from './go.ts'
+import { expect, go, inHttpOnly, newContext, onMockOnly, test } from './go.ts'
 
 // J52, the editor tells the truth: its status says Saved only when what is written is saved, and
 // leaving with words that are not asks first (P15); a source that is not a link is marked at the
@@ -129,7 +129,7 @@ test('leaving and losing the words is a choice, and Save leaves without asking',
 })
 
 test('a new page that holds nothing has no status to give', async ({ page }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   await expect(status(page)).toHaveCount(0)
   // Agents get nothing of a new item until it is published, so it is not Live yet (U9).
   const statusRow = page.locator('div', { has: page.locator('dt', { hasText: /^Status$/ }) }).last()
@@ -154,7 +154,7 @@ test('offline, the status says nothing is kept, not that it is saved on this dev
 test('a source that is words, not a link, is marked at the source and Publish waits', async ({
   page,
 }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   await title(page, 'Store pickup orders in Sweden were counted twice in week 44')
   await text(page, 'Orders for store pickup in Sweden were counted twice in week 44 of 2026.')
   await pick(page, 'Orders', /^Orders/)
@@ -186,7 +186,7 @@ test("the service's reason is marked at the field it is about, not in a sentence
   page,
 }) => {
   await inHttpOnly('refusal of an email address in the text', async () => {
-    await go(page, '/context/new')
+    await newContext(page)
     await title(page, 'Store pickup orders in Sweden were counted twice in week 44')
     await text(page, 'Pickup orders were counted twice in week 44. Ask ana.berg@example.com.')
     await pick(page, 'Gross margin', /^Gross margin/)
@@ -221,7 +221,7 @@ test("the service's reason is marked at the field it is about, not in a sentence
 test('an event asks when it happened, and Always is a choice that stays Always', async ({
   page,
 }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   // Nothing is picked for an Event: it is not "Always" until the writer says so.
   await expect(row(page, 'Kind')).toContainText('Event')
   await expect(row(page, 'When')).toContainText('When did it happen? Pick a date')
@@ -248,7 +248,7 @@ test('an event asks when it happened, and Always is a choice that stays Always',
 test('a rule does not ask, and what the writer picks is what the item says after it is published', async ({
   page,
 }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   await page.getByRole('button', { name: /^Kind/ }).click()
   await page.getByRole('option', { name: /^Rule/ }).click()
   await expect(row(page, 'When')).toContainText('Always')
@@ -271,7 +271,7 @@ test('a rule does not ask, and what the writer picks is what the item says after
 })
 
 test('the Applies to box empties after a pick and opens on what it can offer', async ({ page }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   await page.getByRole('button', { name: /^Applies to/ }).click()
   const search = page.getByRole('combobox', { name: 'Search Applies to' })
   const list = page.getByRole('listbox', { name: 'Applies to' })
@@ -303,7 +303,7 @@ test('the Applies to list does not say Nothing called while it is still reading'
   page,
 }) => {
   await inHttpOnly('read of the vocabulary, held here', async () => {
-    await go(page, '/context/new')
+    await newContext(page)
     await page.getByRole('button', { name: /^Applies to/ }).click()
     const search = page.getByRole('combobox', { name: 'Search Applies to' })
     const list = page.getByRole('listbox', { name: 'Applies to' })

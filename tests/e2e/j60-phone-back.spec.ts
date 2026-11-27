@@ -1,5 +1,5 @@
 import { devices } from '@playwright/test'
-import { card, expect, go, test } from './go.ts'
+import { card, expect, go, newContext, test } from './go.ts'
 
 // J60, the way back on a phone (UX audit P14, design audit F13): the item, definition, review and
 // conflict pages have a back arrow in their header, the title keeps room to be read, the rest of
@@ -132,7 +132,7 @@ test('the Inbox puts its switch under the introduction, not beside it in 180 px'
 })
 
 test('the editor toolbar shows an edge where it scrolls on', async ({ page }) => {
-  await go(page, '/context/new')
+  await newContext(page)
   const toolbar = page.locator('.rte-toolbar').first()
   await expect(toolbar).toBeVisible()
   const overflow = await toolbar.evaluate((el) => el.scrollWidth - el.clientWidth)

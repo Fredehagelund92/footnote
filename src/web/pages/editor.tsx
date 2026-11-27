@@ -107,7 +107,6 @@ import { Panel, PanelGroup } from '@/components/footnote/panel'
 import { ChoiceMenu, ViewToggle } from '@/components/footnote/switches'
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -497,7 +496,26 @@ function Editor({
   const titleRef = React.useRef<HTMLTextAreaElement>(null)
   const [overlap, setOverlap] = React.useState<Record<string, Relation>>({})
   const [pasted, setPasted] = React.useState('')
-  const [draftOpen, setDraftOpen] = React.useState(false)
+  // A new item with nothing to start from opens on one box: what the person has, pasted or said,
+  // fills the fields by rule (Draft from text), and the fields are then what they check. Written
+  // about a question, a definition or a Not found card, it opens on the form that already says so.
+  const [starting, setStarting] = React.useState(
+    () =>
+      mode === 'new' &&
+      !fromText &&
+      !query.get('gap') &&
+      !['metric', 'market', 'about'].some((k) => query.has(k)),
+  )
+  // A touch screen gets no automatic focus: the keyboard would cover the page before anyone asked for it.
+  const [touch] = React.useState(() => window.matchMedia('(pointer: coarse)').matches)
+  // Write it yourself puts the cursor in the title, once the form is there.
+  const byHand = React.useRef(false)
+  const startRef = React.useRef<HTMLTextAreaElement>(null)
+  React.useEffect(() => {
+    if (starting || !byHand.current) return
+    byHand.current = false
+    titleRef.current?.focus()
+  }, [starting])
   // Why the pasted text filled nothing in, such as a page Footnote can't open; the text stays, so
   // pasting the page's own words is the next step.
   const [fillProblem, setFillProblem] = React.useState('')
@@ -609,6 +627,11 @@ function Editor({
   const long = text.split('\n').filter(Boolean).length + Math.floor(text.length / 45) > 6
 
   const fill = async () => {
+    if (!pasted.trim()) {
+      setFillProblem('Write or paste something first.')
+      startRef.current?.focus()
+      return
+    }
     setFillProblem('')
     setFilling(true)
     let drafted
@@ -622,8 +645,10 @@ function Editor({
     }
     const filled = fromFact(drafted, domains, vocabulary)
     setForm(filled)
+    // Dates read from the words are an answer to When; the field shows them rather than asking.
+    if (filled.when !== 'always') setWhenChosen(true)
     editor?.commands.setContent(filled.body, { contentType: 'markdown' })
-    setDraftOpen(false)
+    setStarting(false)
     toast('Filled from your text', { description: 'Check each part before you publish.' })
   }
 
@@ -632,7 +657,8 @@ function Editor({
   // A draft nobody has published goes as it is: publishing its words is the change.
   const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
   const unchanged = mode !== 'new' && !edited && !asIs
-  const guard = useLeaveGuard(edited)
+  // Words in the first box are the person's too, until they are filled in.
+  const guard = useLeaveGuard(edited || (starting && !!pasted.trim()))
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
   const tooLong = summaryLength > SUMMARY_LIMIT
@@ -903,48 +929,6 @@ function Editor({
     </Dialog>
   )
 
-  // Draft from text: a short dialog, opened from the More menu.
-  const draftFromText = (
-    <Dialog
-      open={draftOpen}
-      onOpenChange={(open) => {
-        setDraftOpen(open)
-        if (!open) setFillProblem('')
-      }}
-    >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Draft from text</DialogTitle>
-          <DialogDescription>
-            Paste a message or a link; the fields fill in, and you check each one.
-          </DialogDescription>
-        </DialogHeader>
-        <Field>
-          <FieldLabel htmlFor="draft-text">Message or link</FieldLabel>
-          <Textarea
-            id="draft-text"
-            value={pasted}
-            onChange={(e) => {
-              setPasted(e.target.value)
-              setFillProblem('')
-            }}
-            aria-invalid={fillProblem ? true : undefined}
-            aria-describedby={fillProblem ? 'draft-text-problem' : undefined}
-            className="min-h-28"
-            placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
-          />
-          <FieldError id="draft-text-problem">{fillProblem}</FieldError>
-        </Field>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>Cancel</DialogClose>
-          <Button onClick={() => void fill()} loading={filling} loadingLabel="Reading…">
-            Fill it in
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
-
   // The panel: the overlaps first, one row each with its answer, so the decisions are in view
   // above the preview of what agents get. Both are groups that fold.
   const side = (
@@ -1035,6 +1019,89 @@ function Editor({
       </PanelGroup>
     </>
   )
+  const back = original
+    ? { href: href(`/context/${original.id}`), label: 'Back to the context item' }
+    : { href: href('/context'), label: 'Back to Context' }
+
+  // The first box: one question and one place to answer it. Fill it in reads the words by rule, and
+  // the form opens filled; Write it yourself opens it as it is.
+  if (starting)
+    return (
+      <DocumentEditorShell
+        editor={editor}
+        toolbar={false}
+        header={
+          <>
+            <SiteHeader title={heading} icon={<FilePenLineIcon />} back={back} bare />
+            {leaveDialog}
+          </>
+        }
+        footer={null}
+      >
+        <Paper>
+          <section aria-labelledby={`${ids}-start`} className="flex max-w-reading flex-col">
+            <h2
+              id={`${ids}-start`}
+              className="text-2xl leading-tight font-bold tracking-tight sm:text-3xl"
+            >
+              What happened?
+            </h2>
+            <p id={`${ids}-start-how`} className="mt-2 mb-5 text-sm text-muted-foreground">
+              Paste a message, a link, or just say what happened. The fields fill in from it, and
+              you check each one.
+            </p>
+            <Field>
+              <Textarea
+                ref={startRef}
+                value={pasted}
+                onChange={(e) => {
+                  setPasted(e.target.value)
+                  setFillProblem('')
+                }}
+                autoFocus={!touch}
+                aria-labelledby={`${ids}-start`}
+                aria-describedby={`${ids}-start-how${fillProblem ? ` ${ids}-start-problem` : ''}`}
+                aria-invalid={fillProblem ? true : undefined}
+                className="min-h-36 md:text-base"
+                placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
+              />
+              <FieldError id={`${ids}-start-problem`}>{fillProblem}</FieldError>
+            </Field>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      data-primary
+                      loading={filling}
+                      loadingLabel="Reading…"
+                      onClick={() => void fill()}
+                    />
+                  }
+                >
+                  Fill it in
+                </TooltipTrigger>
+                <TooltipContent>
+                  Fill it in <Kbd className="ml-1">⌘</Kbd>
+                  <Kbd>Enter</Kbd>
+                </TooltipContent>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                disabled={filling}
+                onClick={() => {
+                  byHand.current = true
+                  setStarting(false)
+                }}
+              >
+                {edited ? 'Back to the form' : 'Write it yourself'}
+              </Button>
+            </div>
+          </section>
+        </Paper>
+      </DocumentEditorShell>
+    )
+
   return (
     <DocumentEditorShell
       editor={editor}
@@ -1042,16 +1109,7 @@ function Editor({
       paneRef={mainRef}
       header={
         <>
-          <SiteHeader
-            title={heading}
-            icon={<FilePenLineIcon />}
-            back={
-              original
-                ? { href: href(`/context/${original.id}`), label: 'Back to the context item' }
-                : { href: href('/context'), label: 'Back to Context' }
-            }
-            bare
-          >
+          <SiteHeader title={heading} icon={<FilePenLineIcon />} back={back} bare>
             {/* Nothing is kept until Save, so a new page that holds nothing yet has nothing to say. */}
             {(mode !== 'new' || edited) && (
               <SaveStatus
@@ -1139,7 +1197,7 @@ function Editor({
                 </DropdownMenuItem>
               )}
               {mode === 'new' && (
-                <DropdownMenuItem onClick={() => setDraftOpen(true)}>
+                <DropdownMenuItem onClick={() => setStarting(true)}>
                   <SparklesIcon />
                   Draft from text
                 </DropdownMenuItem>
@@ -1150,7 +1208,6 @@ function Editor({
               </DropdownMenuItem>
             </HeaderMore>
           </SiteHeader>
-          {draftFromText}
           {leaveDialog}
         </>
       }
