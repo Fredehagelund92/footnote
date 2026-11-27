@@ -60,6 +60,8 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   metric that apply to that value (the agent-side review, finding 1), so K13 ("how many items are
   about norway") reads more than its recorded steps, which were keyed before: it awaits a re-record
   with the others.
+  On 27 November 2026 Write context's help began to tell of its first box, so the step that read
+  that page for FP14 no longer matches it: FP14 awaits a re-record with the others.
 */
 
 askEvalSuite({
@@ -96,6 +98,7 @@ askEvalSuite({
     'FP03',
     'FP04',
     'FP12',
+    'FP14',
     'G01',
     'G03',
     'G05',

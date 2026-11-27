@@ -17,7 +17,9 @@ How to add a context item, what to put in it, and the line that stops an agent f
 
 ## Add a context item
 
-To create one, open **Context** and choose **Write context**. It opens on one box: What happened? Paste a message, a link, or just say what happened, and choose **Fill it in**. The editor opens with the title, the text, the kind, the dates and where it applies filled in by rule from your words, with no AI model, and you check each one. A link is read from its page, which becomes the source.
+To create one, open **Context** and choose **Write context**. It opens on one box: What happened? Paste a message, a link, or just say what happened, and choose **Fill it in**. The editor opens with the title, the text, the kind, the dates and where it applies filled in by rule from your words, with no AI model, and you check each one.
+
+A link is read from its page, which becomes the source.
 
 To start from an empty item, choose **Write it yourself**. Draft from text, in the editor's More menu, goes back to the box.
 
