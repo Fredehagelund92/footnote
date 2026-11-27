@@ -310,6 +310,7 @@ export function createDraftSession(options: {
         if (!(await principalFor(tx, personId)))
           return refusal("Your account isn't active, so nothing was saved.")
         const context = { ...(await draftVocabulary(tx)), today: clock.today() }
+        const proposals = createProposalsService(tx, clock, personId)
         if (args.draft_id === undefined) {
           const first = { ...args, text: args.text! }
           const cut = summaryCut(first)
@@ -509,7 +510,7 @@ export function createDraftSession(options: {
           )
         // The person said yes to what they saw: a draft changed since is not what they said yes to.
         if (args.revision < p.revision) {
-          const changed = changedSince(await proposals.stampsOf(p.id), args.revision)
+          const changed = changedSince(p.fieldStamps, args.revision)
           return resultFor({
             status: 'changed',
             sent: false,
