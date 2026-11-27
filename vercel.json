@@ -4,6 +4,7 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build:vercel",
   "outputDirectory": "dist/web",
+  "ignoreCommand": "node scripts/vercel-ignore.ts",
   "regions": ["fra1"],
   "functions": {
     "api/footnote.js": { "maxDuration": 60 }

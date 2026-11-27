@@ -71,10 +71,13 @@ so in its notes.
    10. a last job attaches the site as `footnote-docs-0.1.0.tar.gz` to the release, only if the site
        build succeeded. If it failed, the run shows the failed site job and a warning that the
        tarball was not attached; the release and images are intact;
-   11. it asks Vercel to build the site again, so the release's docs appear ([The site](#the-site)).
+   11. it asks Vercel to build the site again, so the release's docs appear ([The site](#the-site));
+   12. it asks Vercel to build the demo, which builds only for a release
+       ([The demo on Vercel](#the-demo-on-vercel)).
 
-The workflows use only the workflow's own token, with the least each job needs. The one secret
-is the site's optional deploy hook, `SITE_DEPLOY_HOOK` ([The site](#the-site)).
+The workflows use only the workflow's own token, with the least each job needs. The only secrets
+are the two optional deploy hooks, the site's `SITE_DEPLOY_HOOK` ([The site](#the-site)) and the
+demo's `APP_DEPLOY_HOOK` ([The demo on Vercel](#the-demo-on-vercel)).
 
 ## The version number and the changelog
 
@@ -128,6 +131,12 @@ To connect the project, once, a maintainer:
 1. Imports the repository in Vercel as a new project, with **Root Directory** `site`. `site/vercel.json` sets the rest: the Astro preset, `npm ci`, the build, the output folder `dist` and the ignored build step. The production branch is `main`.
 2. Leaves `SITE_URL` unset, so every address follows the project's production address, `VERCEL_PROJECT_PRODUCTION_URL`, and a preview's own. To serve it elsewhere later, sets `SITE_URL` in the project's environment variables, such as `https://footnote.example`, and redeploys: every folder is built again with the new address.
 3. Creates a deploy hook for `main` in the project's **Settings, Git**, and adds its address as the repository secret `SITE_DEPLOY_HOOK`.
+
+## The demo on Vercel
+
+The hosted demo ([Run the demo on Vercel and Neon](vercel.md)) is a second Vercel project, built from the repository's root by `vercel.json`. Unlike the site, it builds only for a release: every push and pull request is skipped (`scripts/vercel-ignore.ts`). After a release the **App on Vercel** job in `release.yml` calls the project's deploy hook, which builds `main`, now at the release's version. Without the hook it says so in the run, and the next push to `main` builds the release.
+
+To connect it, once, a maintainer creates a deploy hook for `main` in the demo project's **Settings, Git**, and adds its address as the repository secret `APP_DEPLOY_HOOK` ([Only a release builds](vercel.md#only-a-release-builds)).
 
 ## Set up once
 
