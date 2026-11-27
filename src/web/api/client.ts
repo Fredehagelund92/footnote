@@ -221,7 +221,7 @@ export type Inbox = {
    * This week's questions from agents, as counts: no question text, no names. A count under the
    * minimum is null, and so is what most questions that found nothing were about. The same count
    * as Ask's Asked this week: `askedAtLeast` is what its rows show together. The week is the last
-   * 7 full days, so `askedToday` says beside it whether an agent asked today.
+   * 7 full days, so `askedToday` says an agent asked today when those days hold no call.
    */
   week: {
     asked: number | null

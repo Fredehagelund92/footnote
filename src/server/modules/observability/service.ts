@@ -1048,7 +1048,8 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
      * source of the counts Ask states and of Asked this week. Open to everyone, unlike the page: a
      * person with no Observability page gets the strictest view the owners of each domain have.
      * The 7 days are full days and end yesterday, so `today` says beside them whether an agent
-     * asked today: a yes or no, never a count, for the line that would else say nobody asked.
+     * asked today: a yes or no, never a count, a topic or a domain, for the line that would else
+     * say nobody asked (the Inbox's week line, which says it only when the 7 days are empty).
      */
     async asked(): Promise<{
       subjects: (ReaderSubject & Pick<TopicRow, 'metrics' | 'values' | 'dimensions'>)[]
