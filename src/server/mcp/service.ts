@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { uncoveredParts } from '../../domain/answer.ts'
+import * as z from 'zod'
+import { heldBackOf, uncoveredParts } from '../../domain/answer.ts'
 import { replyStatus, stateOfStatus } from '../../domain/answer-state.ts'
 import { canonicalJson } from '../../domain/canonical.ts'
 import { noGroups } from '../../domain/item.ts'
@@ -25,6 +26,7 @@ import {
   type ResolvedScope,
   type ScopeIssue,
   type ScopeResult,
+  type UnknownValueWord,
 } from '../../domain/scope.ts'
 import {
   dateNote,
@@ -37,6 +39,7 @@ import {
   type Calendar,
 } from '../../domain/dates.ts'
 import { isAnyDate, shiftDate } from '../../domain/validity.ts'
+import { invalidInputResult } from './invalid-input.ts'
 import {
   termEntry,
   termsIn,
@@ -48,6 +51,7 @@ import {
   acceptedByRole,
   acceptedWords,
   checkedWords,
+  withoutReviewWords,
   ownerRole,
 } from '../../domain/served-review.ts'
 import type {
@@ -89,6 +93,7 @@ import {
   failedSaid,
   findSaid,
   listSaid,
+  notLookedUp,
   readSaid,
   refusedSaid,
   reportSaid,
@@ -99,6 +104,7 @@ import {
   unreadSaid,
   whenWords,
   type Said,
+  type UnknownValueSaid,
 } from '../../domain/say.ts'
 import {
   definitionKinds,
@@ -160,7 +166,15 @@ function openLines(output: Record<string, unknown>): string[] {
     ...(Array.isArray(output.results) ? (output.results as unknown[]) : []),
   ]
   const items = listed.flatMap((item) => {
-    const { title, page, section, url, reviewed, checked } = item as Record<string, unknown>
+    const {
+      title,
+      page,
+      section,
+      url,
+      reviewed,
+      checked,
+      published_without_review: unreviewed,
+    } = item as Record<string, unknown>
     const name =
       typeof title === 'string'
         ? title
@@ -171,11 +185,14 @@ function openLines(output: Record<string, unknown>): string[] {
           : null
     const review = reviewed as Record<string, string> | undefined
     const check = checked as { role: string; date: string } | undefined
+    const permitted = unreviewed as { permission_of: string; date: string } | undefined
     const stamp = review
       ? ` - ${acceptedWords(review.accepted_on!, review.accepted_by!, review.in_edition!)}`
       : check
         ? ` - ${checkedWords(check.date, check.role)}`
-        : ''
+        : permitted
+          ? ` - ${withoutReviewWords(permitted.date, permitted.permission_of)}`
+          : ''
     return name !== null && typeof url === 'string'
       ? [`Open in ${productName} - ${name.replace(/\s+/g, ' ').trim()}: ${url}${stamp}`]
       : []
@@ -250,6 +267,25 @@ export const failure = (message = 'The checks could not run. Try again shortly.'
 }
 
 /**
+ * A call the caller can fix (agent-side review, finding 7): a size too small, a cursor from another
+ * call, an edition without its scope. It says what to change, as a call whose arguments do not fit
+ * does (`invalid_input`), so `check_failed` stays for a service that could not look.
+ */
+export const fixable = (field: string, problem: string): ToolResult => {
+  const say = `${notLookedUp} The request had a value that doesn't fit.`
+  return {
+    content: [{ type: 'text', text: `${say} ${problem}` }],
+    structuredContent: {
+      say,
+      next: problem,
+      status: 'invalid_input',
+      problems: [{ field, problem }],
+    },
+    isError: true,
+  }
+}
+
+/**
  * R11: the days a reply read and where they came from, in every reply that looked something up:
  * the caller's window, the person's period words (read as people write them), the question's own
  * words (read strictly), or today, assumed because none were given.
@@ -262,6 +298,25 @@ export type PeriodRead = {
   words?: string
   note?: string
   unplaced?: string[]
+}
+
+/**
+ * The value words a question names that name no value here (agent-side review, finding 2), by the
+ * names an agent is shown: the reply is for every value and says so.
+ */
+function valuesSaid(
+  bundle: ServingBundle,
+  values: readonly UnknownValueWord[] = [],
+): UnknownValueSaid[] {
+  const names = (keys: readonly string[]) =>
+    keys.flatMap((key) => {
+      const term = bundle.terms.find((t) => t.key === key)
+      return term && termShown(bundle, term) ? [term.name] : []
+    })
+  return values.flatMap((v) => {
+    const of = names(v.dimensions)
+    return of.length ? [{ word: v.word, of, closest: names(v.near) }] : []
+  })
 }
 
 /**
@@ -285,7 +340,8 @@ export function scopeOf(
     : placed?.window
   const scope = extractScope(input.question, bundle.terms, today, {
     ...(input.metrics === undefined ? {} : { metrics: input.metrics }),
-    ...(input.dimension_filters === undefined ? {} : { filters }),
+    // An empty list filters nothing, so the question's words name the values, as with none.
+    ...(input.dimension_filters?.length ? { filters } : {}),
     ...(window === undefined ? {} : { window }),
     calendar,
     domains: bundle.areas.map((area) => area.name),
@@ -388,17 +444,17 @@ function itemOutput(
     url,
   }
 }
-/** Who checked an item before agents got it, as a role, and on which day (FR-326). */
+/**
+ * Who checked an item before agents got it, as a role, and on which day (FR-326). One published
+ * under a permission was checked by nobody: it says whose permission published it (FR-421).
+ */
 function checkedOutput(item: ServingItem, bundle: ServingBundle) {
   const review = item.review
-  return review
-    ? {
-        checked: {
-          role: acceptedByRole(review.acceptedAs, domainName(bundle, review.areaId)),
-          date: review.acceptedOn,
-        },
-      }
-    : {}
+  if (!review) return {}
+  const role = acceptedByRole(review.acceptedAs, domainName(bundle, review.areaId))
+  return review.withoutReview
+    ? { published_without_review: { permission_of: role, date: review.acceptedOn } }
+    : { checked: { role, date: review.acceptedOn } }
 }
 /**
  * A context item as the agent contract gives it (docs/product.md, section 10): what it is and
@@ -449,10 +505,27 @@ export const withCaveats = (instructions: string, items: readonly object[]) =>
   items.some((item) => 'not_to_conclude' in item)
     ? `${instructions} ${caveatInstruction}`
     : instructions
-/** FR-611: an anonymous note that fails the check of `noteFindings` is refused. */
-function safeNote(note: string | undefined, question?: string) {
-  if (note && noteFindings(note, question).length) throw new Error('Note contains sensitive text')
-  return note
+/**
+ * FR-611: an anonymous note that fails the check of `noteFindings` is refused, in words the caller
+ * can act on, as suggest_context refuses one (agent-side review, finding 7). Null when it passes.
+ */
+function refusedNote(note: string | undefined, question?: string): ToolResult | null {
+  const findings = note ? noteFindings(note, question) : []
+  if (!findings.length) return null
+  const say = 'Nothing was sent: the note looks like it holds personal data or a secret.'
+  const next =
+    'Remove what looks like personal data or a secret from note, or leave note out, then call report again. Nothing was saved.'
+  return {
+    content: [{ type: 'text', text: `${say} ${next}` }],
+    structuredContent: {
+      say,
+      next,
+      status: 'invalid_input',
+      recorded: false,
+      findings: findings.map(({ code, field }) => ({ code, field })),
+    },
+    isError: true,
+  }
 }
 function cursorFor(key: string, offset: number) {
   return Buffer.from(JSON.stringify({ key, offset })).toString('base64url')
@@ -673,6 +746,15 @@ export function createToolService(
 ) {
   const urlOf = (id: string) => itemUrl(web, id)
   /**
+   * The replies this service gave lately, with the one domain each was about: a report can name one
+   * before its record is written (records are written in batches after the response).
+   */
+  const issued = new Map<string, { area: string | null }>()
+  const remember = (id: string, area: string | null) => {
+    issued.set(id, { area })
+    if (issued.size > 10_000) issued.delete(issued.keys().next().value!)
+  }
+  /**
    * The words of a text that a person defined in Definitions, as the agent contract gives them
    * (src/domain/served-terms.ts): background for reading the words, never a checked source.
    */
@@ -702,7 +784,10 @@ export function createToolService(
     const parsed = findContextInput.parse(input)
     // Naming an edition needs edition scope, as for get_context.
     if (parsed.edition && !principal.canSelectEdition)
-      return failure('Selecting an edition requires edition scope.')
+      return fixable(
+        'edition',
+        'Leave out edition: only a service token with edition scope selects one.',
+      )
     const bundle = await source.bundle(parsed.edition)
     onEdition(bundle.seq)
     if (parsed.query === undefined || isDefinitionKind(parsed.kind))
@@ -795,11 +880,11 @@ export function createToolService(
     }
     // A page cut to nothing while hits remain would send the agent back to the same page.
     if (out.cut && Array.isArray(out.context) && !out.context.length && offset < Number(out.total))
-      return failure('The result cannot fit this size limit. Increase max_bytes.')
+      return fixable('max_bytes', 'The result cannot fit this size limit. Increase max_bytes.')
     const rendered = measure() <= limit ? resultFor(out) : null
     return rendered
       ? rendered
-      : failure('The result cannot fit this size limit. Increase max_bytes.')
+      : fixable('max_bytes', 'The result cannot fit this size limit. Increase max_bytes.')
   }
 
   /**
@@ -845,7 +930,9 @@ export function createToolService(
     calendar: Calendar,
   ): Promise<ToolResult> {
     const args = reportInput.parse(input)
-    const note = safeNote(args.note, args.question)
+    const refused = refusedNote(args.note, args.question)
+    if (refused) return refused
+    const note = args.note
     const verdict = args.kind === 'helped' ? 'helpful' : args.kind
     const sent = (to: string | null, extra: Record<string, unknown> = {}, said?: Said) =>
       resultFor({
@@ -858,6 +945,18 @@ export function createToolService(
     if (args.reply_id !== undefined || args.context_id !== undefined) {
       let area: string | null = null
       let to: string | null = null
+      // A reply id that names no reply would reach nobody: refused, with where to find one.
+      const reply =
+        args.reply_id !== undefined
+          ? (issued.get(args.reply_id) ?? (await store.reply(args.reply_id)))
+          : null
+      if (args.reply_id !== undefined && !reply)
+        return resultFor({
+          say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
+          next: 'Call report again with the reply_id of the get_context reply it is about, or the context_id of the item.',
+          status: 'need_more_detail',
+          recorded: false,
+        })
       if (args.context_id !== undefined) {
         // A context item is read as an agent reads it: one it may not see answers as one that
         // does not exist (FR-334).
@@ -873,8 +972,19 @@ export function createToolService(
           })
         area = item.areaId
         to = ownerRole(domainName(bundle, item.areaId))
+      } else if (reply?.area) {
+        const bundle = await source.bundle()
+        onEdition(bundle.seq)
+        to = ownerRole(domainName(bundle, reply.area))
       }
-      await store.feedback(args.reply_id ?? null, verdict, principal.client, note, area)
+      await store.feedback({
+        delivery: args.reply_id ?? null,
+        verdict,
+        client: principal.client,
+        note,
+        area,
+        item: args.context_id ?? null,
+      })
       return sent(to)
     }
     const scoped =
@@ -918,6 +1028,7 @@ export function createToolService(
             readsAs: scope.dates?.reads_as ?? null,
           }),
           assumed: assumed?.note.sentence ?? null,
+          values: valuesSaid(bundle, scope.values),
         }),
       )
     }
@@ -1047,7 +1158,7 @@ export function createToolService(
       if (byteSize(rendered) <= limit) return rendered
       page.pop()
     } while (page.length)
-    return failure('The list cannot fit this size limit. Increase max_bytes.')
+    return fixable('max_bytes', 'The list cannot fit this size limit. Increase max_bytes.')
   }
 
   /**
@@ -1122,7 +1233,7 @@ export function createToolService(
     })
     return byteSize(rendered) <= limit
       ? rendered
-      : failure('The definition cannot fit this size limit. Increase max_bytes.')
+      : fixable('max_bytes', 'The definition cannot fit this size limit. Increase max_bytes.')
   }
 
   return async function execute(
@@ -1148,7 +1259,10 @@ export function createToolService(
           : readInput.parse(input)
       const edition = 'edition' in args ? args.edition : undefined
       if (edition && !principal.canSelectEdition)
-        return failure('Selecting an edition requires edition scope.')
+        return fixable(
+          'edition',
+          'Leave out edition: only a service token with edition scope selects one.',
+        )
       const bundle = await source.bundle(edition)
       onEdition(bundle.seq)
       const common = {
@@ -1206,6 +1320,8 @@ export function createToolService(
           }),
           ...(w.domain ? { domain: w.domain } : {}),
         }))
+        // The value words that name no value here: the reply is for every value, and says so.
+        const values = valuesSaid(bundle, scope.values)
         const base = report(
           resolution.status,
           resolution.report.matched,
@@ -1313,6 +1429,9 @@ export function createToolService(
         }
         // The domains the question is about, with what their owners wrote about them (FR-813).
         const domains = askedDomains(bundle, resolution.scope, concise)
+        // Published with an owner's permission, so nobody read it before agents got it (FR-421).
+        const unreviewed = (id: string) =>
+          (index.item(id) as ServingItem).review?.withoutReview === true
         // The reply's status, which carries the answer state (FR-349): what is written decides it,
         // so every page of a question says the same; out of date as the items stand after any cut.
         const statusNow = () => {
@@ -1323,10 +1442,15 @@ export function createToolService(
               ...items.map((item) => ({
                 match: item.match,
                 unverified: item.freshness === 'unverified',
+                unreviewed: unreviewed(item.id),
               })),
               ...resolution.items
                 .filter((match) => !shown.has(match.id))
-                .map((match) => ({ match: match.match, unverified: false })),
+                .map((match) => ({
+                  match: match.match,
+                  unverified: false,
+                  unreviewed: unreviewed(match.id),
+                })),
             ],
             uncovered: resolution.scope
               ? uncoveredParts(
@@ -1339,6 +1463,7 @@ export function createToolService(
                 )
               : { metrics: [], values: [] },
             assumed: !!assumed,
+            withheld: heldBackOf(resolution.withheld),
           })
         }
         // How the agent reaches what the reply left out: the next page by cursor, or a larger one,
@@ -1365,6 +1490,7 @@ export function createToolService(
                 delivered: items.length,
                 partial: items.filter((item) => item.match === 'partial').length,
                 unverified: items.filter((item) => item.freshness === 'unverified').length,
+                unreviewed: items.filter((item) => unreviewed(item.id)).length,
                 cut: check.cut_ids.length,
                 // A cut by count is reached by the cursor; a cut by size too, or by more bytes.
                 ...(check.cut_ids.length ? { cutNext: cutNext() } : {}),
@@ -1374,6 +1500,7 @@ export function createToolService(
                 groups,
                 about: metrics.length > 1,
                 unread,
+                values,
                 readAs,
                 ...(scope.unkept ? { unkept: scope.unkept } : {}),
               },
@@ -1416,7 +1543,14 @@ export function createToolService(
             ...(period ? { period_read: period } : {}),
             ...(meant.length ? { defined: meant } : {}),
             ...(readAs.length ? { read_as: readAs } : {}),
-            ...(unread.length ? { unread } : {}),
+            ...(unread.length || values.length
+              ? {
+                  unread: [
+                    ...unread,
+                    ...values.map((v) => ({ word: v.word, closest: v.closest, value_of: v.of })),
+                  ],
+                }
+              : {}),
             // A reply that fits no item has no next page: only more bytes give it.
             ...(items.length && offset + items.length < resolution.items.length
               ? { next_cursor: nextCursor() }
@@ -1476,7 +1610,12 @@ export function createToolService(
         }
         const output = render()
         if (byteSize(output) > limit)
-          return failure('The required report cannot fit this size limit. Increase max_bytes.')
+          return fixable(
+            'max_bytes',
+            'The required report cannot fit this size limit. Increase max_bytes.',
+          )
+        const topic = resolution.scope ? topicFor(resolution.scope, bundle.metricArea) : null
+        remember(delivery, topic?.area ?? null)
         record({
           kind: 'delivery',
           value: {
@@ -1487,7 +1626,7 @@ export function createToolService(
             edition: bundle.seq,
             overlay: bundle.overlay,
             digest: toolSchemaDigest,
-            topic: resolution.scope ? topicFor(resolution.scope, bundle.metricArea) : null,
+            topic,
             scope: resolution.scope
               ? { ...resolution.scope, today, max_items: scoped.max_items, max_bytes: limit }
               : null,
@@ -1569,9 +1708,12 @@ export function createToolService(
       const rendered = resultFor(out)
       return byteSize(rendered) <= limit
         ? rendered
-        : failure('The item cannot fit this size limit. Increase max_bytes.')
+        : fixable('max_bytes', 'The item cannot fit this size limit. Increase max_bytes.')
     } catch (error) {
-      return failure(error instanceof StaleCursor ? staleCursor : undefined)
+      // Arguments that do not fit say what to change, as the gateway says it (FR-345): only a
+      // service that could not look is check_failed.
+      if (error instanceof z.ZodError) return invalidInputResult(name, error.issues)
+      return error instanceof StaleCursor ? fixable('cursor', staleCursor) : failure()
     }
   }
 }

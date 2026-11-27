@@ -95,7 +95,11 @@ it('cuts links before items, respects multibyte budgets and never mutates the ca
   ])
   const tiny = await s.call('get_context', { response_format: 'full', question, max_bytes: 1000 })
   expect(byteSize(tiny)).toBeLessThanOrEqual(1000)
-  expect(tiny.structuredContent.status).toBe('check_failed')
+  // A size too small is the caller's to change, never a check that could not run (finding 7).
+  expect(tiny.structuredContent).toMatchObject({
+    status: 'invalid_input',
+    next: 'The required report cannot fit this size limit. Increase max_bytes.',
+  })
 })
 
 it('cuts the items past max_items before links, and keeps the link that names the source last', async () => {
@@ -829,6 +833,244 @@ describe('a concise reply (FR-342)', () => {
     // Nobody's name is in what an agent receives: the fixture's owner is Jon Abara.
     const all = await s.call('get_context', { response_format: 'full', question })
     expect(JSON.stringify(all)).not.toMatch(/Jon|Abara/)
+  })
+
+  it('never calls an item published without review checked, and answers Partial on it alone', async () => {
+    // The call of the agent-side review (finding 3): an owner's permission published the item, so
+    // nobody read it before agents got it.
+    const s = setup()
+    s.data.items[0]!.review!.withoutReview = true
+    const permitted = { permission_of: 'the owner of Finance', date: '2026-08-04' }
+    const line =
+      'Open in Footnote - Norway closure: /context/itm_norway01 - Published 4 Aug 2026 without review, with the permission of the owner of Finance.'
+    for (const response_format of ['concise', 'full'] as const) {
+      const reply = await s.call('get_context', { question, response_format })
+      const out = reply.structuredContent as {
+        status: string
+        say: string
+        next: string
+        context: Record<string, unknown>[]
+      }
+      expect(out.status).toBe('partial')
+      expect(out.say).toBe(
+        'Partial. Only part of this is written down. 1 context item applies to Orders in Norway in August 2026. Nothing else was looked up. Nobody checked it: it was published without review.',
+      )
+      expect(out.next).toContain(
+        'Say that nobody checked a context item published without review, and whose permission published it.',
+      )
+      expect(out.context[0]).toMatchObject({ published_without_review: permitted })
+      expect(out.context[0]).not.toHaveProperty('checked')
+      expect(out.context[0]).not.toHaveProperty('reviewed')
+      expect(reply.content.at(-1)!.text).toBe(line)
+      expect(JSON.stringify(reply)).not.toMatch(/Checked/)
+    }
+    // read_context and find_context say the same, never a review.
+    for (const [tool, args] of [
+      ['read_context', { id: 'itm_norway01' }],
+      ['find_context', { query: 'Norway closure' }],
+    ] as const) {
+      const reply = await s.call(tool, args)
+      expect(JSON.stringify(reply.structuredContent)).toContain('"published_without_review"')
+      expect(reply.structuredContent).not.toHaveProperty('item.reviewed')
+      expect(reply.content.at(-1)!.text).toContain(
+        'Published 4 Aug 2026 without review, with the permission of the owner of Finance.',
+      )
+      expect(reply.content.at(-1)!.text).not.toMatch(/Checked|by the owner of Finance, in edition/)
+    }
+    // A checked item beside it carries the answer: Checked, and the unread one is said apart.
+    s.data.items.push({
+      ...s.data.items[0]!,
+      id: 'itm_norway02',
+      title: 'Norway returns',
+      review: { ...s.data.items[0]!.review!, withoutReview: false },
+    })
+    const both = (await s.call('get_context', { question })).structuredContent as {
+      status: string
+      say: string
+    }
+    expect(both.status).toBe('matched')
+    expect(both.say).toContain('Nobody checked 1 of them: it was published without review.')
+  })
+
+  it('says a market it does not know and answers for every market (agent-side review, finding 2)', async () => {
+    const s = setup()
+    type Out = {
+      status: string
+      say: string
+      next: string
+      asked: string
+      unread?: { word: string; closest: string[]; value_of?: string[] }[]
+    }
+    const ask = async (input: Record<string, unknown>) =>
+      (await s.call('get_context', input)).structuredContent as Out
+    const denmark = await ask({ question: 'Why did orders drop in Denmark in August 2026?' })
+    // The fixture's one item is about Norway, so it covers part of every market.
+    expect(denmark).toMatchObject({
+      status: 'partial',
+      asked: 'Orders in August 2026',
+      unread: [{ word: 'Denmark', closest: [], value_of: ['Market'] }],
+    })
+    expect(denmark.say).toContain('"Denmark" is not a market here, so this is for every market.')
+    expect(denmark.next).toContain(
+      'Tell the person the answer is for every value, not for "Denmark".',
+    )
+    // A typo is said with the value it is close to, never read as it.
+    const typo = await ask({ question: 'How did orders do in Norwy in August 2026?' })
+    expect(typo.asked).toBe('Orders in August 2026')
+    expect(typo.say).toContain(
+      '"Norwy" is not a market here, so this is for every market. The closest is Norway.',
+    )
+    expect(typo.next).toContain('If they meant Norway, call again with that name.')
+    // An empty dimension_filters filters nothing: the question's words still name the market.
+    const empty = await ask({
+      question: 'How did orders do in Norway in August 2026?',
+      metrics: ['orders'],
+      dimension_filters: [],
+    })
+    expect(empty.asked).toBe('Orders in Norway in August 2026')
+    // A known market says nothing of the kind.
+    const known = await ask({ question: 'How did orders do in Norway in August 2026?' })
+    expect(known).not.toHaveProperty('unread')
+    // report files the gap for every market and says the same.
+    const report = await s.call('report', {
+      kind: 'missing',
+      question: 'Why did orders drop in Denmark in August 2026?',
+    })
+    expect((report.structuredContent as { say: string }).say).toContain(
+      '"Denmark" is not a market here, so this is for every market.',
+    )
+  })
+
+  it('keeps the reported item, refuses a reply it never gave and says who sees a report (finding 5)', async () => {
+    const s = setup()
+    type Out = { status: string; say: string; next?: string; recorded?: boolean; to?: string }
+    const report = async (input: Record<string, unknown>) =>
+      (await s.call('report', input)).structuredContent as Out
+    // The item is kept beside its domain, so its owner sees which item.
+    expect(await report({ kind: 'wrong', context_id: 'itm_norway01' })).toMatchObject({
+      status: 'recorded',
+      to: 'the owner of Finance',
+    })
+    expect(s.feedback.at(-1)).toMatchObject({ item: 'itm_norway01', area: 'finance' })
+    // A reply_id that names no reply (the example id the error text gives) is refused, not lost.
+    const unknown = await report({
+      kind: 'wrong',
+      reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+    })
+    expect(unknown).toMatchObject({
+      status: 'need_more_detail',
+      recorded: false,
+      say: 'Nothing was sent: no get_context reply of the last 90 days has that reply_id.',
+    })
+    expect(s.feedback).toHaveLength(1)
+    // The same refusal when a context_id is sent beside it.
+    const both = await report({
+      kind: 'wrong',
+      context_id: 'itm_norway01',
+      reply_id: '0f8fad5b-d9cb-469f-a165-70867728950e',
+    })
+    expect(both).toMatchObject({ status: 'need_more_detail', recorded: false })
+    expect(s.feedback).toHaveLength(1)
+    // A reply about one domain names its owner, before its record is written.
+    const finance = (await s.call('get_context', { question })).structuredContent as {
+      reply_id: string
+    }
+    expect(await report({ kind: 'wrong', reply_id: finance.reply_id })).toMatchObject({
+      to: 'the owner of Finance',
+      say: 'Sent: something is wrong. The owner of Finance will see it. Who asked is not kept.',
+    })
+    // A reply about no single domain says who really sees the report.
+    const market = (await s.call('get_context', { question: 'Norway August 2026' }))
+      .structuredContent as { reply_id: string }
+    const nowhere = await report({ kind: 'unclear', reply_id: market.reply_id })
+    expect(nowhere.say).toBe(
+      "Sent: something is unclear. It names no single domain, so no owner's Inbox gets it: an admin sees it in Observability. Who asked is not kept.",
+    )
+    expect(nowhere).not.toHaveProperty('to')
+  })
+
+  it('says what to change for a mistake the caller can fix, never to try again (finding 7)', async () => {
+    const s = setup()
+    // A note with an address or a phone number is refused with the field, as suggest_context does.
+    for (const note of ['Ask jon.abara@example.test, he knows', 'call me on +47 912 34 567']) {
+      const refused = await s.call('report', { kind: 'wrong', context_id: 'itm_norway01', note })
+      expect(refused.isError, note).toBe(true)
+      expect(refused.structuredContent, note).toMatchObject({
+        status: 'invalid_input',
+        recorded: false,
+        say: 'Nothing was sent: the note looks like it holds personal data or a secret.',
+        findings: [{ field: 'note' }],
+      })
+      expect(JSON.stringify(refused), note).not.toMatch(/Try again|check_failed/)
+    }
+    expect(s.feedback).toEqual([])
+    // The last day of year 9999 has no day after it: the schema says what to send instead.
+    const far = await s.call('get_context', {
+      question: 'orders in Norway',
+      window: { from: '2026-08-01', to: '9999-12-31' },
+    })
+    expect(far.structuredContent.status).toBe('invalid_input')
+    expect(far.structuredContent.next).toContain('2999-12-31')
+    expect(
+      (
+        await s.call('get_context', {
+          question: 'orders in Norway',
+          window: { from: '2026-08-01', to: '2999-12-31' },
+        })
+      ).structuredContent.status,
+    ).not.toBe('check_failed')
+    // An edition without its scope, and a cursor from another call, say what to change.
+    for (const [input, field] of [
+      [{ question, edition: '2026-08-04.1' }, 'edition'],
+      [{ question, cursor: 'not a cursor' }, 'cursor'],
+    ] as const) {
+      const out = (await s.call('get_context', input)).structuredContent
+      expect(out, field).toMatchObject({ status: 'invalid_input', problems: [{ field }] })
+    }
+  })
+
+  it('reads every metric for a market named with no metric, never a false Not found (finding 1)', async () => {
+    const s = setup()
+    type Out = { status: string; say: string; next?: string; context: { id: string }[] }
+    const ask = async (input: Record<string, unknown>) =>
+      (await s.call('get_context', input)).structuredContent as Out
+    // The review's call: the fixture's Norway item is about Orders, and no metric is named.
+    const norway = await ask({ question: 'What happened in Norway in August 2026?' })
+    expect(norway.status).toBe('matched')
+    expect(norway.context.map((item) => item.id)).toEqual(['itm_norway01'])
+    expect(norway.say).toBe(
+      'Checked. 1 context item applies to Norway in August 2026. Nothing else was looked up. No metric was named, so it may be about any metric: applies says which.',
+    )
+    expect(norway.say).not.toContain('Nothing is written down')
+    expect(norway.next).toContain('Answer for each metric apart, from applies.')
+    // The structured form says the same.
+    const structured = await ask({
+      question: 'Anything I should know about Norway?',
+      dimension_filters: [{ dimension: 'market', values: ['Norway'] }],
+      window: { from: '2026-08-01', to: '2026-08-31' },
+    })
+    expect(structured.context.map((item) => item.id)).toEqual(['itm_norway01'])
+  })
+
+  it('answers Partial when a high-risk match is held back, never Checked (call 4)', async () => {
+    const s = setup()
+    // A second item about Orders in Norway, high risk and waiting for a check: agents never get it.
+    s.data.items.push({
+      ...s.data.items[0]!,
+      id: 'itm_norway02',
+      title: 'Online sales to Norway stopped again',
+      riskLevel: 'high',
+      checkFlag: 'needs_check',
+    })
+    const out = (await s.call('get_context', { question })).structuredContent as {
+      status: string
+      say: string
+      context: { id: string }[]
+    }
+    expect(out.status).toBe('partial')
+    expect(out.context.map((item) => item.id)).toEqual(['itm_norway01'])
+    expect(out.say).toMatch(/^Partial\. Only part of this is written down\. /)
+    expect(out.say).toContain("isn't shared with AI agents")
   })
 
   it('leaves the review out for a version with no acceptance on record', async () => {

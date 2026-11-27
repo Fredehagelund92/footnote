@@ -216,7 +216,7 @@ export function previewDelivery(
           calendar: UTC_CALENDAR,
         }),
     },
-    { write: noWrite, reportGap: noWrite, feedback: noWrite },
+    { write: noWrite, reportGap: noWrite, feedback: noWrite, reply: noWrite },
     () => new Date(clock.today() + 'T12:00:00Z'),
     undefined,
     web,

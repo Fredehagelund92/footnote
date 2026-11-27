@@ -3,7 +3,7 @@ import { familyShownSchema, type FamilyShown } from '../../../contract/answer.ts
 import type { Catalogue } from '../../../contract/index.ts'
 import * as z from 'zod'
 import type { Answer } from '../../../domain/answer.ts'
-import { answer, ASK_MAX_ITEMS } from '../../../domain/answer.ts'
+import { answer, ASK_MAX_ITEMS, heldBackOf } from '../../../domain/answer.ts'
 import { answerStateOf, answerStates } from '../../../domain/answer-state.ts'
 import { vagueMetricWord } from '../../../domain/ask-held.ts'
 import { nounId, termKeyOf } from '../../../domain/ask-nouns.ts'
@@ -248,7 +248,7 @@ async function viewOf(reads: ToolReads): Promise<View> {
           calendar: reads.calendar,
         }),
     },
-    { write: noWrite, reportGap: noWrite, feedback: noWrite },
+    { write: noWrite, reportGap: noWrite, feedback: noWrite, reply: noWrite },
     () => new Date(`${reads.today}T12:00:00Z`),
   )
   return {
@@ -1139,7 +1139,13 @@ const isNearbyReason = (r: string): r is keyof typeof nearbyWhy => Object.hasOwn
  * sets it: the read line says so ("Today · assumed"). Agents' replies keep their own rule.
  */
 const coveredState = (a: Answer) =>
-  answerStateOf({ status: a.status, items: a.items, uncovered: a.uncovered, assumed: false })
+  answerStateOf({
+    status: a.status,
+    items: a.items,
+    uncovered: a.uncovered,
+    assumed: false,
+    withheld: heldBackOf(a.leftOut),
+  })
 
 /** A word as its stem, so "stopped" is "stop" and "rules" is "rule": plural, "-ing" and "-ed" off. */
 const stemOf = (word: string) =>

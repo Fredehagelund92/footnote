@@ -166,6 +166,15 @@ export function resolve(bundle: EditionBundle, request: ResolveRequest): Resolut
     }
   }
   for (const metric of keys) for (const item of byMetric.get(metric) ?? []) candidates.add(item)
+  // A question that names a value and no metric ("What happened in Norway in August?") reads the
+  // items of every metric that name that value, never only the items about no metric: else it
+  // would say nothing is written down where items are (agent-side review, finding 1).
+  if (!asked.length) {
+    const values = new Set(Object.values(scope.filters).flat())
+    if (values.size)
+      for (const item of bundle.items)
+        if (item.scope.dimensionValues.some((row) => values.has(row.value))) candidates.add(item)
+  }
   const hits: { item: ResolverItem; match: Match }[] = []
   for (const item of candidates) {
     if (!overlaps(item.validity, scope.window)) continue

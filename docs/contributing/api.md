@@ -77,10 +77,17 @@ and `check_failed` (Not looked up); `need_more_detail` means the question could 
 no answer state. `say` starts with the answer line, its label and, but for Checked, its sentence.
 `next` comes only when there is a step to take. Each item's `kind` is the label agents read
 (`event`, `warning`, `rule`, `guide`), `when` and `applies` say when and where it applies, `checked`
-names the role that checked it and the day, never a person, and `may_be_out_of_date: true` and
+names the role that checked it and the day, never a person; an item an owner's permission published
+without review has `published_without_review` (the role whose permission it was, and the day) in its
+place, and an answer that rests only on such items is Partial. `may_be_out_of_date: true` and
 `disagrees_with` (the ids of the items in the same reply it disagrees with, the overlap notice of
 FR-350) appear when they hold. A question about what a metric means ("What does net revenue
-mean?") also gets `definitions`. `reply_id` is what `report` takes.
+mean?") also gets `definitions`. A question that names a market and no metric ("What happened in Norway in August 2026?") gets every
+item that names that market, whatever its metric, and `say` says no metric was named. A match held
+back from agents (high risk waiting for a check, a stopped domain) makes the answer Partial. A word
+where a market or another value goes that names no value
+here ("orders in Denmark") is never dropped: the reply is for every value, `say` says so, and
+`unread` lists the word with `value_of` and the closest values. `reply_id` is what `report` takes.
 
 Terms and synonyms people write in Definitions (FR-138) reach agents too. A synonym of a metric or
 a dimension ("Purchases" for Orders) is one of its other names, so a question in that word is read
@@ -174,12 +181,15 @@ that name none as `no_match` with the closest.
 
 **`report`** takes what the person says, after they say yes: `kind` is `missing`, `wrong`,
 `unclear` or `helped`, with the `reply_id` of a `get_context` reply, a `context_id` when it is about
-one item, and an optional short note checked for sensitive text (FR-611). It is recorded as
-anonymous feedback on the reply, with the item's domain when it names one, and the gap job turns
-missing, wrong and unclear into a gap for the reply's topic (FR-606, case 3). Something missing with
-no reply takes the question's metrics, markets and dates instead and is recorded as a gap.
-The reply says who will see it (`to`, "the owner of Sales") and never keeps who
-asked (FR-602).
+one item, and an optional short note checked for sensitive text (FR-611); a note that fails it is
+refused as `invalid_input` with the field, and nothing is sent. It is recorded as anonymous feedback
+on the reply, with the item and its domain when it names one, so the owner's Inbox card and
+Observability show that item, and the gap job turns missing, wrong and unclear into a gap for the
+reply's topic (FR-606, case 3). A `reply_id` that names no `get_context` reply of the last 90 days
+answers `need_more_detail` and records nothing. Something missing with no reply takes the question's
+metrics, markets and dates instead and is recorded as a gap. The reply says who will see it (`to`,
+"the owner of Sales"); a report about no single domain reaches no owner's Inbox, and the reply says
+an admin sees it in Observability. It never keeps who asked (FR-602).
 
 **`suggest_context`** (FR-121) lets an agent send a suggestion, as the person it acts for, after
 the person says yes. **It is on by default**, and the `propose` scope is granted at consent (the
@@ -274,8 +284,10 @@ are in [Agent and company sign-in](sign-in.md).
 Structured question dates are inclusive (`window.from` and `window.to`); returned validity and
 stored scopes use an exclusive end date. `max_bytes` covers the serialized tool result,
 including its text fallback. Links are trimmed before items, and cut item ids are reported.
-If the required report itself cannot fit, the tool returns a bounded `check_failed` error.
-Search and backlink cursors are invalidated by an edition or overlay change.
+If the required report itself cannot fit, the tool returns a bounded `invalid_input` error that
+says to raise `max_bytes`. Search and backlink cursors are invalidated by an edition or overlay
+change; a stale cursor, like an `edition` without edition scope, is `invalid_input` too, so
+`check_failed` means only that the service could not look. `window.to` is before 9999-12-31.
 
 The cache checks the live edition and overlay on every call, fails closed when that check
 fails, and retains at most four bundles for 15 seconds. Anonymous deliveries and request logs

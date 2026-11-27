@@ -310,6 +310,14 @@ export function reviewedOutput(item: ServingItem, bundle: ServingBundle) {
   const review = item.review
   if (!review) return {}
   const domain = areaName(bundle, review.areaId) ?? review.areaId
+  // Nobody read it before agents got it (FR-421): whose permission published it, never a review.
+  if (review.withoutReview)
+    return {
+      published_without_review: {
+        permission_of: acceptedByRole(review.acceptedAs, domain),
+        date: review.acceptedOn,
+      },
+    }
   return {
     reviewed: {
       accepted_on: review.acceptedOn,

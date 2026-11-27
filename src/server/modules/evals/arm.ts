@@ -66,7 +66,12 @@ export const armInstructions = (
 ) => serverInstructions(dataToolOf(bundle), policy.about, policy.calendar)
 
 const discard = () => Promise.resolve()
-const noDemand = { write: discard, reportGap: () => Promise.resolve(''), feedback: discard }
+const noDemand = {
+  write: discard,
+  reportGap: () => Promise.resolve(''),
+  feedback: discard,
+  reply: () => Promise.resolve(undefined),
+}
 
 export async function openArm(
   bundle: ServingBundle,

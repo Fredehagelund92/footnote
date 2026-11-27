@@ -37,7 +37,7 @@ export const ANSWER_LINES: {
     long: answerLines.partial.long,
     sentence: answerLines.partial.sentence,
     means:
-      'Context covers part of the question, or the dates were assumed. The answer says which part.',
+      'Context covers part of the question, a match is held back, nobody checked it, or the dates were assumed. The answer says which.',
     todo: 'Write the missing part, or tell the owner.',
   },
   {

@@ -15,6 +15,14 @@ import {
 import { provenanceFlagCodes } from '../../domain/provenance.ts'
 
 const date = z.string().refine(isCalendarDate, 'Expected a calendar date')
+/**
+ * A window's last day, which is read with the day after it: 9999-12-31 has none (agent-side review,
+ * finding 7), so the sentence says what to send for a window with no end.
+ */
+const lastDay = date.refine(
+  (day) => day < '9999-12-31',
+  'Expected a day before 9999-12-31; for a window with no end, send a far day such as 2999-12-31',
+)
 const edition = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}\.\d+$/)
@@ -43,7 +51,7 @@ const scopeFields = {
     .max(toolInputLimits.names)
     .optional(),
   window: z
-    .strictObject({ from: date, to: date })
+    .strictObject({ from: date, to: lastDay })
     .refine((w) => w.from <= w.to, 'Window ends before it starts')
     .optional(),
   /**
@@ -317,7 +325,7 @@ export const draftInput = z.strictObject({
   window: z
     .strictObject({
       from: date,
-      to: date.optional(),
+      to: lastDay.optional(),
       uncertain: z
         .boolean()
         .optional()
@@ -476,7 +484,7 @@ const said = {
  * which an output schema does not describe.
  */
 export const readOutput = z.object(said).loose()
-/** An item as the agent contract gives it: its page in Footnote, and how it was checked. */
+/** An item as the agent contract gives it: its page in Footnote, and how it was checked, if it was. */
 const contextEntry = z
   .object({
     id: z.string(),
@@ -488,6 +496,12 @@ const contextEntry = z
       .optional()
       .describe(
         'Who checked it before agents got it, as a role (never a person), and on which day.',
+      ),
+    published_without_review: z
+      .object({ permission_of: z.string(), date: z.string() })
+      .optional()
+      .describe(
+        'In place of checked: nobody read it before agents got it. It was published on that day with the permission of this role (never a person) to publish without review.',
       ),
   })
   .loose()
@@ -600,11 +614,12 @@ export const contextOutput = z
           word: z.string(),
           closest: z.array(z.string()),
           domain: z.string().optional(),
+          value_of: z.array(z.string()).optional(),
         }),
       )
       .optional()
       .describe(
-        "The question's words that could have named a metric and named none, when it names no metric: each with the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. Never read as one of them for the person.",
+        "The question's words that named nothing. A word that could have named a metric, when it names no metric: the metrics, groups and dimensions whose names hold it as a word (closest, empty when none does) and the domain it names. A word where a value goes (value_of: the dimensions it could be a value of): it names no value, so the reply is for every value, and closest has the values it is a typo away from. Never read as one of them for the person.",
       ),
     reply_id: z
       .string()

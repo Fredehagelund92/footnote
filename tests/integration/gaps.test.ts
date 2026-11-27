@@ -329,7 +329,12 @@ describe('gap detection (FR-606, FR-609)', () => {
       [helpful, 'helpful', 'Useful.'],
       [evaluated, 'wrong', null],
     ])
-      await store.feedback(delivery!, verdict as 'wrong', 'claude-code', note ?? undefined)
+      await store.feedback({
+        delivery: delivery!,
+        verdict: verdict as 'wrong',
+        client: 'claude-code',
+        note: note ?? undefined,
+      })
     await detect()
     await detect()
     const gaps = await client.query(

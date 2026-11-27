@@ -36,7 +36,10 @@
 # Version 20 (23 November 2026): what applies comes first by the question's own words, and an agent
 # gets 10 items by default, the rest by next_cursor. The broad question on Revenue in Norway now has
 # more items than one reply gives, so it is cut; every other delivery, rank and phrase is the same.
-version: 20
+# Version 21 (27 November 2026): a match held back (high risk, waiting for a check) makes the answer
+# Partial. Five Orders in the United Kingdom cases had one held back, so they are Partial now; every
+# delivery, rank and phrase is the same.
+version: 21
 library:
   seed: 20261007
   items: 1500
@@ -63,7 +66,7 @@ cases:
         from: '2026-10-01'
         to: '2026-10-07'
     delivery:
-      status: matched
+      status: partial
       must_deliver: [itm_yakb4kwg]
       must_not_deliver: [itm_9omvkhl1]
       rank_max: 8
@@ -739,7 +742,7 @@ cases:
         from: '2026-09-18'
         to: '2026-09-18'
     delivery:
-      status: matched
+      status: partial
       must_deliver: [itm_gspiinote1]
       text: [Edvin Kaarlo-Strand]
     answer:
@@ -1354,7 +1357,7 @@ cases:
         from: '2026-10-01'
         to: '2026-10-07'
     delivery:
-      status: matched
+      status: partial
       must_deliver: [itm_yakb4kwg]
       rank_max: 8
     answer:
@@ -1577,7 +1580,7 @@ cases:
         from: '2026-10-01'
         to: '2026-10-07'
     delivery:
-      status: matched
+      status: partial
       must_deliver: [itm_yakb4kwg]
       rank_max: 8
       text: [test accounts]
@@ -1614,7 +1617,7 @@ cases:
         from: '2026-10-01'
         to: '2026-10-07'
     delivery:
-      status: matched
+      status: partial
       must_deliver: [itm_yakb4kwg]
       must_not_deliver: [itm_9omvkhl1]
       rank_max: 8

@@ -587,6 +587,7 @@ async function askAgents(pool: pg.Pool, client: pg.Client, norway: string, now: 
       },
       reportGap: () => Promise.resolve(''),
       feedback: () => Promise.resolve(),
+      reply: () => Promise.resolve(undefined),
     },
     verifier: createDevVerifier(privateKey, resource, 'development'),
     resource,

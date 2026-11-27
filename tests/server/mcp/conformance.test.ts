@@ -326,7 +326,16 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
     })
     expect(reported.isError).not.toBe(true)
     expect(reported.structuredContent).toMatchObject({ status: 'recorded', recorded: true })
-    expect(s.feedback).toEqual([[short.reply_id, 'helpful', 'claude-code', undefined, null]])
+    expect(s.feedback).toEqual([
+      {
+        delivery: short.reply_id,
+        verdict: 'helpful',
+        client: 'claude-code',
+        note: undefined,
+        area: null,
+        item: null,
+      },
+    ])
     await s.gateway.flush()
     expect(s.records.filter((r) => r.kind === 'delivery')).toHaveLength(2)
   })
@@ -618,10 +627,11 @@ describe.each(['legacy', 'auto'] as const)('the server instructions (FR-343), %s
       expect(read).toContain(
         'say nothing is written down only for exactly what you asked, never the whole topic',
       )
-      // How the agent speaks with people: a fact, the owner of its domain checked it, its
-      // source, and the Don't conclude line.
+      // How the agent speaks with people: a fact, who checked it, its source, and the Don't
+      // conclude line. It never says a check happened: nobody read an item published without review.
       expect(read).toContain('it is a context item')
-      expect(read).toContain('the owner of its domain checked it')
+      expect(read).toContain('who checked it')
+      expect(read).not.toContain('the owner of its domain checked it')
       expect(read).toContain('its source')
       expect(read).toContain("Don't conclude")
     }
@@ -1337,7 +1347,10 @@ it('answers find_context by names, with recovery when a name is unknown', async 
     arguments: { query: 'orders', edition: '2026-01-01.9' },
   })
   expect(old.isError).toBe(true)
-  expect(JSON.stringify(old.structuredContent)).toContain('requires edition scope')
+  expect(old.structuredContent).toMatchObject({
+    status: 'invalid_input',
+    problems: [{ field: 'edition' }],
+  })
   await s.gateway.flush()
   // A search records no delivery: it is not get_context.
   expect(s.records.filter((r) => r.kind === 'delivery')).toEqual([])
@@ -1382,8 +1395,16 @@ it('takes a report about a reply, a context item or a scope, and names the owner
     to: 'the owner of Finance',
     gap_id: '00000000-0000-4000-8000-000000000001',
   })
+  // The item reported is kept, so its owner sees which one (finding 5).
   expect(s.feedback).toEqual([
-    [reply.reply_id, 'wrong', 'claude-code', 'The stop ended earlier.', 'finance'],
+    {
+      delivery: reply.reply_id,
+      verdict: 'wrong',
+      client: 'claude-code',
+      note: 'The stop ended earlier.',
+      area: 'finance',
+      item: 'itm_norway01',
+    },
   ])
   expect(s.gaps).toHaveLength(1)
   // An item an agent may not read answers as one that does not exist, and nothing is sent.

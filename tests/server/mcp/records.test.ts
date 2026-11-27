@@ -21,6 +21,7 @@ function slowStore() {
       },
       reportGap: () => Promise.resolve(''),
       feedback: () => Promise.resolve(),
+      reply: () => Promise.resolve(undefined),
     },
   }
 }

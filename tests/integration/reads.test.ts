@@ -60,6 +60,7 @@ async function agent(input: Record<string, unknown>) {
       write: () => Promise.reject(new Error('no demand')),
       reportGap: () => Promise.reject(new Error('no demand')),
       feedback: () => Promise.reject(new Error('no demand')),
+      reply: () => Promise.reject(new Error('no demand')),
     },
     () => new Date(`${today}T12:00:00Z`),
   )

@@ -109,6 +109,7 @@ export function bundle(): ServingBundle {
           acceptedAs: 'owner',
           areaId: 'finance',
           edition: '2026-08-04.1',
+          withoutReview: false,
         },
         notToConclude: 'cause not proven',
         evidence: [
@@ -173,9 +174,16 @@ export function memoryStore() {
       records.push(...batch)
       return Promise.resolve()
     },
-    feedback(...args) {
-      feedback.push(args)
+    feedback(report) {
+      feedback.push(report)
       return Promise.resolve()
+    },
+    // A reply is written once its delivery record is.
+    reply(id) {
+      const delivery = records.find((r) => r.kind === 'delivery' && r.value.id === id)
+      return Promise.resolve(
+        delivery?.kind === 'delivery' ? { area: delivery.value.topic?.area ?? null } : undefined,
+      )
     },
     reportGap(...args) {
       gaps.push(args)

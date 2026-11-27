@@ -1217,6 +1217,21 @@ describe('the Inbox (docs/product.md, section 5)', () => {
       verdict: 'wrong',
       items: [{ id: itemId, title: 'Hungary orders lag a day' }],
     })
+    // A report that names the item itself shows that item, by its published title (finding 5).
+    const named = await transaction(
+      client,
+      async () =>
+        (
+          await client.query<{ id: string }>(
+            `insert into feedback (verdict, client_label, area_id, item_id)
+           values ('wrong', 'claude-code', 'finance', $1) returning id::text`,
+            [itemId],
+          )
+        ).rows[0]!.id,
+    )
+    expect((await feed()).cards.find((c) => c.id === `feedback:${named}`)).toMatchObject({
+      items: [{ id: itemId, title: 'Hungary orders lag a day' }],
+    })
   })
 
   it('marks cards opened for the person only', async () => {

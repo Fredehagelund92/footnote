@@ -1211,12 +1211,19 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
       }>(
         `select f.id::text, f.verdict::text as kind, coalesce(f.area_id, t.area_id) as area,
                 f.created_hour::text as at, f.note, f.client_label as client,
-                first.id as item, first.title, d.topic_id::text as topic,
+                coalesce(named.id, first.id) as item, coalesce(named.title, first.title) as title,
+                d.topic_id::text as topic,
                 t.metric_keys as metrics, t.value_keys as values, t.dimension_keys as dimensions,
                 exists (select 1 from card_states c where c.card = 'feedback:' || f.id::text) as closed
            from feedback f
            left join deliveries d on d.id = f.delivery_id
            left join topics t on t.id = d.topic_id
+           -- The item the report names, else the first one its reply gave (finding 5).
+           left join lateral (
+             select iv.item_id as id, iv.title
+               from item_version_service s join item_versions iv on iv.id = s.version_id
+              where s.item_id = f.item_id and cl_audience_allows(iv.audience_groups)
+              order by lower(s.editions) desc limit 1) named on true
            left join lateral (
              select x.id, iv.title from jsonb_to_recordset(d.delivered) as x(id text, v int, rank int)
                join item_versions iv on iv.item_id = x.id and iv.version_no = x.v

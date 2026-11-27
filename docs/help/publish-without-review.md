@@ -19,6 +19,7 @@ An owner can let one named agent publish some of its suggestions in their domain
 A suggestion from that agent publishes at once only when all of this is true:
 
 - It is a new context item. A change to a live item, or archiving one, always waits for an owner.
+- It names a metric, and every metric it names belongs to your domain. A suggestion about another domain's metric, or about no metric, waits for review, even when the agent names your domain.
 - It is low risk. An agent never sets the risk level, so its suggestion keeps the default for its kind: a Rule starts at low risk, and an Event, a Warning or a Guide at normal risk. Today that means Rules only.
 - It clashes with nothing live, has no detail to compare with the source, and nothing in it needs care, such as words that may mean a legal or financial matter.
 - Every check passes, as it must for any publish.
@@ -62,6 +63,8 @@ Whoever set it, any owner of the domain, an admin, and the person the agent work
 
 The item's history says who sent it and whose decision it was: "Published by Claude Code for Kofi with Jon's permission to publish without review". The history log says the same, and keeps the owner as the one who decided. The owner finds it under Done in their Inbox, as Published with your permission.
 
-Nobody read it before agents got it, so an owner of the domain or an admin can undo it at any time while the item is as it was published: open the item, open its version in History, and choose Undo this publish. Agents stop getting it, and the suggestion waits for review like any other.
+Nobody read it before agents got it, and agents are told so: they never read it as checked, and an answer that rests only on such items is Partial.
+
+An owner of the domain or an admin can undo it at any time while the item is as it was published: open the item, open its version in History, and choose Undo this publish. Agents stop getting it, and the suggestion waits for review like any other.
 
 > **Why it is safe to try.** It only ever adds a new item that clashes with nothing, and every one can be undone. An owner who wants to read each suggestion first simply never turns it on.

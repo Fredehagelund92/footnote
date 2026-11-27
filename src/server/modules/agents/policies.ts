@@ -7,6 +7,7 @@ import type {
 } from '../../../contract/connections.ts'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
 import type { PolicySkip } from '../../../domain/agent-policies.ts'
+import { termDomain } from '../../../domain/catalogue.ts'
 import type { PublishPermission } from '../../../domain/mcp-text.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
@@ -376,6 +377,21 @@ export async function publishUnderPolicy(
   }
   const skip = (why: PolicySkip): PolicyOutcome => ({ ...named, published: false, skip: why })
   if (c.action !== 'create') return skip('not_new')
+  // Items apply by metric, so an item about another domain's metric would reach that domain's
+  // questions without its owner seeing it, and one that names no metric would reach every
+  // domain's. Each metric's domain follows the one rule (CON-206).
+  const metrics = await tx.query<{ vocabulary: string | null; source: string | null }>(
+    `select t.area_id as vocabulary, d.area_id as source
+       from proposals p
+       join item_version_metrics m on m.version_id = p.item_version_id
+       left join serving_vocabulary((select seq from live_edition)) t on t.key = m.metric_key
+       left join serving_source_domains((select seq from live_edition)) d on d.key = m.metric_key
+      where p.id = $1`,
+    [proposalId],
+  )
+  if (!metrics.length) return skip('no_metric')
+  if (metrics.some((m) => termDomain(m.vocabulary, m.source).areaId !== c.areaId))
+    return skip('other_domain')
   if (c.risk !== 'low') return skip('risk')
   if (!policy.standing) return skip('not_owner')
   if (!policy.toolOn) return skip('tool_off')

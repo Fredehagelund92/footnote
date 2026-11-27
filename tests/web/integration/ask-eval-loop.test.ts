@@ -56,6 +56,10 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   the held-back count above is that answer's: awaiting a re-record, which is where the card's
   effect on the model's reads (D3: 8 of 10 questions that name a metric loosely read a subject at
   the first try) is measured.
+  On 27 November 2026 a question that names a value and no metric began to read the items of every
+  metric that apply to that value (the agent-side review, finding 1), so K13 ("how many items are
+  about norway") reads more than its recorded steps, which were keyed before: it awaits a re-record
+  with the others.
 */
 
 askEvalSuite({
@@ -70,6 +74,7 @@ askEvalSuite({
     'C2',
     'K10',
     'K12',
+    'K13',
     'K15',
     'K18',
     'V09',

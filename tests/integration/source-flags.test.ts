@@ -49,7 +49,7 @@ const servePool = servingPool(url)
 const refuse = (): Promise<never> => Promise.reject(new Error('not recorded in this test'))
 const execute = createToolService(
   createEditionSource(servePool, 0),
-  { write: refuse, reportGap: refuse, feedback: refuse },
+  { write: refuse, reportGap: refuse, feedback: refuse, reply: refuse },
   () => new Date('2026-10-08T12:00:00Z'),
 )
 

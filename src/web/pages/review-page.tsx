@@ -710,13 +710,18 @@ function Preview({ r }: { r: Review }) {
   // The live item as its page reads it, for an edit: what the suggestion leaves alone comes from it.
   const page = useQuery({ ...itemPageQuery(id ?? ''), enabled: !!id && r.mode === 'edit' })
   const live = r.mode === 'edit' ? (page.data?.item ?? facts.find((f) => f.id === id)) : undefined
-  const item = draftItem(r, live, domains)
+  // Until the live item's page has loaded, `live` is the list's shorter read of it, which draws
+  // the scope as plain words; the preview waits for the page so the chips are not redrawn.
+  const loading = !!id && r.mode === 'edit' && page.isPending
+  const item = loading ? undefined : draftItem(r, live, domains)
   return (
     <section aria-label="Preview" className="flex flex-col">
       <p className="pb-2 text-xs text-muted-foreground">
-        {item
-          ? 'The context item as it will read once you publish it.'
-          : 'Archived, it has no page agents read.'}
+        {loading
+          ? 'Loading the item.'
+          : item
+            ? 'The context item as it will read once you publish it.'
+            : 'Archived, it has no page agents read.'}
       </p>
       {item && (
         <Canvas className="-mx-4 flow-root sm:mx-0 sm:rounded-frame">

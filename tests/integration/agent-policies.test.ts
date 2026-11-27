@@ -16,9 +16,40 @@ import { signInHarness } from './sign-in-harness.ts'
 const harness = await signInHarness()
 const { admin, browser, registered, signInFlow, exchange, mcpClient } = harness
 
+/** A reviewed vocabulary version for a term, ready to serve. */
+async function reviewedTerm(key: string, name: string, area: string | null) {
+  const { rows: made } = await admin.query<{ id: string }>(
+    `insert into vocab_term_versions (term_key,version_no,name,area_id,content_digest)
+     values ($1,1,$2,$3,sha256(convert_to($1::text,'UTF8'))) returning id::text`,
+    [key, name, area],
+  )
+  const { rows: asked } = await admin.query<{ id: string }>(
+    `insert into proposals (subject,action,state,area_id,vocab_version_id,proposer_id,channel)
+     values ('vocabulary','create','submitted',$1,$2,$3,'form') returning id::text`,
+    [area, made[0]!.id, people.author],
+  )
+  await admin.query(
+    `insert into decisions (proposal_id,vocab_version_id,area_id,decided_by,capacity,outcome,reason)
+     values ($1,$2,$3,$4,'administrator','accept','Reviewed vocabulary')`,
+    [asked[0]!.id, made[0]!.id, area, people.admin],
+  )
+  return made[0]!.id
+}
+
 // The fixtures' live note about Orders is archived, so a new rule about Orders clashes with
-// nothing live unless a test publishes one.
+// nothing live unless a test publishes one. Marketing spend, a Marketing metric, and the market
+// Norway go live beside it, and the member owns Marketing.
 beforeAll(async () => {
+  await admin.query(
+    "insert into area_assignments (area_id,person_id,role) values ('marketing',$1,'owner')",
+    [people.member],
+  )
+  await admin.query("insert into vocab_terms (key,kind) values ('metric:marketing_spend','metric')")
+  const terms = [
+    await reviewedTerm('metric:marketing_spend', 'Marketing spend', 'marketing'),
+    await reviewedTerm('dim:market', 'Market', null),
+    await reviewedTerm('val:market/norway', 'Norway', null),
+  ]
   const { rows } = await admin.query<{ item: string; version: string }>(
     `select item_id as item, version_id::text as version from item_version_service
       where editions @> (select seq from live_edition)`,
@@ -31,6 +62,8 @@ beforeAll(async () => {
   )
   const seq = await openEdition(admin)
   await admin.query('select edition_close_item($1,$2)', [seq, live.item])
+  for (const term of terms)
+    await admin.query('select edition_serve_vocab_version($1,$2)', [seq, term])
   await admin.query('select edition_seal($1)', [seq])
   await admin.query('select edition_publish($1)', [seq])
 })
@@ -63,8 +96,10 @@ async function connect(person = 'author') {
 }
 
 let n = 0
-/** A rule about Orders, in Finance; or another kind. */
-function suggestion(options: { kind?: string; metrics?: string[]; title?: string } = {}) {
+/** A rule about Orders, in Finance; or another kind, other metrics, or markets. */
+function suggestion(
+  options: { kind?: string; metrics?: string[]; markets?: string[]; title?: string } = {},
+) {
   n += 1
   const title = options.title ?? `Finance closes the books on day ${n} of each month`
   return {
@@ -73,7 +108,12 @@ function suggestion(options: { kind?: string; metrics?: string[]; title?: string
       text: `${title}.`,
       kind: options.kind ?? 'note',
       area: 'finance',
-      scope: { metrics: options.metrics ?? ['Orders'] },
+      scope: {
+        metrics: options.metrics ?? ['Orders'],
+        ...(options.markets
+          ? { dimension_filters: [{ dimension: 'Market', values: options.markets }] }
+          : {}),
+      },
       window: { from: '2026-10-01' },
       evidence: [{ url: `https://wiki.example/finance/close-${n}`, quote: `${title}.` }],
       new_item: true,
@@ -239,6 +279,29 @@ describe('publishing without review', () => {
     )
     expect(edition[0]?.by).toBe(people.owner)
 
+    // Every agent then reads it as published without review, never as checked, and an answer
+    // that rests on it alone is Partial (the agent-side review, finding 3).
+    const wire = await mcpClient(app.token)
+    const read = await wire.callTool({
+      name: 'get_context',
+      arguments: { question: 'How did orders do in October 2026?' },
+    })
+    await wire.close()
+    const served = read.structuredContent as {
+      status: string
+      say: string
+      context: Record<string, unknown>[]
+    }
+    expect(served.status).toBe('partial')
+    expect(served.say).toContain('Nobody checked it: it was published without review.')
+    expect(served.context).toMatchObject([
+      {
+        id: p.item_id,
+        published_without_review: { permission_of: 'the owner of Finance' },
+      },
+    ])
+    expect(served.context[0]).not.toHaveProperty('checked')
+
     // Its row in Agents and access shows the policy, with today's count.
     const rows = (await (await boss.api('/agents')).json()) as {
       id: string
@@ -277,6 +340,52 @@ describe('publishing without review', () => {
     }
     const [decision] = await decisionsOf(first.draft_id)
     expect((await undo(owner, decision!.id)).status).toBe(200)
+  })
+
+  it("publishes nothing about another domain's metric, whatever domain the agent names", async () => {
+    // The call of the agent-side review (finding 4): a permission in Finance, an item about
+    // Marketing spend, sent with area finance.
+    const app = await connect('author')
+    await switchTo(boss, true)
+    expect((await setPolicy(owner, app.agentId)).status).toBe(200)
+    const other = await suggest(app.token, suggestion({ metrics: ['Marketing spend'] }))
+    expect(other.status).toBe('suggestion_sent')
+    expect(other.policy).toBeUndefined()
+    expect(other.message).toBe(
+      'Sent to the owner of Marketing. It waits for their check, and nothing changes until they publish it.',
+    )
+    const { rows } = await admin.query<{ area: string }>(
+      'select area_id as area from proposals where id=$1',
+      [other.draft_id],
+    )
+    expect(rows[0]!.area).toBe('marketing')
+    // Naming a Finance metric beside it lets the agent's domain stand, and the permission holds it back.
+    const both = await suggest(
+      app.token,
+      suggestion({
+        metrics: ['Orders', 'Marketing spend'],
+        title: 'Spend per order counts gift cards',
+      }),
+    )
+    expect(both.status).toBe('suggestion_sent')
+    expect(both.policy).toMatchObject({
+      published: false,
+      domain: 'Finance',
+      waits_because: "it is about another domain's metric",
+    })
+    // An item about no metric applies to every domain's questions, so it waits too.
+    const none = await suggest(
+      app.token,
+      suggestion({ metrics: [], markets: ['Norway'], title: 'Norway closes the books a day late' }),
+    )
+    expect(none.policy).toMatchObject({
+      published: false,
+      waits_because: 'it names no metric of the domain',
+    })
+    for (const id of [other.draft_id, both.draft_id, none.draft_id]) {
+      expect((await proposal(id)).state).toBe('submitted')
+      expect(await decisionsOf(id)).toEqual([])
+    }
   })
 
   it('stops at the daily cap, counting what was undone', async () => {

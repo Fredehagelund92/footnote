@@ -161,6 +161,10 @@ test('G then a letter goes to the Inbox, Ask, Context, Definitions or Settings',
     /^Settings\s*G\s*then\s*S$/,
   ])
   await page.keyboard.press('Escape')
+  // Let the sheet finish closing and hand its focus back before the menu opens, so the menu
+  // remembers the same element under load as on an idle machine.
+  await expect(sheet).toBeHidden()
+  await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true)
   await page.keyboard.press('ControlOrMeta+k')
   const menu = page.getByRole('dialog', { name: 'Search' })
   await expect(menu.getByRole('option', { name: 'Context (G then C)', exact: true })).toBeVisible()

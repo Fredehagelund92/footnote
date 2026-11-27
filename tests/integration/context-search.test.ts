@@ -56,6 +56,7 @@ async function call(
       write: () => Promise.reject(new Error('no demand')),
       reportGap: () => Promise.reject(new Error('no demand')),
       feedback: () => Promise.reject(new Error('no demand')),
+      reply: () => Promise.reject(new Error('no demand')),
     },
     () => new Date('2026-10-12T12:00:00Z'),
   )

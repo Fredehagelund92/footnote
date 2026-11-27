@@ -148,11 +148,14 @@ it('reads a synonym of a metric as that metric, and a synonym of a term as the t
     },
     { ...peakEntry, word: 'busy season', synonym: true },
   ])
-  // Without the synonym the word is no name: only Norway is read, and nothing applies to it.
+  // Without the synonym the word is no name: only Norway is read, so the reply is about every
+  // metric's items for Norway (finding 1), says no metric was named, and names no term.
   const plain = await setup(bundle())('get_context', {
     question: 'Why did purchases in Norway drop in 2026?',
   })
-  expect(content(plain)).toMatchObject({ status: 'no_match', context: [] })
+  expect(content(plain).asked).toMatch(/^Norway in 2026/)
+  expect(content(plain).say).toContain('No metric was named')
+  expect(content(plain)).not.toHaveProperty('terms')
 })
 
 it('never makes a term on its own checked', async () => {

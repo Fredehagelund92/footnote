@@ -2,8 +2,8 @@
   Publishing without review (FR-421). An owner of a domain lets one named agent's suggestions
   publish without a review round, as the owner's own decision. It is off for the workspace until an
   admin switches it on. A policy covers one app agent and one domain and has a daily
-  cap. It publishes only a new item at low risk that clashes with nothing live and has nothing
-  that needs care. It never changes or archives a live item, and it never expires: it stays until
+  cap. It publishes only a new item at low risk about its own domain's metrics only, that clashes
+  with nothing live and has nothing that needs care. It never changes or archives a live item, and it never expires: it stays until
   someone turns it off. Every rule is checked again by the database when it publishes.
 */
 
@@ -28,6 +28,8 @@ export const policyPauseWords: Record<PolicyPause, (setBy: string) => string> = 
  */
 export const policySkips = [
   'not_new',
+  'other_domain',
+  'no_metric',
   'risk',
   'clash',
   'needs_care',
@@ -40,6 +42,8 @@ export type PolicySkip = (typeof policySkips)[number]
 
 export const policySkipWords: Record<PolicySkip, string> = {
   not_new: 'it changes or archives a live item',
+  other_domain: "it is about another domain's metric",
+  no_metric: 'it names no metric of the domain',
   risk: 'it is not low risk',
   clash: 'it clashes with live context',
   needs_care: 'something in it needs care',

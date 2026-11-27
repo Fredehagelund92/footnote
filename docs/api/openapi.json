@@ -112415,6 +112415,9 @@
                                   }
                                 ]
                               },
+                              "unreviewed": {
+                                "type": "boolean"
+                              },
                               "restrictions": {
                                 "type": "array",
                                 "items": {
@@ -112474,6 +112477,7 @@
                               "match",
                               "unverified",
                               "unverifiedReason",
+                              "unreviewed",
                               "restrictions",
                               "conflictsWith",
                               "quote",
@@ -112846,6 +112850,9 @@
                                             }
                                           ]
                                         },
+                                        "unreviewed": {
+                                          "type": "boolean"
+                                        },
                                         "restrictions": {
                                           "type": "array",
                                           "items": {
@@ -112905,6 +112912,7 @@
                                         "match",
                                         "unverified",
                                         "unverifiedReason",
+                                        "unreviewed",
                                         "restrictions",
                                         "conflictsWith",
                                         "quote",
