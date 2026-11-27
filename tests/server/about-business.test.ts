@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { settingSchemas } from '../../src/contract/admin.ts'
 import {
   ABOUT_BUSINESS_END,
+  ABOUT_BUSINESS_GUIDE,
   ABOUT_BUSINESS_MAX,
   ABOUT_BUSINESS_STARTER,
+  ABOUT_GUIDE_PARTS,
   aboutByRule,
+  aboutGuidePartsIn,
   aboutDraftOf,
   aboutFactsIn,
   aboutFactsMessage,
@@ -14,8 +17,9 @@ import {
 
 /*
   About our business starts with no text: the baseline migration writes an empty first version,
-  and the setting must accept it as stored. The starter text, which the guide offers and
-  Administration's reset puts back, must be one the setting accepts too.
+  and the setting must accept it as stored. The starter text, which the demo seeds write, must be
+  one the setting accepts too. The guide is the shape of the text to fill in, never a text to
+  save as it is.
 */
 
 const baseline = readFileSync(
@@ -39,6 +43,33 @@ describe('the starter text', () => {
       success: true,
       data: ABOUT_BUSINESS_STARTER,
     })
+  })
+})
+
+describe('the guide', () => {
+  it('is the shape of the text, with a part in brackets for each thing it says', () => {
+    expect(ABOUT_BUSINESS_GUIDE).toBe(
+      'We sell [what] to [whom], in [where], through [which channels].',
+    )
+    expect(aboutGuidePartsIn(ABOUT_BUSINESS_GUIDE)).toEqual([...ABOUT_GUIDE_PARTS])
+  })
+
+  it("names no company, least of all the demo's", () => {
+    for (const word of ['outdoor', 'retailer', 'footwear', 'twelve'])
+      expect(ABOUT_BUSINESS_GUIDE.toLowerCase()).not.toContain(word)
+  })
+
+  it('says which parts are still to fill in, as the editor writes them back', () => {
+    expect(
+      aboutGuidePartsIn(
+        'We sell invoicing software to \\[whom\\], in the Nordic countries, through \\[which channels\\].',
+      ),
+    ).toEqual(['[whom]', '[which channels]'])
+    expect(
+      aboutGuidePartsIn('We sell invoicing software to small firms, through our website.'),
+    ).toEqual([])
+    // Brackets of the writer's own are not a part of the guide.
+    expect(aboutGuidePartsIn('We sell bikes [and e-bikes] to whom it suits.')).toEqual([])
   })
 })
 

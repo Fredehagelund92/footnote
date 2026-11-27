@@ -3,7 +3,7 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 7
+minutes: 8
 reviewed: 2026-11-26
 open:
   label: Write context
@@ -120,3 +120,5 @@ Leave out numbers, dates, deals, legal conclusions, secrets and personal data. F
 The words people use and what they mean go in Definitions, as terms with an owner, not here: Ask and agents get a term with each question that uses its word. Under the text, a line that defines a word Definitions already has says so.
 
 Once there are domains or definitions, **Write a first version for me** drafts the text from your domains, metrics and definitions, with the model Ask uses. The draft is not saved: change what is wrong, then **Keep it**, or **Discard** it. Ask and agents read nothing of it until you keep it.
+
+**Start from the guide** puts the shape of the text on the page, with a part in brackets for each thing to say, such as what you sell. Click a part, or press Tab, and type your own words. It can be kept once every part is filled in, and it is not saved before that.

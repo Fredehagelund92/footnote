@@ -241,13 +241,13 @@ describe('settings and limits', () => {
       (s) => s.key === 'business.about',
     )
     // A fresh Footnote starts with no text, a version nobody changed by hand. The starter text is
-    // the guide's worked example, which a person may start from.
+    // the demo's, which stands here for any text an admin saves.
     expect(current).toMatchObject({ version: 1, value: '', changedBy: null, editable: true })
     expect((await serving.policy('claude-code')).about).toBe('')
     const started = await ok<Setting>('PUT', path, 'admin', {
       version: 1,
       value: ABOUT_BUSINESS_STARTER,
-      reason: 'Start from the guide',
+      reason: 'Say what we do',
     })
     expect(started).toMatchObject({ version: 2, value: ABOUT_BUSINESS_STARTER })
     expect((await serving.policy('claude-code')).about).toBe(ABOUT_BUSINESS_STARTER)

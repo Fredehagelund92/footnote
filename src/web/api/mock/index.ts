@@ -5,7 +5,7 @@ import { keepLabel, splitCardLine, splitDue } from '@domain/family-split'
 import { termWord } from '@domain/terms'
 import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } from '../client'
 import { agentNameProblem } from '@domain/agents'
-import { ABOUT_BUSINESS_STARTER, aboutByRule } from '@domain/about-business'
+import { aboutByRule } from '@domain/about-business'
 import { ApiError } from '../errors'
 import { missing } from '@contract/refusals'
 import { SHARED_CHAT_DAYS, type ShareTurn } from '@contract/shared-chats'
@@ -643,7 +643,6 @@ export function createMockApi() {
         people: workspace.people(),
         invites: workspace.invites(),
         about: state.about,
-        aboutTemplate: ABOUT_BUSINESS_STARTER,
         setup: { done: state.setup, serverSource: null },
       })),
     getVocabulary: () =>

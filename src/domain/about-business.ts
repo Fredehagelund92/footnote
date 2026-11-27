@@ -11,14 +11,32 @@
 export const ABOUT_BUSINESS_MAX = 500
 
 /**
- * The worked example of the text, the demo's outdoor-gear retailer: what the guide offers to start
- * from (Start from the guide). A new install starts with no text (db/migrations/0001_schema.sql);
- * the demo seeds write this one. Neutral on purpose: no company's name, figures or deals, and no
- * legal or regulatory conclusion. It agrees with the demo's definitions: the Platform, Product
- * and Market values.
+ * The demo's text, its outdoor-gear retailer's: what the demo seeds write. A new install starts
+ * with no text (db/migrations/0001_schema.sql). Neutral on purpose: no company's name, figures or
+ * deals, and no legal or regulatory conclusion. It agrees with the demo's definitions: the
+ * Platform, Product and Market values.
  */
 export const ABOUT_BUSINESS_STARTER =
   'We are an outdoor-gear retailer. We sell footwear, clothing, camping and climbing gear in our own stores, in our webshop and apps, and through marketplaces, in twelve markets.'
+
+/** The parts of the guide a person puts their own words in place of, in the order it has them. */
+export const ABOUT_GUIDE_PARTS = ['[what]', '[whom]', '[where]', '[which channels]'] as const
+
+/**
+ * What Start from the guide puts on the sheet: the shape of the text, with a part in brackets for
+ * each thing it says. It is no company's text, so no install starts from another company's words,
+ * and it is saved only once every part is filled in and the administrator keeps it.
+ */
+export const ABOUT_BUSINESS_GUIDE = `We sell ${ABOUT_GUIDE_PARTS[0]} to ${ABOUT_GUIDE_PARTS[1]}, in ${ABOUT_GUIDE_PARTS[2]}, through ${ABOUT_GUIDE_PARTS[3]}.`
+
+/**
+ * The guide's parts some text still holds, as the editor writes it back: Markdown may put a
+ * backslash before a bracket, which is the same part.
+ */
+export const aboutGuidePartsIn = (text: string) => {
+  const plain = text.replaceAll('\\', '')
+  return ABOUT_GUIDE_PARTS.filter((part) => plain.includes(part))
+}
 
 /** The line that ends the text in what the models get. */
 export const ABOUT_BUSINESS_END = 'End of about our business.'

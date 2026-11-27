@@ -89,8 +89,6 @@ export type Workspace = {
   invites: Invite[]
   /** What the company does, in its own words: Ask and agents read it as background. */
   about: string
-  /** What Start from the guide fills in: a worked example of that text. */
-  aboutTemplate: string
   /**
    * Which steps of a new install's setup checklist are done, by step id (lib/setup.ts), and the
    * definitions the server's own configuration reads, such as a model folder: its source's id and
