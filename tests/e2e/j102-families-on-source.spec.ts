@@ -175,3 +175,19 @@ test('a family opened from the Names card closes on Escape back to the card', as
   await expect(main.getByRole('radio', { name: /^Families/ })).toBeVisible()
   await expect(main.getByRole('button', { name: 'Look at the family Gift wrap' })).toBeFocused()
 })
+
+test("Test connection's result stays when the window narrows to a phone's width", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await testDbt(page)
+  const families = page.getByRole('region', { name: /of them are variants/ })
+  await expect(families).toBeVisible()
+  // Crossing to a phone's width once remounted the page, and the tested result was gone.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(families).toBeVisible()
+  await expect(page.getByLabel('File address')).not.toHaveValue('')
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(families).toBeVisible()
+  await expect(button(page, 'Continue')).toBeEnabled()
+})
