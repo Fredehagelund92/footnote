@@ -73,6 +73,7 @@ it(
       conflicts: number
       gap: string
       ask: boolean
+      askedAgain: boolean
       saved: number
       alert: string[]
     }>(
@@ -83,6 +84,10 @@ it(
               (select status::text from gaps where topic_id = (select id from topics
                 where key = 'area_sales|metric:orders|val:market/norway|2026-10')) as gap,
               exists (select 1 from setup_marks where step = 'ask') as ask,
+              -- The setup's write-and-ask-again step: Ask used after the first item was published.
+              (select done_at from setup_marks where step = 'ask') >=
+                (select min(e.created_at) from editions e
+                   join item_version_service s on s.editions @> e.seq) as "askedAgain",
               (select count(*)::int from saved_questions) as saved,
               (select array_agg(rule order by rule) from alert_raises) as alert`,
     )
@@ -92,6 +97,7 @@ it(
         conflicts: 1,
         gap: 'resolved',
         ask: true,
+        askedAgain: true,
         saved: 4,
         alert: ['disagree', 'saved'],
       },

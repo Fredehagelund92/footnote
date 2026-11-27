@@ -4,7 +4,7 @@ import type { Agent } from '@contract/connections'
 import { agentToolNames } from '@domain/agents'
 import type { OperationsOverviewView } from '@contract/index'
 import type { Edition } from '@contract/review'
-import { freeAreaId, summaryOf } from '@/api/http'
+import { summaryOf } from '@/api/http'
 import {
   connectedOf,
   deletedOf,
@@ -762,13 +762,5 @@ describe('a domain from its page', () => {
     expect([...long].length).toBeLessThanOrEqual(160)
     expect(long.endsWith('word…')).toBe(true)
     expect(summaryOf('')).toBe('')
-  })
-
-  it('makes its id from its name, and another when that one is taken', () => {
-    expect(freeAreaId('Customer value', new Set())).toBe('customer_value')
-    expect(freeAreaId('Finance', new Set(['finance', 'finance_2']))).toBe('finance_3')
-    expect(freeAreaId('Café & Bar', new Set())).toBe('cafe_bar')
-    expect(freeAreaId('2026 plans', new Set())).toBe('area_2026_plans')
-    expect(freeAreaId('!!', new Set())).toBe('area_domain')
   })
 })

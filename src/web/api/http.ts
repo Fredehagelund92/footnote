@@ -36,6 +36,7 @@ import { thresholdOfWords } from '@domain/alerts'
 import type { ChatTurn } from '@domain/ask-chat'
 import { canonicalJson } from '@domain/canonical'
 import { termWord } from '@domain/terms'
+import { freeAreaId } from '@domain/names-place'
 import { parseCardKey, type CardAction } from '@domain/inbox'
 import { plainOf } from '@/components/templates/comment-box/utils'
 import { reportedOn, reportOutcomeWords } from '@/model/ask'
@@ -379,22 +380,6 @@ export function summaryOf(text: string): string {
   if ([...line].length <= SUMMARY_MAX) return line
   const cut = line.slice(0, SUMMARY_MAX - 1)
   return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trimEnd()}…`
-}
-
-/** A new domain's id from its name, as the domains' ids are made: "Customer value" is customer_value. */
-export function freeAreaId(name: string, taken: ReadonlySet<string>): string {
-  const slug = name
-    .normalize('NFKD')
-    .replace(/\p{M}/gu, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-  const base = (/^[a-z][a-z0-9_]/.test(slug) ? slug : `area_${slug || 'domain'}`)
-    .slice(0, 36)
-    .replace(/_+$/, '')
-  let id = base
-  for (let n = 2; taken.has(id); n++) id = `${base}_${n}`
-  return id
 }
 
 /** Why a setting changed, for the history log: said once, in Settings. */

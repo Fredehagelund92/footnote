@@ -1352,19 +1352,13 @@ describe('the Inbox (docs/product.md, section 5)', () => {
 })
 
 describe('the setup checklist (FR-816)', () => {
-  it('reads each step from what exists, and Ask marks only that it was used', async () => {
+  it('reads each step from what exists, and Ask marks only that it was used and when', async () => {
     const before = await ok<{ steps: { id: string; done: boolean }[]; done: boolean }>(
       call('GET', '/setup', 'admin'),
     )
-    expect(before.steps.map((s) => s.id)).toEqual([
-      'about',
-      'domain',
-      'definitions',
-      'fact',
-      'ask',
-      'agent',
-    ])
-    expect(before.steps.find((s) => s.id === 'fact')?.done).toBe(true)
+    expect(before.steps.map((s) => s.id)).toEqual(['definitions', 'ask', 'fact', 'agent'])
+    // Items are published, but nobody asked since: writing is done only once it is asked again.
+    expect(before.steps.find((s) => s.id === 'fact')?.done).toBe(false)
     expect(before.steps.find((s) => s.id === 'ask')?.done).toBe(false)
     const asked = await call('POST', '/ask/lookup', 'author', {
       question: 'Why did orders drop in Norway?',
@@ -1374,8 +1368,22 @@ describe('the setup checklist (FR-816)', () => {
       call('GET', '/setup', 'author'),
     )
     expect(after.steps.find((s) => s.id === 'ask')?.done).toBe(true)
+    expect(after.steps.find((s) => s.id === 'fact')?.done).toBe(true)
     const marks = await client.query('select * from setup_marks')
     expect(Object.keys(marks.rows[0] as object).sort()).toEqual(['done_at', 'step'])
+  })
+
+  it('counts a question asked before the first item as not asked again', async () => {
+    await client.query("update setup_marks set done_at = '2000-01-01' where step = 'ask'")
+    try {
+      const steps = await ok<{ steps: { id: string; done: boolean }[] }>(
+        call('GET', '/setup', 'admin'),
+      )
+      expect(steps.steps.find((s) => s.id === 'ask')?.done).toBe(true)
+      expect(steps.steps.find((s) => s.id === 'fact')?.done).toBe(false)
+    } finally {
+      await client.query("update setup_marks set done_at = now() where step = 'ask'")
+    }
   })
 })
 

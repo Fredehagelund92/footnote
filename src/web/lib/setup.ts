@@ -6,54 +6,60 @@ import type { SetupStep } from '@/model/inbox'
 /** The heading of the Inbox's setup card; the Set up your workspace page is named for its start. */
 export const setupHeading = 'Set up your workspace so agents can use what you know'
 
-/** A context item must say which metric it applies to, so its names come before writing. */
+/**
+ * Ask first (FR-816): the names come first, since a question and a context item name a metric;
+ * then a question nothing answers yet, what you know written down and the same question again,
+ * and last your own agent.
+ */
 export const setupSteps: SetupStep[] = [
   {
-    id: 'about',
-    title: 'Say what the business is about',
-    description:
-      'One or two sentences on what the company does. Ask and agents read it as background.',
-    action: 'Write',
-  },
-  {
-    id: 'domain',
-    title: 'Add your first domain',
-    description:
-      'A domain is a part of the business with an owner, such as Sales. Context and names belong to one.',
-    action: 'Add a domain',
-  },
-  {
     id: 'definitions',
-    title: 'Connect your definitions',
+    title: 'Publish your names',
     description:
-      'Connect where your metrics are defined, then publish their names. Context applies to those names.',
+      'Connect where your metrics are defined, then publish their names. Questions and context name them.',
     action: 'Connect',
   },
   {
-    id: 'fact',
-    title: 'Write your first context item',
-    description: 'Two sentences and a source. In a domain you own, it is published at once.',
-    action: 'Write context',
-  },
-  {
     id: 'ask',
-    title: 'Ask a question about it',
-    description: 'See the answer an agent gets, from what you just wrote.',
+    title: 'Ask about a number you know',
+    description: 'Pick one you can explain. Nothing is written yet, and the answer will say so.',
     action: 'Ask',
   },
   {
+    id: 'fact',
+    title: 'Write what you know, and ask again',
+    description:
+      'Two sentences and where it is written. The same question is then answered from it.',
+    action: 'Write context',
+  },
+  {
     id: 'agent',
-    title: 'Connect your agent',
-    description: 'Paste one prompt into Claude, Cursor or another agent, and approve it once.',
+    title: 'Ask your own agent',
+    description:
+      'Paste one prompt into Claude, Cursor or another agent, and ask it the same question.',
     action: 'Copy the prompt',
   },
 ]
+
+/** What a domain is, said where a new install first meets one: where its names go. */
+export const domainWords = 'A domain is a part of the business with an owner.'
+
+/** Where the names with no domain go, as the names card offers it (F08). */
+export type SetupPlace = { id: string | null; name: string }
+
+/** Where the names waiting go, in the step's words: a new domain is the person's own. */
+const placeWords = (place: SetupPlace | null) =>
+  !place
+    ? 'Once published, questions and context name them.'
+    : place.id
+      ? `They go under ${place.name}.`
+      : `They go under ${place.name}, a new domain you own. ${domainWords}`
 
 /** What the definitions step offers: to publish names waiting, a source's page, or to connect. */
 export type DefinitionsOpens = 'names' | 'source' | 'connect'
 
 /**
- * The definitions step, for an install the server started on its own definitions, such as a model
+ * The names step, for an install the server started on its own definitions, such as a model
  * folder: until a read of them has ended it says one is on its way and offers nothing, and it never
  * offers to connect another tool. Names waiting are published from here, whatever source read them.
  * A read that left none waiting, or ended without a good read, opens its source's page, which
@@ -62,11 +68,12 @@ export type DefinitionsOpens = 'names' | 'source' | 'connect'
 export function definitionsStep(
   serverSource: { id: string; state: 'reading' | 'read' | 'failed' } | null,
   waiting: number,
+  place: SetupPlace | null = null,
 ): { description: string; action: string | null; opens: DefinitionsOpens } {
   const step = setupSteps.find((s) => s.id === 'definitions')!
   if (waiting)
     return {
-      description: step.description,
+      description: placeWords(place),
       action: `Publish ${waiting === 1 ? '1 name' : `${waiting} names`}`,
       opens: 'names',
     }

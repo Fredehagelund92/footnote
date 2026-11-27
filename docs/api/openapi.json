@@ -72351,12 +72351,46 @@
                           "at"
                         ]
                       }
+                    },
+                    "place": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "names": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "names"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
                     }
                   },
                   "required": [
                     "revision",
                     "names",
-                    "values"
+                    "values",
+                    "place"
                   ]
                 }
               }
@@ -72685,6 +72719,43 @@
                       "accept": [],
                       "leaveOut": []
                     }
+                  },
+                  "domain": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{1,39}$"
+                          }
+                        },
+                        "required": [
+                          "id"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 60,
+                            "pattern": "^\\S(?:.*\\S)?$",
+                            "allOf": [
+                              {
+                                "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
                   }
                 },
                 "required": [
@@ -73057,12 +73128,46 @@
                               "at"
                             ]
                           }
+                        },
+                        "place": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "names": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name",
+                                "names"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "required": [
                         "revision",
                         "names",
-                        "values"
+                        "values",
+                        "place"
                       ]
                     }
                   },
@@ -83604,11 +83709,9 @@
                         "properties": {
                           "id": {
                             "enum": [
-                              "about",
-                              "domain",
                               "definitions",
-                              "fact",
                               "ask",
+                              "fact",
                               "agent"
                             ],
                             "type": "string"

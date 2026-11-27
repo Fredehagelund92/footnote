@@ -31,7 +31,7 @@ Older design pages that still apply:
 | Page                                                   | What it says                                                        |
 | ------------------------------------------------------ | ------------------------------------------------------------------- |
 | [Try the demo](try-the-demo.md)                        | The quick start: the demo on your computer, a question, an agent    |
-| [Set up your workspace](help/set-up-your-workspace.md) | The six steps from an empty workspace to a first checked answer     |
+| [Set up your workspace](help/set-up-your-workspace.md) | The four steps from an empty workspace to a first checked answer    |
 | [Write context](help/write-context.md)                 | What a context item is and what to put in it                        |
 | [Connect an agent](help/connect-an-agent.md)           | One prompt for Claude, Cursor or another agent                      |
 | [Review a suggestion](help/review-a-suggestion.md)     | The quick view, the review, and publishing or returning             |

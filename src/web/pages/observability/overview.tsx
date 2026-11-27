@@ -1036,10 +1036,11 @@ function NothingConnected() {
   const obs = useObservability()
   const view = useObsView()
   const { setup } = useWorkspace()
-  // The setup checklist's own step, as the Inbox shows it: one name, and done only when it is.
-  const about = setupSteps.find((step) => step.id === 'about')!
+  // The setup checklist's own step, as the Inbox shows it: one name, and done only when it is. An
+  // agent's question names a metric, so the names come first.
+  const names = setupSteps.find((step) => step.id === 'definitions')!
   const steps = [
-    { done: setup.done.about, title: about.title },
+    { done: setup.done.definitions, title: names.title },
     {
       done: false,
       title: 'Connect an agent',

@@ -143,16 +143,13 @@ export function AboutPage({
               data-primary
               disabled={tooLong || length === 0 || draft !== null}
               onClick={() => {
-                void autosave
-                  .flush()
-                  .then(() => write('completeSetupStep', { step: 'about' }))
-                  .then(() => {
-                    toast('Saved', {
-                      description:
-                        'Ask reads it from the next question, and an agent when it next connects.',
-                    })
-                    navigate('/inbox')
+                void autosave.flush().then(() => {
+                  toast('Saved', {
+                    description:
+                      'Ask reads it from the next question, and an agent when it next connects.',
                   })
+                  navigate('/inbox')
+                })
               }}
             >
               Done

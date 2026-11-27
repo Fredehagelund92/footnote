@@ -95,5 +95,5 @@ A third volume, `footnote_no-model`, stays empty. It stands where your own model
 - [Use your own data](use-your-own-data.md): your own semantic layer, with no demo data.
 - [Choose a model provider](model-providers.md): Ask on a real model.
 - [Back up, restore and upgrade](back-up-restore-and-upgrade.md): keep what people wrote.
-- [Set up your workspace](help/set-up-your-workspace.md): the six steps of a new, empty workspace.
+- [Set up your workspace](help/set-up-your-workspace.md): the four steps of a new, empty workspace.
 - [What's new](help/changelog.md): the changes people notice, newest first.

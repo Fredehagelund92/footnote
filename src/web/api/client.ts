@@ -484,15 +484,13 @@ export interface FootnoteApi {
   /**
    * Publishes an item as its owner: changes to an existing item, or a new one, which gets its id.
    * `relations` says how it relates to each live item it overlaps, by that item's id, as the
-   * owner answered in the editor. `gap` is the Not found card it answers; `setup` says it is the
-   * setup checklist's first item.
+   * owner answered in the editor. `gap` is the Not found card it answers.
    */
   saveItem: (input: {
     fact: Fact
     isNew: boolean
     relations?: Record<string, Relation>
     gap?: string
-    setup?: boolean
   }) => Promise<{ id: string }>
   /**
    * Save as draft (FR-139): the words kept as the person's own draft, which only they can see and

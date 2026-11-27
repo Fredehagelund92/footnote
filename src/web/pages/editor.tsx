@@ -38,6 +38,7 @@ import { holdLine, readinessOf, standingLine, SUMMARY_LIMIT } from '@/model/edit
 import {
   missingDates,
   validOfWhen,
+  whenOfPeriod,
   whenOfValid,
   whenSummary,
   type WhenMode,
@@ -280,13 +281,17 @@ function initialForm(
     own && ownDomain && (publishes(own) || !publishes(home))
       ? { domain: own, owners: ownDomain.owners }
       : {}
-  // The kind the question makes likely: a rule about a metric, an event about a date.
+  // The kind the question makes likely: a rule about a metric, an event about a date; and the days
+  // it was read on, which the writer may change.
   const kind = query.get('kind')
+  const period = query.get('period')
+  const dates = period ? whenOfPeriod(period) : null
   if (metric || market || about.length)
     return {
       ...blank,
       ...start,
       ...(kind && Object.hasOwn(kindLabel, kind) ? { kind: kind as Kind } : {}),
+      ...(dates ? { when: dates.mode, from: dates.from, until: dates.until } : {}),
       where: termsOfNames(
         [metric, market, ...about].filter((w): w is string => !!w),
         vocabulary,
@@ -734,12 +739,11 @@ function Editor({
         ),
       },
       gap: query.get('gap') ?? undefined,
-      setup: !!query.get('setup'),
     })
     guard.release()
     if (query.get('setup')) {
       toast('Published', {
-        description: 'Your first context item. Agents get it from the next question.',
+        description: 'Your first context item. Ask the same question again to see it answered.',
       })
       navigate('/inbox')
       return
@@ -753,7 +757,9 @@ function Editor({
     toast(verb === 'Save' ? 'Saved' : 'Published', {
       description: 'Agents get it from the next question.',
     })
-    navigate(`/context/${id}`)
+    // Written about a question: its page asks it again.
+    const asked = query.get('q')
+    navigate(`/context/${id}`, asked ? { q: asked } : undefined)
   }
   // A refusal that names live items to relate to lists them, unanswered, under the title.
   const publish = () =>

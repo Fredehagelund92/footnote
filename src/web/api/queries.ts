@@ -675,7 +675,10 @@ export const invalidations: {
   markReviewed: () => inbox,
   decideCard: () => [...inbox, ...items],
   // The names card is open: its list comes with the answer (`inPlace`), and the rest waits (`later`).
-  decideNames: () => inbox,
+  // A new domain the names went under (F08) is read with the workspace's domains: only then, as an
+  // owner decides names one after another under the service's request limit.
+  decideNames: (input) =>
+    input.domain && 'name' in input.domain ? [...inbox, ...workspace] : inbox,
   completeCard: () => inbox,
   publishReview: () => decision,
   publishReviews: () => decision,

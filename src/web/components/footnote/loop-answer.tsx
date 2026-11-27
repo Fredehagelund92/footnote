@@ -1138,7 +1138,18 @@ function People({ names }: { names: readonly string[] }) {
  * to an admin or an owner, Add “the word” to Definitions, which opens a new term with the word in
  * it. Ask itself writes nothing.
  */
-function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?: string }) {
+function GapCard({
+  loop,
+  nouns,
+  dates,
+  question,
+}: {
+  loop: LoopTurn
+  nouns: Nouns
+  dates?: string
+  /** The question asked, which Write context takes to the editor. */
+  question: string
+}) {
   const P = useParts()
   const write = P.useWrite()
   const me = P.useMe()
@@ -1218,7 +1229,9 @@ function GapCard({ loop, nouns, dates }: { loop: LoopTurn; nouns: Nouns; dates?:
                 variant="outline"
                 nativeButton={false}
                 aria-label={`Write context for ${said}`}
-                render={<a href={P.href('/context/new', writeSearch(loop, about, nouns))} />}
+                render={
+                  <a href={P.href('/context/new', writeSearch(loop, about, nouns, question))} />
+                }
               >
                 <P.PencilIcon data-icon="inline-start" />
                 Write context
@@ -1440,10 +1453,21 @@ function DraftRowLine({ row, nouns }: { row: DraftRow; nouns: Nouns }) {
  * it most likely is: a rule when the question was about any date (what a metric means), else an
  * event. The editor starts it in the domain of what it is about.
  */
-const writeSearch = (loop: LoopTurn, about: readonly string[], nouns: Nouns) => ({
-  about: about.map((id) => nouns.get(id)!.name).join('|'),
-  kind: !loop.subject || loop.subject.period === 'any date' ? 'note' : 'event',
-})
+/**
+ * What Write context opens the editor on: the names the question was about, the kind it makes
+ * likely, the days it was read on when the words gave some (not today assumed, nor any date), and
+ * the question itself, which the published item's page asks again.
+ */
+const writeSearch = (loop: LoopTurn, about: readonly string[], nouns: Nouns, question: string) => {
+  const dated = !!loop.subject && !loop.subject.assumedToday && loop.subject.period !== 'any date'
+  return {
+    about: about.map((id) => nouns.get(id)!.name).join('|'),
+    kind: !loop.subject || loop.subject.period === 'any date' ? 'note' : 'event',
+    ...(dated ? { period: loop.subject!.period } : {}),
+    // A how-to reads no subject: asked again, it would not find the item.
+    ...(loop.subject && question.trim() ? { q: question.trim() } : {}),
+  }
+}
 
 /** The metrics the answer's words name, by their nouns' ids. */
 const metricsSaid = (loop: LoopTurn) => [
@@ -1469,11 +1493,13 @@ function Next({
   loop,
   nouns,
   items,
+  question,
 }: {
   loop: LoopTurn
   nouns: Nouns
   /** The items used that no row of Sources pins: a check of one of them is offered here. */
   items: readonly LoopItem[]
+  question: string
 }) {
   const P = useParts()
   const owns = useOwns(loop)
@@ -1485,7 +1511,7 @@ function Next({
         variant="outline"
         className="w-fit"
         nativeButton={false}
-        render={<a href={P.href('/context/new', writeSearch(loop, about, nouns))} />}
+        render={<a href={P.href('/context/new', writeSearch(loop, about, nouns, question))} />}
       >
         <P.PencilIcon data-icon="inline-start" />
         Write context for <Subject ids={about} nouns={nouns} still />
@@ -2123,7 +2149,15 @@ const actionIcon = (P: LoopParts): Record<ActionId, LucideIcon> => ({
  * (src/domain/actions.ts), the rule the screens keep, so a button never opens a page that refuses
  * them. Only an admin is told who the admins are on the service, as the gap card says it.
  */
-function QuickActions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
+function QuickActions({
+  loop,
+  nouns,
+  question,
+}: {
+  loop: LoopTurn
+  nouns: Nouns
+  question: string
+}) {
   const P = useParts()
   const me = P.useMe()
   const admins = P.usePeople()
@@ -2147,7 +2181,7 @@ function QuickActions({ loop, nouns }: { loop: LoopTurn; nouns: Nouns }) {
             const target = action.target(me, o)
             const to =
               o.id === 'write_context' && 'path' in target && about.length
-                ? { ...target, search: writeSearch(loop, about, nouns) }
+                ? { ...target, search: writeSearch(loop, about, nouns, question) }
                 : target
             const Icon = icons[o.id]
             const label = action.label(me)
@@ -2572,7 +2606,7 @@ function Finished({
                     )}
                   </div>
                 )}
-                <QuickActions loop={loop} nouns={maps.nouns} />
+                <QuickActions loop={loop} nouns={maps.nouns} question={answer.question} />
                 <HelpSources loop={loop} />
                 {!cardsStandIn(loop) && <DefinitionCards loop={loop} maps={maps} />}
                 {loop.state === 'conflict' && <Disagree loop={loop} maps={maps} />}
@@ -2581,6 +2615,7 @@ function Finished({
                   <GapCard
                     loop={loop}
                     nouns={maps.nouns}
+                    question={answer.question}
                     {...(answer.dates ? { dates: answer.dates } : {})}
                   />
                 )}
@@ -2591,6 +2626,7 @@ function Finished({
                 <Next
                   loop={loop}
                   nouns={maps.nouns}
+                  question={answer.question}
                   items={used.filter((i) => !shownUsed.includes(i))}
                 />
                 {(footer.length > 0 || loop.read.length > 0) && (

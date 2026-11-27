@@ -1401,11 +1401,12 @@ export function AskPage() {
   const setup = query.get('setup')
   const onJoined = (id: string) => {
     setQuery({ chat: id, setup: undefined, q: undefined })
-    // The setup step "Ask a question about it" is done by asking one.
+    // The setup's two questions (FR-816): the first, with nothing written yet, and the same one
+    // asked again once it is.
     if (setup) {
       void write('completeSetupStep', { step: 'ask' })
-      toast('Asked your first question', {
-        description: 'This is what agents get from what you wrote.',
+      toast('Your question is answered', {
+        description: 'This is what agents get today, from what is written.',
         action: { label: 'Back to setup', onClick: () => navigate('/inbox') },
       })
     }

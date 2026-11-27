@@ -1,3 +1,4 @@
+import { monthOfName } from '@/lib/dates'
 import { dateLabel, whenLabel, type Validity } from '@/model/validity'
 
 // The edit pages' When: six presets over the stored dates, and the one line the field shows.
@@ -64,4 +65,47 @@ export function whenSummary(w: WhenValue) {
   if (w.mode === 'between')
     return w.from ? `From ${dateLabel(w.from)} - pick the end` : 'Between dates - pick the start'
   return `${WHEN_PRESETS.find((p) => p.value === w.mode)!.label} - pick a date`
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+/** A day of the words Ask reads a question's days in: "7", "Oct", "2026" is 2026-10-07. */
+const dayOf = (d: string, month: string, year: string) => {
+  const m = monthOfName(month)
+  return m < 0 ? '' : `${year}-${pad(m + 1)}-${pad(Number(d))}`
+}
+
+/**
+ * The When of the days a question was read on, in the words Ask's read line says them
+ * (`windowWords`): "7 Oct 2026", "1-30 Sep 2026", "1 Sep to 30 Oct 2026", "1 Dec 2025 to 2 Jan
+ * 2026", "from 7 Oct 2026" or "up to 7 Oct 2026". Null for any date, and for anything else.
+ */
+export function whenOfPeriod(period: string): WhenValue | null {
+  const when = readPeriod(period)
+  return when && !missingDates(when) ? when : null
+}
+
+function readPeriod(period: string): WhenValue | null {
+  const D = '(\\d{1,2})'
+  const M = '([A-Z][a-z]{2})'
+  const Y = '(\\d{4})'
+  const read = (pattern: string) => new RegExp(`^${pattern}$`).exec(period.trim())
+  let m = read(`${D} ${M} ${Y}`)
+  if (m) {
+    const day = dayOf(m[1]!, m[2]!, m[3]!)
+    return { mode: 'day', from: day, until: day }
+  }
+  m = read(`${D}-${D} ${M} ${Y}`)
+  if (m)
+    return { mode: 'between', from: dayOf(m[1]!, m[3]!, m[4]!), until: dayOf(m[2]!, m[3]!, m[4]!) }
+  m = read(`${D} ${M} to ${D} ${M} ${Y}`)
+  if (m)
+    return { mode: 'between', from: dayOf(m[1]!, m[2]!, m[5]!), until: dayOf(m[3]!, m[4]!, m[5]!) }
+  m = read(`${D} ${M} ${Y} to ${D} ${M} ${Y}`)
+  if (m)
+    return { mode: 'between', from: dayOf(m[1]!, m[2]!, m[3]!), until: dayOf(m[4]!, m[5]!, m[6]!) }
+  m = read(`from ${D} ${M} ${Y}`)
+  if (m) return { mode: 'from', from: dayOf(m[1]!, m[2]!, m[3]!), until: '' }
+  m = read(`up to ${D} ${M} ${Y}`)
+  if (m) return { mode: 'until', from: '', until: dayOf(m[1]!, m[2]!, m[3]!) }
+  return null
 }

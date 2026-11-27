@@ -7,6 +7,7 @@ import type {
   WaitingValue,
 } from '../../../contract/inbox.ts'
 import { contentDigest } from '../../../domain/canonical.ts'
+import { freeAreaId, namesPlace, type NamesPlace } from '../../../domain/names-place.ts'
 import {
   familyRead,
   mayGoApart,
@@ -21,6 +22,7 @@ import { memberName } from '../../../domain/term-candidates.ts'
 import { termName, termWord } from '../../../domain/terms.ts'
 import type { Queryable } from '../../db/database.ts'
 import { recordAudit } from '../admin/index.ts'
+import { createArea } from '../areas/index.ts'
 import { connectorType } from '../connectors/index.ts'
 import { lockReleases, publishEdition } from '../editions/index.ts'
 import { wordHolders } from '../terms/index.ts'
@@ -51,6 +53,26 @@ export type NamesView = NamesRead & {
   /** When the newest of the names to look at was first read; null with none. */
   at: string | null
 }
+
+/**
+ * Maps views of a definitions source to a domain for the reads after (`sources.groups`), with why:
+ * the service that keeps sources does it, as Integrations' own mapping does.
+ */
+export type MapViews = (
+  source: string,
+  views: readonly string[],
+  domain: string,
+  reason: string,
+) => Promise<void>
+
+/** Why views were mapped, for the history log. */
+const MAPPED = 'Mapped with the names published under this domain.'
+
+/** Every member a name links once published: a family's, its variants' too. */
+const refsOf = (name: SourceName) => [
+  ...name.definitionRefs,
+  ...(name.family?.variants.flatMap((variant) => variant.definitionRefs) ?? []),
+]
 
 const REASON = 'Accepted the names a read made.'
 
@@ -98,8 +120,19 @@ export function createNamesService(tx: Queryable) {
         tool: (id: string) => id,
         holders: new Map() as WordHolders,
         who,
+        hints: new Map<string, { named: string | null; domain: string | null }>(),
       }
     const { members, known } = await sourceVocabulary(tx)
+    // Each member's domain as the source names it, and whether that is a domain of this workspace.
+    const hints = new Map(
+      members.map((member) => [
+        member.ref,
+        {
+          named: member.areaHint,
+          domain: member.areaHint && who.active.has(member.areaHint) ? member.areaHint : null,
+        },
+      ]),
+    )
     const live = known.filter((term) => !term.open)
     // A hint never makes a domain (CON-206): one with no domain yet reads as none, for now.
     const mapped = members.map((member) => ({
@@ -129,7 +162,52 @@ export function createNamesService(tx: Queryable) {
       new Set(left.map((row) => row.ref)),
       new Set(split.map((row) => row.key)),
     ).filter((name) => who.admin || (name.areaId !== null && who.owned.has(name.areaId)))
-    return { names, tool, holders, who }
+    return { names, tool, holders, who, hints }
+  }
+
+  /**
+   * The names waiting with no domain, which the card offers one for (F08): every member with none
+   * of this workspace's. Never a dimension shared by views of several domains (CON-206), whose
+   * members each have one.
+   */
+  const unplacedOf = (
+    names: readonly SourceName[],
+    hints: ReadonlyMap<string, { named: string | null; domain: string | null }>,
+  ) =>
+    names.filter(
+      (name) =>
+        name.state !== 'left_out' &&
+        name.areaId === null &&
+        refsOf(name).every((ref) => !hints.get(ref)?.domain),
+    )
+
+  /** The domains names may go under, and every id a domain has or had. */
+  async function domainsNow() {
+    const rows = await tx.query<{ id: string; name: string; owned: boolean; open: boolean }>(
+      `select id, name, cl_is_owner_now(id) as owned, archived_at is null and not is_demo as open
+         from areas`,
+    )
+    return {
+      domains: rows.filter((row) => row.open),
+      taken: new Set(rows.map((row) => row.id)),
+    }
+  }
+
+  /** Where the names with no domain go, for an admin: none for anyone else, who cannot map them. */
+  async function placeOf(
+    names: readonly SourceName[],
+    hints: ReadonlyMap<string, { named: string | null; domain: string | null }>,
+    admin: boolean,
+  ): Promise<NamesPlace | null> {
+    const unplaced = unplacedOf(names, hints)
+    if (!admin || !unplaced.length) return null
+    return namesPlace({
+      unplaced: unplaced.map((name) => {
+        const named = refsOf(name).flatMap((ref) => hints.get(ref)?.named ?? [])
+        return { named: named[0] ?? null, views: name.views }
+      }),
+      ...(await domainsNow()),
+    })
   }
 
   const asRead = (name: SourceName, tool: (id: string) => string): SourceNameRead => ({
@@ -150,8 +228,8 @@ export function createNamesService(tx: Queryable) {
   })
 
   /** The names and when the newest was read, or left out when none waits: no digest of the list. */
-  async function waiting() {
-    const { names, tool } = await namesNow()
+  async function waiting(now?: Awaited<ReturnType<typeof namesNow>>) {
+    const { names, tool } = now ?? (await namesNow())
     const shown = names.map((name) => asRead(name, tool))
     const looking = shown.filter((name) => name.state !== 'left_out')
     const stamp = `'YYYY-MM-DD"T"HH24:MI:SS"Z"'`
@@ -173,7 +251,8 @@ export function createNamesService(tx: Queryable) {
   }
 
   async function read(): Promise<NamesView> {
-    const [{ names, at }, waitingValues] = await Promise.all([waiting(), values.waiting()])
+    const now = await namesNow()
+    const [{ names, at }, waitingValues] = await Promise.all([waiting(now), values.waiting()])
     return {
       revision: await revisionOf(names, waitingValues),
       names,
@@ -182,6 +261,7 @@ export function createNamesService(tx: Queryable) {
         (newest, when) => (when && (!newest || when > newest) ? when : newest),
         null,
       ),
+      place: await placeOf(now.names, now.hints, now.who.admin),
     }
   }
 
@@ -219,9 +299,41 @@ export function createNamesService(tx: Queryable) {
     return recordTermVersions(tx, terms, { channel: 'import', reason: REASON, batch: batch!.id })
   }
 
-  async function decide(input: DecideNames): Promise<NamesDecision> {
+  /** The domain names are put under: one that exists, or a new one, made and owned by the admin. */
+  async function domainFor(
+    asked: NonNullable<DecideNames['domain']>,
+    admin: boolean,
+  ): Promise<string> {
+    if (!admin)
+      throw new ORPCError('FORBIDDEN', {
+        message: 'Only an admin puts names that have no domain under one.',
+      })
+    const { domains, taken } = await domainsNow()
+    if ('id' in asked) {
+      if (!domains.some((domain) => domain.id === asked.id))
+        throw new ORPCError('UNPROCESSABLE_CONTENT', {
+          message: 'Names cannot go under that domain. Choose another, or a new one.',
+        })
+      return asked.id
+    }
+    const same = domains.find((domain) => domain.name.toLowerCase() === asked.name.toLowerCase())
+    if (same) return same.id
+    const [me] = await tx.query<{ id: string }>('select cl_person()::text as id')
+    const made = await createArea(tx, {
+      id: freeAreaId(asked.name, taken),
+      name: asked.name,
+      chatChannel: null,
+      ownerTeam: null,
+      summary: '',
+      description: '',
+      team: { ownerIds: [me!.id] },
+    })
+    return made.id
+  }
+
+  async function decide(input: DecideNames, mapViews?: MapViews): Promise<NamesDecision> {
     await lockReleases(tx)
-    const { names, tool, holders, who } = await namesNow()
+    const { names, tool, holders, who, hints } = await namesNow()
     const shown = names.map((name) => asRead(name, tool))
     const waitingValues = await values.waiting()
     if ((await revisionOf(shown, waitingValues)) !== input.revision)
@@ -314,13 +426,26 @@ export function createNamesService(tx: Queryable) {
         message: findings[0]!.message,
         data: { findings },
       })
+    // The names published with no domain go under the one asked for (F08), a family's variants
+    // with it, and their views are mapped to it for the reads after, unless the tool names it.
+    const unplaced = new Set(unplacedOf(names, hints).map((name) => name.key))
+    const going = input.accept.flatMap(({ key }) => (unplaced.has(key) ? [found(key)] : []))
+    const under = input.domain && going.length ? await domainFor(input.domain, who.admin) : null
+    const placed = new Set(
+      under
+        ? going.flatMap((name) => [name.key, ...(name.family?.variants ?? []).map((v) => v.key)])
+        : [],
+    )
+    const publishing = picked.map((name) =>
+      placed.has(name.key) ? { ...name, areaId: under } : name,
+    )
     // The names and the values published here are one edition, announced to their one domain.
-    const recorded = picked.length ? await accept(picked, who.owned, tool) : null
+    const recorded = publishing.length ? await accept(publishing, who.owned, tool) : null
     const decidedValues = await values.decide(input.values)
     const served = [...(recorded?.versions ?? []), ...decidedValues.versions]
     const valueArea = new Map(waitingValues.map((value) => [value.id, value.areaId]))
     const areas = new Set([
-      ...picked.map((name) => name.areaId),
+      ...publishing.map((name) => name.areaId),
       ...input.values.accept.map((id) => valueArea.get(id) ?? null),
     ])
     const edition = served.length
@@ -332,6 +457,17 @@ export function createNamesService(tx: Queryable) {
       : null
     if (recorded && edition) await recorded.decided(edition.label)
     await decidedValues.decided(edition?.label ?? null)
+    if (under && mapViews) {
+      const views = new Map<string, Set<string>>()
+      for (const name of going) {
+        if (refsOf(name).every((ref) => hints.get(ref)?.named === under)) continue
+        const of = views.get(name.source) ?? new Set<string>()
+        for (const view of name.views) of.add(view)
+        views.set(name.source, of)
+      }
+      for (const [source, of] of views)
+        if (of.size) await mapViews(source, [...of].sort(), under, MAPPED)
+    }
     await tx.query('delete from names_left_out where definition_ref=any($1::text[])', [
       picked.flatMap((name) => name.definitionRefs),
     ])
@@ -354,7 +490,12 @@ export function createNamesService(tx: Queryable) {
       accepted: picked.length,
       leftOut: left.length,
       values: { accepted: decidedValues.versions.length, leftOut: input.values.leaveOut.length },
-      waiting: { revision: after.revision, names: after.names, values: after.values },
+      waiting: {
+        revision: after.revision,
+        names: after.names,
+        values: after.values,
+        place: after.place,
+      },
     }
   }
 

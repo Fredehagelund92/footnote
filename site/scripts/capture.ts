@@ -93,7 +93,7 @@ const docsShots: Shot[] = [
   {
     name: 'setup',
     path: '/inbox?demo=setup',
-    ready: (p) => p.getByText('Say what the business is about').waitFor(),
+    ready: (p) => p.getByText('Publish your names').waitFor(),
     clip: (p) => around(p, '[data-slot="card"]'),
   },
   {

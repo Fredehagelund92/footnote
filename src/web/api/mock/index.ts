@@ -139,8 +139,19 @@ export function createMockApi() {
   const scope = createScopeSearch()
   const settings = createSettings()
   // A value that waited for an owner is published with its other names and how the data writes it.
-  const names = createMockNames(undefined, (values) =>
-    values.forEach((v) => publishValues(v.dimension.key, [v])),
+  // The domains names may go under, as the service offers them: never the sandbox.
+  const names = createMockNames(
+    undefined,
+    (values) => values.forEach((v) => publishValues(v.dimension.key, [v])),
+    (who) => {
+      const all = workspace.domains()
+      return {
+        domains: all
+          .filter((d) => !d.sandbox)
+          .map((d) => ({ id: d.id, name: d.name, owned: who.owns.includes(d.id) })),
+        taken: new Set(all.map((d) => d.id)),
+      }
+    },
   )
   /** The values a writer added in "Applies to", published with the item (values without figures). */
   const publishAdded = (terms: Fact['scope']) => {
@@ -639,7 +650,13 @@ export function createMockApi() {
           metrics: metrics.map((m) => ({ name: m.name, description: m.definition || null })),
         }),
       })),
-    completeSetupStep: ({ step }) => now(() => dispatch({ type: 'setupStep', step })),
+    completeSetupStep: ({ step }) =>
+      now(() => {
+        dispatch({ type: 'setupStep', step })
+        // A question once something is published is the one asked again (FR-816).
+        if (step === 'ask' && factsOf(state).some((f) => f.status === 'Live'))
+          dispatch({ type: 'setupStep', step: 'fact' })
+      }),
 
     // Domains and people
     updateDomain: (input) => now(() => workspace.updateDomain(input)),
@@ -930,7 +947,7 @@ export function createMockApi() {
         })
         return { deleted: gone.length }
       }),
-    saveItem: ({ fact, isNew, relations = {}, gap, setup }) =>
+    saveItem: ({ fact, isNew, relations = {}, gap }) =>
       now(() => {
         // An owner's words in a new item waiting for their review publish that suggestion as
         // itself (Edit then publish), as the service does: its card is decided.
@@ -977,7 +994,6 @@ export function createMockApi() {
         else dispatch({ type: 'editFact', id, patch: saved })
         dispatch({ type: 'published', id })
         if (gap) dispatch({ type: 'complete', card: gap, outcome: 'Context written' })
-        if (setup) dispatch({ type: 'setupStep', step: 'fact' })
         return { id }
       }),
     applyBulk: ({ patches, remove, suggest = [], entry }) =>
@@ -1393,7 +1409,20 @@ export function createMockApi() {
     getReviews: () => now(() => reviews.map(reviewNow)),
     getNames: () => names.read(obsReader()).then(copy),
     decideNames: async (input) => {
-      const decided = await names.decide(input, obsReader())
+      const reader = obsReader()
+      if (input.domain && names.placing(input, reader)) {
+        if (!reader.admin)
+          throw new ApiError('forbidden', 'Only an admin puts names that have no domain under one.')
+        // A new domain is made and owned by whoever publishes, as the service makes it.
+        const asked = input.domain
+        if ('name' in asked) {
+          const same = workspace
+            .domains()
+            .some((d) => !d.sandbox && d.name.toLowerCase() === asked.name.toLowerCase())
+          if (!same) workspace.addDomain({ name: asked.name, owners: [me()] })
+        }
+      }
+      const decided = await names.decide(input, reader)
       if (decided.accepted) dispatch({ type: 'setupStep', step: 'definitions' })
       return decided
     },
@@ -1817,7 +1846,8 @@ export function createMockApi() {
         settings.connect(connector)
         kept.set(connector, { config, chosen, readsAll, revision: 1 })
         // A definitions tool's read makes names, and the owner accepts them.
-        if (connectorById(connector)?.kind === 'definitions') names.load(familiesShop)
+        if (connectorById(connector)?.kind === 'definitions')
+          names.load(familiesShop, state.install !== 'new')
         // A content tool's first read is at its next morning read; a definitions tool's now.
         return {
           id: connector,
@@ -2052,6 +2082,8 @@ export function createMockApi() {
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
+        // A new install started on its own definitions: their names wait, with no domain (F08).
+        if (demo === 'setup') names.load(false, false)
         if ((demo === 'done' || demo === 'week') && state.user) {
           comments.scenario(demo, state.user)
           mentions = true

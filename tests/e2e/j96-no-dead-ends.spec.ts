@@ -158,22 +158,19 @@ test('a new install tells an owner and a member who does the admin steps', async
       await signInAs(page, name)
       await go(page, '/inbox?demo=setup')
       const steps = page.getByRole('main').getByRole('listitem')
-      for (const [title, action] of [
-        ['Say what the business is about', 'Write'],
-        ['Connect your definitions', 'Connect'],
-      ] as const) {
+      for (const [title, action] of [['Publish your names', 'Connect']] as const) {
         const step = steps.filter({ hasText: title })
         await expect(step.getByText(/^An admin does this/)).toHaveText(
           new RegExp(`^An admin does this${admins.source}$`),
         )
         await expect(step.getByRole('button', { name: action, exact: true })).toHaveCount(0)
       }
-      // What anyone does stays a button.
-      const write = steps
-        .filter({ hasText: 'Write your first context item' })
-        .getByRole('button', { name: 'Write context' })
-      await expect(write).toBeVisible()
-      await expect(write).toHaveAttribute('data-variant', 'default')
+      // What anyone does stays a button, the first of them the one to press.
+      const ask = steps
+        .filter({ hasText: 'Ask about a number you know' })
+        .getByRole('button', { name: 'Ask', exact: true })
+      await expect(ask).toBeVisible()
+      await expect(ask).toHaveAttribute('data-variant', 'default')
       await go(page, '/inbox?demo=week')
     }
   })
