@@ -779,9 +779,10 @@ export function createInboxFeedService(
   /**
    * This week's questions from agents, as counts (FR-614), and what most that found nothing were
    * about: Ask's Asked this week, its last 7 full days and its counts as this person may have them.
+   * Today is not one of those days, so whether an agent asked today is said beside them.
    */
   async function week(bundle: ServingBundle | null): Promise<Feed['week']> {
-    const { subjects, minimum, asked, askedAtLeast } = await askedCounts(tx, clock)
+    const { subjects, minimum, asked, askedAtLeast, today } = await askedCounts(tx, clock)
     // What found nothing is a sum only of the counts Asked this week's rows show: when any topic's
     // is hidden, a total would give it away.
     const shown = asked !== null && subjects.every((s) => s.count !== null && s.nothing !== null)
@@ -796,6 +797,7 @@ export function createInboxFeedService(
     return {
       asked,
       askedAtLeast,
+      askedToday: today,
       found: both ? found : null,
       nothing: both ? none : null,
       mostAbout:

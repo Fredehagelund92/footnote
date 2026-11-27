@@ -237,6 +237,11 @@ export const feedSchema = z.object({
     asked: shownCount,
     /** What Asked this week's rows show together: "143+" when `asked` is null. */
     askedAtLeast: z.number(),
+    /**
+     * Whether an agent asked today, which the 7 full days leave out: with nothing in them, the
+     * week line says agents asked today, never that they asked nothing.
+     */
+    askedToday: z.boolean(),
     found: shownCount,
     nothing: shownCount,
     /** What most questions that found nothing were about, in words; null when under the minimum. */

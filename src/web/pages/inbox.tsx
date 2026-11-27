@@ -1596,10 +1596,18 @@ function DueRow({ due }: { due: number }) {
   )
 }
 
-/** What agents asked this week, in counts only: the quiet sign that it is working. */
+/**
+ * What agents asked this week, in counts only: the quiet sign that it is working. The week is the
+ * last 7 full days, so on the day an agent first asks, the line says it asked today.
+ */
 function WeekLine() {
   const { week } = useInbox()
-  if (week.asked === 0) return <>Agents asked nothing this week.</>
+  if (week.asked === 0)
+    return week.askedToday ? (
+      <>Agents asked today, for the first time this week.</>
+    ) : (
+      <>Agents asked nothing this week.</>
+    )
   // As Ask's Asked this week says it: a floor when the total would give a small count away.
   if (week.asked === null)
     return week.askedAtLeast >= 5 ? (

@@ -13,6 +13,7 @@ import { alertCardWords } from '@domain/alerts'
 export const week = {
   asked: 142,
   askedAtLeast: 142,
+  askedToday: true,
   found: 117,
   nothing: 25,
   mostAbout: 'Orders in Spain',
