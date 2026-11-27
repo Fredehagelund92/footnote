@@ -351,41 +351,36 @@ function Shell() {
         }}
       />
       <SidebarInset className="min-h-0 min-w-0 overflow-clip">
-        {isMobile ? (
-          <div className="h-full min-h-0">
+        {/* One tree at every width: the page keeps its place, so opening a peek keeps its search,
+            filters, ticked rows and scroll, and crossing to a phone's width keeps what it holds,
+            such as a connection just tested. On a phone the dock is a screen of its own, below. */}
+        <ResizablePanelGroup orientation="horizontal" id="shell">
+          <ResizablePanel id="page" minSize={isMobile ? undefined : 360}>
             <SafeScreen />
-          </div>
-        ) : (
-          // One group whether the dock is open or not: the page keeps its place, so opening a peek
-          // keeps its search, filters, ticked rows and scroll.
-          <ResizablePanelGroup orientation="horizontal" id="shell">
-            <ResizablePanel id="page" minSize={360}>
-              <SafeScreen />
-            </ResizablePanel>
-            {dock && <ResizableHandle withHandle />}
-            {dock && (
-              <ResizablePanel
-                id={`dock-${dock.width}`}
-                key={dock.width}
-                defaultSize={clamp(readWidth(`dock-${dock.width}`, dock.width), 400, 960)}
-                minSize={400}
-                maxSize={960}
-                groupResizeBehavior="preserve-pixel-size"
-                onResize={(size) => saveWidth(`dock-${dock.width}`, size.inPixels)}
+          </ResizablePanel>
+          {dock && !isMobile && <ResizableHandle withHandle />}
+          {dock && !isMobile && (
+            <ResizablePanel
+              id={`dock-${dock.width}`}
+              key={dock.width}
+              defaultSize={clamp(readWidth(`dock-${dock.width}`, dock.width), 400, 960)}
+              minSize={400}
+              maxSize={960}
+              groupResizeBehavior="preserve-pixel-size"
+              onResize={(size) => saveWidth(`dock-${dock.width}`, size.inPixels)}
+            >
+              {/* The dock arrives: a 16px slide and a fade in 220ms; its content changing (peek to peek) only fades. */}
+              <div
+                className="h-full dock-enter"
+                ref={(node) => {
+                  if (node) dockNode.current = node
+                }}
               >
-                {/* The dock arrives: a 16px slide and a fade in 220ms; its content changing (peek to peek) only fades. */}
-                <div
-                  className="h-full dock-enter"
-                  ref={(node) => {
-                    if (node) dockNode.current = node
-                  }}
-                >
-                  <SafeDock />
-                </div>
-              </ResizablePanel>
-            )}
-          </ResizablePanelGroup>
-        )}
+                <SafeDock />
+              </div>
+            </ResizablePanel>
+          )}
+        </ResizablePanelGroup>
         {leaving && <DockLeaving picture={leaving} />}
         {isMobile && dock && (
           <div className="fixed inset-0 z-dock dock-enter bg-background">
