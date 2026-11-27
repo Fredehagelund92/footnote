@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, test } from './go.ts'
+import { expect, go, signInAs, test } from './go.ts'
 
 // J137, the pixel pass: what a walk through every screen at 1440, tablet and phone widths found
 // cut, covered or off, each pinned by its number. The Inbox frame keeps its gutter under it. Under
@@ -247,8 +247,10 @@ test.describe('on a phone', () => {
       await go(page, route)
       await expect(page.locator('[data-site-header]')).toBeVisible()
       await page.evaluate(() => document.fonts.ready)
+      await expect
+        .poll(async () => (await headerControls(page)).length, { message: route })
+        .toBeGreaterThan(1)
       const controls = await headerControls(page)
-      expect(controls.length, route).toBeGreaterThan(1)
       // Drawn at the header's one size: the Inbox and the review once drew theirs 44 px, and
       // the Inbox's View as 28 by 44.
       expect(
@@ -321,8 +323,26 @@ test.describe('on a phone', () => {
   test('a footer whose main action comes last still gives that action the row (P03)', async ({
     page,
   }) => {
+    // Jon owns Sales, where the family waits: an admin makes him a member, and he signs in.
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await go(page, '/inbox?demo=families')
+    await signInAs(page, 'Ravi Kapoor')
+    await go(page, '/settings/people')
+    await page
+      .getByRole('list', { name: 'People' })
+      .getByRole('button', { name: /Jon Abara/ })
+      .click()
+    await page
+      .getByRole('radiogroup', { name: 'Role' })
+      .getByRole('radio', { name: 'Member' })
+      .click()
+    await expect(page.getByText('Jon Abara is a member now')).toBeVisible()
+    await signInAs(page, 'Jon Abara')
+    await page.setViewportSize({ width: 390, height: 844 })
     await go(page, '/inbox?card=names:waiting&dock=family.group:packaging_costs')
-    const main = page.getByRole('button', { name: /^Publish/ })
+    const main = page
+      .getByRole('region', { name: 'Suggested family' })
+      .getByRole('button', { name: 'Publish as a family' })
     await expect(main).toBeVisible()
     const buttons = await main.evaluate((b) =>
       [...b.parentElement!.children].map((el) => {
