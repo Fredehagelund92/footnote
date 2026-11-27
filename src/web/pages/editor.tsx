@@ -564,9 +564,11 @@ function Editor({
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setForm((f) => (Object.is(f[k], v) ? f : { ...f, [k]: v }))
   // A new item asks when it starts (an Event, when it happened) until the person has picked: the
-  // service keeps a start for every item, so a silent default would be a date they never chose.
+  // service keeps a start for every item, so a silent default would be a date they never chose. So
+  // does a draft that kept itself before a date was picked: its Always was never chosen either.
+  const datesOpen = mode === 'new' || original?.status === 'Draft'
   const [whenChosen, setWhenChosen] = React.useState(
-    () => mode !== 'new' || initial.when !== 'always',
+    () => !datesOpen || initial.when !== 'always',
   )
 
   const editor = useEditor({
@@ -660,7 +662,7 @@ function Editor({
   // leaves its source alone keeps the sentence it has.
   const quoteNeeded =
     mode === 'new' || form.source !== initial.source || form.quote !== initial.quote
-  const asksWhen = mode === 'new' && form.kind === 'event' && !whenChosen
+  const asksWhen = datesOpen && form.kind === 'event' && !whenChosen
   const missing = [
     !domains[form.domain] && 'a domain',
     !form.title && 'a title',

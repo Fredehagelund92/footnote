@@ -527,13 +527,14 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await guide.getByRole('button', { name: 'Discard' }).click()
   await expect(about).toHaveText('')
 
-  // Jon owns Sales with Ravi: the next journey is his.
+  // Jon owns Sales with Ravi: the next journey is his. Sofia owns it too, for the third, whose
+  // calls must not count against the minute Ravi's just made.
   const people = await read<{ id: string; name: string }[]>('/people')
   const idOf = (name: string) => people.find((p) => p.name === name)!.id
   await post(
     page,
     `/areas/${sales}/owners`,
-    { personIds: [idOf('Ravi Kapoor'), idOf('Jon Abara')] },
+    { personIds: [idOf('Ravi Kapoor'), idOf('Jon Abara'), idOf('Sofia Brandt')] },
     'PUT',
   )
 })
@@ -731,13 +732,13 @@ test('values people write, on an install that has none', async ({ browser }) => 
 /*
   A new owner's first item, on the same install (wave 2 of the cold first-use test): it keeps
   itself as a draft once it has words, so a reload loses nothing; When offers the day its text
-  names; and agents get the item with no line its writer never wrote. Ravi, whose last calls were
-  minutes ago, so the reload stays inside what one person may ask in a minute.
+  names; and agents get the item with no line its writer never wrote. Sofia, an owner of Sales
+  who has made no call yet: one person may make 600 calls a minute, and Ravi's and Jon's are spent.
 */
 test("a new owner's first item is never lost, and agents get only what was written", async ({
   browser,
 }) => {
-  const page = await signedInAs(browser, 'Ravi Kapoor')
+  const page = await signedInAs(browser, 'Sofia Brandt')
   const shot = (name: string) =>
     process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${name}.png` }) : null
   const title = 'Annual price went up on 1 September 2026'
