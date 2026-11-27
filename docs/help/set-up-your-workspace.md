@@ -27,7 +27,7 @@ The steps run in the order it happens later: you ask, nothing is written yet, yo
 
 <!-- /include -->
 
-![The setup checklist in the Inbox: Set up your workspace so agents can use what you know, 0 of 4 done. Publish your names says the names go under Sales, with its button Publish 5 names; the other three steps have Ask, Write context and Copy the prompt. The foot links to About our business.](../images/docs/setup-light.webp)
+![The setup checklist in the Inbox: Set up your workspace so agents can use what you know, 0 of 4 done. Publish your names says the names go under Sales, with its button Publish 5 names; the other three steps have Ask, Write context and Connect an agent. The foot links to About our business.](../images/docs/setup-light.webp)
 
 ## The page for each step
 

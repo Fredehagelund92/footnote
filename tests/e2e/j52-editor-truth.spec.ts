@@ -135,7 +135,34 @@ test('a new page that holds nothing has no status to give', async ({ page }) => 
   const statusRow = page.locator('div', { has: page.locator('dt', { hasText: /^Status$/ }) }).last()
   await expect(statusRow.locator('dd')).toHaveText('Not published yet')
   await title(page, 'Orders are counted when they ship')
-  await expect(status(page)).toHaveText('Not saved yet')
+  // A new item keeps itself as the writer's draft once it has words: the address names it, so a
+  // reload opens it, and leaving asks nothing.
+  await expect(status(page)).toHaveText('Saved')
+  await expect(page).toHaveURL(/\/context\/new\?saved=/)
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeFocused()
+  await page.getByRole('button', { name: 'Back to Context' }).click()
+  await expect(page.getByRole('dialog', { name: 'Leave without saving?' })).toHaveCount(0)
+  await expect(page).toHaveURL(/\/context$/)
+})
+
+test('a new item keeps every later edit of its draft too, and a reload shows them all', async ({
+  page,
+}) => {
+  await newContext(page)
+  await title(page, 'Orders are counted when they ship')
+  await expect(status(page)).toHaveText('Saved')
+  await expect(page).toHaveURL(/\/context\/new\?saved=/)
+  await text(page, 'Shipped orders count, whatever the payment says.')
+  await expect(status(page)).toHaveText('Saved')
+  await page.getByRole('textbox', { name: 'Title' }).fill('Orders are counted at shipping')
+  await expect(status(page)).toHaveText('Saved')
+  await inHttpOnly('a reload reads the draft the service holds', async () => {
+    await page.reload()
+    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue(
+      'Orders are counted at shipping',
+    )
+    await expect(page.getByText('Shipped orders count, whatever the payment says.')).toBeVisible()
+  })
 })
 
 test('offline, the status says nothing is kept, not that it is saved on this device', async ({
@@ -206,7 +233,8 @@ test("the service's reason is marked at the field it is about, not in a sentence
     await expect(banner).not.toContainText('Fix the problems shown')
     await expect(page.getByText(/This looks like a private detail/)).toBeVisible()
     await expect(page.getByText('Not published', { exact: true })).toBeVisible()
-    await expect(status(page)).toHaveText('Not saved')
+    // The draft it keeps of itself is refused for the same detail, so it is not saved either.
+    await expect(status(page)).toHaveText('Not savedTry again')
     // The title is not cut off by the banner coming into view.
     await expect(page.getByRole('textbox', { name: 'Title' })).toBeInViewport()
 
@@ -238,11 +266,20 @@ test('an event asks when it happened, and Always is a choice that stays Always',
   await expect(row(page, 'When')).toContainText('Always')
   await expect(publish(page)).not.toHaveAccessibleDescription(/when it happened/)
 
-  // What the service will add for the writer is shown before, not after.
-  await expect(row(page, "Don't conclude").getByRole('textbox')).toHaveAttribute(
+  // Left empty, nothing is added for the writer: agents get no line they did not write. A cause
+  // in the text is theirs, and the field says so where they would add a doubt about it.
+  const dont = row(page, "Don't conclude")
+  await expect(dont.getByRole('textbox')).toHaveAttribute(
     'placeholder',
-    'Left empty, agents are told: Cause not proven.',
+    'What agents must not read into it, such as a cause nobody has shown',
   )
+  await expect(dont).not.toContainText('gives a cause')
+  await text(page, 'Returns rose in October because the new sizes ran small.')
+  await expect(dont).toContainText(
+    'Your text gives a cause (“because”), and agents pass it on as yours. If nobody has shown it, say so here.',
+  )
+  await dont.getByRole('textbox').fill('That the sizes alone caused it.')
+  await expect(dont).not.toContainText('gives a cause')
 })
 
 test('a rule does not ask, and what the writer picks is what the item says after it is published', async ({

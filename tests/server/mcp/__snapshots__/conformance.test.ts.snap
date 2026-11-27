@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "502d974939d00f8ebc8836340e1f078257c46470731465836ccabd4ac0f4fc4b",
+  "digest": "9f6911dbb2c972436a59d0b0573bfd4e67a158a96cb02f28ff27a44403677ab4",
   "tools": [
     {
       "_meta": {
@@ -1567,7 +1567,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
         "openWorldHint": false,
         "readOnlyHint": false,
       },
-      "description": "Write or change a draft of the person's own. It is never sent. Use it to write context with the person: it saves a draft in Footnote that is theirs, and never sends it. Without draft_id it starts a new draft from text, a new item or, with item_id, a change to a published one, and gives back its draft_id, revision and link: give the person the link, where they can edit it too. Only what can be worked out is filled in, and every field is marked for the owner. With draft_id and the revision you last read, it changes only the fields you pass, one value replacing another. The person may have edited the draft since: a field they changed after that revision keeps their words and comes back in conflicts with its value now, while the others change. So read it with read_draft first whenever the person may have edited it, and never write a field back as you remember it. You may suggest the kind, title, summary, body, where it applies, when it applies, where it comes from and what not to conclude. The domain, owner, review date, references and definition marks are worked out for you, the cause, risk level and audience take their defaults, and the mentions, who stated the effect, the stated effect, replaces and conflicts are never filled from what you pass. Pass the words and names: they're matched to the vocabulary, so never invent a metric key or a link, and give a date the person is unsure of only with window.uncertain. Don't include names of customers or staff, personal data, secrets, question text or a transcript: text that looks like personal data or a secret, and words that read like orders to an AI agent, are refused, on a change as on a new draft. If it lists possible duplicates, ask the person, then call again with item_id or new_item. For a law or a regulation, write an event: the window from the day it takes effect as its text says, evidence from the official text, and not_to_conclude saying that it is not legal advice and whether the measure is provisional. A draft that was sent can't be changed. Tell the person what you changed, and ask whether to send it: on their yes, call send_draft with this revision. How to write a draft: The summary is what agents read first: at most 280 characters, in plain words, saying what happened, where and when, so that it stands alone. Detail, caveats and what the item does not mean go in the body and in what not to conclude, never in the summary. Claim no cause unless the source states one. Name metrics and markets as the person does: the product matches their names to its own, so never invent a key. When the person is unsure of the date or gives none, draft anyway with your best start date, flag the dates as uncertain and say what you assumed; ask only for what you cannot fill. One fact per item: two things that happened are two items.",
+      "description": "Write or change a draft of the person's own. It is never sent. Use it to write context with the person: it saves a draft in Footnote that is theirs, and never sends it. Without draft_id it starts a new draft from text, a new item or, with item_id, a change to a published one, and gives back its draft_id, revision and link: give the person the link, where they can edit it too. Only what can be worked out is filled in, and every field is marked for the owner. With draft_id and the revision you last read, it changes only the fields you pass, one value replacing another. The person may have edited the draft since: a field they changed after that revision keeps their words and comes back in conflicts with its value now, while the others change. So read it with read_draft first whenever the person may have edited it, and never write a field back as you remember it. You may suggest the kind, title, summary, body, where it applies, when it applies, where it comes from and what not to conclude. The domain, owner, review date, references and definition marks are worked out for you, the cause, risk level and audience take their defaults, and the mentions, who stated the effect, the stated effect, replaces and conflicts are never filled from what you pass. Pass the words and names: they're matched to the vocabulary, so never invent a metric key or a link, and give a date the person is unsure of only with window.uncertain. Don't include names of customers or staff, personal data, secrets, question text or a transcript: text that looks like personal data or a secret, and words that read like orders to an AI agent, are refused, on a change as on a new draft. If it lists possible duplicates, ask the person, then call again with item_id or new_item. For a law or a regulation, write an event: the window from the day it takes effect as its text says, evidence from the official text, and not_to_conclude saying that it is not legal advice and whether the measure is provisional. A draft that was sent can't be changed. Tell the person what you changed, and ask whether to send it: on their yes, call send_draft with this revision. To write context from a document, save each item as its own draft and send none: the person reviews them and publishes them together in Your drafts, in Footnote's Inbox. The person's agents may save 50 new drafts in 24 hours, with 50 waiting unsent, unless an admin set other numbers: each new draft's reply says in drafts how many wait and the most allowed, and past it nothing is saved. How to write a draft: The summary is what agents read first: at most 280 characters, in plain words, saying what happened, where and when, so that it stands alone. Detail, caveats and what the item does not mean go in the body and in what not to conclude, never in the summary. Claim no cause unless the source states one. Name metrics and markets as the person does: the product matches their names to its own, so never invent a key. When the person is unsure of the date or gives none, draft anyway with your best start date, flag the dates as uncertain and say what you assumed; ask only for what you cannot fill. One fact per item: two things that happened are two items.",
       "inputSchema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1830,6 +1830,30 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
           },
           "draft_id": {
             "type": "string",
+          },
+          "drafts": {
+            "additionalProperties": false,
+            "properties": {
+              "most_new_in_24_hours": {
+                "type": "number",
+              },
+              "most_waiting": {
+                "type": "number",
+              },
+              "new_in_24_hours": {
+                "type": "number",
+              },
+              "waiting": {
+                "type": "number",
+              },
+            },
+            "required": [
+              "waiting",
+              "most_waiting",
+              "new_in_24_hours",
+              "most_new_in_24_hours",
+            ],
+            "type": "object",
           },
           "fields": {
             "additionalProperties": {

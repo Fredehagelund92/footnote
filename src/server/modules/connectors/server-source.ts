@@ -3,6 +3,7 @@ import * as z from 'zod'
 import { builtInConnectors } from '../../../connectors/index.ts'
 import { manifest as cubeManifest } from '../../../connectors/cube/manifest.ts'
 import { contentDigest } from '../../../domain/canonical.ts'
+import { invalidDomain } from '../../../domain/definition-helpers.ts'
 import { fromModule, withChosenGroups, withListedGroups, type StoredScope } from './platform.ts'
 import {
   renameSchema,
@@ -93,7 +94,7 @@ export function withOverrides(
     if (override === undefined || override === '') return definition
     const domain = mapped(view)
     if (domain === null) {
-      warnings.push({ code: 'invalid_domain', target: `override:${view}` })
+      warnings.push({ ...invalidDomain(`override:${view}`, override) })
       return definition
     }
     warnings.push({ code: 'domain_override', target: definition.ref })

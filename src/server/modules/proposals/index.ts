@@ -15,6 +15,7 @@ export {
   patchAgentDraft,
   refusedWords,
   saveAgentDraft,
+  type AgentDraftCount,
   type AgentDraftRequest,
   type AgentPatchRequest,
   type AgentPatchResult,

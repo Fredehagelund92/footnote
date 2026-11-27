@@ -303,7 +303,6 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
             url: 'https://example.test/law',
             quote: 'Online sales are stopped from 4 August.',
           },
-          not_to_conclude: 'cause not proven',
           url: '/context/itm_norway01',
         },
       ],

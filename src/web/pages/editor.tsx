@@ -48,7 +48,9 @@ import {
   useHelp,
   type HelpDesk,
 } from '@/lib/writing-help'
+import { useAutosave, type SaveState } from '@/lib/autosave'
 import { problemsOf, sourceProblem, type EditorField } from '@/lib/editor-problems'
+import { causeIn } from '@/lib/cause-words'
 import '@/components/editor/style.css'
 import { docExtensions } from '@/lib/doc-extensions'
 import { noteEmoji } from '@/lib/emoji-note'
@@ -65,6 +67,7 @@ import {
   validOfWhen,
   whenOfPeriod,
   whenOfValid,
+  whensOfText,
   whenSummary,
   type WhenMode,
   type WhenValue,
@@ -97,7 +100,6 @@ import { LoadError, NoSuchItem } from '@/components/footnote/load-state'
 import { readOf } from '@/lib/read'
 import { Loading } from '@/App'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
@@ -142,6 +144,7 @@ import { relationWords } from '@domain/clash-relations'
 import { instructionWords } from '@domain/instruction-words'
 import {
   draftFromTextQuery,
+  draftNowQuery,
   itemPageQuery,
   useInbox,
   useVocabulary,
@@ -181,7 +184,6 @@ type Form = {
   until: string
   source: string
   quote: string
-  causes: boolean
   dontConclude: string
 }
 
@@ -198,7 +200,6 @@ const BLANK: Form = {
   until: '',
   source: '',
   quote: '',
-  causes: false,
   dontConclude: '',
 }
 
@@ -247,9 +248,7 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
     until: w.until,
     source: f.source,
     quote: f.quote,
-    causes: !!f.causes,
-    // The line agents are told when nobody wrote one is the field left empty, not words in it.
-    dontConclude: /^cause not proven\.?$/i.test(f.dontConclude.trim()) ? '' : f.dontConclude,
+    dontConclude: f.dontConclude,
   }
 }
 
@@ -282,8 +281,8 @@ function toFact(f: Form, id: string, me: string, domains: Domains, original?: Fa
     checkedOn: '22 Oct 2026',
     source: f.source,
     quote: f.quote,
-    dontConclude: f.dontConclude || 'Cause not proven.',
-    causes: f.causes,
+    // Left empty, the item says nothing more: the service keeps its default, which agents never get.
+    dontConclude: f.dontConclude.trim(),
   }
 }
 
@@ -458,12 +457,17 @@ function RelationRow({
 
 /* ---------- the page ---------- */
 
-export function FactEditor(props: { mode: 'new' | 'edit' | 'suggest'; factId?: string }) {
+export function FactEditor(asked: { mode: 'new' | 'edit' | 'suggest'; factId?: string }) {
+  const { query } = useRoute()
   // ?draft=norway opens the editor as Draft from text fills it, so that state has a link.
   const fromText = useQuery({
     ...draftFromTextQuery(''),
-    enabled: useRoute().query.get('draft') === 'norway',
+    enabled: query.get('draft') === 'norway',
   })
+  // A new item that kept itself as a draft (?saved=) opens as that draft after a reload. Read once:
+  // the address names it while the page is open too, and the page is the same page.
+  const [saved] = React.useState(() => (asked.mode === 'new' && query.get('saved')) || undefined)
+  const props = saved ? { mode: 'edit' as const, factId: saved } : asked
   // An edit or a suggestion starts from the item's own read, which has its text, source and quote;
   // the list's row is all there is when that read fails.
   const page = useQuery({ ...itemPageQuery(props.factId ?? ''), enabled: !!props.factId })
@@ -582,10 +586,10 @@ function Editor({
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setForm((f) => (Object.is(f[k], v) ? f : { ...f, [k]: v }))
   // A new item asks when it starts (an Event, when it happened) until the person has picked: the
-  // service keeps a start for every item, so a silent default would be a date they never chose.
-  const [whenChosen, setWhenChosen] = React.useState(
-    () => mode !== 'new' || initial.when !== 'always',
-  )
+  // service keeps a start for every item, so a silent default would be a date they never chose. So
+  // does a draft that kept itself before a date was picked: its Always was never chosen either.
+  const datesOpen = mode === 'new' || original?.status === 'Draft'
+  const [whenChosen, setWhenChosen] = React.useState(() => !datesOpen || initial.when !== 'always')
 
   const editor = useEditor({
     immediatelyRender: true,
@@ -611,12 +615,16 @@ function Editor({
     source: 'source',
     dontConclude: 'dont',
   }
+  // A new item that kept itself as a draft: the page goes on as that draft, as one opened again.
+  const [kept, setKept] = React.useState<Fact | null>(null)
+  // The person's own draft the page holds, which saves itself: the one it opened, or the one kept.
+  const own = original?.session && original.by === me.name ? original : (kept ?? undefined)
   const session = useDraftSession({
-    draft: original?.session && original.by === me.name ? original : undefined,
+    draft: own,
     form,
     setForm,
     formOf: (f) => fromFact(f, domains, vocabulary),
-    factOf: (f) => toFact(f, original?.id ?? 'draft', me.name, domains, original),
+    factOf: (f) => toFact(f, original?.id ?? kept?.id ?? 'draft', me.name, domains, original),
     typing: (field) => {
       const active = document.activeElement
       if (field === 'title') return active === titleRef.current
@@ -629,7 +637,7 @@ function Editor({
     onError: (error) =>
       toast("Couldn't save your draft", { description: toApiError(error).message }),
     // What writing help changed is its turn's change, kept beside the chat for its Undo.
-    onHelped: (change) => original && noteHelpChange(original.id, change),
+    onHelped: (change) => own && noteHelpChange(own.id, change),
   })
 
   const trying = useDock()?.kind === 'try'
@@ -649,8 +657,11 @@ function Editor({
     domain: domains[form.domain]?.name ?? '',
   })
   const KindIcon = kindIcons[form.kind]
+  // The draft this page saved itself into (a new item once it has words): its id from then on.
+  const [savedId, setSavedId] = React.useState<string | null>(null)
+  const savedRef = React.useRef<string | null>(null)
   const draft = {
-    ...toFact(form, original?.id ?? 'draft', me.name, domains, original),
+    ...toFact(form, original?.id ?? savedId ?? 'draft', me.name, domains, original),
     ...(base ? { version: base } : {}),
   }
   React.useEffect(() => setDraft(draft))
@@ -677,7 +688,7 @@ function Editor({
   // leaves its source alone keeps the sentence it has.
   const quoteNeeded =
     mode === 'new' || form.source !== initial.source || form.quote !== initial.quote
-  const asksWhen = mode === 'new' && form.kind === 'event' && !whenChosen
+  const asksWhen = datesOpen && form.kind === 'event' && !whenChosen
   const missing = [
     !domains[form.domain] && 'a domain',
     !form.title && 'a title',
@@ -699,6 +710,13 @@ function Editor({
     () => instructionWords([form.title, text, form.quote].join('\n')),
     [form.title, text, form.quote],
   )
+  // The dates the title and the text name, offered in When in one press.
+  const whenOffers = React.useMemo(
+    () => whensOfText(`${form.title}\n${text}`, today()),
+    [form.title, text],
+  )
+  // A cause the text gives, which agents pass on as the writer's words.
+  const cause = causeIn(`${form.title}\n${text}`)
   // Long enough to clamp: about six lines of the preview's width.
   const long = text.split('\n').filter(Boolean).length + Math.floor(text.length / 45) > 6
 
@@ -728,17 +746,71 @@ function Editor({
     toast('Filled from your text', { description: 'Check each part before you publish.' })
   }
 
-  // Nothing is kept until Save: words that differ from what the page opened with are unsaved.
+  // Words that differ from what the page opened with.
   const edited = JSON.stringify(form) !== JSON.stringify(initial)
   // A draft nobody has published goes as it is: publishing its words is the change.
   const asIs = mode !== 'new' && original?.status === 'Draft' && !edited ? original : undefined
   const unchanged = mode !== 'new' && !edited && !asIs
+  // A new item keeps itself as a draft once there are words and a domain to keep them in (FR-230):
+  // a reload, a closed tab or a crash loses nothing. From then on it is that draft, which saves
+  // itself as any of the writer's drafts do. A change to a published item, or to someone else's
+  // draft, is kept only by its Save.
+  const hasWords = !!(form.title.trim() || form.body.trim())
+  const keepsItself =
+    !session.on &&
+    !beside &&
+    !starting &&
+    mode === 'new' &&
+    !savedId &&
+    !!domains[form.domain] &&
+    hasWords
+  const gapId = query.get('gap') ?? undefined
+  const autosave = useAutosave<Fact>({
+    save: async (fact) => {
+      let id = savedRef.current
+      if (!id) {
+        const saved = await write('saveDraft', { fact, isNew: true, gap: gapId })
+        id = saved.id
+        savedRef.current = id
+        setSavedId(id)
+        // The address names the draft, so a reload opens it again; the page stays as it is, with
+        // the cursor where it was.
+        navigate('/context/new', { ...Object.fromEntries(query), saved: id }, { replace: true })
+      }
+      const stored = await queryClient.fetchQuery(draftNowQuery(id))
+      if (stored?.session) setKept(stored)
+    },
+    onError: (error) =>
+      toast("Couldn't save it as a draft", { description: toApiError(error).message }),
+  })
+  // Each change of what it holds is kept, a moment after the typing stops; its id is the save's.
+  const draftKey = JSON.stringify({ ...draft, id: 'draft' })
+  const { change } = autosave
+  React.useEffect(() => {
+    if (keepsItself && edited) change(JSON.parse(draftKey) as Fact)
+  }, [draftKey, keepsItself, edited, change])
+  // What the header says: a page that keeps itself says whether it is kept; any other holds words
+  // that are not saved until its Save.
+  const saveState: SaveState =
+    sendState === 'failed'
+      ? 'failed'
+      : sendState === 'sending'
+        ? 'saving'
+        : keepsItself || savedId
+          ? autosave.status
+          : !edited
+            ? 'clean'
+            : online
+              ? 'dirty'
+              : 'offline'
   // Words in the first box are the person's too, until they are filled in. A draft that saves
   // itself holds back only what it could not save: the rest is sent on the way out.
   const guard = useLeaveGuard(
     session.on
       ? session.status === 'failed' || session.status === 'offline'
-      : edited || (starting && !!pasted.trim()),
+      : keepsItself || savedId
+        ? !['saved', 'clean'].includes(autosave.status)
+        : edited || (starting && !!pasted.trim()),
   )
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
@@ -826,13 +898,19 @@ function Editor({
     // A draft that saves itself is stored as it reads before it goes.
     if (session.on) await session.flush()
     if (asIs) return publishAsIs(asIs)
+    // A draft this page keeps is sent or published as itself, once what it holds is stored: a
+    // save still on its way would otherwise leave a draft beside what is published.
+    if (keepsItself || (savedRef.current && !session.on))
+      await autosave.flush().catch(() => undefined)
+    const kept = original?.id ?? savedRef.current ?? undefined
+    const fact = { ...draft, id: kept ?? draft.id }
     if (isSuggest) {
       // It waits visibly: a line on the item, and a row under All in your Inbox.
       const { id } = await write('sendSuggestion', {
-        fact: draft,
+        fact,
         gap: query.get('gap') ?? undefined,
         sent: {
-          factId: original?.id,
+          factId: kept,
           title: form.title,
           by: me.name,
           to: ownerName,
@@ -850,8 +928,8 @@ function Editor({
       return
     }
     const { id } = await write('saveItem', {
-      fact: draft,
-      isNew: !original,
+      fact,
+      isNew: !kept,
       // Each overlap as the owner answered it; one left alone is unrelated, as it reads.
       relations: {
         ...Object.fromEntries(overlaps.map((f) => [f.id, overlap[f.id] ?? 'unrelated'])),
@@ -964,11 +1042,17 @@ function Editor({
     }
     setSavingDraft(true)
     try {
-      const { id } = await write('saveDraft', {
-        fact: draft,
-        isNew: !original,
-        gap: query.get('gap') ?? undefined,
-      })
+      // A page that keeps itself has saved it already: what is still on its way goes, then the
+      // person is taken to the draft.
+      if (session.on) await session.flush()
+      else if (keepsItself || savedRef.current) await autosave.flush()
+      const { id } = savedRef.current
+        ? { id: savedRef.current }
+        : await write('saveDraft', {
+            fact: draft,
+            isNew: !original,
+            gap: query.get('gap') ?? undefined,
+          })
       guard.release()
       toast('Saved as a draft', {
         description: "Only you can see it. Agents don't get it until it is published.",
@@ -997,20 +1081,40 @@ function Editor({
       ready: async () => {
         if (session.on) {
           await session.flush()
-          return original!.id
+          return own!.id
         }
-        // Kept as the person's own draft, as Save as draft keeps it; what the form left empty
-        // stays empty, for writing help or the person to fill in.
-        const { id } = await write('startWritingHelp', {
-          fact: { ...draft, title: form.title, dontConclude: form.dontConclude },
-          isNew: !original,
-          gap: query.get('gap') ?? undefined,
-        })
-        guard.release()
+        // What the form left empty stays empty, for writing help or the person to fill in.
+        const start = (isNew: boolean) =>
+          write('startWritingHelp', {
+            fact: { ...draft, title: form.title },
+            isNew,
+            gap: gapId,
+          })
+        if (original) {
+          // A change to a published item is kept as the person's draft of it, as Save as draft
+          // keeps it, and the page moves to that draft.
+          const { id } = await start(false)
+          guard.release()
+          moveHelpChat(id)
+          // Read before the page moves there, so the draft opens at once.
+          await queryClient.fetchQuery({ ...itemPageQuery(id), staleTime: 0 }).catch(() => null)
+          navigate(`/context/${id}/edit`, { dock: 'write' }, { replace: true })
+          return null
+        }
+        // A new item is the draft it keeps itself as (FR-230): the one already on its way, or one
+        // started now for a page with no words yet. The page goes on as that draft, where it is.
+        if (keepsItself || savedRef.current) await autosave.flush()
+        let id = savedRef.current
+        if (!id) {
+          id = (await start(true)).id
+          savedRef.current = id
+          setSavedId(id)
+          navigate('/context/new', { ...Object.fromEntries(query), saved: id }, { replace: true })
+        }
+        const stored = await queryClient.fetchQuery({ ...draftNowQuery(id), staleTime: 0 })
+        if (!stored?.session) throw new ApiError('not-found', 'This draft was sent or deleted.')
         moveHelpChat(id)
-        // Read before the page moves there, so the draft opens at once.
-        await queryClient.fetchQuery({ ...itemPageQuery(id), staleTime: 0 }).catch(() => null)
-        navigate(`/context/${id}/edit`, { dock: 'write' }, { replace: true })
+        setKept((now) => now ?? stored)
         return null
       },
       ask: (input, live) => write('writingHelp', { ...input, live }),
@@ -1018,7 +1122,7 @@ function Editor({
       revert: session.revert,
     }
   })
-  const helpDraft = session.on ? original!.id : null
+  const helpDraft = session.on ? own!.id : null
   React.useEffect(() => {
     if (!helpThere) return
     setHelpDesk({
@@ -1139,13 +1243,14 @@ function Editor({
               {form.source.replace(/^https?:\/\//, '') || 'No source yet'}
             </span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {/* As a sentence, before the next one: the service's own line is "cause not proven". */}
-            <span className="text-foreground">Don't conclude:</span>{' '}
-            {draft.dontConclude.charAt(0).toUpperCase() +
-              draft.dontConclude.slice(1).replace(/[^.!?]$/, '$&.')}
-            {form.causes ? '' : " The source doesn't say this caused a change."}
-          </p>
+          {draft.dontConclude && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {/* As a sentence, before the next one: the service's own line is "cause not proven". */}
+              <span className="text-foreground">Don't conclude:</span>{' '}
+              {draft.dontConclude.charAt(0).toUpperCase() +
+                draft.dontConclude.slice(1).replace(/[^.!?]$/, '$&.')}
+            </p>
+          )}
         </div>
       </PanelGroup>
     </>
@@ -1273,23 +1378,14 @@ function Editor({
       header={
         <>
           <SiteHeader title={heading} icon={<FilePenLineIcon />} back={back} bare>
-            {/* Nothing is kept until Save, so a new page that holds nothing yet has nothing to say. */}
+            {/* A new page that holds nothing yet has nothing to say. */}
             {session.on ? (
               <SaveStatus status={session.status} retry={session.retry} />
             ) : (
               (mode !== 'new' || edited) && (
                 <SaveStatus
-                  status={
-                    sendState === 'failed'
-                      ? 'failed'
-                      : sendState === 'sending'
-                        ? 'saving'
-                        : !edited
-                          ? 'clean'
-                          : online
-                            ? 'dirty'
-                            : 'offline'
-                  }
+                  status={saveState}
+                  retry={autosave.status === 'failed' ? autosave.retry : undefined}
                 />
               )
             )}
@@ -1756,6 +1852,7 @@ function Editor({
                 label="Applies to"
                 value={form.where}
                 onChange={(w) => set('where', w)}
+                nothingPublished={noWords}
                 placeholder={
                   exampleDimension
                     ? `Add a metric, or a dimension such as ${exampleDimension}`
@@ -1776,6 +1873,7 @@ function Editor({
                 labelId={fieldId('when')}
                 value={whenOf(form)}
                 asking={asksWhen ? 'When did it happen? Pick a date' : undefined}
+                offers={whenOffers}
                 onChange={(w) => {
                   setWhenChosen(true)
                   setForm((f) => ({ ...f, when: w.mode, from: w.from, until: w.until }))
@@ -1833,16 +1931,6 @@ function Editor({
                       className="min-h-16"
                     />
                   </Field>
-                  <Field orientation="horizontal">
-                    <Checkbox
-                      id="fact-causes"
-                      checked={form.causes}
-                      onCheckedChange={(v) => set('causes', !!v)}
-                    />
-                    <FieldLabel htmlFor="fact-causes" className="font-normal">
-                      The source says this caused the change
-                    </FieldLabel>
-                  </Field>
                 </div>
               </PickerField>
               {versionOf('source', 'mt-1 mb-2 max-w-xl')}
@@ -1858,8 +1946,14 @@ function Editor({
                 labelId={fieldId('dont')}
                 value={form.dontConclude}
                 onChange={(v) => set('dontConclude', v)}
-                placeholder="Left empty, agents are told: Cause not proven."
+                placeholder="What agents must not read into it, such as a cause nobody has shown"
               />
+              {cause && !form.dontConclude.trim() && (
+                <p className="pt-0.5 pb-1 text-xs text-muted-foreground">
+                  Your text gives a cause (“{cause}”), and agents pass it on as yours. If nobody has
+                  shown it, say so here.
+                </p>
+              )}
               {versionOf('dontConclude', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             {/* A draft, or a suggestion sent back, was never checked: it has no such row. */}

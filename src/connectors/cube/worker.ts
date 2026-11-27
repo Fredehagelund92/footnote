@@ -11,6 +11,7 @@ import {
   declaredFamily,
   descriptionCopy,
   domainHint,
+  invalidDomain,
   filterVariant,
   meaningMark,
   synonymsOf,
@@ -40,6 +41,7 @@ type Warning = {
   code:
     'unsupported_file' | 'unreadable_file' | 'invalid_domain' | 'missing_domain' | 'invalid_family'
   target: string
+  value?: string
 }
 
 /** A read that fails for a reason Sources names: a fixed code, never the compiler's message. */
@@ -279,7 +281,7 @@ async function compile(
   for (const { config } of metaTransformer.cubes) {
     if (!config.isVisible) continue
     const viewDomain = domainHint(record(config.meta).domain, aliases)
-    if (viewDomain.invalid) warnings.push({ code: 'invalid_domain', target: config.name })
+    if (viewDomain.invalid) warnings.push(invalidDomain(config.name, record(config.meta).domain))
     else if (viewDomain.areaHint === null)
       warnings.push({ code: 'missing_domain', target: config.name })
     const dimensions = dimensionsOf(config.dimensions)
@@ -290,7 +292,8 @@ async function compile(
       for (const member of members) {
         if (!member.isVisible) continue
         const memberDomain = domainHint(record(member.meta).domain, aliases)
-        if (memberDomain.invalid) warnings.push({ code: 'invalid_domain', target: member.name })
+        if (memberDomain.invalid)
+          warnings.push(invalidDomain(member.name, record(member.meta).domain))
         // A member's own valid domain wins over its view's.
         const domain = memberDomain.areaHint === null ? viewDomain : memberDomain
         const variant =
@@ -344,7 +347,10 @@ async function compile(
     definitions,
     warnings: [
       ...new Map(
-        warnings.map((warning) => [`${warning.code}:${warning.target}`, warning]),
+        warnings.map((warning) => [
+          `${warning.code}:${warning.target}:${warning.value ?? ''}`,
+          warning,
+        ]),
       ).values(),
     ],
   }

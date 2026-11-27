@@ -260,7 +260,7 @@ export function createMockApi() {
     domain: ['domain'],
     where: ['where', 'scope'],
     when: ['valid'],
-    source: ['source', 'quote', 'causes'],
+    source: ['source', 'quote'],
     dontConclude: ['dontConclude'],
   }
   /** One more revision of a draft, with the fields it changed stamped with who changed them. */
@@ -514,11 +514,11 @@ export function createMockApi() {
         domain: domains.size === 1 ? [...domains][0]! : '',
         for: me(),
         when: 'Today, 09:20',
-        ...draftsWords({ imported: ids.length, old: 0 }),
+        ...draftsWords({ imported: ids.length, agent: 0, old: 0 }),
         detail: '',
         primary: 'Publish all',
         secondary: ['See them in Context'],
-        drafts: { ids, imported: ids.length, old: 0 },
+        drafts: { ids, imported: ids.length, agent: 0, old: 0 },
       },
     ]
   }

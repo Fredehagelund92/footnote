@@ -54,7 +54,7 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 2. What agents should know: two or three sentences, with what it is not if people mix it up.
 3. Where and when it applies: the metrics and markets, and the dates.
 4. A source anyone can open. The check date is set for you.
-5. Don't conclude: the one line that stops an agent from reading a cause into it.
+5. Don't conclude: the one line that stops an agent from reading a cause into it. Left empty, agents get no such line, and a cause your text gives is passed on as yours.
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
 
@@ -64,7 +64,9 @@ The new value goes to the owner with your item, and publishing the item publishe
 
 ## Save as draft
 
-Not finished yet? Choose **Save as draft** in the editor. A draft is yours alone: only you see it in Context, with the chip Draft, and agents don't get it. Open it to finish it, then publish it, or send it to the domain's owners, from its page. You can also delete it there.
+A new item saves itself as your draft once it has a title or a sentence, and the header says Saved. A reload, or a closed tab, loses nothing: open it again from Context. Your own draft keeps saving itself as you change it.
+
+Not finished yet? Choose **Save as draft** in the editor to leave it for later. A draft is yours alone: only you see it in Context, with the chip Draft, and agents don't get it. Open it to finish it, then publish it, or send it to the domain's owners, from its page. You can also delete it there.
 
 Once it is a draft, it saves itself as you write: the top of the editor says Saved.
 
@@ -77,7 +79,9 @@ Your own agent can write a draft for you and change it, with `write_draft` (see 
 - A small mark beside a field means only your agent has written it, and nobody has read it yet. It goes once you change the field.
 - Claude looks again when you write to it: it sees your changes the next time it reads the draft, not while you type.
 
-Drafts you imported, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
+Drafts you imported, drafts your agents wrote for you, and drafts you haven't saved for 30 days, wait on one card in your Inbox, Your drafts.
+
+An agent can turn a page of your wiki into several drafts at once, and sends none of them: you read them here and publish them together. Its one button publishes each where you may and sends the rest to the owners of their domains. A draft that needs a fix first stays, with what it needs.
 
 Open a draft on the card to read it in the card's place. The bar says where you are, such as 5 of 21, and J and K go to the next draft and the one before. Esc, or the arrow beside 21 drafts, goes back to the list where you left it.
 

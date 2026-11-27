@@ -490,6 +490,15 @@ export const writeDraftOutput = z
       .optional(),
     areas: z.array(z.strictObject({ id: z.string(), name: z.string() })).optional(),
     possible_duplicates: z.array(listed).optional(),
+    /** After a new draft: the person's agent drafts against `limits.agent_drafts`. */
+    drafts: z
+      .strictObject({
+        waiting: z.number(),
+        most_waiting: z.number(),
+        new_in_24_hours: z.number(),
+        most_new_in_24_hours: z.number(),
+      })
+      .optional(),
   })
   .loose()
 /** What `read_draft` returns: the person's draft as it is now, or a refusal. */

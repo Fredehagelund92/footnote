@@ -125,12 +125,53 @@ const titled = (text: string) =>
     .join(' ')
 
 /**
+ * Short forms people write in capitals, whatever case a model or Cube's own title gives them: a
+ * member `mrr` with no title is "MRR", never "Mrr", and `churned_mrr` is "Churned MRR".
+ */
+const SHORT_FORMS = new Set([
+  'acv',
+  'aov',
+  'arpa',
+  'arpu',
+  'arr',
+  'cac',
+  'clv',
+  'cpa',
+  'cpc',
+  'cpm',
+  'ctr',
+  'dau',
+  'ebitda',
+  'gmv',
+  'grr',
+  'kpi',
+  'ltv',
+  'mau',
+  'mrr',
+  'nps',
+  'nrr',
+  'roas',
+  'roi',
+  'sku',
+  'wau',
+])
+const withShortForms = (name: string) =>
+  name.replace(/\b[\p{L}]+\b/gu, (word) =>
+    SHORT_FORMS.has(word.toLowerCase()) ? word.toUpperCase() : word,
+  )
+
+/**
  * A member's name as people read it: its title without the view's title in front ("Orders
  * Returns" is "Returns"), or its own name in words ("sum_cost" is "Sum cost"). A member a view
  * joins with a prefix reads as its own name: Cube titles `orders.store_store_name` "Orders
  * Store Store Name", which reads "Store name"; a title the authors gave loses the join's words.
+ * Short forms such as MRR are in capitals.
  */
 export function memberName(member: Pick<CandidateMember, 'name' | 'title' | 'baseName'>): string {
+  return withShortForms(plainMemberName(member))
+}
+
+function plainMemberName(member: Pick<CandidateMember, 'name' | 'title' | 'baseName'>): string {
   const view = viewOf(member.name)
   const afterView = memberOf(member.name)
   const title = member.title?.trim()

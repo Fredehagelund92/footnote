@@ -75,6 +75,18 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     setTrack(next)
   }
   const [stamps, setStamps] = React.useState(draft?.session?.fields ?? {})
+  // A draft handed over after the page opened (a new item that kept itself) starts from what the
+  // service holds of it, as one opened with it.
+  const handed = React.useRef(draft?.id)
+  React.useLayoutEffect(() => {
+    if (draft?.id === handed.current) return
+    handed.current = draft?.id
+    if (!draft?.session) return
+    keep({ saved: latest.current.formOf(draft), revision: draft.session.revision })
+    setStamps(draft.session.fields)
+    // Only a draft with another id is handed over: `keep` and the options move with every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.id])
   const [change, setChange] = React.useState<AgentChange | null>(null)
   /** The agent's words for a field the person is writing in, and the agent's name. */
   const [waiting, setWaiting] = React.useState<

@@ -56,7 +56,13 @@ import { useWaitingDecision } from '@/components/footnote/waiting-decision'
 import { usePublishDrafts } from '@/lib/publish-drafts'
 import { toApiError } from '@/api/errors'
 import { waitingLine } from '@/model/waiting'
-import { Loadable, NoSuchItem, PageSkeleton, SideSkeleton } from '@/components/footnote/load-state'
+import {
+  Loadable,
+  LoadError,
+  NoSuchItem,
+  PageSkeleton,
+  SideSkeleton,
+} from '@/components/footnote/load-state'
 
 /** What the decisions hook reads while the item is not loaded yet: it is never acted on. */
 const NO_FACT = { id: '', title: '', by: '' } as Fact
@@ -105,10 +111,15 @@ export function FactPage({ id }: { id: string }) {
     // Once per item opened.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [found, id])
+  // A read that failed, such as one refused as too many at once, is no proof the item is gone.
   if (!fact)
     return (
       <Page title="Context">
-        <NoSuchItem />
+        {page.isError ? (
+          <LoadError what="this context item" onRetry={() => void page.refetch()} />
+        ) : (
+          <NoSuchItem />
+        )}
       </Page>
     )
   const owner = me.owns.includes(fact.domain) || me.admin

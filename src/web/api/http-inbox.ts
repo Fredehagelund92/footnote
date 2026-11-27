@@ -184,18 +184,19 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
         },
       }
     case 'drafts': {
-      const imported = card.drafts.filter((d) => d.imported).length
+      const count = (from: 'import' | 'agent' | 'old') =>
+        card.drafts.filter((d) => d.from === from).length
+      const counts = { imported: count('import'), agent: count('agent'), old: count('old') }
       return {
         ...base,
         type: 'drafts',
-        ...draftsWords({ imported, old: card.drafts.length - imported }),
+        ...draftsWords(counts),
         detail: '',
         primary: 'Publish all',
         secondary: ['See them in Context'],
         drafts: {
           ids: card.drafts.map((d) => d.id),
-          imported,
-          old: card.drafts.length - imported,
+          ...counts,
         },
       }
     }

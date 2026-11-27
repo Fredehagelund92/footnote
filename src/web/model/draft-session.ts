@@ -76,7 +76,6 @@ export type SessionForm = {
   until: string
   source: string
   quote: string
-  causes: boolean
   dontConclude: string
 }
 
@@ -88,7 +87,7 @@ const parts: Record<SessionField, (keyof SessionForm)[]> = {
   domain: ['domain', 'owners'],
   where: ['where'],
   when: ['when', 'from', 'until'],
-  source: ['source', 'quote', 'causes'],
+  source: ['source', 'quote'],
   dontConclude: ['dontConclude'],
 }
 /** The parts that say what a field holds: who owns a domain follows from the domain. */

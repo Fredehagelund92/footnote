@@ -136,8 +136,8 @@ async function nextFrame(page: Page, event: 'keydown' | 'click', act: () => Prom
           seen.frame = {
             text: box.value,
             focused: document.activeElement === box,
-            tags: [...section.querySelectorAll('button[aria-label^="Remove the synonym "]')].map(
-              (b) => b.getAttribute('aria-label')!.slice('Remove the synonym '.length),
+            tags: [...section.querySelectorAll('button[aria-label^="Remove the other name "]')].map(
+              (b) => b.getAttribute('aria-label')!.slice('Remove the other name '.length),
             ),
             said: section.querySelector('[role="status"]')!.textContent,
           }
@@ -170,7 +170,7 @@ test('a tag shows the moment its comma is typed, and goes the moment it is remov
   await expect(page.getByText('Sales Value', { exact: true })).toHaveCount(1)
   // Removed while the save still runs: it goes now, and comes off once it is in.
   const removed = await nextFrame(page, 'click', () =>
-    page.getByRole('button', { name: 'Remove the synonym Sales Value' }).click(),
+    page.getByRole('button', { name: 'Remove the other name Sales Value' }).click(),
   )
   expect(removed.focused).toBe(true)
   expect(removed.tags).not.toContain('Sales Value')
@@ -187,7 +187,7 @@ test('a save that fails takes its tag back and says so; Try again saves it', asy
   // The mock fails the page's own first load too.
   if (mode === 'mock') await page.getByRole('button', { name: 'Retry' }).click()
   const box = page.getByRole('textbox', { name: 'Add another name for Gross sales' })
-  const tag = page.getByRole('button', { name: 'Remove the synonym Sales Value' })
+  const tag = page.getByRole('button', { name: 'Remove the other name Sales Value' })
   await box.pressSequentially('Sales Value')
   expect((await nextFrame(page, 'keydown', () => box.press(','))).tags).toContain('Sales Value')
   const toast = page

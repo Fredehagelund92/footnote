@@ -37,7 +37,7 @@ export const setupSteps: SetupStep[] = [
     title: 'Ask your own agent',
     description:
       'Paste one prompt into Claude, Cursor or another agent, and ask it the same question.',
-    action: 'Copy the prompt',
+    action: 'Connect an agent',
   },
 ]
 

@@ -125,6 +125,8 @@ export const warningSchema = z.object({
     z.string().regex(/^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)?\.[a-z][a-z0-9_]{0,39}$/),
   ]),
   target: z.string(),
+  /** The domain a tool named, which an `invalid_domain` warning says. */
+  value: z.optional(z.string()),
 })
 export type SourceWarning = z.infer<typeof warningSchema>
 const refSchema = definitionSchema.shape.ref

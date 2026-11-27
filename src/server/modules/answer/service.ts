@@ -191,7 +191,10 @@ export async function askedThisWeek(
   tx: Queryable,
   clock: Clock,
   cache: BundleCache,
-): Promise<Asked> {
+): Promise<Asked | null> {
+  // Before the first publish nothing is shared with agents, so there is no week to say: an answer
+  // of its own, not a refusal a new install's first page would log.
+  if (!(await liveHead(tx))) return null
   return (await askedFor(tx, clock, cache)).asked
 }
 

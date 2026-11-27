@@ -6,18 +6,26 @@ import { draftsVerb, draftsWords } from '@/model/inbox'
 
 describe('the drafts card', () => {
   it('says how many drafts wait, and why: imported, left for 30 days, or both', () => {
-    expect(draftsWords({ imported: 21, old: 0 }).title).toBe('21 drafts from your import')
-    expect(draftsWords({ imported: 0, old: 3 }).title).toBe('3 drafts not saved for 30 days')
-    expect(draftsWords({ imported: 1, old: 0 }).title).toBe('1 draft from your import')
-    expect(draftsWords({ imported: 2, old: 1 }).title).toBe('3 drafts waiting for you')
-    expect(draftsWords({ imported: 1_200, old: 0 }).title).toBe('1,200 drafts from your import')
+    expect(draftsWords({ imported: 21, agent: 0, old: 0 }).title).toBe('21 drafts from your import')
+    expect(draftsWords({ imported: 0, agent: 0, old: 3 }).title).toBe(
+      '3 drafts not saved for 30 days',
+    )
+    expect(draftsWords({ imported: 1, agent: 0, old: 0 }).title).toBe('1 draft from your import')
+    expect(draftsWords({ imported: 2, agent: 0, old: 1 }).title).toBe('3 drafts waiting for you')
+    expect(draftsWords({ imported: 1_200, agent: 0, old: 0 }).title).toBe(
+      '1,200 drafts from your import',
+    )
+    // An agent that wrote a document's items as drafts: they wait here for the person to review.
+    expect(draftsWords({ imported: 0, agent: 12, old: 0 }).title).toBe('12 drafts from your agents')
+    expect(draftsWords({ imported: 0, agent: 1, old: 0 }).title).toBe('1 draft from your agents')
+    expect(draftsWords({ imported: 0, agent: 12, old: 1 }).title).toBe('13 drafts waiting for you')
   })
 
   it('says only the writer sees them, in the number they are', () => {
-    expect(draftsWords({ imported: 2, old: 0 }).line).toBe(
+    expect(draftsWords({ imported: 2, agent: 0, old: 0 }).line).toBe(
       'Only you can see them. Agents get them once they are published.',
     )
-    expect(draftsWords({ imported: 0, old: 1 }).line).toBe(
+    expect(draftsWords({ imported: 0, agent: 0, old: 1 }).line).toBe(
       'Only you can see it. Agents get it once it is published.',
     )
   })

@@ -2416,19 +2416,14 @@ export const contract = {
       .input(lookupInputSchema)
       .output(eventIterator(lookupEventSchema)),
     asked: read
-      .errors({
-        PRECONDITION_FAILED: {
-          message: "Agents don't get any context yet. Ask an admin to finish the setup.",
-        },
-      })
       .route({
         method: 'GET',
         path: '/ask/asked',
         tags: ['assistant'],
         summary:
-          'Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614)',
+          'Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614); null while nothing is shared with agents yet',
       })
-      .output(askedSchema),
+      .output(z.nullable(askedSchema)),
     rate: read
       .errors({
         TOO_MANY_REQUESTS: {

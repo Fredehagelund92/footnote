@@ -91,6 +91,24 @@ export function TypeTile({
 }
 
 /** A synonym's quiet link to the definition whose meaning it uses: "Another name for Σ Gross sales". */
+/**
+ * What a definition with no words of its own says: one read from a tool is described there, so
+ * the line says where, by the member's name in it; one people keep here has nothing written yet.
+ */
+export function NoMeaning({ d }: { d: Definition }) {
+  if (!d.synced) return <>No meaning written yet.</>
+  const tool = d.tool ?? 'its tool'
+  const member = d.ref?.slice(d.ref.indexOf(':') + 1)
+  return member ? (
+    <>
+      No description in {tool}. Add one there, in{' '}
+      <code className="font-mono text-sm">{member}</code>.
+    </>
+  ) : (
+    <>No description in {tool}. Add one there.</>
+  )
+}
+
 export function AnotherNameFor({ target, className }: { target: Definition; className?: string }) {
   return (
     <button
@@ -363,7 +381,7 @@ export function SynonymTags({
           icon={conflict ? <TriangleAlertIcon aria-hidden /> : <EqualIcon aria-hidden />}
           title={conflict ? conflict.message : `${name}, added by ${by}`}
           onRemove={canEdit ? () => remove(name) : undefined}
-          removeLabel={`Remove the synonym ${name}`}
+          removeLabel={`Remove the other name ${name}`}
           className={cn(
             'max-w-48',
             (selected === name || (flash && same(flash, name))) && 'ring-2 ring-ring',
@@ -572,7 +590,9 @@ export function DefinitionDetails({
           )}
         </div>
       ) : (
-        <p className="text-base text-muted-foreground">No meaning written yet.</p>
+        <p className="text-base text-muted-foreground">
+          <NoMeaning d={d} />
+        </p>
       )}
       {relations}
       <div className="flex flex-col gap-3 border-t pt-4 text-sm">

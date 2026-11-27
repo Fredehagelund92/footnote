@@ -88,7 +88,7 @@ describe("Ask's tool registry", () => {
       'send_draft',
     ])
     expect(toolSchemaDigest).toBe(
-      'a870170e24b4db97bde0f533ec39da9576d1a0ade01a607b89e8d84a89601171',
+      'edb37fdc5ed8d0d7f174bfa5f627442ec6c82141b2889c8a38634a5cb8fda497',
     )
     // No Ask tool writes, reports or suggests: none is an agent tool that is not a read.
     expect(

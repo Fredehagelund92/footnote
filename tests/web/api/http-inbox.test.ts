@@ -121,9 +121,9 @@ describe('the Inbox', () => {
       group: 'drafts',
       areaId: null,
       drafts: [
-        { id: 'd1', areaId: 'area_sales', imported: true },
-        { id: 'd2', areaId: 'area_sales', imported: true },
-        { id: 'd3', areaId: 'area_sales', imported: false },
+        { id: 'd1', areaId: 'area_sales', from: 'import' },
+        { id: 'd2', areaId: 'area_sales', from: 'import' },
+        { id: 'd3', areaId: 'area_sales', from: 'old' },
       ],
     }
     const { cards } = inboxOf(feed([drafts]), 'Ines Duarte', domains, now)
@@ -135,7 +135,7 @@ describe('the Inbox', () => {
       title: '3 drafts waiting for you',
       line: 'Only you can see them. Agents get them once they are published.',
       secondary: ['See them in Context'],
-      drafts: { ids: ['d1', 'd2', 'd3'], imported: 2, old: 1 },
+      drafts: { ids: ['d1', 'd2', 'd3'], imported: 2, agent: 0, old: 1 },
     })
   })
 

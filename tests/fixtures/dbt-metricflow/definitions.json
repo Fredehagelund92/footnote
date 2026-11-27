@@ -285,8 +285,8 @@
   ],
   "warnings": [
     { "code": "dbt-metricflow.description_cut", "target": "orders.gross_margin" },
-    { "code": "invalid_domain", "target": "customers.customers" },
-    { "code": "invalid_domain", "target": "customers.tier" },
+    { "code": "invalid_domain", "target": "customers.customers", "value": "Customer Care" },
+    { "code": "invalid_domain", "target": "customers.tier", "value": "Customer Care" },
     { "code": "missing_domain", "target": "_shared.ordering_rate" },
     { "code": "missing_domain", "target": "_shared.revenue_per_customer" },
     { "code": "missing_domain", "target": "customers" }

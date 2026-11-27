@@ -155,9 +155,18 @@ export async function askHelp(message: string) {
   await run(desk.ask, draft, id)
 }
 
+/** Starts the turn that waited for its draft's page, once a page holds that draft. */
+function startWaiting() {
+  const { desk, waiting } = state
+  if (!desk?.draftId || waiting?.draft !== desk.draftId) return
+  set({ waiting: null })
+  void run(desk.ask, waiting.draft, waiting.turn)
+}
+
 /**
  * The chat of a page with no draft yet becomes its draft's, and its last turn waits for the
- * draft's page: the editor calls this once the draft is kept, before it moves there.
+ * draft's page: the editor calls this once the draft is kept. The page may move to the draft or
+ * go on as it, and may hold it already.
  */
 export function moveHelpChat(draft: string) {
   const turns = chatOf(NEW)
@@ -166,6 +175,7 @@ export function moveHelpChat(draft: string) {
   chats.delete(NEW)
   chats.set(draft, turns)
   set({ chats, waiting: last?.state === 'asking' ? { draft, turn: last.id } : null })
+  startWaiting()
 }
 
 /**
@@ -217,11 +227,7 @@ export function undoHelp() {
  */
 export function setHelpDesk(desk: HelpDesk | null) {
   set({ desk })
-  const waiting = state.waiting
-  if (desk?.draftId && waiting?.draft === desk.draftId) {
-    set({ waiting: null })
-    void run(desk.ask, waiting.draft, waiting.turn)
-  }
+  startWaiting()
   if (desk) return
   // After the page has settled: a page that was only drawn again is there once more by then.
   setTimeout(() => {

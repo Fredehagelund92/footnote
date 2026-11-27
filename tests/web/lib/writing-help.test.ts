@@ -28,7 +28,6 @@ const form: SessionForm = {
   until: '',
   source: '',
   quote: '',
-  causes: false,
   dontConclude: '',
 }
 const reply = (extra: Partial<HelpReply> = {}): HelpReply => ({
@@ -223,6 +222,33 @@ describe('a page with no draft yet', () => {
     expect(again.calls.filter((c) => c.startsWith('ask'))).toEqual([])
     expect(again.calls).toContain('refresh')
     expect(helpNow().turns[0]).toMatchObject({ state: 'done' })
+  })
+
+  it('starts the turn where the page goes on as the draft it kept, whichever comes first', async () => {
+    // A new item keeps itself as a draft and stays where it is: the page may say it holds the
+    // draft before the chat is handed over, or after.
+    for (const [id, holdsFirst] of [
+      ['d6', true],
+      ['d7', false],
+    ] as const) {
+      const fresh = desk(null)
+      const kept = desk(id)
+      fresh.desk.ready = () => {
+        if (holdsFirst) setHelpDesk(kept.desk)
+        moveHelpChat(id)
+        if (!holdsFirst) setHelpDesk(kept.desk)
+        return Promise.resolve(null)
+      }
+      setHelpDesk(fresh.desk)
+      await askHelp('Ops told us about Norway.')
+      await settled()
+      expect(
+        kept.calls.filter((c) => c.startsWith('ask')),
+        id,
+      ).toEqual(['ask Ops told us about Norway.'])
+      expect(helpNow().turns[0], id).toMatchObject({ state: 'done' })
+      setHelpDesk(null)
+    }
   })
 
   it('stops a turn once no page holds its draft', async () => {

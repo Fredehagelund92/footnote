@@ -63595,6 +63595,9 @@
                           },
                           "target": {
                             "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -64225,6 +64228,9 @@
                             "type": "string"
                           },
                           "target": {
+                            "type": "string"
+                          },
+                          "value": {
                             "type": "string"
                           }
                         },
@@ -72603,14 +72609,19 @@
                                     "areaId": {
                                       "type": "string"
                                     },
-                                    "imported": {
-                                      "type": "boolean"
+                                    "from": {
+                                      "enum": [
+                                        "import",
+                                        "agent",
+                                        "old"
+                                      ],
+                                      "type": "string"
                                     }
                                   },
                                   "required": [
                                     "id",
                                     "areaId",
-                                    "imported"
+                                    "from"
                                   ]
                                 }
                               }
@@ -96509,6 +96520,9 @@
                                         },
                                         "target": {
                                           "type": "string"
+                                        },
+                                        "value": {
+                                          "type": "string"
                                         }
                                       },
                                       "required": [
@@ -108329,7 +108343,7 @@
     "/ask/asked": {
       "get": {
         "operationId": "ask.asked",
-        "summary": "Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614)",
+        "summary": "Asked this week: the topics agents asked about most, with the state each gets now; counts only, small counts hidden (FR-614); null while nothing is shared with agents yet",
         "tags": [
           "assistant"
         ],
@@ -108339,262 +108353,269 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "week": {
-                      "type": "string"
-                    },
-                    "rows": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "title": {
-                            "type": "string"
-                          },
-                          "area": {
-                            "anyOf": [
-                              {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "week": {
+                          "type": "string"
+                        },
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
                                 "type": "string"
                               },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "scope": {
-                            "type": "object",
-                            "properties": {
-                              "metrics": {
+                              "area": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "scope": {
+                                "type": "object",
+                                "properties": {
+                                  "metrics": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "filters": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "window": {
+                                    "type": "object",
+                                    "properties": {
+                                      "start": {
+                                        "type": "string"
+                                      },
+                                      "end": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "required": [
+                                      "start",
+                                      "end"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "metrics",
+                                  "filters",
+                                  "window"
+                                ]
+                              },
+                              "months": {
                                 "type": "array",
                                 "items": {
                                   "type": "string"
                                 }
                               },
-                              "filters": {
-                                "type": "object",
-                                "propertyNames": {
-                                  "type": "string"
-                                },
-                                "additionalProperties": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                }
-                              },
-                              "window": {
-                                "type": "object",
-                                "properties": {
-                                  "start": {
-                                    "type": "string"
+                              "count": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
                                   },
-                                  "end": {
-                                    "anyOf": [
-                                      {
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "atLeast": {
+                                "type": "number"
+                              },
+                              "state": {
+                                "enum": [
+                                  "failed",
+                                  "missing",
+                                  "conflict",
+                                  "partial",
+                                  "stale",
+                                  "grounded"
+                                ],
+                                "type": "string"
+                              },
+                              "items": {
+                                "type": "number"
+                              },
+                              "nothing": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "gap": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "card": {
                                         "type": "string"
                                       },
-                                      {
-                                        "type": "null"
+                                      "draft": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
                                       }
+                                    },
+                                    "required": [
+                                      "card",
+                                      "draft"
                                     ]
+                                  },
+                                  {
+                                    "type": "null"
                                   }
-                                },
-                                "required": [
-                                  "start",
-                                  "end"
                                 ]
                               }
                             },
                             "required": [
-                              "metrics",
-                              "filters",
-                              "window"
+                              "title",
+                              "area",
+                              "scope",
+                              "months",
+                              "count",
+                              "atLeast",
+                              "state",
+                              "items",
+                              "nothing",
+                              "gap"
                             ]
-                          },
-                          "months": {
-                            "type": "array",
-                            "items": {
-                              "type": "string"
+                          }
+                        },
+                        "hidden": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
                             }
-                          },
-                          "count": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "atLeast": {
-                            "type": "number"
-                          },
-                          "state": {
-                            "enum": [
-                              "failed",
-                              "missing",
-                              "conflict",
-                              "partial",
-                              "stale",
-                              "grounded"
-                            ],
-                            "type": "string"
-                          },
+                          ]
+                        },
+                        "asked": {
+                          "anyOf": [
+                            {
+                              "type": "number"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "askedAtLeast": {
+                          "type": "number"
+                        },
+                        "starters": {
+                          "type": "array",
                           "items": {
-                            "type": "number"
-                          },
-                          "nothing": {
-                            "anyOf": [
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          },
-                          "gap": {
-                            "anyOf": [
-                              {
-                                "type": "object",
-                                "properties": {
-                                  "card": {
-                                    "type": "string"
-                                  },
-                                  "draft": {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "null"
-                                      }
-                                    ]
-                                  }
-                                },
-                                "required": [
-                                  "card",
-                                  "draft"
-                                ]
-                              },
-                              {
-                                "type": "null"
-                              }
-                            ]
-                          }
-                        },
-                        "required": [
-                          "title",
-                          "area",
-                          "scope",
-                          "months",
-                          "count",
-                          "atLeast",
-                          "state",
-                          "items",
-                          "nothing",
-                          "gap"
-                        ]
-                      }
-                    },
-                    "hidden": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "asked": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "askedAtLeast": {
-                      "type": "number"
-                    },
-                    "starters": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "title": {
-                            "type": "string"
-                          },
-                          "scope": {
                             "type": "object",
                             "properties": {
-                              "metrics": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string"
-                                }
+                              "title": {
+                                "type": "string"
                               },
-                              "filters": {
-                                "type": "object",
-                                "propertyNames": {
-                                  "type": "string"
-                                },
-                                "additionalProperties": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                }
-                              },
-                              "window": {
+                              "scope": {
                                 "type": "object",
                                 "properties": {
-                                  "start": {
-                                    "type": "string"
+                                  "metrics": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
                                   },
-                                  "end": {
-                                    "anyOf": [
-                                      {
+                                  "filters": {
+                                    "type": "object",
+                                    "propertyNames": {
+                                      "type": "string"
+                                    },
+                                    "additionalProperties": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "window": {
+                                    "type": "object",
+                                    "properties": {
+                                      "start": {
                                         "type": "string"
                                       },
-                                      {
-                                        "type": "null"
+                                      "end": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
                                       }
+                                    },
+                                    "required": [
+                                      "start",
+                                      "end"
                                     ]
                                   }
                                 },
                                 "required": [
-                                  "start",
-                                  "end"
+                                  "metrics",
+                                  "filters",
+                                  "window"
                                 ]
                               }
                             },
                             "required": [
-                              "metrics",
-                              "filters",
-                              "window"
+                              "title",
+                              "scope"
                             ]
                           }
-                        },
-                        "required": [
-                          "title",
-                          "scope"
-                        ]
-                      }
+                        }
+                      },
+                      "required": [
+                        "week",
+                        "rows",
+                        "hidden",
+                        "asked",
+                        "askedAtLeast",
+                        "starters"
+                      ]
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "required": [
-                    "week",
-                    "rows",
-                    "hidden",
-                    "asked",
-                    "askedAtLeast",
-                    "starters"
                   ]
                 }
               }
@@ -108801,66 +108822,6 @@
                         "message": {
                           "type": "string",
                           "default": "Someone changed this after you opened it. Look at the latest version, then try again."
-                        },
-                        "data": {}
-                      },
-                      "required": [
-                        "defined",
-                        "code",
-                        "status",
-                        "message"
-                      ]
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "defined": {
-                          "const": false
-                        },
-                        "code": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "number"
-                        },
-                        "message": {
-                          "type": "string"
-                        },
-                        "data": {}
-                      },
-                      "required": [
-                        "defined",
-                        "code",
-                        "status",
-                        "message"
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "412": {
-            "description": "412",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "defined": {
-                          "const": true
-                        },
-                        "code": {
-                          "const": "PRECONDITION_FAILED"
-                        },
-                        "status": {
-                          "const": 412
-                        },
-                        "message": {
-                          "type": "string",
-                          "default": "Agents don't get any context yet. Ask an admin to finish the setup."
                         },
                         "data": {}
                       },

@@ -1657,9 +1657,13 @@ function ConnectorSections({ page, c }: { page: SourcePage; c: Connector }) {
                 head={[capitalized(groupOf(c).one), 'Metrics', 'Dimensions', 'Domain', 'Owners']}
                 align={['left', 'right', 'right', 'left', 'left']}
                 rows={views.map((v) => [
-                  <code key="v" className="font-mono text-xs">
-                    {v.view}
-                  </code>,
+                  v.view === c?.sharedGroup?.id ? (
+                    <span key="v">{c.sharedGroup.label}</span>
+                  ) : (
+                    <code key="v" className="font-mono text-xs">
+                      {v.view}
+                    </code>
+                  ),
                   v.metrics.toLocaleString('en-GB'),
                   v.dimensions.toLocaleString('en-GB'),
                   v.domain ? domains[v.domain]?.name : <NoDomain key="d" />,
@@ -1993,6 +1997,13 @@ function ReadFound({ read, tool, saved }: { read: ConnectRead; tool: string; sav
                 {warning.files.join(', ')}
                 {warning.count > warning.files.length &&
                   ` and ${(warning.count - warning.files.length).toLocaleString('en-GB')} more`}
+              </span>
+            )}
+            {warning.named && (
+              <span className="block font-mono text-xs break-all text-muted-foreground">
+                {warning.named.join(', ')}
+                {warning.count > warning.named.length &&
+                  ` and ${(warning.count - warning.named.length).toLocaleString('en-GB')} more`}
               </span>
             )}
             {warning.detail && (

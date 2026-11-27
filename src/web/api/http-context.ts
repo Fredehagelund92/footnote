@@ -17,7 +17,7 @@ import type { TermVersion } from '@contract/terms'
 import type { Draft } from '@domain/draft'
 import type { MarkedField } from '@domain/provenance'
 import type { Scope, Vocabulary as ServiceVocabulary } from '@domain/item'
-import { defaultNotToConclude } from '@domain/proposal-rules'
+import { defaultNotToConclude, ownCaveat } from '@domain/proposal-rules'
 import { parseMentions, serializeMentions, type MentionPart } from '@domain/mentions'
 import { anyDate, shiftDate } from '@domain/validity'
 import { metricKeyOf } from '@domain/vocabulary'
@@ -328,7 +328,8 @@ export function factOfPage(page: ServiceItemPage, names: Names, words: Words): F
     checkedOn: page.lastChecked ? dateLabel(page.lastChecked.on) : '',
     source: evidence?.url ?? '',
     quote: evidence?.quote ?? '',
-    dontConclude: item.notToConclude,
+    // The writer's own words: the default is what agents are never told.
+    dontConclude: ownCaveat(item.notToConclude) ?? '',
     ...(owners ? { owners } : {}),
     // The item it is in a conflict with, either way round (FR-220): its page and peek say so.
     ...(page.conflicts[0] ? { disagreesWith: page.conflicts[0] } : {}),
@@ -367,7 +368,7 @@ export function factOfDraft(
     checkedOn: '',
     source: evidence?.url ?? '',
     quote: evidence?.quote ?? '',
-    dontConclude: draft.notToConclude ?? '',
+    dontConclude: ownCaveat(draft.notToConclude) ?? '',
   }
 }
 

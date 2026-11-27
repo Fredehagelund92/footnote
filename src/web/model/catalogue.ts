@@ -28,7 +28,14 @@ const words: Record<
   Partial<
     Pick<
       Connector,
-      'label' | 'lead' | 'group' | 'domainField' | 'noFileLinks' | 'serverSetting' | 'familyExample'
+      | 'label'
+      | 'lead'
+      | 'group'
+      | 'sharedGroup'
+      | 'domainField'
+      | 'noFileLinks'
+      | 'serverSetting'
+      | 'familyExample'
     >
   >
 > = {
@@ -52,6 +59,8 @@ const words: Record<
     // dbt has views too, as tables are built; a group of its metrics is a semantic model, whose
     // domain is in its config's meta.
     group: { one: 'semantic model', many: 'semantic models' },
+    // A metric whose inputs span semantic models is read into a group dbt's names cannot be.
+    sharedGroup: { id: '_shared', label: 'Metrics across semantic models' },
     domainField: 'config.meta.domain',
     noFileLinks: true,
     familyExample: `metrics:

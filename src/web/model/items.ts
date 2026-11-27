@@ -88,7 +88,6 @@ export type Fact = {
   source: string
   quote: string
   dontConclude: string
-  causes?: boolean
   outOfDate?: string
   disagreesWith?: string
   /** The older context item this one replaced: it stays, archived, and links say so. */

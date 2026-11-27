@@ -195,8 +195,8 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
       },
       {
         key: 'limits.agent_drafts',
-        what: 'Suggestions one person’s agents can send',
-        value: (v) => `${n(field(v, 'per_day'))} a day, ${n(field(v, 'open'))} waiting at once`,
+        what: 'Drafts one person’s agents can save',
+        value: (v) => `${n(field(v, 'per_day'))} new a day, ${n(field(v, 'open'))} waiting at once`,
       },
       {
         key: 'limits.mcp_requests_per_minute',

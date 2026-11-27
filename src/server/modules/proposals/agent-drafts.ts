@@ -1,6 +1,6 @@
 import { ORPCError } from '@orpc/client'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
-import type { Patch } from '../../../domain/agent-draft.ts'
+import { agentDraftsDefault, type Patch } from '../../../domain/agent-draft.ts'
 import { textFindings, type Draft, type FormatFinding } from '../../../domain/draft.ts'
 import {
   draftFields,
@@ -60,19 +60,36 @@ export type AgentDraftRequest = {
 
 /** The drafts an agent may save for one person (`limits.agent_drafts`, FR-809). */
 async function agentDraftLimits(tx: Queryable) {
-  const [setting] = await tx.query<{ perDay: number; open: number }>(
+  const [setting] = await tx.query<{ perDay: number | null; open: number | null }>(
     `select (value->>'per_day')::int as "perDay",(value->>'open')::int as open
        from settings_current where key='limits.agent_drafts'`,
   )
-  return { perDay: setting?.perDay ?? 10, open: setting?.open ?? 20 }
+  return {
+    perDay: setting?.perDay ?? agentDraftsDefault.perDay,
+    open: setting?.open ?? agentDraftsDefault.open,
+  }
 }
+
+/** The person's agent drafts against the cap, after a new one is saved: the agent tells the person. */
+export type AgentDraftCount = {
+  /** Their agents' drafts not sent or discarded yet, the new one too. */
+  waiting: number
+  mostWaiting: number
+  /** New drafts their agents saved in the last 24 hours, discarded ones too. */
+  newIn24Hours: number
+  mostNewIn24Hours: number
+}
+
+/** The cap in words, as the tool text says it. */
+const capWords = (limits: { perDay: number; open: number }) =>
+  `${limits.perDay} new drafts in 24 hours and ${limits.open} waiting unsent`
 
 /**
  * Refuses another agent draft when the person's agents saved their day's share in the last 24
  * hours, or when too many of their agent drafts wait unsubmitted. A discarded draft still counts
  * for the day. Counted from the proposals themselves, so no counter names the person.
  */
-async function checkLimits(tx: Queryable) {
+async function checkLimits(tx: Queryable): Promise<AgentDraftCount> {
   // One agent draft of a person at a time, so two at once cannot both pass the count.
   await tx.query(
     "select pg_advisory_xact_lock(hashtextextended('agent_draft:' || cl_person()::text,0))",
@@ -83,14 +100,22 @@ async function checkLimits(tx: Queryable) {
             count(*) filter (where state='draft' and discarded_at is null)::int as open
        from proposals where proposer_id=cl_person() and channel='mcp'`,
   )
-  if ((used?.today ?? 0) >= limits.perDay)
+  const today = used?.today ?? 0
+  const open = used?.open ?? 0
+  if (today >= limits.perDay)
     throw new ORPCError('TOO_MANY_REQUESTS', {
-      message: `Your agents saved ${limits.perDay} drafts in the last 24 hours, the most allowed. Finish or discard one in ${productName}, or try again tomorrow.`,
+      message: `The person's agents saved ${today} new drafts in the last 24 hours, and the most allowed is ${capWords(limits)}. Tell the person their drafts wait in Your drafts, in ${productName}'s Inbox, and save the rest tomorrow`,
     })
-  if ((used?.open ?? 0) >= limits.open)
+  if (open >= limits.open)
     throw new ORPCError('TOO_MANY_REQUESTS', {
-      message: `${limits.open} drafts from your agents wait unsubmitted. Submit or discard some in ${productName} first.`,
+      message: `${open} drafts from the person's agents wait unsubmitted, and the most allowed is ${capWords(limits)}. Ask the person to publish, send or delete some in Your drafts, in ${productName}'s Inbox, before you save more`,
     })
+  return {
+    waiting: open + 1,
+    mostWaiting: limits.open,
+    newIn24Hours: today + 1,
+    mostNewIn24Hours: limits.perDay,
+  }
 }
 
 /** Saves the draft as the person, with its marks. Never submits it. */
@@ -99,10 +124,10 @@ export async function saveAgentDraft(
   clock: Clock,
   personId: string,
   request: AgentDraftRequest,
-): Promise<ProposalRecord> {
-  await checkLimits(tx)
+): Promise<{ proposal: ProposalRecord; count: AgentDraftCount }> {
+  const count = await checkLimits(tx)
   const proposals = createProposalsService(tx, clock, personId)
-  return proposals.create(
+  const proposal = await proposals.create(
     {
       draft: request.draft,
       ...(request.itemId ? { itemId: request.itemId } : {}),
@@ -113,6 +138,7 @@ export async function saveAgentDraft(
       ...(request.agentId ? { agentId: request.agentId } : {}),
     },
   )
+  return { proposal, count }
 }
 
 /** How many times the person's agents may change one draft in an hour: a loop stops here. */

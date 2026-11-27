@@ -4,6 +4,7 @@ import {
   declaredFamily,
   descriptionCopy,
   domainHint,
+  invalidDomain,
   meaningMark,
   synonymsOf,
 } from '../../domain/definition-helpers.ts'
@@ -155,7 +156,8 @@ export async function mapDefinitions(
     }
 
     const groupDomain = domainHint(group.meta?.domain, domainNames)
-    if (groupDomain.invalid) warn('invalid_domain', group.name)
+    if (groupDomain.invalid)
+      warnings.push({ type: 'warning', ...invalidDomain(group.name, group.meta?.domain) })
     else if (groupDomain.areaHint === null) warn('missing_domain', group.name)
 
     // A view's dimensions by their own names: what a declared family's `by` names.
@@ -170,7 +172,8 @@ export async function mapDefinitions(
       if (!shown(member) || named.has(member.name)) continue
       named.add(member.name)
       const own = domainHint(member.meta?.domain, domainNames)
-      if (own.invalid) warn('invalid_domain', member.name)
+      if (own.invalid)
+        warnings.push({ type: 'warning', ...invalidDomain(member.name, member.meta?.domain) })
       // A member's own valid domain wins over its view's.
       const domain = own.areaHint === null ? groupDomain : own
       // The family its `meta.footnote` declares, read as written (D9); one that cannot be kept

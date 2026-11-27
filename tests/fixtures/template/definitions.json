@@ -128,7 +128,7 @@
     }
   ],
   "warnings": [
-    { "code": "invalid_domain", "target": "orders.channel" },
+    { "code": "invalid_domain", "target": "orders.channel", "value": "Customer Care" },
     { "code": "missing_domain", "target": "customers" },
     { "code": "template.description_cut", "target": "customers.customers" }
   ]

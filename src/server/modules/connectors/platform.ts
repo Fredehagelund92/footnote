@@ -544,7 +544,11 @@ function runtimeSource(running: Running, stored: StoredSource): DefinitionSource
           if (message.type === 'warning') {
             if (!knownWarning(manifest, message.code)) throw invalid()
             if (warnings.length < 1_000)
-              warnings.push({ code: message.code, target: message.target })
+              warnings.push({
+                code: message.code,
+                target: message.target,
+                ...(message.value === undefined ? {} : { value: message.value }),
+              })
             continue
           }
           if (message.type === 'end') {
@@ -639,7 +643,11 @@ function runtimeContent(running: Running, stored: StoredSource): ContentSource {
           if (message.type === 'progress') continue
           if (message.type === 'warning') {
             if (!knownWarning(manifest, message.code)) throw invalid()
-            warn({ code: message.code, target: message.target })
+            warn({
+              code: message.code,
+              target: message.target,
+              ...(message.value === undefined ? {} : { value: message.value }),
+            })
             if (unreadDocumentCodes.includes(message.code)) unread.push(message.target)
             continue
           }

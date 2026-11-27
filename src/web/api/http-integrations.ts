@@ -576,11 +576,12 @@ export function connectFormOf(
 const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
   missing_domain: {
     title: 'No domain named',
-    detail: 'Map it to a domain in the next steps, or name its domain in the tool.',
+    detail: 'Give it a domain where you choose what to read, or name its domain in the tool.',
   },
   invalid_domain: {
     title: 'A domain we do not have',
-    detail: 'The tool names a domain that is not one of yours. Map it in the next steps.',
+    detail:
+      'The tool names a domain in words that are not a domain id. Choose the domain each means in Domain names, under More settings.',
   },
   too_many_records: { title: 'Too much to read at once', detail: 'The rest is left out.' },
   unsupported_file: {
@@ -635,6 +636,8 @@ const READ_WARNINGS: Record<string, { title: string; detail: string }> = {
 
 /** The warnings about one file of the tool's, which name the file. */
 const FILE_WARNINGS = new Set(['unsupported_file', 'unreadable_file'])
+/** The warnings about a view or member that names a domain: they name it and what it names. */
+const DOMAIN_WARNINGS = new Set(['missing_domain', 'invalid_domain'])
 /** How many files a warning names before it only counts them. */
 const FILES_SHOWN = 5
 
@@ -644,20 +647,26 @@ function readWarnings(
   own: ConnectorManifest['warnings'] = {},
 ): ConnectRead['warnings'] {
   const found = new Map<string, ConnectRead['warnings'][number]>()
-  for (const { code, target } of warnings) {
+  for (const { code, target, value } of warnings) {
     const name = code.slice(code.lastIndexOf('.') + 1)
     // A file left out is named: someone looks for it in the model.
     const file = FILE_WARNINGS.has(code) ? [target] : []
+    // A view or member that names a domain is named with it, so the domain can be found.
+    const named = DOMAIN_WARNINGS.has(code)
+      ? [value === undefined ? target : `${target}: ${value}`]
+      : []
     const seen = found.get(code)
     if (seen) {
       seen.count += 1
       if (seen.files && seen.files.length < FILES_SHOWN) seen.files.push(...file)
+      if (seen.named && seen.named.length < FILES_SHOWN) seen.named.push(...named)
     } else
       found.set(code, {
         title: name.replaceAll('_', ' '),
         ...(own[name] ?? READ_WARNINGS[code]),
         count: 1,
         ...(file.length ? { files: file } : {}),
+        ...(named.length ? { named } : {}),
       })
   }
   return [...found.values()]

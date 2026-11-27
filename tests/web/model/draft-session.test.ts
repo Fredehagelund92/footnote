@@ -28,7 +28,6 @@ const form: SessionForm = {
   until: '',
   source: '',
   quote: '',
-  causes: false,
   dontConclude: '',
 }
 const at = '2026-11-27T10:00:00.000Z'

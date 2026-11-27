@@ -68,7 +68,7 @@ function settingsOf(
           { who: 'Jon Abara', when: 'Today', why: 'Changed in Settings, Agents and access.' },
         ]
       : ['agents.auto_publish', false],
-    ['limits.agent_drafts', { per_day: 10, open: 20 }],
+    ['limits.agent_drafts', { per_day: 50, open: 50 }],
     // Reading the links people paste: on as installed, with no host listed, until an admin
     // changes them in the demo.
     links.changed ? ['links.read_pages', links.on, links.changed] : ['links.read_pages', links.on],
