@@ -512,8 +512,6 @@ function proposalsService(
       options: {
         importBatchId?: string
         provenance?: (draft: Draft) => Provenance
-        /** The question round whose answers saved it (FR-121); only `saveAgentDraft` passes it. */
-        answersRound?: string
         /**
          * The agent that sent it (FR-420), named on the proposal with its name now; only
          * `saveAgentDraft` passes it, for an agent's suggestion.
@@ -553,8 +551,8 @@ function proposalsService(
             at: clock.now().toISOString(),
           })
       const [p] = await tx.query<ProposalRecord>(
-        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,answers_round,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id,new_values,field_stamps)
-        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,(select name from auth.agents where id=$15),$16,$17,$18)
+        `insert into proposals(action,area_id,item_id,proposer_id,channel,draft,draft_saved_at,draft_findings,derived_from,import_batch_id,provenance,reason,source_id,source_read_id,source_document_id,agent_id,agent_name,base_version_id,new_values,field_stamps)
+        values($1,$2,$3,cl_person(),$4,$5,now(),$6,$7,$8,$9,$10,$11,$12,$13,$14,(select name from auth.agents where id=$14),$15,$16,$17)
         returning ${fields}`,
         [
           action,
@@ -566,7 +564,6 @@ function proposalsService(
           input.derivedFrom ?? null,
           options.importBatchId ?? null,
           provenance ? JSON.stringify(provenance) : null,
-          options.answersRound ?? null,
           reason,
           author?.source ?? null,
           author?.read ?? null,

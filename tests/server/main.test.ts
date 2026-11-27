@@ -90,7 +90,6 @@ describe('the service entry point', { timeout: 30_000 }, () => {
         MCP_RESOURCE_URL: resource,
         FOOTNOTE_WEB_ORIGINS: 'https://footnote.example.test',
         FOOTNOTE_OAUTH_SIGNING_KEY_FILE: signingKey,
-        FOOTNOTE_MCP_STATE_KEY_FILE: join(keys, 'state.key'),
         MCP_DEV_KEY_FILE: join(keys, 'dev-key.pem'),
       })
       server = booted

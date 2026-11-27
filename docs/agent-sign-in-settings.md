@@ -33,13 +33,12 @@ When a connection ends, the agent asks the person to sign in again.
 | `FOOTNOTE_OAUTH_CONNECTION_DAYS`      | `30`                                                            | A connection ends this many days after sign-in                                                                                                               |
 | `MCP_AUTH_ISSUER`                     | None                                                            | With `external`: whose tokens the MCP server accepts                                                                                                         |
 | `MCP_AUTH_JWKS_URL`                   | None                                                            | With `external`: where their keys are                                                                                                                        |
-| `FOOTNOTE_MCP_STATE_KEY_FILE`         | `.footnote-mcp-state.key`                                       | The key that seals the questions `suggest_context` asks in the agent                                                                                         |
 
 Addresses must be https, or http on the same computer only.
 
 ## Make the keys
 
-For production, this makes both keys, readable by their owner only, and keeps a key that exists:
+For production, this makes the signing key, readable by its owner only, and keeps one that exists:
 
 ```sh
 npm run keys:create
@@ -54,12 +53,6 @@ openssl genpkey -algorithm ed25519 -out .footnote-oauth-key.pem && chmod 600 .fo
 ```
 
 The service refuses a key file others may read. Keep it out of the repository, the images and the logs.
-
-The key that seals the questions is at least 32 bytes of hex, and every instance needs the same file. Without it in production, `suggest_context` lists its questions with a link to the draft instead of asking in the agent.
-
-```sh
-openssl rand -hex 32 > .footnote-mcp-state.key && chmod 600 .footnote-mcp-state.key
-```
 
 ## Rotate the signing key
 

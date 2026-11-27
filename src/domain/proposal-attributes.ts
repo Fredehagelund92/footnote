@@ -1,6 +1,6 @@
 /*
   The attributes of a proposal, in one place (FR-101, FR-121). Two write paths fill them: the
-  Add context and Suggest a change form a person types into, and the MCP tool `suggest_context` an
+  Add context and Suggest a change form a person types into, and the MCP tool `write_draft` an
   AI agent calls for the person (with the assistant's `create_draft` behind the same service
   function). This file is what keeps the two from drifting apart:
 
@@ -65,15 +65,17 @@ export const formFields = [
 export type FormField = (typeof formFields)[number]
 /**
  * Form fields that edit no attribute of the item, with why. They are the proposal's own, so
- * suggest_context never sets them.
+ * write_draft never sets them.
  */
 export const proposalOnlyFields: Partial<Record<FormField, string>> = {
   reason:
     "What is wrong with the current version, on Suggest a change: the suggestion's reason for its reviewers, not part of the item.",
 }
 
-/** The inputs of `suggest_context` (`draftInput`, src/server/mcp/schemas.ts). */
+/** The inputs of `write_draft` (`writeDraftInput`, src/server/mcp/schemas.ts). */
 export const toolInputs = [
+  'draft_id',
+  'revision',
   'text',
   'title',
   'summary',
@@ -90,7 +92,9 @@ export type ToolInput = (typeof toolInputs)[number]
 
 /** The tool inputs that steer the call rather than suggest an attribute, and what they do. */
 export const toolControls = {
-  item_id: 'Suggest a change to this accepted item instead of a new one (FR-111).',
+  draft_id: "Change this draft of the person's instead of starting a new one.",
+  revision: 'The revision the agent read: a field the person changed after it keeps their words.',
+  item_id: 'Start a change to this published item instead of a new one (FR-111).',
   new_item: 'The person said it is new after possible duplicates were listed.',
 } as const satisfies Partial<Record<ToolInput, string>>
 

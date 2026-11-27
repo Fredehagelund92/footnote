@@ -118,7 +118,7 @@ describe('connect', () => {
     expect(response.json<ConnectInfo>()).toEqual({
       address: resource,
       // Every tool in the gateway's registry, so none can be left off the page, and every one on:
-      // get_related, suggest_context and the draft tools too, the person-only ones marked (FR-121, FR-332).
+      // get_related and the draft tools too, the person-only ones marked (FR-121, FR-332).
       tools: toolNames.map((tool) => ({
         tool,
         enabled: true,

@@ -4,7 +4,7 @@ line: One prompt for Claude, Cursor or another agent, and what approving does.
 group: Start
 order: 3
 minutes: 5
-reviewed: 2026-11-20
+reviewed: 2026-11-27
 open:
   label: Open Agents and access
   href: /settings/agents
@@ -79,8 +79,8 @@ Open Details on a row to see each tool the agent can call, such as:
 - find_context, to look a name up or see what is defined and written down
 - read_context, to read one context item or one definition in full, with its links
 - report, to say what is missing or wrong
-- suggest_context, to send a suggestion that an owner checks before anything changes
 - write_draft and read_draft, to write a draft with you and read it back as you left it, never sending it
+- send_draft, to send your draft, after you say yes, to an owner who checks it before anything changes
 
 An agent publishes only where an owner lets it [publish without review](publish-without-review.md), and Details shows where, with Turn off. Details also lists the suggestions it sent lately.
 

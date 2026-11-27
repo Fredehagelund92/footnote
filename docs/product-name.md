@@ -28,7 +28,7 @@ A name a machine, a file or a stored record depends on is fixed and does not fol
 
 - the settings, which start `FOOTNOTE_`, and the compose file's `FOOTNOTE_PORT` and
   `FOOTNOTE_WEB_PORT`;
-- the key files `.footnote-dev-key.pem`, `.footnote-mcp-state.key` and `.footnote-oauth-key.pem`,
+- the key files `.footnote-dev-key.pem` and `.footnote-oauth-key.pem`,
   the image's folder `/var/lib/footnote`, and the held-out key `~/.footnote/held-out.key`;
 - the cookies `footnote_session`, `footnote_oauth_browser` and `footnote_oidc_browser`, and the
   Ask chats' storage key `footnote.ask.chats.<person>` (the browser's other keys start with the

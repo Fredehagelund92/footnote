@@ -144,20 +144,20 @@ async function kofisAgent(page: Page) {
     },
   })
   const token = ((await exchanged.json()) as { access_token: string }).access_token
-  return async (args: Record<string, unknown>) => {
+  const call = async (name: string, args: Record<string, unknown>) => {
     const answer = await page.request.post(`${issuer}/mcp`, {
       headers: { authorization: `Bearer ${token}`, accept: 'application/json, text/event-stream' },
-      data: {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'tools/call',
-        params: { name: 'suggest_context', arguments: args },
-      },
+      data: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } },
     })
     const body = await answer.text()
     const json = body.startsWith('{') ? body : /^data: (.*)$/m.exec(body)![1]!
     return (JSON.parse(json) as { result: { structuredContent: Record<string, unknown> } }).result
       .structuredContent
+  }
+  // The agent writes a draft and, on the person's yes, sends the revision it showed them.
+  return async (args: Record<string, unknown>) => {
+    const written = await call('write_draft', args)
+    return call('send_draft', { draft_id: written.draft_id, revision: written.revision })
   }
 }
 
@@ -222,7 +222,7 @@ test("an agent's Rule publishes under the owner's policy, and the owner undoes i
     new_item: true,
   })
   expect(sent, JSON.stringify(sent)).toMatchObject({
-    status: 'suggestion_published',
+    status: 'published',
     policy: { published: true, set_by: 'Jon Abara', domain: 'Sales' },
   })
 

@@ -34,7 +34,7 @@ describe('the docs site', () => {
     }
     expect(render('connect-an-agent')).toContain('claude mcp add --transport http')
     expect(render('answer-lines')).toContain('Nothing published about this yet.')
-    expect(render('tools')).toContain('suggest_context')
+    expect(render('tools')).toContain('send_draft')
     expect(render('changelog')).toContain('<time dateTime="2026-10-23"')
     expect(render(undefined)).toContain('Documentation')
   })

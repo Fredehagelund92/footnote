@@ -77,7 +77,7 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 ## Self-hosting
 
 - `compose.yaml` names the project `footnote` whatever the folder is called, so the volumes are `footnote_db`, `footnote_keys` and `footnote_no-model`. Both containers run as unprivileged users (`node`, `nginx`), each with a health check, and the base images are pinned by digest.
-- The keys in the volume are `oauth-key.pem` (signs agents' access), `mcp-state.key` (seals an agent's draft questions) and `mcp-dev-key.pem` (signs local MCP tokens).
+- The keys in the volume are `oauth-key.pem` (signs agents' access) and `mcp-dev-key.pem` (signs local MCP tokens).
 - `db/prepare.ts` makes the roles a dump does not carry. Migration rules are in [db/README.md](../../db/README.md): forward only, and an applied migration is never changed.
 - `scripts/check-web-image.ts` checks the web image in CI, including the one inline theme script allowed by its hash, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin` and a `Permissions-Policy` that turns off the camera, microphone and location. The app's first load is about a third of its raw size on the wire. HSTS over plain http would pin every other local app on `localhost` to https.
 - A demo whose library loads but whose present does not (the Norway story, which fills the Inbox and Observability) logs at a later start that the present is missing.

@@ -14,13 +14,14 @@ describe('the tools an agent may call', () => {
     for (const name of toolNames) expect(toolScopes[name]).toBe(tools[name].scope)
   })
 
-  it('never give an access key suggest_context, which needs a person', () => {
-    expect(toolsFor('key')).not.toContain('suggest_context')
+  it('never give an access key a draft tool, which needs a person', () => {
+    for (const tool of ['write_draft', 'read_draft', 'send_draft'] as const)
+      expect(toolsFor('key')).not.toContain(tool)
     expect(toolsFor('app')).toEqual([...agentToolNames])
   })
 
   it('are those switched on that the scopes allow: a switch never widens consent', () => {
-    expect(toolsWith(['get_context', 'suggest_context', 'report'], ['read', 'feedback'])).toEqual([
+    expect(toolsWith(['get_context', 'send_draft', 'report'], ['read', 'feedback'])).toEqual([
       'get_context',
       'report',
     ])

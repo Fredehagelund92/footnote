@@ -328,14 +328,14 @@ the same pull request and say why.
 ## Proposal attributes
 
 Two paths write a proposal: the web app's editor (New context and Suggest a change), and the MCP tool
-`suggest_context` with which a person's AI agent suggests for them. They must not drift apart
+`write_draft` with which a person's AI agent drafts for them. They must not drift apart
 silently, so every
 attribute of a proposal is decided once, in `src/domain/proposal-attributes.ts`:
 
 - its limits and whether it is required, which the item version schema, the draft schema, the
   form's checks and the tool's input schema all read (never copy a number);
 - the editor's fields that edit it, or why the editor has none;
-- how `suggest_context` treats it: `derived` (Footnote works it out exactly), `defaulted` (the
+- how `write_draft` treats it: `derived` (Footnote works it out exactly), `defaulted` (the
   documented default, which only people change), `prefilled` (the agent suggests, the person
   confirms) or `never_inferred` (people decide it), with the marks its drafts may carry, the tool
   inputs that may suggest it and the questions that may ask the person for it;

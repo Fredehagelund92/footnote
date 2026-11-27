@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test'
-import { expect, go, signInAs, test } from './go.ts'
+import { expect, go, newContext, signInAs, test } from './go.ts'
 
 // J137, the pixel pass: what a walk through every screen at 1440, tablet and phone widths found
 // cut, covered or off, each pinned by its number. The Inbox frame keeps its gutter under it. Under
@@ -527,7 +527,7 @@ test.describe('wave 2, on a tablet', () => {
   test("the editor's foot keeps its words to one line in its bar, its mark square (P10)", async ({
     page,
   }) => {
-    await go(page, '/context/new')
+    await newContext(page)
     const foot = page.locator('footer').filter({ hasText: 'Not ready' })
     await expect(foot).toBeVisible()
     expect((await foot.boundingBox())!.height).toBe(48)

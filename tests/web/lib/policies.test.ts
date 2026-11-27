@@ -22,7 +22,7 @@ describe('publishing without review, in the screens words', () => {
       'It waits for review now: Jon Abara is no longer an owner of the domain.',
     )
     expect(policyPauseLine({ pause: 'tool_off', setBy: 'Jon Abara' })).toBe(
-      'It waits for review now: suggest_context is off for this agent.',
+      'It waits for review now: send_draft is off for this agent.',
     )
   })
 

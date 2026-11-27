@@ -62,7 +62,7 @@ describe('the agents people connected', () => {
           person: { id: 'p2', name: 'Ines Duarte', initials: 'ID', email: null },
           tools: agentToolNames.map((tool) => ({
             tool,
-            on: tool !== 'suggest_context',
+            on: tool !== 'send_draft',
             allowed: true,
           })),
           toolsSetBy: { name: 'Jon Abara', at: at(14) },
@@ -97,7 +97,7 @@ describe('the agents people connected', () => {
         used: 'Today',
         tools: agentToolNames.map((tool) => ({
           tool,
-          on: tool !== 'suggest_context',
+          on: tool !== 'send_draft',
           allowed: true,
         })),
         setBy: { name: 'Jon Abara', on: '14 Oct 2026' },
@@ -167,8 +167,8 @@ describe('the agents people connected', () => {
             madeBy: { id: 'p1', name: 'Jon Abara', initials: 'JA' },
             tools: agentToolNames.map((tool) => ({
               tool,
-              on: tool !== 'suggest_context',
-              allowed: tool !== 'suggest_context',
+              on: tool !== 'send_draft',
+              allowed: tool !== 'send_draft',
             })),
             since: at(21),
             lastUsedAt: null,
@@ -188,7 +188,7 @@ describe('the switches', () => {
       switchesOf(
         [
           { tool: 'get_context', enabled: true },
-          { tool: 'suggest_context', enabled: false },
+          { tool: 'send_draft', enabled: false },
           { tool: 'a_retired_tool', enabled: true },
         ],
         [{ scope: 'area', areaId: 'area_marketing' }],
@@ -199,7 +199,7 @@ describe('the switches', () => {
         find_context: false,
         read_context: false,
         report: false,
-        suggest_context: false,
+        send_draft: false,
         write_draft: false,
         read_draft: false,
       },
@@ -480,10 +480,10 @@ describe('Settings, Advanced', () => {
         entry({
           action: 'agent.tool_switched',
           subjectType: 'agent',
-          details: { name: 'Claude Code', kind: 'app', tool: 'suggest_context', on: false },
+          details: { name: 'Claude Code', kind: 'app', tool: 'send_draft', on: false },
         }),
       ),
-    ).toEqual({ what: 'Switched suggest_context off for “Claude Code”' })
+    ).toEqual({ what: 'Switched send_draft off for “Claude Code”' })
     expect(
       historyLine(
         entry({

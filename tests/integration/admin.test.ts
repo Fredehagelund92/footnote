@@ -317,7 +317,7 @@ describe('tool switch and client policies', () => {
       'read_context',
       'read_draft',
       'report',
-      'suggest_context',
+      'send_draft',
       'write_draft',
     ])
     expect(tools.filter((t) => !t.enabled)).toEqual([])

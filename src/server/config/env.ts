@@ -71,10 +71,6 @@ const envSchema = z
     DATABASE_URL_SERVE: z.url({ protocol: /^postgres(?:ql)?$/ }).optional(),
     MCP_RESOURCE_URL: z.url().default('http://localhost:3000/mcp'),
     MCP_DEV_KEY_FILE: z.string().default('.footnote-dev-key.pem'),
-    // The HMAC key (hex, 32 bytes or more, owner-only) that seals suggest_context's questions in a
-    // person's agent (FR-121). Every instance needs the same file. Outside production a missing
-    // file is created; in production a missing one turns those questions off.
-    FOOTNOTE_MCP_STATE_KEY_FILE: z.string().default('.footnote-mcp-state.key'),
     // The login server for a person's own AI client (FR-403, FR-404, docs/contributing/sign-in.md).
     // `builtin` runs it in this service; `external` trusts another login server's tokens, read
     // by issuer and key set address; `off` turns it off, so only access keys and, outside
@@ -370,7 +366,6 @@ export interface Config {
   databaseServeUrl: string
   mcpResourceUrl: string
   mcpDevKeyFile: string
-  mcpStateKeyFile: string
   loginServer: LoginServerConfig
   auth: 'dev' | 'demo' | 'oidc'
   /** FOOTNOTE_AUTH=oidc: the provider and this app's client there. */
@@ -454,7 +449,6 @@ export function loadConfig(environment: Record<string, string | undefined>): Con
     databaseServeUrl: env.DATABASE_URL_SERVE ?? servingUrl(env.DATABASE_URL),
     mcpResourceUrl: env.MCP_RESOURCE_URL,
     mcpDevKeyFile: env.MCP_DEV_KEY_FILE,
-    mcpStateKeyFile: env.FOOTNOTE_MCP_STATE_KEY_FILE,
     loginServer,
     auth,
     oidc: auth === 'oidc' ? oidcConfig(env) : null,

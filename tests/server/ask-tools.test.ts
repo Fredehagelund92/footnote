@@ -83,18 +83,16 @@ describe("Ask's tool registry", () => {
       'find_context',
       'read_context',
       'report',
-      'suggest_context',
       'write_draft',
       'read_draft',
+      'send_draft',
     ])
     expect(toolSchemaDigest).toBe(
-      '0cefab25d28e714a0b9f92f21c1da91f2aa408589b7e45635d11ce49ee7c737b',
+      'a870170e24b4db97bde0f533ec39da9576d1a0ade01a607b89e8d84a89601171',
     )
     // No Ask tool writes, reports or suggests: none is an agent tool that is not a read.
     expect(
-      askToolNames.filter((n) =>
-        ['report', 'suggest_context', 'write_draft', 'read_draft'].includes(n),
-      ),
+      askToolNames.filter((n) => ['report', 'write_draft', 'read_draft', 'send_draft'].includes(n)),
     ).toEqual([])
   })
 

@@ -39,14 +39,10 @@ async function healthy(port: number, deadline: number): Promise<boolean> {
 describe('a start with the FOOTNOTE_ settings', () => {
   it('listens, reads each setting and keeps the key files it names', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'footnote-settings-'))
-    const stateKey = `${'ab'.repeat(32)}\n`
     const oauthKey = generateKeyPairSync('ed25519')
       .privateKey.export({ format: 'pem', type: 'pkcs8' })
       .toString()
-    const keys = [
-      ['.footnote-mcp-state.key', stateKey],
-      ['.footnote-oauth-key.pem', oauthKey],
-    ] as const
+    const keys = [['.footnote-oauth-key.pem', oauthKey]] as const
     for (const [name, content] of keys) {
       await writeFile(join(folder, name), content, { mode: 0o600 })
       await chmod(join(folder, name), 0o600)
@@ -64,7 +60,6 @@ describe('a start with the FOOTNOTE_ settings', () => {
         FOOTNOTE_WEB_ORIGINS: 'http://localhost:5173',
         FOOTNOTE_FIXED_TODAY: '2026-01-15',
         FOOTNOTE_METRICS_TOKEN: metricsToken,
-        FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, '.footnote-mcp-state.key'),
         FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, '.footnote-oauth-key.pem'),
       },
     })

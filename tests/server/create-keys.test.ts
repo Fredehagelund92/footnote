@@ -23,48 +23,33 @@ const run = (env: Record<string, string>) =>
 
 // Each test starts Node processes that load the key code; slow on a busy machine, as in main.test.ts.
 describe('creating the keys production needs', { timeout: 30_000 }, () => {
-  it('creates each missing key owner-only, keeps one that exists, and prints no key', async () => {
+  it('creates the missing key owner-only, keeps one that exists, and prints no key', async () => {
     folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
-    const env = {
-      FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, 'oauth-key.pem'),
-      FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, 'mcp-state.key'),
-    }
+    const env = { FOOTNOTE_OAUTH_SIGNING_KEY_FILE: join(folder, 'oauth-key.pem') }
     const first = run(env)
     expect(first.status).toBe(0)
     expect(first.stdout).toBe(
-      `FOOTNOTE_OAUTH_SIGNING_KEY_FILE: created ${env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE}\n` +
-        `FOOTNOTE_MCP_STATE_KEY_FILE: created ${env.FOOTNOTE_MCP_STATE_KEY_FILE}\n`,
+      `FOOTNOTE_OAUTH_SIGNING_KEY_FILE: created ${env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE}\n`,
     )
-    for (const file of Object.values(env)) expect((await stat(file)).mode & 0o777).toBe(0o600)
+    expect((await stat(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE)).mode & 0o777).toBe(0o600)
     const signingKey = await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')
     expect(signingKey).toContain('BEGIN PRIVATE KEY')
-    const stateKey = await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')
 
     const second = run(env)
     expect(second.status).toBe(0)
-    expect(second.stdout).toContain(
-      `FOOTNOTE_OAUTH_SIGNING_KEY_FILE: kept ${env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE}`,
-    )
-    expect(second.stdout).toContain(
-      `FOOTNOTE_MCP_STATE_KEY_FILE: kept ${env.FOOTNOTE_MCP_STATE_KEY_FILE}`,
+    expect(second.stdout).toBe(
+      `FOOTNOTE_OAUTH_SIGNING_KEY_FILE: kept ${env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE}\n`,
     )
     expect(await readFile(env.FOOTNOTE_OAUTH_SIGNING_KEY_FILE, 'utf8')).toBe(signingKey)
-    expect(await readFile(env.FOOTNOTE_MCP_STATE_KEY_FILE, 'utf8')).toBe(stateKey)
     expect(second.stdout + second.stderr).not.toContain('PRIVATE KEY')
   })
 
   it('refuses a key others can read, and says which file', async () => {
     folder = await mkdtemp(join(tmpdir(), 'footnote-keys-'))
     const file = join(folder, 'oauth-key.pem')
-    expect(
-      run({ FOOTNOTE_OAUTH_SIGNING_KEY_FILE: file, FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, 's') })
-        .status,
-    ).toBe(0)
+    expect(run({ FOOTNOTE_OAUTH_SIGNING_KEY_FILE: file }).status).toBe(0)
     await chmod(file, 0o644)
-    const refused = run({
-      FOOTNOTE_OAUTH_SIGNING_KEY_FILE: file,
-      FOOTNOTE_MCP_STATE_KEY_FILE: join(folder, 's'),
-    })
+    const refused = run({ FOOTNOTE_OAUTH_SIGNING_KEY_FILE: file })
     expect(refused.status).toBe(1)
     expect(refused.stderr).toContain(`Keys not created: ${file} must be readable by its owner only`)
   })

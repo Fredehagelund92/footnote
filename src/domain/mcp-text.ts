@@ -28,9 +28,9 @@ export const agentToolNames = [
   'find_context',
   'read_context',
   'report',
-  'suggest_context',
   'write_draft',
   'read_draft',
+  'send_draft',
 ] as const
 export type AgentToolName = (typeof agentToolNames)[number]
 
@@ -82,14 +82,6 @@ export const AGENT_TOOLS: readonly {
     returns: 'That it was sent, and to which owner.',
   },
   {
-    name: 'suggest_context',
-    title: 'Send a suggestion',
-    what: 'Send a suggestion to the owner, after the person says yes.',
-    takes: 'The suggested text and what it applies to.',
-    returns:
-      "That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.",
-  },
-  {
     name: 'write_draft',
     title: 'Write a draft',
     what: "Write or change a draft of the person's own. It is never sent.",
@@ -103,6 +95,14 @@ export const AGENT_TOOLS: readonly {
     what: "Read a draft of the person's own as it is now, with what changed.",
     takes: 'The draft, and the revision the agent read last.',
     returns: "Each field, who changed it last and when, and the draft's revision.",
+  },
+  {
+    name: 'send_draft',
+    title: 'Send a draft',
+    what: "Send a draft of the person's own to the owner, after the person says yes.",
+    takes: 'The draft, and the revision the person said yes to.',
+    returns:
+      "That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.",
   },
 ]
 
@@ -235,7 +235,7 @@ export const reportRule =
  * permission to publish without review for this agent (FR-421).
  */
 export const suggestRule =
-  'To write something down, ask the person, then call suggest_context: an owner checks it, unless they let you publish without review.'
+  "To add context, call write_draft; send_draft only on the person's yes: an owner checks it unless they let you publish without review."
 
 /** Where an agent may publish without review now (FR-421): an open permission that waits for nothing. */
 export type PublishPermission = { domain: string; setBy: string; perDay: number }

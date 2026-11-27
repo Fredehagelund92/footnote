@@ -189,7 +189,7 @@ beforeAll(async () => {
             (array['matched','matched','no_match','need_more_detail'])[1 + g % 4], 30 + g
        from generate_series(1, 40) g;
      insert into mcp_requests (hour, client_label, app_family, tool, status, duration_ms)
-     select '2026-10-21T10:00:00Z', 'cursor', 'cursor', 'suggest_context', 'error', 50
+     select '2026-10-21T10:00:00Z', 'cursor', 'cursor', 'send_draft', 'error', 50
        from generate_series(1, 3);
      insert into llm_spend_monthly (month, feature, calls, cost_micros, provider)
      values ('2026-10-01', 'assistant', 40, 11200000, 'mock'), ('2026-10-01', 'eval', 3, 6100000, 'mock');`,
@@ -423,7 +423,7 @@ describe('Usage (obs.usage)', () => {
     expect(usage.state).toBe('normal')
     expect(usage.tools).toEqual([
       { tool: 'get_context', calls: 40, answered: 20, detail: 10, nothing: 10, failed: 0 },
-      { tool: 'suggest_context', calls: 3, answered: 0, detail: 0, nothing: 0, failed: 3 },
+      { tool: 'send_draft', calls: 3, answered: 0, detail: 0, nothing: 0, failed: 3 },
     ])
     // Cursor's 3 calls are hidden; the 43 tool calls would give them away beside Claude Code's 40,
     // so that goes too, and so does when each last called.
