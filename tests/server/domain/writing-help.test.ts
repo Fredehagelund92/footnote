@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { draftFieldNames } from '../../../src/domain/draft-stamps.ts'
 import {
   earlierTurn,
   fixedReply,
@@ -27,16 +28,7 @@ describe('the links of a message', () => {
 
 describe('what it writes and says', () => {
   it('writes every field an agent writes but the domain, which is the person’s', () => {
-    expect(helpFieldNames).toEqual([
-      'title',
-      'summary',
-      'text',
-      'kind',
-      'scope',
-      'window',
-      'evidence',
-      'not_to_conclude',
-    ])
+    expect(helpFieldNames).toEqual(draftFieldNames.filter((name) => name !== 'area'))
   })
 
   it('cuts an earlier turn short before it is sent again', () => {

@@ -1,4 +1,4 @@
-import { draftFieldNames, type DraftFieldName } from './draft-stamps.ts'
+import type { DraftFieldName } from './draft-stamps.ts'
 
 /*
   Writing help (Route 3): Footnote's own help for writing one draft, in a dock beside the editor.
@@ -28,10 +28,17 @@ export const WRITING_HELP_ANSWERS = 2
  * The fields writing help writes, by the names an agent uses: every one an agent writes but the
  * domain, which is the person's to choose and starts as their own.
  */
-export const helpFieldNames = draftFieldNames.filter(
-  (name): name is HelpFieldName => name !== 'area',
-)
-export type HelpFieldName = Exclude<DraftFieldName, 'area'>
+export const helpFieldNames = [
+  'title',
+  'summary',
+  'text',
+  'kind',
+  'scope',
+  'window',
+  'evidence',
+  'not_to_conclude',
+] as const satisfies readonly Exclude<DraftFieldName, 'area'>[]
+export type HelpFieldName = (typeof helpFieldNames)[number]
 
 /** Why a turn ended before writing help answered. */
 export const helpStops = ['steps', 'time', 'spending', 'model', 'key', 'credit'] as const

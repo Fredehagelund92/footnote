@@ -46,7 +46,6 @@ import { setToday } from '@/lib/today'
 import type { Definition } from '@/lib/definitions'
 import type { Version } from '@/model/history'
 import type { Fact, Sent } from '@/model/items'
-import type { HelpReply } from '@/model/writing-help'
 import { ALL_VALUES } from '@/model/observability'
 import { excerptOf, type Domains } from '@/model/people'
 import { dateLabel } from '@/model/validity'
@@ -78,8 +77,6 @@ import {
   factOfDraft,
   factOfWaiting,
   factOfReadDraft,
-  helpEventOf,
-  helpReplyOf,
   itemPageOf,
   sessionOf,
   linksOfRelated,
@@ -1611,28 +1608,16 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       )
       return { id: started.proposalId }
     },
-    // A turn runs as its events come: what it is doing, each write as its field lands, the
-    // reply's words so far, then the turn. `live.signal` stops it, the model's call with it.
-    writingHelp: async ({ draftId, message, turns, live }) => {
-      const input = { draftId, message, ...(turns?.length ? { turns } : {}) }
-      const events = await readPosted((o) =>
-        client.writingHelp.turn(input, { ...o, ...(live?.signal ? { signal: live.signal } : {}) }),
+    // A turn's own code loads with the first turn (http-writing-help.ts): the request stays open
+    // while it runs, and each write it makes starts the shared reads afresh.
+    writingHelp: async (input) => {
+      const { helpTurn } = await import('./http-writing-help')
+      const reply = await helpTurn(
+        input,
+        (turn, signal) =>
+          readPosted((o) => client.writingHelp.turn(turn, { ...o, ...(signal ? { signal } : {}) })),
+        shared.changed,
       )
-      let reply: HelpReply | undefined
-      try {
-        for await (const event of events) {
-          // The draft changed on the service while the turn's request is open: a read of it
-          // made a moment ago no longer serves.
-          if (event.type === 'written') shared.changed()
-          if (event.type === 'turn') reply = helpReplyOf(event.turn)
-          else {
-            const heard = helpEventOf(event)
-            if (heard) live?.onEvent?.(heard)
-          }
-        }
-      } finally {
-        shared.changed()
-      }
       if (!reply) throw new ApiError('unanswered', 'Writing help stopped before it finished.')
       return reply
     },

@@ -100,9 +100,10 @@ const ConflictDock = React.lazy(() =>
   import('@/pages/conflicts').then((m) => ({ default: m.ConflictDock })),
 )
 
-// Writing help opens from the editor, so its dock comes with its own code.
+// Writing help opens only from the editor, so its dock comes with that page's code (pages/editor)
+// rather than the first load; its frame shows while that code loads.
 const WritingHelpDock = React.lazy(() =>
-  import('@/pages/writing-help').then((m) => ({ default: m.WritingHelpDock })),
+  import('@/pages/editor').then((m) => ({ default: m.WritingHelpDock })),
 )
 
 // Something wrong? opens from Bad answer or More under an answer; its form comes with its own code.

@@ -325,7 +325,7 @@ export function WritingHelpDock() {
         </div>
       }
     >
-      <div data-touch-targets className="flex min-h-full flex-col gap-y-6 px-4 pt-6 pb-6">
+      <div data-touch-targets className="flex min-h-full flex-col gap-6 px-4 pt-6 pb-6">
         <div className="flex items-center gap-2 rounded-surface border border-dashed border-input px-3 py-2 text-sm">
           <SparklesIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           Works on your draft only. Agents don't get it yet.
@@ -340,7 +340,7 @@ export function WritingHelpDock() {
           </div>
         ) : (
           // A log, so a screen reader hears each reply arrive.
-          <div role="log" aria-label={HELP_NAME} className="flex flex-col gap-y-8">
+          <div role="log" aria-label={HELP_NAME} className="flex flex-col gap-8">
             {help.turns.map((turn, i) => (
               <Turn
                 key={turn.id}

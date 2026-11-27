@@ -158,6 +158,9 @@ import { DocumentEditorShell } from '@/components/footnote/document-shell'
 import { WriteWithButton, WriteWithMenuItem } from '@/components/footnote/write-with-agent'
 import { finishPrompt, writePrompt } from '@/lib/agents'
 
+// Writing help's dock opens only beside this page, so it comes with this page's code (App.tsx).
+export { WritingHelpDock } from '@/pages/writing-help'
+
 // The context editor as a document, the way editorcn's Simple Document Editor template shows one: a
 // muted canvas, editorcn's floating toolbar, the title as a large heading, the text as the document,
 // and a word count in the footer. The item's fields are a property strip under the title; what
