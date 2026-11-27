@@ -140,13 +140,19 @@ export function mergeDraft<F extends SessionForm>(
   for (const field of sessionFields) {
     const stamp = fields[field]
     if (!stamp || stamp.revision <= mine.revision) continue
-    saved = takeField(saved, theirs.form, field)
-    if (sameField(form, theirs.form, field)) continue
+    if (sameField(form, theirs.form, field)) {
+      saved = takeField(saved, theirs.form, field)
+      continue
+    }
     const byAgent = stamp.by === 'agent'
-    if (typing(field) || !sameField(mine.form, mine.saved, field)) {
+    const edited = !sameField(mine.form, mine.saved, field)
+    if (typing(field) || edited) {
+      // A field the person only stands in stays as last saved: nothing of theirs to save over it.
+      if (edited) saved = takeField(saved, theirs.form, field)
       if (byAgent) waiting.push(field)
       continue
     }
+    saved = takeField(saved, theirs.form, field)
     form = takeField(form, theirs.form, field)
     if (!byAgent) continue
     changed.push(field)

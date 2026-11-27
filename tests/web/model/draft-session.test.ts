@@ -77,6 +77,8 @@ describe('mergeDraft', () => {
     expect(merged.form).toEqual(form)
     expect(merged.waiting).toEqual(['dontConclude'])
     expect(merged.change).toBeNull()
+    // Nothing of theirs is unsaved there: the person's old words are not saved over the agent's.
+    expect(unsavedFields(merged.form, merged.saved)).toEqual([])
   })
 
   it('reads only what changed after its revision, by who changed it, never by the words', () => {

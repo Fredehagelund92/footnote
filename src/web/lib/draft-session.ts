@@ -214,7 +214,13 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
       put(takeField(formRef.current, theirs.form, field), [field])
       without(field)
     },
-    leave: without,
+    leave: (field: SessionField) => {
+      const theirs = waiting[field]
+      if (theirs)
+        keep({ ...opened.current, saved: takeField(opened.current.saved, theirs.form, field) })
+      without(field)
+      if (theirs && !sameField(formRef.current, theirs.form, field)) autosave.change(++tick.current)
+    },
     /**
      * Who wrote a field the person has not changed since: their agent, by its name, when it was
      * the last to change it and nobody has confirmed it.
