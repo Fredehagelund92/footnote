@@ -9,7 +9,8 @@ name: Release
 # (demo-images.yml). The site is built at the tag (site.yml), apart from all of that. The
 # GitHub Release gets the notes release-please wrote into CHANGELOG.md. Last, a separate job
 # attaches the docs as a tarball when the docs build succeeded; if it failed, the release and
-# images stand and a warning says the tarball is missing.
+# images stand and a warning says the tarball is missing. Once the release exists, Vercel is
+# asked to build the site again and the demo of this release.
 # Only the workflow's own token is used, each job with the least it needs.
 on:
   push:
@@ -379,3 +380,26 @@ jobs:
           fi
           curl --fail --silent --show-error --request POST "$HOOK" > /dev/null
           echo "Vercel is building the site again, with this release's docs."
+
+  app-deploy:
+    # Vercel builds the demo only for a release (vercel.json, scripts/vercel-ignore.ts): every push
+    # and pull request is skipped, and a tag starts no build there. So once the release exists this
+    # asks Vercel to build main, which then runs the release's version. The hook is a secret a
+    # maintainer adds once (docs/vercel.md, "Build"); without it the next push to main does the
+    # same.
+    name: App on Vercel
+    needs: release
+    if: ${{ !cancelled() && needs.release.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Build the demo of this release
+        env:
+          HOOK: ${{ secrets.APP_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::notice::No APP_DEPLOY_HOOK secret, so Vercel was not asked to build the demo of this release. Deploy main to production in Vercel, or the next push to main builds it."
+            exit 0
+          fi
+          curl --fail --silent --show-error --request POST "$HOOK" > /dev/null
+          echo "Vercel is building the demo of this release."
