@@ -72549,14 +72549,19 @@
                                     "areaId": {
                                       "type": "string"
                                     },
-                                    "imported": {
-                                      "type": "boolean"
+                                    "from": {
+                                      "enum": [
+                                        "import",
+                                        "agent",
+                                        "old"
+                                      ],
+                                      "type": "string"
                                     }
                                   },
                                   "required": [
                                     "id",
                                     "areaId",
-                                    "imported"
+                                    "from"
                                   ]
                                 }
                               }
