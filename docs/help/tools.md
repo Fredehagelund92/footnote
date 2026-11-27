@@ -1,15 +1,17 @@
 ---
 title: Agent tools
-line: The five tools an agent can call, what each takes and gives back, and how to read a reply.
+line: The seven tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 11
-reviewed: 2026-11-24
+minutes: 14
+reviewed: 2026-11-27
 ---
 
-The five tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them. All read, apart from the two that send something to an owner after the person says yes. A suggestion waits for the owner, unless the owner lets that agent [publish without review](publish-without-review.md).
+The seven tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them.
 
-## The five tools
+Three read published context. Two send something to an owner after the person says yes: a report, and a suggestion, which waits for the owner unless the owner lets that agent [publish without review](publish-without-review.md). The last two write and read a draft of the person's own, which they never send.
+
+## The seven tools
 
 <!-- include tools -->
 
@@ -47,6 +49,20 @@ Send a suggestion to the owner, after the person says yes.
 
 - Takes: The suggested text and what it applies to.
 - Returns: That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.
+
+### write_draft
+
+Write or change a draft of the person's own. It is never sent.
+
+- Takes: The words and what they apply to, or the fields to change in a draft.
+- Returns: The draft, its revision and its link, and each field the person changed since the agent read it.
+
+### read_draft
+
+Read a draft of the person's own as it is now, with what changed.
+
+- Takes: The draft, and the revision the agent read last.
+- Returns: Each field, who changed it last and when, and the draft's revision.
 
 <!-- /include -->
 
@@ -216,3 +232,34 @@ An area counts only when the metrics it names give no single domain. It gives ba
 - One person's agents can save 10 drafts in 24 hours, with 20 waiting unsent. Admins change this with `limits.agent_drafts`.
 
 An agent that can show forms asks up to four of its open questions there first. An agent that cannot gets a link and the list of questions.
+
+## Write a draft together: write_draft and read_draft
+
+The person and their agent work on one draft: the person in the app, the agent with these two tools. Only a person's own agent may call them, as with `suggest_context`. Neither sends anything: the person sends the draft for review in the app, or says yes to `suggest_context`.
+
+`write_draft` takes one of two shapes:
+
+- Without `draft_id`, it starts a new draft from `text` and the fields `suggest_context` takes.
+- With `draft_id` and `revision`, it changes only the fields you pass: the title, summary, text, kind, area, scope, window, evidence and Don't conclude line.
+
+| `status`        | What happened                                                              |
+| --------------- | -------------------------------------------------------------------------- |
+| `draft_saved`   | A new draft was saved. It is not sent                                      |
+| `draft_changed` | The fields in `applied` changed                                            |
+| `conflict`      | Nothing changed: the person changed each field since the revision you read |
+| `no_change`     | Every field was already as you passed it                                   |
+| `needs_area`    | The words do not point to one domain. Ask the person which                 |
+
+`read_draft` takes `draft_id`, and the revision you read last as `since_revision`. It gives back:
+
+- the draft's revision, and each field as it is now, with who changed it last, the person or an agent, when, and its mark;
+- `changed_since`, what changed after your revision;
+- `blocking`, what stops it being sent.
+
+The agent sees the person's edits only when it reads the draft, which is when the person writes to it: nothing can tell it that a draft changed. So a write names the revision the agent read. A field the person changed since then keeps their words, and comes back in `conflicts` with its value now; the other fields change.
+
+- Every write is checked as a new draft is. Text that looks like personal data or a secret is refused, and so are words that read like orders to an AI agent. Nothing changes.
+- A draft that was sent can't be changed. Withdraw it first.
+- A field the person changes is marked confirmed, so the owner sees a person read it. A field only the agent wrote stays prefilled.
+- The person's agents can change one draft 60 times an hour. A new draft counts toward `limits.agent_drafts`; a change does not.
+- `read_draft` reads only the person's own drafts and their suggestions still waiting. The words are the person's, never a source for an answer: the other read tools and Ask read only published context.

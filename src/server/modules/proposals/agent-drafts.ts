@@ -1,7 +1,19 @@
 import { ORPCError } from '@orpc/client'
 import type { ProposalRecord } from '../../../contract/proposals.ts'
+import type { Patch } from '../../../domain/agent-draft.ts'
 import type { Draft } from '../../../domain/draft.ts'
-import { provenanceOf, type FieldMark, type MarkedField } from '../../../domain/provenance.ts'
+import {
+  draftFields,
+  personChangedSince,
+  type DraftFieldName,
+  type FieldStamps,
+} from '../../../domain/draft-stamps.ts'
+import {
+  changedFields,
+  provenanceOf,
+  type FieldMark,
+  type MarkedField,
+} from '../../../domain/provenance.ts'
 import type { Clock } from '../../clock.ts'
 import type { Queryable } from '../../db/database.ts'
 import { retryWrite } from './retry.ts'
@@ -9,9 +21,12 @@ import { createProposalsService } from './service.ts'
 import { productName } from '../../brand.ts'
 
 /*
-  The one write path for a draft that an AI agent wrote for the person, through the MCP tool
-  `suggest_context` (FR-121): it saves a draft owned by the person through proposals.create, with
-  a mark on every field, and draft-tool.ts then submits it for review (FR-102, FR-122).
+  The one write path for a draft that an AI agent wrote for the person, through the MCP tools
+  `suggest_context` and `write_draft` (FR-121): it saves a draft owned by the person through
+  proposals.create, with a mark on every field, and draft-tool.ts then submits it for review
+  (FR-102, FR-122); write_draft never does. A change an agent makes to one of the person's drafts
+  goes through proposals.save, as the person's own edit does, field by field: a field the person
+  changed since the agent read the draft stays theirs.
 */
 
 export type AgentDraftRequest = {
@@ -100,4 +115,91 @@ export async function saveAgentDraft(
   return request.retryKey
     ? retryWrite(tx, request.retryKey, 'mcp.suggest_context', input, create)
     : create()
+}
+
+/** How many times the person's agents may change one draft in an hour: a loop stops here. */
+export const AGENT_WRITES_PER_HOUR = 60
+
+export type AgentPatchRequest = {
+  id: string
+  /** The revision the agent read the draft at (read_draft, or its last write_draft). */
+  revision: number
+  /** The fields it changes, by the names agents use, worked out as a draft's are. */
+  names: readonly DraftFieldName[]
+  patch: Patch
+  /** The person was unsure of the new dates. */
+  datesUncertain?: boolean
+  /** The agent that changed it (FR-420): named in the history of this change. */
+  agentId?: string
+}
+export type AgentPatchResult = {
+  /** The draft after the change, or as it is when nothing changed. */
+  proposal: ProposalRecord
+  stamps: FieldStamps
+  applied: DraftFieldName[]
+  /** The fields the person changed since the agent's revision, left as they are. */
+  conflicts: DraftFieldName[]
+}
+
+/**
+ * Changes the fields an agent gives in one of the person's own drafts, as the person, and never
+ * sends it. A draft that is not theirs reads as not found; one that was sent is refused. Each
+ * field the person changed after the agent's revision keeps the person's words, and the rest
+ * apply, through the same save, checks and history as the person's own edit.
+ */
+export async function patchAgentDraft(
+  tx: Queryable,
+  clock: Clock,
+  personId: string,
+  request: AgentPatchRequest,
+): Promise<AgentPatchResult> {
+  const proposals = createProposalsService(tx, clock, personId)
+  const notFound = () =>
+    new ORPCError('NOT_FOUND', { message: 'No draft of yours has that draft_id' })
+  // Row security lets an owner read a suggestion sent to them: only the writer's own is a draft here.
+  const p = await proposals.get(request.id, true).catch(() => {
+    throw notFound()
+  })
+  if (p.proposerId !== personId || p.subject !== 'item' || !['create', 'change'].includes(p.action))
+    throw notFound()
+  if (p.state !== 'draft')
+    throw new ORPCError('CONFLICT', {
+      message: ['submitted', 'in_review', 'changes_requested'].includes(p.state)
+        ? 'It was sent. Withdraw it to change it'
+        : 'It is no draft any more: it was published, closed or withdrawn. Write a new draft instead',
+      data: { state: p.state },
+    })
+  if (request.revision > p.revision)
+    throw new ORPCError('CONFLICT', {
+      message: `The draft is at revision ${p.revision}, before the revision given. Read it again`,
+    })
+  const [writes] = await tx.query<{ n: number }>(
+    `select count(*)::int as n from proposal_events
+      where proposal_id=$1 and kind='updated' and at > now() - interval '1 hour'`,
+    [p.id],
+  )
+  if ((writes?.n ?? 0) >= AGENT_WRITES_PER_HOUR)
+    throw new ORPCError('TOO_MANY_REQUESTS', {
+      message: `Your agents changed this draft ${AGENT_WRITES_PER_HOUR} times in the last hour, the most allowed. Try again later, or finish it in ${productName}`,
+    })
+  const stamps = await proposals.stampsOf(p.id)
+  const conflicts = personChangedSince(stamps, request.names, request.revision)
+  const applied = request.names.filter((name) => !conflicts.includes(name))
+  const next: Draft = { ...p.draft }
+  for (const name of applied) {
+    const field = draftFields[name]
+    Object.assign(next, { [field]: request.patch.draft[field] })
+    // An agent's words carry no mentions: its summary or text replaces the person's markup.
+    if (field === 'summary') delete next.summaryMarkup
+    if (field === 'body') delete next.bodyMarkup
+  }
+  if (!changedFields(p.draft, next).length) return { proposal: p, stamps, applied: [], conflicts }
+  const saved = await proposals.save(p.id, p.revision, next, undefined, {
+    agent: {
+      marks: request.patch.marks,
+      ...(request.datesUncertain ? { datesUncertain: true } : {}),
+      ...(request.agentId ? { id: request.agentId } : {}),
+    },
+  })
+  return { proposal: saved, stamps: await proposals.stampsOf(p.id), applied, conflicts }
 }

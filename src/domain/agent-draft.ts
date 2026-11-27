@@ -469,6 +469,131 @@ export function deriveAgentDraft(
 }
 
 /**
+ * What an agent passes to change fields of a draft (`write_draft` with a draft): only the fields to
+ * change. `text` is the draft's text, the body; the summary changes only by `summary`.
+ */
+export type AgentPatchInput = Partial<Omit<AgentDraftInput, 'window'>> & {
+  window?: { from: string; to?: string; uncertain?: boolean }
+}
+
+/** A change to some fields of a draft, worked out as a new draft's fields are. */
+export type Patch = Pick<Derivation, 'draft' | 'marks' | 'reasons' | 'unresolved'> & {
+  /** A domain named that is no active one. */
+  unknownArea?: string
+  /** A scope whose names matched nothing: it would leave the draft applying to nothing. */
+  unmatchedScope?: true
+}
+
+/**
+ * Works out the fields an agent changes in a draft, by the rules a new draft's fields follow: its
+ * words cleaned, names matched to the vocabulary and never taken as keys, its dates read with the
+ * last day included, and every value marked as the agent's. Only the fields given are in it. Pure.
+ */
+export function deriveAgentPatch(input: AgentPatchInput, context: DerivationContext): Patch {
+  const draft: Draft = {}
+  const marks: Patch['marks'] = {}
+  const reasons: Patch['reasons'] = {}
+  const unresolved: Patch['unresolved'] = []
+  const set = <F extends MarkedField>(field: F, value: Draft[F & keyof Draft], reason: string) => {
+    Object.assign(draft, { [field]: value })
+    marks[field] = 'prefilled'
+    reasons[field] = reason
+  }
+  if (input.title !== undefined) set('title', asWords(input.title), 'Written by the agent.')
+  if (input.summary !== undefined)
+    set(
+      'summary',
+      asWords(input.summary),
+      'Written by the agent. Check the wording, and that it does not claim a cause.',
+    )
+  if (input.text !== undefined)
+    set('body', asWords(input.text), 'Written by the agent from what the person said.')
+  if (input.kind !== undefined) set('kind', input.kind, 'Suggested by the agent.')
+  if (input.scope !== undefined) {
+    const metrics = new Set<string>()
+    const values = new Map<string, Set<string>>()
+    const any = new Set<string>()
+    for (const name of input.scope.metrics ?? []) {
+      const key = resolveName(
+        name,
+        context.terms,
+        ['metric', 'metric_group'],
+        undefined,
+        unresolved,
+      )
+      if (key) metrics.add(key)
+    }
+    for (const filter of input.scope.dimension_filters ?? []) {
+      const dimension = resolveName(
+        filter.dimension,
+        context.terms,
+        ['dimension'],
+        undefined,
+        unresolved,
+      )
+      if (!dimension) continue
+      if (!filter.values.length) any.add(dimension)
+      for (const name of filter.values) {
+        const value = resolveName(name, context.terms, ['dimension_value'], dimension, unresolved)
+        if (value) values.set(dimension, (values.get(dimension) ?? new Set()).add(value))
+      }
+    }
+    set(
+      'scope',
+      {
+        metrics: [...metrics].sort(),
+        dimensions: [...any].sort(),
+        dimensionValues: [...values]
+          .flatMap(([dimension, keys]) => [...keys].map((value) => ({ dimension, value })))
+          .sort((a, b) => (a.value < b.value ? -1 : 1)),
+      },
+      'Matched to the vocabulary from the names the agent passed.',
+    )
+  }
+  let unknownArea: string | undefined
+  if (input.area !== undefined) {
+    const area = areaByName(input.area, context.areas)
+    if (area) set('areaId', area.id, 'Chosen by the person, as the agent says.')
+    else unknownArea = input.area
+  }
+  if (input.window !== undefined)
+    set(
+      'validity',
+      { start: input.window.from, end: input.window.to ? shiftDate(input.window.to, 1) : null },
+      input.window.to
+        ? 'The dates the agent passed; the last day is included.'
+        : 'The first day the agent passed, with no end.',
+    )
+  if (input.evidence !== undefined)
+    set(
+      'evidence',
+      input.evidence.map((entry) => ({
+        url: entry.url.trim(),
+        quote: asWords(entry.quote),
+        date: context.today,
+      })),
+      'The link and sentence the agent passed. Check that the sentence is there.',
+    )
+  if (input.not_to_conclude !== undefined)
+    set('notToConclude', asWords(input.not_to_conclude), 'Written by the agent.')
+  const scope = draft.scope
+  const unmatchedScope =
+    input.scope !== undefined &&
+    unresolved.length > 0 &&
+    !scope?.metrics.length &&
+    !scope?.dimensions.length &&
+    !scope?.dimensionValues.length
+  return {
+    draft,
+    marks,
+    reasons,
+    unresolved,
+    ...(unknownArea ? { unknownArea } : {}),
+    ...(unmatchedScope ? { unmatchedScope: true as const } : {}),
+  }
+}
+
+/**
  * A name matched to the vocabulary, as `suggest_context` matches it: a key, a name or another name
  * of exactly one term. A name it cannot match goes on `unresolved` with the nearest terms.
  */

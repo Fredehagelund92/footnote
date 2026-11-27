@@ -29,6 +29,7 @@ import { registerMcpRoutes } from '../../../src/server/mcp/gateway.ts'
 import {
   INSTRUCTIONS_READ_BY_ALL,
   instructionRules,
+  personOnly,
   serverInstructions,
   toolDefinitions,
   toolNames,
@@ -138,7 +139,7 @@ const call = {
   method: 'tools/call',
   params: { name: 'get_context', arguments: { question: 'Orders in Norway August 2026' } },
 }
-/** What a dev token is offered: the five tools but suggest_context. */
+/** What a dev token is offered: the tools but those that write or read as a person. */
 const offeredToDev = ['get_context', 'find_context', 'read_context', 'report']
 
 describe('the hosts the MCP server answers', () => {
@@ -208,7 +209,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
       mode === 'legacy' ? '2025-11-25' : '2026-07-28',
     )
     const list = await client.listTools()
-    // A dev token names no person, so suggest_context (FR-121) is not offered to it.
+    // A dev token names no person, so the tools that write or read as one (FR-121) are not offered to it.
     expect(list.tools.map((t) => t.name)).toEqual(offeredToDev)
     expect(
       list.tools.map(
@@ -222,7 +223,7 @@ describe.each(['legacy', 'auto'] as const)('%s MCP protocol', (mode) => {
           ...(_meta ? { _meta } : {}),
         }),
       ),
-    ).toEqual(toolDefinitions.filter((tool) => tool.name !== 'suggest_context'))
+    ).toEqual(toolDefinitions.filter((tool) => !personOnly(tool.name)))
     // Claude Code loads get_context before any search for it, and the others when it needs them.
     expect(list.tools.filter((t) => t._meta?.['anthropic/alwaysLoad'] === true)).toMatchObject([
       { name: 'get_context' },

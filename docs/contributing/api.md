@@ -16,12 +16,12 @@ claude mcp add --transport http footnote http://localhost:3000/mcp \
   --header "Authorization: Bearer $(npm run --silent token:dev)"
 ```
 
-### The five tools (the agent contract)
+### The seven tools (the agent contract)
 
-The server offers five tools ([the product page](../product.md#10-what-agents-get)), described in
+The server offers seven tools ([the product page](../product.md#10-what-agents-get)), described in
 one list (`AGENT_TOOLS` in `src/domain/mcp-text.ts`): `get_context`, `find_context`,
-`read_context`, `report` and `suggest_context`. A call by any other id is refused as an unknown
-tool. Each description says what the tool is for and what it is not: only `get_context` says to
+`read_context`, `report`, `suggest_context`, `write_draft` and `read_draft`. A call by any other id
+is refused as an unknown tool. Each description says what the tool is for and what it is not: only `get_context` says to
 call it before answering, and only for a question about a metric. `get_context` carries
 `_meta: { "anthropic/alwaysLoad": true }`, so Claude Code loads it when a session starts, while
 its tool search loads the others when they are needed. The review's delivery check and the evals read `get_context`'s full reply,
@@ -243,6 +243,29 @@ app that cannot show forms (Claude.ai and ChatGPT today, every 2025-era connecti
 shows only links) gets the link and the question list exactly as before. Which attributes the tool derives, defaults, prefills or never infers is one table
 shared with the form: `src/domain/proposal-attributes.ts` (CONTRIBUTING.md, "Proposal
 attributes").
+
+**`write_draft`** and **`read_draft`** let the person and their agent work on one draft: the
+person in the editor, the agent through the tools, as the person, on the application's database
+(`src/server/mcp/draft-session.ts`). Like `suggest_context` they need the `propose` scope and a
+person signed in through a login server, and an access key never has them. `write_draft` never
+sends a draft. Without `draft_id` it saves a new one through `saveAgentDraft`, derived and marked
+as a suggestion is, and counted by `limits.agent_drafts`. With `draft_id` and `revision`, the
+revision the agent read, it changes only the fields passed (`deriveAgentPatch`, then
+`patchAgentDraft`, then `proposals.save`). Each proposal keeps who last changed each field, the
+person or an agent, at which revision and when (`proposals.field_stamps`,
+`src/domain/draft-stamps.ts`): a field the person changed after the agent's revision keeps the
+person's words and comes back in `conflicts` with its value now, while the other fields apply. A
+person's change marks a field `confirmed`, and an agent's marks it as the agent's (`prefilled`).
+Every write passes the checks a first one does: text that looks like personal data or a secret,
+and words that read like orders to a model, are refused and nothing changes. A draft that was
+sent is refused ("It was sent. Withdraw it to change it."), and one draft takes 60 changes an hour
+from the person's agents (`AGENT_WRITES_PER_HOUR`). Each change is `proposal.updated` in the
+history log, naming the agent, with the person as the actor. `read_draft` returns the person's own
+draft, or their suggestion still waiting, with its revision, each field with `by`, `at` and its
+mark, `changed_since` after `since_revision`, and what blocks sending; row security and a check on
+the writer keep everyone else's out, and an owner gets no one else's suggestion through it. The
+draft's words reach only that agent and never an answer: `get_context`, `find_context`,
+`read_context` and Ask read published context only (VISION.md).
 
 `token:dev` creates a reusable Ed25519 key in `.footnote-dev-key.pem` with owner-only permissions.
 The file is ignored by Git. Tokens expire after eight hours; mint a new one and update the

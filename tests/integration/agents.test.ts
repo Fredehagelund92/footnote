@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { agentToolNames, personTools } from '../../src/domain/agents.ts'
 import { people } from './fixtures.ts'
 import { signInHarness } from './sign-in-harness.ts'
 
@@ -97,7 +98,9 @@ const suggestion = (title: string) => ({
 const proposalCount = async () =>
   (await admin.query<{ n: number }>('select count(*)::int as n from proposals')).rows[0]!.n
 
-const toolNames = ['get_context', 'find_context', 'read_context', 'report', 'suggest_context']
+const toolNames = [...agentToolNames]
+/** The tools an access key may have: none that writes or reads as a person. */
+const keyTools = toolNames.filter((t) => !personTools.includes(t))
 
 /** An administrator switches one tool of one agent, with a reason the history log keeps. */
 function setTool(
@@ -368,7 +371,13 @@ describe('every agent by name', () => {
     const again = await connect('owner')
     const id = await agentOfClient(again.clientId)
     const fresh = (await agentsOf(boss)).find((r) => r.id === id)!
-    expect(toolsOn(fresh)).toEqual(['get_context', 'find_context', 'report'])
+    expect(toolsOn(fresh)).toEqual([
+      'get_context',
+      'find_context',
+      'report',
+      'write_draft',
+      'read_draft',
+    ])
   })
 
   it('ends every connection of an app at once when an agent is revoked', async () => {
@@ -430,14 +439,14 @@ describe('every agent by name', () => {
       person: null,
       madeBy: { id: people.admin, name: 'admin' },
     })
-    expect(toolsOn(row)).toEqual(toolNames.filter((t) => t !== 'suggest_context'))
-    // An access key names no person, so it can never be given suggest_context.
-    expect((await setTool(boss, row.id, 'suggest_context', true)).status).toBe(404)
+    expect(toolsOn(row)).toEqual(keyTools)
+    // An access key names no person, so it can never be given a tool that acts as one.
+    for (const tool of personTools)
+      expect((await setTool(boss, row.id, tool, true)).status).toBe(404)
 
     await setAll(boss, row.id, false)
     expect(await mcpStatus(created.key)).toBe(403)
-    for (const tool of toolNames.filter((t) => t !== 'suggest_context'))
-      expect((await setTool(boss, row.id, tool, true)).status).toBe(200)
+    for (const tool of keyTools) expect((await setTool(boss, row.id, tool, true)).status).toBe(200)
     expect(await mcpStatus(created.key)).toBe(200)
 
     const renamed = await boss.api(`/agents/${row.id}/name`, { name: 'Monday digest' })

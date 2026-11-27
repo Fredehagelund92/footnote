@@ -7,8 +7,8 @@ import { fieldMarks, markedFields, type FieldMark, type MarkedField } from './pr
 /*
   Where each field of a draft that an agent wrote came from (FR-121).
   A mark tells the person what to check before they submit, and the owner where the words came
-  from: never a confidence number, only how the value was found. A field the person changes
-  loses its mark: from then on it is their own. The marks and the fields that carry one are the
+  from: never a confidence number, only how the value was found. A field the person changes is
+  marked confirmed: from then on it is their own. The marks and the fields that carry one are the
   provenance table of src/domain/proposal-attributes.ts.
 */
 
@@ -57,23 +57,51 @@ export function fieldValue(draft: Draft, field: MarkedField): unknown {
 const same = (a: unknown, b: unknown) =>
   canonicalJson(a === undefined ? null : a) === canonicalJson(b === undefined ? null : b)
 
+/** The marked fields whose value differs between two versions of a draft. */
+export const changedFields = (before: Draft, after: Draft): MarkedField[] =>
+  markedFields.filter((field) => !same(fieldValue(before, field), fieldValue(after, field)))
+
 /** The flag of dates the person was unsure of, which no words show. */
 const uncertainDates: ProvenanceFlag = { code: 'uncertain_dates', field: 'validity', words: [] }
 
+/** The fields Footnote works out from the others: they keep their mark whoever changed them. */
+const workedOut: readonly MarkedField[] = ['references', 'changeMarks']
+
+const isEmpty = (value: unknown) =>
+  value === undefined ||
+  value === null ||
+  value === '' ||
+  (Array.isArray(value) && !value.length) ||
+  (typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length)
+
 /**
- * The marks after the person saved `after` over `before`: a field they changed is theirs and
- * loses its mark, and the flags are worked out again from the words as they are now. Uncertain
- * dates stay flagged until someone changes the dates.
+ * The marks after `after` was saved over `before`. A field nobody changed keeps its mark. A field
+ * the person changed is theirs: `confirmed`, so the owner sees a person read it. A field their
+ * agent changed takes the agent's mark for what it wrote, `agent.marks`. The flags are worked out
+ * again from the words as they are now; uncertain dates stay flagged until someone changes the
+ * dates, or come with the agent's new ones.
  */
-export function keepMarks(provenance: Provenance, before: Draft, after: Draft): Provenance {
+export function keepMarks(
+  provenance: Provenance,
+  before: Draft,
+  after: Draft,
+  agent?: { marks: Partial<Record<MarkedField, FieldMark>>; datesUncertain?: boolean },
+): Provenance {
   const fields: Provenance['fields'] = {}
+  const changed = new Set(changedFields(before, after))
   for (const field of markedFields) {
     const mark = provenance.fields[field]
-    if (mark && same(fieldValue(before, field), fieldValue(after, field))) fields[field] = mark
+    if (!changed.has(field)) {
+      if (mark) fields[field] = mark
+      continue
+    }
+    const next = workedOut.includes(field) ? mark : agent ? agent.marks[field] : 'confirmed'
+    if (next && (!isEmpty(fieldValue(after, field)) || next === 'not_inferred'))
+      fields[field] = next
   }
-  const uncertain =
-    provenance.flags.some((flag) => flag.code === 'uncertain_dates') &&
-    same(before.validity, after.validity)
+  const uncertain = changed.has('validity')
+    ? agent?.datesUncertain === true && after.validity !== undefined
+    : provenance.flags.some((flag) => flag.code === 'uncertain_dates')
   return {
     by: provenance.by,
     fields,
@@ -94,15 +122,9 @@ export function provenanceOf(
   const fields: Provenance['fields'] = {}
   for (const field of markedFields) {
     const mark = marks[field]
-    const value = fieldValue(draft, field)
-    const empty =
-      value === undefined ||
-      value === null ||
-      value === '' ||
-      (Array.isArray(value) && !value.length) ||
-      (typeof value === 'object' && !Array.isArray(value) && !Object.keys(value).length)
     // An empty list still marks a field people decide (replaces, conflicts).
-    if (mark && (!empty || mark === 'not_inferred')) fields[field] = mark
+    if (mark && (!isEmpty(fieldValue(draft, field)) || mark === 'not_inferred'))
+      fields[field] = mark
   }
   const uncertain = datesUncertain && draft.validity !== undefined
   return {

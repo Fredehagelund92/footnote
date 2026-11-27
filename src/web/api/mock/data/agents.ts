@@ -12,7 +12,7 @@ const everything = ['read', 'feedback', 'propose'] as const
 
 /**
  * Every tool as an agent's row has it: switched on unless `off` names it, and allowed by the scopes
- * the person gave it, and for an access key never suggest_context.
+ * the person gave it, and for an access key never a tool that writes or reads as a person.
  */
 export function toolRows(
   kind: AgentKind,

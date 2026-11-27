@@ -33,6 +33,7 @@ import {
 } from './invalid-input.ts'
 import { createLimiter } from '../http/rate-limit.ts'
 import type { Metrics } from '../observability/metrics.ts'
+import type { DraftSession } from './draft-session.ts'
 import { ROUND_SECONDS, type DraftRound, type DraftTool, type QuestionRound } from './draft-tool.ts'
 import { byteSize, createToolService, failure } from './service.ts'
 import type { ServingReads } from './reads.ts'
@@ -72,6 +73,11 @@ export interface McpDependencies {
    * application's database. Without it the tool is not offered.
    */
   drafts?: DraftTool
+  /**
+   * `write_draft` and `read_draft`, which write and read the signed-in person's own drafts, as the
+   * person, through the application's database. Without it they are not offered.
+   */
+  sessions?: DraftSession
   /**
    * Where the agent behind a person's token may publish without review now (FR-421), read on the
    * application's database as that person, for a line each in the instructions at connect.
@@ -333,11 +339,13 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
       return deny(503, 'Serving policy unavailable', 'error')
     }
     if (!policy.client?.enabled) return deny(403, 'Client is not enabled', 'forbidden')
+    // A tool that writes or reads as a person is offered where this service runs it.
+    const runs = (n: ToolName) => (n === 'suggest_context' ? deps.drafts : deps.sessions)
     const allowed = toolNames.filter(
       (n) =>
         principal.scopes.includes(tools[n].scope) &&
         (!principal.agent || principal.agent.tools.includes(n)) &&
-        (!personOnly(n) || (principal.subject !== undefined && deps.drafts !== undefined)) &&
+        (!personOnly(n) || (principal.subject !== undefined && runs(n) !== undefined)) &&
         policy.tools.includes(n) &&
         (policy.client!.tools_allowed === null || policy.client!.tools_allowed.includes(n)),
     )
@@ -509,6 +517,18 @@ export function registerMcpRoutes(app: FastifyInstance, deps: McpDependencies, m
                     requestState: outcome.requestState,
                   })
                 }
+                const result =
+                  byteSize(outcome) > maxBytes
+                    ? failure('The result cannot fit the client response limit.')
+                    : outcome
+                status = result.isError ? 'error' : 'ok'
+                return { ...result, _meta: { tool_schema_digest: toolSchemaDigest } }
+              }
+              if (tool === 'write_draft' || tool === 'read_draft') {
+                const outcome = await deps.sessions![tool === 'write_draft' ? 'write' : 'read'](
+                  args,
+                  principal,
+                )
                 const result =
                   byteSize(outcome) > maxBytes
                     ? failure('The result cannot fit the client response limit.')

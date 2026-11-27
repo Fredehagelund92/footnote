@@ -20,12 +20,12 @@ One sentence for the product: **agents read checked context before they answer.*
 
 ## 2. Who it is for
 
-| Who                  | What they do in Footnote                                                                                                                                          |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                              |
-| An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch.  |
-| An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                            |
-| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the five tools (section 10). It reads. It may also suggest. |
+| Who                  | What they do in Footnote                                                                                                                                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A member             | Writes context and sends suggestions. Asks questions in Ask. Comments. Sees what is waiting on them.                                                                                                  |
+| An owner of a domain | A member who owns one or more domains. Reviews and publishes the context of those domains. Checks it again when its check date passes. Saves questions to watch.                                      |
+| An admin             | Runs the workspace: people, domains, agents, integrations, limits. Can do everything an owner can do, in every domain.                                                                                |
+| An agent             | Software outside Footnote (for example a coding agent or a chat app) that connects over MCP and calls the seven tools (section 10). It reads. It may also suggest, and write a draft with the person. |
 
 The data team that runs Footnote is the first reader of this page. The people it serves are in finance, marketing, operations and management. Many of them read English as a second language. They know their business. They should never need to know data or AI words. [Copy rules](design/copy.md) says how Footnote speaks to them.
 
@@ -233,7 +233,7 @@ One rule everywhere: **from agents, Footnote keeps only what a question was abou
 
 ## 10. What agents get
 
-Five tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
+Seven tools. Each is described in one list in the code (`AGENT_TOOLS`), which Settings, Help and the docs read.
 
 | Tool              | What it does                                                                                                                                                               |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -242,6 +242,8 @@ Five tools. Each is described in one list in the code (`AGENT_TOOLS`), which Set
 | `read_context`    | One context item in full: text, source, check date, the don't conclude line, and what it links to and from. Or one definition in full, even with no context item about it. |
 | `report`          | Tell the owner something is missing, wrong or unclear, after the person says yes.                                                                                          |
 | `suggest_context` | Send a suggestion to the owner, after the person says yes. It waits in the owner's Inbox, unless the owner lets that agent publish without review.                         |
+| `write_draft`     | Write a draft of the person's own, or change some of its fields. It is never sent. A field the person changed since the agent last read the draft keeps their words.       |
+| `read_draft`      | Read a draft of the person's own as it is now: each field, who changed it last and when, and the draft's revision. Only the person's own agent reads it.                   |
 
 The default reply holds the answer state, one sentence to relay (`say`), what was asked, the first sentence of each asked metric's definition (`defined`), the items that apply, a reply id and the edition. Where two items disagree, the reply says so. A mention in an item is only its words in `get_context`. Following it is a read: `read_context` gives an item's links one step out and in with every read, and never changes what an answer includes. Only `get_context` says to call it first, and only for a question about a metric; in Claude Code it loads when a session starts.
 

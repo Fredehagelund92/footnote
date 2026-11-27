@@ -5,7 +5,7 @@ import type { ItemKind } from './item.ts'
 import { concepts } from './words.ts'
 
 /*
-  What the MCP server tells an agent in words, in one place: the five tools as people read them,
+  What the MCP server tells an agent in words, in one place: the seven tools as people read them,
   and the rules an agent follows. The service
   (src/server/mcp/tools.ts) serves them as the server instructions and the tool descriptions, and
   the web app's Agents and access, its setup prompt and its agent steps (src/web/lib/agents.ts)
@@ -22,13 +22,15 @@ import { concepts } from './words.ts'
   "this context".
 */
 
-/** The five tools of the MCP server, by the ids agents call them (docs/product.md, section 10). */
+/** The seven tools of the MCP server, by the ids agents call them (docs/product.md, section 10). */
 export const agentToolNames = [
   'get_context',
   'find_context',
   'read_context',
   'report',
   'suggest_context',
+  'write_draft',
+  'read_draft',
 ] as const
 export type AgentToolName = (typeof agentToolNames)[number]
 
@@ -86,6 +88,21 @@ export const AGENT_TOOLS: readonly {
     takes: 'The suggested text and what it applies to.',
     returns:
       "That it waits in the owner's Inbox, or that it was published with the owner's permission to publish without review.",
+  },
+  {
+    name: 'write_draft',
+    title: 'Write a draft',
+    what: "Write or change a draft of the person's own. It is never sent.",
+    takes: 'The words and what they apply to, or the fields to change in a draft.',
+    returns:
+      'The draft, its revision and its link, and each field the person changed since the agent read it.',
+  },
+  {
+    name: 'read_draft',
+    title: 'Read a draft',
+    what: "Read a draft of the person's own as it is now, with what changed.",
+    takes: 'The draft, and the revision the agent read last.',
+    returns: "Each field, who changed it last and when, and the draft's revision.",
   },
 ]
 

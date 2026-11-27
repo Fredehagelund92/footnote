@@ -80,6 +80,7 @@ Open Details on a row to see each tool the agent can call, such as:
 - read_context, to read one context item or one definition in full, with its links
 - report, to say what is missing or wrong
 - suggest_context, to send a suggestion that an owner checks before anything changes
+- write_draft and read_draft, to write a draft with you and read it back as you left it, never sending it
 
 An agent publishes only where an owner lets it [publish without review](publish-without-review.md), and Details shows where, with Turn off. Details also lists the suggestions it sent lately.
 

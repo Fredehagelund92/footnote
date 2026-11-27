@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest'
 import { settingKeys } from '@contract/admin'
 import { ABOUT_BUSINESS_MAX } from '@domain/about-business'
-import { agentToolNames } from '@domain/agents'
+import { agentToolNames, personTools } from '@domain/agents'
 import { toolsOn } from '@/lib/connect'
 import { ApiError } from '@/api/errors'
 import {
@@ -1094,8 +1094,10 @@ export function describeFootnoteApi(
           'find_context',
           'get_context',
           'read_context',
+          'read_draft',
           'report',
           'suggest_context',
+          'write_draft',
         ])
         await live.setTool({ name: 'suggest_context', on: false })
         expect((await live.getSettings()).tools.suggest_context).toBe(false)
@@ -1139,12 +1141,13 @@ export function describeFootnoteApi(
           expect(['app', 'key']).toContain(r.kind)
           // Every tool, by the names agents know, each on or off and allowed or not.
           expect(r.tools.map((t) => t.tool)).toEqual([...agentToolNames])
-          // An access key can never have suggest_context.
+          // An access key can never have a tool that writes or reads as a person.
           if (r.kind === 'key')
-            expect(r.tools.find((t) => t.tool === 'suggest_context')).toMatchObject({
-              on: false,
-              allowed: false,
-            })
+            for (const tool of personTools)
+              expect(r.tools.find((t) => t.tool === tool)).toMatchObject({
+                on: false,
+                allowed: false,
+              })
           expect(r.since).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
           expect(r.used).not.toBe('')
         }
@@ -1210,7 +1213,7 @@ export function describeFootnoteApi(
         who: person,
         used: 'Never',
       })
-      expect(toolsOn(made[0]!)).toEqual(agentToolNames.filter((t) => t !== 'suggest_context'))
+      expect(toolsOn(made[0]!)).toEqual(agentToolNames.filter((t) => !personTools.includes(t)))
       expect(made[0]!.since).toMatch(/^\d{1,2} [A-Z][a-z]{2,4} \d{4}$/)
       // Only the answer that made it holds the key: no read says it again.
       expect(JSON.stringify(rows)).not.toContain(key)
