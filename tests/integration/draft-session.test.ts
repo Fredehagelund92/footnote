@@ -266,6 +266,11 @@ describe('a draft the person writes with their agent', () => {
       [id],
     )
     expect(history.rows.map((r) => r.details.agent?.id)).toEqual([agentId])
+    const after = await call(token, 'read_draft', { draft_id: id })
+    expect(after.out).toMatchObject({
+      fields: { text: { by: 'agent', mark: 'prefilled' } },
+    })
+    expect(after.out.fields.title.mark).toBeUndefined()
   })
 
   it('AT4: refuses to change a draft that was sent', async () => {

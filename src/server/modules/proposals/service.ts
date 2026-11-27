@@ -618,7 +618,10 @@ function proposalsService(
       const checks = await checkDraft(tx, draft, p.proposerId, p.channel, p.itemId, newValues)
       // A field the person changed is theirs from now on: it is marked confirmed (FR-121). One
       // their agent changed takes the agent's mark.
-      const provenance = p.provenance ? keepMarks(p.provenance, p.draft, draft, agent) : null
+      const provenance =
+        p.provenance || agent
+          ? keepMarks(p.provenance ?? { by: 'agent', fields: {}, flags: [] }, p.draft, draft, agent)
+          : null
       // The update below is the next revision (proposals_guard): each changed field is stamped with it.
       const stamps = stampsAfter(await stampsOf(id), p.draft, draft, {
         by: agent ? 'agent' : 'person',
