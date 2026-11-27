@@ -1023,7 +1023,7 @@ describe('a tool whose file lives in a place you choose', () => {
         title: 'No domain named',
         count: 1,
         named: ['comet_visits'],
-        detail: expect.not.stringContaining('next steps'),
+        detail: expect.not.stringContaining('next steps') as string,
       }),
     ])
   })
