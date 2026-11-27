@@ -424,7 +424,7 @@ test('Saved questions are saved from Ask, counted everywhere from one list, and 
 
   // The review says what a draft would do to the saved questions that answer from its item.
   await go(page, '/inbox/sug-ines/review')
-  await expect(page.getByText('0 of 1 still answers the same. 1 changed.')).toBeVisible()
+  await expect(page.getByText('0 of 3 still answer the same. 3 changed.')).toBeVisible()
   await page.getByRole('button', { name: /Do units sold include test accounts\?/ }).click()
   await expect(page.locator('ins').filter({ hasText: '340' }).first()).toBeVisible()
   await go(page, '/inbox/gap-spain/review')

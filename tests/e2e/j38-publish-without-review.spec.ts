@@ -208,15 +208,15 @@ test("an agent's Rule publishes under the owner's policy, and the owner undoes i
   })
 
   const sent = await suggest({
-    text: 'A gift card counts as revenue on the day it is spent.',
+    text: 'A gift card counts as a gross sale on the day it is spent.',
     kind: 'note',
     area: domainId('sales'),
-    scope: { metrics: ['Gift card revenue'] },
+    scope: { metrics: ['Gross sales'] },
     window: { from: '2026-10-01' },
     evidence: [
       {
         url: 'https://wiki.example/finance/gift-cards',
-        quote: 'A gift card counts as revenue on the day it is spent.',
+        quote: 'A gift card counts as a gross sale on the day it is spent.',
       },
     ],
     new_item: true,

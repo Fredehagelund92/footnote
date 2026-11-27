@@ -274,7 +274,9 @@ it('reads a synonym of a metric as that metric', async () => {
   const { reply } = await tool('get_context', { question: questions.bought })
   // Before the synonym, "purchases" was no name: only Norway was read, so the answer was not
   // about Orders, and no term was named.
-  expect(before.bought!.terms ?? []).not.toContainEqual(expect.objectContaining({ word: 'purchases' }))
+  expect(before.bought!.terms ?? []).not.toContainEqual(
+    expect.objectContaining({ word: 'purchases' }),
+  )
   const asOrders = (await tool('get_context', { question: questions.busy })).reply
   expect(answered(reply)).toEqual(answered(asOrders))
   expect(reply.terms).toEqual([

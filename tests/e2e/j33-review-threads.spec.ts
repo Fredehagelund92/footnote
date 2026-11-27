@@ -58,7 +58,7 @@ test('C comments on the line or field in focus, and the rail counts the threads 
   await expect(lineThread).toContainText('From 1 October.')
   await lineThread.getByRole('article').first().hover()
   await lineThread.getByRole('button', { name: 'Add a reaction' }).first().click()
-  await page.getByRole('button', { name: 'Agree' }).click()
+  await page.getByRole('button', { name: 'Agree', exact: true }).click()
   await expect(lineThread.getByRole('button', { name: /^Agree, 1/ })).toBeVisible()
 
   // Resolved, the thread folds to who and when, and the rail counts it so.
