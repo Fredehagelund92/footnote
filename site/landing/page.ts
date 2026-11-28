@@ -3,9 +3,10 @@ import * as meaning from './meaning.ts'
 
 /*
   The landing page below its first screen (landing/pages/index.astro): the definitions window, the
-  tour of real screens, the week picked along the Orders line, the thread that becomes a note, what arrives as it scrolls into view,
-  and the light that follows the pointer over a window. With reduced motion nothing arrives, walks or
-  plays: everything is there, the tour and the doors wait for a press, and the line waits for a drag or a key.
+  tour of real screens, the week picked along the Orders line, the thread that becomes a note, what
+  arrives as it scrolls into view, and the light that follows the pointer over a window. With
+  reduced motion nothing arrives, walks or plays: everything is there, the tour and the doors wait
+  for a press, and the line waits for a drag or a key.
 */
 
 export function page() {
