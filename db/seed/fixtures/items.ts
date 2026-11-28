@@ -658,7 +658,8 @@ const OPEN_ISSUE_REVIEW_DAYS = 14
 /**
  * The demo issues, dated around the fixture "today" so every state shows: two still going on
  * with an end date, one open with no end date, one open past its review date (asked "Is this
- * still going on?"), and three that ended and are history now.
+ * still going on?"), and three that ended and are history now. Each is about a market, and two
+ * also about values of another dimension (`also`): a channel, and the platforms of an app.
  */
 const demoIssues = [
   {
@@ -666,6 +667,7 @@ const demoIssues = [
     summary:
       'The marketplace partner sends no customer data for Norway from 29 September. New customers for these days are missing until the feed is back.',
     market: 'norway',
+    also: [{ dimension: 'channel', value: 'marketplace' }],
     metric: 'new_customers',
     start: '2026-09-29',
     end: '2026-10-11',
@@ -688,6 +690,10 @@ const demoIssues = [
     summary:
       "The Spain app hasn't tracked sessions since 2 October. Active customers from the app read low until tracking is fixed.",
     market: 'spain',
+    also: [
+      { dimension: 'platform', value: 'ios' },
+      { dimension: 'platform', value: 'android' },
+    ],
     metric: 'active_customers',
     start: '2026-10-02',
     end: null,
@@ -768,7 +774,10 @@ function buildIssues(random: Random, usedIds: Set<string>): ContextItem[] {
       scope: {
         metrics: [issue.metric],
         dimensions: [],
-        dimensionValues: [{ dimension: 'market', value: issue.market }],
+        dimensionValues: [
+          { dimension: 'market', value: issue.market },
+          ...('also' in issue ? issue.also : []),
+        ],
       },
       validity: { start: issue.start, end: issue.end },
       reviewDate: issue.end === null ? addDays(issue.start, OPEN_ISSUE_REVIEW_DAYS) : null,

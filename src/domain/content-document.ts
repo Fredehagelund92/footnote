@@ -37,7 +37,7 @@ export type SkipReason =
   | 'names_people'
   /** It holds what looks like a password, a token or a key. */
   | 'holds_secret'
-  /** It names no metric, market or other term of the vocabulary, so it applies nowhere. */
+  /** It names no metric, value or other term of the vocabulary, so it applies nowhere. */
   | 'no_scope'
   /** It holds no words. */
   | 'empty'

@@ -39,8 +39,8 @@ clients (the OpenAI Apps SDK) read no further; Claude Code reads up to 4,096. Th
 text: the Connect page's setup line and its skill file read the same sentences from
 `src/domain/mcp-text.ts`.
 
-**`get_context`** answers a question, or a metric, markets and dates. For the Norway test fixture,
-ask "Orders in Norway, August 2026"; with the bulk seed, use a metric, market and date range from
+**`get_context`** answers a question, or its metrics, dimension values and dates. For the Norway test fixture,
+ask "Orders in Norway, August 2026"; with the bulk seed, use a metric, a value and a date range from
 that data. Its default reply is short:
 
 ```json
@@ -189,7 +189,7 @@ on the reply, with the item and its domain when it names one, so the owner's Inb
 Observability show that item, and the gap job turns missing, wrong and unclear into a gap for the
 reply's topic (FR-606, case 3). A `reply_id` that names no `get_context` reply of the last 90 days
 answers `need_more_detail` and records nothing. Something missing with no reply takes the question's
-metrics, markets and dates instead and is recorded as a gap. The reply says who will see it (`to`,
+metrics, dimension values and dates instead and is recorded as a gap. The reply says who will see it (`to`,
 "the owner of Sales"); a report about no single domain reaches no owner's Inbox, and the reply says
 an admin sees it in Observability. It never keeps who asked (FR-602).
 
@@ -906,7 +906,7 @@ date; else `grounded`.
   and never stored or logged (FR-602). A message that only asks again never reaches the service as
   such: the browser sends the last question instead (`src/domain/ask-again.ts`).
 - `GET /ask/asked` (Asked this week): the topics agents asked about in the week of today (Monday
-  to Sunday, UTC), one row per metric, market and dimension with its shown months joined, most asked
+  to Sunday, UTC), one row per metric, values and dimension with its shown months joined, most asked
   first, each with the state the engine gives its newest shown month now (the month of today for a
   row listed only by its total), how many items that gives, and `nothing`, how many of the week's
   calls delivered no item, under the same minimum. The state is today's; `nothing` is what agents

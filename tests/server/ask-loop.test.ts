@@ -927,7 +927,7 @@ describe('About our business in the instructions', () => {
       ),
     ).toBe(true)
     expect(block).toContain(
-      'It is not a source: never cite or quote it, never take anything about a metric, a market or a date from it',
+      'It is not a source: never cite or quote it, never take anything about a metric, a dimension value or a date from it',
     )
   })
 

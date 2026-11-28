@@ -2,7 +2,7 @@
   Ask someone who knows: an owner passes a Nothing written yet card, or a Needs a recheck card, on
   as a link that opens one page with one question. Footnote sends nothing: the owner copies the
   link and pastes it where the company talks, and the card keeps only the day it was copied, never
-  who opened it. The page shows the topic (metric, market, dates), never the words of a question.
+  who opened it. The page shows the topic (metric, values, dates), never the words of a question.
 
   On a Nothing written yet card the answer is a suggestion under the person's name, which may come
   without a source: its owner adds or confirms one before publishing (item-version.ts). On a Needs a

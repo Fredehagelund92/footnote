@@ -320,7 +320,7 @@ describe('the command', () => {
     )
     expect(code, lines.join('\n')).toBe(0)
     expect(lines[0]).toBe(
-      '2 questions about a period and a market, asked three ways, 2 tries each: 12 answers.',
+      '2 questions about a period and a dimension value, asked three ways, 2 tries each: 12 answers.',
     )
     expect(lines[1]).toMatch(
       /^Items: this workspace's published context, edition .+, 3 notes agents are told; as one plain file, about \d+ tokens\.$/,

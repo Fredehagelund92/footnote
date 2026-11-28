@@ -32,7 +32,7 @@ Write a context item with me. Ask me what happened, when, and where it is writte
 
 <!-- /include -->
 
-The same button is under a Not found answer in Ask, for an owner of its domain, and in the editor's More menu. There the prompt names what the item is about, its metrics, markets and dates, and never the question anyone asked. On a draft you saved, it asks your agent to go on with that draft.
+The same button is under a Not found answer in Ask, for an owner of its domain, and in the editor's More menu. There the prompt names what the item is about, its metrics, values and dates, and never the question anyone asked. On a draft you saved, it asks your agent to go on with that draft.
 
 ## Start from your agent
 

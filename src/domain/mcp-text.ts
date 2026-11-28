@@ -57,7 +57,7 @@ export const AGENT_TOOLS: readonly {
     name: 'get_context',
     title: 'Get context for a question',
     what: 'The context that applies to a question about a metric, with one sentence to relay.',
-    takes: 'The question, or a metric, markets and dates.',
+    takes: 'The question, or its metrics, dimension values and dates.',
     returns: `The answer line, the ${facts} that apply, and one sentence to relay.`,
   },
   {
@@ -198,11 +198,11 @@ export const answerLineRule =
 
 /** How a model names things to people, apart from the field names it reads (docs/design/copy.md). */
 export const plainWordsRule =
-  "With people, say the metric, market and dates, not status, scope, edition or reply_id, which name a reply's fields."
+  "With people, say the metric, dimension values and dates, not status, scope, edition or reply_id, which name a reply's fields."
 
 /** How to pass names, what to do without them, how to see what there is and read one (FR-338, FR-353). */
 export const namesRule =
-  'Pass the metrics, markets and dates you query, or member names from the data tool (payments.orders); unknown ones get the closest. No names? Call find_context; to browse, leave out its words; read_context reads one.'
+  'Pass the metrics, dimension values and dates you query, or member names from the data tool (payments.orders); unknown ones get the closest. No names? Call find_context; to browse, leave out its words; read_context reads one.'
 
 /**
  * How dates are read, on the workspace's calendar (R8): the time zone today is counted in, and
@@ -264,7 +264,7 @@ export const TOPIC_MAX = 200
 /**
  * The prompt that starts writing context with an agent: the MCP server's write_context prompt
  * (`/footnote:write_context` in Claude Code) and the app's Write with Claude button say the same
- * words, which name the tools and never the product (docs/design/copy.md). Its topic is what the context is about, such as metrics, markets and dates, never the
+ * words, which name the tools and never the product (docs/design/copy.md). Its topic is what the context is about, such as metrics, values and dates, never the
  * words of a question someone asked; without one the agent asks what happened.
  */
 export function writeContextPrompt(topic = ''): string {

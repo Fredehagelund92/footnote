@@ -193,7 +193,7 @@ export const concepts = {
   },
   topic: {
     name: 'topic',
-    definition: 'The exact scope agents asked about: domain, metric, market and the month.',
+    definition: 'The exact scope agents asked about: domain, metric, values and the month.',
     internal: ['topic'],
   },
   edition: {

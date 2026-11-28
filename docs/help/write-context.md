@@ -54,13 +54,13 @@ A new context item starts as an Event. Pick another kind under Kind when it is o
 
 1. A title that is one plain sentence, with its date.
 2. What agents should know: two or three sentences, with what it is not if people mix it up.
-3. Where and when it applies: the metrics and markets, and the dates.
+3. Where and when it applies: the metrics, the values (such as Norway or Email), and the dates.
 4. A source anyone can open. When it is written nowhere a link opens, such as a decision or what you know, choose No link in Source and say in one line who or what says so, such as Pricing committee, the quarterly review. Agents are told there is no link to open. The check date is set for you.
 5. Don't conclude: the one line that stops an agent from reading a cause into it. Left empty, agents get no such line, and a cause your text gives is passed on as yours.
 
 In a domain you own, it is published at once. In another domain it goes to that domain's owners as a suggestion: [Review a suggestion](review-a-suggestion.md) is what they do with it. Applies to names only what [Definitions](definitions-and-synonyms.md) lists.
 
-A market or another value that isn't there yet can be added where you write. Open a dimension in Applies to, such as Market, type the value, and choose the row that adds it, such as Add “Norway” to Market. Words that find nothing at all offer to add them to each dimension instead.
+A value that isn't there yet, such as a new market or channel, can be added where you write. Open a dimension in Applies to, such as Market, type the value, and choose the row that adds it, such as Add “Norway” to Market. Words that find nothing at all offer to add them to each dimension instead.
 
 The new value goes to the owner with your item, and publishing the item publishes the value too.
 
@@ -120,7 +120,7 @@ The same news, written weakly:
 | ----------------------- | ----------------------------- | --------------------------------------------------------------------- |
 | Title                   | Norway is down                | What is down, what happened, and when                                 |
 | What agents should know | Sales in Norway dropped a lot | The cause, and how to compare the weeks before and after it           |
-| Applies to              | Nothing                       | The metrics and the market, so agents know which questions it answers |
+| Applies to              | Nothing                       | The metrics and the values, so agents know which questions it answers |
 | Source                  | Nothing                       | A link anyone can open, so an owner can check it                      |
 | Don't conclude          | Nothing                       | The line that stops an agent from blaming the drop on customers       |
 

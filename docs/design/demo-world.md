@@ -408,15 +408,19 @@ before and a year earlier."), since Ask's answer says that sentence for it.
 
 ### 10.1 Issues (7, `demoIssues`)
 
-| Title                                                       | Metric           |
-| ----------------------------------------------------------- | ---------------- |
-| Marketplace partner reporting for Norway is down            | new_customers    |
-| Payment provider delays order data in Poland                | orders           |
-| Tracking outage in the Spain app                            | active_customers |
-| Stock feed gaps in Canada since mid September               | online_share     |
-| Partner reporting for France was down for twelve days       | units_sold       |
-| Clothing order lines were missing in Germany for three days | units_per_order  |
-| Returns were counted twice in the United Kingdom            | returns          |
+| Title                                                       | Metric           | Applies to                     |
+| ----------------------------------------------------------- | ---------------- | ------------------------------ |
+| Marketplace partner reporting for Norway is down            | new_customers    | Norway, Channel Marketplace    |
+| Payment provider delays order data in Poland                | orders           | Poland                         |
+| Tracking outage in the Spain app                            | active_customers | Spain, Platform iOS or Android |
+| Stock feed gaps in Canada since mid September               | online_share     | Canada                         |
+| Partner reporting for France was down for twelve days       | units_sold       | France                         |
+| Clothing order lines were missing in Germany for three days | units_per_order  | Germany                        |
+| Returns were counted twice in the United Kingdom            | returns          | United Kingdom                 |
+
+Each is about a market. Two are also about values of a second dimension, a channel and an app's
+platforms, so the demo shows that no dimension is special: "New customers in Norway" gets the
+first only for the Marketplace channel, and "New customers from Email" does not get it.
 
 Their summaries and sources are in `db/seed/fixtures/items.ts`. The what not to conclude of the
 Poland issue (`db/seed/fixtures/caveats.ts`) is "Low orders in Poland for these days do not mean

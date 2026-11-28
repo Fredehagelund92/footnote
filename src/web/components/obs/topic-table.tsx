@@ -29,7 +29,7 @@ import {
 import type { Sorting } from '@/lib/sort'
 import { openFromRow } from '@/lib/dock'
 
-// The topics as rows, in one of three groupings. A topic is an exact scope (domain, metric, market
+// The topics as rows, in one of three groupings. A topic is an exact scope (domain, metric, values
 // and the month its dates start in), and that key never changes; grouping only joins rows for
 // reading. A grouped row shows the combined count and the share that found nothing, and opens to
 // its months. A total that would give a hidden count away by subtraction shows as "13+": the

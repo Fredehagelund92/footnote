@@ -127,11 +127,7 @@ export async function checkDraft(
   for (const key of draft.scope?.dimensions ?? []) {
     const term = known.get(key)
     if (term && term.kind !== 'dimension')
-      add(
-        'unknown_scope',
-        'scope',
-        `"Any" works for a market, a product or a brand, not for ${term.name}.`,
-      )
+      add('unknown_scope', 'scope', `"Any" works only for a dimension, not for ${term.name}.`)
     // FR-505: a dimension with any value is broad, so the reviewer is told; it never blocks. With
     // no values kept, no question names one of them: only one that names the dimension gets it.
     else if (term)

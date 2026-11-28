@@ -382,7 +382,9 @@ function convertedFamilies(
 /**
  * The metrics whose names alone suggest a family: those of one view whose names are one name in
  * other currencies, at least `CURRENCY_FAMILY_MIN` of them, each in another. Never a family until
- * an owner says so.
+ * an owner says so. Only currency: its codes are one list every company shares, so a code in a name
+ * is a value, while any other word could be any dimension's value or part of the name
+ * (docs/help/metric-variants.md). Declared and calculated families take any dimension.
  */
 function lookAlikes(members: readonly VariantMember[]): Family[] {
   const byName = new Map<string, { member: VariantMember; code: string }[]>()

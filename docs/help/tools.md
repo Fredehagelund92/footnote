@@ -19,7 +19,7 @@ Three read published context. One sends a report to an owner after the person sa
 
 The context that applies to a question about a metric, with one sentence to relay.
 
-- Takes: The question, or a metric, markets and dates.
+- Takes: The question, or its metrics, dimension values and dates.
 - Returns: The answer line, the context items that apply, and one sentence to relay.
 
 ### find_context

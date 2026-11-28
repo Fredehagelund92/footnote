@@ -521,8 +521,8 @@ function Explorer({ view, busy }: { view: ObsView; busy: boolean }) {
               title="Topics"
               description={
                 span
-                  ? `A topic is what agents asked about: a metric, a market and a month. Counted over ${view.label}, not only the days selected.`
-                  : 'A topic is what agents asked about: a metric, a market and a month.'
+                  ? `A topic is what agents asked about: a metric, values such as Norway, and a month. Counted over ${view.label}, not only the days selected.`
+                  : 'A topic is what agents asked about: a metric, values such as Norway, and a month.'
               }
               action={
                 <span className="flex flex-wrap items-center gap-1">

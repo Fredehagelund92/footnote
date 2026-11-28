@@ -581,7 +581,7 @@ export const lookupEventSchema = z.union([
 export type LookupEvent = z.infer<typeof lookupEventSchema>
 
 /**
- * Asked this week: the topics agents asked about most this week (a metric, a market and the
+ * Asked this week: the topics agents asked about most this week (a metric, its values and the
  * dimensions named, its months joined), each with the state Ask gives it now for its latest
  * month, as counts only. A count under the minimum is never shown (FR-614): `count` is null when
  * a small month could be worked out from it, and `atLeast` is what the shown months add up to.

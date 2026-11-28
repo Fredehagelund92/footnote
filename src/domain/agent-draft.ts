@@ -241,8 +241,8 @@ export function deriveAgentDraft(input: AgentDraftInput, context: DerivationCont
       question(
         'scope',
         unresolved.length
-          ? `Which metric or market is it about? Not in the vocabulary: ${unresolved.map((u) => u.name).join(', ')}.`
-          : 'Which metric, market or other dimension value is it about?',
+          ? `Which metric or value is it about? Not in the vocabulary: ${unresolved.map((u) => u.name).join(', ')}.`
+          : 'Which metric or value is it about?',
       ),
     )
   else if (ambiguous.length)

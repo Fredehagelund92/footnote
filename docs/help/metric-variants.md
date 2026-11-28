@@ -3,7 +3,7 @@ title: 'Variants: a dimension, not a metric each'
 line: Why one metric with currency as a dimension works better than a metric for each currency.
 group: Set up
 order: 4
-minutes: 7
+minutes: 8
 reviewed: 2026-11-28
 ---
 
@@ -44,6 +44,8 @@ A read groups near-identical metrics into a family, such as Revenue, with 250 va
 2. Found from the calculation, with filters that differ only by the value they compare, such as EUR or web. Three metrics are enough.
 3. Found from a rate. A metric worked out from another with one more column, such as Accrued share (USD) from Accrued share (EUR) and the column `exchange_rate_usd`. When that column does this for several pairs, each pair is a family by Currency.
 4. Suggested by the names alone. Metrics whose names are one name in other currencies, such as Shipping fee (EUR) and Shipping fee (USD), wait under Look alike on the Names card. They are never a family until you say so.
+
+Only currency is read from names alone, and from a rate. A currency code, such as EUR, is on one list every company shares, so a code in a name is a currency. Any other word in a name, such as web or retail, could be a value of a channel, a region, a market or another dimension, or just part of the name. So names never make a family by those on their own: declare it in your tool, or let the calculation show it, and it is read by whatever dimension it names.
 
 - The Names card has two parts: Families and Names. Families shows the families waiting, counted by how each was found. Those that look alike or need another name come first. The ready ones follow, grouped as declared in your tool, from the calculation or from a rate. Publish one, or all the ready ones at once, and its variants are published with it.
 - A source's page in Integrations counts its families the same way, and Review families opens the Families part of the Names card.

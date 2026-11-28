@@ -185,7 +185,7 @@ describe('scope extraction', () => {
           ],
         })
     })
-    it('still asks for a metric or a market when the question names neither', () => {
+    it('still asks for a metric or a value when the question names neither', () => {
       expect(extractScope('What happened this past week?', terms, '2026-08-05')).toEqual({
         status: 'need_more_detail',
         issues: [

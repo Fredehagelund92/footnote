@@ -181,7 +181,7 @@ export async function reportGap(
   // A word no read could find goes alone, as the note of the topic of nothing this month.
   if (word !== undefined && Object.values(rest).some((v) => v !== undefined))
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
-      message: 'Send the word alone, with no metric, market, dates or note.',
+      message: 'Send the word alone, with no metric, value, dates or note.',
     })
   const { note: given, ...scopeInput } = rest
   const note = word ?? given
@@ -192,7 +192,7 @@ export async function reportGap(
           const { scope } = scopeOf({ ...scopeInput, question: '' }, bundle, today)
           if (scope.status !== 'resolved')
             throw new ORPCError('UNPROCESSABLE_CONTENT', {
-              message: "Add the metric, the market or the dates it's about.",
+              message: "Add the metric, the value or the dates it's about.",
               data: { findings: scopeIssueFindings(scope.issues) },
             })
           return topicFor(scope.scope, bundle.metricArea)

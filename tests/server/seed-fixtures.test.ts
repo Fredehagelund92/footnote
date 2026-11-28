@@ -92,6 +92,22 @@ describe('item fixtures', () => {
       expect(item.reviewQuestion).toBe('still_correct')
   })
 
+  it('scopes two issues by values of a second dimension as well as their market', () => {
+    const second = items
+      .filter((item) => item.kind === 'issue')
+      .map((issue) => [
+        issue.title,
+        issue.scope.dimensionValues
+          .filter((v) => v.dimension !== vocabulary.dimensions[0]!.id)
+          .map((v) => `${v.dimension}/${v.value}`),
+      ])
+      .filter(([, values]) => values.length)
+    expect(second).toEqual([
+      ['Marketplace partner reporting for Norway is down', ['channel/marketplace']],
+      ['Tracking outage in the Spain app', ['platform/ios', 'platform/android']],
+    ])
+  })
+
   it('keeps every item before the issues as it was without them', () => {
     const regular = generateItems(1500).filter((item) => item.kind !== 'issue')
     expect(regular).toHaveLength(1493)

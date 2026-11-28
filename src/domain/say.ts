@@ -643,7 +643,7 @@ export function unkeptSay(bundle: Names, unkept: readonly UnkeptValues[]): strin
 
 /**
  * get_context's two sentences (a person's in the people voice), for each status: what it read (the
- * metrics, markets and dates) and that it read only that; a match keeps what was cut, held back,
+ * metrics, values and dates) and that it read only that; a match keeps what was cut, held back,
  * needs checking or applies only in part; an absence is never said without the rule and the next
  * step for the AI agent. In the context voice `say` starts with the answer line (FR-349), from the
  * reply's status.
@@ -802,14 +802,14 @@ export function findSaid(
       `${sentence(count(c.total, one, many))}${where} ${c.total === 1 ? 'matches' : 'match'} these words.${shown}`,
       ...(defined ? [defined] : []),
     )
-    next = `These match words, not dates: for what applies to a metric, market and dates, call ${voice.get}.${more}`
+    next = `These match words, not dates: for what applies to a metric, dimension values and dates, call ${voice.get}.${more}`
   } else if (c.status === 'matched') {
     say.push(
       `${sentence(count(c.total, `${one} applies`, `${many} apply`))}${where} to ${scope}.${shown}`,
       onlyThat,
       ...(defined ? [defined] : []),
     )
-    next = `No ${one}'s words matched, so these are the ${many} that apply to what the words name. Call ${voice.get} for other metrics, markets or dates.${more}`
+    next = `No ${one}'s words matched, so these are the ${many} that apply to what the words name. Call ${voice.get} for other metrics, dimension values or dates.${more}`
   } else {
     say.push(
       `Nothing is written${where} that matches these words${scope ? `, or applies to ${scope}` : ''}.`,
@@ -820,7 +820,7 @@ export function findSaid(
         : []),
       ...(defined ? [defined] : []),
     )
-    next = `${notProof}: a search may only have missed the words, and why says what to try. Call ${voice.get} with the metrics, markets and dates. If nothing applies there either, say nothing is written down for exactly that question, and ${voice.report}.`
+    next = `${notProof}: a search may only have missed the words, and why says what to try. Call ${voice.get} with the metrics, dimension values and dates. If nothing applies there either, say nothing is written down for exactly that question, and ${voice.report}.`
   }
   if (c.assumed) say.push(c.assumed)
   return { say: say.join(' '), next }
@@ -903,7 +903,7 @@ export function listSaid(c: ListPage): Said {
   if (!total)
     return {
       say: `There's no ${definitionWords[0]} or published ${one} you can read with these filters.`,
-      next: `That proves nothing about a question: call ${contextVoice.get} with its metrics, markets and dates.`,
+      next: `That proves nothing about a question: call ${contextVoice.get} with its metrics, dimension values and dates.`,
     }
   if (!c.shown)
     return {

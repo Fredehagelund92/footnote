@@ -186,7 +186,7 @@ it("prints the proof's table from the key holder's command (npm run held-out -- 
   expect(ran.stderr).toBe('')
   expect(ran.status).toBe(0)
   expect(ran.stdout).toMatch(
-    /^2 questions about a period and a market, asked three ways, 1 try each: 6 answers\.$/m,
+    /^2 questions about a period and a dimension value, asked three ways, 1 try each: 6 answers\.$/m,
   )
   expect(ran.stdout).toMatch(
     /^Questions: the invented company's, sealed \(digest [0-9a-f]{16}\)\.$/m,

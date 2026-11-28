@@ -48,8 +48,6 @@ export const marketDemoWorld = ['src/web/api/mock/**']
   it no longer names market; add none.
 */
 export const stillNamesMarket = [
-  // The static example calls the schema check reads; an install is shown its own terms.
-  'src/server/mcp/invalid-input.ts',
   // Reads the market:Norway mentions saved chats hold, from before Ask's @ offered every value.
   'src/web/lib/mentions.ts',
   // Reads the answers a browser kept before their values were named values, as markets.

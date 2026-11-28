@@ -13,18 +13,18 @@ import { tools, toolInputSchema, type ToolName } from './tools.ts'
   never its value, so no question text travels back into a record.
 */
 
-const question = 'How did orders do in Norway in August 2026?'
+const question = 'How did orders from email do in August 2026?'
 const draftCall = {
-  text: 'Orders in Norway fell on 3 Aug 2026 while the payment provider was down.',
+  text: 'Orders from email fell on 3 Aug 2026 while the email provider was down.',
   scope: {
     metrics: ['orders'],
-    dimension_filters: [{ dimension: 'market', values: ['Norway'] }],
+    dimension_filters: [{ dimension: 'Channel', values: ['Email'] }],
   },
 }
 const scopedCall = {
   question,
   metrics: ['orders'],
-  dimension_filters: [{ dimension: 'market', values: ['Norway'] }],
+  dimension_filters: [{ dimension: 'Channel', values: ['Email'] }],
   window: { from: '2026-08-01', to: '2026-08-31' },
 }
 

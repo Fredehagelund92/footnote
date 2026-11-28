@@ -632,7 +632,7 @@ function nothingFound(
     if (near) tries.push(`"${word}" isn't a name here. Did you mean ${near.name}?`)
   }
   if (read.concepts.length > 2)
-    tries.push('Search fewer words: one or two names, such as a metric and a market.')
+    tries.push('Search fewer words: one or two names, such as a metric and a dimension value.')
   const examples = bundle.terms
     .filter(
       (term) =>
@@ -644,7 +644,7 @@ function nothingFound(
   if (examples.length)
     tries.push(`Name a metric or a domain known here, such as ${list(examples)}.`)
   tries.push(
-    `For what applies to a question with dates, call ${contextVoice.get} with the metrics, the markets and the dates.`,
+    `For what applies to a question with dates, call ${contextVoice.get} with the metrics, the dimension values and the dates.`,
   )
   tries.push(
     'If nothing is written down about it, say so plainly and, if the person agrees, call report with kind missing, so the owners see it was asked.',
@@ -795,7 +795,7 @@ export function findContext(
     match,
   }))
   const status = found.length ? 'matched' : 'no_match'
-  // What agents do not get is counted by the names the words hold (domains, metrics, markets),
+  // What agents do not get is counted by the names the words hold (domains, metrics, values),
   // as get_context counts by scope: never by the text of an item an agent cannot read, which
   // would let words probe it. An item for a narrower audience counts as absent (groups are parked).
   // Nor by the item's title: the query's own words never rank an item an agent does not get.
