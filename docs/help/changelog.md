@@ -18,7 +18,9 @@ Ask and your agent's tools use the new names too, and nothing you stored changed
 
 2026-11-28
 
-A definition's page shows what it means first, in large words, with one line on where the words come from. Its other names are one line under them, with Add a name. A metric's Built from tree stays open. Variants, How it is built, Where it comes from and History are closed rows, each with a few words on what it holds. A family's page reads its values in the sentence, such as in EUR or USD, and lists up to ten variants one a line. See [Definitions and synonyms](definitions-and-synonyms.md#a-definitions-page).
+A definition's page shows what it means first, in large words, with one line on where the words come from. Its other names are one line under them, with Add a name.
+
+A metric's Built from tree stays open. Variants, How it is built, Where it comes from and History are closed rows, each with a few words on what it holds. A family's page reads its values in the sentence, such as in EUR or USD, and lists up to ten variants one a line. See [Definitions and synonyms](definitions-and-synonyms.md#a-definitions-page).
 
 ## A source with no link
 
