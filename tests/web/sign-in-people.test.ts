@@ -69,7 +69,8 @@ async function show(method: Partial<SignInMethod>, people: SignInChoice[]) {
   })
   await settle()
   // The first screen loads on its own, once the page knows nobody is in the workspace.
-  if (method.first) await vi.waitFor(() => expect(host.querySelector('form')).not.toBeNull())
+  if ('first' in method && method.first)
+    await vi.waitFor(() => expect(host.querySelector('form')).not.toBeNull())
   return host.textContent ?? ''
 }
 
