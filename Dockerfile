@@ -32,10 +32,11 @@ FROM node:26-bookworm-slim@sha256:5df79989ed685e09f0a98019db4cebfb22fb9df1a53c01
 # pg_dump and pg_restore of PostgreSQL 18, for backups and the restore drill
 # (docs/back-up-restore-and-upgrade.md, "Back up"): Debian's own are older than the server. And git, which the
 # sources that read a Git repository run (src/server/modules/connectors/git.ts). And PAM from
-# bookworm-security, newer than the base image carries, for its high finding (CVE-2025-6020).
+# bookworm-security, newer than the base image carries, for its high finding (CVE-2025-6020). And libzstd1, for
+# its (CVE-2026-124851).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends --only-upgrade \
-        libpam-modules libpam-modules-bin libpam-runtime libpam0g \
+        libpam-modules libpam-modules-bin libpam-runtime libpam0g libzstd1 \
     && apt-get install -y --no-install-recommends ca-certificates postgresql-common \
     && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
     && apt-get install -y --no-install-recommends postgresql-client-18 git \
