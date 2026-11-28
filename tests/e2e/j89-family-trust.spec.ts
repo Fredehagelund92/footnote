@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, test } from './go.ts'
+import { expect, go, openRow, test } from './go.ts'
 
 // J89, families in the order of trust (FR-142, D1, D2, D6): on the mock's ?demo=families Names card
 // the Families part counts the families by how each was found, and groups the ready ones that way:
@@ -78,6 +78,11 @@ for (const { name, width, height } of widths) {
       page,
     }) => {
       await go(page, '/definitions/Accrued%20share%20front%20loaded?demo=families')
+      // Closed, its row says how it was found.
+      await expect(
+        page.getByRole('main').getByRole('button', { name: 'How it is built', exact: true }),
+      ).toHaveAccessibleDescription(/^Found from a rate in \w+$/)
+      await openRow(page, 'How it is built')
       const built = page.getByRole('main').getByRole('region', { name: 'How it is built' })
       await expect(built).toContainText(
         /^FamilyFound from a rate in \w+\.Split into 2 metricsConverted/,

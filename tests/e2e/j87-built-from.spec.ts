@@ -19,9 +19,9 @@ for (const { name, width, height } of widths) {
       const main = page.getByRole('main')
       const built = main.getByRole('region', { name: 'How it is built' })
       await expect(built).toBeVisible()
-      // Under the description, above where it is read from.
+      // Open under its description and its other names, above the context about it.
       const words = main.getByText('Marketing spend divided by first-time buyers', { exact: false })
-      const source = main.getByText(/read-only, read from/)
+      const source = main.getByText(/^Context about Cost per acquisition/)
       const box = async (l: typeof words) => (await l.boundingBox())!
       const [above, own, below] = [await box(words), await box(built), await box(source)]
       expect(own.y).toBeGreaterThanOrEqual(above.y + above.height)
@@ -48,7 +48,7 @@ for (const { name, width, height } of widths) {
       await go(page, '/definitions/Churn%20rate')
       const main = page.getByRole('main')
       await expect(main.getByRole('heading', { name: 'Churn rate', level: 2 })).toBeVisible()
-      await expect(main.getByText(/read-only, read from/)).toBeVisible()
+      await expect(main.getByText(/^Read from \w+\. Change it there\.$/)).toBeVisible()
       await expect(main.getByRole('region', { name: 'How it is built' })).toHaveCount(0)
     })
   })

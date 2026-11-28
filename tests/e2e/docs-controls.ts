@@ -353,6 +353,48 @@ export const docControls: DocControl[] = [
     drawn: 'text',
   },
   {
+    phrase: 'Add a name',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Gross%20sales',
+    drawn: 'button',
+  },
+  {
+    phrase: 'Edit',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Season',
+    drawn: 'button',
+  },
+  {
+    phrase: 'Change the words',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Revenue?demo=families',
+    drawn: 'button',
+  },
+  {
+    phrase: 'Variants',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Revenue?demo=families',
+    drawn: 'button',
+  },
+  {
+    phrase: 'How it is built',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Revenue?demo=families',
+    drawn: 'button',
+  },
+  {
+    phrase: 'Where it comes from',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Gross%20sales',
+    drawn: 'button',
+  },
+  {
+    phrase: 'History',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Gross%20sales',
+    drawn: 'button',
+  },
+  {
     phrase: 'Other name for',
     page: 'definitions-and-synonyms',
     at: '/definitions/Webshop/edit',

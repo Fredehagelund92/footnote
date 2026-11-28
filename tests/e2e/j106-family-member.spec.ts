@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, go, moveTo, signInAs, test } from './go.ts'
+import { expect, go, moveTo, openRow, signInAs, test } from './go.ts'
 
 // J106, a member meets a family, and one that was split (FR-142, D3): on the mock's ?demo=families
 // Ines Duarte, who owns no domain, reads a family's page with no Split, told who decides whether it
@@ -61,6 +61,7 @@ for (const { name, width, height } of widths) {
       }) => {
         await as(page, 'Ines Duarte')
         await moveTo(page, '/definitions/Accrued%20share%20front%20loaded')
+        await openRow(page, 'How it is built')
         await expect(page.getByRole('region', { name: 'How it is built' })).toContainText(
           'Found from a rate in dbt. Owners of Sales decide whether it is one family: Jon Abara and Sofia Brandt.',
         )
@@ -73,6 +74,7 @@ for (const { name, width, height } of widths) {
         await page.setViewportSize({ width: 1440, height: 900 })
         await signInAs(page, 'Jon Abara')
         await moveTo(page, '/definitions/Accrued%20share%20front%20loaded')
+        await openRow(page, 'How it is built')
         await page.getByRole('button', { name: 'Split into 2 metrics' }).click()
         await page.getByRole('dialog').getByRole('button', { name: 'Split into 2 metrics' }).click()
         await expect(page.getByRole('region', { name: 'Kept apart' })).toBeVisible()

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, test } from './go.ts'
+import { expect, go, openRow, test } from './go.ts'
 
 // J90, what a family means (FR-142, M1): on the mock's ?demo=families, Revenue's quick view reads
 // the words most of its 250 variants share, each value as what it stands for, says where those
@@ -85,7 +85,10 @@ for (const { name, width, height } of widths) {
       // History keeps every choice, after its tool's reads.
       await go(page, '/definitions/Revenue')
       const main = page.getByRole('main')
-      await main.getByRole('button', { name: /changes - last edited by Jon Abara/ }).click()
+      await expect(
+        main.getByRole('button', { name: 'History', exact: true }),
+      ).toHaveAccessibleDescription(/changes - last edited by Jon Abara/)
+      await openRow(page, 'History')
       await expect(main.getByRole('button', { name: /Jon edited wording/ })).toHaveCount(3)
     })
 
@@ -146,15 +149,23 @@ for (const { name, width, height } of widths) {
       expect(await sideways(page)).toBe(0)
     })
 
-    test('a pair one rate converts reads the base variant’s words, its currency a slot', async ({
+    test('a pair one rate converts reads the base variant’s words, its currency as its values', async ({
       page,
     }) => {
       await go(page, '/definitions/Accrued%20share%20front%20loaded?demo=families')
       const main = page.getByRole('main')
-      await expect(main).toContainText(
-        "The share of a contract's value booked in its first three months, in Currency.",
+      // The page reads the slot as the values it stands for, never the base's own currency.
+      const sentence = main.getByText(
+        "The share of a contract's value booked in its first three months, in EUR or USD.",
+        { exact: true },
       )
-      await expect(main).not.toContainText('in euros.')
+      await expect(sentence).toBeVisible()
+      await expect(sentence.getByText('EUR or USD')).toHaveAttribute(
+        'title',
+        'One metric for each Currency: EUR and USD',
+      )
+      await expect(main).toContainText('Worked out from its variants.')
+      await openRow(page, 'Where it comes from')
       await expect(main).toContainText(
         'Words of Accrued share front loaded (EUR), the variant the others are converted from',
       )

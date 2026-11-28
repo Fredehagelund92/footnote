@@ -68,14 +68,16 @@ export function Property({
 export function DocFold({
   label,
   summary,
+  defaultOpen,
   children,
 }: {
   label: string
   summary: ReactNode
+  defaultOpen?: boolean
   children: ReactNode
 }) {
   return (
-    <Collapsible>
+    <Collapsible defaultOpen={defaultOpen}>
       {/* One line, one target: the label, then what is set, muted, then the chevron. Its band
           reaches a little past the words, which stay in line with the rows above. */}
       <div className="-mx-2">

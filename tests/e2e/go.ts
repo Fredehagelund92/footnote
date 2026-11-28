@@ -243,6 +243,22 @@ export async function unfold(page: Page, section: string) {
 }
 
 /**
+ * Opens a closed row of a definition's page (Variants, How it is built, Where it comes from,
+ * History) and waits for it to stand still, as `unfold` does. An open row stays open.
+ */
+export async function openRow(page: Page, row: string) {
+  const fold = page.getByRole('main').getByRole('button', { name: row, exact: true })
+  if ((await fold.getAttribute('aria-expanded')) !== 'true') await fold.click()
+  await expect(fold).toHaveAttribute('aria-expanded', 'true')
+  const panel = page.locator(`[id="${await fold.getAttribute('aria-controls')}"]`)
+  await expect
+    .poll(() =>
+      panel.evaluate((el) => !el.getAnimations().length && el.clientHeight === el.scrollHeight),
+    )
+    .toBe(true)
+}
+
+/**
  * Sign in as one of the demo's people, as a person does: sign out in the user menu, pick them on
  * the sign-in page, and land where the app opens for them: their Inbox, or Ask when nothing needs
  * them. A journey starts signed in, as Jon.

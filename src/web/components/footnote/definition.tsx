@@ -4,19 +4,16 @@ import {
   ChevronRightIcon,
   EqualIcon,
   LockIcon,
-  PencilIcon,
+  PlusIcon,
   TriangleAlertIcon,
 } from '@/components/icons'
 import { termWord } from '@domain/terms'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
-import { FamilyMeaningBlock } from '@/components/footnote/family-meaning'
 import { TypeGlyph, glyphs, kindOf } from '@/components/footnote/type-glyph'
 import { TagChip } from '@/components/footnote/tag-chip'
-import { Separator } from '@/components/ui/separator'
-import type { Fact } from '@/model/items'
+import { Kbd } from '@/components/ui/kbd'
 import {
-  familyMeaning,
   listIndex,
   parseTags,
   kindName,
@@ -26,20 +23,12 @@ import {
   useGlossary,
 } from '@/lib/definitions'
 import { openDock, useDock } from '@/lib/dock'
-import { useReadAhead } from '@/lib/read-ahead'
-import { useDomains, useFacts, useMe } from '@/lib/workspace'
-import { mentionId, plainText } from '@/lib/mentions'
-import { MentionText } from '@/components/footnote/mention-chip'
-import { SourcePassages } from '@/components/footnote/source-text'
-import { Related } from '@/components/footnote/related'
-import { useRelated } from '@/hooks/use-related'
-import { PeekBand, PeekFact, PeekFacts, PeekLabel } from '@/components/footnote/peek'
-import { MoreProperties, Property } from '@/components/footnote/doc'
-import { VersionHistory } from '@/components/footnote/version-history'
+import { useFacts, useMe } from '@/lib/workspace'
+import { PeekBand, PeekLabel } from '@/components/footnote/peek'
 import { useQuery } from '@tanstack/react-query'
 import { toApiError } from '@/api/errors'
 import { Button } from '@/components/ui/button'
-import { builtFromQuery, definitionHistoryQuery, useWrite } from '@/api/queries'
+import { builtFromQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
 import { ShowMoreButton } from '@/components/footnote/show-more'
@@ -216,18 +205,22 @@ const notSaved = 'The save did not go through, so nothing changed.'
  * through (with Try again). Never a toast: the line stays beside the word until it is dismissed or
  * tried again. The source's own names are locked tags. Escape keeps every tag made so far. The
  * same box on the definition's page, in its quick view and in the term editor, so all three write
- * the one list.
+ * the one list. On the page it is one line (`inline`): the label, the tags and a dashed Add a name
+ * that opens the field in place, then one line on what the names do, and a line for each name
+ * that means two things.
  */
 export function SynonymTags({
   d,
   label = 'Also called',
   canEdit,
   level = 3,
+  inline = false,
 }: {
   d: Definition
   label?: string
   canEdit: boolean
   level?: 2 | 3
+  inline?: boolean
 }) {
   const H = level === 2 ? 'h2' : 'h3'
   const glossary = useGlossary()
@@ -241,6 +234,17 @@ export function SynonymTags({
   const [said, setSaid] = React.useState('')
   const [flash, setFlash] = React.useState<string | null>(null)
   const input = React.useRef<HTMLInputElement>(null)
+  const addButton = React.useRef<HTMLButtonElement>(null)
+  // On the page the field opens from Add a name, and closes again when it is left empty.
+  const [opened, setOpened] = React.useState(false)
+  const field = canEdit && (!inline || opened)
+  const backToAdd = React.useRef(false)
+  React.useEffect(() => {
+    if (!inline) return
+    if (opened) input.current?.focus()
+    else if (backToAdd.current) addButton.current?.focus()
+    backToAdd.current = false
+  }, [inline, opened])
   const id = React.useId()
   const me = useMe()
   const same = (a: string, b: string) => termWord(a) === termWord(b)
@@ -329,7 +333,9 @@ export function SynonymTags({
   const remove = (name: string) => {
     setSelected(null)
     setRemoving((list) => [...list, name])
-    input.current?.focus()
+    // The focus stays in the names: the field, or Add a name when the field is closed.
+    const stay = input.current ?? addButton.current
+    stay?.focus()
     inTurn(async () => {
       if (unsaved.current.some((w) => same(w, name))) {
         setRemoving((list) => without(list, [name]))
@@ -373,6 +379,13 @@ export function SynonymTags({
       e.stopPropagation()
       setText('')
       setSelected(null)
+      return
+    }
+    if (e.key === 'Escape' && inline) {
+      // Pressed again, it closes the field on the page, back on Add a name.
+      e.stopPropagation()
+      backToAdd.current = true
+      setOpened(false)
       return
     }
     setSelected(null)
@@ -432,55 +445,45 @@ export function SynonymTags({
     </>
   )
 
-  return (
-    <section aria-labelledby={`${id}-label`} className="flex flex-col gap-1.5">
-      <H id={`${id}-label`} className="text-sm font-medium">
-        {label}
-      </H>
-      {canEdit ? (
-        // The box takes clicks anywhere into its field, as a tag box does.
-        <div
-          onClick={() => input.current?.focus()}
-          className={cn(
-            'flex min-h-9 cursor-text flex-wrap items-center gap-1.5 rounded-md border bg-background px-1.5 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
-            'pointer-coarse:min-h-11',
-          )}
-        >
-          {chips}
-          <input
-            ref={input}
-            id={`${id}-input`}
-            value={text}
-            aria-label={`Add a name for ${point.name}`}
-            aria-describedby={`${id}-help`}
-            placeholder="Add a name"
-            onChange={(e) => {
-              const v = e.target.value
-              // A comma typed or pasted mid-word: every finished word becomes a tag, the rest stays.
-              if (v.includes(',')) {
-                const parts = v.split(',')
-                commit(parseTags(parts.slice(0, -1).join(',')))
-                setText(parts[parts.length - 1]!.trimStart())
-              } else setText(v)
-            }}
-            onPaste={(e) => {
-              const pasted = e.clipboardData.getData('text')
-              if (!/[,\n]/.test(pasted)) return
-              e.preventDefault()
-              commit(parseTags(`${text}${pasted}`))
-              setText('')
-            }}
-            onKeyDown={onKeyDown}
-            className="h-6 min-w-28 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground pointer-coarse:h-8"
-          />
-        </div>
-      ) : tags.length || point.sourceNames.length ? (
-        <div className="flex flex-wrap items-center gap-1.5">{chips}</div>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          No other names yet. Agents find it only as “{point.name}”.
-        </p>
+  const fieldInput = (
+    <input
+      ref={input}
+      id={`${id}-input`}
+      value={text}
+      aria-label={`Add a name for ${point.name}`}
+      aria-describedby={`${id}-help`}
+      placeholder="Add a name"
+      onChange={(e) => {
+        const v = e.target.value
+        // A comma typed or pasted mid-word: every finished word becomes a tag, the rest stays.
+        if (v.includes(',')) {
+          const parts = v.split(',')
+          commit(parseTags(parts.slice(0, -1).join(',')))
+          setText(parts[parts.length - 1]!.trimStart())
+        } else setText(v)
+      }}
+      onPaste={(e) => {
+        const pasted = e.clipboardData.getData('text')
+        if (!/[,\n]/.test(pasted)) return
+        e.preventDefault()
+        commit(parseTags(`${text}${pasted}`))
+        setText('')
+      }}
+      onKeyDown={onKeyDown}
+      onBlur={(e) => {
+        // Left empty for something outside the names, the field closes back to Add a name.
+        if (inline && !text && !e.currentTarget.closest('section')?.contains(e.relatedTarget))
+          setOpened(false)
+      }}
+      className={cn(
+        'h-6 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground pointer-coarse:h-8',
+        inline ? 'w-40 min-w-0' : 'min-w-28 flex-1',
       )}
+    />
+  )
+  const named = tags.length > 0 || point.sourceNames.length > 0
+  const notes = (
+    <>
       {notAdded.length > 0 && (
         <ul className="flex flex-col gap-1">
           {notAdded.map((r) => (
@@ -508,236 +511,88 @@ export function SynonymTags({
           ))}
         </ul>
       )}
+      <p role="status" aria-live="polite" className="sr-only">
+        {said}
+      </p>
+    </>
+  )
+
+  if (inline)
+    return (
+      <section aria-labelledby={`${id}-label`} className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <H id={`${id}-label`} className="text-sm font-medium">
+            {label}
+          </H>
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {chips}
+            {field ? (
+              <span className="inline-flex items-center gap-1 rounded-sm border bg-background pr-0.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+                {fieldInput}
+                <Kbd aria-hidden>Enter</Kbd>
+              </span>
+            ) : (
+              canEdit && (
+                <button
+                  ref={addButton}
+                  type="button"
+                  onClick={() => setOpened(true)}
+                  className="relative inline-flex h-6 items-center gap-1 rounded-sm border border-dashed border-input px-1.5 text-xs font-medium text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:after:absolute pointer-coarse:after:inset-(--touch-inset) [&>svg]:size-3"
+                >
+                  <PlusIcon aria-hidden />
+                  Add a name
+                </button>
+              )
+            )}
+          </div>
+        </div>
+        <p id={`${id}-help`} className="text-xs text-muted-foreground">
+          {field && 'A comma or Enter adds a name. '}
+          {named
+            ? `Agents read each of these as ${point.name}.`
+            : `No other names yet. Agents find it only as “${point.name}”.`}
+          {point.sourceNames.length ? ` Locked names come from ${point.tool ?? 'its tool'}.` : ''}
+        </p>
+        {/* A name that also means something else says so in a line of its own. */}
+        {kept.map((s) => (
+          <ConflictNote key={s.name} d={s} />
+        ))}
+        {notes}
+      </section>
+    )
+
+  return (
+    <section aria-labelledby={`${id}-label`} className="flex flex-col gap-1.5">
+      <H id={`${id}-label`} className="text-sm font-medium">
+        {label}
+      </H>
+      {canEdit ? (
+        // The box takes clicks anywhere into its field, as a tag box does.
+        <div
+          onClick={() => input.current?.focus()}
+          className={cn(
+            'flex min-h-9 cursor-text flex-wrap items-center gap-1.5 rounded-md border bg-background px-1.5 py-1.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50',
+            'pointer-coarse:min-h-11',
+          )}
+        >
+          {chips}
+          {fieldInput}
+        </div>
+      ) : named ? (
+        <div className="flex flex-wrap items-center gap-1.5">{chips}</div>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No other names yet. Agents find it only as “{point.name}”.
+        </p>
+      )}
+      {notes}
       {canEdit && (
         <p id={`${id}-help`} className="text-xs text-muted-foreground">
           A comma or Enter adds a name. Agents read each of these as {point.name}.
           {point.sourceNames.length ? ` Locked names come from ${point.tool ?? 'its tool'}.` : ''}
         </p>
       )}
-      <p role="status" aria-live="polite" className="sr-only">
-        {said}
-      </p>
     </section>
-  )
-}
-
-/**
- * What a definition is, read-only, the same in the peek and on its page: for a synced item the
- * synced note, its meaning and the names Cube gives it; for a term its meaning or what it is the
- * same as; then "Also called in Footnote" and the context about it.
- */
-/** The context about a definition: the first five, then more on request, so the page grows instead of a box scrolling. */
-function ContextAbout({ subject, about }: { subject: Definition; about: Fact[] }) {
-  const ahead = useReadAhead()
-  const { shown, more, next, showMore } = useShowMore(about, 5, 10)
-  const domains = useDomains()
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium">
-        Context about {subject.name}{' '}
-        <span className="font-normal text-muted-foreground tabular-nums">{about.length}</span>
-      </p>
-      {about.length ? (
-        shown.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            {...ahead(f.id)}
-            onClick={() => openDock('context', f.id)}
-            className="rounded-md border px-3 py-2 text-left text-sm outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <span className="line-clamp-1">{f.title}</span>
-            <span className="text-xs text-muted-foreground">
-              {domains[f.domain]?.name}, {f.where.join(', ')}
-            </span>
-          </button>
-        ))
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          No context yet. Agents asking about {subject.name} hear that nothing is written down.
-        </p>
-      )}
-      <ShowMoreButton more={more} next={next} onClick={showMore} />
-    </div>
-  )
-}
-
-export function DefinitionDetails({
-  d,
-  variants,
-  relations,
-  values,
-}: {
-  d: Definition
-  /** A family's variants: its own page lists them, which keeps their code out of the first load. */
-  variants?: React.ReactNode
-  /** What a metric is built from and what is built from it: its own page shows it, as above. */
-  relations?: React.ReactNode
-  /** A dimension's values and the forms that add them: its own page shows them, as above. */
-  values?: React.ReactNode
-}) {
-  const me = useMe()
-  const canEdit = me.admin || (!!d.domain && me.owns.includes(d.domain))
-  const facts = useFacts()
-  const glossary = useGlossary()
-  const domains = useDomains()
-  const target = d.sameAs ? glossary.find(d.sameAs) : undefined
-  const about = glossary.contextAbout(d, facts)
-  const subject = target ? glossary.meaningOf(d) : d
-  const related = useRelated(mentionId(d.type, d.name))
-  const domain = d.domain ? (domains[d.domain]?.name ?? 'All domains') : 'All domains'
-  const history = useQuery(definitionHistoryQuery(d.name)).data ?? []
-  const mentioned = related.links.length > 0
-  const hasDetails = (d.synced && !!(d.ref || d.changed || d.sourceNames.length > 0)) || mentioned
-  // The meaning is the page; then one quiet line on where it comes from, and the rest folded into Details.
-  return (
-    <div className="flex flex-col gap-5">
-      <ConflictNote d={d} />
-      {d.family ? (
-        <div className="flex max-w-reading flex-col gap-2">
-          <FamilyMeaningBlock d={d} family={d.family} className="text-base leading-7" />
-          <p
-            className={cn(
-              'text-base leading-7',
-              d.family.meaning && 'text-sm text-muted-foreground',
-            )}
-          >
-            {familyMeaning(d.family)}
-          </p>
-          {/* How a variant is worked out from another, when the source says so: its own words. */}
-          {d.family.derivations?.map((line) => (
-            <p key={line} className="text-sm text-muted-foreground">
-              {line}
-            </p>
-          ))}
-        </div>
-      ) : target ? (
-        <div className="flex flex-col items-start gap-2">
-          <OtherNameFor target={target} />
-          {subject.synced ? (
-            <SourcePassages
-              text={subject.definition}
-              code="text-sm"
-              className="max-w-reading text-base leading-7 text-muted-foreground"
-            />
-          ) : (
-            <p className="max-w-reading text-base leading-7 text-muted-foreground">
-              {plainText(subject.definition)}
-            </p>
-          )}
-        </div>
-      ) : d.definition ? (
-        <div className="max-w-reading text-base leading-7">
-          {d.synced ? (
-            <SourcePassages text={d.definition} code="text-sm" />
-          ) : (
-            <MentionText text={d.definition} />
-          )}
-        </div>
-      ) : (
-        <p className="text-base text-muted-foreground">
-          <NoMeaning d={d} />
-        </p>
-      )}
-      {relations}
-      <div className="flex flex-col gap-3 border-t pt-4 text-sm">
-        <PeekFacts>
-          {d.synced ? (
-            <PeekFact icon={LockIcon}>
-              <b>{domain}</b> - read-only, read from {d.tool ?? 'its tool'}
-              {d.fileUrl && (
-                <>
-                  {' '}
-                  -{' '}
-                  <a
-                    href={d.fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline"
-                  >
-                    Open in source
-                    <span className="sr-only"> (opens in a new tab)</span>
-                  </a>
-                </>
-              )}
-            </PeekFact>
-          ) : (
-            <PeekFact icon={PencilIcon}>
-              <b>{domain}</b> - written by <b>{d.by}</b> - {d.updated}
-            </PeekFact>
-          )}
-        </PeekFacts>
-        {hasDetails && (
-          <MoreProperties
-            label="Details"
-            summary={[d.synced && d.ref, mentioned && `${related.links.length} related`]
-              .filter(Boolean)
-              .join(' - ')}
-          >
-            {d.synced && d.sourceNames.length > 0 && (
-              <Property label={`Other names in ${d.tool ?? 'its tool'}`}>
-                {d.sourceNames.map((n) => (
-                  <span
-                    key={n}
-                    className="inline-flex h-6 items-center gap-1 rounded-md bg-muted px-2 text-xs text-muted-foreground"
-                  >
-                    <LockIcon aria-hidden className="size-3" />
-                    {n}
-                  </span>
-                ))}
-              </Property>
-            )}
-            {d.synced && (d.ref || d.changed) && (
-              <Property label="From">
-                <span className="py-1">
-                  {d.ref && <span className="font-mono text-xs">{d.ref}</span>}
-                  {d.changed && (
-                    <span className="block text-xs text-muted-foreground">
-                      Definition changed in {d.tool ?? 'its tool'} on {d.changed}
-                    </span>
-                  )}
-                </span>
-              </Property>
-            )}
-            {mentioned && (
-              <Property label="Related">
-                <Related id={mentionId(d.type, d.name)} />
-              </Property>
-            )}
-          </MoreProperties>
-        )}
-      </div>
-      {variants && (
-        <>
-          <Separator />
-          {variants}
-        </>
-      )}
-      {!d.sameAs && (
-        <>
-          <Separator />
-          <SynonymTags d={d} canEdit={canEdit} />
-        </>
-      )}
-      {subject.type !== 'dimension' ? (
-        <>
-          <Separator />
-          <ContextAbout subject={subject} about={about} />
-        </>
-      ) : (
-        values && (
-          <>
-            <Separator />
-            {values}
-          </>
-        )
-      )}
-      <Separator />
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">History</p>
-        <VersionHistory versions={history} canRestore={!d.synced && canEdit} />
-      </div>
-    </div>
   )
 }
 

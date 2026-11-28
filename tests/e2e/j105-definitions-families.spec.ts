@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, go, moveTo, signInAs, test } from './go.ts'
+import { expect, go, moveTo, openRow, signInAs, test } from './go.ts'
 
 // J105, an admin reviews the families in Definitions (FR-142, D1, D3): Ravi Kapoor, an admin, opens
 // the Families tab on the mock's ?demo=families and reads each family with how it was found, how
@@ -86,6 +86,7 @@ for (const { name, width, height } of widths) {
       }) => {
         await as(page, 'Ravi Kapoor')
         await moveTo(page, '/definitions/Partner%20payouts')
+        await openRow(page, 'How it is built')
         await expect(page.getByRole('region', { name: 'How it is built' })).toContainText(
           'Its names look alike, and an owner published them as one family.',
         )
@@ -107,6 +108,7 @@ for (const { name, width, height } of widths) {
         await toasts(page).getByRole('button', { name: 'Undo' }).click()
         await expect(toasts(page)).toContainText('Partner payouts is one family again')
         await expect(page).toHaveURL(/\/definitions\/Partner%20payouts$/)
+        await openRow(page, 'How it is built')
         await expect(page.getByRole('button', { name: 'Split into 2 metrics' })).toBeVisible()
       })
     })

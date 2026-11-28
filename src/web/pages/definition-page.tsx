@@ -1,5 +1,6 @@
 import { BookAIcon, ExternalLinkIcon, NotebookPenIcon, PencilIcon } from '@/components/icons'
-import { DefinitionDetails, TypeTile } from '@/components/footnote/definition'
+import { TypeTile } from '@/components/footnote/definition'
+import { DefinitionDetails } from '@/components/footnote/definition-details'
 import { FamilyVariants } from '@/components/footnote/family-variants'
 import DimensionValues from '@/components/footnote/dimension-values'
 import { DefinitionRelations, FamilyRelations } from '@/components/footnote/definition-relations'
@@ -23,8 +24,9 @@ import { Loadable, PageSkeleton } from '@/components/footnote/load-state'
 import { NotFound } from '@/components/footnote/not-found'
 
 // A definition's own page, read-only like its peek, on the same paper sheet as a context item's
-// page. A synced metric or dimension can't be edited here at all: its page says where to change it.
-// Only a term has Edit.
+// page, its meaning first and largest (definition-details.tsx). A synced metric or dimension can't
+// be edited here at all: its page says where to change it. A term has Edit, in the header and
+// beside its words; a family's words have Change the words.
 
 export function DefinitionPage({ name }: { name: string }) {
   const glossary = useGlossary()
@@ -111,24 +113,19 @@ export function DefinitionPage({ name }: { name: string }) {
             refreshClassName="mb-5 rounded-frame border"
             query={page}
           >
-            <div className="mb-6 flex items-center gap-3 sm:mb-8">
+            <div className="mb-6 flex items-center gap-3">
               <TypeTile d={d} size="lg" />
               <div className="min-w-0">
-                <h2 className="text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
-                  {d.name}
-                </h2>
-                <p className="text-sm text-muted-foreground">{kindName(d)}</p>
+                <h2 className="text-xl font-semibold">{d.name}</h2>
+                <p className="text-xs text-muted-foreground">{kindName(d)}</p>
               </div>
             </div>
             <DefinitionDetails
               d={d}
               variants={d.family && <FamilyVariants key={d.name} family={d.family} />}
+              built={d.family && <FamilyBuilt d={d} />}
               relations={
-                d.family ? (
-                  <FamilyBuilt d={d} />
-                ) : (
-                  d.synced && d.type === 'metric' && <DefinitionRelations d={d} />
-                )
+                !d.family && d.synced && d.type === 'metric' && <DefinitionRelations d={d} />
               }
               values={d.type === 'dimension' && d.synced && !d.sameAs && <DimensionValues d={d} />}
             />
