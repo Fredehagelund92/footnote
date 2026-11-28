@@ -223,7 +223,12 @@ Neither tool sends anything. The person sends the draft for review in the app, o
 - With `item_id` instead, the new draft changes that published item rather than starting a new one.
 - With `draft_id` and `revision`, it changes only the fields you pass: the title, summary, text, kind, area, scope, window, evidence and Don't conclude line.
 
-Each source in `evidence` is a `url` and a `quote` copied from that page, or, for what is written nowhere a link opens, `said_by`: one line that says who or what says so. Every tool that gives a source back gives one with no link as `url: null` with that line in `said_by`, and says there is nothing to open.
+Each source in `evidence` is one of:
+
+- A `url` and a `quote` copied from that page.
+- For what is written nowhere a link opens, `said_by`: one line that says who or what says so.
+
+Every tool that gives a source back gives one with no link as `url: null` with that line in `said_by`, and says there is nothing to open.
 
 An area counts only when the metrics it names give no single domain.
 

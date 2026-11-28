@@ -13,6 +13,7 @@ function operations(router: object, prefix = ''): string[] {
 const publicOperations = [
   'auth.methods',
   'auth.people',
+  'auth.setUp',
   'auth.signIn',
   'invites.lookup',
   'schema.item',

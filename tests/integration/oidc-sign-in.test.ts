@@ -454,6 +454,7 @@ describe('the sign-in screen', () => {
       // A company install with its own data, and no label set.
       demo: false,
       profileLabel: null,
+      first: false,
     })
     expect((await app.inject({ url: '/api/v1/auth/people' })).json()).toEqual([])
     const picked = await app.inject({

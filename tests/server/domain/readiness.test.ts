@@ -55,7 +55,7 @@ describe('the Ready line', () => {
     })
     expect(readinessWords(readiness(add), { from: 'Katrin Vogel' })).toEqual({
       title: 'Add a source first',
-      text: 'Katrin Vogel sent what they know without a link to where it is written. Edit it to add one, then publish.',
+      text: 'Katrin Vogel sent what they know without a link to where it is written. Edit it to add one, or to say who or what says so, then publish.',
     })
     const confirm = { ...add, needsSource: 'confirm' as const, drafted: true }
     expect(readiness(confirm)).toMatchObject({ state: 'confirm_source', publishable: false })
