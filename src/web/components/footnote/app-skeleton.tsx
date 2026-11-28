@@ -14,7 +14,7 @@ import {
 import { Frame, FramePage } from '@/components/footnote/frame'
 import { RowsSkeleton } from '@/components/footnote/load-state'
 import { DEFINITIONS_LEAD, TableSkeleton } from '@/components/footnote/list-skeleton'
-import { useIsNarrow } from '@/hooks/use-mobile'
+import { useDockOverPage, useIsNarrow } from '@/hooks/use-mobile'
 import { useDock } from '@/lib/dock'
 import { clamp, readWidth } from '@/lib/pane-width'
 import { useRoute } from '@/lib/router'
@@ -224,6 +224,7 @@ export function ShellShape() {
   const { parts } = useRoute()
   const dock = useDock()
   const narrow = useIsNarrow()
+  const overPage = useDockOverPage()
   const shape = shapeOf(parts)
   // The documentation is outside the shell: its own header and column.
   if (shape === 'docs-home' || shape === 'docs-page')
@@ -233,7 +234,7 @@ export function ShellShape() {
       </div>
     )
   const { open } = startFold({
-    dock: !!dock || (parts[0] === 'inbox' && parts[2] === 'review'),
+    dock: (!!dock && !overPage) || (parts[0] === 'inbox' && parts[2] === 'review'),
     narrow,
   })
   return (

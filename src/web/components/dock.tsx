@@ -7,7 +7,8 @@ import { closeDock } from '@/lib/dock'
 import { Panel } from '@/components/footnote/panel'
 
 // The dock: Footnote's right panel. A region beside the page, not a dialog. 480 wide for Ask, a context
-// peek, Try it and an agent's view; 720 for a review. On a phone it fills the screen.
+// peek, Try it and an agent's view; 720 for a review. Under 1100 px it is a sheet over the page, and
+// on a phone it fills the screen.
 
 export function DockFrame({
   title,
