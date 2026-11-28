@@ -29,11 +29,11 @@ import { missing } from '../../../contract/refusals.ts'
  * a synonym is another name for a metric or a family of them (FR-142), a dimension or a term. One
  * word has one meaning across the workspace: a word the vocabulary, the definitions source or
  * another term already uses is refused, naming who has it (`wordRefusal`). An owner of the term's
- * domain or an admin writes it; a synonym's domain is what it means. Nothing is ever removed: a deleted term keeps its row, its
- * synonyms go with it, and it can be restored. A change to many terms records one term_changes
- * row, and its Undo takes back exactly what it did, within limits.undo_seconds, by its maker only.
- * Row security and the database's own checks (db/migrations/0001_schema.sql) keep the same rules
- * on every path. Agents read the live terms through `serving_terms()` (src/domain/served-terms.ts).
+ * domain or an admin writes it; a synonym's domain is what it means. Nothing is ever removed: a
+ * deleted term keeps its row, its synonyms go with it, and it can be restored. A change to many
+ * terms records one term_changes row, and its Undo takes back exactly what it did, within
+ * limits.undo_seconds, by its maker only. Row security and the database's own checks
+ * (db/migrations/0001_schema.sql) keep the same rules on every path. Agents read the live terms through `serving_terms()` (src/domain/served-terms.ts).
  */
 export type TermsService = ReturnType<typeof createTermsService>
 
