@@ -78,7 +78,8 @@ A family is one entry for many near-identical metrics, such as a metric for each
 - The Families view lists every family with how it was found, its variants and what tells them apart, what it means or No meaning yet, and the context about it that needs a recheck. A row opens the family's quick view.
 - Under Kept apart, it lists each family split back into its metrics, with who split it and the context still about it. An owner of its domain, or an admin, can choose Make them one family again. [Split a family](metric-variants.md#split-a-family-into-separate-metrics) says what a split does.
 - Kept apart also lists the metrics an owner kept separate on the Names card, with who did it and when. An owner of their domain, or an admin, can choose Make them one family.
-- Its own page reads each value as the values it holds, such as in EUR or USD; past three, as what it stands for, such as Currency. Under Variants it lists them, one a line up to ten; past ten, a table narrows them by each value, such as Currency: EUR. How it is built says how the family was found, such as declared in dbt, and which variant is converted from which.
+- Its own page reads each value as the values it holds, such as in EUR or USD; past three, as what it stands for, such as Currency. Under Variants it lists them, one a line up to ten; past ten, a table narrows them by each value, such as Currency: EUR.
+- How it is built says how the family was found, such as declared in dbt, and which variant is converted from which.
 - Context about the family applies to every variant. See [Variants: a dimension, not a metric each](metric-variants.md).
 
 ## Terms and synonyms
