@@ -1,4 +1,10 @@
-export { createDevSignIn, readDevPeople, type SignIn, type DevPerson } from './dev-sign-in.ts'
+export {
+  createDevSignIn,
+  holdsDemo,
+  readDevPeople,
+  type SignIn,
+  type DevPerson,
+} from './dev-sign-in.ts'
 export { cookieValue } from './cookie-token.ts'
 export {
   cookieAge,

@@ -18,7 +18,7 @@ CUBE_MODEL_DIR=/path/to/your/cube/model docker compose up
 
 With your own model it starts empty, with no demo data. If you tried the demo first, its data is still in Docker's volume, and the two would be mixed: the start stops and says so. Run `docker compose down --volumes`, which deletes the demo's database and keys, then start again the same way.
 
-The sign-in page offers the sample people of [the local people file](../db/seed/people.local.yml). Sign in as Ravi Kapoor, the admin, and follow the setup checklist in the Inbox: add your domains, then publish the names each read makes, on one card. Your context applies to those names.
+The first time you open it, the sign-in page asks your name, your email and what the workspace is called, and makes you its admin. There are no sample people. Then follow the setup checklist in the Inbox: publish the names the read made, on one card, ask, and write what you know. Your context applies to those names.
 
 On a Mac the folder must be one Docker shares, or the service refuses to start and says so. Docker Desktop shares only the folders under Settings, Resources, File sharing, and Colima shares your home folder unless told otherwise. [The Cube connector](connectors/cube.md) says what the model needs.
 
@@ -42,7 +42,7 @@ When your definitions are not in a folder on this computer, such as in dbt Cloud
 SEED_DEMO=off docker compose up
 ```
 
-Sign in as Ravi Kapoor, the admin, then connect your tool in Settings, Integrations. If you tried the demo first, run `docker compose down --volumes` before you start, as above.
+Say who you are on the first screen, as above, then connect your tool in Settings, Integrations. If you tried the demo first, run `docker compose down --volumes` before you start, as above.
 
 ## Read dbt or another tool
 
@@ -50,11 +50,11 @@ For dbt, the service reads the semantic manifest that `dbt parse` writes, from a
 
 [Connectors](connectors.md) lists every tool it reads. Tokens and signed links stay in a secret store in Docker's `footnote_keys` volume.
 
-## Sign in as yourself
+## Who you are
 
-Add your name and email to the top of [the local people file](../db/seed/people.local.yml) with `roles: [administrator]`, then start with `docker compose up --build`, so the image takes the file in.
+On your own data the first person to open the app says who they are and becomes its admin; after that the sign-in page offers the people in the workspace, by a press. The demo keeps its sample people, and a host who sets `FOOTNOTE_DEV_PEOPLE_FILE` gets the people of that file instead.
 
-This is still the people picker of a computer of your own: anyone who reaches it can sign in as anyone. To let real people sign in, see [Run in production](run-in-production.md).
+This is still the people picker of a computer of your own: anyone who reaches it can sign in as anyone, and colleagues you invite cannot sign in until company sign-in is set up. To let real people sign in, see [Run in production](run-in-production.md).
 
 ## Private profiles
 

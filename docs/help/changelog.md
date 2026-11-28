@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-28
 ---
 
+## Who you are, on your own data
+
+2026-11-28
+
+An install on your own data asks the first person who opens it for their name, their email and the workspace's name, and makes them its admin. It has no sample people.
+
 ## The first questions agents could not answer
 
 2026-11-28

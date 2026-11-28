@@ -7,6 +7,7 @@ import type { FootnoteApi, FootnoteApiMethod, Inbox, ObsPageInput, Undoable } fr
 import { agentNameProblem } from '@domain/agents'
 import { aboutByRule } from '@domain/about-business'
 import { ApiError } from '../errors'
+import { alreadySetUp } from '@contract/auth'
 import { missing } from '@contract/refusals'
 import { SHARED_CHAT_DAYS, type ShareTurn } from '@contract/shared-chats'
 import { reviewActions, type ReviewAction } from '@domain/review-actions'
@@ -664,19 +665,45 @@ export function createMockApi() {
     // the demo install (demo: false), which lets a visitor in as its admin and has its own switch
     // between people: here every journey starts signed in, and signs in as others through the picker.
     getSignInMethod: () =>
-      now(() => ({ kind: 'picker' as const, demo: false, profileLabel: profileLabel() })),
+      now(() => ({
+        kind: 'picker' as const,
+        first: firstVisit,
+        demo: false,
+        profileLabel: profileLabel(),
+      })),
     readInvite: ({ token }) => now(() => workspace.readInvite(token)),
-    // The mock's people are all invented, as the demo's are.
+    // Nobody before the first person of a new install (`?demo=first`); then they are offered too.
     listSignInPeople: () =>
       now(() =>
-        signInPeople.map((name) => ({
-          name,
-          admin: !!workspace.person(name)?.admin,
-          sample: true,
-        })),
+        firstVisit
+          ? []
+          : [...firstPeople, ...signInPeople].map((name) => ({
+              name,
+              admin: !!workspace.person(name)?.admin,
+            })),
       ),
+    // The first person of a new install: its admin, in a workspace by the name they gave it.
+    setUpWorkspace: (input) => {
+      if (!firstVisit) return Promise.reject(new ApiError('conflict', alreadySetUp))
+      return now(() => {
+        firstVisit = false
+        workspace.addFirstPerson(input)
+        firstPeople.push(input.name)
+        workspaceName = input.workspace
+        dispatch({ type: 'signIn', name: input.name })
+        dispatch({ type: 'demo', mode: 'setup' })
+        names.load(false, false)
+        return {
+          user: state.user,
+          install: state.install,
+          fresh: state.fresh,
+          profileLabel: profileLabel(),
+          answeredBy: 'preview',
+        }
+      })
+    },
     signIn: ({ name }) => {
-      if (!signInPeople.includes(name))
+      if (![...firstPeople, ...signInPeople].includes(name))
         return Promise.reject(new ApiError('not-found', `${name} can't sign in here.`))
       return now(() => {
         dispatch({ type: 'signIn', name })
@@ -695,7 +722,7 @@ export function createMockApi() {
     signOut: () => now(() => dispatch({ type: 'signOut' })),
     getWorkspace: () =>
       now(() => ({
-        name: WORKSPACE_NAME,
+        name: workspaceName,
         domains: workspace.domains(),
         people: workspace.people(),
         invites: workspace.invites(),
@@ -2314,6 +2341,11 @@ export function createMockApi() {
             if (!factsOf(state).some((f) => f.id === fact.id)) dispatch({ type: 'addFact', fact })
         if (demo === 'setup' || demo === 'done' || demo === 'week' || demo === 'last')
           dispatch({ type: 'demo', mode: demo })
+        // A new install before anyone is in it: signed out, and the sign-in page asks who is first.
+        if (demo === 'first' && !firstPeople.length) {
+          firstVisit = true
+          dispatch({ type: 'signOut' })
+        }
         // A new install started on its own definitions: their names wait, with no domain (F08).
         if (demo === 'setup') names.load(false, false)
         if ((demo === 'done' || demo === 'week') && state.user) {
@@ -2340,6 +2372,11 @@ export function createMockApi() {
     subscribe: scenario.subscribe,
   }
   let lastDemo: string | undefined
+  /** `?demo=first`: nobody is in the workspace yet, until the first person says who they are. */
+  let firstVisit = false
+  /** The first person made this visit, whom the picker offers from then on. */
+  const firstPeople: string[] = []
+  let workspaceName = WORKSPACE_NAME
   // Once ?demo=families was opened, Test connection and a dbt connected read its shop's families.
   let familiesShop = false
 

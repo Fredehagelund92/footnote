@@ -99,7 +99,9 @@ const envSchema = z
     // the default in production. `dev` and `demo` pick a person from a local file (`demo` for
     // demos); production refuses both. Unset: `oidc` in production, `dev` elsewhere.
     FOOTNOTE_AUTH: z.enum(['dev', 'demo', 'oidc']).optional(),
-    FOOTNOTE_DEV_PEOPLE_FILE: z.string().default('db/seed/people.local.yml'),
+    // A list of people of the host's own for the `dev` and `demo` pickers. Unset, the demo's
+    // sample people on the demo, and on your own data the first person says who they are.
+    FOOTNOTE_DEV_PEOPLE_FILE: z.string().optional(),
     // FOOTNOTE_AUTH=oidc: the provider's issuer (its discovery document is read from
     // <issuer>/.well-known/openid-configuration) and this app's client id there.
     FOOTNOTE_OIDC_ISSUER: z.url({ protocol: /^https?$/ }).optional(),
@@ -371,7 +373,8 @@ export interface Config {
   /** FOOTNOTE_AUTH=oidc: the provider and this app's client there. */
   oidc: OidcConfig | null
   sessions: SessionLifetime
-  devPeopleFile: string
+  /** FOOTNOTE_DEV_PEOPLE_FILE: the picker's own list of people; undefined for none. */
+  devPeopleFile: string | undefined
   webOrigins: string[]
   /**
    * FOOTNOTE_TRUSTED_PROXIES: the proxies whose forwarded address the service believes, or `vercel`

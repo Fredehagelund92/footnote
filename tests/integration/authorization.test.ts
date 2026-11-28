@@ -127,10 +127,20 @@ function send(op: Operation, headers: Record<string, string>) {
   })
 }
 
+/**
+ * The two ways in with no session yet, the picker's sign-in and the first person's: each takes the
+ * fixed sign-in header, and what it is sent here.
+ */
+const signingIn = (name: string | undefined) => name === 'auth.signIn' || name === 'auth.setUp'
+const signInPayload: Record<string, object> = {
+  'auth.signIn': { email: 'admin@example.test' },
+  'auth.setUp': { name: 'Kim Larsen', email: 'kim@example.test', workspace: 'Tallyfield' },
+}
+
 /** A browser's headers: the session cookie and its CSRF token, or the sign-in header. */
 function credentials(role: Role, op?: Operation): Record<string, string> {
   const session = sessions.get(role)
-  const csrf = session && op?.name !== 'auth.signIn' ? session.csrf : 'dev-sign-in'
+  const csrf = session && !signingIn(op?.name) ? session.csrf : 'dev-sign-in'
   return { ...(session ? { cookie: session.cookie } : {}), 'x-footnote-csrf': csrf, origin }
 }
 
@@ -296,20 +306,17 @@ describe('CSRF and origin', () => {
       const before = await state()
       const passed: string[] = []
       for (const op of all.filter(mutating)) {
-        // Sign-in has no session yet: it needs the allowed Origin and the fixed sign-in header.
-        const cases =
-          op.name === 'auth.signIn'
-            ? forged.filter(([name]) => !/CSRF|sign-in token/.test(name))
-            : forged
+        // Signing in has no session yet: it needs the allowed Origin and the fixed sign-in header.
+        const cases = signingIn(op.name)
+          ? forged.filter(([name]) => !/CSRF|sign-in token/.test(name))
+          : forged
         for (const [name, change] of cases) {
-          const headers = change(
-            op.name === 'auth.signIn' ? credentials('anonymous') : adminHeaders(),
-          )
+          const headers = change(signingIn(op.name) ? credentials('anonymous') : adminHeaders())
           const response = await app.inject({
             method: op.method as 'POST',
             url: pathOf(op),
             headers,
-            payload: op.name === 'auth.signIn' ? { email: 'admin@example.test' } : {},
+            payload: signInPayload[op.name] ?? {},
           })
           if (response.statusCode !== 403)
             passed.push(

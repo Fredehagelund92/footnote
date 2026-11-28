@@ -119,6 +119,20 @@ export function createWorkspace() {
       }
     },
 
+    /** The first person of a new install (`?demo=first`): an admin, by the name and address given. */
+    addFirstPerson(input: { name: string; email: string }) {
+      const id = `per_first_${people.length}`
+      people.unshift({
+        id,
+        name: input.name,
+        role: 'Admin',
+        owns: [],
+        admin: true,
+        email: input.email,
+        lastActive: 'Today',
+      })
+    },
+
     /** A new domain, with the person creating it as its owner. */
     addDomain(input: { name: string; owners: string[]; text?: string }) {
       const base =

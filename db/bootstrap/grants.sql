@@ -73,6 +73,8 @@ grant execute on function cl_retention_run(), cl_ensure_delivery_partitions(int)
 grant usage on schema auth to :api;
 grant select, insert, delete on auth.sessions to :api;
 grant execute on function auth.bootstrap_person(text,text,global_role[]) to :api;
+-- The picker's first person, on a workspace with nobody in it (0035).
+grant execute on function auth.first_person(text,text) to :api;
 -- The login server for AI clients: clients, sign-ins in progress, codes, connections and refresh tokens.
 -- A connection is never deleted by the service, only revoked, so a person's list and the history keep it.
 grant select, insert, update, delete on auth.oauth_clients, auth.oauth_requests, auth.oauth_codes,
