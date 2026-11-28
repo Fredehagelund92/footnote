@@ -5,17 +5,15 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createQueryClient } from '@/api/query-client'
-import type { SignInMethod } from '@/api/client'
 import { DOCS_URL } from '@domain/brand'
 import { ConnectAgent } from '@/components/connect-agent'
 
-// Connect an agent on a workspace with no address for agents: the hosted demo (docs/vercel.md),
-// whose function serves no MCP server. It says so and sends a visitor to run Footnote on their own
-// computer, where an admin's setting would change nothing. Anywhere else, an admin sets the address.
+// Connect an agent on a workspace with no address for agents: the hosted online trial
+// (docs/vercel.md), whose function serves no MCP server, or an install where an admin has not set
+// one. One wording is true on both and links to both guides.
 
 const bindings = vi.hoisted(() => ({
   getSettings: vi.fn(),
-  getSignInMethod: vi.fn(),
 }))
 vi.mock('@/api', () => ({ api: bindings }))
 
@@ -29,14 +27,8 @@ afterEach(() => {
   for (const binding of Object.values(bindings)) binding.mockReset()
 })
 
-async function show(demo: boolean) {
+async function show() {
   bindings.getSettings.mockResolvedValue({ mcpAddress: null, tools: {}, connected: [] })
-  bindings.getSignInMethod.mockResolvedValue({
-    kind: 'picker',
-    first: false,
-    demo,
-    profileLabel: null,
-  } satisfies SignInMethod)
   root = createRoot(host)
   act(() => {
     root!.render(
@@ -51,37 +43,30 @@ async function show(demo: boolean) {
       ),
     )
   })
-  await vi.waitFor(() => expect(host.querySelector('p')).not.toBeNull())
-  // The sign-in method is read apart from the settings: wait for the words that depend on it.
   await vi.waitFor(() => expect(host.querySelector('a')).not.toBeNull())
-  return { text: host.textContent ?? '', link: host.querySelector('a')! }
+  return { text: host.textContent ?? '', links: [...host.querySelectorAll('a')] }
 }
 
 describe('Connect an agent with no address for agents', () => {
-  it('tells a visitor of the hosted demo to run Footnote on their own computer', async () => {
-    const { text, link } = await show(true)
-    expect(text).toContain('This online trial does not run the agent connection')
-    expect(text).toContain('run it on your own computer')
+  it('says the online trial runs no agent connection and where an admin sets the address', async () => {
+    const { text } = await show()
+    expect(text).toContain('This workspace has no address for agents.')
+    expect(text).toContain('The online trial does not run the agent connection')
+    expect(text).toContain('an admin sets the address as MCP_RESOURCE_URL')
     expect(text).not.toContain('hosts this app')
-    expect(text).not.toContain('MCP_RESOURCE_URL')
-    expect(link.getAttribute('href')).toBe(`${DOCS_URL}/try-the-demo/`)
   })
 
-  it('tells an install without one that an admin sets its address, and where', async () => {
-    const { text, link } = await show(false)
-    expect(text).toContain("Agents can't connect here yet: this workspace has no address for them.")
-    expect(text).toContain('An admin sets it, as MCP_RESOURCE_URL, where the service runs.')
-    expect(text).not.toContain('online trial')
-    expect(link.getAttribute('href')).toBe(`${DOCS_URL}/run-in-production/`)
+  it('links to running it on your own computer and to setting the address', async () => {
+    const { links } = await show()
+    expect(links.map((a) => a.getAttribute('href'))).toEqual([
+      `${DOCS_URL}/try-the-demo/`,
+      `${DOCS_URL}/run-in-production/`,
+    ])
   })
 
   it('has no em dash and no "we"', async () => {
-    for (const demo of [true, false]) {
-      const { text } = await show(demo)
-      expect(text).not.toContain('—')
-      expect(text).not.toMatch(/\bwe\b/i)
-      act(() => root?.unmount())
-      root = undefined
-    }
+    const { text } = await show()
+    expect(text).not.toContain('—')
+    expect(text).not.toMatch(/\bwe\b/i)
   })
 })

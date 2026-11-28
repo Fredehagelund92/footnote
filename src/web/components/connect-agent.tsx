@@ -54,7 +54,6 @@ import { api } from '@/api'
 import {
   agentConnectionsQuery,
   connectReviewQuery,
-  signInMethodQuery,
   useAgentConnections,
   useSettings,
 } from '@/api/queries'
@@ -505,12 +504,11 @@ function ByHand({
 /* ---------- The whole body ---------- */
 
 /**
- * Why a workspace has no address for agents, and what to do. The service serves none where it runs
- * without its MCP server: the hosted demo (docs/vercel.md), which no setting changes, so a visitor
- * is sent to run the app on their own computer. Anywhere else, an admin sets the address.
+ * Why a workspace has no address for agents, and what to do. The hosted online trial (docs/vercel.md)
+ * runs without the agent connection, and no setting changes that; on an install of your own, an
+ * admin sets the address. One wording holds on both.
  */
 function NoAddress({ inDialog }: { inDialog?: boolean }) {
-  const demo = useQuery(signInMethodQuery()).data?.demo
   return (
     <div
       className={cn(
@@ -518,23 +516,13 @@ function NoAddress({ inDialog }: { inDialog?: boolean }) {
         inDialog ? 'p-4' : 'px-4 pb-5 md:px-5',
       )}
     >
-      {demo ? (
-        <>
-          <p className="text-pretty">
-            This online trial does not run the agent connection, so agents can&apos;t connect to it.
-            To connect your agent, run it on your own computer.
-          </p>
-          <PublicGuideLink slug="try-the-demo">How to run it on your computer</PublicGuideLink>
-        </>
-      ) : (
-        <>
-          <p className="text-pretty">
-            Agents can&apos;t connect here yet: this workspace has no address for them. An admin
-            sets it, as MCP_RESOURCE_URL, where the service runs.
-          </p>
-          <PublicGuideLink slug="run-in-production">How to set the address</PublicGuideLink>
-        </>
-      )}
+      <p className="text-pretty">
+        This workspace has no address for agents. The online trial does not run the agent
+        connection, so agents can&apos;t connect to it. On your own install, an admin sets the
+        address as MCP_RESOURCE_URL.
+      </p>
+      <PublicGuideLink slug="try-the-demo">How to run it on your computer</PublicGuideLink>
+      <PublicGuideLink slug="run-in-production">How to set the address</PublicGuideLink>
     </div>
   )
 }
