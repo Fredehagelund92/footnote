@@ -137,6 +137,8 @@ describe('the meaning section', () => {
       expect(week.move, week.day).not.toMatch(/\d/)
       expect(week.says.replace('4 August', ''), week.day).not.toMatch(/\d/)
     }
+  })
+})
 
 describe('the thread that becomes a note', () => {
   it("shows the first box of a new item in the app's words", () => {
