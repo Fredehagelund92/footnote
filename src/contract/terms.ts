@@ -1,9 +1,9 @@
 /**
  * Terms and synonyms on the API (FR-138): the words people write in Definitions, beside the
  * metrics and dimensions the definitions source keeps (the catalogue, read only). A term is a word
- * with its own meaning; a synonym is another name for a metric, a dimension or a term. One word
- * has one meaning: a word that already means something is refused, naming who has it. An owner of
- * the term's domain or an admin writes it; a synonym's domain is what it means.
+ * with its own meaning; a synonym is another name for a metric (a family of them too), a dimension
+ * or a term. One word has one meaning: a word that already means something is refused, naming who
+ * has it. An owner of the term's domain or an admin writes it; a synonym's domain is what it means.
  */
 import * as z from 'zod/mini'
 import {
@@ -31,9 +31,9 @@ const termNameSchema = z
     z.regex(termNamePattern, "A word can't hold a comma or a line break."),
   )
 
-/** What a synonym means: a metric, a dimension or a term with its own meaning. */
+/** What a synonym means: a metric or a family of them, a dimension, or a term of its own. */
 export const termTargetSchema = z.object({
-  /** `metric:gross_sales`, `dim:market` or `term:<id>`. */
+  /** `metric:gross_sales`, `group:revenue` (a family, typed metric), `dim:market` or `term:<id>`. */
   ref: z.string(),
   name: z.string(),
   type: z.enum(['metric', 'dimension', 'term']),

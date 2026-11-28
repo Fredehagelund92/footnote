@@ -13,15 +13,16 @@ import {
 
 /*
   What agents get of the terms and synonyms people write in Definitions (docs/product.md,
-  sections 3 and 10; FR-138). A synonym of a metric or a dimension is read as that definition: it
-  joins its other names, so a question in that word is read as a question about the metric or the
-  dimension. A term with its own meaning, and a synonym of one, is background for reading the
-  words: a reply names the word used and gives the meaning as a person wrote it, who wrote it (a
-  role, never the person) and when. A term is never a checked source: it changes neither the items
-  that apply nor the answer state, and a synonym only names what another name already names. Only
-  a word that means one thing is served, and the words of a stopped domain and every deleted term
-  are left out. A word with two meanings is never settled here: it stays on each of them as
-  `contested`, so a question in that word reads nothing and asks which one the person means.
+  sections 3 and 10; FR-138). A synonym of a metric, a family of metrics (FR-142) or a dimension
+  is read as that definition: it joins its other names, so a question in that word is read as a
+  question about the metric, the family or the dimension. A term with its own meaning, and a
+  synonym of one, is background for reading the words: a reply names the word used and gives the
+  meaning as a person wrote it, who wrote it (a role, never the person) and when. A term is never
+  a checked source: it changes neither the items that apply nor the answer state, and a synonym
+  only names what another name already names. Only a word that means one thing is served, and the
+  words of a stopped domain and every deleted term are left out. A word with two meanings is never
+  settled here: it stays on each of them as `contested`, so a question in that word reads nothing
+  and asks which one the person means.
 */
 
 /** A term or a synonym as the serving bundle holds it: the words people wrote, never who. */
@@ -30,7 +31,7 @@ export type WrittenTerm = {
   name: string
   /** Its own meaning, in markdown; null for a synonym. */
   meaning: string | null
-  /** What a synonym means (`metric:<id>`, `dim:<id>` or `term:<id>`); null for a term with its own meaning. */
+  /** What a synonym means (`metric:<id>`, `group:<id>`, `dim:<id>` or `term:<id>`); null for a term with its own meaning. */
   sameAs: string | null
   /** Its domain: a term's own, a synonym's is what it means. */
   areaId: string | null
@@ -143,7 +144,7 @@ export function servedWords<T extends Term>(
       const ref = parseTermRef(term.sameAs)
       if (ref.term !== undefined) return own.has(ref.term)
       const kind = keys.get(ref.key)?.kind
-      return kind === 'metric' || kind === 'dimension'
+      return kind === 'metric' || kind === 'metric_group' || kind === 'dimension'
     })
     .sort((a, b) => (word(a) < word(b) ? -1 : word(a) > word(b) ? 1 : 0))
   const added = new Map<string, string[]>()

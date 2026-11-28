@@ -66,6 +66,13 @@ describe('the words agents get', () => {
     expect(terms.find((t) => t.key === 'metric:orders')!.aliases).toEqual(['Order amount'])
   })
 
+  it('adds a synonym of a family of metrics to the family’s other names, as a metric’s', () => {
+    const takings = written({ id: 'syn-takings', name: 'Takings', sameAs: 'group:payments' })
+    const served = servedWords(terms, [takings], open)
+    expect(served.written).toEqual([takings])
+    expect(served.vocabulary.find((t) => t.key === 'group:payments')!.aliases).toEqual(['Takings'])
+  })
+
   it('serves no word in conflict, one the vocabulary has, or one two terms share', () => {
     const served = servedWords(
       terms,

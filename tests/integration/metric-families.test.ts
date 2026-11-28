@@ -10,6 +10,7 @@ import type { NamesDecision, NamesRead } from '../../src/contract/inbox.ts'
 import type { ProposalRecord } from '../../src/contract/proposals.ts'
 import type { ReviewProposal } from '../../src/contract/review.ts'
 import type { SourceSettings } from '../../src/contract/sources.ts'
+import type { Term } from '../../src/contract/terms.ts'
 import { buildApp } from '../../src/server/app.ts'
 import { systemClock } from '../../src/server/clock.ts'
 import { createDevVerifier, mintDevToken } from '../../src/server/mcp/auth.ts'
@@ -461,4 +462,29 @@ describe('an item on a family', () => {
     )
     expect(entries.rows).toEqual([{ subject: itemId }])
   }, 300_000)
+})
+
+describe('another name for a family', () => {
+  it('is added by an owner of its domain, and an agent reads the family by it', async () => {
+    // The owner's report: the Another name box on a family's page said only "Couldn't add “test”".
+    const term = await ok<Term>(
+      call('POST', '/terms', 'owner', { name: 'test', sameAs: 'group:revenue' }),
+    )
+    expect(term).toMatchObject({
+      name: 'test',
+      meaning: null,
+      sameAs: { ref: 'group:revenue', name: 'Revenue', type: 'metric' },
+      areaId: 'sales',
+      conflict: null,
+    })
+    // A family's word is taken like a metric's: it is refused as a second name for another.
+    const taken = await call('POST', '/terms', 'owner', { name: 'test', sameAs: 'group:discounts' })
+    expect(taken.statusCode, taken.body).toBe(409)
+    const reply = await agent.callTool({ name: 'read_context', arguments: { id: 'test' } })
+    expect(reply.isError, JSON.stringify(reply.content)).not.toBe(true)
+    expect(reply.structuredContent).toMatchObject({
+      status: 'matched',
+      definition: { key: 'group:revenue', kind: 'metric family' },
+    })
+  })
 })

@@ -3,7 +3,7 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 7
-minutes: 7
+minutes: 8
 reviewed: 2026-11-27
 open:
   label: Open Definitions
@@ -79,7 +79,8 @@ Another name for a metric or a dimension, such as GMV for Gross sales. Agents re
 <!-- /include -->
 
 - A term is a word with its own meaning, such as Peak season. An owner of its domain, or an admin, adds one with **New term** in Definitions.
-- On a definition, type other names into Another name: a comma or Enter makes each one a tag.
+- On a definition, type other names into Another name: a comma or Enter makes each one a tag. A family takes other names as a metric does, and agents read the family by them.
+- A word that can't be added says why, such as when the definition was removed meanwhile.
 - In a term's editor, Another name for points the word at a metric or a dimension.
 - A word that already means something else says who has it, and is never saved twice. Case, spaces and accents don't make it another word: Salés is Sales.
 - A word that looks like one in use, such as Sale beside Sales, only warns. Agents read them as two words, so you can still publish it.

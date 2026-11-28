@@ -212,6 +212,36 @@ test('a save that fails takes its tag back and says so; Try again saves it', asy
   await expect(tag).toBeVisible()
 })
 
+test('a word the service turns down says why, and offers no Try again', async ({ page }) => {
+  test.skip(mode === 'mock', 'The reason is the service answering a write it will not make.')
+  await go(page, '/definitions/Season')
+  const box = page.getByRole('textbox', { name: 'Add another name for Season' })
+  await expect(box).toBeVisible()
+  // Someone else deletes Season while this page is open.
+  await page.evaluate(async () => {
+    const session = (await (await fetch('/api/v1/auth/session')).json()) as { csrfToken: string }
+    const { terms } = (await (await fetch('/api/v1/terms')).json()) as {
+      terms: { id: string; name: string }[]
+    }
+    const deleted = await fetch('/api/v1/terms/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Footnote-CSRF': session.csrfToken,
+        'Idempotency-Key': crypto.randomUUID(),
+      },
+      body: JSON.stringify({ ids: terms.filter((t) => t.name === 'Season').map((t) => t.id) }),
+    })
+    if (!deleted.ok) throw new Error(`Season was not deleted: ${deleted.status}`)
+  })
+  await box.fill('test,')
+  const toast = page.locator('[data-sonner-toast]').filter({ hasText: "Couldn't add “test”" })
+  await expect(toast).toContainText("“Season” isn't in Definitions any more.")
+  await expect(toast).not.toContainText('Nothing was saved.')
+  await expect(toast.getByRole('button', { name: 'Try again' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Remove the other name test' })).toHaveCount(0)
+})
+
 test('the list folds synonyms into their row; Terms counts only real terms', async ({ page }) => {
   await go(page, '/definitions')
   const gross = page.locator('tr').filter({ hasText: /^Gross sales/ })

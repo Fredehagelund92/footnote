@@ -49123,7 +49123,7 @@
                   },
                   "sameAs": {
                     "type": "string",
-                    "pattern": "^(?:metric:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    "pattern": "^(?:metric:[a-z0-9_]+|group:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
                   },
                   "areaId": {
                     "anyOf": [
@@ -49620,7 +49620,7 @@
                   },
                   "sameAs": {
                     "type": "string",
-                    "pattern": "^(?:metric:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    "pattern": "^(?:metric:[a-z0-9_]+|group:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
                   },
                   "areaId": {
                     "anyOf": [
