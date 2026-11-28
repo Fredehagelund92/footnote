@@ -271,6 +271,31 @@ button.rte-control-button:active {
   font-style: italic;
 }
 
+/* The toolbar fades out at a side that has more beyond it, so it is never cut with no hint. */
+.rte-toolbar-scroll[data-more='end'] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+}
+
+.rte-toolbar-scroll[data-more='start'] {
+  mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+}
+
+.rte-toolbar-scroll[data-more='both'] {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 2.5rem,
+    #000 calc(100% - 2.5rem),
+    transparent
+  );
+}
+
+/* A line may end between a chip and the character after it. A chip as long as the line stops a
+   little short, so a full stop after it stays on its line rather than alone under it. */
+.rte-content .ProseMirror .mention-chip {
+  max-width: calc(100% - 1.5ch);
+}
+
 .rte-content .ProseMirror pre {
   background: var(--code-bg);
   color: var(--code-text);
@@ -534,7 +559,7 @@ button.rte-control-button:active {
     -ms-overflow-style: none;
     -webkit-overflow-scrolling: touch;
 
-    --rte-toolbar-fade-end: 1.5rem;
+    --rte-toolbar-fade-end: 2.5rem;
 
     mask-image: linear-gradient(
       to right,
@@ -573,17 +598,17 @@ button.rte-control-button:active {
 @keyframes rte-toolbar-fade {
   0% {
     --rte-toolbar-fade-start: 0px;
-    --rte-toolbar-fade-end: 1.5rem;
+    --rte-toolbar-fade-end: 2.5rem;
   }
 
   10%,
   90% {
-    --rte-toolbar-fade-start: 1.5rem;
-    --rte-toolbar-fade-end: 1.5rem;
+    --rte-toolbar-fade-start: 2.5rem;
+    --rte-toolbar-fade-end: 2.5rem;
   }
 
   100% {
-    --rte-toolbar-fade-start: 1.5rem;
+    --rte-toolbar-fade-start: 2.5rem;
     --rte-toolbar-fade-end: 0px;
   }
 }

@@ -111,7 +111,9 @@ export function DocFooter({ children, status }: { children: ReactNode; status?: 
   return (
     <footer className="flex h-bar shrink-0 items-center gap-4 border-t bg-background px-4 text-sm text-muted-foreground tabular-nums md:px-6">
       {children}
-      {status && <div className="ml-auto flex min-w-0 items-center gap-1.5">{status}</div>}
+      {status && (
+        <div className="ml-auto flex min-w-0 items-center gap-1.5 whitespace-nowrap">{status}</div>
+      )}
     </footer>
   )
 }

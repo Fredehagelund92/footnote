@@ -17,6 +17,12 @@ import { expect, go, newContext, signInAs, test } from './go.ts'
 // Wave 3: in Context by time the today line runs under the bars and their names, and a name whose
 // box starts off the screen keeps its start in view, cut with an ellipsis, never by the edge (P15).
 // A table too wide for its frame stacks its rows, so Advanced and Google Drive cut nothing (P16).
+//
+// Wave 4: a bar that runs past the window's right edge keeps its name inside the window, cut with
+// an ellipsis (Q06). A full stop after a chip in the editor stays on the chip's line (Q02). On a
+// phone Context's Sort and Select share the search's row, and the box's third choice stands under
+// the other two on purpose (Q03). The editor's toolbar fades where it goes on, and its footer
+// keeps one line (Q04). Ask's read line never ends a line with a dot (Q05).
 
 /** Where an element is on the screen. */
 const boxOf = (page: Page, selector: string) =>
@@ -599,6 +605,8 @@ const timeNames = (page: Page) =>
           title: name.textContent ?? '',
           fromEdge: r.left - edge,
           pastBox: r.right - box.right,
+          pastWindow: r.right - view.right,
+          roomRight: view.right - r.left,
           startsOff: box.left < edge - 1,
         },
       ]
@@ -640,6 +648,19 @@ for (const [width, height] of [
       await expect(scroller.locator('.time-today')).toBeVisible()
       await expect.poll(async () => (await timeNames(page)).length).toBeGreaterThan(3)
 
+      // Where it opens, the words of a bar that goes on past the right edge end in an ellipsis,
+      // not in the edge (Q06).
+      const cutAtEdge = await scroller.evaluate((el) => {
+        const view = el.getBoundingClientRect()
+        return [...el.querySelectorAll<HTMLElement>('.time-name > span')]
+          .filter((words) => {
+            const box = words.closest('button')!.getBoundingClientRect()
+            return box.right > view.right + 1 && box.left < view.right
+          })
+          .map((words) => words.scrollWidth > words.clientWidth + 1)
+      })
+      expect(cutAtEdge.some(Boolean), colorScheme).toBe(true)
+
       // The line once drew over the bars: "28 | April 2026", "Fra | nce".
       const crossed = await overTheLine(page)
       expect(crossed.length, colorScheme).toBeGreaterThan(0)
@@ -668,6 +689,12 @@ for (const [width, height] of [
         ).toEqual([])
         expect(
           names.filter((n) => n.pastBox > 0.5).map((n) => n.title),
+          where,
+        ).toEqual([])
+        // A bar that runs on past the right edge: its name was cut there, mid-letter (Q06). One
+        // that starts within 20 px of that edge has no room for words, only its padding.
+        expect(
+          names.filter((n) => n.pastWindow > 0.5 && n.roomRight > 20).map((n) => n.title),
           where,
         ).toEqual([])
       }
@@ -778,5 +805,175 @@ test.describe('wave 3, wider', () => {
     await expect(page.getByRole('table').first()).toBeVisible()
     await expect(page.getByRole('table')).toHaveCount(2)
     expect(await slides(page)).toEqual([])
+  })
+})
+
+test.describe('wave 4, on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+  test('a full stop after a chip in the editor stays on the chip line (Q02)', async ({ page }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/context/itm_norway_stop/edit')
+      const chips = page.locator('.ProseMirror .mention-chip')
+      await expect(chips.first()).toBeVisible()
+      // Each chip with its punctuation after it: a chip as long as the line once took the line
+      // whole, and the full stop sat alone under it.
+      const apart = await page.locator('.ProseMirror').evaluate((doc) =>
+        [...doc.querySelectorAll<HTMLElement>('.mention-chip')].flatMap((chip) => {
+          const node = chip.closest<HTMLElement>('[data-node-view-wrapper]')!.parentElement!
+          const next = node.nextSibling
+          const mark = /^[.,;:!?)]+/.exec(next?.textContent ?? '')?.[0]
+          if (!next || !mark) return []
+          const range = document.createRange()
+          range.setStart(next, 0)
+          range.setEnd(next, mark.length)
+          const box = chip.getBoundingClientRect()
+          const at = range.getBoundingClientRect()
+          return [{ chip: chip.textContent, below: at.top - box.top, inside: at.right <= 390 }]
+        }),
+      )
+      expect(apart.length, colorScheme).toBeGreaterThan(1)
+      for (const a of apart) {
+        expect(a.below, `${colorScheme} ${a.chip}`).toBeLessThan(8)
+        expect(a.inside, `${colorScheme} ${a.chip}`).toBe(true)
+      }
+    }
+  })
+
+  test('Context keeps Sort and Select on the Filter row, and Show under it (Q03)', async ({
+    page,
+  }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/context')
+      const search = page.getByRole('textbox', { name: 'Search context' })
+      await expect(search).toBeVisible()
+      const top = async (el: Locator) => {
+        const box = (await el.boundingBox())!
+        return box.y + box.height / 2
+      }
+      const row = await top(page.getByRole('button', { name: /^Filter/ }))
+      // Sort and Select were two icons alone on a row of their own, between Show and the search.
+      expect(Math.abs((await top(page.getByRole('button', { name: /Sort/ }))) - row)).toBeLessThan(
+        4,
+      )
+      expect(
+        Math.abs((await top(page.getByRole('button', { name: 'Select' }))) - row),
+      ).toBeLessThan(4)
+      const show = page.getByRole('radiogroup', { name: 'Show' })
+      expect(await top(show), colorScheme).toBeGreaterThan(row + 20)
+      expect(await top(search), colorScheme).toBeGreaterThan((await top(show)) + 20)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+      // By time keeps the same place for its own second row, and no mark hangs at the end of the first.
+      await go(page, '/context?view=time')
+      await expect(page.getByRole('radiogroup', { name: 'Zoom' })).toBeVisible()
+      const bar = page.locator('[data-slot=sidebar-inset] [aria-hidden].w-px')
+      await expect(bar).toBeHidden()
+    }
+  })
+
+  test('the "What happened?" box puts its third choice under the other two, set off (Q03)', async ({
+    page,
+  }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/context/new')
+      const fill = page.getByRole('button', { name: 'Fill it in' })
+      const agent = page
+        .getByRole('button', { name: /^Write with your agent|^Copy the prompt/ })
+        .or(page.getByRole('link', { name: /Write with your agent/ }))
+        .first()
+      await expect(fill).toBeVisible()
+      const first = (await fill.boundingBox())!
+      const third = (await agent.boundingBox())!
+      expect(third.y, colorScheme).toBeGreaterThan(first.y + first.height)
+      // On a line of its own, said so by a rule above it.
+      const rule = await agent.evaluate((el) => {
+        const holder = el.parentElement!
+        return { top: getComputedStyle(holder).borderTopWidth, width: holder.clientWidth }
+      })
+      expect(rule.top, colorScheme).toBe('1px')
+      expect(rule.width, colorScheme).toBe(390 - 2 * 16)
+    }
+  })
+
+  test("Ask's read line never ends a line with a dot (Q05)", async ({ page }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/ask?example=loop-dates-anchored')
+      const line = page.locator('p', { hasText: /^Read as/ })
+      await expect(line).toBeVisible()
+      const dots = await line.evaluate((p) => {
+        const els = [...p.querySelectorAll<HTMLElement>('*')]
+        // What follows a dot: the part beside it in its group, or else the next group.
+        const partAfter = (dot: HTMLElement) =>
+          dot.nextElementSibling ?? dot.parentElement?.nextElementSibling
+        const apart: string[] = []
+        let dotCount = 0
+        for (const dot of els.filter(
+          (el) => el.matches('span[aria-hidden]') && el.textContent === '·',
+        )) {
+          dotCount++
+          const next = partAfter(dot)?.getBoundingClientRect()
+          const at = dot.getBoundingClientRect()
+          // The part after a dot starts on the dot's own line, never on the next one down.
+          if (next && next.top > at.top + at.height) apart.push(String(partAfter(dot)?.textContent))
+        }
+        return { apart, dotCount, height: p.getBoundingClientRect().height }
+      })
+      // It wraps on a phone, and no dot is left behind at the end of a line.
+      expect(dots.dotCount, colorScheme).toBeGreaterThan(1)
+      expect(dots.apart, colorScheme).toEqual([])
+      expect(dots.height, colorScheme).toBeGreaterThan(40)
+    }
+  })
+})
+
+test.describe('wave 4, on the narrowest phone', () => {
+  test.use({ viewport: { width: 360, height: 800 }, hasTouch: true, isMobile: true })
+
+  test('the editor toolbar fades where it goes on, and the footer keeps one line at 360 (Q04)', async ({
+    page,
+  }) => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/context/itm_norway_stop/edit')
+      // The row is wider than the screen: the phone's own scroller fades 40 px at the end it goes
+      // on at, and none at the end it is scrolled to. It faded 24 px, a button half in view.
+      const bar = page.locator('.rte-toolbar').first()
+      await expect(bar).toBeVisible()
+      const fadeAt = () =>
+        bar.evaluate((el) => ({
+          cut: el.scrollWidth > el.clientWidth,
+          end: getComputedStyle(el).getPropertyValue('--rte-toolbar-fade-end').trim(),
+        }))
+      await bar.evaluate((el) => el.scrollTo({ left: 0 }))
+      await expect.poll(fadeAt, { message: colorScheme }).toEqual({ cut: true, end: '40px' })
+      await bar.evaluate((el) => el.scrollTo({ left: el.scrollWidth }))
+      await expect.poll(fadeAt, { message: colorScheme }).toEqual({ cut: true, end: '0px' })
+      const status = page.locator('footer').getByText('No changes yet')
+      await expect(status).toBeVisible()
+      // "No changes yet" was on two lines.
+      expect((await status.boundingBox())!.height, colorScheme).toBeLessThan(24)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth), colorScheme).toBe(360)
+    }
+  })
+})
+
+test.describe('wave 4, beside a panel', () => {
+  test('the editor toolbar beside a panel at 1024 fades where it is cut (Q04)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 800 })
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await go(page, '/context/itm_norway_stop/edit?dock=context.itm_kh4llvi9')
+      const bar = page.locator('.rte-toolbar-scroll')
+      await expect(bar).toBeVisible()
+      // Cut after Insert in the old layout, with nothing to say there was more.
+      expect(await bar.evaluate((el) => el.scrollWidth > el.clientWidth), colorScheme).toBe(true)
+      await expect(bar).toHaveAttribute('data-more', 'end')
+    }
   })
 })

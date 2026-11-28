@@ -1377,7 +1377,10 @@ function Editor({
               >
                 {edited ? 'Back to the form' : 'Write it yourself'}
               </Button>
-              <WriteWithButton prompt={writePrompt()} variant="ghost" />
+              {/* The third choice, a way of its own: on a phone it stands under the other two, set off by a line. */}
+              <div className="max-sm:mt-1 max-sm:w-full max-sm:border-t max-sm:pt-3 sm:contents">
+                <WriteWithButton prompt={writePrompt()} variant="ghost" />
+              </div>
             </div>
           </section>
         </Paper>
@@ -1588,7 +1591,7 @@ function Editor({
           >
             Summary {summaryLength} of {SUMMARY_LIMIT}
           </span>
-          <span className="whitespace-nowrap">
+          <span className="whitespace-nowrap max-[23rem]:hidden">
             {words.toLocaleString('en-GB')} {words === 1 ? 'word' : 'words'}
           </span>
           <span className="whitespace-nowrap max-sm:hidden">

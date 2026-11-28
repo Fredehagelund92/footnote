@@ -136,6 +136,33 @@ export function LoopReadLine({
   )
 }
 
+/**
+ * One part of the read line, with the dot that parts it from the one before. The dot and its part
+ * stay together; a note may wrap inside its own line.
+ */
+function Part({
+  first,
+  wraps,
+  children,
+}: {
+  first?: boolean
+  wraps?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={
+        wraps
+          ? 'inline-flex items-baseline gap-1.5'
+          : 'inline-flex items-center gap-1.5 whitespace-nowrap'
+      }
+    >
+      {!first && <span aria-hidden>·</span>}
+      {wraps ? <span>{children}</span> : children}
+    </span>
+  )
+}
+
 function ReadLine({
   answer,
   onRescope,
@@ -157,15 +184,14 @@ function ReadLine({
   return (
     <p className="flex max-w-22/25 flex-wrap items-center justify-end gap-x-1.5 gap-y-1 text-right text-xs text-muted-foreground @lg:max-w-4/5">
       <span>{subject.carried ? 'Read with' : 'Read as'}</span>
-      {/* Each dot stays with what it follows, so a line that wraps never starts with one. */}
+      {/* Each dot leads the part after it, so a line that wraps never ends with one. */}
       {about.map((id, i) => (
-        <span key={id} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <Part key={id} first={i === 0}>
           <NounChip id={id} nouns={nouns} />
-          {(i < about.length - 1 || dated || !!subject.note) && <span aria-hidden>·</span>}
-        </span>
+        </Part>
       ))}
       {dated && (
-        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <Part first={!about.length}>
           <PeriodChip
             days={
               subject.assumedToday
@@ -176,10 +202,13 @@ function ReadLine({
             }
             onChoose={onReperiod}
           />
-          {subject.note && <span aria-hidden>·</span>}
-        </span>
+        </Part>
       )}
-      {subject.note && <span>{subject.note}</span>}
+      {subject.note && (
+        <Part first={!about.length && !dated} wraps>
+          {subject.note}
+        </Part>
+      )}
       {subject.carried && <span>carried from your last question</span>}
       {onRescope && (
         <button

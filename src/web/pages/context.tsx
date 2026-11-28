@@ -744,8 +744,10 @@ function ContextList() {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+              <span aria-hidden className="mx-1 h-4 w-px bg-border @max-xl/main:hidden" />
+              {/* On a phone Sort and Select come first, and Show is the row under them, the place By time keeps for Zoom. */}
               <TextSwitch
+                className="@max-xl/main:order-1"
                 label="Show"
                 value={onlyConflicts ? 'conflicts' : 'all'}
                 onChange={(v, press) =>

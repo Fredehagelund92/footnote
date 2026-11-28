@@ -1,3 +1,4 @@
+import * as React from 'react'
 import { useEditorState, type Editor } from '@tiptap/react'
 import { ChevronDownIcon, MinusIcon, PlusIcon, QuoteIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
@@ -17,15 +18,31 @@ import {
 
 /* ---------- editorcn's toolbar, trimmed to what markdown carries ---------- */
 
-// The template's scroll shadows on the toolbar pill, so a phone shows there is more to the side.
-const SCROLL_SHADOWS = {
-  background: [
-    'linear-gradient(to right, var(--toolbar-bg, var(--background)) 30%, transparent) left / 2.5rem 100% no-repeat local',
-    'linear-gradient(to left, var(--toolbar-bg, var(--background)) 30%, transparent) right / 2.5rem 100% no-repeat local',
-    'radial-gradient(farthest-side at 0 50%, rgb(0 0 0 / 0.14), transparent) left / 0.75rem 100% no-repeat scroll',
-    'radial-gradient(farthest-side at 100% 50%, rgb(0 0 0 / 0.14), transparent) right / 0.75rem 100% no-repeat scroll',
-    'var(--toolbar-bg, var(--background))',
-  ].join(', '),
+/**
+ * Which sides of a row that scrolls across have more beyond them: the toolbar fades out at that
+ * side (editor/style.css), so a phone shows the row goes on rather than ending in a cut button.
+ */
+function useMoreBeside(ref: React.RefObject<HTMLElement | null>) {
+  const [more, setMore] = React.useState<'start' | 'end' | 'both' | undefined>()
+  React.useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const read = () => {
+      const start = el.scrollLeft > 1
+      const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+      setMore(start ? (end ? 'both' : 'start') : end ? 'end' : undefined)
+    }
+    read()
+    el.addEventListener('scroll', read, { passive: true })
+    const watch = new ResizeObserver(read)
+    watch.observe(el)
+    if (el.firstElementChild) watch.observe(el.firstElementChild)
+    return () => {
+      el.removeEventListener('scroll', read)
+      watch.disconnect()
+    }
+  }, [ref])
+  return more
 }
 
 const ACTIVE_ITEM = "rounded-md py-1 pl-2 text-sm [&_svg:not([class*='size-'])]:size-3.5"
@@ -102,11 +119,14 @@ function InsertMenu({ editor }: { editor: Editor | null }) {
 }
 
 export function Toolbar({ editor, className }: { editor: Editor | null; className?: string }) {
+  const scroller = React.useRef<HTMLDivElement>(null)
+  const more = useMoreBeside(scroller)
   return (
     <div className={cn('flex h-tool shrink-0 items-center border-b bg-background', className)}>
       <div
-        className="w-full max-w-full scrollbar-none overflow-x-auto px-2 md:px-4 [&::-webkit-scrollbar]:hidden"
-        style={SCROLL_SHADOWS}
+        ref={scroller}
+        data-more={more}
+        className="rte-toolbar-scroll w-full max-w-full scrollbar-none overflow-x-auto px-2 md:px-4 [&::-webkit-scrollbar]:hidden"
       >
         <RichTextEditor.Toolbar className="flex-nowrap! justify-start! border-0! bg-transparent! px-1! py-1! sm:w-max [&_.rte-controls-group>button:not([data-state=on]):not([aria-pressed=true])]:text-foreground! [&>*]:shrink-0">
           <RichTextEditor.ControlsGroup>
