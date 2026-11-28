@@ -2088,7 +2088,10 @@ function Editor({
               required={sourceMissing.length > 0}
               problem={problemAt('source')}
             >
-              <Coming on={fillingIn && !form.source && !form.said} bar={<Skeleton className="mt-2 h-4 w-36" />}>
+              <Coming
+                on={fillingIn && !form.source && !form.said}
+                bar={<Skeleton className="mt-2 h-4 w-36" />}
+              >
                 <PickerField
                   labelId={fieldId('source')}
                   label="Source"
@@ -2133,8 +2136,8 @@ function Editor({
                           placeholder="The pricing committee's decision"
                         />
                         <FieldDescription id="fact-said-note">
-                          One line: a person, a team, a meeting or a document, and the day. Agents are
-                          told there is no link to open.
+                          One line: a person, a team, a meeting or a document, and the day. Agents
+                          are told there is no link to open.
                         </FieldDescription>
                       </Field>
                     ) : (
