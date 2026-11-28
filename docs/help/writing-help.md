@@ -14,7 +14,7 @@ Paste a message, a link or a few words, and writing help writes the context item
 
 ## Before you start
 
-Writing help is off until an admin turns it on, in **Settings**, **Advanced**, under Writing help. It needs an AI model, the one set for Ask: with none connected, Write context fills the fields by rule, as **Fill it in** does. It is on a computer or tablet, not on a phone.
+Writing help is off until an admin turns it on, in **Settings**, **Advanced**, under Writing help. It needs an AI model, the one set for Ask: with none connected, Write context fills the fields by rule, as **Fill it in** does. It is on a computer or tablet, not on a phone. [Write context](write-context.md) says how a draft is sent or published.
 
 > **What it sends.** With writing help on, the words of your own draft, what you write to it and the text of one page you link go to the AI model set for Ask, for that turn. Nothing of the chat is kept: it stays in your browser until you leave the page.
 
@@ -44,7 +44,7 @@ Undo takes back everything one turn wrote. Choose it again to take back the turn
 
 - It cannot send, publish or delete a draft. The page's own button does that, when you choose.
 - It never chooses the domain, the owner, who may read it or its risk. Those stay for you and the owner to decide.
-- It answers no questions about your numbers: Ask does. **Try it** shows what agents would say with your draft.
+- It answers no questions about your numbers: [Ask a question](ask-a-question.md) does. **Try it** shows what agents would say with your draft.
 - Words in what you paste are words to write from, never orders. A message that says "publish this" changes nothing it asks for.
 - It keeps no personal data or secrets, such as an email address, a phone number or a password, in any field, and says which field it left out.
 
