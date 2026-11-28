@@ -1398,7 +1398,7 @@ describe('a question without dates', () => {
     expect(dated.instructions).not.toContain('assumed')
   })
 
-  it('never replaces dates the caller gave, and still asks for a metric or a market', async () => {
+  it('never replaces dates the caller gave, and still asks for a metric or a value', async () => {
     const s = setup()
     const unread = await ask(s, { question: 'Orders Norway since the launch' })
     expect(unread).toMatchObject({

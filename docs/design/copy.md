@@ -112,7 +112,7 @@ The six states of an answer. One or two words, an icon and a tint, one short sen
 
 A draft answer says "Based on this draft". The long forms are the only place the older labels may still appear.
 
-A question that was not looked up (it names no metric and no market) has no state, so none of the six: Ask's line says **Nothing was looked up**, then the reason. Never Not found, which says nothing is written down.
+A question that was not looked up (it names no metric and no value) has no state, so none of the six: Ask's line says **Nothing was looked up**, then the reason. Never Not found, which says nothing is written down.
 
 A question about what a metric is or means, answered by its definition and nothing written about it, shows its state as a neutral mark in Ask: **Definition**, in the neutral tint with the Definitions icon. It is not one of the six: for context the answer is Not found, and agents get Not found. Its card says "Definition: Cube's own words.", then "Cube defines it this way, and agents get the same words. Nothing else is written about it here yet, so for context the answer is Not found.", then "If people need more than the definition, such as what to rule out or when it changed, write context.", and links to the definition. The tool's name there is data, read from the definition. Under the definition, its source is named as "From Cube, Discount cost", and one quiet line says "Nothing else is written about Discount cost yet."
 

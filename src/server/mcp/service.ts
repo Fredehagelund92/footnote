@@ -588,7 +588,10 @@ function outcomeSaid(
   if (body.status === 'need_more_detail')
     return typeof body.say === 'string'
       ? { say: body.say, ...(typeof body.next === 'string' ? { next: body.next } : {}) }
-      : refusedSaid('The question needs a clearer metric, market or domain.', String(body.message))
+      : refusedSaid(
+          'The question needs a clearer metric, dimension value or domain.',
+          String(body.message),
+        )
   const find = args as FindArgs
   const check = body.check_report as { withheld: number }
   return findSaid(bundle, {
@@ -1051,7 +1054,7 @@ export function createToolService(
       say: `Nothing was sent yet: it needs to know which answer or ${concepts.contextItem.name} this is about.`,
       next:
         args.kind === 'missing'
-          ? "Call report again with the reply_id of the get_context reply, or context_id; with no reply, pass the question's metrics, markets and dates."
+          ? "Call report again with the reply_id of the get_context reply, or context_id; with no reply, pass the question's metrics, dimension values and dates."
           : 'Call report again with the reply_id of the get_context reply, or the context_id of the item it is about.',
       status: 'need_more_detail',
       recorded: false,

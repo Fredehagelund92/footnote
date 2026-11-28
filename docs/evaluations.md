@@ -201,7 +201,7 @@ saved questions follows each publish instead (FR-526).
 ## The proof
 
 `npm run footnote -- prove` ([Run the proof](prove.md) is the reader's page) asks the same
-questions about a period and a market three ways through one agent loop, and prints a table. It
+questions about a period and a value three ways through one agent loop, and prints a table. It
 is built on the area runner, not beside it (`src/server/modules/evals/proof.ts`):
 
 - **The three ways.** No context: no tools, no notes. One plain file: no tools, and every note

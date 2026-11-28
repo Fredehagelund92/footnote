@@ -75,7 +75,7 @@ The readers know their business, often read English as a second language, and ne
 One word means one thing, and the glossary and lint rules hold screens, docs and agent replies to it.
 Every screen says only what is true today: no control that pretends, no number that counts something other than its label, no placeholder for what is not built.
 Copy says what is kept, not that nobody can see.
-Footnote claims no better answers than the same facts in a plain file, or than nothing, until a test on questions about a period and a market shows it.
+Footnote claims no better answers than the same facts in a plain file, or than nothing, until a test on questions about a period and a value shows it.
 The first release waits for that test, which runs with a cap on what it spends.
 
 ## One generic product, kept small

@@ -406,7 +406,7 @@ describe('the drafting guide', () => {
       'what happened, where and when',
       'go in the body',
       'Claim no cause unless the source states one',
-      'Name metrics and markets as the person does',
+      'Name metrics and dimension values as the person does',
       'flag the dates as uncertain',
       'One fact per item',
     ])

@@ -83,7 +83,7 @@ For each new or changed document, a read makes one suggestion in the Inbox of th
 - **Changed.** A changed document replaces its open suggestion. One already published becomes a suggestion to change that item.
 - **Declined.** A suggestion an owner declined is not offered again until the document changes.
 - **Gone.** A document that left withdraws its open suggestion. An item it became is listed for its owners and stays as it is.
-- **Skipped.** A document with an email address, a phone number or what looks like a password or key is skipped. So is one that names no metric, market or other term, and one with no words.
+- **Skipped.** A document with an email address, a phone number or what looks like a password or key is skipped. So is one that names no metric, value or other term, and one with no words.
 - **Waiting.** Past the source's daily cap, a document waits and goes first next time.
 
 A read that would remove more than half of a source's documents at once, and more than five, keeps them all, so a broken folder never empties the Inbox.

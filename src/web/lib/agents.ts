@@ -49,7 +49,7 @@ export const promptOf = (parts: { text: string }[]) => parts.map((p) => p.text).
 export const PROMPT = promptOf(PROMPT_PARTS)
 
 /**
- * The words that start writing context with an agent, about a topic (metrics, markets and dates,
+ * The words that start writing context with an agent, about a topic (metrics, values and dates,
  * never the words anyone asked): the MCP server's write_context prompt says the same.
  */
 export const writePrompt = (topic?: string) => writeContextPrompt(topic)

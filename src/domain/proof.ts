@@ -1,8 +1,8 @@
 /**
- * The proof (`footnote prove`): the same questions about a period and a market asked three ways
+ * The proof (`footnote prove`): the same questions about a period and a value asked three ways
  * through a real agent, with no context, with the same facts as one plain file, and with
  * Footnote, and a table of what each way got right. A question names the notes that give the right
- * reason and the notes that must not be told, because they had ended or are about another market;
+ * reason and the notes that must not be told, because they had ended or are about another value;
  * a question with no right reason is one where nothing is written. Pure definitions, the plain
  * file, the judge's checks and the table: no input or output.
  */
@@ -42,7 +42,7 @@ export const proofQuestionSchema = z
     question: z.string().check(z.minLength(10), z.maxLength(1000)),
     /** The notes that give the right reason. None means nothing is written. */
     reasons: z._default(z.array(itemId), []),
-    /** The notes an answer must not tell: one that had ended, or one about another market. */
+    /** The notes an answer must not tell: one that had ended, or one about another value. */
     wrong: z._default(z.array(itemId), []),
   })
   .check(
@@ -199,7 +199,7 @@ export function proofChecks(
 export type ProofScore = {
   /** The right reason and no wrong one; for a question where nothing is written, saying so. */
   right: boolean
-  /** It told a note that had ended or was about another market. */
+  /** It told a note that had ended or was about another value. */
   wrong: boolean
   /** It said nothing is written; null for a question with a written reason. */
   nothing: boolean | null

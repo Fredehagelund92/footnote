@@ -180,7 +180,7 @@ async function openGaps(tx: Queryable): Promise<OpenGap[]> {
 
 /**
  * Asked this week (FR-714): the topics agents asked about most in the last 7 full days, one row per
- * metric, market and dimension with its months joined, each with the state Ask gives it now on the
+ * metric, values and dimension with its months joined, each with the state Ask gives it now on the
  * live edition for its latest month. Counts only, never the words. Every count is the reader's own
  * (`readerSubjects`): what their Observability shows, or the strictest view of the owners of its
  * domain, so a floor stays a floor and a row under the minimum is not listed (FR-614). An owner sees

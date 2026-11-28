@@ -24,7 +24,7 @@ footnote that says who checked it and when.
      comment and the closing one with that run's table, as the command printed it, whatever it
      shows: the model and the judge, the questions' digest, and what it spent. -->
 
-**Not run yet.** The same 40 questions about a period and a market will be asked three ways
+**Not run yet.** The same 40 questions about a period and a value will be asked three ways
 through a real agent: with no context, with the same facts as one plain file, and with Footnote.
 The table goes here after the first funded run, whatever it shows. [Run the proof][prove] says
 what the command asks, how to read the table, and how to run it on your own context.

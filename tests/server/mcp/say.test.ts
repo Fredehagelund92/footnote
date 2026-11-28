@@ -445,7 +445,7 @@ describe("find_context's sentence when no words match but what they name does", 
       ),
     ).toEqual({
       say: `3 context items apply to Orders in Norway. 2 are shown. Nothing else was looked up. ${assumed}`,
-      next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, markets or dates. Pass next_cursor as cursor for the next page.",
+      next: "No context item's words matched, so these are the context items that apply to what the words name. Call get_context for other metrics, dimension values or dates. Pass next_cursor as cursor for the next page.",
     })
   })
 })

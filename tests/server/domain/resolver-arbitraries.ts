@@ -5,21 +5,33 @@ import { bundle, event, request } from './fixtures.ts'
 
 /*
   Boundary-heavy bundles and requests for the resolver's property tests: eight items or fewer on
-  two metrics and a group, two markets, eleven days, every risk, flag, status and stop switch. The
-  resolver's and the answer engine's property tests share them, so both meet the same cases.
+  two metrics and a group, two values of each of two dimensions (market and channel), eleven days,
+  every risk, flag, status and stop switch. No dimension is special, so an item and a question
+  name values of either or both. The resolver's and the answer engine's property tests share them,
+  so both meet the same cases.
 */
 export const day = (offset: number) => shiftDate('2026-08-01', offset)
 const metric = fc.constantFrom('metric:orders', 'metric:revenue', 'group:payments')
-const values = fc.uniqueArray(fc.constantFrom('val:market/norway', 'val:market/spain'), {
-  maxLength: 2,
-})
+const values = fc.uniqueArray(
+  fc.constantFrom(
+    'val:market/norway',
+    'val:market/spain',
+    'val:channel/email',
+    'val:channel/organic',
+  ),
+  { maxLength: 3 },
+)
+/** `val:market/norway` is a value of `dim:market`. */
+const dimensionOf = (value: string) => `dim:${value.slice(4, value.indexOf('/'))}`
 export const itemArb = fc.record({
   start: fc.integer({ min: 0, max: 10 }),
   length: fc.option(fc.integer({ min: 1, max: 10 }), { nil: null }),
   metrics: fc.uniqueArray(metric, { maxLength: 2 }),
   values,
-  // Dimensions with any value; the market only when the item lists no market value (FR-126).
-  anyValue: fc.uniqueArray(fc.constantFrom('dim:market', 'dim:product'), { maxLength: 2 }),
+  // Dimensions with any value, each only when the item lists no value of it (FR-126).
+  anyValue: fc.uniqueArray(fc.constantFrom('dim:market', 'dim:channel', 'dim:product'), {
+    maxLength: 2,
+  }),
   riskLevel: fc.constantFrom('low' as const, 'normal' as const, 'high' as const),
   checkFlag: fc.constantFrom(null, 'needs_check' as const, 'source_missing' as const),
   status: fc.constantFrom('accepted' as const, 'retired' as const, 'proposal' as const),
@@ -48,9 +60,9 @@ export const bundleArb = fc
           scope: {
             metrics: row.metrics,
             dimensions: row.anyValue.filter(
-              (dimension) => dimension !== 'dim:market' || row.values.length === 0,
+              (dimension) => !row.values.some((value) => dimensionOf(value) === dimension),
             ),
-            dimensionValues: row.values.map((value) => ({ dimension: 'dim:market', value })),
+            dimensionValues: row.values.map((value) => ({ dimension: dimensionOf(value), value })),
           },
           validity: {
             start: day(row.start),
@@ -80,9 +92,8 @@ export const requestArb = fc
   .record({
     metrics: fc.uniqueArray(metric),
     values,
-    // Whether the question names the market (with or without values) and the product.
-    market: fc.boolean(),
-    product: fc.boolean(),
+    // The dimensions the question names with no value, for every value of each.
+    every: fc.uniqueArray(fc.constantFrom('dim:market', 'dim:channel', 'dim:product')),
     start: fc.integer({ min: 0, max: 10 }),
     length: fc.integer({ min: 1, max: 10 }),
     today: fc.integer({ min: 0, max: 20 }),
@@ -98,8 +109,13 @@ export const requestArb = fc
         scope: {
           metrics: row.metrics,
           filters: {
-            ...(row.market || row.values.length ? { 'dim:market': row.values } : {}),
-            ...(row.product ? { 'dim:product': [] } : {}),
+            ...Object.fromEntries(row.every.map((dimension) => [dimension, []])),
+            ...Object.fromEntries(
+              [...new Set(row.values.map(dimensionOf))].map((dimension) => [
+                dimension,
+                row.values.filter((value) => dimensionOf(value) === dimension),
+              ]),
+            ),
           },
           window: { start: day(row.start), end: day(row.start + row.length) },
         },

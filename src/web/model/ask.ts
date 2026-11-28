@@ -36,11 +36,11 @@ export const countedState = (a: Pick<Answer, 'state'>): AnswerState => a.state ?
 export const DRAFT_LABEL = 'Based on this draft'
 
 /**
- * Why a question that names no metric and no market was not looked up, as Ask says it. Agents are
+ * Why a question that names no metric and no value was not looked up, as Ask says it. Agents are
  * told the engine's own words, with its first choices (`said`); a person gets what Ask can answer
  * and the names closest to their words instead.
  */
-export const NAMES_NOTHING = "The question doesn't name a metric or a market."
+export const NAMES_NOTHING = "The question doesn't name a metric or a value."
 
 /** What a question was read as, in words: "Orders in Norway, 1 to 31 Aug 2026". Empty when nothing matched. */
 export function scopeText(a: Pick<Answer, 'metric' | 'values' | 'dates'>) {
@@ -266,7 +266,7 @@ export function reportOutcomeWords(kind: ReportOutcomeKind, at: Date) {
 export const ASKED_ROWS = 4
 
 export type AskedRow = {
-  /** The topic it is: its id, its domain when it has one, its metric and market as named, its month. */
+  /** The topic it is: its id, its domain when it has one, its metric and values as named, its month. */
   topic: { id: string; domain?: DomainId; metric: string; where: string; month?: string }
   /** What the row says: "Orders in Norway". */
   title: string

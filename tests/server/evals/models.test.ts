@@ -506,6 +506,28 @@ describe('the answer agent and the scripted mock', () => {
     )
     expect(result.answer).toBe('Which metric (metric:orders) do you mean?')
   })
+  it('reads the plain file by the value after its dimension, whatever words either has', async () => {
+    const notes = [
+      '# Notes about our data',
+      '',
+      '## Email pause',
+      '',
+      'About: Orders, for Sales channel Email, Market United Kingdom. Applies from 4 August 2026.',
+      '',
+      'Emails stopped for a week.',
+    ].join('\n')
+    const file = { instructions: notes, close: () => Promise.resolve(), tools: {} }
+    const port = createModelPort({ mode: 'mock' })
+    const told = (question: string) =>
+      answerQuestion(file, port.choose('eval_answer'), question).then((r) => r.answer)
+    expect(await told('Orders from Email in August?')).toBe(
+      'From notes.md:\n- Email pause: Emails stopped for a week.',
+    )
+    expect(await told('Orders in the United Kingdom?')).toContain('Email pause')
+    expect(await told('Orders from Paid search?')).toBe(
+      'Nothing is written in notes.md about this.',
+    )
+  })
   it('reports a refused answer as such', async () => {
     const result = await answerQuestion(arm(delivery), scripted([reply('', 'content-filter')]), 'q')
     expect(result.refused).toBe(true)

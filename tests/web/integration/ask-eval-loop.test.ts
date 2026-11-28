@@ -66,6 +66,10 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   yet and Needs a recheck, so every step was keyed again with no model, by place, as above, and
   the words of the recorded steps that said the earlier names follow them. They are still the
   model's steps, and the lists below did not move.
+  The same day the words agents and people read began to say a value of a dimension where they
+  said a market (About our business, the tools' sentences, the help), so every step was keyed
+  again with no model: each took the recorded step whose prompt was the same but for those words.
+  As many steps go unrecorded as on main's code, and the lists below did not move.
 */
 
 askEvalSuite({

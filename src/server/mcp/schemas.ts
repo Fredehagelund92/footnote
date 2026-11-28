@@ -181,7 +181,7 @@ export const findInput = z.strictObject({
     .min(1)
     .max(2000)
     .describe(
-      'A few words or the question as asked: a metric, a market, a domain or a topic, such as "GMV Spain" or "what is net revenue".',
+      'A few words or the question as asked: a metric, a dimension value, a domain or a topic, such as "GMV Spain" or "what is net revenue".',
     ),
   domain: domainName.optional(),
   kind: z.enum(itemKinds).optional(),
@@ -210,7 +210,7 @@ export const findContextInput = z.strictObject({
   query: findInput.shape.query
     .optional()
     .describe(
-      'A few words or the question as asked: a metric, a market, a domain or a topic, such as "GMV Spain" or "what is net revenue". Leave it out to list everything of a kind or in a domain.',
+      'A few words or the question as asked: a metric, a dimension value, a domain or a topic, such as "GMV Spain" or "what is net revenue". Leave it out to list everything of a kind or in a domain.',
     ),
   domain: domainName.optional(),
   kind: z
@@ -265,7 +265,7 @@ export const reportInput = z.strictObject({
   question: scopeFields.question
     .optional()
     .describe(
-      'For missing without a reply_id: the question, read in memory only for its metrics, markets and dates, never kept.',
+      'For missing without a reply_id: the question, read in memory only for its metrics, dimension values and dates, never kept.',
     ),
   metrics: scopeFields.metrics,
   dimension_filters: scopeFields.dimension_filters,
@@ -316,7 +316,7 @@ const draftWords = {
     .strictObject({
       metrics: scopeFields.metrics.describe('Metric names, as you used them with get_context.'),
       dimension_filters: scopeFields.dimension_filters.describe(
-        'Dimensions and the values it applies to, such as market Norway. No values means every value.',
+        'Dimensions and the values it applies to, such as Norway for market or Email for channel. No values means every value.',
       ),
     })
     .optional()
@@ -697,7 +697,7 @@ export const contextOutput = z
       .string()
       .nullable()
       .optional()
-      .describe('What was looked up: the metrics, markets and dates, in words.'),
+      .describe('What was looked up: the metrics, dimension values and dates, in words.'),
     period_read: periodRead.optional(),
     defined: z
       .array(z.object({ metric: z.string(), definition: z.string(), from: z.string() }))

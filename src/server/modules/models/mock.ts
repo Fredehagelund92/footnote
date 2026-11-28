@@ -95,7 +95,7 @@ function answerFor(delivery: Delivery, linked: Read[] = []): string {
     const asks = (delivery.options ?? []).map((o) =>
       o.options.length ? `${o.field} (${o.options.slice(0, 5).join(', ')})` : o.field,
     )
-    return `Which ${asks.join(' and ') || 'metric, market and dates'} do you mean?`
+    return `Which ${asks.join(' and ') || 'metric, value and dates'} do you mean?`
   }
   // What the reply says it read and how far that goes, as an agent relays it.
   const coverage = delivery.say ?? ''
@@ -143,10 +143,15 @@ function fromNotes(prompt: LanguageModelV4Prompt): string | null {
     .slice(1)
     .flatMap((section) => {
       const [title = '', , about = '', , summary = ''] = section.split('\n')
-      // "About: Orders, for Market Norway, Product Tents. Applies ...": the values after "for".
+      // "About: Orders, for Market Norway, Sales channel Email. Applies ...": each part after "for"
+      // is a dimension's name and then its value, either of any number of words. The file does not
+      // say where one ends, so a question names the value when it holds the part's last words.
       const where = /, for (.*?)\. Applies /.exec(about)?.[1] ?? ''
-      const values = where.split(', ').map((part) => part.split(' ').slice(1).join(' '))
-      return values.some((value) => value && question.includes(value.toLowerCase()))
+      const values = where.split(', ').flatMap((part) => {
+        const words = part.split(' ')
+        return words.slice(1).map((_, n) => words.slice(n + 1).join(' '))
+      })
+      return values.some((value) => question.includes(value.toLowerCase()))
         ? [`- ${title}: ${summary}`]
         : []
     })

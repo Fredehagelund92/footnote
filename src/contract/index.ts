@@ -1901,7 +1901,7 @@ export const contract = {
         path: '/questions/{id}',
         tags: ['inbox'],
         summary:
-          'The one question a link asks, for anyone signed in who has it: the topic in words (metric, market and dates, never the words of a question), how often agents found nothing (hidden under the minimum, FR-614), and the owners who get the answer',
+          'The one question a link asks, for anyone signed in who has it: the topic in words (metric, values and dates, never the words of a question), how often agents found nothing (hidden under the minimum, FR-614), and the owners who get the answer',
       })
       .input(questionIdSchema)
       .output(questionSchema),

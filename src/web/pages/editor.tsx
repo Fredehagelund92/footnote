@@ -1301,7 +1301,7 @@ function Editor({
           count={overlaps.length}
           description={
             overlaps.length
-              ? 'Context on the same metric and market. Say how this one relates to each.'
+              ? 'Context on the same metric and value. Say how this one relates to each.'
               : `Nothing else applies to ${scopeWords(form.where)}.`
           }
         >

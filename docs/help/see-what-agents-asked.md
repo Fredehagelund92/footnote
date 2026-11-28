@@ -26,7 +26,7 @@ A topic is one thing agents asked about: a metric, the values asked about, such 
 - Questions per day shows how each was answered. A dashed line marks a publish, so you see what it changed. Drag across the bars to add up some days.
 - Topics lists each topic with its domain, how often it was asked, and how it was answered.
 
-Pick 7, 30 or 90 days at the top. The views above the list, such as Needs a look, Not found and Reported, narrow the topics, and Filter narrows them by domain, answer, metric, market, month and more. Admins can filter by agent kind too. **Save this view** keeps a filter beside the others, for everyone in the workspace.
+Pick 7, 30 or 90 days at the top. The views above the list, such as Needs a look, Not found and Reported, narrow the topics, and Filter narrows them by domain, answer, metric, the values of any dimension, month and more. Admins can filter by agent kind too. **Save this view** keeps a filter beside the others, for everyone in the workspace.
 
 A count under 5 is hidden, so it never gives a person away. Agents are counted by kind, such as Claude Code or Cursor, never by person.
 

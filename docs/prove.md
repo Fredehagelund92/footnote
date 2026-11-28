@@ -6,7 +6,7 @@ order: 2
 reviewed: 2026-11-25
 ---
 
-There is no measured figure yet for how much better an agent answers with Footnote. The proof is how that gets measured, by anyone, on the invented company or on your own context. One command asks the same questions about a period and a market three ways, through the same agent, and prints a table of what each way got right.
+There is no measured figure yet for how much better an agent answers with Footnote. The proof is how that gets measured, by anyone, on the invented company or on your own context. One command asks the same questions about a period and a value, such as a market or a channel, three ways, through the same agent, and prints a table of what each way got right.
 
 ## The three ways
 
@@ -53,7 +53,7 @@ Model: <the answering model>, judged by <the judge>. Items: ... Questions: ... S
 ```
 
 - **Right reason, no wrong one** counts the answers that told every note that gives the reason, and no wrong note. For a question where nothing is written, it counts the answers that said so and told no wrong note.
-- **Told a note that had ended or was elsewhere** counts the answers that told a note the question marks wrong: one that ended before the period asked about, or one about another market. With no context there is no note to tell, so it shows a dash.
+- **Told a note that had ended or was elsewhere** counts the answers that told a note the question marks wrong: one that ended before the period asked about, or one about another value. With no context there is no note to tell, so it shows a dash.
 - **Said nothing is written when true** counts, of the questions where nothing is written, the answers that said so.
 
 Each count is the middle try, out of the number of questions, with every try in brackets: `31 of 40 (29, 31, 33)`. Forty questions is a small set, so a difference between two ways means little unless it is bigger than the spread of their tries.
@@ -64,8 +64,8 @@ Under the table are the model and the judge, whose items and questions they were
 
 Copy the [question template](templates/prove-questions.yaml). Each question has an id, the day it is asked on, the question as a person asks it, the notes that give the right reason, and the notes an answer must not tell. A question that names no right reason is one where nothing is written.
 
-- Ask about periods and markets where you know the answer.
-- Mix the kinds: a note that fits, one that had ended, one about another market, and about a quarter where nothing is written.
+- Ask about periods and values where you know the answer.
+- Mix the kinds: a note that fits, one that had ended, one about another value, and about a quarter where nothing is written.
 - Write them before your first run and keep them as they are. A question changed until one way wins proves nothing.
 
 The command checks the file first, and refuses a question that names a note agents are not told. A question is never a real one someone asked: no names, figures or partner details.

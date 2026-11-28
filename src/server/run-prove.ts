@@ -40,7 +40,7 @@ import {
 import { createLogger } from './observability/logger.ts'
 
 /*
-  `npm run footnote -- prove`: the proof. The same questions about a period and a market asked
+  `npm run footnote -- prove`: the proof. The same questions about a period and a value asked
   three ways through one agent (no context, the same facts as one plain file, Footnote), each try
   of each question, then a table of what each way got right, the model, whose items and questions
   they were, and what it spent. It runs on the live edition of the database in DATABASE_URL: the
@@ -187,7 +187,7 @@ export async function prove(
     }
     const items = plan.demo ? 'the invented company' : "this workspace's published context"
     io.stdout(
-      `${plural(plan.questions, 'question')} about a period and a market, asked three ways, ${plural(plan.tries, 'try', 'tries')} each: ${plural(plan.answers, 'answer')}.`,
+      `${plural(plan.questions, 'question')} about a period and a dimension value, asked three ways, ${plural(plan.tries, 'try', 'tries')} each: ${plural(plan.answers, 'answer')}.`,
     )
     io.stdout(
       `Items: ${items}, edition ${plan.edition}, ${plural(plan.notes, 'note')} agents are told; as one plain file, about ${plural(plan.fileTokens, 'token')}.`,

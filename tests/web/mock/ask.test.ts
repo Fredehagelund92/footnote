@@ -27,7 +27,7 @@ describe('reading a typed question', () => {
       'Nothing was looked up yet. The question needs a metric, such as Active customers, Average order value or Churn rate.',
     )
     // Agents keep the engine's words; the person is told what the question lacks.
-    expect(answer.text).toBe("The question doesn't name a metric or a market.")
+    expect(answer.text).toBe("The question doesn't name a metric or a value.")
   })
 
   it('reads a metric by its own word, and says nothing is written down when nothing is', () => {

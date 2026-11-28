@@ -111,7 +111,7 @@ export function scopeIssueFindings(issues: readonly ScopeIssue[]): FormatFinding
         ? {
             code: 'scope',
             field: 'scope',
-            message: 'Add a metric, a market or a product',
+            message: 'Add a metric or a value',
             severity: 'error',
           }
         : {
