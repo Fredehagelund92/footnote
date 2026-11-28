@@ -19,7 +19,7 @@ export const cardTypeLabel: Record<CardType, string> = {
   suggestion: 'Suggestion',
   gap: 'Nothing written yet',
   flag: 'Reported',
-  check: 'Due for a check',
+  check: 'Needs a recheck',
   look: 'Needs a look',
   alert: 'Alert',
   drafts: 'Your drafts',
@@ -112,7 +112,7 @@ export function draftsVerb(publish: number, send: number, all = true) {
 
 export type FieldChange = { label: string; before: string; after: string }
 
-/** The third action of a Nothing written yet and a Due for a check card: it copies the card's link. */
+/** The third action of a Nothing written yet and a Needs a recheck card: it copies the card's link. */
 export const ASK_SOMEONE = 'Ask someone who knows'
 
 /**
@@ -124,7 +124,7 @@ export const askSomeoneCopied = (origin: string) =>
     ? 'It opens only on this computer: the app runs here, at an address nobody else can reach.'
     : 'Paste it to the person who knows.'
 
-/** What someone answered on a Due for a check card's link, under their name. */
+/** What someone answered on a Needs a recheck card's link, under their name. */
 export type CheckAnswerRow = {
   by: string
   answer: CheckAnswer
@@ -163,17 +163,17 @@ export type InboxCard = {
   secondary: string[]
   factId?: string
   /**
-   * Why a check is due: a definition it relies on changed in its tool, its check date passed, or
+   * Why a recheck is due: a definition it relies on changed in its tool, its check date passed, or
    * a family of metrics it is about was split.
    */
   due?: 'source' | 'date' | 'family'
   /** The metrics a split family it is about reaches agents through now, by name. */
   splitInto?: string[]
-  /** The definitions that changed in their tool, by name, when that is why a check is due. */
+  /** The definitions that changed in their tool, by name, when that is why a recheck is due. */
   changed?: string[]
   suggestion?: Suggestion
   /**
-   * Not found: the scope agents asked about and how often (never their words, which are not
+   * Nothing written yet: the scope agents asked about and how often (never their words, which are not
    * kept), and the item drafted for it, so the owner reviews a draft instead of a blank page.
    */
   gap?: {
@@ -218,7 +218,7 @@ export type InboxCard = {
   drafts?: { ids: string[] } & DraftCounts
   /**
    * Ask someone who knows: the day the card's link was last copied ("25 Nov"), never who opened
-   * it, and on a Due for a check card what people answered there since it was last checked.
+   * it, and on a Needs a recheck card what people answered there since it was last checked.
    */
   asked?: { on: string; answers: CheckAnswerRow[] }
   /** The names a read made: how many Publish all takes, how many need a look, and from what. */

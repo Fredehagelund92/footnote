@@ -465,8 +465,8 @@ describe('publishing in one step (FR-137)', () => {
   })
 })
 
-describe('publishing from a Not found card (#201)', () => {
-  /** A gap agents raised about orders in Finance, as the Inbox's Not found card shows it. */
+describe('publishing from a Nothing written yet card (#201)', () => {
+  /** A gap agents raised about orders in Finance, as the Inbox's Nothing written yet card shows it. */
   async function openGap() {
     const [{ id }] = (
       await client.query<{ id: string }>(

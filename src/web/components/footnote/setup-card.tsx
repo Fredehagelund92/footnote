@@ -59,7 +59,7 @@ function whereContextGoes(me: Person, domains: Domain[]) {
 
 /**
  * A new install's Inbox: the checklist, and what already waits, so a first test that changes a
- * definition sees its items Due for a check without finishing every step. `due` is how many.
+ * definition sees its items Needs a recheck without finishing every step. `due` is how many.
  */
 export function Setup({ due }: { due: number }) {
   const {
@@ -116,7 +116,7 @@ export function Setup({ due }: { due: number }) {
   // A question about the first item, from what it applies to or, if that is empty, its own words,
   // on its own dates when they miss today: most first items are about a day that has passed.
   // A new install has only what this visit added, newest first: the first one published.
-  const item = useFacts().find((f) => f.status === 'Live' || f.status === 'Due for a check')
+  const item = useFacts().find((f) => f.status === 'Live' || f.status === 'Needs a recheck')
   const words = useQuery({
     ...readQuestionQuery(item ? `${item.title} ${item.summary}` : ''),
     enabled: !!item && !item.where.length,
@@ -292,7 +292,7 @@ export function Setup({ due }: { due: number }) {
 }
 
 /**
- * The Inbox's Due for a check row, above the checklist while setup is unfinished: how many, in
+ * The Inbox's Needs a recheck row, above the checklist while setup is unfinished: how many, in
  * whose domains, and a link to them in Context.
  */
 function DueRow({ due }: { due: number }) {
@@ -313,7 +313,7 @@ function DueRow({ due }: { due: number }) {
           </span>
           <span className="min-w-0 flex-1 space-y-1">
             <span className="block text-sm leading-snug font-medium">
-              Due for a check{' '}
+              Needs a recheck{' '}
               <span className="font-normal text-muted-foreground tabular-nums">
                 {due.toLocaleString('en-GB')} {dueScope(me)}
               </span>

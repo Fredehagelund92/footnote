@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-28
 ---
 
+## Plainer names for three things
+
+2026-11-28
+
+An item whose check date has passed, or whose definition changed, is now marked Needs a recheck, and the reminder to its owner is A recheck is due. In the Context list, the button that confirms the items you opened is now Confirm again. The Inbox card for a question nothing is written for is called Nothing written yet everywhere, including this help. Not found stays the name of an answer line and of an alert. Ask and your agent's tools use the new names too, and nothing you stored changed.
+
 ## A source with no link
 
 2026-11-28
@@ -231,7 +237,7 @@ The Names card has a Families part apart from the Names, and a source's page cou
 
 The buttons that open a screen now fill in what they are about. Add the word to Definitions, under an answer that found a word nobody defined, opens a new term with that word. A definition card with no context yet offers its owners Write context.
 
-In the Inbox, a report from Ask shows the question asked, with Try this question, and a card due for a check because a definition changed has See the definition. See [Keep context up to date](keep-context-up-to-date.md#reported).
+In the Inbox, a report from Ask shows the question asked, with Try this question, and a card that needs a recheck because a definition changed has See the definition. See [Keep context up to date](keep-context-up-to-date.md#reported).
 
 ## Ask opens the screen it explains
 
@@ -265,7 +271,7 @@ A metric's page now says what it is built from, read from your dbt project: a ra
 
 A model with a metric for each currency and channel now shows each set of variants as one family, such as Revenue with 250 variants. The Names card publishes a family with one press, Definitions lists it once with a family mark, and a search for a variant finds its family.
 
-Context about a family applies to every variant, and is due for a check once when any of them changes. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
+Context about a family applies to every variant, and needs a recheck once when any of them changes. See [Variants](metric-variants.md#if-you-keep-a-metric-for-each-variant).
 
 ## Light and dark in the docs
 
@@ -279,7 +285,7 @@ The Docs area has the theme control at the end of its header, as the rest of the
 
 Test connection says when many metrics look like variants of a few, such as a metric for each currency, and links to [a page on modelling them as a dimension](metric-variants.md). It also reads a dbt file of up to 20 MB, and says how large a larger one is.
 
-One context item can apply to hundreds of metrics and publishes in one step. When a question names no metric, agents are offered the metrics its words name. Definitions stays quick at thousands of rows, and the Inbox shows what is due for a check before setup is done.
+One context item can apply to hundreds of metrics and publishes in one step. When a question names no metric, agents are offered the metrics its words name. Definitions stays quick at thousands of rows, and the Inbox shows what needs a recheck before setup is done.
 
 ## The docs show the screens
 
@@ -311,7 +317,7 @@ When no AI model is connected, as on the demo, Ask's empty page says so: answers
 
 2026-11-18
 
-The Inbox's line for this week counts as Ask's Asked this week does: the last seven full days. Due for a check counts the same items as Context and Settings, so a domain shows one number everywhere.
+The Inbox's line for this week counts as Ask's Asked this week does: the last seven full days. Needs a recheck counts the same items as Context and Settings, so a domain shows one number everywhere.
 
 ## Choose the period on the read line
 
@@ -337,7 +343,7 @@ The read line says where Ask had to guess, such as "year not given". Words like 
 
 2026-11-16
 
-Under an answer, Used is one line: how many items, and how fresh they are. Open it to see each one. An item that is due for a check or out of date stays in sight, with its own Mark it still true.
+Under an answer, Used is one line: how many items, and how fresh they are. Open it to see each one. An item that needs a recheck or is out of date stays in sight, with its own Mark it still true.
 
 ## Answers arrive a sentence at a time, in your language
 
@@ -355,7 +361,7 @@ Everyone has Settings now. Agents and access lists the agents you connected, eac
 
 2026-11-15
 
-Mentioned you and Suggestions come before the chores, and every group folds from its header. Due for a check starts folded when it holds more than 10 rows. Its card opens the item's text and names the definition that changed, with the day it changed.
+Mentioned you and Suggestions come before the chores, and every group folds from its header. Needs a recheck starts folded when it holds more than 10 rows. Its card opens the item's text and names the definition that changed, with the day it changed.
 
 ## A suggestion says when the item changed under it
 
@@ -503,7 +509,7 @@ The review opens on Source: each field before and after, and the text with line 
 
 2026-10-30
 
-Ask answers questions about the context's own records: what was created or changed, what is due for a check, what is archived, who owns a domain, how many context items there are, and what agents asked that found nothing.
+Ask answers questions about the context's own records: what was created or changed, what needs a recheck, what is archived, who owns a domain, how many context items there are, and what agents asked that found nothing.
 
 ## Every list sorts both ways
 

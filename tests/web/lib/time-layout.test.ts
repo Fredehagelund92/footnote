@@ -59,10 +59,10 @@ describe('what an item draws as', () => {
   it('says its state from its status and its last day', () => {
     const state = (patch: Partial<StoredFact>) => timeStateOf(fact({ id: 'a', ...patch }), today)
     expect(state({ status: 'Live' })).toBe('checked')
-    expect(state({ status: 'Due for a check' })).toBe('due')
+    expect(state({ status: 'Needs a recheck' })).toBe('due')
     expect(state({ status: 'Waiting' })).toBe('waiting')
     // Ended wins over due: its time is over, whatever its check.
-    expect(state({ status: 'Due for a check', valid: { until: '2026-11-24' } })).toBe('ended')
+    expect(state({ status: 'Needs a recheck', valid: { until: '2026-11-24' } })).toBe('ended')
     expect(state({ status: 'Live', valid: { until: today } })).toBe('checked')
     // A draft only its writer sees, and an archived item agents no longer get, are left out.
     expect(state({ status: 'Draft' })).toBeNull()
@@ -115,7 +115,7 @@ describe('filters', () => {
       where: ['Returns', 'Store'],
       values: [{ dimension: 'Channel', name: 'Store' }],
     }),
-    fact({ id: 'orders-due', where: ['Orders'], status: 'Due for a check' }),
+    fact({ id: 'orders-due', where: ['Orders'], status: 'Needs a recheck' }),
   ])
   const ids = (filters: Parameters<typeof passes>[1], asked: string[] = []) =>
     all.filter((i) => passes(i, filters, asked)).map((i) => i.id)

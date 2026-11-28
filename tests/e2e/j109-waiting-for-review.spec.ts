@@ -32,7 +32,7 @@ test('an owner sees what waits for review in Context, filters it and closes one 
   await page.keyboard.press('Escape')
   await expect(row(page, CLASH)).toBeVisible()
   await expect(
-    rows(page).getByRole('img', { name: /^(Live|Draft|Due for a check|Archived)\./ }),
+    rows(page).getByRole('img', { name: /^(Live|Draft|Needs a recheck|Archived)\./ }),
   ).toHaveCount(0)
 
   await go(page, '/context/sug-sofia-clash')

@@ -1180,7 +1180,7 @@
     "question": "what do i need to handle?",
     "turn": {
       "kind": "answer",
-      "text": "20 cards wait on you in your Inbox, in 7 groups.\nNot found (1):\n- Orders in Spain, October 2026\nReported (1):\n- A report that an answer was wrong\nSaved questions (1):\n- 2 saved questions need a look\nAlerts (2):\n- Cube local model could not be read\n- Google Drive could not be read\nMentioned you (1):\n- Regulator paused price promotions in Norway on 9 May 2026 [1]\nDue for a check (3):\n- What to rule out before explaining a jump in Gross margin [2]\n- Returns changed definition on 28 April 2026 [3]\n- Regulator paused price promotions in Italy on 18 April 2026 [4]\nSuggestions (11):\n- Units sold excludes test accounts [5]\n- Online sales to Norway stopped on 4 August 2026 [6]\n- Returns changed definition on 28 April 2026 [3]\n- What to rule out before explaining a jump in Gross margin [2]\n- What to rule out before explaining a jump in Orders [7]\n- Payment provider switched in France on 12 May 2026 [8]\n- Payment provider delays order data in Poland\n- Norway orders leave out store credit from 1 November 2026\n- Data for Orders before 19 January 2026 is not reliable [9]\n- Orders in Germany include marketplace orders from 15 October 2026\n- Units sold counts a bundle as one unit",
+      "text": "20 cards wait on you in your Inbox, in 7 groups.\nNothing written yet (1):\n- Orders in Spain, October 2026\nReported (1):\n- A report that an answer was wrong\nSaved questions (1):\n- 2 saved questions need a look\nAlerts (2):\n- Cube local model could not be read\n- Google Drive could not be read\nMentioned you (1):\n- Regulator paused price promotions in Norway on 9 May 2026 [1]\nNeeds a recheck (3):\n- What to rule out before explaining a jump in Gross margin [2]\n- Returns changed definition on 28 April 2026 [3]\n- Regulator paused price promotions in Italy on 18 April 2026 [4]\nSuggestions (11):\n- Units sold excludes test accounts [5]\n- Online sales to Norway stopped on 4 August 2026 [6]\n- Returns changed definition on 28 April 2026 [3]\n- What to rule out before explaining a jump in Gross margin [2]\n- What to rule out before explaining a jump in Orders [7]\n- Payment provider switched in France on 12 May 2026 [8]\n- Payment provider delays order data in Poland\n- Norway orders leave out store credit from 1 November 2026\n- Data for Orders before 19 January 2026 is not reliable [9]\n- Orders in Germany include marketplace orders from 15 October 2026\n- Units sold counts a bundle as one unit",
       "sources": [
         "itm_za26xpzv",
         "itm_kcy22j54",
@@ -1454,7 +1454,7 @@
         "groups": [
           {
             "key": "gap",
-            "name": "Not found",
+            "name": "Nothing written yet",
             "count": 1,
             "rows": [
               {
@@ -1548,7 +1548,7 @@
           },
           {
             "key": "check",
-            "name": "Due for a check",
+            "name": "Needs a recheck",
             "count": 3,
             "rows": [
               {
@@ -1698,7 +1698,7 @@
     "question": "What is out of date?",
     "turn": {
       "kind": "answer",
-      "text": "3 of 3 context items due for a check you can see, by domain.\nSales (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nMarketing (1):\n- Regulator paused price promotions in Italy on 18 April 2026 [3]",
+      "text": "3 of 3 context items needing a recheck you can see, by domain.\nSales (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nMarketing (1):\n- Regulator paused price promotions in Italy on 18 April 2026 [3]",
       "sources": ["itm_ra39ow6c", "itm_kcy22j54", "itm_pfet8zj3"],
       "state": null,
       "footer": {
@@ -1706,7 +1706,7 @@
         "notSeen": null,
         "stale": null
       },
-      "read": ["Counted 3 of 3 context items due for a check you can see."],
+      "read": ["Counted 3 of 3 context items needing a recheck you can see."],
       "subject": null,
       "nearby": [],
       "conflict": [],
@@ -1847,7 +1847,7 @@
           {
             "t": "count",
             "value": "3",
-            "of": "context items due for a check you can see"
+            "of": "context items needing a recheck you can see"
           },
           {
             "t": "text",
@@ -1910,7 +1910,7 @@
     "question": "How does Sales stand?",
     "turn": {
       "kind": "answer",
-      "text": "15 of 15 context items in Sales you can see, by status.\ndue for a check (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nlive (11):\n- Data for Orders before 19 January 2026 is not reliable [3]\n- Net revenue in Spain includes VAT [4]\n- Norway orders are card and cash payments only [5]\n- Norway orders count store credit [6]\n- Online sales to Norway stopped on 4 August 2026 [7]\n- Orders lags by one day in the source tool [8]\n- Payment provider switched in France on 12 May 2026 [9]\n- Payment provider switched in France on 12 May 2026 [10]\n- Payment provider switched in France on 21 May 2026 [11]\n- Units sold excludes test accounts [12]\n- What to rule out before explaining a jump in Orders [13]\narchived (2):\n- Orders lag by two days in the source tool [14]\n- Payment provider switched in Norway on 9 July 2025 [15]",
+      "text": "15 of 15 context items in Sales you can see, by status.\nneeds a recheck (2):\n- Returns changed definition on 28 April 2026 [1]\n- What to rule out before explaining a jump in Gross margin [2]\nlive (11):\n- Data for Orders before 19 January 2026 is not reliable [3]\n- Net revenue in Spain includes VAT [4]\n- Norway orders are card and cash payments only [5]\n- Norway orders count store credit [6]\n- Online sales to Norway stopped on 4 August 2026 [7]\n- Orders lags by one day in the source tool [8]\n- Payment provider switched in France on 12 May 2026 [9]\n- Payment provider switched in France on 12 May 2026 [10]\n- Payment provider switched in France on 21 May 2026 [11]\n- Units sold excludes test accounts [12]\n- What to rule out before explaining a jump in Orders [13]\narchived (2):\n- Orders lag by two days in the source tool [14]\n- Payment provider switched in Norway on 9 July 2025 [15]",
       "sources": [
         "itm_ra39ow6c",
         "itm_kcy22j54",
@@ -2249,7 +2249,7 @@
         "groups": [
           {
             "key": "due",
-            "name": "due for a check",
+            "name": "needs a recheck",
             "count": 2,
             "rows": [
               {

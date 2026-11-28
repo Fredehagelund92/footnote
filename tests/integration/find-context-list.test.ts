@@ -365,7 +365,7 @@ describe('the published context items, without words', () => {
       expect(item.when.length).toBeGreaterThan(0)
       expect(item.url).toBe(`/context/${item.id}`)
     }
-    // Due for a check, as get_context says it.
+    // Needs a recheck, as get_context says it.
     const due = listed.filter((i) => i.may_be_out_of_date)
     const unverified = readable.filter(
       (i) => i.checkFlag !== null || (i.reviewDate !== null && i.reviewDate < today),

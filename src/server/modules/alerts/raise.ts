@@ -343,7 +343,7 @@ const rules: Record<AlertRuleId, (c: Context) => Raise[] | Promise<Raise[]>> = {
     }))
   },
 
-  /** A check is due: a live item's check date passed; the reminder goes from 07:00, UTC. */
+  /** A recheck is due: a live item's check date passed; the reminder goes from 07:00, UTC. */
   due({ clock, bundle }) {
     if (!bundle || clock.now().getUTCHours() < dueHour) return []
     const today = clock.today()

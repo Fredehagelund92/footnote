@@ -501,7 +501,7 @@ metrics, values and dimensions count together whatever month their dates start i
 stays on one topic of that scope, whose weekly counts add up every month of it.
 
 Saved questions. `saved_questions` keeps a domain's question with who saved it,
-where from (Ask, a Not found draft, or typed) and the items it should answer from; removing one
+where from (Ask, a Nothing written yet draft, or typed) and the items it should answer from; removing one
 marks it removed. `saved_question_baselines` keeps the answers it should keep getting: the first
 when it is saved, one each time someone keeps a new answer (its keeper may undo it, once), and one
 when a publish from the review moved it; the latest not undone is the one it is checked against.

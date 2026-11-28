@@ -6,7 +6,7 @@ import type { CheckAnswerRow, InboxCard } from '@/model/inbox'
 
 /*
   Ask someone who knows, on an Inbox card (pages/inbox.tsx): the day its link was copied, never who
-  opened it, and on a Due for a check card what people answered there, under their names. The
+  opened it, and on a Needs a recheck card what people answered there, under their names. The
   owner still does the check. What it uses of the Inbox comes as its parts, so loading it splits
   nothing.
 */

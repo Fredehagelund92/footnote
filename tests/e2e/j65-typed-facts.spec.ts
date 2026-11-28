@@ -15,7 +15,7 @@ test('Still true on a check does not promise a date for the next one', async ({ 
   await page.getByRole('button', { name: 'Still true' }).click()
   await expect(page.getByText('Checked: still true')).toBeVisible()
   await expect(page.getByText(/next check is due on/)).toHaveCount(0)
-  await expect(page.getByText('It comes back when it is due for a check.')).toBeVisible()
+  await expect(page.getByText('It comes back when it needs a recheck.')).toBeVisible()
 })
 
 test('a synced metric does not say when it was last read', async ({ page }) => {

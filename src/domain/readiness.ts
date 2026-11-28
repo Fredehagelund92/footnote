@@ -25,7 +25,7 @@ export { clashRelations, relationWords, type ClashRelation } from './clash-relat
 
 export type ReadinessInput = {
   diff: DocDiff
-  /** Drafted for a Not found card: nobody wrote it. */
+  /** Drafted for a Nothing written yet card: nobody wrote it. */
   drafted: boolean
   /** Its claims against the copied sentence, when an agent or a draft brought one; else null. */
   claims: readonly ClaimRow[] | null

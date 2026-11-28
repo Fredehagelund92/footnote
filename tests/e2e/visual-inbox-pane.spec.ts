@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { expect, test } from '@playwright/test'
 
 // Screenshot baselines of the Inbox pane (design contract 9, Screenshots), at 1440 and 390 wide,
-// light and dark: a suggestion, a conflict, a Not found draft and a card with no answers to
+// light and dark: a suggestion, a conflict, a Nothing written yet draft and a card with no answers to
 // compare. Fonts render a little differently on each system, so each platform keeps its own
 // baselines (Playwright's default path ends in the platform's name). Where a platform has none
 // yet the check says so and skips; `npx playwright test tests/e2e/visual-inbox-pane.spec.ts

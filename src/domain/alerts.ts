@@ -59,7 +59,7 @@ export const alertRules: readonly AlertRule[] = [
     id: 'gap',
     name: 'Not found',
     when: '{n} or more times in 7 days about the same thing, even across two months',
-    then: 'A Not found card to the owners',
+    then: 'A Nothing written yet card to the owners',
     audience: 'owners',
     threshold: {
       initial: 5,
@@ -128,7 +128,7 @@ export const alertRules: readonly AlertRule[] = [
   },
   {
     id: 'due',
-    name: 'A check is due',
+    name: 'A recheck is due',
     when: 'A check date is reached',
     then: 'A reminder to the owner at 07:00',
     audience: 'owners',
@@ -212,7 +212,8 @@ export type RaiseSubject =
 
 /** Who a raise reached, as the page says it: "A card went to Jon Abara and Sofia Brandt." */
 export function raisedLine(rule: AlertRuleId, names: readonly string[]): string {
-  const card = rule === 'gap' ? 'A Not found card' : rule === 'due' ? 'A reminder' : 'A card'
+  const card =
+    rule === 'gap' ? 'A Nothing written yet card' : rule === 'due' ? 'A reminder' : 'A card'
   if (!names.length)
     return `${card} went to ${alertRule(rule).audience === 'admins' ? 'the admins' : 'the owners'}.`
   const sorted = [...names].sort((a, b) => a.localeCompare(b))
@@ -229,8 +230,8 @@ export const lookTitle = (n: number) =>
 
 /**
  * The rules whose raise is a card of its own in the Inbox, an Alert card in the Alerts group (the
- * owner's call of 28 October 2026). The other three raise the cards the Inbox already has: a Not
- * found card, a domain's saved questions that need a look, and an item whose check date passed.
+ * owner's call of 28 October 2026). The other three raise the cards the Inbox already has: a Nothing
+ * written yet card, a domain's saved questions that need a look, and an item whose check date passed.
  */
 export const alertCardRules = ['disagree', 'share', 'fail', 'spend', 'sync', 'views'] as const
 export type AlertCardRule = (typeof alertCardRules)[number]
@@ -277,7 +278,7 @@ export const alertCardWords: Record<AlertCardRule, { line: string; detail: strin
   }
 
 /**
- * The rule whose card an Inbox card is: an Alert card's own rule, a Not found card, a domain's
+ * The rule whose card an Inbox card is: an Alert card's own rule, a Nothing written yet card, a domain's
  * saved questions that need a look, and an item whose check date passed. Any other card is no
  * rule's.
  */

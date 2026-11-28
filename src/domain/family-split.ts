@@ -21,7 +21,7 @@ export const splitLabel = (count: number) => `Split into ${count.toLocaleString(
 /** The Inbox card's one decision for an item about a split family: keep it for each metric. */
 export const keepLabel = (count: number) => `Keep for ${eachOf(count)}`
 
-/** Why an item about a split family is due for a check, as its Inbox card opens with it. */
+/** Why an item about a split family needs a recheck, as its Inbox card opens with it. */
 export function splitCardLine(family: string, metrics: readonly string[]): string {
   return `Its family ${family} was split into ${andList(metrics)}. No word of it changed: it reaches agents for ${eachOf(metrics.length)} until you say which it is about.`
 }

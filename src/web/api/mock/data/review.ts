@@ -24,7 +24,7 @@ function sameText(title: string) {
 type Fixture = Omit<Review, 'fields' | 'versions' | 'ready'>
 
 const fixtures: Fixture[] = [
-  // A Not found card's draft: reviewed, edited and published like any suggestion, never a blank page.
+  // A Nothing written yet card's draft: reviewed, edited and published like any suggestion, never a blank page.
   {
     id: 'gap-spain',
     title: spainDraft.title,

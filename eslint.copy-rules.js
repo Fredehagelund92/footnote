@@ -140,9 +140,10 @@ const secondNames = [
   [/\bRetry\b/, 'Retry', 'Try again'],
   [/\b(sync|syncs|synced|syncing)\b/i, null, 'read'],
   [/\bthreads?\b/i, null, 'comment'],
-  [/\b(Needs checking|Overdue)\b/, null, 'Due for a check'],
+  [/\b(Needs checking|Overdue|Due for a check)\b/, null, 'Needs a recheck'],
+  [/\bMark(ed)? as checked\b/i, null, 'Confirm again'],
   [/\bclash(es)?\b/i, null, 'overlap'],
-  // "Check" is for what an owner does: a check date, Due for a check, Mark as checked.
+  // "Check" is for what an owner does: a check date, Needs a recheck, and Confirm again to do it.
   [/\bclaims? (to )?check\b/i, null, 'details to compare with the source'],
   [/\bCheck now\b/, null, 'Run now'],
   [/\bCheck again\b(?! by)/, null, 'Keep waiting'],

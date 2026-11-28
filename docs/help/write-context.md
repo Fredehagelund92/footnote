@@ -111,7 +111,7 @@ The demo's item about the stop in Norway, owned by Sales, has every part. Here i
 | Applies to              | Orders, Units sold and Gross sales, in Norway                                                                                                                               |
 | When                    | From 4 August, still going on                                                                                                                                               |
 | Source                  | A link to the customs notice, and the line copied from it, which says parcels from webshops outside Norway are held at the border                                           |
-| Check date              | Set for you. Once it passes, the item is Due for a check.                                                                                                                   |
+| Check date              | Set for you. Once it passes, the item needs a recheck.                                                                                                                      |
 | Don't conclude          | Fewer orders in Norway after 4 August do not mean fewer customers.                                                                                                          |
 
 The same news, written weakly:

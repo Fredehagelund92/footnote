@@ -41,7 +41,7 @@ Every answer starts with one of six fixed answer states, set by code from the it
 A model may write the words of an answer, and code checks each sentence against what was read before anyone sees it.
 Footnote gives no advice of its own; it repeats only what an item says to check, and names the item.
 A question that finds nothing goes back to the owner as a gap, so the missing context gets written.
-An item is Due for a check when its check date passes, unless its owner marked it as a rule that does not age; such an item stays Checked until it is edited or a definition it relies on changes.
+An item needs a recheck when its check date passes, unless its owner marked it as a rule that does not age; such an item stays Checked until it is edited or a definition it relies on changes.
 Context that does not age stays small: Footnote keeps only what a dated item needs to be read correctly.
 
 ## Meaning, not numbers

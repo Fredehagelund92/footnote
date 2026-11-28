@@ -13,7 +13,7 @@ export type RecordsItem = {
   kind: RecordsKind
   areaId: string
   title: string
-  /** As the Context list says it: live, due for a check, or archived. */
+  /** As the Context list says it: live, needs a recheck, or archived. */
   status: 'live' | 'due' | 'archived'
   reviewDate: string | null
   checkFlag: 'needs_check' | 'source_missing' | null

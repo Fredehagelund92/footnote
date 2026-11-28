@@ -38,7 +38,7 @@ export type FootnoteApiConformance = {
   /**
    * The methods the binding answers; a case that needs another is skipped. A binding that answers
    * the Inbox's methods gives the person, an owner, at least a suggestion, two plain changes, a
-   * suggestion to archive something, a Reported card and a card due for a check in their Inbox.
+   * suggestion to archive something, a Reported card and a card needing a recheck in their Inbox.
    */
   wired: readonly FootnoteApiMethod[]
   /** Someone else the sign-in offers, by name: the comments' second voice. */
@@ -110,7 +110,7 @@ export function describeFootnoteApi(
         expect(new Set(items.map((f) => f.id)).size).toBe(items.length)
         for (const f of items) {
           expect(['event', 'issue', 'note', 'guide'], f.id).toContain(f.kind)
-          expect(['Draft', 'Waiting', 'Live', 'Due for a check', 'Archived'], f.id).toContain(
+          expect(['Draft', 'Waiting', 'Live', 'Needs a recheck', 'Archived'], f.id).toContain(
             f.status,
           )
           expect(f.when, f.id).toBe(whenLabel(f.valid))
@@ -551,7 +551,7 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'getLibrary', 'markViewed'))(
-      'keeps an item the person opened as opened, so it can be marked as checked with others',
+      'keeps an item the person opened as opened, so it can be confirmed again with others',
       async () => {
         const live = await signedIn()
         const item = (await live.getLibrary()).items.filter((f) => f.status === 'Live').at(-1)!
@@ -567,7 +567,7 @@ export function describeFootnoteApi(
         const { domains } = await live.getWorkspace()
         const mine = new Set(domains.filter((d) => d.owners.includes(person)).map((d) => d.id))
         const due = (await live.getLibrary()).items.find(
-          (f) => f.status === 'Due for a check' && mine.has(f.domain),
+          (f) => f.status === 'Needs a recheck' && mine.has(f.domain),
         )!
         await live.editItem({
           id: due.id,
@@ -598,7 +598,7 @@ export function describeFootnoteApi(
       // answers each.
       const overlaps = items.filter(
         (f) =>
-          (f.status === 'Live' || f.status === 'Due for a check') &&
+          (f.status === 'Live' || f.status === 'Needs a recheck') &&
           item.where.every((w) => f.where.includes(w)),
       )
       return {
@@ -1168,7 +1168,7 @@ export function describeFootnoteApi(
         const items = (await live.getLibrary()).items
         const held = domains.find((d) =>
           items.some(
-            (f) => f.domain === d.id && (f.status === 'Live' || f.status === 'Due for a check'),
+            (f) => f.domain === d.id && (f.status === 'Live' || f.status === 'Needs a recheck'),
           ),
         )!
         await expect(live.removeDomain({ id: held.id })).rejects.toMatchObject({

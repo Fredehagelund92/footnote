@@ -608,7 +608,7 @@ export const askedSchema = z.object({
        */
       nothing: z.nullable(z.number()),
       /**
-       * For the owners of the topic's domains and administrators: the Not found card open on it,
+       * For the owners of the topic's domains and administrators: the Nothing written yet card open on it,
        * and its draft when one waits. Null for anyone else, and when nothing is open.
        */
       gap: z.nullable(z.object({ card: z.string(), draft: z.nullable(z.string()) })),

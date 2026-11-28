@@ -216,7 +216,7 @@ describe('the Inbox', () => {
     expect(inbox.done).toEqual({ done: { label: 'Published', at: 'Today, 10:05' } })
   })
 
-  it('names a Not found card with a draft by its draft, reviewed like a suggestion', () => {
+  it('names a Nothing written yet card with a draft by its draft, reviewed like a suggestion', () => {
     const gap: Card = {
       ...base,
       id: 'gap:g1',
@@ -431,7 +431,7 @@ describe('the Inbox', () => {
       suggestion: 'proposal:b1c2d3e4-0000-4000-8000-000000000001',
     })
   })
-  it('says since when a check is due, and who checked it last', () => {
+  it('says since when a recheck is due, and who checked it last', () => {
     const check = (patch: Partial<Extract<Card, { group: 'check' }>>): Card => ({
       ...base,
       id: 'check:itm_a',
@@ -816,7 +816,7 @@ describe('the review', () => {
     expect(helped).toMatchObject({ from: 'Ines Duarte', helped: true, via: 'editor' })
     expect(helped.agent).toBeUndefined()
     expect(reviewOf(sheet(), 'sug-1').helped).toBeUndefined()
-    // Written for a Not found card with writing help, it is still its writer's, not the queue's own.
+    // Written for a Nothing written yet card with writing help, it is still its writer's, not the queue's own.
     const forGap = reviewOf(
       sheet({ writtenBy: 'writing_help', gapId: '0f8fad5b-d9cb-469f-a165-70867728950e' }),
       'sug-1',
@@ -888,7 +888,7 @@ describe('the review', () => {
       clashes: [],
       gap: null,
     })
-    // A Not found card's draft: Publish also saves the question agents asked, in words.
+    // A Nothing written yet card's draft: Publish also saves the question agents asked, in words.
     expect(refOf(sheet({ gapId: 'g1' })).gap).toEqual({
       scope: 'Units sold in Norway',
       areaId: 'area_sales',
@@ -1231,7 +1231,7 @@ describe('the review', () => {
     })
   })
 
-  it('reads a Not found card’s draft as drafted for the owner, from the page it was drafted from', () => {
+  it('reads a Nothing written yet card’s draft as drafted for the owner, from the page it was drafted from', () => {
     const r = reviewOf(
       sheet(
         {

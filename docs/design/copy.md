@@ -141,7 +141,7 @@ When Ask cannot answer the question asked, it says so in a fixed sentence (FR-72
 | `cannot:not_yet` | Ask cannot answer this kind of question yet. It can tell you what is written about a metric, what changed lately, and who owns a domain.                                                |
 | Plan not used    | Ask could not read this question just now, so nothing was looked up.                                                                                                                    |
 
-A period a records read keeps no history for is said, never dropped: "This is how it stands today, not in 2025: the records keep no count by date." What the records keep about what an answer found stands in fixed sentences under its words: "Jon Abara and Sofia Brandt own Sales.", "Returns changed definition on 28 April 2026: check date 2 Oct 2026, due for a check, last checked 20 Oct 2026."
+A period a records read keeps no history for is said, never dropped: "This is how it stands today, not in 2025: the records keep no count by date." What the records keep about what an answer found stands in fixed sentences under its words: "Jon Abara and Sofia Brandt own Sales.", "Returns changed definition on 28 April 2026: check date 2 Oct 2026, needs a recheck, last checked 20 Oct 2026."
 
 When nothing was read under a limit, the sentence ends at its first part ("What happens next is not written down."): there is nothing to go on to. `limit:partly` is said by code, when no model read a question that is not plainly a read; `limit:general` when a name has nothing of its own and what was read applies to everything. A plan never chooses either.
 
@@ -160,7 +160,7 @@ Event (lightning), Warning (triangle), Rule (ruler), Guide (route). Stored as `e
 
 ### Item statuses and freshness
 
-Draft, Waiting, Live, Due for a check, Archived. Freshness is a dot. The tooltip gives the exact value.
+Draft, Waiting, Live, Needs a recheck, Archived. Freshness is a dot. The tooltip gives the exact value.
 
 **Waiting** is the chip of a suggestion that was sent and waits for an owner (**Waiting for review** in full, as in the Status filter). Its row and page say who sent it, how long ago and who decides: "Maria Lindqvist sent it 3 days ago. You or Sofia Brandt decide." Never "submitted", "in review" or "not published" for it. **Not published yet** is a draft's. A suggestion an owner chose not to publish is **Closed**, with the reason.
 
@@ -174,10 +174,12 @@ Draft, Waiting, Live, Due for a check, Archived. Freshness is a dot. The tooltip
 | mention      | **Mentioned you**       | Who, and where                                     |
 | returned     | **Returned to you**     | Who returned it: "Returned by Jon Abara"           |
 | closed       | **Closed**              | Who closed it: "Closed by Jon Abara", and why      |
-| `check`      | **Due for a check**     | The check date that passed                         |
+| `check`      | **Needs a recheck**     | The check date that passed                         |
 | `suggestion` | **Suggestion**          | Size and reach, "2 wording, 1 link - 12 questions" |
 
 Under All: **Waiting on others** and **Done**. Never "Gap" or "Flag" as a card name.
+
+The card is **Nothing written yet**. **Not found** stays the name of the answer line and of the alert rule, never of the card. The owner confirms a **Needs a recheck** item with **Still true**, or in the Context list with **Confirm again**; the answer line **Checked** and the result "Checked: still true" keep their words.
 
 ### Review
 
@@ -185,7 +187,7 @@ Change kinds: **Wording**, **Formatting**, **Link**, **Order**, **Added**, **Rem
 
 ### The quick view's answers
 
-The answers in a suggestion's quick view (the Inbox pane and the dock) carry one of four labels, from `ANSWER_SIDES` in `src/web/model/inbox-pane.ts`: **Agents say today** over what agents answer now, and over the answer after the decision **After you publish**, **If you publish as it is** for a suggestion that clashes with live context, or **After you archive** for a suggestion to archive. Each side starts with its answer line. Over the question of a Not found card: **Agents asked about**, then the scope, never their words. A count says how often, and is left out when there is none.
+The answers in a suggestion's quick view (the Inbox pane and the dock) carry one of four labels, from `ANSWER_SIDES` in `src/web/model/inbox-pane.ts`: **Agents say today** over what agents answer now, and over the answer after the decision **After you publish**, **If you publish as it is** for a suggestion that clashes with live context, or **After you archive** for a suggestion to archive. Each side starts with its answer line. Over the question of a Nothing written yet card: **Agents asked about**, then the scope, never their words. A count says how often, and is left out when there is none.
 
 ### Saved question results
 
@@ -215,7 +217,7 @@ States: Healthy, Failed, Needs a new key, Paused. Actions: Connect, Read again, 
 
 ### Alerts
 
-Nine rules, each one sentence: Not found, A saved question needs a look, Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read, New views not chosen, A check is due. A rule raises an Inbox card. It never sends an email. Not found, A saved question needs a look and A check is due raise the Inbox's own cards; the other six raise an **Alert** card, in the Alerts group, with one action: **Open the topic**, **Open Overview**, **Open Usage**, **Open the integration** or, for new views, **Choose what to read**.
+Nine rules, each one sentence: Not found, A saved question needs a look, Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read, New views not chosen, A recheck is due. A rule raises an Inbox card. It never sends an email. Not found, A saved question needs a look and A recheck is due raise the Inbox's own cards; the other six raise an **Alert** card, in the Alerts group, with one action: **Open the topic**, **Open Overview**, **Open Usage**, **Open the integration** or, for new views, **Choose what to read**.
 
 ### Privacy words
 
@@ -232,7 +234,7 @@ Checked by the copy test and by lint (`footnote/plain-words`, the glossary in `w
 | Cube (or any tool) in generic copy                                                                                                               | your definitions source; the name only on its integration                   |
 | edition, in success copy                                                                                                                         | what agents get now (edition: Settings, Advanced, and the agent reply only) |
 | anonymous, "nobody sees who"                                                                                                                     | say what is kept: scopes and counts                                         |
-| Gap, Flag, as card names                                                                                                                         | Not found, Reported                                                         |
+| Gap, Flag, as card names                                                                                                                         | Nothing written yet, Reported                                               |
 | a draft called "checked context"                                                                                                                 | Based on this draft                                                         |
 | Based on checked context, Covers part of it, Nothing written down, Context disagrees, May be out of date, Couldn't check, Not covered, as labels | Checked, Partial, Not found, Conflict, Outdated, Not checked                |
 | Something happened, A problem with the data, Good to know, How to look into it, Caveat                                                           | Event, Warning, Rule, Guide, Don't conclude                                 |

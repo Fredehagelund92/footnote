@@ -19,7 +19,7 @@ export type Kind = ItemKind
  * sent: an owner of its domain decides, and agents don't get it yet. A published item is archived
  * instead.
  */
-export type Status = 'Draft' | 'Waiting' | 'Live' | 'Due for a check' | 'Archived'
+export type Status = 'Draft' | 'Waiting' | 'Live' | 'Needs a recheck' | 'Archived'
 
 /**
  * The four kinds of context, in plain words most people know, native English or not. The one
@@ -131,7 +131,7 @@ export const toServerStatus = (
     ? null
     : {
         status: status === 'Archived' ? 'retired' : 'accepted',
-        flags: status === 'Due for a check' ? ['needs_check'] : [],
+        flags: status === 'Needs a recheck' ? ['needs_check'] : [],
       }
 
 /** Not published yet: a draft, or a suggestion waiting for review. Agents never got it. */
@@ -140,7 +140,7 @@ export const unpublished = (f: Pick<Fact, 'status'>) =>
 
 /** What agents get: a published item that isn't archived. */
 export const servedToAgents = (f: Pick<Fact, 'status'>) =>
-  f.status === 'Live' || f.status === 'Due for a check'
+  f.status === 'Live' || f.status === 'Needs a recheck'
 
 /** A context item as stored: its labels are derived when it loads. */
 export type StoredFact = Omit<Fact, 'when'>

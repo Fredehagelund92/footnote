@@ -1,10 +1,10 @@
 /*
   The parts of Ask someone who knows (questions.ts) that the app's first load needs: the address a
-  question link opens, the answers to a Due for a check card's question, and how much a person
+  question link opens, the answers to a Needs a recheck card's question, and how much a person
   writes there. A leaf module: it imports nothing, so the Inbox carries no schema for it.
 */
 
-/** The answers to "Is this still true?" on a Due for a check card's link. */
+/** The answers to "Is this still true?" on a Needs a recheck card's link. */
 export const checkAnswers = ['still_true', 'ended', 'unknown'] as const
 export type CheckAnswer = (typeof checkAnswers)[number]
 

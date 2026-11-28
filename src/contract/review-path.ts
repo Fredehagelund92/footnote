@@ -236,7 +236,7 @@ export const reviewSheetSchema = z.object({
   /** The agent that sent it, by its name then (FR-420); null for anything an agent didn't send. */
   agent: z.nullable(z.string()),
   synced: z.nullable(syncedSchema),
-  /** Started from a Not found card, by the card's gap. */
+  /** Started from a Nothing written yet card, by the card's gap. */
   gapId: z.nullable(z.string()),
   /** The reason the sender gave, if any. */
   note: z.nullable(z.string()),

@@ -17,7 +17,7 @@ import { apiDatabase, testDatabase, transaction } from './support.ts'
 /*
   The review path and the Inbox of Footnote v1 over authenticated HTTP (golden plan P6a): the review
   sheet, its decisions and their undo (FR-224 to FR-227), the Inbox's cards and their decisions,
-  the setup checklist (FR-816) and a Not found card's draft. Jon's role is played by `owner` (an
+  the setup checklist (FR-816) and a Nothing written yet card's draft. Jon's role is played by `owner` (an
   owner of Finance), a member by `author`, an administrator by `admin`.
 */
 
@@ -350,7 +350,7 @@ describe('the review sheet (FR-224)', () => {
   })
 })
 
-describe('a draft for a Not found card that writing help wrote first (readiness)', () => {
+describe('a draft for a Nothing written yet card that writing help wrote first (readiness)', () => {
   const forACard = async (provenanceBy: string, stamps: object) => {
     const topic = await client.query<{ id: string }>(
       `insert into topics (key,area_id,metric_keys,value_keys,month)
@@ -1307,7 +1307,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     expect((await feed()).cards.find((c) => c.id === `feedback:${feedbackId}`)).toBeDefined()
   })
 
-  it('says a Not found is not something we write down, and undoes it', async () => {
+  it('says a Nothing written yet card is not something we write down, and undoes it', async () => {
     const decided = await ok<{ undo: { token: string; until: string | null } }>(
       call('POST', '/inbox/cards/decide', 'owner', { card: `gap:${gapId}`, action: 'not_written' }),
     )
@@ -1349,7 +1349,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     expect(await served(dueItem)).toBe(1)
   })
 
-  it('makes a Due for a check card of each item Context counts as due', async () => {
+  it('makes a Needs a recheck card of each item Context counts as due', async () => {
     const guide = await liveOn('2026-01-15', {
       kind: 'guide',
       title: 'Orders in Cyprus in January',
@@ -1370,7 +1370,7 @@ describe('the Inbox (docs/product.md, section 5)', () => {
     expect(f.groups.find((g) => g.group === 'check')?.count).toBe(due.length)
   })
 
-  it('lets an admin who owns no domain check a due item as still true, as Mark as checked does', async () => {
+  it('lets an admin who owns no domain check a due item as still true, as Confirm again does', async () => {
     const checked = await ok<{ undo: { token: string } }>(
       call('POST', '/inbox/cards/decide', 'admin', {
         card: `check:${dueItem}`,

@@ -144,7 +144,7 @@ async function topicsOfWeek(
   return { week: week!.week, topics }
 }
 
-/** An open Not found card the reader manages, by its topic's parts, with its draft. */
+/** An open Nothing written yet card the reader manages, by its topic's parts, with its draft. */
 type OpenGap = {
   id: string
   area: string | null
@@ -163,7 +163,7 @@ const partsKey = (t: Pick<OpenGap, 'area' | 'metrics' | 'values' | 'dimensions'>
   ].join('|')
 
 /**
- * The Not found cards open on the topics the reader manages (`cl_manages_topic`, administrators
+ * The Nothing written yet cards open on the topics the reader manages (`cl_manages_topic`, administrators
  * and the owners of the topic's domains), latest month first, with the draft that waits on each.
  */
 async function openGaps(tx: Queryable): Promise<OpenGap[]> {
@@ -184,7 +184,7 @@ async function openGaps(tx: Queryable): Promise<OpenGap[]> {
  * live edition for its latest month. Counts only, never the words. Every count is the reader's own
  * (`readerSubjects`): what their Observability shows, or the strictest view of the owners of its
  * domain, so a floor stays a floor and a row under the minimum is not listed (FR-614). An owner sees
- * the Not found card open on a topic of their domain. Beside them, the workspace's first questions,
+ * the Nothing written yet card open on a topic of their domain. Beside them, the workspace's first questions,
  * made from what it has written, for when nothing has been asked yet.
  */
 export async function askedThisWeek(

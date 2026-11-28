@@ -378,7 +378,7 @@ about it, counted per term in the same answer. It reads as the library does.
 `GET /api/v1/library` is the library index: every item the person may read, with what a list's
 columns read from it. `lastChecked` is the last acceptance of the current version (a recheck is
 one), `trust` is `current`, `needs_check` or `ended`, `chips` is the scope by name, and `opened` says whether the person opened the item
-(Mark as checked takes only those). The index carries the scope by name only; an item's page
+(Confirm again takes only those). The index carries the scope by name only; an item's page
 (`GET /items/{id}/page`) has it by key. `GET /api/v1/search?q=` is search everywhere, for
 the command palette: items, definitions (by name or another name), domains and people whose names
 have the words, at most five of each, a name that starts with the words first.
@@ -418,7 +418,7 @@ identity from the session, title from summary when absent, risk from kind, owner
 and definition references and their change marks from governed scope. Missing domain can be
 inferred from governed scope or references; ambiguous scope requires an explicit domain. An
 omitted review date starts at 90 days from the current UTC day. Submission due dates use the
-domain's review time in weekdays. A recheck (Mark as checked, or Still true on a Due for a check
+domain's review time in weekdays. A recheck (Confirm again, or Still true on a Needs a recheck
 card) moves the review date.
 
 Use `summaryMarkup` and `bodyMarkup` for `@[visible words](target)` tokens; tokens supplied in
@@ -524,7 +524,7 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   `POST /review/publish-read` takes `{ ids }` (up to 50) and publishes each suggestion the
   person read that needs no look of its own, each as Publish would: a plain change, with no
   clash, no detail to compare, no new source and no new value without one. A retirement and a
-  draft for a Not found card always get their own look. It names every one it left out, with a code
+  draft for a Nothing written yet card always get their own look. It names every one it left out, with a code
   (`not_read`, `needs_care`, `not_waiting`, `not_allowed` or `refused`), and one token undoes
   them all.
 - `POST /decisions/undo` takes `{ token }` (FR-227). Only the person who decided undoes it, and
@@ -533,8 +533,8 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   waits again; undoing a return sends it back to waiting and takes its note out of the comments.
   The decision stays as history, and a person may decide the same version again once they undid
   it.
-- `GET /inbox/feed?tab=needs|all` lists the person's cards by need: Not found (`gap`), Reported
-  (`flag`), Mentioned you (`mention`), Due for a check (`check`), suggestions, then the person's
+- `GET /inbox/feed?tab=needs|all` lists the person's cards by need: Nothing written yet (`gap`), Reported
+  (`flag`), Mentioned you (`mention`), Needs a recheck (`check`), suggestions, then the person's
   own drafts (`drafts`, named `drafts:yours`): one card for every draft they imported, every one
   their agents wrote and every other one they have not saved for 30 days, with each draft's id,
   domain and where it came from (`from`: `import`, `agent` or `old`), oldest first; nobody else hears of them (FR-230). An owner gets
@@ -547,7 +547,7 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   (`by`), the question, what is wrong (`note`), the right words (`correction`) and the link they
   gave, the suggestion the words became while it waits (`suggestion`, its id), and the item they
   are about; one waits until an owner closes it or checks, changes or archives its
-  item, and is then done with that outcome. A Not found card's title
+  item, and is then done with that outcome. A Nothing written yet card's title
   names what agents asked about and the month: "Orders in Spain, October 2026". Under All come what the person sent that waits
   on an owner, what an owner returned to them with a note (`returned`, who and when), what an
   owner closed in the last 14 days (`closed`: who, when, the reason, and `read` once the person
@@ -556,10 +556,10 @@ and when the service stops taking it (`cl_undo_until`; null when it is taken at 
   `week` counts this week's agent questions, each hidden under `privacy.min_count` (FR-614).
 - `POST /inbox/cards/read` takes `{ cards }`: the person opened them (a Mentioned you card:
   they read the comments that mention them there). `POST /inbox/cards/decide`
-  takes `{ card, action, reason? }`, the one decision a card offers: `not_written` for a Not
-  found card (the gap is set to `wont_fix`), `not_a_problem` for a Reported card (closed for
-  every owner, a named report too), and `still_true` or `archive` for a Due for a check card (a
-  recheck, by an owner of the item's domain or an admin as Mark as checked is, or a retirement).
+  takes `{ card, action, reason? }`, the one decision a card offers: `not_written` for a Nothing
+  written yet card (the gap is set to `wont_fix`), `not_a_problem` for a Reported card (closed for
+  every owner, a named report too), and `still_true` or `archive` for a Needs a recheck card (a
+  recheck, by an owner of the item's domain or an admin as Confirm again is, or a retirement).
   Each answers with an undo token.
 - `GET /setup` is the setup checklist of a new workspace (FR-816), read from what exists: what
   the business is about, one context item, a question in Ask, an agent connected, and a source
@@ -663,7 +663,7 @@ can be taken back answers with `undo: { token, until }`, as a decision does.
   `retyped`) with the field it changed and its words before and after, or what changed beside
   the versions (`archived`, `owners`). `canChange` says whether the person may change it.
 - `POST /items/{id}/read` records that the person opened an item, in the quick view or on its
-  page. Mark as checked takes only items the person opened.
+  page. Confirm again takes only items the person opened.
 - `POST /items/bulk` takes `{ action, rows, areaId?, kind?, personId? }`
   (FR-139), up to 200 rows: published items by id and drafts by their proposal's id. `action` is
   `archive`, `delete` (drafts only), `domain`, `kind`, `owner_add`, `owner_set`, `check` or
@@ -728,7 +728,7 @@ revision?, reason?, gapId? }` and keeps the words as the person's own draft, whi
   saved again in place (404 for anything else, 400 without the revision). The editor saves a draft
   so as the person types (FR-147). Once their agent changed it after that revision, nothing is
   saved: 409 with the current record, which the editor merges field by field before it saves
-  again. `gapId` makes it the draft of that Not found card. It answers `{ proposalId, revision }`.
+  again. `gapId` makes it the draft of that Nothing written yet card. It answers `{ proposalId, revision }`.
 - `GET /drafts/left` (admins) lists the people who left with drafts they never sent, each with how
   many: counted, never read. `POST /drafts/left/{personId}/clear` deletes them all, unread, and
   answers `{ deleted }`; each draft's history says so, and the History log says how many and whose
@@ -756,7 +756,7 @@ message, turns? }`, where `turns` are the chat's earlier turns as the browser ke
 
 A context item's kind belongs to each version, so Change kind keeps its id,
 history and links. In a change to many items, a draft's writer deletes it, and
-Mark as checked records a check even when nothing else moved, for an owner of the domain or an
+Confirm again records a check even when nothing else moved, for an owner of the domain or an
 admin.
 
 ## Conflicts
@@ -918,7 +918,7 @@ date; else `grounded`.
   under the minimum and whenever what it adds over the rows' counts and `hidden` is under the
   minimum, so it never gives a small month away by subtraction; `askedAtLeast` is what the rows
   show together. For the owners of a row's domains and
-  administrators, a row whose state is Not found names the Not found card open on its topic and
+  administrators, a row whose state is Not found names the Nothing written yet card open on its topic and
   the draft that waits on it (`gap`); for anyone else it is null. `starters` are the workspace's
   first questions, made from what it has written (decided 27 October 2026): the scope of each live
   context item an agent would be given (for everyone, and not stopped; a metric and the first value
@@ -1049,7 +1049,7 @@ over its months) found nothing at least the minimum times.
   `saved.triggers`, the times a saved question's answer came out Changed or Needs a look where it
   was Same before, in a check Footnote ran on its own after a change; and `alerts.raised` and
   `alerts.acted`, the alerts that asked an owner for a decision (Not found, a saved question needs
-  a look, a check is due) and those an owner or administrator acted on within 14 days, by a
+  a look, a recheck is due) and those an owner or administrator acted on within 14 days, by a
   decision Footnote keeps. Each is its own line on the page, never added to another and never called
   prevented. A whole week is read from `obs_caught_weekly`, any other day from the records through
   `cl_obs_caught`, which runs as the owner. An alert about several domains counts only for every
@@ -1201,7 +1201,7 @@ the change, in its own transactions.
 
 Alert rules raise cards in the Inbox; nothing sends an email (FR-621). There are eight, each one
 sentence, in `src/domain/alerts.ts`: Not found, A saved question needs a look, Conflict, More
-questions not found, Calls fail, Model spend, A connected tool could not be read, and A check is due. A
+questions not found, Calls fail, Model spend, A connected tool could not be read, and A recheck is due. A
 rule goes to the owners of the domain it is about, to the administrators, or to both. An
 administrator turns a rule on or off for everyone and picks its threshold from those its sentence
 offers; the Not found threshold is the gap detection's own setting, `gaps.no_item_threshold`, so
@@ -1223,7 +1223,7 @@ the contract is in `src/contract/alerts.ts`.
   connected tool could not be read), told to the owners of the domains whose live items rely on its
   definitions too; a definitions source that reads only the views chosen and found views that are
   new since they were chosen, once for each list of them, to the administrators (New views not
-  chosen); and a live item whose check date passed, from 07:00 UTC (A check is due).
+  chosen); and a live item whose check date passed, from 07:00 UTC (A recheck is due).
 - A raise is one row and one outbox event, written together by `cl_alert_raise`; the relay
   delivers it as Inbox items to the rule's audience less those who muted it for the domain. Its
   title is counts and scopes only, never anyone's words, and a count from agents under the minimum
@@ -1234,7 +1234,7 @@ the contract is in `src/contract/alerts.ts`.
   (Conflict, More questions not found, Calls fail, Model spend, A connected tool could not be read,
   New views not chosen) is an Alert card (`alert:<raise id>`, group `alert`, in the Alerts group after Saved questions) for
   whom it reached, for a week: its title, the rule, and where
-  its one action goes. An Alert card, a Not found card, a Saved questions card and a card for an
+  its one action goes. An Alert card, a Nothing written yet card, a Saved questions card and a card for an
   item whose check date passed do not reach anyone while their rule is off, nor someone who muted
   their rule for the card's domain. An Alert card is left out only when the person muted its rule
   for every one of its raise's domains they own now; a raise with no domains is never muted away.

@@ -266,11 +266,11 @@ const followUps: EvalCase[] = [
     class: 'F',
     as: ML,
     source: 'harness',
-    what: 'Narrow a composed answer: of the Norway items, the one due for a check.',
+    what: 'Narrow a composed answer: of the Norway items, the one needing a recheck.',
     turns: [
       { ask: 'how many items are about norway, and how many of those still apply?' },
       {
-        ask: 'which of those are due for a check?',
+        ask: 'which of those need a recheck?',
         expect: {
           says: ['Returns changed definition on 28 April 2026'],
           never: ['Regulator paused price promotions in Italy on 18 April 2026'],

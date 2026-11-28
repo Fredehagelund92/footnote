@@ -337,8 +337,8 @@ export function createMockApi() {
     }
   >()
   /**
-   * Ask someone who knows: each card's link, by the card, and what people answered on a Due for a
-   * check card's link. As the service: a link keeps the day it was copied, never who opened it.
+   * Ask someone who knows: each card's link, by the card, and what people answered on a Needs a
+   * recheck card's link. As the service: a link keeps the day it was copied, never who opened it.
    */
   const questionLinks = new Map<string, { id: string; copiedOn: string }>()
   const checkAnswers = new Map<string, CheckAnswerRow[]>()
@@ -1487,8 +1487,8 @@ export function createMockApi() {
             'forbidden',
             `Only an owner of ${domainOf(d.domain ?? '')?.name ?? 'its domain'} or an admin can split it.`,
           )
-        // The items about it: no word changes, each applies to every former variant, due for a
-        // check, and each owner of its domain gets a card for it (D2).
+        // The items about it: no word changes, each applies to every former variant, needs a
+        // recheck, and each owner of its domain gets a card for it (D2).
         const about = factsOf(state).filter(
           (f) => servedToAgents(f) && f.where.some((w) => same(w, name)),
         )
@@ -1496,7 +1496,7 @@ export function createMockApi() {
         for (const fact of about) {
           const patch: Partial<Fact> = {
             where: [...new Set(fact.where.flatMap((w) => (same(w, name) ? metrics : [w])))],
-            status: 'Due for a check',
+            status: 'Needs a recheck',
             outOfDate: splitDue(d!.name),
           }
           splitItems.set(fact.id, {
@@ -1542,7 +1542,7 @@ export function createMockApi() {
         const restored: string[] = []
         // The items it left due are about the family again, and their cards go.
         for (const fact of factsOf(state).filter(
-          (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(name),
+          (f) => f.status === 'Needs a recheck' && f.outOfDate === splitDue(name),
         )) {
           restored.push(fact.id)
           const was = splitItems.get(fact.id)?.before
@@ -1574,7 +1574,7 @@ export function createMockApi() {
         definitions.splits(
           (family) =>
             factsOf(state).filter(
-              (f) => f.status === 'Due for a check' && f.outOfDate === splitDue(family),
+              (f) => f.status === 'Needs a recheck' && f.outOfDate === splitDue(family),
             ).length,
         ),
       ),

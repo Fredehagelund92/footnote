@@ -264,7 +264,7 @@ const due: Record<string, { card: string; reviewDate?: string; checkFlag?: 'need
   itm_pfet8zj3: { card: 'check-italy', reviewDate: '2026-09-18' },
 }
 
-/** Each mock card due for a check, by the service's card for it. */
+/** Each mock card needing a recheck, by the service's card for it. */
 export const checkCards = () =>
   Object.fromEntries(
     Object.entries(due).map(([item, d]) => [d.card, `check:${serverItemId(item)}`]),
@@ -424,7 +424,7 @@ export type QueueCard = (typeof queue)[number]
 
 /** Who sends each suggestion, as the mock's people. */
 const sender: Record<QueueCard, string> = {
-  // The drafting helper drafts a Not found card's text; its suggestion is under the name of someone
+  // The drafting helper drafts a Nothing written yet card's text; its suggestion is under the name of someone
   // who owns no domain, so it waits in no owner's own list.
   'gap-spain': 'Maria Lindqvist',
   'sug-ines': 'Ines Duarte',
@@ -816,7 +816,7 @@ export type DemoWeekIds = Record<QueueCard | DriveCard | 'flag-germany', string>
  * Repeat purchases is Repeat purchase rate, and Orders in Germany is one month. Net revenue in
  * Norway is 12 and 5 rather than 13 and 4: beside its row's "13+", the total would give the 4
  * away, so the service would hide it (FR-614). Orders in Spain is 12 and 7 rather than 12 and 9, for
- * the same reason: the 3 that found something would be left over. It is the Not found card's topic,
+ * the same reason: the 3 that found something would be left over. It is the Nothing written yet card's topic,
  * seeded with it.
  */
 export const askedThisWeek: {
@@ -947,7 +947,7 @@ async function seedAskedThisWeek(client: pg.Client) {
     const metrics = t.metric ? [`metric:${t.metric}`] : []
     const values = t.market ? [`val:market/${t.market}`] : []
     const key = [t.area ?? '', t.metric ?? '', t.market ?? '', t.month].join('|')
-    // The Not found card's topic is already there: its counts join it.
+    // The Nothing written yet card's topic is already there: its counts join it.
     const [topic] = (
       await client.query<{ id: string }>(
         `insert into topics (key, area_id, metric_keys, value_keys, month)
@@ -973,8 +973,8 @@ async function seedAskedThisWeek(client: pg.Client) {
 /**
  * Seeds an empty migrated database with the demo week, as a superuser: the library, Jon as an
  * admin as the mock has him, the terms and synonyms, the suggestions and the drafts through the
- * API, then who wrote what and when each was sent, the report and the Not found card. Returns each
- * mock card's id on the service: a suggestion's proposal (the Not found card's draft for
+ * API, then who wrote what and when each was sent, the report and the Nothing written yet card. Returns each
+ * mock card's id on the service: a suggestion's proposal (the Nothing written yet card's draft for
  * gap-spain), the report's card, and each draft's proposal.
  */
 /**
@@ -1095,7 +1095,7 @@ export async function seedDemoWeek(
     ).rows
     flag = `report:${report!.id}`
     // Agents asked about Orders in Spain for October 9 times this week and found nothing written
-    // down: the Not found card, with the draft the drafting helper made from a status page.
+    // down: the Nothing written yet card, with the draft the drafting helper made from a status page.
     const [gap] = (
       await after.query<{ id: string }>(
         `with topic as (

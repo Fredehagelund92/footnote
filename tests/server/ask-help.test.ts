@@ -131,8 +131,8 @@ describe('an answer from the help', () => {
       {
         question: 'How do I mark a context item as checked?',
         words: 'mark a context item as checked',
-        text: 'Choose Still true on its card when it is due for a check: it then counts as checked today, by you, and its next check date moves on.',
-        part: 'keep-context-up-to-date#due-for-a-check',
+        text: 'Choose Still true on its card when it needs a recheck: it then counts as checked today, by you, and its next check date moves on.',
+        part: 'keep-context-up-to-date#needs-a-recheck',
       },
     ]
     for (const { question, words, text, part } of howTo) {

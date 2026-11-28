@@ -292,7 +292,7 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
               and x.type = 'missing' and x.status = 'open'
             order by x.status_since desc, x.created_at desc limit 1) g on true
          left join lateral (
-           -- A draft written for the gap is its draft, as the Inbox's Not found card has it.
+           -- A draft written for the gap is its draft, as the Inbox's Nothing written yet card has it.
            select 'draft' as state, pr.id::text as proposal
              from proposals pr
             where pr.source_gap_id = g.id and pr.discarded_at is null

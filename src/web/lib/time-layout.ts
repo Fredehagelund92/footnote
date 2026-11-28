@@ -10,7 +10,7 @@ import { dayNumber, monthShort, monthYearLong } from '@/lib/dates'
 export const DAY = 86_400_000
 
 /**
- * What a bar's fill says. Checked: published and in force or still to come. Due for a check: its
+ * What a bar's fill says. Checked: published and in force or still to come. Needs a recheck: its
  * check date passed or a definition changed. Ended: its last day has passed. Not published yet:
  * sent for review, which a reader can see waiting and agents don't get.
  */
@@ -18,7 +18,7 @@ export type TimeState = 'checked' | 'due' | 'ended' | 'waiting'
 
 export const STATE_LABEL: Record<TimeState, string> = {
   checked: 'Checked',
-  due: 'Due for a check',
+  due: 'Needs a recheck',
   ended: 'Ended',
   waiting: 'Not published yet',
 }
@@ -30,9 +30,9 @@ export const TIME_STATES = Object.keys(STATE_LABEL) as TimeState[]
  */
 export function timeStateOf(f: Pick<Fact, 'status' | 'valid'>, today: string): TimeState | null {
   if (f.status === 'Waiting') return 'waiting'
-  if (f.status !== 'Live' && f.status !== 'Due for a check') return null
+  if (f.status !== 'Live' && f.status !== 'Needs a recheck') return null
   if (f.valid.until && f.valid.until < today) return 'ended'
-  return f.status === 'Due for a check' ? 'due' : 'checked'
+  return f.status === 'Needs a recheck' ? 'due' : 'checked'
 }
 
 /**

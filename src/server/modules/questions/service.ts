@@ -15,7 +15,7 @@ import { missing, notAllowed } from '../../../contract/refusals.ts'
 
 /*
   Ask someone who knows (src/domain/questions.ts). An owner of a card's domain, or an admin, copies
-  a link for a Nothing written yet card or a Due for a check card: one link a card, copied again on
+  a link for a Nothing written yet card or a Needs a recheck card: one link a card, copied again on
   a new day. Its id is its address. Anyone signed in who opens it reads the one question, as a topic
   in words, and answers it as themselves:
 

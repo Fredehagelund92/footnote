@@ -165,7 +165,7 @@ export function askedWeekOf(asked: Asked | null, names: Names): AskedWeek {
       nothing: r.nothing,
       state: r.state,
       sources: r.items,
-      // A Not found card with a draft is named by its draft (the Inbox's own naming).
+      // A Nothing written yet card with a draft is named by its draft (the Inbox's own naming).
       ...(r.gap
         ? {
             next: r.gap.draft

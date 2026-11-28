@@ -1,7 +1,7 @@
 import { expect, go, test } from './go.ts'
 
 // J4: what agents couldn't answer comes as a draft, reviewed and published like any suggestion.
-test('a Not found card is a draft to review and publish', async ({ page }) => {
+test('a Nothing written yet card is a draft to review and publish', async ({ page }) => {
   await go(page, '/inbox?demo=week')
   await page.getByRole('button', { name: /Orders in Spain, October 2026/ }).click()
   await page.getByRole('button', { name: 'Check the first version', exact: true }).click()

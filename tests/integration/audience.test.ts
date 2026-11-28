@@ -305,7 +305,7 @@ const posts = () =>
     ...[
       'what was created this week?',
       'what changed this week?',
-      'what is due for a check?',
+      'what needs a recheck?',
       'what is archived?',
       'who owns Finance?',
       'how many context items are there?',

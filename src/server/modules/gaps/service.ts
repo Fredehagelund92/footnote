@@ -330,7 +330,7 @@ export function createGapsService(tx: Queryable) {
     },
     /**
      * The gap a publish names: only a person who may manage it (an owner of its topic's domains or
-     * an admin, as its Not found card reaches) links context to it, so nobody closes another
+     * an admin, as its Nothing written yet card reaches) links context to it, so nobody closes another
      * domain's gap. It is refused otherwise.
      */
     async linkable(id: string): Promise<void> {

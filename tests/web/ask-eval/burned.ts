@@ -28,7 +28,7 @@ const NOT_ASK_TO_WRITE =
   /\b(?:(?:does not|doesn't|cannot|can't|won't) (?:write|settle|change|add|edit)|start (?:it|a draft)|decision is (?:theirs|the owners'))\b/i
 const SOURCE_TOOL = /\b(?:source tool|(?:cannot|can't|does not|doesn't) change)\b/i
 const DUE =
-  /\b(?:check date (?:has )?passed|due for a check|overdue|past its check date|needs (?:a )?check(?:ing)?)\b/i
+  /\b(?:check date (?:has )?passed|needs a recheck|overdue|past its check date|needs (?:a )?check(?:ing)?)\b/i
 const HIDDEN = /\b(?:hidden|not shown|withheld|(?:cannot|can't) (?:see|show))\b/i
 const FEWER_THAN_5 = /\b(?:fewer|less) than (?:5|five)\b|\bunder (?:5|five)\b/i
 const WEEK = /\b16(?:th)?(?: Oct[a-z]*)? ?(?:to|-|–) ?22(?:nd)? Oct/i
@@ -149,7 +149,7 @@ export const demoConversations = (cases: readonly DemoCase[] = demoCases): EvalC
 
 /**
  * Where plan-world.ts and the demo week differ, the demo week's facts: it publishes 21 items, not
- * 22, and 3 of them are due for a check, not 2.
+ * 22, and 3 of them need a recheck, not 2.
  */
 const DEMO_WEEK = new Map<Pattern, Pattern>([
   ['2 of 22 context items', '3 of 21 context items'],

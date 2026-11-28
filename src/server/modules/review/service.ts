@@ -332,7 +332,7 @@ export function createReviewService(tx: Queryable, clock: Clock) {
       { ...data, edition: edition.label },
       recheck ? 'item.rechecked' : 'decision.accept',
     )
-    // Context written for a Not found card covers its gap once agents get it (FR-609).
+    // Context written for a Nothing written yet card covers its gap once agents get it (FR-609).
     if (p.sourceGapId) await createGapsService(tx).cover(p.sourceGapId, version.version.title)
     return { proposal, edition }
   }

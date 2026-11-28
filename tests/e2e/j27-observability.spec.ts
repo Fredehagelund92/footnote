@@ -647,7 +647,7 @@ test('Alerts: rules as sentences that raise Inbox cards, thresholds for admins, 
   await go(page, '/observability/alerts')
   await expect(page.getByRole('switch')).toHaveCount(5)
   await expect(page.getByRole('combobox')).toHaveCount(0)
-  await page.getByRole('switch', { name: 'A check is due, for Marketing' }).click()
+  await page.getByRole('switch', { name: 'A recheck is due, for Marketing' }).click()
   await expect(page.getByText('Muted for Marketing', { exact: true })).toBeVisible()
   await expect(page.getByText('- muted for Marketing')).toBeVisible()
   await expect(

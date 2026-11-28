@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test'
 import { agentSignsIn, expect, go, onServiceOnly, test } from './go.ts'
 
 /*
-  J59, a Not found card with nothing drafted (#201): the owner presses Write context, writes the
+  J59, a Nothing written yet card with nothing drafted (#201): the owner presses Write context, writes the
   item and publishes it, and the card leaves Needs you, because the publish names the gap it was
   written for and covers it. On the service an agent first reports that nothing is written about
   orders in Germany, which opens the gap and its card, as the mock's demo has it.
@@ -12,7 +12,9 @@ const card = (page: Page) => page.getByRole('button', { name: /^Orders in German
 const publish = (page: Page) => page.getByRole('button', { name: 'Publish', exact: true })
 const title = 'Orders in Germany are booked a day late around a month end'
 
-test('publishing what was written from a Not found card closes the card', async ({ page }) => {
+test('publishing what was written from a Nothing written yet card closes the card', async ({
+  page,
+}) => {
   await go(page, '/inbox')
   await onServiceOnly('gap, which an agent opens by reporting what it could not find', async () => {
     const call = await agentSignsIn(page)

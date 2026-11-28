@@ -278,7 +278,7 @@ Ask page does (`tests/web/integration/ask-answerers.ts`).
   (`tests/web/ask-eval/burned.ts`). What a turn must and must not say is a fact of the demo week,
   never a sentence of the design they were written for: a fixed sentence becomes the fact it
   states, a line only that design printed is left out, and where the world of the gate cases and
-  the demo week differ (21 published items, 3 due for a check) the demo week's facts are used.
+  the demo week differ (21 published items, 3 needing a recheck) the demo week's facts are used.
 - **Classes**: the gate's R, S, D, A and X, plus F (follow-ups) and V (adversarial).
 - **Promises**, each zero tolerance and graded by code on every turn (`graders.ts`): every number
   comes from a tool result, a record, the person's words or the fixed facts; every cited item is

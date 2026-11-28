@@ -447,14 +447,14 @@ export function statusWords(item: Pick<LoopItem, 'status' | 'checked' | 'outOfDa
   const due = item.status === 'due' || !!item.outOfDate
   return {
     due,
-    words: (item.status === 'archived' ? 'Archived' : due ? 'Due for a check' : 'Live') as Status,
+    words: (item.status === 'archived' ? 'Archived' : due ? 'Needs a recheck' : 'Live') as Status,
     day: item.outOfDate ?? (item.checked ? `checked ${dayText(item.checked, true)}` : null),
   }
 }
 
 /**
  * Why an item needs a look before its words are trusted, or null when it is fine: archived, may be
- * out of date (a read said so), or due for a check. The words are the page's, from the one list.
+ * out of date (a read said so), or needing a recheck. The words are the page's, from the one list.
  */
 export function useNeedsLook() {
   const { ANSWER_LINES } = useParts()
@@ -465,13 +465,13 @@ export function useNeedsLook() {
       : item.outOfDate
         ? stale
         : item.status === 'due'
-          ? 'Due for a check'
+          ? 'Needs a recheck'
           : null
 }
 
-/** A status with its dot, as the Context list draws it: live green, due for a check amber. */
+/** A status with its dot, as the Context list draws it: live green, needs a recheck amber. */
 function StatusMark({ status }: { status: Status }) {
-  const dot = status === 'Live' ? 'bg-good' : status === 'Due for a check' ? 'bg-caution' : 'bg-off'
+  const dot = status === 'Live' ? 'bg-good' : status === 'Needs a recheck' ? 'bg-caution' : 'bg-off'
   return (
     <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       <span aria-hidden className={`size-2 shrink-0 rounded-full ${dot}`} />

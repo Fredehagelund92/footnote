@@ -88,7 +88,7 @@ describe("Ask's tool registry", () => {
       'send_draft',
     ])
     expect(toolSchemaDigest).toBe(
-      '97296832033e903877251018d87692dba892476a253273539058495d624f91ab',
+      '39fba2d1fb64d2a07975316959efb76d9fc0954ba3f4d5f28e4804405a1ca94b',
     )
     // No Ask tool writes, reports or suggests: none is an agent tool that is not a read.
     expect(
@@ -220,7 +220,7 @@ describe('the records tool (FR-720.3)', () => {
       counted: '2 of 3 published context items you can see',
     })
     expect(query({ show: 'count', domain: 'sales', status: ['due'] })).toMatchObject({
-      counted: '1 of 1 context item due for a check in Sales you can see',
+      counted: '1 of 1 context item needing a recheck in Sales you can see',
     })
     expect(query({ show: 'count', status: ['live', 'archived'] })).toMatchObject({
       counted: '3 of 3 live or archived context items you can see',

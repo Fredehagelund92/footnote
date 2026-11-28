@@ -110,9 +110,9 @@ describe.each(persons)('as %s', (name) => {
       // Each item listed says why it is due, as its row in a group does, and nothing when it is not.
       const grouped = await ok(tools, 'records', { show: 'count', group_by: 'status' })
       const why = new Map(grouped.groups!.rows.flatMap((g) => g.items.map((i) => [i.id, i.why])))
-      expect(all.items.filter((i) => i.why).length).toBe(status('Due for a check').length)
+      expect(all.items.filter((i) => i.why).length).toBe(status('Needs a recheck').length)
       for (const i of all.items) expect(i.why).toBe(why.get(i.id) ?? null)
-      expect(await count({ status: ['due'] })).toBe(status('Due for a check').length)
+      expect(await count({ status: ['due'] })).toBe(status('Needs a recheck').length)
       expect(await count({ status: ['archived'] })).toBe(status('Archived').length)
       expect(await count({ kinds: ['event'] })).toBe(
         listed.filter((f) => f.kind === 'event').length,
@@ -122,10 +122,10 @@ describe.each(persons)('as %s', (name) => {
         domain: 'Sales',
         status: ['due'],
       })
-      expect(salesDue.count).toBe(sales.filter((f) => f.status === 'Due for a check').length)
+      expect(salesDue.count).toBe(sales.filter((f) => f.status === 'Needs a recheck').length)
       // The denominator is the domain and status asked about, by code.
       expect(salesDue.counted).toBe(
-        `${salesDue.count} of ${salesDue.outOf.count} context ${salesDue.outOf.count === 1 ? 'item' : 'items'} due for a check in Sales you can see`,
+        `${salesDue.count} of ${salesDue.outOf.count} context ${salesDue.outOf.count === 1 ? 'item' : 'items'} needing a recheck in Sales you can see`,
       )
       const published = await ok(tools, 'records', {
         show: 'count',
@@ -133,7 +133,7 @@ describe.each(persons)('as %s', (name) => {
         about: ['Orders'],
       })
       expect(published.outOf.count).toBe(
-        listed.filter((f) => f.status === 'Live' || f.status === 'Due for a check').length,
+        listed.filter((f) => f.status === 'Live' || f.status === 'Needs a recheck').length,
       )
       expect(published.counted).toMatch(/ of \d+ published context items you can see$/)
     })

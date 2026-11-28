@@ -178,7 +178,7 @@ export type Library = {
   items: Fact[]
   /** Items published this visit, and when, in words: the item says so on its page. */
   published: Record<string, string>
-  /** Items the person opened, in the peek or on their page: only these can be marked checked together. */
+  /** Items the person opened, in the peek or on their page: only these can be confirmed again together. */
   viewed: Record<string, boolean>
   /** Changes made to many items at once, newest first. */
   log: LogEntry[]
@@ -513,7 +513,7 @@ export interface FootnoteApi {
   /**
    * Publishes an item as its owner: changes to an existing item, or a new one, which gets its id.
    * `relations` says how it relates to each live item it overlaps, by that item's id, as the
-   * owner answered in the editor. `gap` is the Not found card it answers.
+   * owner answered in the editor. `gap` is the Nothing written yet card it answers.
    */
   saveItem: (input: {
     fact: Fact
@@ -524,7 +524,7 @@ export interface FootnoteApi {
   /**
    * Save as draft (FR-139): the words kept as the person's own draft, which only they can see and
    * agents don't get, to finish later. `fact` is a new item or a change to a published one; `gap`
-   * is the Not found card it was written for. Its id is the draft's.
+   * is the Nothing written yet card it was written for. Its id is the draft's.
    */
   saveDraft: (input: { fact: Fact; isNew: boolean; gap?: string }) => Promise<{ id: string }>
   /**
@@ -572,7 +572,7 @@ export interface FootnoteApi {
   >
   /**
    * A suggestion sent from the editor to the owners: `fact` is the version it suggests. It waits,
-   * visibly, until they decide. `gap` is the Not found card it answers, as for `saveItem`.
+   * visibly, until they decide. `gap` is the Nothing written yet card it answers, as for `saveItem`.
    */
   sendSuggestion: (input: {
     sent: Omit<Sent, 'id'>
@@ -662,7 +662,7 @@ export interface FootnoteApi {
   /**
    * Splits a family back into its metrics, each a metric of its own under the name it has, by an
    * owner of its domain or an admin; never one its tool declares. The context items about it keep
-   * reaching agents through each, and are due for a check by their owners.
+   * reaching agents through each, and need a recheck from their owners.
    */
   splitFamily: (input: { name: string }) => Promise<{ metrics: string[]; items: number }>
   /**
@@ -710,7 +710,7 @@ export interface FootnoteApi {
   /**
    * Publishes a suggestion. `relations` says how it relates to each live item it overlaps, by that
    * item's id: Publish needs an answer for every one, and each answer acts on its own item only.
-   * `saveQuestion` also saves a Not found draft's question.
+   * `saveQuestion` also saves a Nothing written yet draft's question.
    */
   publishReview: (input: {
     id: string
@@ -1004,7 +1004,7 @@ export interface FootnoteApi {
 
   // Ask someone who knows
   /**
-   * The link of a Nothing written yet or a Due for a check card ("gap:<id>", "check:<item>"), for
+   * The link of a Nothing written yet or a Needs a recheck card ("gap:<id>", "check:<item>"), for
    * its owner to paste: the same link copied on a new day after the first time.
    */
   copyQuestionLink: (input: { card: string }) => Promise<QuestionLink>
@@ -1027,7 +1027,7 @@ export interface FootnoteApi {
     question: Omit<SavedQuestion, 'result' | 'why' | 'when' | 'id'>
     /** The items it should answer from; left out, every item it answers from now. */
     from?: string[]
-    /** Where it is saved from: an answer in Ask (the default), a Not found draft, or typed in Quality. */
+    /** Where it is saved from: an answer in Ask (the default), a Nothing written yet draft, or typed in Quality. */
     origin?: 'ask' | 'gap' | 'typed'
   }) => Promise<{ id: string } & Undoable>
   removeSavedQuestion: (input: { id: string }) => Promise<void>

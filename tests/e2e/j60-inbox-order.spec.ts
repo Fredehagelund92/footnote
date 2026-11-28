@@ -19,7 +19,7 @@ test('suggestions come before the chores', async ({ page }) => {
   const at = (n: string) => names.indexOf(n)
   expect(at('Suggestions')).toBeGreaterThanOrEqual(0)
   expect(at('Suggestions')).toBeLessThan(at('Nothing written yet'))
-  expect(at('Suggestions')).toBeLessThan(at('Due for a check'))
+  expect(at('Suggestions')).toBeLessThan(at('Needs a recheck'))
 })
 
 test('a group folds from its header and opens again', async ({ page }) => {
@@ -41,7 +41,7 @@ test('a group folds from its header and opens again', async ({ page }) => {
 test('more than 10 checks start folded', async ({ page }) => {
   // The mock holds three checks; the demo week on the service holds dozens.
   await go(page, '/inbox')
-  const checks = header(page, 'Due for a check')
+  const checks = header(page, 'Needs a recheck')
   const count = Number((await checks.innerText()).replace(/\D/g, ''))
   await expect(checks).toHaveAttribute('aria-expanded', count > 10 ? 'false' : 'true')
 })

@@ -1071,7 +1071,7 @@ export function createContextService(
           ...(input.itemId && input.version !== undefined ? { version: input.version } : {}),
           ...(input.reason ? { reason: input.reason } : {}),
         })
-    // Written for a Not found card: its publish covers the gap (review's publishAccepted).
+    // Written for a Nothing written yet card: its publish covers the gap (review's publishAccepted).
     const revision = input.gapId
       ? (
           await tx.query<{ revision: number }>(
@@ -1168,7 +1168,7 @@ export function createContextService(
   /**
    * Save as draft (FR-139): the person's words kept as their own draft, which only they read and
    * agents never get, to finish later. A new one, or a change to a published item written from the
-   * version it names; or the words of a draft of theirs saved again. Written from a Not found card,
+   * version it names; or the words of a draft of theirs saved again. Written from a Nothing written yet card,
    * the draft is that card's, as its publish would cover the gap.
    */
   async function saveDraft(

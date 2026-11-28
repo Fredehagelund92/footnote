@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 
 type Props = {
   title: string
-  /** Who sent it and is told why; null when a sync or a draft for a Not found card made it. */
+  /** Who sent it and is told why; null when a sync or a draft for a Nothing written yet card made it. */
   sender: string | null
   open: boolean
   onCancel: () => void

@@ -599,7 +599,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 },
                 "may_be_out_of_date": {
                   "const": true,
-                  "description": "It is due for a check: say so if you use it.",
+                  "description": "It needs a recheck: say so if you use it.",
                   "type": "boolean",
                 },
                 "published_without_review": {

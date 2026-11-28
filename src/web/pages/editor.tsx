@@ -331,7 +331,7 @@ function initialForm(
   if (fromText) return fromFact(fromText, domains, vocabulary)
   // New context starts in the writer's own domain, so an owner publishes rather than suggests.
   const blank = { ...BLANK, domain: home, owners: domains[home]?.owners ?? [] }
-  // A Not found card opens its draft, never a blank page, with the draft's own dates.
+  // A Nothing written yet card opens its draft, never a blank page, with the draft's own dates.
   if (gapDraft)
     return {
       ...fromFact(gapDraft, domains, vocabulary),
@@ -388,8 +388,8 @@ const countWords = (text: string) =>
 const STATUS_OPTIONS: Option<Status>[] = [
   { value: 'Live', label: 'Live', hint: 'Agents get it.' },
   {
-    value: 'Due for a check',
-    label: 'Due for a check',
+    value: 'Needs a recheck',
+    label: 'Needs a recheck',
     hint: 'Agents get it, told it may be out of date.',
   },
   { value: 'Archived', label: 'Archived', hint: 'Agents stop getting it.' },
@@ -603,7 +603,7 @@ function Editor({
   const [pasted, setPasted] = React.useState('')
   // A new item with nothing to start from opens on one box: what the person has, pasted or said,
   // fills the fields by rule (Draft from text), and the fields are then what they check. Written
-  // about a question, a definition or a Not found card, it opens on the form that already says so.
+  // about a question, a definition or a Nothing written yet card, it opens on the form that already says so.
   const [starting, setStarting] = React.useState(
     () =>
       mode === 'new' &&
@@ -2000,9 +2000,9 @@ function Editor({
                     // Live is the default and says nothing; a status that needs attention is a chip.
                     form.status === 'Live' ? (
                       <span>Live</span>
-                    ) : form.status === 'Due for a check' ? (
+                    ) : form.status === 'Needs a recheck' ? (
                       <TagChip tone="warn" icon={<TriangleAlertIcon aria-hidden />}>
-                        Due for a check
+                        Needs a recheck
                       </TagChip>
                     ) : (
                       <TagChip icon={<ArchiveIcon aria-hidden />}>Archived</TagChip>

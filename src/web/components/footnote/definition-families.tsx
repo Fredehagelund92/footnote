@@ -48,7 +48,7 @@ export function DefinitionFamilies({
   kept: readonly KeptApart[]
   /** A family's meaning as its row says it, or null for none yet. */
   meaningOf: (d: Definition) => string | null
-  /** How many context items about the family, or any of its variants, are due for a check. */
+  /** How many context items about the family, or any of its variants, need a recheck. */
   dueOf: (d: Definition) => number
 }) {
   return (
@@ -95,7 +95,7 @@ function FamilyRow({ d, meaning, due }: { d: Definition; meaning: string | null;
   const family = d.family!
   const count = family.variants.length
   const variants = `${n(count)} ${familyBy(family)}`
-  const dueWords = `${n(due)} ${due === 1 ? 'item' : 'items'} due for a check`
+  const dueWords = `${n(due)} ${due === 1 ? 'item' : 'items'} needing a recheck`
   const open = () => openFromRow('def', d.name)
   return (
     <tr
@@ -187,7 +187,7 @@ function keptLine(kept: KeptApart, by: string): string {
     return `${andList(kept.metrics)}, kept separate by ${by} on ${kept.on}, when published.`
   return `${andList(kept.metrics)}, split by ${by} on ${kept.on}. ${
     kept.items
-      ? `${n(kept.items)} context ${kept.items === 1 ? 'item is' : 'items are'} still about the family, due for a check.`
+      ? `${n(kept.items)} context ${kept.items === 1 ? 'item is' : 'items are'} still about the family and ${kept.items === 1 ? 'needs' : 'need'} a recheck.`
       : 'No context is about the family now.'
   }`
 }

@@ -36,7 +36,7 @@ describe('the When people read', () => {
       expect(labelDay(label)).toBeNull()
   })
 
-  it('says a check is due once its date has passed', () => {
+  it('says a recheck is due once its date has passed', () => {
     expect(checkDue('2026-10-02', '2026-10-23')).toBe(true)
     expect(checkDue('2027-01-20', '2026-10-23')).toBe(false)
   })

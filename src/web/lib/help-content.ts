@@ -100,12 +100,12 @@ export const WORDS: [string, string][] = [
     'A word that means the same as a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.',
   ],
   [
-    'Not found',
+    'Nothing written yet',
     'A question agents asked several times and found nothing written down for. Its card brings a draft.',
   ],
   ['Reported', 'Someone said a context item is wrong or unclear. The owner sees it in the Inbox.'],
   [
-    'Due for a check',
+    'Needs a recheck',
     'A context item whose check date has passed, or whose definition changed at its source. The owner confirms it is still true, or edits it.',
   ],
   [

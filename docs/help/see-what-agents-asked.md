@@ -50,7 +50,7 @@ An alert is a card in the Inbox of the people it is for, never an email. The rul
 - Not found: a topic found nothing 5 or more times in 7 days. While fewer than five people have signed in, each question that found nothing comes at once. Its card is the one in [When nothing is written yet](when-nothing-is-written-yet.md).
 - A saved question needs a look.
 - Conflict: two items that apply say different things, asked 3 or more times.
-- A check is due: a reminder to the owner at 07:00.
+- A recheck is due: a reminder to the owner at 07:00.
 
 Owners see and mute the alerts for their own domains. Admins also get alerts about the service, such as calls that fail or new views a tool has that nobody chose, and they turn rules off and change the levels, such as 3, 5 or 10 times for Not found.
 

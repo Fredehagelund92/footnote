@@ -453,7 +453,7 @@ describe("the model's words, checked against the reads", () => {
     // The demo's "what do i need to handle?": a comma inside brackets splits nothing.
     expect(
       enumeration(
-        'Several cards need attention beyond suggestions: three context items are due for a check, including [itm_aaaa1111] (Returns changed definition on 28 April 2026, for [@value:market/norway]) and [itm_bbbb2222] (a Marketing item on price promotions in [@value:market/italy]).',
+        'Several cards need attention beyond suggestions: three context items need a recheck, including [itm_aaaa1111] (Returns changed definition on 28 April 2026, for [@value:market/norway]) and [itm_bbbb2222] (a Marketing item on price promotions in [@value:market/italy]).',
       ),
     ).toBeNull()
     expect(
@@ -555,14 +555,14 @@ describe("the model's words, checked against the reads", () => {
           {
             id: 'itm_aaaa1111',
             title: 'Changed',
-            status: 'due for a check',
+            status: 'due',
             why: 'its definition changed',
             checkDate: '2027-03-01',
           },
           {
             id: 'itm_bbbb2222',
             title: 'Passed',
-            status: 'due for a check',
+            status: 'due',
             why: 'its check date passed',
             checkDate: '2026-09-18',
           },
@@ -919,7 +919,7 @@ describe('an overview, by code from the read the model named', () => {
         },
         {
           group: 'check',
-          name: 'Due for a check',
+          name: 'Needs a recheck',
           count: 3,
           cards: [card('c2', 'check', 'itm_aaaa1111'), card('c3', 'check', 'itm_bbbb2222')],
           more: 1,
@@ -976,7 +976,7 @@ describe('an overview, by code from the read the model named', () => {
   })
 
   it('numbers the rows that cite an item once across the answer, in reading order, one number an item', () => {
-    // The same item behind a card due for a check and a suggestion, and a card about no item.
+    // The same item behind a card needing a recheck and a suggestion, and a card about no item.
     const twice: MadeRead = {
       ...inbox,
       result: {
@@ -992,7 +992,7 @@ describe('an overview, by code from the read the model named', () => {
           },
           {
             group: 'check',
-            name: 'Due for a check',
+            name: 'Needs a recheck',
             count: 2,
             cards: [card('c2', 'check', 'itm_bbbb2222'), card('c3', 'check', 'itm_aaaa1111')],
             more: 0,

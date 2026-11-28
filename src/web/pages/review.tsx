@@ -176,7 +176,7 @@ const overlapsWords = (items: { title: string }[]) =>
 /**
  * What the Inbox pane and the dock show under the card's head: what agents answer today and after
  * the decision, what needs care, then the evidence folded until it is wanted (what changes, and
- * the sender's note). `asked` takes the question's place for a Not found card: what agents asked
+ * the sender's note). `asked` takes the question's place for a Nothing written yet card: what agents asked
  * about, never their words.
  */
 export function QuickReview({ r, asked }: { r: Review; asked?: React.ReactNode }) {

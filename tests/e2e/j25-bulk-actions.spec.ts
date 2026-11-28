@@ -244,7 +244,7 @@ test('Offline, changes are off with the reason, and export still works', async (
   expect((await download).suggestedFilename()).toBe('context.csv')
 })
 
-test('Mark as checked counts only the items that were opened', async ({ page }) => {
+test('Confirm again counts only the items that were opened', async ({ page }) => {
   await go(page, '/context')
   const opened = titles(page).nth(1)
   const name = await opened.innerText()
@@ -263,7 +263,7 @@ test('Mark as checked counts only the items that were opened', async ({ page }) 
     .nth(1)
     .click({ modifiers: ['Shift'] })
   await bar(page).getByRole('button', { name: /^More/ }).click()
-  await page.getByRole('menuitem', { name: /Mark as checked/ }).click()
+  await page.getByRole('menuitem', { name: /Confirm again/ }).click()
   await expect(page.getByText('1 checked', { exact: true })).toBeVisible()
   await expect(page.getByText('1 skipped: not opened yet').first()).toBeVisible()
 })

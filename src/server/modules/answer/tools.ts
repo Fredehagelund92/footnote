@@ -2259,7 +2259,7 @@ const recordsOutput = z.object({
               domainId: z.string(),
               about: z.array(z.string()),
               status: z.string(),
-              /** Why it is due for a check, when it is. */
+              /** Why it needs a recheck, when it is. */
               why: z.nullable(z.string()),
               lastChecked: z.nullable(z.string()),
               checkDate: z.nullable(z.string()),
@@ -2280,7 +2280,7 @@ const recordsOutput = z.object({
       domainId: z.string(),
       about: z.array(z.string()),
       status: z.string(),
-      /** Why it is due for a check, when it is. */
+      /** Why it needs a recheck, when it is. */
       why: z.nullable(z.string()),
       published: z.nullable(z.string()),
       changed: z.nullable(z.string()),
@@ -2564,12 +2564,12 @@ const inboxInput = z.strictObject({
 /** The Inbox's groups, in its own order of need: what needs the person first (inbox-rows.ts). */
 const groupWords: Record<string, string> = {
   names: 'Names to publish',
-  gap: 'Not found',
+  gap: 'Nothing written yet',
   flag: 'Reported',
   look: 'Saved questions',
   alert: 'Alerts',
   mention: 'Mentioned you',
-  check: 'Due for a check',
+  check: 'Needs a recheck',
   suggestion: 'Suggestions',
 }
 const groupOrder = Object.keys(groupWords)
@@ -2622,7 +2622,7 @@ const inboxOutput = z.object({
 async function inbox(view: View, reads: ToolReads, input: z.output<typeof inboxInput>) {
   const feed = await reads.inbox()
   const counts = new Map<string, number>(feed.groups.map((g) => [g.group, g.count]))
-  // A Not found card's draft is that card's in the Inbox, as it counts it: not a suggestion too.
+  // A Nothing written yet card's draft is that card's in the Inbox, as it counts it: not a suggestion too.
   const drafts = new Set(
     feed.cards.flatMap((c) => (c.group === 'gap' && c.draft && !c.done ? [c.draft] : [])),
   )
@@ -2634,7 +2634,7 @@ async function inbox(view: View, reads: ToolReads, input: z.output<typeof inboxI
       !!groupWords[c.group] &&
       !(c.group === 'suggestion' && drafts.has(c.proposalId)),
   )
-  // A card's id in the app: a suggestion, and a Not found card with a draft, by what it reviews.
+  // A card's id in the app: a suggestion, and a Nothing written yet card with a draft, by what it reviews.
   const appId = (c: (typeof open)[number]) =>
     c.group === 'suggestion' ? c.proposalId : c.group === 'gap' && c.draft ? c.draft : c.id
   // A mention on a card's own thread is that card's in the Inbox: one row, in two groups here.

@@ -27,17 +27,18 @@ and the specification keep their own words. [src/domain/words.ts](../src/domain/
 to the other, and [docs/design/copy.md](design/copy.md) says how to write, in the web app and in
 the service's own sentences. The ones you meet most:
 
-| On screen       | In code and the specification |
-| --------------- | ----------------------------- |
-| context item    | item                          |
-| suggestion      | proposal                      |
-| publish         | accept                        |
-| archive         | retire                        |
-| domain          | area                          |
-| Not found       | gap, `no_match`               |
-| integration     | source, connector             |
-| agent           | client                        |
-| what agents get | served, delivered             |
+| On screen           | In code and the specification |
+| ------------------- | ----------------------------- |
+| context item        | item                          |
+| suggestion          | proposal                      |
+| publish             | accept                        |
+| archive             | retire                        |
+| domain              | area                          |
+| Nothing written yet | gap                           |
+| Not found           | `no_match`                    |
+| integration         | source, connector             |
+| agent               | client                        |
+| what agents get     | served, delivered             |
 
 This page is for the people who build the product, so from here on it uses the code's words
 where it describes code, the API or the database.

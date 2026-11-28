@@ -146,7 +146,7 @@ export function DomainPage({
     )
 
   const items = isNew ? [] : facts.filter((f) => f.domain === id && servedToAgents(f))
-  const due = items.filter((f) => f.status === 'Due for a check').length
+  const due = items.filter((f) => f.status === 'Needs a recheck').length
   const saved = savedCounts(savedAll, id)
   const terms = isNew ? 0 : defs.filter((x) => x.domain === id).length
   const sandbox = d?.sandbox ?? false
@@ -364,7 +364,7 @@ export function DomainPage({
                           href={href('/context', { domain: id, status: 'due' })}
                           className="underline-offset-4 hover:underline"
                         >
-                          {due} due for a check
+                          {due} needing a recheck
                         </a>
                       </>
                     )}

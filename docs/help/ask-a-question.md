@@ -4,7 +4,7 @@ line: Ask about a number, read how the answer was made, ask again at other dates
 group: Ask
 order: 1
 minutes: 8
-reviewed: 2026-11-25
+reviewed: 2026-11-28
 open:
   label: Open Ask
   href: /ask
@@ -32,7 +32,7 @@ The answer starts with its [answer line](answer-lines.md): Checked, Partial, Not
 
 - **Read as**, under your question, shows what Ask read it as: the metric, the market and the dates. When the question named no dates, they read Today · assumed. **Change** puts the question back in the box, to change before you ask again.
 - A number after a sentence is the context item it comes from. Point at it to see who checked it and when, and open it from there.
-- Under the answer, its sources show by title, the first three and a count for the rest. Point at one to see which sentences it backs, and press it to open it. An item that is archived, may be out of date or is due for a check shows on its own line under them, so you never miss it.
+- Under the answer, its sources show by title, the first three and a count for the rest. Point at one to see which sentences it backs, and press it to open it. An item that is archived, may be out of date or needs a recheck shows on its own line under them, so you never miss it.
 - When you ask what something is, the answer is its definition card: the words of the tool that defines it, who owns it, and the context items about it, which open in the card. With none yet about a metric, its owners and admins get Write context, which starts an item about it. In other answers a definition shows as a quote, with the tool that defines it.
 - When Ask stops at its time or step limit, the answer says Stopped and shows what is written, as agents get it. Ask again tries once more. When Ask read a metric or a market in your question, Search for these words opens Search on them.
 

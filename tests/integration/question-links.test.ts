@@ -61,7 +61,7 @@ async function api(name: string | null, method: 'GET' | 'POST', path: string, pa
   })
 }
 
-/** An open Not found gap about Orders this month, in Finance, with `calls` calls this week. */
+/** An open gap about Orders this month, in Finance, with `calls` calls this week. */
 async function gap(calls: number) {
   const topic = await client.query<{ id: string }>(
     `insert into topics (key,area_id,metric_keys,value_keys,month)
@@ -103,7 +103,7 @@ beforeAll(async () => {
   await foundation(client)
   await transaction(client, async () => {
     await servingEdition(client)
-    // An item whose check date passed: a Due for a check card.
+    // An item whose check date passed: a Needs a recheck card.
     const due = await version(client, {
       title: 'Orders count returns separately',
       summary: 'Returns are counted apart from orders.',
@@ -244,7 +244,7 @@ describe('an answer to a Nothing written yet card', () => {
   })
 })
 
-describe('an answer to a Due for a check card', () => {
+describe('an answer to a Needs a recheck card', () => {
   it('reaches the card under their name, and the owner still does the check', async () => {
     const link = await copy('owner', `check:${dueItem}`)
     expect(await question('member', link.id)).toMatchObject({

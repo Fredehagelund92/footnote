@@ -25,7 +25,7 @@ const day = z
 export const statuses = ['live', 'due', 'archived'] as const
 const statusWords: Record<(typeof statuses)[number], string> = {
   live: 'live',
-  due: 'due for a check',
+  due: 'needs a recheck',
   archived: 'archived',
 }
 const dateFields = ['published', 'changed', 'checked', 'archived'] as const
@@ -132,7 +132,7 @@ function populationWords(
   if (set.size === 3) return `${items}${where}`
   if (set.size === 2 && set.has('live') && set.has('due')) return `published ${items}${where}`
   const before = [...set].filter((s) => s !== 'due').map((s) => statusWords[s])
-  const due = set.has('due') ? ` ${before.length ? 'or ' : ''}due for a check` : ''
+  const due = set.has('due') ? ` ${before.length ? 'or ' : ''}needing a recheck` : ''
   return `${before.join(' or ')}${before.length ? ' ' : ''}${items}${due}${where}`
 }
 
@@ -227,7 +227,7 @@ export function queryRecords(input: RecordsInput, table: RecordsTable) {
 const aboutOf = (i: RecordsItem, table: RecordsTable) =>
   [...(i.metrics ?? []), ...(i.values ?? [])].filter(table.isShown).map(nounId)
 
-/** Why an item is due for a check, in words: its definition or source changed, or its date passed. */
+/** Why an item needs a recheck, in words: its definition or source changed, or its date passed. */
 const dueWhy = (i: RecordsItem) =>
   i.checkFlag === 'needs_check'
     ? 'its definition changed'
