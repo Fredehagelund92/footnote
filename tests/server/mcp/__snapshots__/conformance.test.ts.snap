@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "97296832033e903877251018d87692dba892476a253273539058495d624f91ab",
+  "digest": "39fba2d1fb64d2a07975316959efb76d9fc0954ba3f4d5f28e4804405a1ca94b",
   "tools": [
     {
       "_meta": {
