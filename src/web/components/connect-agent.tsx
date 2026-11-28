@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { FrameSection } from '@/components/footnote/frame'
+import { PublicGuideLink } from '@/components/footnote/guide-link'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/footnote/fold'
@@ -502,17 +503,35 @@ function ByHand({
 
 /* ---------- The whole body ---------- */
 
+/**
+ * Why a workspace has no address for agents, and what to do. The hosted online trial (docs/vercel.md)
+ * runs without the agent connection, and no setting changes that; on an install of your own, an
+ * admin sets the address. One wording holds on both.
+ */
+function NoAddress({ inDialog }: { inDialog?: boolean }) {
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-start gap-1 text-sm text-muted-foreground',
+        inDialog ? 'p-4' : 'px-4 pb-5 md:px-5',
+      )}
+    >
+      <p className="text-pretty">
+        This workspace has no address for agents. The online trial does not run the agent
+        connection, so agents can&apos;t connect to it. On your own install, an admin sets the
+        address as MCP_RESOURCE_URL.
+      </p>
+      <PublicGuideLink slug="try-the-demo">How to run it on your computer</PublicGuideLink>
+      <PublicGuideLink slug="run-in-production">How to set the address</PublicGuideLink>
+    </div>
+  )
+}
+
 /** The connect body, edge to edge: inside a Settings frame, or inside the dialog (`inDialog`, the dialog's own gutter). */
 export function ConnectAgent({ inDialog }: { inDialog?: boolean }) {
   const address = useSettings().mcpAddress
   // A workspace that serves no agents has nothing to connect to: say so, and nothing to copy.
-  if (!address)
-    return (
-      <p className={cn('text-sm text-muted-foreground', inDialog ? 'p-4' : 'px-4 pb-5 md:px-5')}>
-        Agents can&apos;t connect here yet: this workspace has no address for them. The person who
-        hosts this app sets one.
-      </p>
-    )
+  if (!address) return <NoAddress inDialog={inDialog} />
   return (
     <Address value={address}>
       <ConnectBody inDialog={inDialog} />
