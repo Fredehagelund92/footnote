@@ -877,13 +877,14 @@ test.describe('wave 4, on a phone', () => {
       const first = (await fill.boundingBox())!
       const third = (await agent.boundingBox())!
       expect(third.y, colorScheme).toBeGreaterThan(first.y + first.height)
-      // A link: underlined, with no button box.
+      // A link: underlined, with no button box drawn (a transparent border keeps the size only).
       const look = await agent.evaluate((el) => {
         const css = getComputedStyle(el)
-        return { line: css.textDecorationLine, bg: css.backgroundColor, border: css.borderTopWidth }
+        return { line: css.textDecorationLine, bg: css.backgroundColor, edge: css.borderTopColor }
       })
       expect(look.line, colorScheme).toBe('underline')
-      expect(look.border, colorScheme).toBe('0px')
+      expect(look.bg, colorScheme).toBe('rgba(0, 0, 0, 0)')
+      expect(look.edge, colorScheme).toBe('rgba(0, 0, 0, 0)')
     }
   })
 
