@@ -1598,43 +1598,6 @@ h3.then {
   text-decoration-color: currentColor;
 }
 
-/* Three things this page won't make up */
-.unknown {
-  margin-top: 72px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.unknown li {
-  padding: 0 32px;
-  border-left: 1px solid var(--line);
-  min-width: 0;
-  display: grid;
-  gap: 16px;
-  align-content: start;
-  justify-items: start;
-}
-.unknown li:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-.unknown h3 {
-  font-size: 20px;
-  line-height: 28px;
-  letter-spacing: -0.014em;
-  text-wrap: balance;
-}
-.unknown p {
-  font-size: 14px;
-  line-height: 22px;
-  color: var(--fg-3);
-}
-.unknown p a {
-  color: var(--fg);
-  text-decoration: underline;
-  text-decoration-color: var(--line-2);
-  text-underline-offset: 3px;
-}
-
 /* Run it */
 .go {
   margin-top: 72px;
@@ -1830,20 +1793,17 @@ h3.then {
   .sec-head p {
     grid-column: 1 / -1;
   }
-  .trio,
-  .unknown {
+  .trio {
     grid-template-columns: 1fr;
     margin-top: 56px;
   }
-  .trio li,
-  .unknown li {
+  .trio li {
     padding: 32px 0 0;
     margin-top: 32px;
     border-left: 0;
     border-top: 1px solid var(--line);
   }
-  .trio li:first-child,
-  .unknown li:first-child {
+  .trio li:first-child {
     padding-top: 0;
     margin-top: 0;
     border-top: 0;
@@ -1892,8 +1852,7 @@ h3.then {
     min-height: 136px;
   }
   .lines,
-  .go,
-  .unknown {
+  .go {
     margin-top: 48px;
   }
   .lines li {
