@@ -8,7 +8,11 @@ reviewed: 2026-11-28
 
 2026-11-28
 
-An item whose check date has passed, or whose definition changed, is now marked Needs a recheck, and the reminder to its owner is A recheck is due. In the Context list, the button that confirms the items you opened is now Confirm again. The Inbox card for a question nothing is written for is called Nothing written yet everywhere, including this help. Not found stays the name of an answer line and of an alert. Ask and your agent's tools use the new names too, and nothing you stored changed.
+An item whose check date has passed, or whose definition changed, is now marked Needs a recheck, and the reminder to its owner is A recheck is due. In the Context list, the button that confirms the items you opened is now Confirm again.
+
+The Inbox card for a question nothing is written for is called Nothing written yet everywhere, including this help. Not found stays the name of an answer line and of an alert.
+
+Ask and your agent's tools use the new names too, and nothing you stored changed.
 
 ## A source with no link
 
