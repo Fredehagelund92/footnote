@@ -43,6 +43,7 @@ vi.mock('@/api/queries', () => ({
 vi.mock('@/lib/router', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   navigate: (path: string) => world.navigated.push(path),
+  useLocationNow: () => ({ state: {} }),
 }))
 
 const { ReportForm, ReportPanel } = await import('@/components/footnote/report-panel')
