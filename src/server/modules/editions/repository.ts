@@ -38,7 +38,7 @@ type ItemRow = {
   dimension_keys: string[]
   conflicts: string[]
   ref_marks: Record<string, string>
-  evidence: { url: string; quote: string; read_on: string }[]
+  evidence: { url: string | null; quote: string; read_on: string }[]
   not_to_conclude: string
 }
 type Overlay = {

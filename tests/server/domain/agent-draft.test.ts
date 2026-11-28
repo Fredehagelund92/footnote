@@ -299,6 +299,26 @@ describe('a draft from what an agent passes', () => {
     expect(derived.draft.evidence).toBeUndefined()
     expect(derived.questions.map((q) => q.field)).toContain('evidence')
   })
+  it('keeps a source with no link as the line that says who says so (FR-116)', () => {
+    const derived = deriveAgentDraft(
+      {
+        text: 'The annual plan went up 12% on 1 September 2026.',
+        evidence: [{ said_by: ' Pricing committee, 20 August 2026 ' }],
+      },
+      context,
+    )
+    expect(derived.draft.evidence).toEqual([
+      { url: null, quote: 'Pricing committee, 20 August 2026', date: '2026-10-12' },
+    ])
+    expect(derived.reasons.evidence).toBe(
+      'Who or what says so, as the agent passed it. There is no link to check.',
+    )
+    expect(derived.questions.map((q) => q.field)).not.toContain('evidence')
+    const patch = deriveAgentPatch({ evidence: [{ said_by: 'Jon, in the team call' }] }, context)
+    expect(patch.draft.evidence).toEqual([
+      { url: null, quote: 'Jon, in the team call', date: '2026-10-12' },
+    ])
+  })
   it('asks at most four questions', () => {
     const derived = deriveAgentDraft({ text: 'Something odd happened.', kind: 'event' }, context)
     expect(derived.questions.length).toBeLessThanOrEqual(4)

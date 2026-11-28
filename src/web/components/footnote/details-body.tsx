@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { CalendarIcon, MapPinIcon, ShieldAlertIcon, type LucideIcon } from '@/components/icons'
 import { kindIcons } from '@/components/footnote/kind-icons'
+import { SaidSource } from '@/components/footnote/bits'
 import { PeekPending } from '@/components/footnote/peek'
 import { Related } from '@/components/footnote/related'
 import { SourcePassages } from '@/components/footnote/source-text'
@@ -120,7 +121,14 @@ export function DetailsBody({
               <PeekPending className="h-3 w-2/3" />
             </div>
           ) : (
-            fact.quote && <SourceQuote quote={fact.quote} source={fact.source} />
+            <>
+              {fact.quote && <SourceQuote quote={fact.quote} source={fact.source} />}
+              {fact.said && (
+                <p className="border-l-2 pl-3 leading-6 text-muted-foreground">
+                  <SaidSource line={fact.said} />
+                </p>
+              )}
+            </>
           )}
           {fact.origin && (
             <p className="text-xs leading-5 text-muted-foreground">

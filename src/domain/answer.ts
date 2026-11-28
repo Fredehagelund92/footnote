@@ -80,8 +80,11 @@ export const ASK_MAX_ITEMS = 20
 export type AnswerSource = ResolverItem & {
   kind: ItemKind
   title: string
-  /** Where it comes from: each source's address and the line its owner copied from it. */
-  evidence?: readonly { url: string; quote: string }[]
+  /**
+   * Where it comes from: each source's address and the line its owner copied from it. A source
+   * with no link has no address, and its line says who or what says so.
+   */
+  evidence?: readonly { url: string | null; quote: string }[]
   /** What not to conclude from it (FR-104). */
   notToConclude?: string
   /** How its version was accepted; none for a version with no acceptance on record, such as a draft. */
@@ -321,7 +324,8 @@ export function answerItemOf(
     unreviewed: item.review?.withoutReview === true,
     restrictions: match?.restrictions ?? [],
     conflictsWith: item.conflicts.filter((id) => given.has(id)).sort(compareIds),
-    quote: item.evidence?.find((e) => e.quote.trim())?.quote ?? null,
+    // Only a sentence copied from a page: a source with no link has none.
+    quote: item.evidence?.find((e) => e.url !== null && e.quote.trim())?.quote ?? null,
     notToConclude: ownCaveat(item.notToConclude),
   }
 }

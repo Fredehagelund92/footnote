@@ -609,7 +609,18 @@ function blockOf(b: ServerBlock, words?: Words): Block {
       const kind = b.kind === 'added' ? 'Added' : 'Removed'
       if ('text' in b) return { kind, field, text: b.text }
       if ('parts' in b) return { kind, field, text: b.parts.join(', ') }
-      if ('url' in b) return { kind, field, text: b.quote ? `${b.url}: “${b.quote}”` : b.url }
+      // A source with no link is its line: who or what says so.
+      if ('url' in b)
+        return {
+          kind,
+          field,
+          text:
+            b.url === null
+              ? `${b.quote ?? ''} (no link)`
+              : b.quote
+                ? `${b.url}: “${b.quote}”`
+                : b.url,
+        }
       return { kind, field, text: spanWords({ from: b.from, until: b.until }) }
     }
     case 'formatting': {

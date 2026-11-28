@@ -21,9 +21,13 @@ const valueScope = z
     ),
   )
 
-/** One source: a link, a sentence copied from it and the day it was read. */
+/**
+ * One source (FR-116). A link, a sentence copied from it and the day it was read. Or, for what is
+ * written nowhere a link opens (a decision, a rule someone set, what a person knows), no link:
+ * `url` is null and `quote` is one line that says who or what says so, with the day it was written.
+ */
 export const evidenceEntrySchema = z.object({
-  url: z.string().check(z.url(), z.regex(/^https?:\/\//), z.maxLength(limits.url)),
+  url: z.nullable(z.string().check(z.url(), z.regex(/^https?:\/\//), z.maxLength(limits.url))),
   quote: text(limits.quote),
   date: calendarDateSchema,
 })

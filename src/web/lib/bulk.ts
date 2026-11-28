@@ -157,8 +157,23 @@ export const PUBLISH_MAX = 50
 export const CONFIRM_ABOVE = 5
 
 /**
+ * What a source still lacks before the service takes it, in the editor's words. A source with no
+ * link needs only its line. A link needs a sentence copied from it, unless `quoteKept` says an
+ * edit left the source alone; a sentence with no link asks for the link, by name.
+ */
+export function missingSource(
+  f: Pick<Fact, 'source' | 'quote' | 'said'>,
+  quoteKept = false,
+): string[] {
+  if (f.said?.trim()) return []
+  if (!f.source.trim()) return [f.quote.trim() ? 'a link to the source' : 'a source']
+  return !quoteKept && !f.quote.trim() ? ['a sentence copied from the source'] : []
+}
+
+/**
  * Whether a draft can be published as it is, by the editor's own checks: a domain, a title, the
- * text, where it applies, and a source with a sentence copied from it; a source that is a link, and
+ * text, where it applies, and a source: a link with a sentence copied from it, or with no link the
+ * line that says who or what says so; a link that is a link, and
  * a first paragraph agents read whole.
  */
 export function draftReadiness(f: Fact, domains: Domains): Readiness {
@@ -167,8 +182,7 @@ export function draftReadiness(f: Fact, domains: Domains): Readiness {
     !f.title.trim() && 'a title',
     !`${f.summary}${f.body ?? ''}`.trim() && 'what agents should know',
     !f.where.length && 'where it applies',
-    !f.source.trim() && 'a source',
-    f.source.trim() && !f.quote.trim() && 'a sentence copied from the source',
+    ...missingSource(f),
   ].filter(Boolean) as string[]
   return readinessOf({
     missing,
@@ -333,6 +347,10 @@ export const needsTyping = (n: number) => n > TYPE_ABOVE
 
 const line = (label: string, value: string) => (value ? `- ${label}: ${value}\n` : '')
 
+/** A source where one line fits: its link, or with no link who or what says so. */
+const sourceLine = (f: Pick<Fact, 'source' | 'said'>) =>
+  f.source || (f.said ? `${f.said} (no link)` : '')
+
 /** The items as Markdown, one section each, the way a person or an agent reads them. */
 export function toMarkdown(facts: Fact[], domains: Domains) {
   return (
@@ -348,7 +366,7 @@ export function toMarkdown(facts: Fact[], domains: Domains) {
           line('When', f.when) +
           line('Owners', ownersOf(f, domains).join(', ')) +
           line('Checked', f.checkedBy && `${f.checkedBy}, ${f.checkedOn}`) +
-          line('Source', f.source) +
+          line('Source', sourceLine(f)) +
           line("Don't conclude", f.dontConclude),
       )
       .join('\n')
@@ -382,7 +400,7 @@ export function toCsv(facts: Fact[], domains: Domains) {
     ownersOf(f, domains).join(', '),
     f.checkedBy,
     f.checkedOn,
-    f.source,
+    sourceLine(f),
     f.summary,
   ])
   return [head, ...rows].map((r) => r.map(cell).join(',')).join('\n') + '\n'

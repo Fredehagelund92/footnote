@@ -131,7 +131,8 @@ export function draftItem(r: Review, live: Fact | undefined, domains: Domains): 
     checkedBy: '',
     checkedOn: '',
     source: source?.url ?? '',
-    quote: source?.quote ?? '',
+    quote: source?.url ? (source.quote ?? '') : '',
+    ...(source && source.url === null ? { said: source.quote ?? '' } : {}),
     dontConclude: after.dontConclude,
     ...(owners ? { owners } : {}),
   }

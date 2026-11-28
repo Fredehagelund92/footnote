@@ -23,7 +23,7 @@ export const draftSchema = z.partial(
     reviewDate: z.nullable(z.string().check(z.maxLength(draftStorageLimits.date))),
     evidence: z.array(
       z.object({
-        url: z.string().check(z.maxLength(limits.url)),
+        url: z.nullable(z.string().check(z.maxLength(limits.url))),
         quote: z.string().check(z.maxLength(limits.quote)),
         date: z.string().check(z.maxLength(draftStorageLimits.date)),
       }),

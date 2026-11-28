@@ -687,6 +687,23 @@ describe("the editor's item, as the draft the service publishes", () => {
     })
   })
 
+  it('sends a source with no link as its line, written today, and a link again as a link', () => {
+    const said = { ...before, source: '', quote: '', said: ' Customs team, 5 August ' }
+    expect(draftOf(said, words, '2026-10-23', before)).toEqual({
+      evidence: [{ url: null, quote: 'Customs team, 5 August', date: '2026-10-23' }],
+    })
+    const back = { ...before, said: '' }
+    expect(draftOf(back, words, '2026-10-23', { ...said, said: 'Customs team' })).toEqual({
+      evidence: [
+        {
+          url: 'https://customs.example/norway',
+          quote: before.quote,
+          date: '2026-10-23',
+        },
+      ],
+    })
+  })
+
   it('sends an item with no start as starting at the beginning, never on the day it is published', () => {
     const start = (valid: Fact['valid']) =>
       draftOf({ ...before, valid }, words, '2026-10-23').validity

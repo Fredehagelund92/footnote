@@ -13,6 +13,7 @@ import {
   CONFIRM_ABOVE,
   doneLine,
   draftReadiness,
+  missingSource,
   heldRows,
   movableTo,
   needsTyping,
@@ -455,6 +456,20 @@ describe('publishing drafts from the list', () => {
       [salesLive[0]!.id, 'published', 'It is published already.'],
     ])
     expect(draftReadiness(ready, domains)).toEqual({ state: 'ready' })
+  })
+
+  it('takes a source with no link by its line, and asks for the link a sentence lacks (FR-116)', () => {
+    const said = { ...ready, id: 'd_said', source: '', quote: '', said: 'Pricing committee' }
+    expect(draftReadiness(said, domains)).toEqual({ state: 'ready' })
+    expect(planFacts('publish', [said], jon, domains).act).toEqual([said])
+    expect(missingSource({ source: '', quote: 'A sentence.', said: '' })).toEqual([
+      'a link to the source',
+    ])
+    expect(missingSource({ source: '', quote: '', said: '  ' })).toEqual(['a source'])
+    expect(missingSource({ source: 'https://a.example', quote: '', said: '' })).toEqual([
+      'a sentence copied from the source',
+    ])
+    expect(missingSource({ source: 'https://a.example', quote: '' }, true)).toEqual([])
   })
 
   it("publishes at once for an owner or an admin, and sends a writer's own draft to the owners", () => {

@@ -4,6 +4,12 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-28
 ---
 
+## A source with no link
+
+2026-11-28
+
+What lives in someone's head or a chat thread has no page to link to. In the editor's Source, choose No link and write one line that says who or what says so, such as Pricing committee, 20 August 2026. The item can then be published, and agents are told there is no link to open. Your agent can write such a source too.
+
 ## Who you are, on your own data
 
 2026-11-28

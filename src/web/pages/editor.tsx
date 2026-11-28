@@ -20,6 +20,7 @@ import {
   SparklesIcon,
   TriangleAlertIcon,
   UserIcon,
+  UserRoundIcon,
 } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { cn } from '@/lib/utils'
@@ -110,7 +111,7 @@ import { LoadError, NoSuchItem } from '@/components/footnote/load-state'
 import { readOf } from '@/lib/read'
 import { Loading } from '@/App'
 import { Button } from '@/components/ui/button'
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/components/ui/field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -128,7 +129,7 @@ import {
 } from '@/model/items'
 import { homeDomain, ownersOf, type Domain, type Domains } from '@/model/people'
 import { ApiError, toApiError, type Clash } from '@/api/errors'
-import { planFacts, publishParts } from '@/lib/bulk'
+import { missingSource, planFacts, publishParts } from '@/lib/bulk'
 import { useUndo } from '@/lib/undo'
 import { today } from '@/lib/today'
 import { dateLabel, type Validity } from '@/model/validity'
@@ -136,7 +137,7 @@ import { closeDock, dockOpened, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
 import { Panel, PanelGroup } from '@/components/footnote/panel'
-import { ChoiceMenu, ViewToggle } from '@/components/footnote/switches'
+import { ChoiceMenu, TextSwitch, ViewToggle } from '@/components/footnote/switches'
 import {
   Dialog,
   DialogContent,
@@ -153,6 +154,7 @@ import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
 import { relationWords } from '@domain/clash-relations'
 import { instructionWords } from '@domain/instruction-words'
+import { limits } from '@domain/proposal-rules'
 import {
   draftFromTextQuery,
   draftNowQuery,
@@ -196,6 +198,8 @@ type Form = {
   until: string
   source: string
   quote: string
+  /** A source with no link: the line that says who or what says so. Empty for a link. */
+  said: string
   dontConclude: string
 }
 
@@ -212,6 +216,7 @@ const BLANK: Form = {
   until: '',
   source: '',
   quote: '',
+  said: '',
   dontConclude: '',
 }
 
@@ -260,6 +265,7 @@ function fromFact(f: Fact, domains: Domains, vocabulary: Vocabulary): Form {
     until: w.until,
     source: f.source,
     quote: f.quote,
+    said: f.said ?? '',
     dontConclude: f.dontConclude,
   }
 }
@@ -293,6 +299,7 @@ function toFact(f: Form, id: string, me: string, domains: Domains, original?: Fa
     checkedOn: '22 Oct 2026',
     source: f.source,
     quote: f.quote,
+    ...(f.said.trim() ? { said: f.said.trim() } : {}),
     // Left empty, the item says nothing more: the service keeps its default, which agents never get.
     dontConclude: f.dontConclude.trim(),
   }
@@ -582,6 +589,11 @@ function Editor({
   // What agents get now, read after the service refused a Save because someone published since.
   const [newer, setNewer] = React.useState<Fact | null>(null)
   const [sourceOpen, setSourceOpen] = React.useState(false)
+  // Which kind of source the box asks for. What the form holds decides, so an agent's change shows
+  // as what it is; with nothing typed yet, the person's choice does. The other kind's words wait,
+  // so a choice made by mistake loses nothing.
+  const [sourceChoice, setSourceChoice] = React.useState<'link' | 'said'>('link')
+  const sourceKept = React.useRef({ source: '', quote: '', said: '' })
   const [mainRef, wide] = useWide<HTMLDivElement>()
   usePrimaryKey()
   const titleRef = React.useRef<HTMLTextAreaElement>(null)
@@ -736,6 +748,25 @@ function Editor({
   // leaves its source alone keeps the sentence it has.
   const quoteNeeded =
     mode === 'new' || form.source !== initial.source || form.quote !== initial.quote
+  const sourceKind = form.said ? 'said' : form.source || form.quote ? 'link' : sourceChoice
+  const chooseSource = (kind: 'link' | 'said') => {
+    if (kind === sourceKind) return
+    const kept = sourceKept.current
+    sourceKept.current = { source: form.source, quote: form.quote, said: form.said }
+    setSourceChoice(kind)
+    setForm((f) =>
+      kind === 'said'
+        ? { ...f, source: '', quote: '', said: kept.said }
+        : { ...f, said: '', source: kept.source, quote: kept.quote },
+    )
+  }
+  // With no link, the line is all the source needs: who or what says so.
+  const sourceMissing =
+    sourceKind === 'said'
+      ? form.said.trim()
+        ? []
+        : ['who or what says so']
+      : missingSource(form, !quoteNeeded)
   // A date somebody gave is not asked for again: the person's pick, or one their agent or writing
   // help wrote into the draft while it is open.
   const asksWhen = datesOpen && form.kind === 'event' && !whenChosen && form.when === 'always'
@@ -745,8 +776,7 @@ function Editor({
     !form.body.trim() && 'what agents should know',
     !form.where.length && 'where it applies',
     asksWhen && 'when it happened',
-    !form.source && 'a source',
-    form.source && quoteNeeded && !form.quote.trim() && 'a sentence copied from the source',
+    ...sourceMissing,
   ].filter(Boolean) as string[]
   const unanswered = clashes.find((c) => !overlap[c.itemId])
   // A source is a link: said at the field as soon as it is not, not when the service refuses it.
@@ -757,8 +787,8 @@ function Editor({
   // Words that read like orders to an AI agent (NFR-024), such as a pasted page can carry: said
   // while drafting, as the owner's review says them, and kept as words.
   const orders = React.useMemo(
-    () => instructionWords([form.title, text, form.quote].join('\n')),
-    [form.title, text, form.quote],
+    () => instructionWords([form.title, text, form.quote, form.said].join('\n')),
+    [form.title, text, form.quote, form.said],
   )
   // The dates the title and the text name, offered in When in one press.
   const whenOffers = React.useMemo(
@@ -906,7 +936,7 @@ function Editor({
     else if (!form.body.trim()) editor?.commands.focus('end')
     else if (!form.where.length) focusField('where')
     else if (asksWhen) focusField('when')
-    else if (!form.source || (quoteNeeded && !form.quote.trim()) || linkProblem) setSourceOpen(true)
+    else if (sourceMissing.length || linkProblem) setSourceOpen(true)
     else if (unanswered)
       document
         .getElementById(`${ids}-clashes`)
@@ -1333,7 +1363,9 @@ function Editor({
           <p className="mt-2.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
             <LinkIcon aria-hidden className="size-3 shrink-0" />
             <span className="truncate">
-              {form.source.replace(/^https?:\/\//, '') || 'No source yet'}
+              {form.said.trim()
+                ? `${form.said.trim()} (no link)`
+                : form.source.replace(/^https?:\/\//, '') || 'No source yet'}
             </span>
           </p>
           {draft.dontConclude && (
@@ -2048,10 +2080,10 @@ function Editor({
               mark={markOf('source')}
               label="Source"
               icon={<LinkIcon />}
-              required={!form.source}
+              required={sourceMissing.length > 0}
               problem={problemAt('source')}
             >
-              <Coming on={fillingIn && !form.source} bar={<Skeleton className="mt-2 h-4 w-36" />}>
+              <Coming on={fillingIn && !form.source && !form.said} bar={<Skeleton className="mt-2 h-4 w-36" />}>
                 <PickerField
                   labelId={fieldId('source')}
                   label="Source"
@@ -2059,7 +2091,11 @@ function Editor({
                   onOpenChange={setSourceOpen}
                   className="w-96 p-3"
                   value={
-                    form.source ? (
+                    form.said.trim() ? (
+                      <TagChip icon={<UserRoundIcon aria-hidden />} title="A source with no link">
+                        {form.said.trim()}
+                      </TagChip>
+                    ) : form.source ? (
                       <TagChip icon={<GlobeIcon aria-hidden />} title={form.source}>
                         {hostOf(form.source)}
                       </TagChip>
@@ -2069,29 +2105,60 @@ function Editor({
                   }
                 >
                   <div className="grid gap-3 pb-1">
-                    <Field>
-                      <FieldLabel htmlFor="fact-source">Link</FieldLabel>
-                      <Input
-                        id="fact-source"
-                        type="url"
-                        aria-invalid={!!problemAt('source')}
-                        value={form.source}
-                        onChange={(e) => set('source', e.target.value)}
-                        placeholder="https://"
-                      />
-                      {problemAt('source') && (
-                        <p className="text-xs text-destructive">{problemAt('source')}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="fact-quote">A sentence copied from it</FieldLabel>
-                      <Textarea
-                        id="fact-quote"
-                        value={form.quote}
-                        onChange={(e) => set('quote', e.target.value)}
-                        className="min-h-16"
-                      />
-                    </Field>
+                    <TextSwitch
+                      label="Kind of source"
+                      value={sourceKind}
+                      onChange={chooseSource}
+                      options={[
+                        { value: 'link', label: 'A link' },
+                        { value: 'said', label: 'No link' },
+                      ]}
+                    />
+                    {sourceKind === 'said' ? (
+                      <Field>
+                        <FieldLabel htmlFor="fact-said">Who or what says so</FieldLabel>
+                        <Input
+                          id="fact-said"
+                          // Chosen by a press on No link: the line is what comes next.
+                          autoFocus
+                          value={form.said}
+                          maxLength={limits.quote}
+                          aria-describedby="fact-said-note"
+                          onChange={(e) => set('said', e.target.value)}
+                          placeholder="The pricing committee's decision"
+                        />
+                        <FieldDescription id="fact-said-note">
+                          One line: a person, a team, a meeting or a document, and the day. Agents are
+                          told there is no link to open.
+                        </FieldDescription>
+                      </Field>
+                    ) : (
+                      <>
+                        <Field>
+                          <FieldLabel htmlFor="fact-source">Link</FieldLabel>
+                          <Input
+                            id="fact-source"
+                            type="url"
+                            aria-invalid={!!problemAt('source')}
+                            value={form.source}
+                            onChange={(e) => set('source', e.target.value)}
+                            placeholder="https://"
+                          />
+                          {problemAt('source') && (
+                            <p className="text-xs text-destructive">{problemAt('source')}</p>
+                          )}
+                        </Field>
+                        <Field>
+                          <FieldLabel htmlFor="fact-quote">A sentence copied from it</FieldLabel>
+                          <Textarea
+                            id="fact-quote"
+                            value={form.quote}
+                            onChange={(e) => set('quote', e.target.value)}
+                            className="min-h-16"
+                          />
+                        </Field>
+                      </>
+                    )}
                   </div>
                 </PickerField>
               </Coming>

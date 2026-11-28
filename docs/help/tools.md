@@ -4,7 +4,7 @@ line: The seven tools an agent can call, what each takes and gives back, and how
 group: Reference
 order: 1
 minutes: 16
-reviewed: 2026-11-27
+reviewed: 2026-11-28
 ---
 
 The seven tools an agent can call: first the short list, then what each one takes and gives back, for anyone building on them.
@@ -222,6 +222,8 @@ Neither tool sends anything. The person sends the draft for review in the app, o
 - Without `draft_id`, it starts a new draft from `text`, at most 2,000 characters, with optional hints: a title, a kind and an area.
 - With `item_id` instead, the new draft changes that published item rather than starting a new one.
 - With `draft_id` and `revision`, it changes only the fields you pass: the title, summary, text, kind, area, scope, window, evidence and Don't conclude line.
+
+Each source in `evidence` is a `url` and a `quote` copied from that page, or, for what is written nowhere a link opens, `said_by`: one line that says who or what says so. Every tool that gives a source back gives one with no link as `url: null` with that line in `said_by`, and says there is nothing to open.
 
 An area counts only when the metrics it names give no single domain.
 

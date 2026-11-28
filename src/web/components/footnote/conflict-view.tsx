@@ -15,7 +15,7 @@ import {
   TriangleAlertIcon,
   Undo2Icon,
 } from '@/components/icons'
-import { PersonAvatar, StateLine } from '@/components/footnote/bits'
+import { PersonAvatar, SaidSource, StateLine } from '@/components/footnote/bits'
 import { kindIcons } from '@/components/footnote/kind-icons'
 import { Statement } from '@/components/footnote/conflict-pair'
 import { Loadable } from '@/components/footnote/load-state'
@@ -147,7 +147,12 @@ function Provenance({ s }: { s: ConflictSide }) {
           {s.checkedBy && <>, by {s.checkedBy}</>}
         </p>
       )}
-      {s.source && (
+      {s.source?.url === null && (
+        <p className="text-sm text-muted-foreground">
+          <SaidSource line={s.source.quote} />
+        </p>
+      )}
+      {s.source?.url && (
         <a
           href={s.source.url}
           target="_blank"
@@ -159,7 +164,7 @@ function Provenance({ s }: { s: ConflictSide }) {
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
       )}
-      {s.source?.quote && (
+      {s.source?.url && s.source.quote && (
         <blockquote className="border-l-2 pl-3 text-sm text-muted-foreground">
           <SourcePassages text={s.source.quote} />
         </blockquote>

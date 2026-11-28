@@ -435,7 +435,10 @@ function itemOutput(
     risk: item.riskLevel,
     freshness: unverified ? 'unverified' : 'verified',
     ...(unverified ? { unverified_reason: item.checkFlag ?? 'past_review_date' } : {}),
-    evidence: item.evidence,
+    evidence: item.evidence.map((source) => ({
+      ...sourceOutput(source),
+      ...(source.url === null ? { written_on: source.read_on } : { read_on: source.read_on }),
+    })),
     // Only the contributor's own words: the default is what the claim level already says.
     ...(ownCaveat(item.notToConclude) ? { not_to_conclude: ownCaveat(item.notToConclude)! } : {}),
     owner: ownerOutput(item, bundle),
@@ -444,6 +447,17 @@ function itemOutput(
     url,
   }
 }
+/** What a source with no link says of itself to an agent, so it never looks for one. */
+export const NO_LINK_NOTE = 'No link to open: said_by is who or what says so.'
+/**
+ * A source as agents read one (FR-116): its link and the sentence its owner copied from that page,
+ * or, with no link to open, `url` null, `said_by`, the line that says who or what says so, and a
+ * note that says there is nothing to open.
+ */
+export const sourceOutput = (source: { url: string | null; quote: string }) =>
+  source.url === null
+    ? { url: null, said_by: source.quote, note: NO_LINK_NOTE }
+    : { url: source.url, quote: source.quote }
 /**
  * Who checked an item before agents got it, as a role, and on which day (FR-326). One published
  * under a permission was checked by nobody: it says whose permission published it (FR-421).
@@ -481,7 +495,7 @@ export function contextEntry(
     when: whenWords(item.validity),
     applies: appliesWords(bundle, item.scope),
     ...checkedOutput(item, bundle),
-    ...(source ? { source: { url: source.url, quote: source.quote } } : {}),
+    ...(source ? { source: sourceOutput(source) } : {}),
     // The writer's own line only (FR-104): the default says what the claim level already says.
     ...(ownCaveat(item.notToConclude) ? { not_to_conclude: ownCaveat(item.notToConclude)! } : {}),
     ...(unverified ? { may_be_out_of_date: true } : {}),

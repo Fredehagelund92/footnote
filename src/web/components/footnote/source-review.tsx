@@ -210,19 +210,31 @@ function SourceValue({
   other?: FieldSide['sources'][number]
   side: 'before' | 'after'
 }) {
+  const quote = other && other.quote !== source.quote
+  // A source with no link is its line, who or what says so: compared as words, never as an address.
+  if (source.url === null)
+    return (
+      <div className="flex min-w-0 flex-col gap-1">
+        <span>
+          {quote ? <Whole text={source.quote ?? ''} side={side} marked /> : (source.quote ?? '')}
+        </span>
+        <span className="text-xs text-muted-foreground">No link</span>
+      </div>
+    )
+  const url = source.url
+  const was = other?.url ?? ''
   const [l, r] = other
     ? side === 'before'
-      ? wordDiff(source.url, other.url)
-      : wordDiff(other.url, source.url)
-    : [[{ text: source.url, changed: false }], [{ text: source.url, changed: false }]]
-  const quote = other && other.quote !== source.quote
+      ? wordDiff(url, was)
+      : wordDiff(was, url)
+    : [[{ text: url, changed: false }], [{ text: url, changed: false }]]
   return (
     <div className="flex min-w-0 flex-col gap-1">
       {/* An address a reader may not follow (javascript:) is shown, never linked. */}
-      {safeHref(source.url) ? (
+      {safeHref(url) ? (
         <span>
           <a
-            href={source.url}
+            href={url}
             target="_blank"
             rel="noreferrer"
             className={cn(

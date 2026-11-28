@@ -800,6 +800,27 @@ describe('a concise reply (FR-342)', () => {
       expect((short.structuredContent.context as object[])[0]).not.toHaveProperty(field)
   })
 
+  it('tells agents a source with no link has nothing to open, and who says so (FR-116)', async () => {
+    const s = setup()
+    s.data.items[0]!.evidence = [
+      { url: null, quote: 'Customs team, 5 August 2026', read_on: '2026-08-05' },
+    ]
+    const said = {
+      url: null,
+      said_by: 'Customs team, 5 August 2026',
+      note: 'No link to open: said_by is who or what says so.',
+    }
+    const short = await s.call('get_context', { question })
+    expect((short.structuredContent.context as object[])[0]).toMatchObject({ source: said })
+    const full = await s.call('get_context', { question, response_format: 'full' })
+    expect((full.structuredContent.context as object[])[0]).toMatchObject({
+      evidence: [{ ...said, written_on: '2026-08-05' }],
+    })
+    const read = await s.call('read_context', { id: 'itm_norway01' })
+    expect(JSON.stringify(read.structuredContent)).not.toContain('"quote"')
+    expect(JSON.stringify(read.structuredContent)).toContain('"said_by":"Customs team')
+  })
+
   it('says how every delivered item was reviewed, by role, never by name (FR-326)', async () => {
     const s = setup()
     const reviewed = {
