@@ -952,18 +952,31 @@ test.describe('wave 4, on the narrowest phone', () => {
 })
 
 test.describe('wave 4, beside a panel', () => {
-  test('the editor toolbar beside a panel at 820 fades where it is cut (Q04)', async ({ page }) => {
-    await page.setViewportSize({ width: 820, height: 800 })
+  test('the editor toolbar fades at the side it goes on, whatever its width (Q04)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 800 })
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
-      await go(page, '/context/itm_norway_stop/edit?dock=context.itm_kh4llvi9')
+      await go(page, '/context/itm_norway_stop/edit')
       const bar = page.locator('.rte-toolbar-scroll')
       await expect(bar).toBeVisible()
-      // Cut after Insert in the old layout, with nothing to say there was more.
+      // Narrow the scroller by hand, so it overflows on every platform's fonts.
+      await bar.evaluate((el) => {
+        el.style.maxWidth = '320px'
+        el.style.width = '320px'
+      })
       await expect(bar).toHaveAttribute('data-more', 'end')
-      await expect
-        .poll(() => bar.evaluate((el) => el.scrollWidth > el.clientWidth), { message: colorScheme })
-        .toBe(true)
+      expect(await bar.evaluate((el) => getComputedStyle(el).maskImage), colorScheme).toContain(
+        'linear-gradient',
+      )
+      await bar.evaluate((el) => el.scrollTo({ left: el.scrollWidth }))
+      await expect(bar).toHaveAttribute('data-more', 'start')
+      await bar.evaluate((el) => {
+        el.style.maxWidth = ''
+        el.style.width = ''
+      })
+      await expect(bar).not.toHaveAttribute('data-more', /.+/)
     }
   })
 })
