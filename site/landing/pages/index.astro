@@ -46,21 +46,21 @@ const tour = [
     light: itemLight,
     dark: itemDark,
     title: 'Someone writes it down',
-    text: 'A context item is short: what happened, where and from when, the sentence copied from its source, who owns it and when they last checked.',
+    text: 'A note says what happened, where and from when. It quotes its source and names its owner and its check date.',
     alt: 'A context item on the demo: Online sales to Norway stopped on 4 August 2026, with the sentence copied from the customs notice, its domain, owners, check date and source link.',
   },
   {
     light: inboxLight,
     dark: inboxDark,
     title: 'Its owner checks it',
-    text: 'It lands in the Inbox of whoever owns that area. They see what agents say today and what they would say after, then publish it or send it back.',
+    text: "It lands in its owner's Inbox. They see what agents say today and what they would say after, then publish it or send it back.",
     alt: 'The Inbox on the demo: a suggestion to change a context item, with what agents say today beside what they would say after it is published.',
   },
   {
     light: askLight,
     dark: askDark,
     title: 'Anyone asks',
-    text: 'Ask is the page for people. The answer starts with the line, says what is written, and names the item it used.',
+    text: 'Ask is the page for people. The answer starts with how far to trust it, says what is written, and names the note it used.',
     alt: 'Ask on the demo: a question about units sold in Norway, answered with the line Checked, what is written, and the item it used.',
   },
   {
@@ -91,7 +91,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
   <head>
     <Head
       title="Footnote. Tell your AI agents why the number moved"
-      description="Footnote: write down why a number moved, have the owner check it, and every AI agent reads it before it answers. Open source, self-hosted, pre-1.0."
+      description="Footnote is where your team writes down why a number moved. The owner checks it, and your connected AI agents read it before they answer. Open source, self-hosted, pre-1.0."
       fonts={[inter]}
     />
     <script is:inline>
@@ -118,8 +118,9 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
           </h1>
           <div class="hero-row">
             <div>
-              <p class="sub">The people who know your business write down what happened, where and when, and the owner of that area checks it. Every AI agent reads it before it answers. When nothing is written, it says so.</p>
+              <p class="sub">Your team writes down why a number moved, and the owner checks it. A connected AI agent reads it before it answers. Its answer carries a footnote: who checked it, and when.</p>
               <div class="cta"><a class="btn btn-main" href="#run">Run the demo</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
+              <p class="need">Runs on your computer with Docker.</p>
             </div>
             <p class="status"><i class={released ? 'dot' : 'dot none'}></i><b>{words.status}</b><a href={`${repository}#readme`}>What is true today</a></p>
           </div>
@@ -134,31 +135,31 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
 
       <section class="sec" id="why" aria-label="What Footnote is for">
         <div class="wrap">
-          <p class="state-big rv" id="state"><b>An AI agent asked why a number moved should answer from what a person checked,</b> or say plainly that nothing is written. Footnote exists for that, and three things make it work.</p>
+          <p class="state-big rv" id="state"><b>Ask an AI agent why orders in Norway fell and it may guess.</b> With Footnote, it answers from what your team wrote down and the owner checked.</p>
           <ol class="trio">
             <li class="rv">
               <div class="frag" aria-hidden="true">
                 <div class="row a1"><span class="chipx">Orders</span><span class="chipx">Netherlands</span><span class="chipx">13 Feb to 24 Sep 2026</span></div>
                 <div class="year"><i class="span"></i><i class="q a2" style="--x:45.8%" data-l="June: told"></i><i class="q out a3" style="--x:87.5%" data-l="November: not told"></i></div>
               </div>
-              <h2>A note is bound to a time and a place</h2>
-              <p>A market closed for a month, a tool that changed how it counts, data that arrived late. Each note carries its dates and its place, and is told only for a question about those dates and that place.</p>
+              <h2>A note covers one place and one stretch of time</h2>
+              <p>A market that closed for a month, or a report that arrived a day late. Each note names its dates and its place, and agents get it only for a question about those. In the app, a note is called a context item.</p>
             </li>
             <li class="rv" style="--d:120ms">
               <div class="frag" aria-hidden="true">
                 <div class="row"><span class="swap"><span class="badge was"><svg class="ic"><use href="#i-check"></use></svg>Checked</span><span class="badge b-old now"><svg class="ic"><use href="#i-old"></use></svg>Outdated</span></span><i class="due"></i><span class="a3" style="--t:1400ms">check date passed</span></div>
                 <div class="row a3" style="--t:1700ms"><span class="pill">Still true</span><span class="pill">Edit</span></div>
               </div>
-              <h2>It ends itself</h2>
-              <p>A question after a note's end date does not get it. Past its check date it is told as possibly out of date, until its owner looks again.</p>
+              <h2>Old notes carry a warning</h2>
+              <p>A note can have an end date, and agents stop getting it after that date. Most notes also have a check date. Past it, agents are told the note may be out of date until its owner looks again.</p>
             </li>
             <li class="rv" style="--d:240ms">
               <div class="frag" aria-hidden="true">
                 <div class="row a1"><s class="struck">This may reflect weaker marketing performance.</s></div>
                 <div class="row a3"><span class="badge b-missing"><svg class="ic"><use href="#i-none"></use></svg>Not found</span><span>nothing is written down</span></div>
               </div>
-              <h2>When nothing fits, it says so</h2>
-              <p>The answer says so in plain words, and no agent is handed a guess that sounds sure. The question goes back to the owner as a gap, so it gets written.</p>
+              <h2>If nothing is written, the answer says so</h2>
+              <p>The answer is Not found, and your agent is told so in plain words. A question that keeps finding nothing goes to the owner, so someone can write it down.</p>
             </li>
           </ol>
         </div>
@@ -167,8 +168,8 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       <section class="sec" id="loop" aria-labelledby="h-loop">
         <div class="wrap">
           <div class="sec-head rv">
-            <h2 id="h-loop">Anyone may suggest a note. Its owner decides</h2>
-            <p>Anyone who knows the business may suggest one, and so may an agent. Only a person publishes, and a draft, a suggestion or a comment never reaches an agent. These are real screens of the app, on its demo.</p>
+            <h2 id="h-loop">Anyone can suggest a note. The owner decides what agents read</h2>
+            <p>Your agent can suggest one too. Nothing reaches an agent without its owner's yes.</p>
           </div>
           <div class="tour rv" id="tour" style="--d:120ms">
             <div class="tour-tabs" role="tablist" aria-label="Screens of the app">
@@ -217,8 +218,8 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       <section class="sec" id="meaning" aria-labelledby="h-meaning">
         <div class="wrap">
           <div class="sec-head rv">
-            <h2 id="h-meaning">It keeps what the numbers mean, never the numbers</h2>
-            <p>Your semantic layer, such as Cube or dbt, still defines Orders and returns the figure. A definition says what a metric is. A note says what happened to it, when and where.</p>
+            <h2 id="h-meaning">The figure comes from your metrics tool. The reason comes from Footnote</h2>
+            <p>Orders in Norway fell to almost nothing in August. Your metrics tool (a semantic layer, such as Cube or dbt) defines Orders and returns that figure. Footnote holds why it fell, and from when.</p>
           </div>
           <div class="sb glow rv" id="sb" style="--d:120ms">
             <i class="gl" aria-hidden="true"></i>
@@ -275,8 +276,8 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       <section class="sec" id="definitions" aria-labelledby="h-def">
         <div class="wrap">
           <div class="sec-head rv">
-            <h2 id="h-def">Every metric, with what people know about it</h2>
-            <p>Definitions lists every metric and dimension your semantic layer defines, read only: what it means, its other names, and what it is built from. Beside each one sit the notes people wrote about it.</p>
+            <h2 id="h-def">Each metric, with the notes people wrote about it</h2>
+            <p>Definitions shows the metrics and dimensions your semantic layer defines, such as Orders and Market. Footnote only reads them.</p>
           </div>
           <Definitions />
         </div>
@@ -285,8 +286,8 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       <section class="sec" id="lines" aria-labelledby="h-lines">
         <div class="wrap">
           <div class="sec-head rv">
-            <h2 id="h-lines">Every answer starts with one of six lines</h2>
-            <p>The line comes first, for people in Ask and for agents over MCP. Code picks it from the notes found, never a model, so Checked means the same thing every time.</p>
+            <h2 id="h-lines">Every answer starts by saying how far to trust it</h2>
+            <p>That first line is one of six, in Ask and for agents. Plain code sets it from the notes found, never a model, so Checked means the same thing every time.</p>
           </div>
           <ul class="lines">
             <li class="rv" style="--d:0ms"><span class="badge"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>Checked</span><p>Something applies, and its owner published it with a source and a check date.</p><p>Nothing to do.</p></li>
@@ -302,8 +303,8 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
       <section class="sec" id="agents" aria-labelledby="h-agents">
         <div class="wrap">
           <div class="sec-head rv">
-            <h2 id="h-agents">Your agent asks the same way</h2>
-            <p>Over MCP, signed in as you. It gets the line first, then the notes that apply, each with its source.</p>
+            <h2 id="h-agents">Your agent asks Footnote before it answers</h2>
+            <p>It connects over MCP, the way agents reach other tools, and signs in as you. One line in your AGENTS.md tells it to ask first. It gets the first line, then each note that applies, with its source.</p>
           </div>
           <div class="agents-grid">
             <div>
@@ -356,7 +357,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
               </ul>
             </div>
           </div>
-          <p class="small">Cube and dbt give Footnote the names of your metrics and markets, read only. Footnote keeps what the numbers mean, not the numbers. Documents arrive as suggestions for an owner, never as published notes. <a href={docs('connectors')}>Connectors</a>, <a href={docs('connect-an-agent')}>Connect an agent</a></p>
+          <p class="small">Footnote reads the names of your metrics and markets from Cube or dbt. A document from Google Drive or Git arrives as a suggestion, and its owner decides whether to publish it. <a href={docs('connectors')}>Connectors</a>, <a href={docs('connect-an-agent')}>Connect an agent</a></p>
         </div>
       </section>
 
@@ -381,7 +382,7 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
 
       <section class="sec close" aria-labelledby="h-close">
         <div class="wrap rv">
-          <h2 id="h-close">{words.closeTitle}<b>Runs on your computer today</b></h2>
+          <h2 id="h-close">{words.closeTitle} <b>Try the demo on your computer</b></h2>
           <div class="cta"><a class="btn btn-main" href={docs('try-the-demo')}>Run the demo</a><a class="btn btn-line" href={docs()}>Read the docs</a></div>
           <p>Open source under Apache-2.0</p>
         </div>
