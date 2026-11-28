@@ -299,7 +299,8 @@ export async function* writingHelpTurn(
     [
       ...linksIn(input.message),
       ...(input.turns ?? []).flatMap((turn) => linksIn(turn.said)),
-      ...(input.draft.draft.evidence ?? []).map((entry) => entry.url),
+      // A source with no link names none.
+      ...(input.draft.draft.evidence ?? []).flatMap((entry) => (entry.url ? [entry.url] : [])),
     ].flatMap((url) => (URL.canParse(url) ? [new URL(url).href] : [])),
   )
   const givenLink = (url: string) => URL.canParse(url) && sourceLinks.has(new URL(url).href)
@@ -317,7 +318,13 @@ export async function* writingHelpTurn(
         did: 'refused',
         why: `It is not in the form this field takes: ${parsed.error?.issues[0]?.message ?? 'no value'}.`,
       }
-    if (field === 'evidence' && !(parsed.data as { url: string }[]).every((e) => givenLink(e.url)))
+    // Only a link is checked: a source with no link is who or what says so, in the person's words.
+    if (
+      field === 'evidence' &&
+      !(parsed.data as ({ url: string } | { said_by: string })[]).every(
+        (e) => !('url' in e) || givenLink(e.url),
+      )
+    )
       return { field, did: 'refused', why: 'Its link is not one from your messages.' }
     const given = { [field]: parsed.data } as HelpWrite
     try {

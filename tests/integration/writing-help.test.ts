@@ -754,6 +754,20 @@ describe('what it reads', () => {
     expect((await proposal(draft.proposalId)).draft.evidence).toMatchObject([cited])
   })
 
+  it('writes a source with no link, who or what says so, as the person said it', async () => {
+    const draft = await start()
+    decide = writes({ evidence: [{ said_by: 'Pricing committee, 20 August 2026' }] })
+    const done = await turn('author', draft.proposalId, 'The pricing committee decided it.')
+    expect(done.turn).toMatchObject({ changed: ['evidence'], refused: [] })
+    expect((await proposal(draft.proposalId)).draft.evidence).toMatchObject([
+      { url: null, quote: 'Pricing committee, 20 August 2026' },
+    ])
+    // A draft whose source has no link still takes a turn.
+    decide = writes({ title: 'Prices from the committee' })
+    const again = await turn('author', draft.proposalId, 'Give it a title.')
+    expect(again.turn).toMatchObject({ changed: ['title'], refused: [] })
+  })
+
   it('says why a link was not read, and still works from the message', async () => {
     const draft = await start()
     reading = () => Promise.reject(new PageReadError('needs_sign_in'))
