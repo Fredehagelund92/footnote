@@ -1165,78 +1165,346 @@ button.ref:focus-visible,
   color: var(--fg-4);
 }
 
-/* Meaning, not numbers: the figure, the footnote, the answer */
-.sum {
+/* Meaning, not numbers: a question asked by dragging along the Orders line. The page shows no
+   figure, only the line, and says each week in words. */
+.sb {
   margin-top: 72px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr) 24px minmax(0, 1fr);
-  column-gap: 24px;
-}
-.sum .pic {
-  height: 176px;
-  padding: 24px;
-  display: grid;
-  align-content: center;
+  background: linear-gradient(var(--lit), transparent 200px), var(--bg-1);
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--bg-1);
-  min-width: 0;
+  box-shadow: var(--win-shadow);
 }
-.sum .op {
-  height: 176px;
-  display: grid;
-  place-items: center;
-  font: 400 20px/1 var(--mono);
-  color: var(--fg-4);
-}
-.sum h3 {
-  margin-top: 20px;
-}
-.sum .part p {
-  margin-top: 4px;
-  max-width: 22rem;
-  font-size: 14px;
-  line-height: 22px;
-  color: var(--fg-3);
-}
-.sum svg.line {
-  width: 100%;
-  height: 72px;
-  overflow: visible;
-}
-.sum svg.line path {
-  fill: none;
-  stroke: var(--fg-2);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset 1400ms var(--ease) 200ms;
-}
-.anim .sum:not(.in) svg.line path {
-  stroke-dashoffset: 1;
-}
-.sum .axis {
-  margin-top: 12px;
+.sb-q {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px 24px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  font-size: 17px;
+  line-height: 26px;
+  color: var(--fg-2);
+}
+.sb-q b {
+  font-weight: 510;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.sb-k {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
   font: 400 12px/16px var(--mono);
   letter-spacing: 0;
   color: var(--fg-4);
 }
-.sum .mini {
-  display: grid;
-  gap: 10px;
+.sb-k svg {
+  width: 14px;
+  height: 14px;
+  color: var(--fg-2);
+}
+.sb-hint {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--fg-3);
+  transition: opacity 400ms var(--ease);
+}
+.sb-hint svg {
+  width: 18px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sb.used .sb-hint {
+  opacity: 0;
+}
+/* The chart on its own dot field, 28 px apart as the ground's. */
+.sb-chart {
+  position: relative;
+  height: 280px;
+  margin: 24px 24px 0;
+  border-radius: 8px;
+  background-image: radial-gradient(circle, var(--dot) 1.15px, transparent 1.6px);
+  background-size: 28px 28px;
+  touch-action: pan-y;
+}
+.sb-chart:has(.sb-range:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.sb-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.sb-line {
+  fill: none;
+  stroke: var(--fg-2);
+  stroke-width: 1.75;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+}
+.sb-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  border-left: 1px dashed var(--accent);
+}
+.sb-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--accent-bg), transparent 70%);
+  opacity: 0.5;
+  transition: opacity 400ms var(--ease);
+}
+.sb.in-note .sb-band::before {
+  opacity: 1;
+}
+.sb-band-l {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-size: 13px;
   line-height: 20px;
   letter-spacing: 0;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.sb .ref {
+  margin: 0 6px 0 0;
+  vertical-align: 0;
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: none;
+}
+.sb-cur {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid var(--line-2);
+  pointer-events: none;
+}
+.sb.in-note .sb-cur {
+  border-left-color: var(--accent);
+}
+.sb-flag {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--btn);
+  color: var(--btn-fg);
+  font: 500 12px/16px var(--mono);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.sb-pt {
+  position: absolute;
+  left: 0;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--fg);
+  box-shadow:
+    0 0 0 3px var(--bg-1),
+    0 0 0 4px var(--line-2);
+}
+.sb.in-note .sb-pt {
+  background: var(--accent);
+}
+.sb.glide .sb-cur {
+  transition: left 90ms linear;
+}
+/* The range lies over the chart, unseen, its 1 px thumb on the week: a drag maps straight to x. */
+.sb-range {
+  position: absolute;
+  inset: -8px 0 -8px;
+  width: 100%;
+  height: calc(100% + 16px);
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+  touch-action: pan-y;
+}
+.sb-range::-webkit-slider-runnable-track {
+  height: 100%;
+}
+.sb-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 1px;
+  height: 100%;
+}
+.sb-range::-moz-range-thumb {
+  width: 1px;
+  height: 100%;
+  border: 0;
+}
+/* The ring: the chart's own dots, lit outward where the line falls (shared/ground.ts). */
+.sb-lit {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: sb-lit 1500ms var(--ease) var(--t, 0ms) both;
+}
+@keyframes sb-lit {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  25% {
+    opacity: var(--a, 0.9);
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+.sb-months {
+  position: relative;
+  height: 16px;
+  margin: 12px 24px 0;
+  font: 400 12px/16px var(--mono);
+  letter-spacing: 0;
+  color: var(--fg-4);
+}
+.sb-months span {
+  position: absolute;
+  top: 0;
+}
+.sb-cols {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+  border-top: 1px solid var(--line);
+}
+.sb-col {
+  min-width: 0;
+  padding: 24px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+.sb-col + .sb-col {
+  border-left: 1px solid var(--line);
+}
+.sb-col > .sb-k {
+  margin: 0;
+}
+.sb-move {
+  font-weight: 510;
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  text-wrap: balance;
+}
+.sb-cap,
+.sb-who {
+  font-size: 14px;
+  line-height: 22px;
   color: var(--fg-3);
 }
-.sum .mini .head {
-  display: flex;
+.sb-rules {
+  display: grid;
+  gap: 6px;
+}
+.sb-rules li {
+  display: grid;
+  grid-template-columns: 16px 64px minmax(0, 1fr);
+  align-items: center;
   gap: 10px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--fg-3);
+}
+.sb-rules b {
+  font-weight: 510;
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.sb-rules li:not(.ok) b {
+  color: var(--fg-2);
+  font-weight: 400;
+}
+/* A rule's mark: a dash until it matches, then a tick. */
+.sb-tick {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--fg-4);
+  transition: box-shadow 200ms var(--ease);
+}
+.sb-tick::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 7px;
+  width: 6px;
+  height: 1.5px;
+  background: var(--fg-4);
+}
+.sb-rules .ok .sb-tick {
+  box-shadow: inset 0 0 0 1.5px var(--ok);
+}
+.sb-rules .ok .sb-tick::after {
+  left: 4.5px;
+  top: 4px;
+  width: 7px;
+  height: 4px;
+  background: none;
+  border: solid var(--ok);
+  border-width: 0 0 1.5px 1.5px;
+  transform: rotate(-45deg);
+}
+.sb-res {
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.sb-hit,
+.sb-miss {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.sb-res > [hidden] {
+  display: none;
+}
+.sb-title {
+  display: flex;
   align-items: flex-start;
   font-weight: 510;
   font-size: 15px;
@@ -1244,51 +1512,30 @@ button.ref:focus-visible,
   letter-spacing: -0.011em;
   color: var(--fg);
 }
-.sum .mini .ref {
+.sb-title .ref {
   flex: none;
-  margin: 1px 0 0;
-  background: var(--accent);
-  color: var(--bg);
-  box-shadow: none;
+  margin-top: 1px;
+  margin-right: 10px;
 }
-.sum .mini .row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.sum .mini b {
-  font-weight: 510;
-  color: var(--fg);
-}
-.sum .part p.says {
-  margin: 0;
-  max-width: none;
+.sb-says {
   font-size: 20px;
   line-height: 30px;
   letter-spacing: -0.014em;
   color: var(--fg);
+  text-wrap: pretty;
 }
-.sum .says .ref {
-  background: var(--accent);
-  color: var(--bg);
-  box-shadow: none;
+.sb-says .ref {
+  margin-left: 6px;
+  vertical-align: 3px;
 }
-.sum .b2,
-.sum .b3 {
-  transition:
-    opacity 600ms var(--ease) var(--t),
-    transform 600ms var(--ease) var(--t);
+.sb-says.swap {
+  animation: sb-says 420ms var(--ease);
 }
-.sum .b2 {
-  --t: 900ms;
-}
-.sum .b3 {
-  --t: 1500ms;
-}
-.anim .sum:not(.in) .b2,
-.anim .sum:not(.in) .b3 {
-  opacity: 0;
-  transform: translateY(8px);
+@keyframes sb-says {
+  from {
+    opacity: 0.35;
+    transform: translateY(4px);
+  }
 }
 
 /* Definitions beside their context */
@@ -1818,9 +2065,29 @@ h3.then {
     grid-template-columns: 1fr;
     margin-top: 48px;
   }
-  .sum {
-    grid-template-columns: minmax(0, 1fr);
+  .sb {
     margin-top: 48px;
+  }
+  .sb-q {
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+  .sb-chart {
+    height: 220px;
+    margin: 20px 16px 0;
+  }
+  .sb-months {
+    margin: 10px 16px 0;
+  }
+  .sb-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sb-col {
+    padding: 20px 16px;
+  }
+  .sb-col + .sb-col {
+    border-left: 0;
+    border-top: 1px solid var(--line);
   }
   .def {
     grid-template-columns: minmax(0, 1fr);
@@ -1843,13 +2110,6 @@ h3.then {
   }
   .def .panel::before {
     content: 'Notes about it';
-  }
-  .sum .op {
-    height: 48px;
-  }
-  .sum .pic {
-    height: auto;
-    min-height: 136px;
   }
   .lines,
   .go {
@@ -1887,5 +2147,33 @@ h3.then {
   }
   .rows li {
     align-items: flex-start;
+  }
+  .sb-q {
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .sb-q .sb-k {
+    display: flex;
+    margin: 0 0 4px;
+  }
+  .sb-chart {
+    height: 190px;
+    margin-top: 44px;
+  }
+  .sb-band-l {
+    top: 8px;
+    left: 8px;
+  }
+  .sb-long,
+  .sb-months .wide {
+    display: none;
+  }
+  .sb-move {
+    font-size: 24px;
+    line-height: 30px;
+  }
+  .sb-says {
+    font-size: 18px;
+    line-height: 28px;
   }
 }

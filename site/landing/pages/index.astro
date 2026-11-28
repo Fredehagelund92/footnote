@@ -14,6 +14,7 @@ import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
 import Sprite from '../components/Sprite.astro'
 import { released, releaseWords } from '../release.ts'
+import * as meaning from '../meaning.ts'
 // The tour's screens: two of the landing page's own captures and three of the docs' pictures, all
 // taken by scripts/capture.ts.
 import itemLight from '../captures/item-light.webp'
@@ -77,6 +78,10 @@ const tour = [
   },
 ]
 const opening = tour[0]!
+
+/* Meaning, not numbers: the week the scrubber opens on, as it is drawn before any script runs. */
+const shown = meaning.week(meaning.opening)
+const point = meaning.at(meaning.opening)
 
 const headline = 'Tell your AI agents why the number moved before they'.split(' ')
 ---
@@ -204,26 +209,55 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
             <h2 id="h-meaning">It keeps what the numbers mean, never the numbers</h2>
             <p>Your semantic layer, such as Cube or dbt, still defines Orders and returns the figure. A definition says what a metric is. A note says what happened to it, when and where.</p>
           </div>
-          <div class="sum rv" id="sum">
-            <div class="part">
-              <div class="pic" aria-hidden="true"><svg class="line" viewBox="0 0 300 60" preserveAspectRatio="none"><path pathLength="1" d="M0,14 L24,9 L48,17 L72,11 L96,6 L120,15 L144,10 L150,52 L180,54 L210,53 L240,55 L270,54 L300,54"></path></svg><p class="axis"><span>Orders, Norway</span><span>2026</span></p></div>
-              <h3>The figure</h3>
-              <p>Cube or dbt MetricFlow defines Orders and returns it. Footnote reads the names only, and keeps no figure.</p>
+          <div class="sb glow rv" id="sb" style="--d:120ms">
+            <i class="gl" aria-hidden="true"></i>
+            <div class="sb-q">
+              <p><span class="sb-k">Asked</span>What happened to orders in Norway in the week of <b class="sb-date">{shown.day}</b>?</p>
+              <span class="sb-hint" aria-hidden="true"><svg viewBox="0 0 24 12"><path d="M5 2 1 6l4 4M19 2l4 4-4 4M1 6h22"></path></svg>Drag along the line</span>
             </div>
-            <span class="op" aria-hidden="true">+</span>
-            <div class="part">
-              <div class="pic b2" aria-hidden="true"><div class="mini"><p class="head"><span class="ref">1</span>Online sales to Norway stopped on 4 August 2026</p><p class="row"><i class="av" style="--c:#b4551f">ML</i><span>Written by <b>Maria Lindqvist</b></span></p><p class="row"><i class="av" style="--c:#12746b">JA</i><span>Checked by <b>Jon Abara</b>, 3 Oct 2026</span></p></div></div>
-              <h3>The footnote</h3>
-              <p>Someone in Sales wrote it, and the owner checked it.</p>
+            <div class="sb-chart">
+              <div class="sb-band" style={`left:${meaning.from * 100}%`} aria-hidden="true"><span class="sb-band-l"><span class="ref">1</span><span class="sb-long">applies&nbsp;</span>from 4 Aug<span class="sb-long">&nbsp;2026</span></span></div>
+              <svg class="sb-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true"><path class="sb-line" d={meaning.path}></path></svg>
+              <div class="sb-cur" style={`left:${point.x * 100}%`} aria-hidden="true"><span class="sb-flag">{shown.day.replace(/ \d{4}$/, '')}</span><i class="sb-pt" style={`top:${point.y * 100}%`}></i></div>
+              <input class="sb-range" type="range" min="0" max={meaning.last} step="1" value={meaning.opening} aria-label="The week asked about" aria-valuetext={`Week of ${shown.day}`} aria-describedby="sb-line" />
+              <p class="sr-only" id="sb-line">{meaning.described}</p>
             </div>
-            <span class="op" aria-hidden="true">=</span>
-            <div class="part">
-              <div class="pic b3"><p class="says">Orders in Norway fell to almost nothing from 4 August.<span class="ref" role="img" aria-label="Footnote 1">1</span></p></div>
-              <h3>The answer</h3>
-              <p>From your own agent over MCP, or from Ask in the browser.</p>
+            <div class="sb-months" aria-hidden="true">
+              {meaning.months.map((m) => <span class:list={[{ wide: !m.narrow }]} style={`left:${m.x * 100}%`}>{m.label}</span>)}
             </div>
+            <div class="sb-cols">
+              <div class="sb-col">
+                <p class="sb-k"><svg aria-hidden="true"><use href="#l-cube"></use></svg>The figure, from Cube</p>
+                <p class="sb-move">{shown.move}</p>
+                <p class="sb-cap">The figure stays in Cube, and your agent reads it there. Footnote never reads it, and keeps none.</p>
+              </div>
+              <div class="sb-col">
+                <p class="sb-k"><svg aria-hidden="true"><use href="#i-logo"></use></svg>Footnote matches</p>
+                <ul class="sb-rules">
+                  <li class="ok"><i class="sb-tick" aria-hidden="true"></i><span>Metric</span><b>Orders</b></li>
+                  <li class="ok"><i class="sb-tick" aria-hidden="true"></i><span>Market</span><b>Norway</b></li>
+                  <li class:list={['sb-dates', { ok: shown.applies }]}><i class="sb-tick" aria-hidden="true"></i><span>Dates</span><b class="sb-dtext">{shown.dates}</b></li>
+                </ul>
+                <div class="sb-res">
+                  <div class="sb-hit" hidden={!shown.applies}>
+                    <span class="badge"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>Checked</span>
+                    <p class="sb-title"><span class="ref">1</span>{meaning.note.title}</p>
+                    <p class="sb-who">Written by {meaning.note.writer}. Checked by {meaning.note.checker}, {meaning.note.checkedOn}.</p>
+                  </div>
+                  <div class="sb-miss" hidden={shown.applies}>
+                    <span class="badge b-missing"><svg class="ic" aria-hidden="true"><use href="#i-none"></use></svg>Not found</span>
+                    <p class="sb-who">Nothing is written about Orders in Norway for that week.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="sb-col">
+                <p class="sb-k">Your agent says</p>
+                <p class="sb-says">{shown.says}{shown.applies && <span class="ref" role="img" aria-label="Footnote 1">1</span>}</p>
+              </div>
+            </div>
+            <p class="sr-only" id="sb-live" aria-live="polite"></p>
           </div>
-          <p class="small">No model picks the notes. Plain rules match the question's metric, market and dates against what's written.</p>
+          <p class="small">No model picks the note. These three plain rules match the question's metric, market and dates against what's written.</p>
         </div>
       </section>
 
