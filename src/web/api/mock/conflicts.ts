@@ -76,7 +76,11 @@ function sideOf(f: Fact, domains: Domains): ConflictSide {
     version: 1,
     checkedOn: f.checkedOn || null,
     checkedBy: f.checkedBy || null,
-    source: f.source ? { url: f.source, quote: f.quote } : null,
+    source: f.said
+      ? { url: null, quote: f.said }
+      : f.source
+        ? { url: f.source, quote: f.quote }
+        : null,
   }
 }
 

@@ -133,9 +133,12 @@ export const validitySchema = z.object({
 })
 export type Validity = z.infer<typeof validitySchema>
 
-/** A link and a short quote. Never a copy of the source (FR-116). */
+/**
+ * A link and a short quote. Never a copy of the source (FR-116). With no link to open, `url` is
+ * null and `quote` is one line that says who or what says so.
+ */
 export const evidenceSchema = z.object({
-  url: z.string(),
+  url: z.nullable(z.string()),
   quote: z.string(),
   date: isoDate,
 })

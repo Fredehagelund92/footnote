@@ -144,10 +144,12 @@ import {
   setOwners,
   changeGrant,
   cookieAge,
+  holdsDemo,
   sessionCookie,
   createPeopleService,
   type SignIn,
 } from '../modules/auth/index.ts'
+import { alreadySetUp } from '../../contract/auth.ts'
 import { createAlertsService } from '../modules/alerts/index.ts'
 import {
   createCatalogueService,
@@ -379,7 +381,12 @@ export function createRouter({
         message: session ? refusals.forbidden : refusals.signedOut,
       })
     if (!['GET', 'HEAD', 'OPTIONS'].includes(context.request.method)) {
-      checkMutation(context.request, session, origins, operation === 'auth.signIn')
+      checkMutation(
+        context.request,
+        session,
+        origins,
+        operation === 'auth.signIn' || operation === 'auth.setUp',
+      )
     }
     await tx.query("select set_config('cl.person_id',$1,true)", [session?.person.id ?? ''])
     return session
@@ -772,10 +779,11 @@ export function createRouter({
       methods: authorized.auth.methods.handler(async ({ context }) => {
         // The demo: its own sign-in, or the demo loaded, whose sandbox domain only the demo's
         // seed makes (db/seed). An install with its own data on the dev picker is not the demo.
-        const [loaded] = await context.tx.query<{ demo: boolean }>(
-          'select exists (select 1 from areas where is_demo) as demo',
-        )
-        const install = { demo: signIn.method === 'demo' || loaded!.demo, profileLabel }
+        const install = {
+          demo: signIn.method === 'demo' || (await holdsDemo(context.tx)),
+          profileLabel,
+          first: await signIn.first(context.tx),
+        }
         return signIn.method === 'oidc'
           ? {
               method: 'oidc' as const,
@@ -797,6 +805,41 @@ export function createRouter({
             message:
               "We couldn't sign you in. Nothing was changed. Check the email address, then try again.",
           })
+        context.reply.header(
+          'set-cookie',
+          sessionCookie(
+            login.token,
+            context.request.protocol === 'https',
+            cookieAge(signIn.lifetime),
+          ),
+        )
+        return { ...login.session, profileLabel, modelConnected }
+      }),
+      // The first person says who they are and names the workspace, as its admin from then on.
+      setUp: authorized.auth.setUp.handler(async ({ context, input }) => {
+        const login = await signIn.setUp(
+          context.tx,
+          { email: input.email.toLowerCase(), name: input.name },
+          context.request.headers.cookie,
+        )
+        if (!login) throw new ORPCError('CONFLICT', { message: alreadySetUp })
+        // The name is a setting like any other: saved as the new admin, with them in its history.
+        await context.tx.query("select set_config('cl.person_id',$1,true)", [
+          login.session.person.id,
+        ])
+        const [named] = await context.tx.query<{ version: number }>(
+          "select max(version)::int as version from settings_versions where key = 'workspace.name'",
+        )
+        await setSetting(
+          context.tx,
+          {
+            key: 'workspace.name',
+            version: named!.version,
+            value: input.workspace,
+            reason: 'Named when the workspace was set up.',
+          },
+          () => knownTools(context.tx),
+        )
         context.reply.header(
           'set-cookie',
           sessionCookie(

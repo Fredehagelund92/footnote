@@ -34,7 +34,9 @@
 #                  its values: broad, so the reviewer is told). At least one.
 #   validity       start, and end (null when it has none)
 #   reviewDate     when the owner checks it again; needed when end is null, null otherwise
-#   evidence       at least one source: url, a sentence quoted from it, the day you read it
+#   evidence       at least one source: url, a sentence quoted from it, the day you read it. For
+#                  what is written nowhere a link opens, url: null and the quote one line that
+#                  says who or what says so, with the day it was written
 #   riskLevel      low, normal or high. Be honest, and know the cost: low needs no answer test;
 #                  normal runs a paid impact test before it can be accepted, high a full one.
 #   claimLevel     fact_only (what the item says is documented, no cause proven), or

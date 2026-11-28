@@ -32,6 +32,8 @@ export const policies = {
   'invites.lookup': 'public',
   'auth.people': 'public',
   'auth.signIn': 'public',
+  // The first person of a workspace with nobody in it: the sign-in refuses it once someone is.
+  'auth.setUp': 'public',
   'auth.signOut': 'read',
   'auth.session': 'read',
   'connections.request': 'read',

@@ -85,8 +85,14 @@ export type Fact = {
   status: Status
   checkedBy: string
   checkedOn: string
+  /** The link of its source, and the sentence copied from it. Both empty for a source with no link. */
   source: string
   quote: string
+  /**
+   * A source with no link (FR-116): the one line that says who or what says so, such as "Pricing
+   * committee, 20 August 2026". Empty or absent when the source is a link, or when there is none.
+   */
+  said?: string
   dontConclude: string
   outOfDate?: string
   disagreesWith?: string

@@ -636,7 +636,8 @@ export function createContextService(
     const dates = (v: ItemVersion) => `${v.validity.start} to ${v.validity.end ?? 'no end'}`
     if (dates(before) !== dates(after))
       return { kind: 'dates', field: 'When', before: dates(before), after: dates(after) }
-    const source = (v: ItemVersion) => v.evidence.map((e) => e.url).join('\n')
+    // A source with no link is its line: who or what says so.
+    const source = (v: ItemVersion) => v.evidence.map((e) => e.url ?? e.quote).join('\n')
     if (source(before) !== source(after))
       return { kind: 'link', field: 'Source', before: source(before), after: source(after) }
     // A version that only set or removed the Conflict flag says so, not a wording change.

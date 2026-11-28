@@ -1,5 +1,5 @@
 import type pg from 'pg'
-import type { AnonymousRecord, AnonymousStore } from './records.ts'
+import type { AnonymousRecord, AnonymousStore, DeliveryRecord } from './records.ts'
 
 export function createAnonymousStore(pool: pg.Pool): AnonymousStore {
   return {
@@ -19,6 +19,8 @@ export function createAnonymousStore(pool: pg.Pool): AnonymousStore {
       } finally {
         client.release()
       }
+      if (records.some((r) => r.kind === 'delivery' && foundNothing(r.value)))
+        await firstQuestions(pool)
     },
     async reportGap(topic, note) {
       const row = await pool.query<{ id: string }>(
@@ -40,6 +42,7 @@ export function createAnonymousStore(pool: pg.Pool): AnonymousStore {
         'insert into feedback (delivery_id,verdict,client_label,note,area_id,item_id) values ($1,$2,$3,$4,$5,$6)',
         [delivery, verdict, client, note ?? null, area ?? null, item ?? null],
       )
+      if (verdict !== 'helpful') await firstQuestions(pool)
     },
     async reply(id) {
       const row = await pool.query<{ area: string | null }>(
@@ -49,6 +52,19 @@ export function createAnonymousStore(pool: pg.Pool): AnonymousStore {
       return row.rows[0]
     },
   }
+}
+
+/** An agent's call that found nothing written: what a Not found card counts (FR-606 case 1). */
+const foundNothing = (delivery: DeliveryRecord) =>
+  delivery.caller === 'agent' && delivery.status === 'no_match'
+
+/**
+ * While fewer than five people have signed in, what agents found nothing for, or reported, reaches
+ * its owners now and not at the detection job's next turn (FR-606). What was written is kept
+ * whatever happens here: a detection that fails is left to the job.
+ */
+async function firstQuestions(pool: pg.Pool): Promise<void> {
+  await pool.query('select serving_first_questions()').catch(() => undefined)
 }
 
 /**

@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import type { FastifyInstance } from 'fastify'
 import type pg from 'pg'
 import type { Logger } from 'pino'
@@ -58,6 +59,9 @@ import { createPageReader, type PageReader } from './modules/web/index.ts'
  * (vercel.ts) starts neither and answers one request at a time.
  */
 
+/** The demo's sample people, whom the picker offers on the demo and nowhere else. */
+const samplePeopleFile = fileURLToPath(new URL('../../db/seed/people.local.yml', import.meta.url))
+
 export interface Service {
   app: FastifyInstance
   database: Database
@@ -73,7 +77,7 @@ export interface Service {
 export interface ServiceOptions {
   /** The MCP server and its serving pool. Off where /mcp is not served. Default on. */
   mcp?: boolean
-  /** The picker's people, when they are not read from FOOTNOTE_DEV_PEOPLE_FILE. */
+  /** The picker's own list of people, when it is not read from FOOTNOTE_DEV_PEOPLE_FILE. */
   devPeople?: readonly DevPerson[]
   /** The application pool's size, and a hook that is handed the pool once it exists. */
   pool?: { max?: number; attach?: (pool: pg.Pool) => void }
@@ -238,11 +242,16 @@ async function compose(
       lifetime: config.sessions,
     })
   } else {
-    signIn = createDevSignIn(
-      options.devPeople ?? (await readDevPeople(config.devPeopleFile)),
-      config.nodeEnv,
-      { method: config.auth === 'demo' ? 'demo' : 'dev', lifetime: config.sessions },
-    )
+    // A list the host gave is offered as it is. With none, the demo offers its sample people, and
+    // a workspace on its own data its own: the first person there says who they are.
+    const listed =
+      options.devPeople ??
+      (config.devPeopleFile === undefined ? [] : await readDevPeople(config.devPeopleFile))
+    signIn = createDevSignIn(listed, config.nodeEnv, {
+      method: config.auth === 'demo' ? 'demo' : 'dev',
+      lifetime: config.sessions,
+      sample: listed.length ? [] : await readDevPeople(samplePeopleFile),
+    })
   }
   let secrets: SecretStore = noSecretStore
   if (config.secretsDir !== undefined) {

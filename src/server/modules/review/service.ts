@@ -57,7 +57,7 @@ export function refuseWithoutSource(version: Pick<ItemVersion, 'evidence'>) {
   if (!publishable(version))
     throw new ORPCError('UNPROCESSABLE_CONTENT', {
       message:
-        'Add a source before you publish it: a link to where this is written, and a sentence from it.',
+        'Add a source before you publish it: a link to where this is written and a sentence from it, or one line that says who or what says so.',
     })
 }
 

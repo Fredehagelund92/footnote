@@ -49,7 +49,7 @@ The rules in the guide's contract section are the invariants I-1 to I-8 ([the ta
 ## Run and operate the service
 
 - The service reads its configuration in `src/server/config/env.ts`. `npm run db:migrate` is `db/prepare.ts`: it makes the roles and the database as `DATABASE_URL_BOOTSTRAP`, then applies migrations and grants as `context_layer_owner`. The container runs it before every start. `npm run seed` loads the demo and the variants the tests use by hand ([db/README.md](../../db/README.md)).
-- `FOOTNOTE_DEV_PEOPLE_FILE` defaults to `db/seed/people.local.yml`. `FOOTNOTE_WEB_READ_LOOPBACK` is for the end-to-end tests only.
+- `FOOTNOTE_DEV_PEOPLE_FILE` has no default: unset, the picker offers `db/seed/people.local.yml` only on the demo, and an install on its own data asks its first visitor who they are (`auth.first_person`). `FOOTNOTE_WEB_READ_LOOPBACK` is for the end-to-end tests only.
 - `FOOTNOTE_PRODUCT_NAME` and what it does not rename: [the product name](../product-name.md).
 - Request limits are FR-408. The web image's nginx forwards each caller's address and drops one a caller sends, and `compose.yaml` trusts it. nginx overwrites `X-Forwarded-For` with its own peer's address, so it gives per-caller limits only where it is the first proxy.
 - Jobs: `observability.rollup` runs at 02:45, `partitions.ensure` at 03:00, `observability.snapshot` at 03:15 (the monthly snapshot of the withdrawn Summary) and `retention.run` at 03:30, all UTC. Jobs fail with retries and alerts (NFR-047). Job behaviour is in [the API page](api.md#observability) and [the evaluations page](../evaluations.md).

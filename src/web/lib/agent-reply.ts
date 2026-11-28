@@ -25,7 +25,8 @@ export function agentReply(answer: Answer, facts: Fact[]) {
       id: f.id,
       title: f.title,
       checked: `${f.checkedBy}, ${f.checkedOn}`,
-      source: f.source,
+      // A source with no link is its line, and says there is nothing to open.
+      source: f.said ? `${f.said} (no link to open)` : f.source,
     })),
     reply_id: 'rpl_7f3a91c2',
     edition: '2026-10-22.4',

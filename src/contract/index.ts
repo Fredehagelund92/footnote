@@ -149,6 +149,7 @@ import {
 } from './evals.ts'
 
 import {
+  firstPersonSchema,
   meSchema,
   sessionSchema,
   signInMethodSchema,
@@ -769,6 +770,16 @@ export const contract = {
     signIn: publicRoute
       .route({ method: 'POST', path: '/auth/sign-in', tags: ['session'] })
       .input(z.object({ email: z.email() }))
+      .output(sessionSchema),
+    setUp: publicRoute
+      .route({
+        method: 'POST',
+        path: '/auth/first-person',
+        tags: ['session'],
+        summary:
+          'The first person of a workspace on its own data says who they are and names the workspace: they become its admin and are signed in. Only on the picker, off the demo, while nobody is in the workspace (FR-416)',
+      })
+      .input(firstPersonSchema)
       .output(sessionSchema),
     signOut: read
       .route({ method: 'POST', path: '/auth/sign-out', tags: ['session'] })

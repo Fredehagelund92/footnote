@@ -1647,7 +1647,14 @@ const readOutput = z.object({
   item: z.nullable(
     itemSchema.extend({
       body: z.nullable(z.string()),
-      source: z.nullable(z.object({ url: z.string(), quote: z.string() })),
+      /** With no link (`url` null), `saidBy` is the line that says who or what says so. */
+      source: z.nullable(
+        z.object({
+          url: z.nullable(z.string()),
+          quote: z.optional(z.string()),
+          saidBy: z.optional(z.string()),
+        }),
+      ),
       owners: z.array(z.string()),
       /** The items and names its text links to, as it names them. */
       linksTo: z.array(z.object({ type: z.string(), id: z.string(), name: z.string() })),
@@ -1716,7 +1723,8 @@ async function readContext(
     page = next?.structuredContent ?? {}
   }
   const linkedFrom = mentions.slice(0, BACKLINKS_SHOWN).map(({ id, title }) => ({ id, title }))
-  const source = whole.source as { url: string; quote: string } | undefined
+  const source = whole.source as
+    { url: string; quote: string } | { url: null; said_by: string } | undefined
   const ownerIds = view.areas.find((a) => a.id === item.areaId)?.ownerIds ?? []
   const changes = (await reads.itemHistory(item.id)) ?? []
   return {
@@ -1724,7 +1732,11 @@ async function readContext(
     item: {
       ...itemOf(view, item, today),
       body: item.body ?? null,
-      source: source ?? null,
+      source: !source
+        ? null
+        : source.url === null
+          ? { url: null, saidBy: source.said_by }
+          : { url: source.url, quote: source.quote },
       owners: view.ownersOf(item.areaId),
       linksTo,
       linkedFrom,

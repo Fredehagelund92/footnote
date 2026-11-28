@@ -163,9 +163,12 @@ evidence from before its `status_since` hour, and newer evidence opens a new gap
 calls about a topic reach `gaps.no_item_threshold` within its days), case 3 (negative feedback
 on an agent delivery; the note moves into `gap_notes` under row security) and case 4 (a
 definition's change mark changed; recent topics about a metric it defines get an `outdated`
-gap). It is safe to repeat. Case 5 is `cl_report_gap_person`: it
-counts a signed-in person's report like `report`, with the type the person chose, marks it
-in `gap_weekly_counts.human_reports` (a part of `reports`), and never reads `cl.person_id`.
+gap). It is safe to repeat, and runs one at a time. While fewer than five people have signed in
+(`cl_few_people()`, never on the demo) case 1 takes one call, and the read path runs it at once
+after an agent call that found nothing or negative feedback (`serving_first_questions()`).
+Case 5 is `cl_report_gap_person`: it counts a signed-in person's report like `report`, with the
+type the person chose, marks it in `gap_weekly_counts.human_reports` (a part of `reports`), and
+never reads `cl.person_id`.
 `gap_report_keys` keeps the digests of a report's retry key and request for a day, so a retry
 counts once without naming anyone. Retention also clears feedback notes after `retention.note_days`.
 

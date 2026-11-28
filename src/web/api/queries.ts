@@ -600,6 +600,7 @@ export const invalidations: {
   [K in WriteOperation]: (input: WriteInput<K>, result: WriteResult<K>) => QueryKey[]
 } = {
   signIn: () => everything,
+  setUpWorkspace: () => everything,
   // Only the session: the shell then closes. Every read refetched while it is still open would be
   // 401 requests from a signed-out browser, and they count against the service's per-address limit.
   signOut: () => [queryKeys.session],
@@ -876,7 +877,7 @@ export async function invalidateAfter<K extends WriteOperation>(
   input: WriteInput<K>,
   result: WriteResult<K>,
 ) {
-  if (operation === 'signIn') await forgetLastPerson(queryClient)
+  if (operation === 'signIn' || operation === 'setUpWorkspace') await forgetLastPerson(queryClient)
   inPlace[operation]?.(queryClient, input, result)
   await Promise.all(
     (later[operation] ?? []).map((queryKey) =>

@@ -104,7 +104,7 @@ export type ProofNote = {
   validity: { start: string; end: string | null }
   audience: Audience
   notToConclude: string
-  evidence: readonly { url: string }[]
+  evidence: readonly { url: string | null; quote: string }[]
   owner: { team: string | null }
 }
 
@@ -152,7 +152,9 @@ export function notesFile(notes: readonly ProofNote[], names: ReadonlyMap<string
       ...(n.body ? ['', n.body] : []),
       '',
       `Do not conclude: ${n.notToConclude}`,
-      ...(n.evidence[0] ? [`Source: ${n.evidence[0].url}`] : []),
+      ...(n.evidence[0]
+        ? [`Source: ${n.evidence[0].url ?? `${n.evidence[0].quote} (no link to open)`}`]
+        : []),
     ].join('\n'),
   )
   return [

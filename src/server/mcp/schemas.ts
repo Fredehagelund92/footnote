@@ -339,21 +339,32 @@ const draftWords = {
     ),
   evidence: z
     .array(
-      z.strictObject({
-        url: z
-          .string()
-          .max(limits.url)
-          .refine(
-            (url) => /^https?:\/\//.test(url) && URL.canParse(url),
-            'Expected an http or https link',
-          ),
-        quote: z.string().min(1).max(limits.quote),
-      }),
+      z.union([
+        z.strictObject({
+          url: z
+            .string()
+            .max(limits.url)
+            .refine(
+              (url) => /^https?:\/\//.test(url) && URL.canParse(url),
+              'Expected an http or https link',
+            ),
+          quote: z.string().min(1).max(limits.quote),
+        }),
+        z.strictObject({
+          said_by: z
+            .string()
+            .min(1)
+            .max(limits.quote)
+            .describe(
+              'One line that says who or what says so, and when, such as "Pricing committee, 20 August 2026".',
+            ),
+        }),
+      ]),
     )
     .max(toolInputLimits.evidence)
     .optional()
     .describe(
-      "Each source the person gave or you read: the address of the exact page, and one sentence copied character for character from that page in the page's own language, never a translation, a summary or a search snippet. Prefer the official text, such as a law on a government site, to a news report of it. Never invent one: if you only saw a summary of a page, leave it out and say so.",
+      "Each source the person gave or you read: the address of the exact page, and one sentence copied character for character from that page in the page's own language, never a translation, a summary or a search snippet. Prefer the official text, such as a law on a government site, to a news report of it. Never invent one: if you only saw a summary of a page, leave it out and say so. When the person says it is written nowhere a link opens, such as a decision they made or what they know, pass said_by instead: who or what says so, in their words. Never make up a link.",
     ),
   not_to_conclude: z
     .string()
@@ -597,6 +608,17 @@ const contextEntry = z
       .optional()
       .describe(
         'In place of checked: nobody read it before agents got it. It was published on that day with the permission of this role (never a person) to publish without review.',
+      ),
+    source: z
+      .object({
+        url: z.string().nullable(),
+        quote: z.string().optional(),
+        said_by: z.string().optional(),
+        note: z.string().optional(),
+      })
+      .optional()
+      .describe(
+        'Where it comes from. With a url: the page, and quote, the sentence its owner copied from it. With url null there is no link to open: said_by is the line its owner wrote on who or what says so. Tell the person so when they ask where it comes from, and never make up a link.',
       ),
   })
   .loose()

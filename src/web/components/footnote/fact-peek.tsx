@@ -13,6 +13,7 @@ import {
   MessageSquareWarningIcon,
   PencilIcon,
   TriangleAlertIcon,
+  UserRoundIcon,
 } from '@/components/icons'
 import { toast } from '@/lib/toast'
 import { DockFrame, DockMissing, PeekBar } from '@/components/dock'
@@ -285,7 +286,11 @@ export function FactPeek({ id }: { id: string }) {
                 {fact.status === 'Due for a check' && (flag || overlap) && ', due for a check'}
               </PeekFact>
             )}
-            {!checked && !fact.source ? (
+            {fact.said ? (
+              <PeekFact icon={UserRoundIcon}>
+                <b>{fact.said}</b> - no link
+              </PeekFact>
+            ) : !checked && !fact.source ? (
               <PeekFact icon={ExternalLinkIcon}>
                 <PeekPending className="mt-1 h-3 w-52 max-w-full" />
               </PeekFact>

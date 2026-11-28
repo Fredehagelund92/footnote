@@ -31,7 +31,7 @@ const note = (over: Partial<ProofNote> & { id: string }): ProofNote => ({
   validity: { start: '2026-08-04', end: null },
   audience: { kind: 'everyone' },
   notToConclude: 'cause not proven',
-  evidence: [{ url: 'https://customs.example/norway' }],
+  evidence: [{ url: 'https://customs.example/norway', quote: 'Parcels are held at the border.' }],
   owner: { team: null },
   ...over,
 })

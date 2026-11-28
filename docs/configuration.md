@@ -31,14 +31,14 @@ The service reads its settings from the environment, once, when it starts. If on
 
 ## Sign-in and addresses
 
-| Setting                    | Default                                          | What it does                                                                               |
-| -------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `FOOTNOTE_AUTH`            | `oidc` in production, `dev` elsewhere            | How people sign in: see [Set up company sign-in](company-sign-in.md)                       |
-| `FOOTNOTE_DEV_PEOPLE_FILE` | The demo's people                                | Who the `dev` and `demo` pickers offer                                                     |
-| `FOOTNOTE_WEB_ORIGINS`     | `http://localhost:5173`, `http://localhost:4173` | The web app's origins, comma-separated. The first is the address links go to               |
-| `FOOTNOTE_TRUSTED_PROXIES` | None                                             | The proxies it believes: see [The proxy in front](run-in-production.md#the-proxy-in-front) |
-| `MCP_RESOURCE_URL`         | `http://localhost:3000/mcp`                      | The MCP address                                                                            |
-| `MCP_DEV_KEY_FILE`         | `.footnote-dev-key.pem`                          | The key for dev tokens. Production refuses dev tokens                                      |
+| Setting                    | Default                                          | What it does                                                                                                                             |
+| -------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `FOOTNOTE_AUTH`            | `oidc` in production, `dev` elsewhere            | How people sign in: see [Set up company sign-in](company-sign-in.md)                                                                     |
+| `FOOTNOTE_DEV_PEOPLE_FILE` | None                                             | A list the `dev` and `demo` pickers offer. Unset: the demo's people on the demo, and on your own data the first person says who they are |
+| `FOOTNOTE_WEB_ORIGINS`     | `http://localhost:5173`, `http://localhost:4173` | The web app's origins, comma-separated. The first is the address links go to                                                             |
+| `FOOTNOTE_TRUSTED_PROXIES` | None                                             | The proxies it believes: see [The proxy in front](run-in-production.md#the-proxy-in-front)                                               |
+| `MCP_RESOURCE_URL`         | `http://localhost:3000/mcp`                      | The MCP address                                                                                                                          |
+| `MCP_DEV_KEY_FILE`         | `.footnote-dev-key.pem`                          | The key for dev tokens. Production refuses dev tokens                                                                                    |
 
 The login server's own settings are on [Agent sign-in settings](agent-sign-in-settings.md#the-login-server-settings).
 

@@ -26,11 +26,16 @@ import {
   workspaceQuery,
 } from '@/api/queries'
 import { Button } from '@/components/ui/button'
-import type { SignInChoice, SignInMethod } from '@/api/client'
+import type { SignInMethod } from '@/api/client'
 import { useRoute } from '@/lib/router'
 import { PRODUCT } from '@/lib/brand'
 import { demoLanding, signedOutOnPurpose } from '@/lib/demo-profiles'
 import { cn } from '@/lib/utils'
+
+// Read only on an install nobody has signed in to yet, so kept out of the first load.
+const FirstPerson = React.lazy(() =>
+  import('@/first-use').then((m) => ({ default: m.FirstPerson })),
+)
 
 /** Why a company sign-in came back without signing in, as the screen says it. */
 const refusalWords = (reason: string, provider: string): string | null =>
@@ -99,28 +104,12 @@ function DemoNote({ method }: { method: SignInMethod }) {
 }
 
 /**
- * Says who the picker's people are, under the sign-in card, on an install with its own data: they
- * are the sample people it starts with, and one of them is the admin who sets it up (README, "Use
- * your own data"). Once a real person is in the list (not at a .test address), it says nothing.
- */
-function SampleNote({ method, people }: { method: SignInMethod; people: readonly SignInChoice[] }) {
-  if (method.demo || !people.length || !people.every((p) => p.sample)) return null
-  const admins = people.filter((p) => p.admin).map((p) => p.name)
-  return (
-    <p className="px-6 text-center text-xs text-balance text-muted-foreground">
-      These are sample people, made up for trying {PRODUCT}.
-      {admins.length === 1 && ` ${admins[0]} is the admin, who sets it up.`}
-      {admins.length > 1 && ` ${admins.join(' and ')} are the admins, who set it up.`}
-    </p>
-  )
-}
-
-/**
  * Sign-in as the login-03 block lays it out. With the company's provider (OIDC), one button that
  * goes there and comes back signed in; an invite link names its invite first, and a sign-in that
  * came back refused says why. In a demo the visitor is let straight in as its admin, who can view
  * the demo as others from the header; in development, or after signing out in a demo, the person
- * picker.
+ * picker. On an install of its own data with nobody in it yet, the first screen, which asks who
+ * the first person is.
  */
 export function SignInPage() {
   usePageTitle('Sign in')
@@ -134,9 +123,16 @@ export function SignInPage() {
   // Nothing until the service says how it signs people in, so neither the picker nor the demo's
   // note flashes. A service that does not answer gets the picker, as before.
   if (method.isPending) return null
-  const fallback: SignInMethod = { kind: 'picker', demo: false, profileLabel: null }
+  const fallback: SignInMethod = { kind: 'picker', first: false, demo: false, profileLabel: null }
   if (method.data?.kind !== 'oidc') {
     const picker = method.data ?? fallback
+    // Nobody is here yet: the first person says who they are, whatever link brought them.
+    if (picker.first)
+      return (
+        <React.Suspense fallback={null}>
+          <FirstPerson mark={<SignInMark method={picker} />} />
+        </React.Suspense>
+      )
     // An invite link names who to sign in as, so it keeps the screen that says so.
     return picker.demo && !token && !signedOutOnPurpose() ? (
       <DemoLanding method={picker} />
@@ -239,7 +235,6 @@ function PickerSignIn({ token, method }: { token: string | null; method: SignInM
           </CardContent>
         </Card>
         <DemoNote method={method} />
-        <SampleNote method={method} people={offered} />
       </div>
     </main>
   )
@@ -301,7 +296,19 @@ export function SignInChoices({ returnTo }: { returnTo: string }) {
   // As on the sign-in page: nothing until the service says how, so the wrong choice never flashes;
   // a service that does not answer gets the picker.
   if (method.isPending) return null
-  if (method.data?.kind !== 'oidc') return <PeoplePicker />
+  if (method.data?.kind !== 'oidc')
+    // Nobody to pick yet: the first person says who they are on the sign-in page, then comes back.
+    return method.data?.first ? (
+      <p role="status" className="text-sm text-muted-foreground">
+        Nobody is in this workspace yet.{' '}
+        <a href="/signin" className="text-foreground underline underline-offset-4">
+          Set it up
+        </a>{' '}
+        first, then open this page again.
+      </p>
+    ) : (
+      <PeoplePicker />
+    )
   const start = `${method.data.start}?returnTo=${encodeURIComponent(returnTo)}`
   return (
     <Button

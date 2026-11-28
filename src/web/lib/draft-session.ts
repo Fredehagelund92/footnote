@@ -148,9 +148,12 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     refetchOnWindowFocus: 'always',
   })
 
+  // Published or sent, the draft is no longer the person's to save: nothing that waits goes after
+  // it, not even as the page is left.
+  const ended = React.useRef(false)
   const autosave = useAutosave<number>({
     save: async () => {
-      for (let tries = 1; ; tries++) {
+      for (let tries = 1; !ended.current; tries++) {
         const sent = formRef.current
         const { saved, revision } = opened.current
         const { factOf } = latest.current
@@ -207,7 +210,7 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
   const unsaved = on ? unsavedFields(form, track.saved) : []
   const tick = React.useRef(0)
   React.useEffect(() => {
-    if (!on) return
+    if (!on || ended.current) return
     if (unsaved.length) autosave.change(++tick.current)
     else autosave.discard()
     // The form is what changes; what it is compared with moves with every save.
@@ -254,6 +257,11 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     retry: autosave.retry,
     /** Sends what is waiting; settles once all of it is stored. */
     flush: autosave.flush,
+    /** The draft was published or sent as itself: nothing more is saved to it. */
+    end: () => {
+      ended.current = true
+      autosave.discard()
+    },
     /** What the agent changed last, for the strip, until Undo or the strip is closed. */
     change,
     undo: () => {

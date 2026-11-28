@@ -184,7 +184,7 @@ export function readinessWords(
     case 'no_source':
       return {
         title: 'Add a source first',
-        text: `${context.from ?? 'Its sender'} sent what they know without a link to where it is written. Edit it to add one, then publish.`,
+        text: `${context.from ?? 'Its sender'} sent what they know without a link to where it is written. Edit it to add one, or to say who or what says so, then publish.`,
       }
     case 'confirm_source':
       return {

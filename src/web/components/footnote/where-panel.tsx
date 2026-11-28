@@ -169,22 +169,30 @@ function Chain({
         </Node>
         <Node
           label={
-            <>
-              In the source -{' '}
-              <a
-                href={fact.source}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
-              >
-                {where}
-                <ExternalLinkIcon className="size-3" aria-hidden />
-                <span className="sr-only">(opens in a new tab)</span>
-              </a>
-            </>
+            fact.said ? (
+              'The source has no link'
+            ) : (
+              <>
+                In the source -{' '}
+                <a
+                  href={fact.source}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  {where}
+                  <ExternalLinkIcon className="size-3" aria-hidden />
+                  <span className="sr-only">(opens in a new tab)</span>
+                </a>
+              </>
+            )
           }
         >
-          {fact.quote ? (
+          {fact.said ? (
+            <p className="text-sm leading-relaxed">
+              {fact.said}. That is who or what says so: there is nothing to open.
+            </p>
+          ) : fact.quote ? (
             <blockquote className="border-l-2 pl-3 text-sm leading-relaxed text-foreground italic">
               “<Marked segments={markShared(fact.quote, [summary])} />”
             </blockquote>

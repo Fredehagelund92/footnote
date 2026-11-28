@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import pg from 'pg'
 import { expect, test, type Browser, type Page, type Request } from '@playwright/test'
 import {
   legacyManifest,
@@ -12,7 +13,8 @@ import { objectHost, type ObjectHost } from '../server/connectors/object-server.
   database, with no demo, connect an invented dbt project through the app, accept the names its
   read made, write a context item about a past day for one of its metrics, publish it, and get
   Checked from get_context and from the question the setup writes in Ask. Every step is the real service on real PostgreSQL; nothing here
-  starts from seeded names, which is how this path broke once with every test green.
+  starts from seeded names, which is how this path broke once with every test green. Nobody is
+  seeded either: the first visitor says who they are and becomes the admin.
 */
 
 // The second journey goes on from the first one's names, domain and access key: when the first
@@ -148,23 +150,38 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
       refused.push(`${response.status()} ${response.url()}`)
   })
   await page.goto('/')
-  // Not the demo, though people pick who they are: nothing says the company is invented, and the
-  // install's label says which install this is, there and in the header after.
+  // Not the demo, and nobody in it yet: the first screen asks who you are, with no sample people
+  // to pick and nothing that says the company is invented. The install's label says which install
+  // this is, there and in the header after.
   const label = page.locator('[data-profile-label]')
-  await expect(page.getByText('Pick who you are.', { exact: true })).toBeVisible()
-  await expect(page.getByText(/invented company|This is a demo/)).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Set up Footnote' })).toBeVisible()
+  await expect(page.getByText(/invented company|This is a demo|Pick who you are/)).toHaveCount(0)
   await expect(label).toContainText('Own data trial')
-  // The people it starts with are the sample file's, and the page says so and who the admin is.
-  await expect(
-    page.getByText(
-      'These are sample people, made up for trying Footnote. Ravi Kapoor is the admin, who sets it up.',
-    ),
-  ).toBeVisible()
-  await expect(page.getByRole('button', { name: /Ravi Kapoor/ })).toContainText('Admin')
-  await shot('05-sign-in')
-  await page.getByRole('button', { name: /Ravi Kapoor/ }).click()
+  // Start with nothing typed says what each field needs, at the field.
+  await button(page, 'Start').click()
+  await expect(page.getByText('Add your name.')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Your name' })).toBeFocused()
+  await page.getByRole('textbox', { name: 'Your name' }).fill('Amara Osei')
+  await page.getByRole('textbox', { name: 'Your email' }).fill('amara@tallyfield')
+  await page.getByRole('textbox', { name: 'Workspace name' }).fill('Tallyfield')
+  await button(page, 'Start').click()
+  await expect(page.getByText('That is not an email address.')).toBeVisible()
+  await page.getByRole('textbox', { name: 'Your email' }).fill('Amara@Tallyfield.example')
+  await shot('05-first-screen')
+  await button(page, 'Start').click()
   await expect(page).toHaveURL(/\/inbox$/)
   await expect(page.locator('header').locator(label)).toContainText('Own data trial')
+  // Amara is the admin, by the address she gave, and the workspace has the name she gave it.
+  const me = (await (await page.request.get('/api/v1/auth/session')).json()) as {
+    person: { name: string; permissions: { roles: string[] } }
+  }
+  expect(me.person).toMatchObject({
+    name: 'Amara Osei',
+    permissions: { roles: ['administrator'] },
+  })
+  expect(
+    ((await (await page.request.get('/api/v1/workspace')).json()) as { name: string }).name,
+  ).toBe('Tallyfield')
   // On a phone the label gives way before the page's title, which is never cut to a letter.
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/definitions')
@@ -392,13 +409,25 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await page.getByRole('button', { name: 'Done' }).click()
   const day = /\b9 [A-Z][a-z]{2,3} 20\d\d\b/.exec((await when.innerText()) ?? '')?.[0]
   expect(day, 'the day the When says').toBeTruthy()
+  // What happened is written nowhere a link opens: the source is who says so, with no link.
   await page.getByRole('button', { name: /Add a source/ }).click()
-  await page.locator('#fact-source').fill('https://finance.example/checkout-outage')
-  await page.locator('#fact-quote').fill('The checkout took no payments for most of the day.')
+  await page.getByRole('radio', { name: 'No link' }).click()
+  await expect(page.getByRole('textbox', { name: 'Who or what says so' })).toBeFocused()
+  await page.keyboard.insertText('Payments team, in the incident call')
   await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: /^Source/ })).toContainText(
+    'Payments team, in the incident call',
+  )
   await shot('14-editor')
   await button(page, 'Publish').click()
   await expect(page.getByText(/^Published just now by you/)).toBeVisible()
+  // Published as the draft it kept itself as, with nothing saved to that draft after it.
+  await expect(page.getByText('Agents get it from the next question.').first()).toBeVisible()
+  await expect(page.getByText("Couldn't save your draft")).toHaveCount(0)
+  // Its page says who says so, and that there is no link to open.
+  await expect(page.getByText('Payments team, in the incident call').first()).toBeVisible()
+  await expect(page.getByText(/ - no link$/).first()).toBeVisible()
+  await shot('14-item-no-link')
 
   // Written and not asked again: the step asks it, with the question already written, about the
   // item's own day, which has passed, so the answer is the item, not Not found for today.
@@ -423,8 +452,8 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   )
   await shot('15-ask')
 
-  // Asked again, setup is at 3 of 4, one step left: the agent. Ten more items rely on Net revenue,
-  // and then its calculation changes in dbt: the Inbox shows the eleven Due for a check above the
+  // Asked again, setup is at 3 of 4, one step left: the agent. Two more items rely on Net revenue,
+  // and then its calculation changes in dbt: the Inbox shows the three Due for a check above the
   // checklist, without waiting for the last step.
   const read = async <T>(path: string) => (await page.request.get(`/api/v1${path}`)).json() as T
   const metric = (await read<{ metrics: { id: string; name: string }[] }>('/vocabulary')).metrics
@@ -433,7 +462,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   const sales = (await read<{ id: string; name: string }[]>('/areas')).find(
     (area) => area.name === 'Sales',
   )!.id
-  for (let n = 1; n <= 10; n++)
+  for (let n = 1; n <= 2; n++)
     await post(page, '/items/publish', {
       draft: {
         areaId: sales,
@@ -466,9 +495,9 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(async () => {
     await page.reload()
     await expect(page.getByText('3 of 4 done')).toBeVisible({ timeout: 20_000 })
-    await expect(due.getByRole('link', { name: /^Due for a check 11 in all domains/ })).toBeVisible(
-      { timeout: 3_000 },
-    )
+    await expect(due.getByRole('link', { name: /^Due for a check 3 in all domains/ })).toBeVisible({
+      timeout: 3_000,
+    })
   }).toPass({ timeout: 90_000 })
   // Above the checklist, which is two screens long on a phone; and with context written, the
   // checklist no longer says agents hear that nothing is written down.
@@ -487,8 +516,39 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   const reply = await getContext(page, key as string, { question })
   expect(reply).toMatchObject({ status: 'stale' })
   expect(JSON.stringify(reply)).toContain('Checkout was down for a day')
+  // Its source has no link, and the agent is told so: there is nothing to open.
+  expect(JSON.stringify(reply)).toContain(
+    '"source":{"url":null,"said_by":"Payments team, in the incident call","note":"No link to open: said_by is who or what says so."}',
+  )
   await page.goto('/inbox')
   await expect(page.getByText(/ of 4 done$/)).toHaveCount(0)
+
+  // After the checklist, the Inbox keeps a Next card until five items are published: three are.
+  const next = page.getByRole('region', { name: 'Next: write down what agents will ask about' })
+  await expect(next).toContainText('3 of 5 published')
+  await expect(next.getByRole('listitem')).toHaveCount(5)
+  await expect(next.getByRole('listitem').last()).toContainText('Connect your documents')
+  await shot('16-next-card')
+  // The agent asks once about a metric nothing is written about. With one person signed in, the
+  // question shows at once, as a Nothing written yet card, and leads the Next card.
+  const unanswered = await getContext(page, key as string, {
+    question: 'How many orders did we have last month?',
+    metrics: ['Orders'],
+  })
+  expect(unanswered).toMatchObject({ status: 'no_match' })
+  await page.reload()
+  await expect(
+    page.getByRole('main').getByText('Nothing written yet', { exact: true }).first(),
+  ).toBeVisible()
+  await expect(next.getByRole('listitem').first()).toContainText('Write about Orders')
+  await expect(next.getByRole('listitem').first()).toContainText(
+    'Agents asked about it and found nothing written down.',
+  )
+  await expect(page.getByText('Agents asked nothing this week.')).toHaveCount(0)
+  await shot('16-first-question')
+  await next.getByRole('button', { name: 'Write context' }).first().click()
+  await expect(page).toHaveURL(/\/context\/new\?metric=Orders$/)
+  await moveTo(page, '/inbox')
 
   // Nobody has signed an agent in: the access key is no sign-in, so the line still says so.
   await moveTo(page, '/settings/agents')
@@ -527,14 +587,17 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await guide.getByRole('button', { name: 'Discard' }).click()
   await expect(about).toHaveText('')
 
-  // Jon owns Sales with Ravi: the next journey is his. Sofia owns it too, for the third, whose
-  // calls must not count against the minute Ravi's just made.
+  // Colleagues come in by company sign-in on a real install. Here the host puts three in the
+  // workspace, and the picker offers the workspace's people from then on, none of them a sample.
+  await colleagues(['Jon Abara', 'Maria Lindqvist', 'Sofia Brandt'])
+  // Jon owns Sales with Amara: the next journey is his. Sofia owns it too, for the third, whose
+  // calls must not count against the minute Amara's just made.
   const people = await read<{ id: string; name: string }[]>('/people')
   const idOf = (name: string) => people.find((p) => p.name === name)!.id
   await post(
     page,
     `/areas/${sales}/owners`,
-    { personIds: [idOf('Ravi Kapoor'), idOf('Jon Abara'), idOf('Sofia Brandt')] },
+    { personIds: [idOf('Amara Osei'), idOf('Jon Abara'), idOf('Sofia Brandt')] },
     'PUT',
   )
 })
@@ -553,7 +616,29 @@ const moveTo = async (page: Page, route: string) => {
   await expect(page).toHaveURL((url) => url.pathname === new URL(route, url).pathname)
 }
 
-/** A new page signed in as someone the sample file offers, by name. */
+/**
+ * People put in the workspace by its host, as members: the service's own function, as a list of
+ * people the host gives makes them.
+ */
+async function colleagues(names: string[]) {
+  const client = new pg.Client({
+    connectionString:
+      process.env.E2E_DATABASE_URL ??
+      'postgres://context_layer_api@localhost:5432/context_layer_dev',
+  })
+  await client.connect()
+  try {
+    for (const name of names)
+      await client.query("select auth.bootstrap_person($1, $2, '{}'::global_role[])", [
+        `${name.split(' ')[0]!.toLowerCase()}@tallyfield.example`,
+        name,
+      ])
+  } finally {
+    await client.end()
+  }
+}
+
+/** A new page signed in as someone in the workspace, by name. */
 async function signedInAs(browser: Browser, name: string) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: 'en-GB' })
   await page.goto('/')
@@ -733,7 +818,7 @@ test('values people write, on an install that has none', async ({ browser }) => 
   A new owner's first item, on the same install (wave 2 of the cold first-use test): it keeps
   itself as a draft once it has words, so a reload loses nothing; When offers the day its text
   names; and agents get the item with no line its writer never wrote. Sofia, an owner of Sales
-  who has made no call yet: one person may make 600 calls a minute, and Ravi's and Jon's are spent.
+  who has made no call yet: one person may make 600 calls a minute, and Amara's and Jon's are spent.
 */
 test("a new owner's first item is never lost, and agents get only what was written", async ({
   browser,

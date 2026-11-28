@@ -1,8 +1,32 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-27
+reviewed: 2026-11-28
 ---
+
+## A source with no link
+
+2026-11-28
+
+What lives in someone's head or a chat thread has no page to link to. In the editor's Source, choose No link and write one line that says who or what says so, such as Pricing committee, 20 August 2026. The item can then be published, and agents are told there is no link to open. Your agent can write such a source too.
+
+## Who you are, on your own data
+
+2026-11-28
+
+An install on your own data asks the first person who opens it for their name, their email and the workspace's name, and makes them its admin. It has no sample people.
+
+## The first questions agents could not answer
+
+2026-11-28
+
+While fewer than five people have signed in, each question an agent finds nothing for shows in the owner's Inbox at once, as a Nothing written yet card. Later the usual count applies: 5 in 7 days.
+
+## What to write next
+
+2026-11-28
+
+After the setup checklist, the Inbox keeps a Next card until five context items are published: the metrics nothing is written about yet, the ones agents asked about first, and where to find more of what your team knows.
 
 ## An agent writes many drafts, and sends none
 

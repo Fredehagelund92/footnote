@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "8157fbbe1cbc11f951250828828eb20880a6c61d881f00f566935fb0d194d379",
+  "digest": "97296832033e903877251018d87692dba892476a253273539058495d624f91ab",
   "tools": [
     {
       "_meta": {
@@ -185,6 +185,31 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                   "required": [
                     "permission_of",
                     "date",
+                  ],
+                  "type": "object",
+                },
+                "source": {
+                  "additionalProperties": false,
+                  "description": "Where it comes from. With a url: the page, and quote, the sentence its owner copied from it. With url null there is no link to open: said_by is the line its owner wrote on who or what says so. Tell the person so when they ask where it comes from, and never make up a link.",
+                  "properties": {
+                    "note": {
+                      "type": "string",
+                    },
+                    "quote": {
+                      "type": "string",
+                    },
+                    "said_by": {
+                      "type": "string",
+                    },
+                    "url": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                  },
+                  "required": [
+                    "url",
                   ],
                   "type": "object",
                 },
@@ -594,6 +619,31 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                   ],
                   "type": "object",
                 },
+                "source": {
+                  "additionalProperties": false,
+                  "description": "Where it comes from. With a url: the page, and quote, the sentence its owner copied from it. With url null there is no link to open: said_by is the line its owner wrote on who or what says so. Tell the person so when they ask where it comes from, and never make up a link.",
+                  "properties": {
+                    "note": {
+                      "type": "string",
+                    },
+                    "quote": {
+                      "type": "string",
+                    },
+                    "said_by": {
+                      "type": "string",
+                    },
+                    "url": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                  },
+                  "required": [
+                    "url",
+                  ],
+                  "type": "object",
+                },
                 "summary": {
                   "type": "string",
                 },
@@ -835,6 +885,31 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 "required": [
                   "permission_of",
                   "date",
+                ],
+                "type": "object",
+              },
+              "source": {
+                "additionalProperties": false,
+                "description": "Where it comes from. With a url: the page, and quote, the sentence its owner copied from it. With url null there is no link to open: said_by is the line its owner wrote on who or what says so. Tell the person so when they ask where it comes from, and never make up a link.",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                  },
+                  "quote": {
+                    "type": "string",
+                  },
+                  "said_by": {
+                    "type": "string",
+                  },
+                  "url": {
+                    "type": [
+                      "string",
+                      "null",
+                    ],
+                  },
+                },
+                "required": [
+                  "url",
                 ],
                 "type": "object",
               },
@@ -1585,25 +1660,44 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
             "type": "string",
           },
           "evidence": {
-            "description": "Each source the person gave or you read: the address of the exact page, and one sentence copied character for character from that page in the page's own language, never a translation, a summary or a search snippet. Prefer the official text, such as a law on a government site, to a news report of it. Never invent one: if you only saw a summary of a page, leave it out and say so.",
+            "description": "Each source the person gave or you read: the address of the exact page, and one sentence copied character for character from that page in the page's own language, never a translation, a summary or a search snippet. Prefer the official text, such as a law on a government site, to a news report of it. Never invent one: if you only saw a summary of a page, leave it out and say so. When the person says it is written nowhere a link opens, such as a decision they made or what they know, pass said_by instead: who or what says so, in their words. Never make up a link.",
             "items": {
-              "additionalProperties": false,
-              "properties": {
-                "quote": {
-                  "maxLength": 500,
-                  "minLength": 1,
-                  "type": "string",
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "quote": {
+                      "maxLength": 500,
+                      "minLength": 1,
+                      "type": "string",
+                    },
+                    "url": {
+                      "maxLength": 2000,
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "url",
+                    "quote",
+                  ],
+                  "type": "object",
                 },
-                "url": {
-                  "maxLength": 2000,
-                  "type": "string",
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "said_by": {
+                      "description": "One line that says who or what says so, and when, such as "Pricing committee, 20 August 2026".",
+                      "maxLength": 500,
+                      "minLength": 1,
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "said_by",
+                  ],
+                  "type": "object",
                 },
-              },
-              "required": [
-                "url",
-                "quote",
               ],
-              "type": "object",
             },
             "maxItems": 5,
             "type": "array",

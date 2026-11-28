@@ -13,7 +13,7 @@ export type ServingItem = ResolverItem & {
   owner: { team: string | null }
   /** How this version was accepted, and the edition that first served it; null for a candidate not yet accepted. */
   review: ServedReview | null
-  evidence: { url: string; quote: string; read_on: string }[]
+  evidence: { url: string | null; quote: string; read_on: string }[]
   /** What the contributor said not to conclude (FR-104); "cause not proven" by default. */
   notToConclude: string
 }

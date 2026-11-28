@@ -274,7 +274,7 @@ describe('Settings, Advanced', () => {
     expect(rows['gaps.no_item_threshold']).toEqual({
       key: 'gaps.no_item_threshold',
       value: '5 in 7 days',
-      what: 'Questions with nothing written down before a Not found card',
+      what: 'Questions with nothing written down before a Not found card; one while fewer than five people have signed in',
       changed: null,
     })
     expect(rows['limits.llm_monthly_cap_micros']).toMatchObject({
