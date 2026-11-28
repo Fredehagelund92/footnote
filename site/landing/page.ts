@@ -1,13 +1,17 @@
+import { ring } from '../shared/ground.ts'
+import * as meaning from './meaning.ts'
+
 /*
   The landing page below its first screen (landing/pages/index.astro): the definitions window, the
-  tour of real screens, what arrives as it scrolls into view, and the light that follows the pointer
-  over a window. With reduced motion nothing arrives or walks: everything is there, and the tour
-  waits for a press.
+  tour of real screens, the week picked along the Orders line, what arrives as it scrolls into view,
+  and the light that follows the pointer over a window. With reduced motion nothing arrives or
+  walks: everything is there, the tour waits for a press, and the line waits for a drag or a key.
 */
 
 export function page() {
   const moving = document.documentElement.classList.contains('anim')
   definitions()
+  scrub(moving)
   const tour = walk(moving)
   arrive(moving, tour)
   if (moving) glow()
@@ -29,6 +33,132 @@ function definitions() {
     if (!list.includes(button as HTMLButtonElement))
       root.querySelector('.def-main:not([hidden]) h3')?.scrollIntoView({ block: 'nearest' })
   })
+}
+
+/**
+ * Meaning, not numbers: the question asks about the week picked on the Orders line, by a drag, a
+ * press or the arrow keys, and what Footnote matches and what the agent says follow it. Once in
+ * view, with motion, the cursor walks from late June over the stop to mid August, then waits; a
+ * touch or a key ends the walk. Without motion it opens on mid August as the page was built.
+ */
+function scrub(moving: boolean) {
+  const root = document.querySelector<HTMLElement>('#sb')
+  if (!root) return
+  const $ = <T extends HTMLElement>(selector: string) => root.querySelector<T>(selector)!
+  const chart = $('.sb-chart')
+  const range = $<HTMLInputElement>('.sb-range')
+  const cursor = $('.sb-cur')
+  const point = $('.sb-pt')
+  const flag = $('.sb-flag')
+  const says = $('.sb-says')
+  const live = $('#sb-live')
+  let shown = meaning.opening
+
+  /** Week i on the chart and in words; `told` also says it to a screen reader. */
+  function show(i: number, told = false) {
+    const at = meaning.at(i)
+    cursor.style.left = `${at.x * 100}%`
+    point.style.top = `${at.y * 100}%`
+    const edge = at.x * 100
+    flag.style.transform = `translateX(${edge < 8 ? -10 : edge > 92 ? -90 : -50}%)`
+    if (i === shown) return
+    const was = meaning.week(shown)
+    const week = meaning.week(i)
+    shown = i
+    flag.textContent = week.day.replace(/ \d{4}$/, '')
+    root!.classList.toggle('in-note', week.applies)
+    $('.sb-date').textContent = week.day
+    range.setAttribute('aria-valuetext', `Week of ${week.day}`)
+    $('.sb-move').textContent = week.move
+    $('.sb-dates').classList.toggle('ok', week.applies)
+    $('.sb-dtext').textContent = week.dates
+    $('.sb-hit').hidden = !week.applies
+    $('.sb-miss').hidden = week.applies
+    says.textContent = week.says
+    if (week.applies) {
+      const ref = document.createElement('span')
+      ref.className = 'ref'
+      ref.setAttribute('role', 'img')
+      ref.setAttribute('aria-label', 'Footnote 1')
+      ref.textContent = '1'
+      says.append(ref)
+    }
+    if (told)
+      live.textContent = `${week.applies ? 'Checked' : 'Not found'}. Your agent says: ${week.says}`
+    if (moving && was.applies !== week.applies) {
+      says.classList.remove('swap')
+      void says.offsetWidth
+      says.classList.add('swap')
+      if (week.applies) light()
+    }
+  }
+
+  /** The ring where the line falls, of the chart's own dots. */
+  function light() {
+    const at = meaning.at(meaning.stop)
+    for (const dot of ring(
+      at.x * chart.clientWidth,
+      at.y * chart.clientHeight,
+      chart.clientWidth,
+      chart.clientHeight,
+    )) {
+      const lit = document.createElement('i')
+      lit.className = 'sb-lit'
+      lit.setAttribute('aria-hidden', 'true')
+      lit.style.left = `${dot.x}px`
+      lit.style.top = `${dot.y}px`
+      lit.style.setProperty('--t', `${dot.delay}ms`)
+      lit.style.setProperty('--a', String(dot.strength))
+      chart.append(lit)
+      lit.addEventListener('animationend', () => lit.remove())
+    }
+  }
+
+  let glide = 0
+  let used = false
+  function end() {
+    cancelAnimationFrame(glide)
+    glide = 0
+    root!.classList.remove('glide')
+  }
+  range.addEventListener('input', () => {
+    end()
+    used = true
+    root.classList.add('used')
+    show(Number(range.value), true)
+  })
+  range.addEventListener('pointerdown', end)
+  range.addEventListener('keydown', end)
+  root.classList.toggle('in-note', meaning.week(shown).applies)
+  if (!moving) return
+
+  range.value = String(meaning.walkFrom)
+  show(meaning.walkFrom)
+  const seen = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return
+      seen.disconnect()
+      window.setTimeout(() => {
+        if (used) return
+        const from = meaning.walkFrom
+        const to = meaning.opening
+        const t0 = performance.now()
+        root.classList.add('glide')
+        const tick = (now: number) => {
+          const k = Math.min(1, (now - t0) / 2200)
+          const e = k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2
+          const i = Math.round(from + (to - from) * e)
+          range.value = String(i)
+          show(i)
+          if (k < 1) glide = requestAnimationFrame(tick)
+          else end()
+        }
+        glide = requestAnimationFrame(tick)
+      }, 500)
+    },
+    { threshold: 0.35 },
+  )
+  seen.observe(root)
 }
 
 /**

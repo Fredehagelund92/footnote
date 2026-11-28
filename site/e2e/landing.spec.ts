@@ -5,9 +5,9 @@ import { releaseWords } from '../landing/release.ts'
 
 /*
   The landing page on the built site: the first screen's four questions by mouse, keyboard and
-  typing, what a reader with reduced motion gets, the leaders ending on their marks, the
-  definitions window and the tour, the release switch as it is built, an axe pass at WCAG AA, and
-  screenshot baselines. Fonts render a little differently on each system, so each platform keeps
+  typing, what a reader with reduced motion gets, the leaders ending on their marks, the week
+  picked along the Orders line by keys and by a drag, the definitions window and the tour, the
+  release switch as it is built, an axe pass at WCAG AA, and screenshot baselines. Fonts render a little differently on each system, so each platform keeps
   its own baselines (Playwright's default path ends in the platform's name). Where a platform has
   none yet the check says so and skips; `npm run test:smoke -- e2e/landing.spec.ts
   --update-snapshots` on that platform writes them, for review by eye in a pull request.
@@ -185,8 +185,92 @@ test.describe('the first screen', () => {
   })
 })
 
+const scrubber = (page: Page) => page.locator('#sb')
+const weekPicked = (page: Page) => page.getByRole('slider', { name: 'The week asked about' })
+
+/** The week the meaning section asks about, and what it shows for it. */
+async function expectWeek(page: Page, day: string, line: 'Checked' | 'Not found', says: RegExp) {
+  const sb = scrubber(page)
+  await expect(sb.locator('.sb-q')).toContainText(
+    `What happened to orders in Norway in the week of ${day}?`,
+  )
+  await expect(weekPicked(page)).toHaveAttribute('aria-valuetext', `Week of ${day}`)
+  await expect(sb.locator('.sb-res .badge:visible')).toHaveText(line)
+  await expect(sb.locator('.sb-says')).toHaveText(says)
+}
+
+const afterStop =
+  /^Orders in Norway were almost nothing that week, because online sales there stopped on 4 August under a new customs rule\.1$/
+const beforeStop = /^Orders in Norway were .+\. Nothing is written about that week\.$/
+
+test('with motion, the meaning section walks over the stop once and ends Checked', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  await scrubber(page).scrollIntoViewIfNeeded()
+  await expect(scrubber(page)).toHaveClass(/\bglide\b/)
+  await expect(scrubber(page)).not.toHaveClass(/\bglide\b/, { timeout: 10_000 })
+  await expectWeek(page, '10 Aug 2026', 'Checked', afterStop)
+  await expect(scrubber(page).locator('.sb-hint')).toBeVisible()
+})
+
 test.describe('below the first screen', () => {
   test.use({ reducedMotion: 'reduce' })
+
+  test('the meaning section opens on 10 August, and the keys move it a week across the stop', async ({
+    page,
+  }) => {
+    await open(page)
+    await expectWeek(page, '10 Aug 2026', 'Checked', afterStop)
+    await expect(scrubber(page).locator('.sb-move')).toHaveText('Almost nothing')
+    await expect(page.locator('#sb-live')).toHaveText('')
+    await weekPicked(page).focus()
+    await page.keyboard.press('ArrowLeft')
+    await expectWeek(page, '3 Aug 2026', 'Checked', /^Orders in Norway fell sharply that week/)
+    await expect(scrubber(page).locator('.sb-dtext')).toHaveText('3 to 9 Aug, takes in 4 Aug')
+    await page.keyboard.press('ArrowLeft')
+    await expectWeek(page, '27 Jul 2026', 'Not found', beforeStop)
+    await expect(scrubber(page).locator('.sb-dtext')).toHaveText('27 Jul to 2 Aug, before 4 Aug')
+    await expect(scrubber(page)).toHaveClass(/\bused\b/)
+    await expect(page.locator('#sb-live')).toHaveText(
+      /^Not found\. Your agent says: Orders in Norway/,
+    )
+    await page.keyboard.press('End')
+    await expectWeek(page, '23 Nov 2026', 'Checked', afterStop)
+    await page.keyboard.press('Home')
+    await expectWeek(page, '5 Jan 2026', 'Not found', beforeStop)
+    // The page shows no figure, only the line, and says each week in words.
+    await expect(scrubber(page).locator('.sb-move')).toHaveText('About the same as usual')
+  })
+
+  test('the meaning section follows a drag along the line', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page)
+    const chart = scrubber(page).locator('.sb-chart')
+    await chart.scrollIntoViewIfNeeded()
+    const box = (await chart.boundingBox())!
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, { steps: 8 })
+    await page.mouse.up()
+    await expect(scrubber(page).locator('.sb-res .badge:visible')).toHaveText('Not found')
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2, { steps: 8 })
+    await page.mouse.up()
+    await expect(scrubber(page).locator('.sb-res .badge:visible')).toHaveText('Checked')
+    await expect(scrubber(page).locator('.sb-says')).toHaveText(afterStop)
+  })
+
+  for (const theme of themes)
+    test(`the meaning section passes axe at AA before the stop, in ${theme}`, async ({ page }) => {
+      await open(page, theme)
+      await weekPicked(page).focus()
+      await page.keyboard.press('Home')
+      await expect(scrubber(page).locator('.sb-res .badge:visible')).toHaveText('Not found')
+      await expectAxeClean(page)
+    })
 
   test('the definitions window opens the metric pressed', async ({ page }) => {
     await open(page)
@@ -263,6 +347,13 @@ const shots = [
   },
 ] as const
 
+/** The meaning section alone, as it opens. */
+const meaningShots = [
+  { name: 'meaning-1440-dark', viewport: { width: 1440, height: 900 }, theme: 'dark' },
+  { name: 'meaning-768-light', viewport: { width: 768, height: 1024 }, theme: 'light' },
+  { name: 'meaning-390-dark', viewport: { width: 390, height: 844 }, theme: 'dark' },
+] as const
+
 test.describe('screenshots', () => {
   // Reduced motion draws no moving ground and plays no opening, so a screenshot is the same each time.
   test.use({ reducedMotion: 'reduce' })
@@ -282,5 +373,22 @@ test.describe('screenshots', () => {
         await win(page).scrollIntoViewIfNeeded()
       }
       await expect(page).toHaveScreenshot(file, { caret: 'hide', maxDiffPixelRatio: 0.01 })
+    })
+  for (const shot of meaningShots)
+    test(shot.name, async ({ page }, info) => {
+      const file = `${shot.name}.png`
+      const update = info.config.updateSnapshots
+      test.skip(
+        !existsSync(info.snapshotPath(file)) && update !== 'all' && update !== 'changed',
+        `No baseline of ${file} for ${process.platform} yet: write one with --update-snapshots`,
+      )
+      await page.setViewportSize(shot.viewport)
+      await open(page, shot.theme)
+      // The header stays at the top of the window, so it would cover the section's heading.
+      await page.addStyleTag({ content: 'header.top { position: static }' })
+      await expect(page.locator('#meaning')).toHaveScreenshot(file, {
+        caret: 'hide',
+        maxDiffPixelRatio: 0.01,
+      })
     })
 })

@@ -163,6 +163,29 @@ export function ground({ areas, every, strength }: GroundOptions) {
   later(900)
 }
 
+/** A dot of a field that a ring lights: where it is, how long after the start, how brightly. */
+export type RingDot = { x: number; y: number; delay: number; strength: number }
+
+/**
+ * The ring of a mark landing at (x, y) on a field of `width` by `height` whose dots sit a half
+ * pitch in from its corner, as a CSS dot field's do: the dots within its reach, lit outward.
+ */
+export function ring(x: number, y: number, width: number, height: number): RingDot[] {
+  const dots: RingDot[] = []
+  for (let dx = pitch / 2; dx < width; dx += pitch)
+    for (let dy = pitch / 2; dy < height; dy += pitch) {
+      const d = Math.hypot(dx - x, dy - y)
+      if (d > reach) continue
+      dots.push({
+        x: dx,
+        y: dy,
+        delay: Math.round((d / reach) * 520),
+        strength: 0.95 - (d / reach) * 0.6,
+      })
+    }
+  return dots
+}
+
 /*
   The landing page's first screen draws the ground itself (landing/hero.ts): one canvas holds the
   dots of the dark ground around the window, so they can answer. Under the pointer the dots swell

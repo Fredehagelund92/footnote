@@ -6,6 +6,7 @@ import { storyFacts } from '../../db/seed/fixtures/story-facts.ts'
 import { ANSWER_LINES } from '../../src/domain/answer-state.ts'
 import { answers, lines } from '../landing/demo.ts'
 import { metrics } from '../landing/definitions.ts'
+import * as meaning from '../landing/meaning.ts'
 import { repoRoot } from '../lib/pages.ts'
 
 /*
@@ -96,5 +97,37 @@ describe('the definitions window', () => {
   it('names notes the demo holds', () => {
     for (const metric of metrics)
       for (const note of metric.notes) expect(world.includes(note.title), note.title).toBe(true)
+  })
+})
+
+describe('the meaning section', () => {
+  it("names the demo's Norway note, its writer, its owner and its check date", () => {
+    expect(world.includes(meaning.note.title), meaning.note.title).toBe(true)
+    for (const name of [meaning.note.writer, meaning.note.checker])
+      expect(world.includes(name), name).toBe(true)
+    expect(meaning.note.checkedOn).toBe('3 Oct 2026')
+  })
+
+  it('puts the stop in the week that takes in Tuesday 4 August 2026', () => {
+    expect(meaning.weeks[meaning.stop]!.monday).toBe('2026-08-03')
+    expect(meaning.week(meaning.stop).dates).toBe('3 to 9 Aug, takes in 4 Aug')
+    expect(meaning.week(meaning.opening).day).toBe('10 Aug 2026')
+  })
+
+  it('tells the note only for weeks from the stop on', () => {
+    for (let i = 0; i <= meaning.last; i++) {
+      const week = meaning.week(i)
+      expect(week.applies, week.day).toBe(i >= meaning.stop)
+      if (week.applies) expect(week.says, week.day).toContain('stopped on 4 August')
+      else expect(week.says, week.day).toContain('Nothing is written about that week.')
+    }
+  })
+
+  it('shows no figure: each week is said in words, with no number but a date', () => {
+    for (let i = 0; i <= meaning.last; i++) {
+      const week = meaning.week(i)
+      expect(week.move, week.day).not.toMatch(/\d/)
+      expect(week.says.replace('4 August', ''), week.day).not.toMatch(/\d/)
+    }
   })
 })
