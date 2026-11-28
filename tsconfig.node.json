@@ -13,6 +13,7 @@
     "eslint.plain-words.d.ts",
     "eslint.copy-rules.d.ts",
     "eslint.reported-writes.d.ts",
+    "eslint.market-names.d.ts",
     "playwright.config.ts",
     "playwright.golden-http.config.ts",
     "playwright.seed.config.ts",
