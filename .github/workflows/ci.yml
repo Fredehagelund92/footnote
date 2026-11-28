@@ -341,10 +341,11 @@ jobs:
           retention-days: 7
 
   own-data:
-    # What a stranger does with their own semantic manifest, on an empty database with no demo:
-    # connect an invented dbt project through the app, accept the names its read made, write and
-    # publish a context item about one of its metrics, and get Checked from get_context and from
-    # Ask (tests/e2e-own). Every other journey starts from seeded names.
+    # What a stranger does with their own semantic manifest, on an empty database with no demo and
+    # nobody in it: say who they are on the first screen, connect an invented dbt project through
+    # the app, accept the names its read made, write and publish a context item about one of its
+    # metrics, and get Checked from get_context and from Ask (tests/e2e-own). Every other journey
+    # starts from seeded names.
     name: 'From an own manifest to a Checked answer (PostgreSQL 18, Playwright)'
     needs: [scope, migrations]
     if: needs.scope.outputs.code == 'true'
