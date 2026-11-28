@@ -146,6 +146,25 @@ test('with motion, the opening asks Norway and its leader ends on its number', a
   for (const gap of gaps) expect(gap).toBeLessThanOrEqual(3)
 })
 
+test('with motion, the thread plays once into its answer, and a door picked plays its draft again', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  const said = page.locator('#said-demo')
+  await said.locator('.flow').scrollIntoViewIfNeeded()
+  await expect(said.locator('.viaagent')).toHaveClass(/\bon\b/, { timeout: 15_000 })
+  await expect(said.locator('[data-at]:not(.on)')).toHaveCount(0)
+  await said.getByRole('tab', { name: /Hand it to your agent/ }).click()
+  const lead = said.locator('#lead-agent')
+  await expect(lead).toBeVisible()
+  // The draft's pane starts again and finishes; the answer's pane stays as it was.
+  await expect(said.locator('.p-draft [data-at]:not(.on)').first()).toBeAttached()
+  await expect(said.locator('.p-answer [data-at]:not(.on)')).toHaveCount(0)
+  await expect(said.locator('.p-draft .dfoot')).toHaveClass(/\bon\b/, { timeout: 15_000 })
+  await expect(said.locator('[data-at]:not(.on)')).toHaveCount(0)
+})
+
 test.describe('the first screen', () => {
   test.use({ reducedMotion: 'reduce' })
 
@@ -302,6 +321,53 @@ test.describe('below the first screen', () => {
   })
 })
 
+test.describe('the thread that becomes a note', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test('shows each door, by mouse and with the arrow keys, finished and still', async ({
+    page,
+  }) => {
+    await open(page)
+    const said = page.locator('#said-demo')
+    const paste = said.getByRole('tab', { name: /Paste it into Footnote/ })
+    const agent = said.getByRole('tab', { name: /Hand it to your agent/ })
+    await expect(paste).toHaveAttribute('aria-selected', 'true')
+    await expect(said.getByRole('tabpanel')).toHaveCount(1)
+    await expect(said.getByRole('tabpanel')).toContainText('Filled in by rule, with no AI model.')
+    await expect(said.getByRole('heading', { level: 3 })).toHaveText([
+      '1A thread in your team chat',
+      '2Your draft. Only you see it',
+      '3The owner checks it. Agents answer from it',
+    ])
+    await agent.click()
+    await expect(agent).toHaveAttribute('aria-selected', 'true')
+    await expect(said.getByRole('tabpanel')).toContainText('"status": "draft_saved"')
+    await expect(said.locator('#lead-paste')).toBeHidden()
+    await page.keyboard.press('ArrowLeft')
+    await expect(paste).toBeFocused()
+    await expect(paste).toHaveAttribute('aria-selected', 'true')
+    await expect(said.locator('#lead-agent')).toBeHidden()
+    await page.keyboard.press('End')
+    await expect(agent).toBeFocused()
+    // Finished at once, the guess struck and the checked answer there.
+    await expect(said.locator('.ans')).toBeVisible()
+    await expect(said.getByText('Checked by Jon Abara, owner of Sales, 16 Nov 2026')).toBeVisible()
+    await expectAxeClean(page)
+  })
+
+  test('says it is a demonstration, and names no chat app but to say Footnote has none', async ({
+    page,
+  }) => {
+    await open(page)
+    const said = page.locator('#said')
+    await expect(said.locator('figcaption')).toHaveText(
+      'A demonstration the page plays, not a recording. The thread, the company and the people are invented. Footnote has no Slack app: you copy the thread.',
+    )
+    const words = await said.evaluate((el) => el.textContent ?? '')
+    expect(words.match(/Slack|Teams|Google Chat/g)).toEqual(['Slack'])
+  })
+})
+
 test('the build before the release carries only its words, not the release words', async ({
   page,
 }) => {
@@ -345,6 +411,15 @@ const shots = [
     theme: 'light',
     ask: asked[3].q,
   },
+  ...(['1440-dark', '1440-light', '768-dark', '390-dark'] as const).map((size) => {
+    const [width, theme] = size.split('-') as [string, Theme]
+    return {
+      name: `said-${size}`,
+      viewport: { width: Number(width), height: 900 },
+      theme,
+      part: '#said',
+    }
+  }),
 ] as const
 
 /** The meaning section alone, as it opens. */
@@ -372,7 +447,14 @@ test.describe('screenshots', () => {
         await page.mouse.move(0, 0)
         await win(page).scrollIntoViewIfNeeded()
       }
-      await expect(page).toHaveScreenshot(file, { caret: 'hide', maxDiffPixelRatio: 0.01 })
+      if ('part' in shot) {
+        // The header stays at the top and would cover the part's first lines.
+        await page.addStyleTag({ content: 'header.top { visibility: hidden }' })
+        await expect(page.locator(shot.part)).toHaveScreenshot(file, {
+          caret: 'hide',
+          maxDiffPixelRatio: 0.01,
+        })
+      } else await expect(page).toHaveScreenshot(file, { caret: 'hide', maxDiffPixelRatio: 0.01 })
     })
   for (const shot of meaningShots)
     test(shot.name, async ({ page }, info) => {

@@ -1,0 +1,117 @@
+---
+import { agentDoor, caption, checked, doors, draft, firstBox, pasted, thread } from '../said.ts'
+
+/* The section's demonstration (landing/said.ts): a thread, the two ways it becomes a person's
+   draft today, and the owner's check, in one window of three panes. Everything is drawn finished,
+   so the page shows it whole without a script and with reduced motion. With motion, landing/page.ts
+   plays it once as it scrolls into view: each part arrives at its `data-at`, ms from the start, a
+   button is pressed at its `data-press`, and a door picked plays its draft again. */
+
+const [first] = doors
+const short = (text: string, words: number) => `${text.split(' ').slice(0, words).join(' ')}...`
+---
+
+<div class="said rv" id="said-demo" style="--d:120ms">
+  <div class="doors" role="tablist" aria-label="Two ways in">
+    {
+      doors.map((door) => (
+        <button
+          type="button"
+          role="tab"
+          id={`door-${door.key}`}
+          aria-controls={`lead-${door.key}`}
+          aria-selected={door === first ? 'true' : 'false'}
+          tabindex={door === first ? undefined : '-1'}
+          data-door={door.key}
+        >
+          <b>{door.name}</b>
+          <span>{door.how}</span>
+        </button>
+      ))
+    }
+  </div>
+  <figure>
+    <div class="flow glow">
+      <i class="gl" aria-hidden="true"></i>
+
+      <section class="pane p-thread" aria-labelledby="said-1">
+        <h3 class="ph" id="said-1"><i class="n" aria-hidden="true">1</i>A thread in your team chat</h3>
+        <div class="pb">
+          <p class="chan" data-at="0">{thread.channel}</p>
+          <ol class="msgs">
+            {
+              thread.messages.map((m, i) => (
+                <li class:list={{ copied: m.copied }} data-at={150 + i * 300}>
+                  {m.copied && <i class="mk" data-at="1200" aria-hidden="true" />}
+                  <i class="av" style={`--c:${m.color}`} aria-hidden="true">{m.initials}</i>
+                  <div>
+                    <p class="who"><b>{m.name}</b><time>{m.time}</time></p>
+                    <p>{m.text}</p>
+                  </div>
+                </li>
+              ))
+            }
+          </ol>
+          <p class="hint" data-at="1500">{thread.copied}</p>
+        </div>
+      </section>
+
+      <section class="pane p-draft" aria-labelledby="said-2">
+        <h3 class="ph" id="said-2"><i class="n" aria-hidden="true">2</i>Your draft. Only you see it</h3>
+        <div class="pb">
+          <div class="lead" data-at="1900" id="lead-paste" role="tabpanel" aria-labelledby="door-paste">
+            <p class="lbl">{firstBox.page}</p>
+            <p class="big">{firstBox.question}</p>
+            <p class="box"><span>{pasted}</span></p>
+            <p class="row"><span class="b-main" data-press="2400">{firstBox.button}</span><span class="muted">{firstBox.note}</span></p>
+          </div>
+          <div class="lead term" data-at="1900" id="lead-agent" role="tabpanel" aria-labelledby="door-agent" hidden>
+            <p class="q">{agentDoor.ask} "{short(pasted, 8)}"</p>
+            <p>called <b>{agentDoor.tool}</b> <span class="k">"status":</span> <span class="v">"{agentDoor.status}"</span></p>
+            <p class="says"><small>the agent then says</small>{agentDoor.says}</p>
+          </div>
+          <div class="draft" data-at="2600">
+            <p class="title" data-at="2700">{draft.title}</p>
+            <dl>
+              {
+                draft.fields.map((field, i) => (
+                  <div data-at={2820 + i * 120}>
+                    <dt>{field.label}</dt>
+                    {field.chips ? (
+                      <dd>{field.chips.map((chip) => <span class="chipx">{chip}</span>)}</dd>
+                    ) : (
+                      <dd class:list={{ src: field.label === 'Source' }}>{field.text}</dd>
+                    )}
+                  </div>
+                ))
+              }
+            </dl>
+            <p class="dfoot" data-at="3500"><span><i class="dot"></i>{draft.ready}</span><span class="b-main" data-press="4000">{draft.send}</span></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="pane p-answer" aria-labelledby="said-3">
+        <h3 class="ph" id="said-3"><i class="n" aria-hidden="true">3</i>The owner checks it. Agents answer from it</h3>
+        <div class="pb">
+          <p class="checked" data-at="4300">
+            <i class="av" style={`--c:${checked.owner.color}`} aria-hidden="true">{checked.owner.initials}</i>
+            <span>Checked by <b>{checked.owner.name}</b>, {checked.owner.role}, {checked.on}</span>
+          </p>
+          <div class="ask">
+            <p class="lbl" data-at="4600">In Ask</p>
+            <p class="qb" data-at="4600">{checked.question}</p>
+            <p class="guess" data-at="4900"><span>an agent on its own</span><s>{checked.guess}</s></p>
+            <p data-at="5600"><span class="badge"><svg class="ic" aria-hidden="true"><use href="#i-check"></use></svg>{checked.line}</span></p>
+            <p class="ans" data-at="5800">{checked.answer}<span class="ref" role="img" aria-label="Footnote 1">1</span></p>
+          </div>
+          <div class="viaagent" data-at="6300">
+            <p class="lbl">In your agent</p>
+            <p class="mono">called <b>{checked.tool}</b> <span class="st">{checked.line}.</span> {checked.say}</p>
+          </div>
+        </div>
+      </section>
+    </div>
+    <figcaption class="cap">{caption}</figcaption>
+  </figure>
+</div>
