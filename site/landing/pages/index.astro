@@ -12,6 +12,7 @@ import AskWindow from '../components/AskWindow.astro'
 import Definitions from '../components/Definitions.astro'
 import Head from '../components/Head.astro'
 import Header from '../components/Header.astro'
+import Said from '../components/Said.astro'
 import Sprite from '../components/Sprite.astro'
 import { released, releaseWords } from '../release.ts'
 import * as meaning from '../meaning.ts'
@@ -200,6 +201,16 @@ const headline = 'Tell your AI agents why the number moved before they'.split(' 
               <figcaption class="cap">Real screens of the app. The names on them are invented.</figcaption>
             </figure>
           </div>
+        </div>
+      </section>
+
+      <section class="sec" id="said" aria-labelledby="h-said">
+        <div class="wrap">
+          <div class="sec-head rv">
+            <h2 id="h-said">What someone already said becomes a note</h2>
+            <p>The reason a number moved is often in a chat thread already. Paste it into Footnote, or hand it to your agent, and it becomes your draft. Nothing reaches an answer until the owner checks it.</p>
+          </div>
+          <Said />
         </div>
       </section>
 

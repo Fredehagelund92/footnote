@@ -1165,6 +1165,458 @@ button.ref:focus-visible,
   color: var(--fg-4);
 }
 
+/* What someone already said: a thread in a team chat, the person's draft, the owner's check
+   (landing/components/Said.astro). One window of three panes on a patch of the dot field. */
+#said {
+  overflow: clip;
+}
+.said {
+  position: relative;
+  margin-top: 72px;
+}
+.said::before {
+  content: '';
+  position: absolute;
+  inset: 24px -96px -64px;
+  z-index: -1;
+  background-image: radial-gradient(circle, var(--dot) 1.15px, transparent 1.6px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(closest-side, #000 30%, transparent);
+  mask-image: radial-gradient(closest-side, #000 30%, transparent);
+  pointer-events: none;
+}
+.doors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 880px;
+}
+.doors button {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  text-align: left;
+  transition:
+    background-color 140ms var(--ease),
+    border-color 140ms var(--ease);
+}
+.doors button:hover {
+  background: var(--bg-1);
+}
+.doors button[aria-selected='true'] {
+  background: var(--bg-2);
+  border-color: var(--line-2);
+}
+.doors b {
+  font-weight: 510;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--fg-3);
+}
+.doors button:hover b,
+.doors [aria-selected='true'] b {
+  color: var(--fg);
+}
+.doors span {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-4);
+}
+.flow {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr) 400px;
+  background: linear-gradient(var(--lit), transparent 200px), var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--win-shadow);
+}
+.flow .pane {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.flow .pane + .pane {
+  border-left: 1px solid var(--line);
+}
+.flow h3.ph {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 20px;
+  letter-spacing: 0;
+  color: var(--fg-3);
+}
+.flow .n {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--bg-3);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font: 510 11px/1 var(--sans);
+  font-style: normal;
+  color: var(--fg-2);
+}
+.flow .pb {
+  min-width: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.flow .lbl {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--fg-4);
+}
+.flow .muted {
+  color: var(--fg-4);
+}
+.flow .mono {
+  font-size: 12.5px;
+  line-height: 20px;
+  color: var(--fg-3);
+}
+.flow .mono b {
+  font-weight: 500;
+  color: var(--fg);
+}
+.flow .st {
+  color: var(--ok);
+}
+.flow .chan {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-3);
+}
+.msgs {
+  display: grid;
+  gap: 18px;
+}
+.msgs li {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px;
+  margin: -8px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--fg-2);
+  overflow-wrap: anywhere;
+}
+.msgs .av {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+}
+.msgs .mk {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 8px;
+  background: var(--mark);
+}
+.msgs .who {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.msgs .who b {
+  font-weight: 510;
+  color: var(--fg);
+}
+.msgs time {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+.flow .hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--fg-4);
+}
+.flow .lead {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.flow .lead.term {
+  font-size: 12.5px;
+  line-height: 20px;
+}
+.flow .lead.term p + p {
+  margin-top: 0;
+}
+.flow .lead.term .says {
+  margin-top: 2px;
+  padding-top: 10px;
+  font-size: 14px;
+  line-height: 21px;
+}
+.flow .big {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 26px;
+  letter-spacing: -0.015em;
+  color: var(--fg);
+}
+.flow .box {
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-2);
+}
+.flow .box span {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.flow .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 13px;
+  line-height: 20px;
+}
+.flow .b-main {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 7px;
+  background: var(--btn);
+  color: var(--btn-fg);
+  font-weight: 510;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.flow .draft {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+}
+.flow .draft .title {
+  font-weight: 510;
+  font-size: 16px;
+  line-height: 23px;
+  letter-spacing: -0.012em;
+  color: var(--fg);
+}
+.flow .draft dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.flow .draft dl > div {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+.flow .draft dt {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-4);
+}
+.flow .draft dd {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-2);
+}
+.flow .draft dd.src {
+  display: block;
+  font: 400 12.5px/20px var(--mono);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.flow .dfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--fg-3);
+}
+.flow .dfoot > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.flow .checked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-3);
+}
+.flow .checked b {
+  font-weight: 510;
+  color: var(--fg);
+}
+.flow .ask {
+  display: grid;
+  gap: 10px;
+}
+.flow .qb {
+  justify-self: end;
+  max-width: 92%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fg);
+}
+.flow .guess {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--fg-3);
+}
+.flow .guess span {
+  font: 400 12px/16px var(--mono);
+  letter-spacing: 0;
+  color: var(--fg-4);
+}
+.flow .guess s {
+  text-decoration: none;
+  background: linear-gradient(var(--bad), var(--bad)) no-repeat 0 56% / 100% 1.5px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.flow .ans {
+  font-size: 17px;
+  line-height: 26px;
+  letter-spacing: -0.014em;
+  color: var(--fg);
+}
+.flow .viaagent {
+  display: grid;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+/* With motion the window plays once, a part at a time (landing/page.ts); without, it is all there. */
+.anim .flow [data-at] {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 360ms var(--ease),
+    transform 360ms var(--ease);
+}
+.anim .flow [data-at].on {
+  opacity: 1;
+  transform: none;
+}
+.anim .flow .mk[data-at] {
+  transform: none;
+  transition-duration: 500ms;
+}
+.anim .flow .guess s {
+  background-size: 0% 1.5px;
+  transition: background-size 520ms var(--ease) 500ms;
+}
+.anim .flow .guess.on s {
+  background-size: 100% 1.5px;
+}
+.anim .flow .pressed {
+  animation: press 360ms var(--ease);
+}
+@keyframes press {
+  40% {
+    transform: scale(0.94);
+    opacity: 0.8;
+  }
+}
+@media (max-width: 1100px) {
+  .flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .flow .p-answer {
+    grid-column: 1 / -1;
+    border-left: 0 !important;
+    border-top: 1px solid var(--line);
+  }
+  .p-answer .pb {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 20px;
+    align-items: start;
+  }
+  .p-answer .checked {
+    grid-column: 1 / -1;
+  }
+  .p-answer .viaagent {
+    padding-top: 0;
+    border-top: 0;
+  }
+  .flow .draft dl > div {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .said {
+    margin-top: 48px;
+  }
+  .doors {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .flow .p-draft {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .p-answer .pb {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .p-answer .viaagent {
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .flow .pb {
+    padding: 16px;
+  }
+}
+
 /* Meaning, not numbers: a question asked by dragging along the Orders line. The page shows no
    figure, only the line, and says each week in words. */
 .sb {

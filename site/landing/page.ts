@@ -3,9 +3,9 @@ import * as meaning from './meaning.ts'
 
 /*
   The landing page below its first screen (landing/pages/index.astro): the definitions window, the
-  tour of real screens, the week picked along the Orders line, what arrives as it scrolls into view,
-  and the light that follows the pointer over a window. With reduced motion nothing arrives or
-  walks: everything is there, the tour waits for a press, and the line waits for a drag or a key.
+  tour of real screens, the week picked along the Orders line, the thread that becomes a note, what arrives as it scrolls into view,
+  and the light that follows the pointer over a window. With reduced motion nothing arrives, walks or
+  plays: everything is there, the tour and the doors wait for a press, and the line waits for a drag or a key.
 */
 
 export function page() {
@@ -13,6 +13,7 @@ export function page() {
   definitions()
   scrub(moving)
   const tour = walk(moving)
+  said(moving)
   arrive(moving, tour)
   if (moving) glow()
 }
@@ -244,6 +245,82 @@ function walk(moving: boolean) {
       arm()
     },
   }
+}
+
+/**
+ * The thread that becomes a note (#said-demo, landing/components/Said.astro): its two doors are
+ * tabs, the arrow keys moving between them, and each shows its own way into the draft. With motion
+ * the window plays once as it scrolls into view: each part arrives at its `data-at`, in ms, and a
+ * button is pressed at its `data-press`. A door picked after that plays the draft's pane again.
+ */
+function said(moving: boolean) {
+  const root = document.querySelector<HTMLElement>('#said-demo')
+  if (!root) return
+  const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')]
+  const draft = root.querySelector<HTMLElement>('.p-draft')!
+  const timers = new Map<HTMLElement, number>()
+  let played = false
+
+  /** Plays the parts in `scope` again from `from` ms: those before it at once. */
+  function play(scope: HTMLElement, from: number) {
+    const steps = [
+      ...[...scope.querySelectorAll<HTMLElement>('[data-at]')].map((el) => ({
+        el,
+        at: Number(el.dataset.at),
+        mark: 'on',
+      })),
+      ...[...scope.querySelectorAll<HTMLElement>('[data-press]')].map((el) => ({
+        el,
+        at: Number(el.dataset.press),
+        mark: 'pressed',
+      })),
+    ]
+    for (const { el, mark } of steps) {
+      clearTimeout(timers.get(el))
+      el.classList.remove(mark)
+    }
+    void scope.offsetWidth
+    for (const { el, at, mark } of steps)
+      timers.set(
+        el,
+        window.setTimeout(() => el.classList.add(mark), Math.max(0, at - from)),
+      )
+  }
+  function pick(tab: HTMLButtonElement, focus = false) {
+    const changed = tab.getAttribute('aria-selected') !== 'true'
+    for (const t of tabs) {
+      const on = t === tab
+      t.setAttribute('aria-selected', String(on))
+      t.tabIndex = on ? 0 : -1
+      root!.querySelector<HTMLElement>(`#${t.getAttribute('aria-controls')}`)!.hidden = !on
+    }
+    if (focus) tab.focus()
+    if (moving && played && changed)
+      play(draft, Number(draft.querySelector<HTMLElement>('[data-at]')!.dataset.at))
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => pick(tab))
+    tab.addEventListener('keydown', (e) => {
+      const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
+      const to = e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : step && i + step
+      if (to === undefined) return
+      e.preventDefault()
+      pick(tabs[(to + tabs.length) % tabs.length]!, true)
+    })
+  })
+  if (!moving) return
+  const flow = root.querySelector<HTMLElement>('.flow')!
+  const seen = new IntersectionObserver(
+    (entries) => {
+      if (!entries[0]!.isIntersecting) return
+      seen.disconnect()
+      played = true
+      // A beat after the window itself has arrived.
+      play(flow, -400)
+    },
+    { threshold: 0.3 },
+  )
+  seen.observe(flow)
 }
 
 /** What scrolls into view arrives once. The statement's words come up to full strength in reading order. */
