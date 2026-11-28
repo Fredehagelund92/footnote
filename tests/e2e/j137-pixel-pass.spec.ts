@@ -952,9 +952,7 @@ test.describe('wave 4, on the narrowest phone', () => {
 })
 
 test.describe('wave 4, beside a panel', () => {
-  test('the editor toolbar beside a panel at 820 fades where it is cut (Q04)', async ({
-    page,
-  }) => {
+  test('the editor toolbar beside a panel at 820 fades where it is cut (Q04)', async ({ page }) => {
     await page.setViewportSize({ width: 820, height: 800 })
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
