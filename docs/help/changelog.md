@@ -22,6 +22,12 @@ An install on your own data asks the first person who opens it for their name, t
 
 While fewer than five people have signed in, each question an agent finds nothing for shows in the owner's Inbox at once, as a Nothing written yet card. Later the usual count applies: 5 in 7 days.
 
+## What to write next
+
+2026-11-28
+
+After the setup checklist, the Inbox keeps a Next card until five context items are published: the metrics nothing is written about yet, the ones agents asked about first, and where to find more of what your team knows.
+
 ## An agent writes many drafts, and sends none
 
 2026-11-27
