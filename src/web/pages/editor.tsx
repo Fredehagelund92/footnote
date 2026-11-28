@@ -592,7 +592,9 @@ function Editor({
   // Which kind of source the box asks for. What the form holds decides, so an agent's change shows
   // as what it is; with nothing typed yet, the person's choice does. The other kind's words wait,
   // so a choice made by mistake loses nothing.
-  const [sourceChoice, setSourceChoice] = React.useState<'link' | 'said'>('link')
+  const [sourceChoice, setSourceChoice] = React.useState<'link' | 'said'>(
+    initial.said ? 'said' : 'link',
+  )
   const sourceKept = React.useRef({ source: '', quote: '', said: '' })
   const [mainRef, wide] = useWide<HTMLDivElement>()
   usePrimaryKey()
