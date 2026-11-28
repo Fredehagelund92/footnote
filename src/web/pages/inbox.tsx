@@ -1,44 +1,20 @@
-import * as React from 'react'
-import { andList } from '@domain/family-split'
+import type { UndoOffer } from '@/api/client'
 import {
-  ArrowLeftIcon,
-  ArrowLeftRightIcon,
-  AtSignIcon,
-  BookOpenIcon,
-  MessageSquareTextIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
-  CircleCheckIcon,
-  CircleDashedIcon,
-  ClockIcon,
-  FileTextIcon,
-  type FlagIcon,
-  InboxIcon,
-  LinkIcon,
-  MailOpenIcon,
-  MessageSquareIcon,
-  SearchIcon,
-  TriangleAlertIcon,
-  UserPlusIcon,
-} from '@/components/icons'
-import { toast } from '@/lib/toast'
-import { cn, midSentence } from '@/lib/utils'
-import { FieldDiff, PersonAvatar, WithAction } from '@/components/footnote/bits'
-import { Mark } from '@/components/footnote/mark'
-import { marksExceptions } from '@/lib/marks'
-import { ToolLogo } from '@/components/footnote/tool-logo'
-import { pairOfKey } from '@/model/conflicts'
-import { integrationHref, lookOf } from '@/model/integrations'
-import {
-  askedWords,
-  careLine,
-  changeWords,
-  flagRowWords,
-  gapRowWords,
-  type Review,
-} from '@/model/review'
-import { QuickHead, QuickReview } from '@/pages/review'
+  conflictQuery,
+  conflictsQuery,
+  inboxPageQuery,
+  useDefinitions,
+  useInbox,
+  useReviews,
+  useSavedQuestions,
+  useSession,
+  useWrite,
+} from '@/api/queries'
+import { FieldDiff, PersonAvatar } from '@/components/footnote/bits'
+import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
+import { Cell } from '@/components/footnote/cell'
+import { suggestionIcon } from '@/components/footnote/change-icons'
+import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
 import {
   AskedAbout,
   cardIcon,
@@ -48,20 +24,35 @@ import {
   PaneHead,
   PrimaryAction,
 } from '@/components/footnote/inbox-pane'
+import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
+import { Mark } from '@/components/footnote/mark'
 import { Panel } from '@/components/footnote/panel'
-import { follows, paneState, primaryLabel } from '@/model/inbox-pane'
-import { TOUCH, TOUCH_LINK } from '@/lib/touch'
+import { TextSwitch } from '@/components/footnote/switches'
+import { ToolLogo } from '@/components/footnote/tool-logo'
+import { TruncatedText } from '@/components/footnote/truncated'
+import {
+  ArrowLeftIcon,
+  ArrowLeftRightIcon,
+  AtSignIcon,
+  BookOpenIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  CircleCheckIcon,
+  ClockIcon,
+  InboxIcon,
+  LinkIcon,
+  MailOpenIcon,
+  MessageSquareIcon,
+  MessageSquareTextIcon,
+  SearchIcon,
+  TriangleAlertIcon,
+  type FlagIcon,
+} from '@/components/icons'
+import { ResultIcon } from '@/components/obs/result'
 import { SiteHeader } from '@/components/site-header'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { CardAction, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Empty,
   EmptyContent,
@@ -73,97 +64,65 @@ import {
 import { Input } from '@/components/ui/input'
 import { Kbd } from '@/components/ui/kbd'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
-import { TextSwitch } from '@/components/footnote/switches'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { questionAbout } from '@/model/ask'
-import { ASK_SOMEONE, askSomeoneCopied, type InboxCard, type Waiting } from '@/model/inbox'
-import { questionPath } from '@domain/question-link'
-import { servedToAgents, type DomainId, type Fact } from '@/model/items'
-import { questionDates } from '@/model/validity'
-import { today } from '@/lib/today'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { askInDock, openDock, openFromRow, useDock } from '@/lib/dock'
-import { open } from '@/lib/events'
-import {
-  backToList,
-  changeQuery,
-  href,
-  navigate,
-  openFromList,
-  setQuery,
-  useRoute,
-} from '@/lib/router'
-import { safeHref } from '@/lib/host'
-import { useQuery } from '@tanstack/react-query'
-import {
-  conflictQuery,
-  conflictsQuery,
-  inboxPageQuery,
-  namesQuery,
-  readQuestionQuery,
-  useDefinitions,
-  useInbox,
-  useReviews,
-  useSavedQuestions,
-  useSession,
-  useWorkspace,
-  useWrite,
-  workspaceQuery,
-} from '@/api/queries'
-import type { UndoOffer } from '@/api/client'
-import { rememberSending, useUndo } from '@/lib/undo'
-import {
-  definitionsStep,
-  nextStepWords,
-  nextSteps,
-  nextWords,
-  NEXT_UNTIL,
-  setupHeading,
-  setupSteps,
-  type NextStep,
-} from '@/lib/setup'
-import { contextAbout } from '@/lib/definitions'
-import { ConflictPairCompact } from '@/components/footnote/conflict-pair'
-import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
-import { mayOpenSettings } from '@/lib/settings-access'
-import { homeDomain, listOf, type Domain, type Person } from '@/model/people'
-import type { Outcome } from '@/model/inbox'
+import { useSelection, type RowSelection } from '@/hooks/use-selection'
 import { useCommentActions, useNewReply, type MentionNote } from '@/lib/comments'
+import { askInDock, openDock, openFromRow, useDock } from '@/lib/dock'
+import { safeHref } from '@/lib/host'
 import {
-  groupOf,
   dueScope,
+  groupOf,
   INBOX_GROUPS,
-  startsFolded,
-  type InboxGroup,
   needs,
   rowId,
   rowTitle,
+  startsFolded,
   useInboxRows,
+  type InboxGroup,
   type InboxRow,
 } from '@/lib/inbox-rows'
-import { suggestionIcon } from '@/components/footnote/change-icons'
-import type { Subject } from '@/model/comments'
-import { TruncatedText } from '@/components/footnote/truncated'
-import { ListSkeleton, Loadable } from '@/components/footnote/load-state'
-import { BulkBar, BulkButton } from '@/components/footnote/bulk-bar'
-import { useOnline } from '@/lib/send'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useSelection, type RowSelection } from '@/hooks/use-selection'
 import { useListKeys } from '@/lib/list'
-import { ResultIcon } from '@/components/obs/result'
+import { marksExceptions } from '@/lib/marks'
 import { arriveRef, leaveThen, useLeavingRows } from '@/lib/presence'
+import { backToList, changeQuery, navigate, openFromList, setQuery, useRoute } from '@/lib/router'
+import { useOnline } from '@/lib/send'
+import { mayOpenSettings } from '@/lib/settings-access'
+import { toast } from '@/lib/toast'
+import { TOUCH, TOUCH_LINK } from '@/lib/touch'
+import { rememberSending, useUndo } from '@/lib/undo'
+import { cn, midSentence } from '@/lib/utils'
+import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
+import type { Subject } from '@/model/comments'
+import { pairOfKey } from '@/model/conflicts'
+import type { Outcome } from '@/model/inbox'
+import { ASK_SOMEONE, askSomeoneCopied, type InboxCard, type Waiting } from '@/model/inbox'
+import { follows, paneState, primaryLabel } from '@/model/inbox-pane'
+import { integrationHref, lookOf } from '@/model/integrations'
+import type { DomainId, Fact } from '@/model/items'
+import {
+  askedWords,
+  careLine,
+  changeWords,
+  flagRowWords,
+  gapRowWords,
+  type Review,
+} from '@/model/review'
+import { QuickHead, QuickReview } from '@/pages/review'
+import { andList } from '@domain/family-split'
+import { questionPath } from '@domain/question-link'
+import { useQuery } from '@tanstack/react-query'
+import * as React from 'react'
+// Read only on an install that is new or has few items published, so kept out of the first load.
+const NamesReview = React.lazy(() => import('@/components/footnote/names-review'))
+const DraftsReview = React.lazy(() => import('@/components/footnote/drafts-review'))
+const Setup = React.lazy(() => import('@/first-use').then((m) => ({ default: m.Setup })))
+const NextCard = React.lazy(() => import('@/first-use').then((m) => ({ default: m.NextCard })))
 
 // The Inbox, built like shadcn's Mail example (a list with All and Needs me and a search field, and
 // a detail pane with the selected card's one primary action) and dressed as Efferd's dashboard 2:
 // a frame of flat cells divided by hairlines. A suggestion's review opens in the dock, which takes
 // the detail pane's place, so there is one right panel.
-
-/** Efferd's dashboard card: a shadcn Card made flat, so the frame's hairlines are its only edges. */
-function Cell({ className, ...props }: React.ComponentProps<typeof Card>) {
-  return (
-    <Card className={cn('rounded-none bg-background shadow-none ring-0', className)} {...props} />
-  )
-}
 
 /* ---------- the list ---------- */
 
@@ -1111,12 +1070,6 @@ function MentionDone({ subject, next }: { subject: Subject; next: () => void }) 
   )
 }
 
-const NamesReview = React.lazy(() => import('@/components/footnote/names-review'))
-const DraftsReview = React.lazy(() => import('@/components/footnote/drafts-review'))
-const NamesDialog = React.lazy(() =>
-  import('@/components/footnote/names-review').then((m) => ({ default: m.NamesDialog })),
-)
-
 const CommentBox = React.lazy(() =>
   import('@/components/templates/comment-box').then((m) => ({ default: m.CommentBox })),
 )
@@ -1327,375 +1280,6 @@ function DraftsDetail({ card, nav, next }: { card: InboxCard; nav: PaneNav; next
 }
 
 /* ---------- setup and all done ---------- */
-
-/** Where the first context item goes, as the editor starts it, and who publishes it there. */
-function whereContextGoes(me: Person, domains: Domain[]) {
-  const home = homeDomain(me, domains)
-  // A new install's first domain is made with its names.
-  if (!home)
-    return me.admin
-      ? 'Context goes to the domain your names are published under.'
-      : 'Context goes to a domain, and there is none yet: an admin adds one.'
-  // Several of one's own: the editor starts on one, and the writer picks.
-  const owned = domains.filter((domain) => me.owns.includes(domain.id) && !domain.sandbox).length
-  if (owned > 1) return `Context goes to one of the ${owned} domains you own.`
-  if (me.owns.includes(home.id)) return `Context goes to the domain ${home.name}, owned by you.`
-  const by = home.owners.length ? `owned by ${listOf(home.owners)}` : 'which has no owner yet'
-  return `Context goes to the domain ${home.name}, ${by}. ${
-    me.admin ? 'As an admin, you publish it at once.' : 'Agents get it once an owner publishes it.'
-  }`
-}
-
-/**
- * A new install's Inbox: the checklist, and what already waits, so a first test that changes a
- * definition sees its items Due for a check without finishing every step. `due` is how many.
- */
-function Setup({ due }: { due: number }) {
-  const {
-    setup: { done: setupDone, serverSource },
-    domains: domainList,
-    about,
-  } = useWorkspace()
-  const me = useMe()
-  const write = useWrite()
-  // A read ends a moment after a tool is connected: its names show here by themselves. Any left
-  // for a look stay on their step, as the Inbox's cards wait for the checklist to end.
-  const canPublish = me.admin || me.owns.length > 0
-  const namesRead = useQuery({
-    ...namesQuery(),
-    enabled: canPublish,
-    refetchInterval: setupDone.definitions || !canPublish ? false : 3000,
-  })
-  const names = namesRead.data?.names.filter((name) => name.state !== 'left_out')
-  // The server's own definitions are read by themselves too: the checklist asks until that read
-  // has ended, then counts it ended only once the names read after it are in, so the step goes
-  // from the read on its way straight to its names.
-  const reading = serverSource?.state === 'reading' && !setupDone.definitions
-  const workspaceRead = useQuery({ ...workspaceQuery(), refetchInterval: reading ? 3000 : false })
-  const [sawReading, setSawReading] = React.useState(reading)
-  if (reading && !sawReading) setSawReading(true)
-  const { refetch: refetchNames } = namesRead
-  const ended = sawReading && serverSource?.state === 'read'
-  React.useEffect(() => {
-    if (ended) void refetchNames()
-  }, [ended, refetchNames])
-  const namesBehind = ended && canPublish && namesRead.dataUpdatedAt < workspaceRead.dataUpdatedAt
-  // The first names published end the step. A decision reads only the names again, so while the
-  // step is open the checklist reads the workspace once the names change.
-  const revision = namesRead.data?.revision
-  const lastRevision = React.useRef(revision)
-  const { refetch: refetchWorkspace } = workspaceRead
-  React.useEffect(() => {
-    const was = lastRevision.current
-    lastRevision.current = revision
-    if (was !== undefined && revision !== was && !setupDone.definitions) void refetchWorkspace()
-  }, [revision, setupDone.definitions, refetchWorkspace])
-  // A step done says what it is, whatever read its names.
-  const definitions = definitionsStep(
-    setupDone.definitions || !serverSource
-      ? null
-      : { ...serverSource, state: namesBehind ? 'reading' : serverSource.state },
-    names?.length ?? 0,
-    namesRead.data?.place ?? null,
-  )
-  const [reviewing, setReviewing] = React.useState(false)
-  const { query } = useRoute()
-  const asked = canPublish && query.get('card') === 'names:waiting'
-  const askedShow = query.get('show')
-  // A question about the first item, from what it applies to or, if that is empty, its own words,
-  // on its own dates when they miss today: most first items are about a day that has passed.
-  // A new install has only what this visit added, newest first: the first one published.
-  const item = useFacts().find((f) => f.status === 'Live' || f.status === 'Due for a check')
-  const words = useQuery({
-    ...readQuestionQuery(item ? `${item.title} ${item.summary}` : ''),
-    enabled: !!item && !item.where.length,
-  }).data
-  const read =
-    item && (item.where.length ? { metric: item.where[0], markets: item.where.slice(1) } : words)
-  const firstQuestion = questionAbout(read, item ? questionDates(item.valid, today()) : '')
-  const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
-  const admins = useAdminsSaid()
-  // The steps done in an admin's Settings: anyone else reads who does them, and has no button.
-  const inSettings: Record<string, string> = {
-    ...(definitions.opens === 'names' ? {} : { definitions: '/settings/integrations' }),
-  }
-  // Written and not asked again yet: the step asks the question about it for you.
-  const askAgain = !!item && !setupDone.fact
-  const mayDo = (id: string) => mayOpenSettings(inSettings[id] ?? '', me)
-  const first = setupSteps.find((s) => !setupDone[s.id] && mayDo(s.id))
-  const go = (id: string) => {
-    if (id === 'definitions' && definitions.opens === 'names') setReviewing(true)
-    else if (id === 'definitions' && definitions.opens === 'source' && serverSource)
-      navigate(`/settings/integrations/${serverSource.id}`)
-    // The catalogue loads with the first page that needs it, never with the Inbox.
-    else if (id === 'definitions')
-      void import('@/model/catalogue').then(({ definitionsConnectHref }) =>
-        navigate(definitionsConnectHref(), { setup: '1' }),
-      )
-    // A question in the person's own words: about a number they know, nothing written yet.
-    if (id === 'ask') navigate('/ask', { setup: '1', n: 'setup' })
-    // Once written, the same question about it again, typed in and ready to send.
-    if (id === 'fact' && askAgain) navigate('/ask', { setup: '1', n: 'setup', q: firstQuestion })
-    else if (id === 'fact') navigate('/context/new', { setup: '1' })
-    if (id === 'agent') {
-      void write('completeSetupStep', { step: 'agent' })
-      open('connect')
-    }
-  }
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* The same header as the Inbox in every state, so the page keeps its shape. */}
-      <SiteHeader title="Inbox" icon={<InboxIcon />}>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Ask in the side panel"
-          onClick={() => openDock('ask')}
-        >
-          <MessageSquareIcon />
-        </Button>
-      </SiteHeader>
-      <div className="@container/main min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-3xl flex-col p-4 md:p-6">
-          {/* What already waits comes first: on a phone the checklist is two screens long. */}
-          {due > 0 && <DueRow due={due} />}
-          <div className="grid grid-cols-1 gap-px bg-border p-px">
-            <Cell className="gap-0 py-0">
-              <CardHeader className="border-b px-4 py-4 md:px-5">
-                <CardTitle className="text-base">{setupHeading}</CardTitle>
-                <CardDescription>
-                  Your team writes down what the numbers don't show, and every agent reads it before
-                  it answers. Name your metrics, ask, then write what you know: about ten minutes to
-                  your first answer. {whereContextGoes(me, domainList)}
-                </CardDescription>
-                <CardAction className="text-xs text-muted-foreground tabular-nums">
-                  {doneCount} of {setupSteps.length} done
-                </CardAction>
-              </CardHeader>
-              <CardContent className="px-0">
-                <ol className="flex flex-col divide-y divide-border">
-                  {setupSteps.map((step, i) => {
-                    const isDone = setupDone[step.id]
-                    const own = step.id === 'definitions'
-                    const action = !mayDo(step.id)
-                      ? null
-                      : own
-                        ? definitions.action
-                        : step.id === 'fact' && askAgain
-                          ? 'Ask again'
-                          : step.action
-                    return (
-                      <li
-                        key={step.id}
-                        className="flex min-h-16 items-center gap-3 px-4 py-3 @md:px-6"
-                      >
-                        <span
-                          aria-hidden
-                          className="flex size-10 shrink-0 items-center justify-center text-sm text-muted-foreground tabular-nums"
-                        >
-                          {isDone ? <CircleCheckIcon className="size-4 text-foreground" /> : i + 1}
-                        </span>
-                        <WithAction
-                          action={
-                            action !== null &&
-                            (!isDone || (own && definitions.opens === 'names')) && (
-                              <Button
-                                variant={first?.id === step.id ? 'default' : 'outline'}
-                                onClick={() => go(step.id)}
-                              >
-                                {action}
-                              </Button>
-                            )
-                          }
-                        >
-                          <span className="block space-y-1">
-                            <span
-                              className={cn(
-                                'block text-sm leading-snug',
-                                isDone && 'text-muted-foreground line-through',
-                              )}
-                            >
-                              {step.title}
-                            </span>
-                            <span
-                              className="block text-xs text-muted-foreground"
-                              aria-live={own ? 'polite' : undefined}
-                            >
-                              {own ? definitions.description : step.description}
-                            </span>
-                            {!isDone && !mayDo(step.id) && (
-                              <span className="block text-xs text-muted-foreground">
-                                An admin does this{admins}.
-                              </span>
-                            )}
-                          </span>
-                          {isDone && <span className="sr-only">Done</span>}
-                        </WithAction>
-                      </li>
-                    )
-                  })}
-                </ol>
-              </CardContent>
-              {(!item || (!about.trim() && mayOpenSettings('/settings/general', me))) && (
-                <CardFooter className="flex-col items-start gap-1 rounded-none border-t bg-background px-4 py-4 text-xs text-muted-foreground @md:px-6">
-                  {!item && (
-                    <p>
-                      Until there is context, agents hear “Nothing is written down for this.” That
-                      is the honest answer, not an error.
-                    </p>
-                  )}
-                  {/* About our business left the steps: it is written from the names, once there are some. */}
-                  {!about.trim() && mayOpenSettings('/settings/general', me) && (
-                    <p>
-                      Later, say what the business is about in{' '}
-                      <a
-                        href={href('/settings/general', { setup: '1' })}
-                        className="underline underline-offset-4 hover:text-foreground"
-                      >
-                        About our business
-                      </a>
-                      . Ask and agents read it as background.
-                    </p>
-                  )}
-                </CardFooter>
-              )}
-            </Cell>
-          </div>
-        </div>
-      </div>
-      {(reviewing || asked) && (
-        <React.Suspense fallback={null}>
-          <NamesDialog
-            show={askedShow === 'families' || askedShow === 'names' ? askedShow : undefined}
-            onClose={() => {
-              setReviewing(false)
-              if (asked) setQuery({ card: undefined, show: undefined })
-            }}
-          />
-        </React.Suspense>
-      )}
-    </div>
-  )
-}
-
-/**
- * The Inbox's Due for a check row, above the checklist while setup is unfinished: how many, in
- * whose domains, and a link to them in Context.
- */
-function DueRow({ due }: { due: number }) {
-  const me = useMe()
-  const Icon = cardIcon.check
-  return (
-    <section aria-label="Needs you" className="mb-4 grid grid-cols-1 gap-px bg-border p-px">
-      <Cell className="gap-0 py-0">
-        <a
-          href={href('/context', { status: 'due' })}
-          className="flex min-h-16 items-center gap-3 px-4 py-3 outline-none hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset @md:px-6"
-        >
-          <span
-            aria-hidden
-            className="flex size-10 shrink-0 items-center justify-center text-muted-foreground"
-          >
-            <Icon className="size-4" />
-          </span>
-          <span className="min-w-0 flex-1 space-y-1">
-            <span className="block text-sm leading-snug font-medium">
-              Due for a check{' '}
-              <span className="font-normal text-muted-foreground tabular-nums">
-                {due.toLocaleString('en-GB')} {dueScope(me)}
-              </span>
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              A definition they rely on changed in its tool, or their check date passed.
-            </span>
-          </span>
-          <ChevronRightIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-        </a>
-      </Cell>
-    </section>
-  )
-}
-
-const nextIcons: Record<NextStep['kind'], typeof CircleDashedIcon> = {
-  metric: CircleDashedIcon,
-  people: UserPlusIcon,
-  documents: FileTextIcon,
-}
-
-/**
- * What to write next once the setup checklist is done (FR-816, the owner's call 3): until five
- * context items are published, the metrics nothing is written about, those agents asked about
- * first, and for an admin a colleague who knows and the team's documents. It goes by itself.
- */
-function NextCard() {
-  const me = useMe()
-  const facts = useFacts()
-  const definitions = useDefinitions()
-  const { cards } = useInbox()
-  const published = facts.filter(servedToAgents).length
-  const steps = React.useMemo(() => {
-    // Counted first: a workspace past its first days never reads its coverage here.
-    if (published >= NEXT_UNTIL) return null
-    const metrics = definitions.filter((d) => d.type === 'metric' && !d.sameAs)
-    return nextSteps({
-      published,
-      uncovered: metrics
-        .filter((d) => contextAbout(definitions, d, facts).length === 0)
-        .map((d) => d.name),
-      asked: cards.flatMap((card) => (card.type === 'gap' ? (card.gap?.scope ?? []) : [])),
-      admin: mayOpenSettings('/settings/people', me),
-    })
-  }, [published, definitions, facts, cards, me])
-  if (!steps) return null
-  const words = nextWords(published)
-  const go = (step: NextStep) => {
-    if (step.kind === 'metric') navigate('/context/new', { metric: step.metric })
-    if (step.kind === 'people') navigate('/settings/people')
-    if (step.kind === 'documents') navigate('/settings/integrations')
-  }
-  return (
-    <section aria-labelledby="inbox-next" className="border-t">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 pt-4 @md:px-5">
-        <h2 id="inbox-next" className="text-sm font-medium">
-          {words.heading}
-        </h2>
-        <span className="text-xs text-muted-foreground tabular-nums">{words.count}</span>
-        <p className="w-full text-xs text-muted-foreground">{words.description}</p>
-      </div>
-      <ol className="flex flex-col divide-y divide-border pt-1">
-        {steps.map((step) => {
-          const said = nextStepWords(step)
-          const Icon = nextIcons[step.kind]
-          return (
-            <li
-              key={step.kind === 'metric' ? step.metric : step.kind}
-              className="flex min-h-14 items-center gap-3 px-4 py-2.5 @md:px-5"
-            >
-              <span
-                aria-hidden
-                className="flex size-8 shrink-0 items-center justify-center text-muted-foreground"
-              >
-                <Icon className="size-4" />
-              </span>
-              <WithAction
-                action={
-                  <Button variant="outline" onClick={() => go(step)}>
-                    {said.action}
-                  </Button>
-                }
-              >
-                <span className="block space-y-1">
-                  <span className="block text-sm leading-snug">{said.title}</span>
-                  <span className="block text-xs text-muted-foreground">{said.description}</span>
-                </span>
-              </WithAction>
-            </li>
-          )
-        })}
-      </ol>
-    </section>
-  )
-}
 
 /**
  * What agents asked this week, in counts only: the quiet sign that it is working. The week is the
@@ -1983,7 +1567,12 @@ export function InboxPage() {
     )
   }
 
-  if (install === 'new') return <Setup due={needing.filter((r) => groupOf(r) === 'check').length} />
+  if (install === 'new')
+    return (
+      <React.Suspense fallback={null}>
+        <Setup due={needing.filter((r) => groupOf(r) === 'check').length} />
+      </React.Suspense>
+    )
 
   const allDone = tab === 'needs' && needing.length === 0
 
@@ -2104,7 +1693,11 @@ export function InboxPage() {
             />
           )}
           {/* Under what already waits: a card that needs the person comes first. */}
-          {tab === 'needs' && !search && <NextCard />}
+          {tab === 'needs' && !search && (
+            <React.Suspense fallback={null}>
+              <NextCard />
+            </React.Suspense>
+          )}
         </div>
         <BulkBar
           label="Selected cards"

@@ -1,6 +1,6 @@
 import * as z from 'zod/mini'
 import { areaSchema, personSchema } from '../domain/item.ts'
-import { WORKSPACE_NAME_MAX } from './admin.ts'
+import { PERSON_NAME_MAX, WORKSPACE_NAME_MAX } from './limits.ts'
 
 export const globalRoleSchema = z.enum(['administrator'])
 export const areaRoleSchema = z.enum(['owner'])
@@ -116,8 +116,6 @@ export const signInMethodSchema = z.object({
 })
 export type SignInMethod = z.infer<typeof signInMethodSchema>
 
-/** The longest name a person gives themselves on the first screen. */
-export const PERSON_NAME_MAX = 120
 const oneLine = (max: number) =>
   z.string().check(
     z.minLength(1),

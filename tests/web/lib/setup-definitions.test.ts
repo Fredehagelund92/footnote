@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  definitionsStep,
-  nextStepWords,
-  nextSteps,
-  nextWords,
-  NEXT_UNTIL,
-  setupSteps,
-} from '@/lib/setup'
+import { nextStepWords, nextSteps, nextWords, NEXT_UNTIL } from '@/lib/next-steps'
+import { definitionsStep, setupSteps } from '@/lib/setup'
 
 // The checklist's names step (snag 5 of the release judge): an install the server started on its
 // own model folder waits for that folder's read, says so, and never offers to connect a tool.

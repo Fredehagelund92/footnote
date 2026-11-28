@@ -16,10 +16,9 @@ import { itemVersionSchema } from '../domain/item-version.ts'
 import { calendarDateSchema } from '../domain/validity.ts'
 import { WRITING_HELP_MESSAGE_MAX } from '../domain/writing-help.ts'
 import { findingSchema } from './proposals.ts'
+import { WORKSPACE_NAME_MAX } from './limits.ts'
 
 const reason = z.string().check(z.minLength(1), z.maxLength(500))
-/** The most characters a workspace's name may have. */
-export const WORKSPACE_NAME_MAX = 80
 /** The most dimensions an admin may pin on Overview. */
 export const PINNED_MAX = 8
 const int = (min: number, max: number) => z.number().check(z.int(), z.minimum(min), z.maximum(max))

@@ -11,3 +11,9 @@ export const DEFAULT_WEB_ORIGINS = ['http://localhost:5173', 'http://localhost:4
 
 /** The most suggestions one read of many sheets names; the Inbox reads more in turns. */
 export const REVIEW_SHEETS_MAX = 100
+
+/** The most characters a workspace's name may have. */
+export const WORKSPACE_NAME_MAX = 80
+
+/** The longest name a person gives themselves on the first screen. */
+export const PERSON_NAME_MAX = 120
