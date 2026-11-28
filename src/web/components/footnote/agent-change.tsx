@@ -13,7 +13,8 @@ import { cn } from '@/lib/utils'
 // What the person's agent did to the draft open in the editor (Route 1): a strip that says what it
 // changed and how long ago, with Undo; its words beside a field the person was writing in, to take
 // or leave; and a mark on each field only the agent has written, which nobody has read yet.
-// Writing help, the editor's dock (Route 3), is said the same way, under its own name.
+// Writing help, the editor's dock (Route 3), is said the same way, under its own name; its words
+// for a field the person is writing in wait under it as one line, a suggestion to use or dismiss.
 
 /** The time now, again every `ms`: "20 seconds ago" stays true while it is on the screen. */
 function useNow(ms: number) {
@@ -71,21 +72,105 @@ export function AgentChangeStrip({
   )
 }
 
-/** While a turn of writing help runs: that it is writing, and that the person may go on, with Stop. */
-export function HelpWorkingStrip({ onStop }: { onStop: () => void }) {
+/**
+ * While a turn of writing help runs: what it is doing (`words`), and that the person may go on,
+ * with Stop.
+ */
+export function HelpWorkingStrip({ words, onStop }: { words: string; onStop: () => void }) {
   return (
     <section
       aria-label="Writing help is working"
       className="mb-5 flex items-center gap-2 rounded-frame bg-muted py-1 pr-1 pl-3 text-sm"
     >
       <SparklesIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-      <p className="min-w-0 flex-1 py-1">
-        {HELP_NAME} is writing the draft. Your hands are free: it skips a field you type in.
-      </p>
+      <p className="min-w-0 flex-1 py-1">{words}</p>
       <Button variant="ghost" onClick={onStop}>
         Stop
       </Button>
     </section>
+  )
+}
+
+/**
+ * Writing help's words for a field the person is writing in, as one line under the field: they
+ * never replace what is typed, and wait here until the person uses them or dismisses them. A
+ * value of several paragraphs (`block`) sits under the line's first words, cut after a few lines.
+ */
+export function HelpSuggestion({
+  field,
+  block,
+  children,
+  onUse,
+  onDismiss,
+  className,
+}: {
+  /** The field's name, as the editor shows it. */
+  field: string
+  block?: boolean
+  /** Writing help's value, in the words the field shows it with. */
+  children: React.ReactNode
+  onUse: () => void
+  onDismiss: () => void
+  className?: string
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={`${HELP_NAME}'s suggestion for ${field}`}
+      className={cn(
+        'flex flex-wrap items-start justify-end gap-x-2 rounded-frame border bg-muted/30 py-1 pr-1 pl-3 text-sm',
+        className,
+      )}
+    >
+      <div className="flex min-w-48 flex-1 items-start gap-2 py-1">
+        <SparklesIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        <div className="min-w-0">
+          <span className="text-muted-foreground">{HELP_NAME} suggests:</span>{' '}
+          {block ? (
+            <div className="mt-1 line-clamp-4">{children}</div>
+          ) : (
+            <span className="wrap-anywhere">{children}</span>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 gap-1">
+        <Button variant="ghost" onClick={onDismiss}>
+          Dismiss
+        </Button>
+        <Button variant="outline" onClick={onUse}>
+          Use it
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Writing help's door on a phone, a bar above the draft's foot: there the dock is a screen of its
+ * own, so the draft keeps its header and its Send, and this opens the chat about it. Back from the
+ * chat (`open` goes false), the keyboard comes to this door, unless it is somewhere already.
+ */
+export function HelpBar({ open, onOpen }: { open: boolean; onOpen: () => void }) {
+  const door = React.useRef<HTMLButtonElement>(null)
+  const wasOpen = React.useRef(open)
+  React.useEffect(() => {
+    const lost = !document.activeElement || document.activeElement === document.body
+    if (wasOpen.current && !open && lost) door.current?.focus({ preventScroll: true })
+    wasOpen.current = open
+  }, [open])
+  return (
+    <div className="shrink-0 border-t bg-background px-4 py-2">
+      <Button
+        ref={door}
+        variant="outline"
+        size="lg"
+        className="w-full justify-start text-muted-foreground pointer-coarse:h-11"
+        onClick={onOpen}
+      >
+        <SparklesIcon data-icon="inline-start" />
+        Ask writing help for a change
+      </Button>
+    </div>
   )
 }
 

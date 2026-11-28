@@ -6,14 +6,19 @@ import {
   editorFields,
   failedLine,
   failedTurn,
+  frontDoor,
   heardTurn,
   keptLine,
+  landedFields,
   progressLine,
   readLine,
   refusedLine,
   stoppedByPersonLine,
   stoppedLine,
   stoppedTurn,
+  suggestedLine,
+  suggestedTurn,
+  workingLine,
   type HelpReply,
 } from '@/model/writing-help'
 
@@ -91,6 +96,102 @@ describe('a turn', () => {
     expect(sent.at(-1)).toEqual({ said: 'said 7', reply: 'reply 7' })
     const long = doneTurn(askedTurn('l', 'a'.repeat(5_000)), reply({ reply: 'b'.repeat(5_000) }))
     expect(earlierTurns([long])[0]).toEqual({ said: 'a'.repeat(2_000), reply: 'b'.repeat(2_000) })
+  })
+})
+
+describe('the first box of Write context', () => {
+  it('hands the words to writing help where it is there to ask, and says where they go', () => {
+    for (const admin of [true, false])
+      expect(frontDoor({ help: true, model: true, admin })).toEqual({
+        by: 'help',
+        how: 'Paste a message, a link, or just say what happened. Writing help writes the draft, and you check each field.',
+        button: 'Write the draft',
+        note: 'What you write here goes to the AI model set for Ask. Only you see the draft until you send or publish it.',
+        more: null,
+      })
+  })
+
+  it('fills the fields by rule with writing help off, and says who can turn it on', () => {
+    const member = frontDoor({ help: false, model: true, admin: false })
+    expect(member).toMatchObject({
+      by: 'rule',
+      how: 'Paste a message, a link, or just say what happened. The fields fill in from it, and you check each one.',
+      button: 'Fill it in',
+      note: 'Filled in by rule, with no AI model.',
+      more: {
+        text: 'Ask an admin to turn on writing help in Settings, and you can talk the draft through.',
+      },
+    })
+    // A member has no way into Settings, so no link.
+    expect(member.more?.link).toBeUndefined()
+    expect(frontDoor({ help: false, model: true, admin: true }).more).toEqual({
+      text: 'With writing help on, people can talk a draft through.',
+      link: { to: 'switch', label: 'Turn it on in Settings' },
+    })
+  })
+
+  it('says a model is missing only to an admin, who can do something about it', () => {
+    expect(frontDoor({ help: false, model: false, admin: false })).toMatchObject({
+      by: 'rule',
+      button: 'Fill it in',
+      note: 'Filled in by rule, with no AI model.',
+      more: null,
+    })
+    expect(frontDoor({ help: false, model: false, admin: true }).more).toEqual({
+      text: 'Writing help needs an AI model, and none is connected to this workspace.',
+      link: { to: 'model-guide', label: 'How to connect a model' },
+    })
+  })
+})
+
+describe('a field the person was writing in', () => {
+  it('waits as a suggestion with the turn that wrote it, while it runs or after it ended', () => {
+    let turn = heardTurn(askedTurn('t1', 'Make the title say webshop.'), {
+      type: 'written',
+      changed: ['title', 'when'],
+    })
+    turn = suggestedTurn(turn, ['title'])
+    expect(turn.suggested).toEqual(['title'])
+    // The draft the person sees still says their title: only When changed in it.
+    expect(landedFields(turn)).toEqual(['when'])
+    const done = suggestedTurn(doneTurn(turn, reply({ changed: ['title', 'text', 'when'] })), [
+      'text',
+      'title',
+    ])
+    expect(done.suggested).toEqual(['title', 'text'])
+    expect(landedFields(done)).toEqual(['when'])
+  })
+
+  it('is said under the reply in writing help’s own words', () => {
+    expect(suggestedLine([])).toBe('')
+    expect(suggestedLine(['title'])).toBe(
+      'You were typing in Title, so I left your words and put mine under it. Use it, or keep yours.',
+    )
+    expect(suggestedLine(['title', 'text'])).toBe(
+      'You were typing in Title and Text, so I left your words and put mine under them. Use them, or keep yours.',
+    )
+  })
+
+  it('is not counted as changed when a turn ends early', () => {
+    expect(stoppedLine(reply({ stopped: 'time', changed: ['title', 'kind'] }), ['kind'])).toBe(
+      'Writing help ran out of time before it finished. What it changed is in your draft: Kind. Try again.',
+    )
+  })
+})
+
+describe('the strip in the draft while a turn runs', () => {
+  it('says what writing help is doing, under its name', () => {
+    expect(workingLine({ doing: 'reading', links: 1 })).toBe(
+      'Writing help is reading your message and 1 link.',
+    )
+    expect(workingLine({ doing: 'reading', links: 0 })).toBe(
+      'Writing help is reading your message.',
+    )
+    expect(workingLine({ doing: 'looking' })).toBe('Writing help is looking at what is published.')
+    for (const progress of [null, { doing: 'writing' as const, field: 'title' as const }])
+      expect(workingLine(progress)).toBe(
+        'Writing help is writing the draft. Your hands are free: it skips a field you type in.',
+      )
   })
 })
 

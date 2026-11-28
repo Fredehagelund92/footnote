@@ -36,13 +36,24 @@ import {
   agentMark,
   AgentVersion,
   AgentWroteLine,
+  HelpBar,
+  HelpSuggestion,
   HelpWorkingStrip,
 } from '@/components/footnote/agent-change'
-import { helpChangeLine, sessionFieldLabel, type SessionField } from '@/model/draft-session'
 import {
+  HELP_NAME,
+  helpChangeLine,
+  sessionFieldLabel,
+  type SessionField,
+} from '@/model/draft-session'
+import { frontDoor, workingLine } from '@/model/writing-help'
+import {
+  askHelp,
   moveHelpChat,
   noteHelpChange,
+  noteHelpSuggestion,
   setHelpDesk,
+  setHelpReady,
   stopHelp,
   undoHelp,
   useHelp,
@@ -86,6 +97,7 @@ import {
   type Option,
 } from '@/components/footnote/field-controls'
 import { NoDomainYet } from '@/components/footnote/no-domain-yet'
+import { PublicGuideLink } from '@/components/footnote/guide-link'
 import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { ScopeField } from '@/components/footnote/scope-field'
 import { termsOfNames } from '@/lib/scope'
@@ -104,6 +116,7 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   kindHint,
   kindLabel,
@@ -121,7 +134,7 @@ import { planFacts, publishParts } from '@/lib/bulk'
 import { useUndo } from '@/lib/undo'
 import { today } from '@/lib/today'
 import { dateLabel, type Validity } from '@/model/validity'
-import { closeDock, openDock, useDock } from '@/lib/dock'
+import { closeDock, dockOpened, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
 import { Panel, PanelGroup } from '@/components/footnote/panel'
@@ -136,7 +149,7 @@ import {
 } from '@/components/ui/dialog'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { setDraft } from '@/lib/draft'
-import { href, navigate, useRoute } from '@/lib/router'
+import { changeQuery, href, navigate, pathNow, useRoute } from '@/lib/router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Vocabulary } from '@/api'
 import type { Relation } from '@/api/client'
@@ -147,6 +160,7 @@ import {
   draftNowQuery,
   itemPageQuery,
   useInbox,
+  useSession,
   useVocabulary,
   useWorkspace,
   useWrite,
@@ -455,6 +469,36 @@ function RelationRow({
   )
 }
 
+/**
+ * A field still empty while writing help fills a new draft in: a bar where its value will land, in
+ * place of the words that ask for one. The field stays under the bar, and shows itself once the
+ * person clicks or tabs into it, or into its menu: what they put there is theirs.
+ */
+function Coming({
+  on,
+  bar,
+  children,
+}: {
+  on: boolean
+  /** The bar, or the lines, placed where the field's value would sit. */
+  bar: React.ReactNode
+  children: React.ReactNode
+}) {
+  // The focus as React hears it, so a field's menu, drawn elsewhere on the page, counts as the field.
+  const [inside, setInside] = React.useState(false)
+  const shown = on && !inside
+  return (
+    <div className="relative" onFocus={() => setInside(true)} onBlur={() => setInside(false)}>
+      <div className={shown ? 'opacity-0' : undefined}>{children}</div>
+      {shown && (
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0">
+          {bar}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ---------- the page ---------- */
 
 export function FactEditor(asked: { mode: 'new' | 'edit' | 'suggest'; factId?: string }) {
@@ -640,8 +684,10 @@ function Editor({
       editor?.commands.setContent(body, { contentType: 'markdown', emitUpdate: false }),
     onError: (error) =>
       toast("Couldn't save your draft", { description: toApiError(error).message }),
-    // What writing help changed is its turn's change, kept beside the chat for its Undo.
+    // What writing help changed is its turn's change, kept beside the chat for its Undo; what it
+    // wrote in a field the person was writing in waits under that field, and its turn says so.
     onHelped: (change) => own && noteHelpChange(own.id, change),
+    onSuggested: (fields) => own && noteHelpSuggestion(own.id, fields),
   })
 
   const trying = useDock()?.kind === 'try'
@@ -781,8 +827,9 @@ function Editor({
         savedRef.current = id
         setSavedId(id)
         // The address names the draft, so a reload opens it again; the page stays as it is, with
-        // the cursor where it was.
-        navigate('/context/new', { ...Object.fromEntries(query), saved: id }, { replace: true })
+        // the cursor where it was and whatever the address holds by now, such as a dock opened
+        // while the draft was being made. A person who has left the page is not brought back.
+        if (pathNow() === '/context/new') void changeQuery({ saved: id }, { replace: true })
         return id
       })
       .finally(() => {
@@ -1084,12 +1131,47 @@ function Editor({
 
   // Writing help, in the dock beside the draft (Route 3): there when an admin turned it on, for
   // the person's own draft, and for words that can be kept as one, a new item or a change to a
-  // published one, which the first thing they say to it does. A phone has no dock beside a page.
+  // published one, which the first thing they say to it does. On a phone the dock is a screen of
+  // its own, opened from a bar above the draft's foot.
   const helping = useDock()?.kind === 'write'
-  const helpThere = useWorkspace().writingHelp && !mobile && (session.on || savesDraft)
+  const workspace = useWorkspace()
+  const helpThere = workspace.writingHelp && (session.on || savesDraft)
   const help = useHelp()
+  // The first box, by who fills the draft in: writing help where it is there, the rule anywhere else.
+  const { answeredBy } = useSession()
+  const door = frontDoor({ help: helpThere, model: answeredBy !== 'reader', admin: me.admin })
+  // What the first box holds goes to writing help as the first thing said, once its dock is open:
+  // the dock is in the address by then, and stays there when the first turn's draft joins it.
+  const writeDraft = () => {
+    const said = pasted
+    if (!said.trim()) {
+      setFillProblem('Write or paste something first.')
+      startRef.current?.focus()
+      return
+    }
+    // One turn at a time: the words stay in the box while another is still writing.
+    if (help.busy) {
+      setFillProblem(`${HELP_NAME} is still writing. Wait until it is done, or stop it first.`)
+      return
+    }
+    setFillProblem('')
+    // The words are in the chat from here on, and the fields are what the person watches fill in.
+    setPasted('')
+    setStarting(false)
+    if (helping) void askHelp(said)
+    else void dockOpened('write').then(() => askHelp(said))
+  }
   const helpChange = help.latest
   const [helpChangeHidden, setHelpChangeHidden] = React.useState<string | null>(null)
+  // A first fill: a turn that starts on a draft with no text yet writes every field it can, so
+  // each field still empty shows a bar where its value will land, until it does or the turn ends.
+  const turnNow = help.busy ? help.turns.at(-1) : undefined
+  const [fillTurn, setFillTurn] = React.useState<string | null>(null)
+  if (turnNow && turnNow.id !== fillTurn && !turnNow.changed.length && !form.body.trim())
+    setFillTurn(turnNow.id)
+  const fillingIn = !!turnNow && turnNow.id === fillTurn
+  const [titleFocused, setTitleFocused] = React.useState(false)
+  const titleComing = fillingIn && !form.title && !titleFocused
   // What the dock reaches the draft through, as the page is now.
   const desk = React.useRef<Omit<HelpDesk, 'draftId' | 'page'>>(null)
   React.useLayoutEffect(() => {
@@ -1148,6 +1230,9 @@ function Editor({
     })
     return () => setHelpDesk(null)
   }, [helpThere, helpDraft, helpPage])
+  // On a phone the dock covers the draft, and says in its place whether it can be sent.
+  const sendable = readiness.state === 'ready'
+  React.useEffect(() => setHelpReady(sendable), [sendable])
 
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')
@@ -1284,28 +1369,54 @@ function Editor({
     source: (f) => f.source || 'No source',
     dontConclude: (f) => f.dontConclude || 'Empty',
   }
+  // Taken or left, the waiting words go, and their buttons with them: the keyboard goes back to
+  // the field they were about.
+  const focusOf = (field: SessionField) => {
+    if (field === 'title') titleRef.current?.focus()
+    else if (field === 'text') editor?.commands.focus()
+    else focusField(rowOf[field])
+  }
   const versionOf = (field: SessionField, className: string) => {
     const theirs = session.waitingIn(field)
-    return (
-      theirs && (
-        <AgentVersion
-          agent={theirs.agent}
-          field={sessionFieldLabel[field]}
-          onTake={() => session.take(field)}
-          onLeave={() => session.leave(field)}
-          className={className}
-        >
-          {wordsOf[field](theirs.form)}
-        </AgentVersion>
-      )
+    if (!theirs) return null
+    const take = () => {
+      session.take(field)
+      focusOf(field)
+    }
+    const leave = () => {
+      session.leave(field)
+      focusOf(field)
+    }
+    // Writing help's words wait as one line, a suggestion; an agent's as its version of the field.
+    return theirs.agent === HELP_NAME ? (
+      <HelpSuggestion
+        field={sessionFieldLabel[field]}
+        block={field === 'text'}
+        onUse={take}
+        onDismiss={leave}
+        className={className}
+      >
+        {wordsOf[field](theirs.form)}
+      </HelpSuggestion>
+    ) : (
+      <AgentVersion
+        agent={theirs.agent}
+        field={sessionFieldLabel[field]}
+        onTake={take}
+        onLeave={leave}
+        className={className}
+      >
+        {wordsOf[field](theirs.form)}
+      </AgentVersion>
     )
   }
   const back = original
     ? { href: href(`/context/${original.id}`), label: 'Back to the context item' }
     : { href: href('/context'), label: 'Back to Context' }
 
-  // The first box: one question and one place to answer it. Fill it in reads the words by rule, and
-  // the form opens filled; Write it yourself opens it as it is.
+  // The first box: one question and one place to answer it. Where writing help is there, Write the
+  // draft hands the words to it, and the form fills in beside its chat. Anywhere else Fill it in
+  // reads the words by rule, and the form opens filled. Write it yourself opens it as it is.
   if (starting)
     return (
       <DocumentEditorShell
@@ -1328,8 +1439,7 @@ function Editor({
               What happened?
             </h2>
             <p id={`${ids}-start-how`} className="mt-2 mb-5 text-sm text-muted-foreground">
-              Paste a message, a link, or just say what happened. The fields fill in from it, and
-              you check each one.
+              {door.how}
             </p>
             <Field>
               <Textarea
@@ -1356,14 +1466,15 @@ function Editor({
                       data-primary
                       loading={filling}
                       loadingLabel="Reading…"
-                      onClick={() => void fill()}
+                      onClick={() => (door.by === 'help' ? writeDraft() : void fill())}
                     />
                   }
                 >
-                  Fill it in
+                  {door.by === 'help' && <SparklesIcon data-icon="inline-start" />}
+                  {door.button}
                 </TooltipTrigger>
                 <TooltipContent>
-                  Fill it in <Kbd className="ml-1">⌘</Kbd>
+                  {door.button} <Kbd className="ml-1">⌘</Kbd>
                   <Kbd>Enter</Kbd>
                 </TooltipContent>
               </Tooltip>
@@ -1379,6 +1490,24 @@ function Editor({
               </Button>
               <WriteWithButton prompt={writePrompt()} variant="ghost" />
             </div>
+            {/* What the button does with the words, and, with no writing help, how it would get here. */}
+            <p className="mt-4 text-sm text-muted-foreground">{door.note}</p>
+            {!workspace.writingHelp && door.more && (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {door.more.text}{' '}
+                {door.more.link?.to === 'switch' && (
+                  <a
+                    href={href('/settings/advanced/writing-help')}
+                    className="text-primary underline underline-offset-4"
+                  >
+                    {door.more.link.label}
+                  </a>
+                )}
+                {door.more.link?.to === 'model-guide' && (
+                  <PublicGuideLink slug="model-providers">{door.more.link.label}</PublicGuideLink>
+                )}
+              </p>
+            )}
           </section>
         </Paper>
       </DocumentEditorShell>
@@ -1403,8 +1532,9 @@ function Editor({
                 />
               )
             )}
-            {/* Writing help and Try it swap in the one dock: write it, then see what agents would say. */}
-            {helpThere && (
+            {/* Writing help and Try it swap in the one dock: write it, then see what agents would
+                say. On a phone its door is the bar above the foot, and the header keeps its room. */}
+            {helpThere && !mobile && (
               <ViewToggle
                 pressed={helping}
                 onPressedChange={(p) => (p ? openDock('write') : closeDock())}
@@ -1530,6 +1660,7 @@ function Editor({
           )}
         </>
       }
+      bar={helpThere && mobile && <HelpBar open={helping} onOpen={() => openDock('write')} />}
       footer={
         <DocFooter
           status={
@@ -1634,7 +1765,10 @@ function Editor({
         {/* Writing help: that it is writing, with Stop; then what its last turn changed, with Undo. */}
         {session.on && <AgentChangeSaid change={help.busy ? null : (helpChange?.change ?? null)} />}
         {help.busy && session.on ? (
-          <HelpWorkingStrip onStop={stopHelp} />
+          <HelpWorkingStrip
+            words={workingLine(help.turns.at(-1)?.progress ?? null)}
+            onStop={stopHelp}
+          />
         ) : (
           helpChange &&
           helpChangeHidden !== helpChange.change.at && (
@@ -1650,8 +1784,15 @@ function Editor({
           ref={titleRef}
           aria-label="Title"
           rows={1}
-          className="mb-4 field-sizing-content w-full resize-none overflow-hidden rounded-md bg-transparent text-2xl leading-tight font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:mb-5 sm:text-3xl"
-          placeholder="What should agents know?"
+          className={cn(
+            'mb-4 field-sizing-content w-full resize-none overflow-hidden rounded-md bg-transparent text-2xl leading-tight font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:mb-5 sm:text-3xl',
+            // While writing help fills a new draft in, the empty title is the bar its words land
+            // in, until the person puts the cursor there.
+            titleComing && 'w-2/3 animate-pulse bg-foreground/12',
+          )}
+          placeholder={titleComing ? '' : 'What should agents know?'}
+          onFocus={() => setTitleFocused(true)}
+          onBlur={() => setTitleFocused(false)}
           value={form.title}
           onChange={(e) => set('title', e.target.value.replace(/\n/g, ' '))}
           onPaste={(e) => noteEmoji(e.clipboardData.getData('text/plain'))}
@@ -1861,18 +2002,23 @@ function Editor({
               required={!form.where.length}
               problem={problemAt('where')}
             >
-              <ScopeField
-                labelId={fieldId('where')}
-                label="Applies to"
-                value={form.where}
-                onChange={(w) => set('where', w)}
-                nothingPublished={noWords}
-                placeholder={
-                  exampleDimension
-                    ? `Add a metric, or a dimension such as ${exampleDimension}`
-                    : 'Add a metric or a dimension'
-                }
-              />
+              <Coming
+                on={fillingIn && !form.where.length}
+                bar={<Skeleton className="mt-2 h-4 w-44" />}
+              >
+                <ScopeField
+                  labelId={fieldId('where')}
+                  label="Applies to"
+                  value={form.where}
+                  onChange={(w) => set('where', w)}
+                  nothingPublished={noWords}
+                  placeholder={
+                    exampleDimension
+                      ? `Add a metric, or a dimension such as ${exampleDimension}`
+                      : 'Add a metric or a dimension'
+                  }
+                />
+              </Coming>
               {versionOf('where', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             <PropertyRow
@@ -1883,16 +2029,21 @@ function Editor({
               required={asksWhen}
               problem={problemAt('when')}
             >
-              <WhenField
-                labelId={fieldId('when')}
-                value={whenOf(form)}
-                asking={asksWhen ? 'When did it happen? Pick a date' : undefined}
-                offers={whenOffers}
-                onChange={(w) => {
-                  setWhenChosen(true)
-                  setForm((f) => ({ ...f, when: w.mode, from: w.from, until: w.until }))
-                }}
-              />
+              <Coming
+                on={fillingIn && form.when === 'always'}
+                bar={<Skeleton className="mt-2 h-4 w-40" />}
+              >
+                <WhenField
+                  labelId={fieldId('when')}
+                  value={whenOf(form)}
+                  asking={asksWhen ? 'When did it happen? Pick a date' : undefined}
+                  offers={whenOffers}
+                  onChange={(w) => {
+                    setWhenChosen(true)
+                    setForm((f) => ({ ...f, when: w.mode, from: w.from, until: w.until }))
+                  }}
+                />
+              </Coming>
               {versionOf('when', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
           </PropertyGroup>
@@ -1905,48 +2056,50 @@ function Editor({
               required={!form.source}
               problem={problemAt('source')}
             >
-              <PickerField
-                labelId={fieldId('source')}
-                label="Source"
-                open={sourceOpen}
-                onOpenChange={setSourceOpen}
-                className="w-96 p-3"
-                value={
-                  form.source ? (
-                    <TagChip icon={<GlobeIcon aria-hidden />} title={form.source}>
-                      {hostOf(form.source)}
-                    </TagChip>
-                  ) : (
-                    <Ghost>Add a source</Ghost>
-                  )
-                }
-              >
-                <div className="grid gap-3 pb-1">
-                  <Field>
-                    <FieldLabel htmlFor="fact-source">Link</FieldLabel>
-                    <Input
-                      id="fact-source"
-                      type="url"
-                      aria-invalid={!!problemAt('source')}
-                      value={form.source}
-                      onChange={(e) => set('source', e.target.value)}
-                      placeholder="https://"
-                    />
-                    {problemAt('source') && (
-                      <p className="text-xs text-destructive">{problemAt('source')}</p>
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="fact-quote">A sentence copied from it</FieldLabel>
-                    <Textarea
-                      id="fact-quote"
-                      value={form.quote}
-                      onChange={(e) => set('quote', e.target.value)}
-                      className="min-h-16"
-                    />
-                  </Field>
-                </div>
-              </PickerField>
+              <Coming on={fillingIn && !form.source} bar={<Skeleton className="mt-2 h-4 w-36" />}>
+                <PickerField
+                  labelId={fieldId('source')}
+                  label="Source"
+                  open={sourceOpen}
+                  onOpenChange={setSourceOpen}
+                  className="w-96 p-3"
+                  value={
+                    form.source ? (
+                      <TagChip icon={<GlobeIcon aria-hidden />} title={form.source}>
+                        {hostOf(form.source)}
+                      </TagChip>
+                    ) : (
+                      <Ghost>Add a source</Ghost>
+                    )
+                  }
+                >
+                  <div className="grid gap-3 pb-1">
+                    <Field>
+                      <FieldLabel htmlFor="fact-source">Link</FieldLabel>
+                      <Input
+                        id="fact-source"
+                        type="url"
+                        aria-invalid={!!problemAt('source')}
+                        value={form.source}
+                        onChange={(e) => set('source', e.target.value)}
+                        placeholder="https://"
+                      />
+                      {problemAt('source') && (
+                        <p className="text-xs text-destructive">{problemAt('source')}</p>
+                      )}
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="fact-quote">A sentence copied from it</FieldLabel>
+                      <Textarea
+                        id="fact-quote"
+                        value={form.quote}
+                        onChange={(e) => set('quote', e.target.value)}
+                        className="min-h-16"
+                      />
+                    </Field>
+                  </div>
+                </PickerField>
+              </Coming>
               {versionOf('source', 'mt-1 mb-2 max-w-xl')}
             </PropertyRow>
             <PropertyRow
@@ -1983,7 +2136,18 @@ function Editor({
             )}
           </PropertyGroup>
         </PropertyList>
-        <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-48! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
+        {/* The text, and while writing help fills a new draft in, the lines its words land in. */}
+        <Coming
+          on={fillingIn && !form.body.trim()}
+          bar={
+            <div className="flex max-w-reading flex-col gap-3 pt-1">
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          }
+        >
+          <RichTextEditor.Content className="text-base [&_.ProseMirror]:min-h-48! [&_.ProseMirror]:max-w-reading [&_.ProseMirror]:p-0!" />
+        </Coming>
         {versionOf('text', 'mt-3 max-w-reading')}
         {problemAt('text') && (
           <p data-problem className="mt-2 text-sm text-destructive">

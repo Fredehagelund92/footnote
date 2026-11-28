@@ -2,6 +2,8 @@ import * as React from 'react'
 import {
   ArrowUpIcon,
   CircleAlertIcon,
+  CircleCheckIcon,
+  CircleDashedIcon,
   LinkIcon,
   Loader2Icon,
   RefreshCwIcon,
@@ -14,6 +16,8 @@ import { TagChip } from '@/components/footnote/tag-chip'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { closeDock } from '@/lib/dock'
 import { inputSurface } from '@/lib/surfaces'
 import { cn } from '@/lib/utils'
 import { askHelp, stopHelp, undoHelp, useHelp } from '@/lib/writing-help'
@@ -22,11 +26,13 @@ import {
   failedLine,
   HELP_NAME,
   keptLine,
+  landedFields,
   progressLine,
   readLine,
   refusedLine,
   stoppedByPersonLine,
   stoppedLine,
+  suggestedLine,
   type HelpTurn,
 } from '@/model/writing-help'
 
@@ -35,15 +41,28 @@ import {
 // replied, and under each reply the fields it changed, with Undo. It writes one draft: it has no
 // Send, since sending is the page's own button, and nothing here rates or cites, as Ask does.
 
-/** What the person said: clamped when it is a long paste, with a way to see all of it. */
+/**
+ * What the person said: clamped at three lines when it is a long paste, with a way to see all of
+ * it. Long is measured as it is drawn, since the dock's width and a link decide where lines break.
+ */
 function Said({ text }: { text: string }) {
   const [all, setAll] = React.useState(false)
-  const long = text.length > 220 || text.split('\n').length > 3
+  const [long, setLong] = React.useState(false)
+  const words = React.useRef<HTMLParagraphElement>(null)
+  React.useLayoutEffect(() => {
+    const el = words.current
+    if (!el || all) return
+    const measure = () => setLong(el.scrollHeight > el.clientHeight + 1)
+    measure()
+    const watch = new ResizeObserver(measure)
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [all, text])
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="max-w-22/25 min-w-0 rounded-surface bg-muted px-4 py-2.5 text-base leading-chat">
         {/* Clamped inside the padding, so no part of a fourth line shows under the third. */}
-        <p className={cn('wrap-anywhere whitespace-pre-line', long && !all && 'line-clamp-3')}>
+        <p ref={words} className={cn('wrap-anywhere whitespace-pre-line', !all && 'line-clamp-3')}>
           {text}
         </p>
       </div>
@@ -92,7 +111,10 @@ function Problem({ children, onAgain }: { children: React.ReactNode; onAgain?: (
   )
 }
 
-/** The fields a turn changed, as chips, with Undo while its change is the one Undo takes back. */
+/**
+ * The fields a turn changed, as chips, with Undo while its change is the one Undo takes back. A
+ * field whose words wait under the person's own is not one of them: the draft still says theirs.
+ */
 function Changed({
   turn,
   undoable,
@@ -102,12 +124,13 @@ function Changed({
   undoable: boolean
   onUndo: () => void
 }) {
-  if (!turn.changed.length) return null
+  const changed = landedFields(turn)
+  if (!changed.length) return null
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
       <span className="text-sm text-muted-foreground">Changed</span>
       <ul aria-label="Fields it changed" className="flex min-w-0 flex-wrap gap-1.5">
-        {turn.changed.map((field) => (
+        {changed.map((field) => (
           <li key={field} className="flex min-w-0">
             <TagChip>{sessionFieldLabel[field]}</TagChip>
           </li>
@@ -155,6 +178,7 @@ function Turn({
   const again = latest && !busy ? () => ask(turn.said) : undefined
   const reply = turn.reply
   const read = reply ? readLine(reply) : ''
+  const changed = landedFields(turn)
   return (
     <div className="flex flex-col gap-y-3">
       <Said text={turn.said} />
@@ -180,16 +204,20 @@ function Turn({
                 ? { onAgain: again }
                 : {})}
             >
-              {stoppedLine(reply)}
+              {stoppedLine(reply, changed)}
             </Problem>
           )}
         </>
       )}
-      {turn.state === 'stopped' && <Line>{stoppedByPersonLine(turn.changed)}</Line>}
+      {turn.state === 'stopped' && <Line>{stoppedByPersonLine(changed)}</Line>}
       {turn.state === 'failed' && (
         <Problem {...(again ? { onAgain: again } : {})}>
-          {failedLine(turn.problem, turn.changed)}
+          {failedLine(turn.problem, changed)}
         </Problem>
+      )}
+      {/* Its words that wait under a field the person was writing in, said as it says the rest. */}
+      {turn.suggested.length > 0 && (
+        <p className="text-base leading-chat wrap-anywhere">{suggestedLine(turn.suggested)}</p>
       )}
       {turn.state !== 'asking' && <Changed turn={turn} undoable={undoable} onUndo={focusBox} />}
       {reply && reply.kept.length > 0 && <Line>{keptLine(reply.kept)}</Line>}
@@ -313,9 +341,29 @@ function Composer({
   )
 }
 
+/**
+ * On a phone the dock is a screen of its own, over the draft: once a turn has ended, a row above
+ * the box says whether the page finds the draft ready to send, and leads back to it. Sending is
+ * the draft's own button, so it is not repeated here.
+ */
+function DraftRow({ ready }: { ready: boolean }) {
+  return (
+    <div data-touch-targets className="flex items-center gap-3 pb-3">
+      <p className="flex min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">
+        {ready ? <CircleCheckIcon aria-hidden /> : <CircleDashedIcon aria-hidden />}
+        {ready ? 'Draft is ready' : 'Not ready yet'}
+      </p>
+      <Button variant="outline" onClick={closeDock}>
+        Open the draft
+      </Button>
+    </div>
+  )
+}
+
 /** Writing help, in the dock beside the draft it works on. */
 export function WritingHelpDock() {
   const help = useHelp()
+  const mobile = useIsMobile()
   const end = React.useRef<HTMLDivElement>(null)
   const box = React.useRef<HTMLTextAreaElement>(null)
   const focusBox = () => box.current?.focus()
@@ -345,6 +393,7 @@ export function WritingHelpDock() {
       title={HELP_NAME}
       foot={
         <div className="px-4 pt-3 pb-4">
+          {mobile && help.turns.length > 0 && !help.busy && <DraftRow ready={help.ready} />}
           <Composer busy={help.busy} first={help.turns.length === 0} box={box} />
         </div>
       }
