@@ -18,7 +18,7 @@ import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
 import { UndoKey } from '@/lib/undo'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
+import { closeDock, DOCK_TITLE, returnFromDock, useDock, useDockBackKey } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { familyParts } from '@/components/footnote/family-parts'
 import { reportParts } from '@/components/footnote/report-parts'
@@ -261,6 +261,7 @@ function Shell() {
     if (sheet && node && !node.contains(document.activeElement)) node.focus({ preventScroll: true })
   }, [sheet])
   const { parts } = useRoute()
+  useDockBackKey()
   // Closed, the dock gives focus back to the list row it opened from.
   const dockOpen = !!dock
   React.useEffect(() => {

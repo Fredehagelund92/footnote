@@ -83,12 +83,12 @@ describe('the shared help lists', () => {
     expect(mail).not.toContain('+')
   })
 
-  // Thirty-six with every key of the conflict view, which Help's pages send people to ? for, the
-  // five go-to keys, and Command and Z.
-  it('keep the shortcut sheet to about thirty-six rows', () => {
+  // Thirty-seven with every key of the conflict view, which Help's pages send people to ? for, the
+  // five go-to keys, Command and Z, and H for a step back in the side panel.
+  it('keep the shortcut sheet to about thirty-seven rows', () => {
     const rows = SHORTCUTS.flatMap((g) => g.rows)
     expect(rows.length).toBeGreaterThanOrEqual(12)
-    expect(rows.length).toBeLessThanOrEqual(36)
+    expect(rows.length).toBeLessThanOrEqual(37)
   })
 
   it('list the go-to keys, so the sheet cannot drift from them', () => {
