@@ -211,11 +211,11 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   ).toBeVisible()
 
   // Out of order, as a new owner may go: New context before any domain exists. The Domain field
-  // says there is none yet and leads to adding one, where it opened on an empty box. Moved to
+  // says there is none yet and leads to adding one. Moved to
   // inside the app, as its own links do: each load reads every shared read again, and a person
   // may make 600 calls a minute.
   await moveTo(page, '/context/new')
-  await button(page, 'Write it yourself').click()
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeVisible()
   await page.getByRole('button', { name: /^Domain/ }).click()
   const noDomain = page.getByRole('dialog', { name: 'Domain' })
   await expect(noDomain.getByText('No domain yet')).toBeVisible()
@@ -373,9 +373,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
 
   // A context item that applies to the synced metric, published in one step by its owner.
   await page.goto('/context/new')
-  await expect(page.getByRole('textbox', { name: 'What happened?' })).toBeVisible()
-  expect(await demoWords(page), "Write context's first box").toEqual([])
-  await button(page, 'Write it yourself').click()
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeVisible()
   expect(await demoWords(page), 'the editor').toEqual([])
   await page.getByRole('textbox', { name: 'Title' }).fill('Checkout was down for a day')
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
@@ -695,7 +693,7 @@ test('values people write, on an install that has none', async ({ browser }) => 
 
   // Where an item is written: a channel nobody added yet, added in Applies to.
   await moveTo(page, '/context/new')
-  await button(page, 'Write it yourself').click()
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeVisible()
   await page.getByRole('textbox', { name: 'Title' }).fill('Direct sales paused for a week')
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText('Direct sales were paused for a week, so Net revenue reads low.')
@@ -828,7 +826,7 @@ test("a new owner's first item is never lost, and agents get only what was writt
     process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${name}.png` }) : null
   const title = 'Annual price went up on 1 September 2026'
   await moveTo(page, '/context/new')
-  await button(page, 'Write it yourself').click()
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeVisible()
   await page.getByRole('textbox', { name: 'Title' }).fill(title)
   await page.getByRole('textbox', { name: 'What agents should know' }).click()
   await page.keyboard.insertText(

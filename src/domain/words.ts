@@ -183,13 +183,8 @@ export const concepts = {
     definition:
       'Help with writing one draft, in a panel beside the editor. It changes the fields of your draft, and you check each one. It cannot send or publish, and an admin turns it on.',
     internal: ['writing_help', 'writer loop'],
-    only: "the editor and Write context's first box, on a computer or tablet, the review, and Settings, Advanced, where an admin turns it on",
-    phrases: [
-      'Writing help',
-      'Write the draft',
-      'Writing help suggests',
-      'Written with writing help',
-    ],
+    only: 'the editor, on a computer or tablet, the review, and Settings, Advanced, where an admin turns it on',
+    phrases: ['Writing help', 'Say it', 'Writing help suggests', 'Written with writing help'],
   },
   topic: {
     name: 'topic',

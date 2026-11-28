@@ -77,11 +77,8 @@ export function useDock(): DockState | null {
   }
 }
 
-/**
- * Opens a panel, settling once it is in the address: for what must start with the panel open, as
- * the first thing said to writing help from the editor's first box does.
- */
-export function dockOpened(
+/** Opens a panel, settling once it is in the address. */
+function dockOpened(
   kind: DockKind,
   id?: string,
   extra?: Record<string, string | undefined>,

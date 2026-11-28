@@ -18,7 +18,7 @@ Connect your agent once, as [Connect an agent](connect-an-agent.md) says. It wri
 
 ## Start from the app
 
-Open **Context** and choose **Write context**. Beside Fill it in and Write it yourself, a third button names your agent:
+Open **Context** and choose **Write context**. In the editor's More menu, an item names your agent:
 
 - Write with Claude opens Claude's app on a new chat, with the prompt in the box. Read it, and send it.
 - Write with Cursor, or the name of another agent you connected, copies the prompt for you to paste into it. An agent that reports only a technical name, such as a proxy, shows as Write with your agent.
@@ -32,7 +32,7 @@ Write a context item with me. Ask me what happened, when, and where it is writte
 
 <!-- /include -->
 
-The same button is under a Not found answer in Ask, for an owner of its domain, and in the editor's More menu. There the prompt names what the item is about, its metrics, markets and dates, and never the question anyone asked. On a draft you saved, it asks your agent to go on with that draft.
+The same button is under a Not found answer in Ask, for an owner of its domain. There the prompt names what the item is about, its metrics, markets and dates, and never the question anyone asked. On a draft you saved, it asks your agent to go on with that draft.
 
 ## Start from your agent
 

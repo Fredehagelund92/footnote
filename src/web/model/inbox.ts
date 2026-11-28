@@ -112,6 +112,9 @@ export function draftsVerb(publish: number, send: number, all = true) {
 
 export type FieldChange = { label: string; before: string; after: string }
 
+/** A Needs a recheck card's way to change its item: the editor, with writing help beside it. */
+export const UPDATE_IT = 'Update it'
+
 /** The third action of a Nothing written yet and a Needs a recheck card: it copies the card's link. */
 export const ASK_SOMEONE = 'Ask someone who knows'
 

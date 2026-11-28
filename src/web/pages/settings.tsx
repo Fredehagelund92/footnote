@@ -760,7 +760,7 @@ function ChatSharing({ sharing }: { sharing: NonNullable<AdvancedPage['sharing']
 /**
  * Writing help, the editor's dock: off as installed, since turning it on sends the words of a
  * draft to the AI model set for Ask. The row says what is sent before an admin turns it on. It has
- * an address of its own (/settings/advanced/writing-help), where the editor's first box leads an
+ * an address of its own (/settings/advanced/writing-help), where writing help's dock leads an
  * admin: there it is open, with the keyboard on its switch.
  */
 function WritingHelp({ help }: { help: NonNullable<AdvancedPage['writingHelp']> }) {

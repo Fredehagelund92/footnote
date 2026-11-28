@@ -3,10 +3,10 @@ import type { AddressInfo } from 'node:net'
 import type { Page } from '@playwright/test'
 import { expect, go, mode, test } from './go.ts'
 
-// J116: a link pasted into Write context's first box is read (FR-144). The editor fills in from
-// the page: its title, its words, and its Source with one sentence copied from it. A page that
-// needs a sign-in fills in nothing: the box says why in one sentence, keeps the link, and pasting
-// the page's own text is the next step. Words on a page that read like orders to an AI agent are
+// J116: a link pasted into Draft from text, in the editor's More menu, is read (FR-144). The
+// editor fills in from the page: its title, its words, and its Source with one sentence copied from
+// it. A page that needs a sign-in fills in nothing: the box says why in one sentence, keeps the
+// link, and pasting the page's own text is the next step. Words on a page that read like orders to an AI agent are
 // pointed out while drafting. The pages are served on this machine.
 
 let pages: Server
@@ -44,12 +44,14 @@ test.beforeEach(async ({ page }) => {
   await go(page, '/context/new')
 })
 
-const start = (page: Page) => page.getByRole('region', { name: 'What happened?' })
+const start = (page: Page) => page.getByRole('dialog', { name: 'Draft from text' })
 const row = (page: Page, label: string) =>
   page.locator('dt', { hasText: label }).locator('xpath=following-sibling::dd[1]')
 
 async function draftFrom(page: Page, text: string) {
-  await start(page).getByRole('textbox', { name: 'What happened?' }).fill(text)
+  await page.getByRole('button', { name: 'More' }).click()
+  await page.getByRole('menuitem', { name: 'Draft from text' }).click()
+  await start(page).getByRole('textbox', { name: 'Draft from text' }).fill(text)
   await start(page).getByRole('button', { name: 'Fill it in' }).click()
 }
 
@@ -81,7 +83,7 @@ test('A page that needs a sign-in fills in nothing and says to paste its text', 
     /can't open that page: it needs a sign-in, and .+ never signs in as you\. Paste the page's text instead\.$/,
   )
   // The link stays, to be replaced with the page's text.
-  const box = start(page).getByRole('textbox', { name: 'What happened?' })
+  const box = start(page).getByRole('textbox', { name: 'Draft from text' })
   await expect(box).toHaveValue(`${base}/private`)
   await expect(box).toHaveAttribute('aria-invalid', 'true')
   await box.fill('From 1 March 2026, returns in Norway are counted on the day of the refund.')

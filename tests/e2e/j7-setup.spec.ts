@@ -54,7 +54,6 @@ test('a new workspace publishes its names, asks, writes and asks again', async (
     // What Jon knows, complete as the service needs it: where it applies, and a source with a
     // sentence copied from it, published in one step in his domain.
     await page.getByRole('button', { name: 'Write context', exact: true }).click()
-    await page.getByRole('button', { name: 'Write it yourself' }).click()
     await page
       .getByRole('textbox', { name: 'Title' })
       .fill('Orders in Norway fell after the customs stop')

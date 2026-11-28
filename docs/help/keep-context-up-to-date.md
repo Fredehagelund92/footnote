@@ -12,7 +12,7 @@ open:
 
 A published context item has a check date. When the date passes, or a definition it relies on changes, the item needs a recheck, and agents are told it may be out of date. Your Inbox brings each one to you, with what someone reported, so the context agents read stays true.
 
-![A card in the Inbox under Needs a recheck: Returns changed definition on 28 April 2026, in Sales. It says its check date passed on 2 October and agents are told it may be out of date. The item's text follows, and at the foot are Edit, Archive, Ask someone who knows and Still true.](../images/docs/inbox-due-light.webp)
+![A card in the Inbox under Needs a recheck: Returns changed definition on 28 April 2026, in Sales. It says its check date passed on 2 October and agents are told it may be out of date. The item's text follows, and at the foot are Update it, Archive, Ask someone who knows and Still true.](../images/docs/inbox-due-light.webp)
 
 ## Who gets these cards
 
@@ -29,11 +29,11 @@ When a definition the item uses is gone from its tool, the item's page says so u
 
 Answer the card in one of three ways:
 
-| Press          | When                       | What happens                                                                      |
-| -------------- | -------------------------- | --------------------------------------------------------------------------------- |
-| **Still true** | The item is right as it is | It counts as checked today, by you, and its next check date moves on              |
-| **Edit**       | Something in it changed    | The editor opens on the item. What you publish replaces it, with a new check date |
-| **Archive**    | It no longer applies       | Agents stop getting it from the next question                                     |
+| Press          | When                       | What happens                                                                                                             |
+| -------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Still true** | The item is right as it is | It counts as checked today, by you, and its next check date moves on                                                     |
+| **Update it**  | Something in it changed    | The editor opens on the item, with writing help asking what changed. What you publish replaces it, with a new check date |
+| **Archive**    | It no longer applies       | Agents stop getting it from the next question                                                                            |
 
 The card leaves the Inbox, the next one opens, and Undo is offered for a moment. A card you answered is under All, as Done.
 

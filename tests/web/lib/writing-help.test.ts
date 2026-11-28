@@ -372,6 +372,38 @@ describe('the chat of a page with no draft yet', () => {
   })
 })
 
+describe('the opening line of a chat reached from a card', () => {
+  const fromAsk = {
+    known: 'From Ask: this item was last checked on 20 Jun 2026.',
+    ask: 'What changed since then?',
+  }
+
+  it('is the page’s, and a page reached from no card has none', () => {
+    setHelpDesk({ ...desk(null, undefined, 'item-5').desk, opening: fromAsk })
+    expect(helpNow().opening).toEqual(fromAsk)
+    setHelpDesk(null)
+    setHelpDesk(desk(null, undefined, 'item-5').desk)
+    expect(helpNow().opening).toBeNull()
+    setHelpDesk(null)
+  })
+
+  it('moves with the chat to the draft it becomes, whose page was reached from no card', async () => {
+    const page = desk(null, undefined, 'item-6')
+    page.desk.ready = () => {
+      moveHelpChat('d30')
+      return Promise.resolve(null)
+    }
+    setHelpDesk({ ...page.desk, opening: fromAsk })
+    await askHelp('It ended on 3 October.')
+    setHelpDesk(null)
+    setHelpDesk(desk('d30').desk)
+    await settled()
+    expect(helpNow().opening).toEqual(fromAsk)
+    expect(helpNow().turns.map((t) => t.said)).toEqual(['It ended on 3 October.'])
+    setHelpDesk(null)
+  })
+})
+
 describe('a page with no draft yet', () => {
   it('keeps its words as a draft, moves to it, and starts the turn once that page is there', async () => {
     const fresh = desk(null)

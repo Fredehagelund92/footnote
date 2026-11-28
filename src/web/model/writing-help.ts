@@ -34,71 +34,68 @@ export const editorFields = (names: readonly HelpFieldName[]): SessionField[] =>
   ...new Set(names.map((name) => fieldOf[name])),
 ]
 
-/** The first box of Write context, by who fills the draft in from what the person gives it. */
-export type FrontDoor = {
-  /** Writing help writes the draft, or the fields fill in by rule, as Draft from text does. */
-  by: 'help' | 'rule'
-  /** The line under the question: what to give it, and what comes of it. */
-  how: string
-  button: string
-  /** What the button does with the words, said under it: where they go, or that no model reads them. */
-  note: string
-  /**
-   * With no writing help: how it would get here, a line each. A member is told who can turn it on;
-   * an admin is led to its switch in Settings, and, with no model, first to how one is connected.
-   */
-  more: { text: string; link?: { to: 'switch' | 'model-guide'; label: string } }[]
+/** Where the person came to the editor from, by a card's button that asks them to write. */
+export type HelpFrom = 'ask' | 'inbox' | 'definition'
+
+const fromWords: Record<HelpFrom, string> = {
+  ask: 'From Ask',
+  inbox: 'From the Inbox',
+  definition: 'From Definitions',
 }
 
 /**
- * The first box as it stands for this person. Writing help writes the draft where it is there to
- * ask (`help`: an admin turned it on and a model is connected). Anywhere else the fields fill in by
- * rule, which no install is without, and lines say what is missing: its switch, which an admin turns on, and
- * with no model (`model`), a model, which only an admin can do something about.
+ * The chat's opening line, for a person who came from a card: a quiet line of what that place
+ * knew, then one plain line that asks for what happened. It is no reply, says no "I" and costs no
+ * turn. `about` is what the new item applies to, in words ("Orders in Poland"); `checked` the day
+ * an item that is updated was last checked, when it has one.
  */
-export function frontDoor({
-  help,
-  model,
-  admin,
+export function openingLine({
+  from,
+  about,
+  update,
+  checked,
 }: {
-  help: boolean
-  model: boolean
-  admin: boolean
-}): FrontDoor {
-  if (help)
-    return {
-      by: 'help',
-      how: `Paste a message, a link, or just say what happened. ${HELP_NAME} writes the draft, and you check each field.`,
-      button: 'Write the draft',
-      note: 'What you write here goes to the AI model set for Ask. Only you see the draft until you send or publish it.',
-      more: [],
-    }
+  from: HelpFrom
+  about: string
+  update: boolean
+  checked?: string
+}): { known: string; ask: string } | null {
+  const place = fromWords[from]
+  if (update)
+    return checked
+      ? {
+          known: `${place}: this item was last checked on ${checked}.`,
+          ask: 'What changed since then?',
+        }
+      : { known: `${place}: this item needs a recheck.`, ask: 'What changed?' }
+  if (!about) return null
+  if (from === 'definition')
+    return { known: `${place}: ${about}.`, ask: 'Say what agents should know about it.' }
   return {
-    by: 'rule',
-    how: 'Paste a message, a link, or just say what happened. The fields fill in from it, and you check each one.',
-    button: 'Fill it in',
-    note: 'Filled in by rule, with no AI model.',
-    more: admin
-      ? [
-          ...(model
-            ? []
-            : [
-                {
-                  text: writingHelpNoModel,
-                  link: { to: 'model-guide' as const, label: 'How to connect a model' },
-                },
-              ]),
-          {
-            text: 'With writing help on, people can talk a draft through.',
-            link: { to: 'switch' as const, label: 'Turn it on in Settings' },
-          },
-        ]
-      : [
-          {
-            text: 'Ask an admin to turn on writing help in Settings, and you can talk the draft through.',
-          },
-        ],
+    known: `${place}: nothing is published about ${about} yet.`,
+    ask: about.includes(' in ') ? 'Say what happened there.' : 'Say what happened.',
   }
+}
+
+/**
+ * The dock's one line where writing help is not there to ask on the page: with no model, that one
+ * is needed, which an admin connects; with a model, that it is off, which an admin turns on. An
+ * admin is led to the guide or the switch; anyone else is told who can.
+ */
+export function unavailableLine({ model, admin }: { model: boolean; admin: boolean }): {
+  text: string
+  link?: { to: 'switch' | 'model-guide'; label: string }
+} {
+  if (!model)
+    return admin
+      ? { text: writingHelpNoModel, link: { to: 'model-guide', label: 'How to connect a model' } }
+      : { text: `${writingHelpNoModel} An admin can connect one in Settings.` }
+  return admin
+    ? {
+        text: `${HELP_NAME} is off for this workspace.`,
+        link: { to: 'switch', label: 'Turn it on in Settings' },
+      }
+    : { text: `${HELP_NAME} is off for this workspace. An admin can turn it on in Settings.` }
 }
 
 /** What a turn is doing while it runs. */

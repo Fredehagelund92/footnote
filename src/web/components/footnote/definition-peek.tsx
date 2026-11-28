@@ -106,7 +106,15 @@ export function DefinitionPeek({ name }: { name: string }) {
             // The footer's one action, so always the filled primary; the name is in the title right above.
             <Button
               nativeButton={false}
-              render={<a href={href('/context/new', { metric: d.name, domain: d.domain })} />}
+              render={
+                <a
+                  href={href('/context/new', {
+                    metric: d.name,
+                    domain: d.domain,
+                    from: 'definition',
+                  })}
+                />
+              }
             >
               <PlusIcon data-icon="inline-start" />
               Write context

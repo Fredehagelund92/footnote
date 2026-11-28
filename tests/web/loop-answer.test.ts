@@ -515,7 +515,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(buttons(sources, /more sources?$/)).toHaveLength(0)
   })
 
-  it('Sources: each pinned item needing a recheck has its own Mark it still true, naming its title', () => {
+  it('Sources: each pinned item needing a recheck has its own Mark it still true and Update it, naming its title', () => {
     const base = usedTurn(4, { look: 2 })
     const turn = {
       ...base,
@@ -535,6 +535,18 @@ describe("Ask's loop answer, state by state", () => {
     ])
     // None is left that does not say which item it marks.
     expect(buttons(el, /^Mark it still true$/)).toHaveLength(0)
+    // Beside it, Update it opens the item's editor with writing help asking what changed.
+    expect(
+      pinned.map((li) =>
+        [...li.querySelectorAll('a')]
+          .filter((a) => text(a) === 'Update it')
+          .map((a) => [a.getAttribute('aria-label'), a.getAttribute('href')]),
+      ),
+    ).toEqual(
+      [1, 2].map((k) => [
+        [`Update it: ${turn.items[k]!.title}`, `/context/${turn.items[k]!.id}/edit?from=ask`],
+      ]),
+    )
     world.writes.length = 0
     act(() => (marks[1]![0] as HTMLElement).click())
     expect(world.writes.map((w) => [w.op, (w.input as { id: string }).id])).toEqual([
@@ -665,7 +677,7 @@ describe("Ask's loop answer, state by state", () => {
       asMe(ownerOf(['area_customer_value']), () => {
         const [write] = buttons(render(unwritten()), /^Write context about Churn rate$/)
         expect(write?.getAttribute('href')).toBe(
-          '/context/new?metric=Churn+rate&domain=area_customer_value',
+          '/context/new?metric=Churn+rate&domain=area_customer_value&from=ask',
         )
       })
       act(() => root?.unmount())

@@ -29,7 +29,13 @@ import { obsData } from './data/observability'
 import { obsPage } from './obs-page'
 import { BEFORE, changedSteps, replay } from './replay'
 import { reviews } from './data/review'
-import { ASK_SOMEONE, draftsWords, type CheckAnswerRow, type InboxCard } from '@/model/inbox'
+import {
+  ASK_SOMEONE,
+  draftsWords,
+  UPDATE_IT,
+  type CheckAnswerRow,
+  type InboxCard,
+} from '@/model/inbox'
 import type { Question } from '@contract/questions'
 import { titleOfWords } from '@domain/questions'
 import type { Relation, Review } from '@/model/review'
@@ -1515,7 +1521,7 @@ export function createMockApi() {
                   ? `Last checked by ${fact.checkedBy === owner ? 'you' : fact.checkedBy}, ${fact.checkedOn}.`
                   : 'Not checked yet.',
                 primary: keepLabel(metrics.length),
-                secondary: ['Edit', 'Archive'],
+                secondary: [UPDATE_IT, 'Archive'],
                 factId: fact.id,
               },
             ]

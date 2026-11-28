@@ -81,10 +81,12 @@ test.describe('at 1440 px', () => {
       '/settings/general',
     ]) {
       await go(page, route)
-      // A new item opens on its box; the form's header is the one that holds these actions.
-      if (route === '/context/new')
-        await page.getByRole('button', { name: 'Write it yourself' }).click()
       await expect(page.locator('[data-header-actions] svg').first()).toBeVisible()
+      // A new item opens with writing help beside it: measured once the dock has slid in.
+      if (route === '/context/new') {
+        await expect(page.getByRole('region', { name: 'Writing help' })).toBeVisible()
+        await expect.poll(() => page.evaluate(() => document.getAnimations().length)).toBe(0)
+      }
       const slips = await page.evaluate(() =>
         [...document.querySelectorAll('[data-header-actions] svg')]
           .map((icon) => icon.getBoundingClientRect())

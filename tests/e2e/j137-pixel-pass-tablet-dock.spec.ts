@@ -54,18 +54,22 @@ const overlappingInHeader = (page: Page) =>
     )
   })
 
-/** Writing help on in Settings, then its first turn on a new item, from inside the app. */
+/**
+ * Writing help on in Settings, then its first turn on a new item, from inside the app: on a tablet
+ * the editor opens on its own, and the header's toggle opens the sheet.
+ */
 async function writeWithHelp(page: Page) {
   await go(page, '/settings/advanced/writing-help')
   const toggle = page.getByRole('switch', { name: 'Let people write with writing help' })
   await toggle.click()
   await expect(toggle).toBeChecked()
   await go(page, '/context/new')
-  await page
-    .getByRole('textbox')
-    .first()
+  await expect(sheet(page, 'Writing help')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Writing help', exact: true }).click()
+  await sheet(page, 'Writing help')
+    .getByRole('textbox', { name: 'Say something to writing help' })
     .fill('From 1 March 2026, returns in Norway are counted on the day of the refund.')
-  await page.getByRole('button', { name: 'Write the draft' }).click()
+  await sheet(page, 'Writing help').getByRole('button', { name: 'Say it' }).click()
   await expect(sheet(page, 'Writing help').getByText('I wrote a draft')).toBeVisible()
 }
 

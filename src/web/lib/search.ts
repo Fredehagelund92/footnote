@@ -127,6 +127,8 @@ const editorSearch = lenient(
     beside: text,
     // The draft a new item kept itself as: a reload opens it again.
     saved: text,
+    // Opened from a card that asks the person to write: writing help opens with what it knew.
+    from: oneOf(['ask', 'inbox', 'definition']),
   }),
 )
 

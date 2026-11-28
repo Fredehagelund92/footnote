@@ -24,6 +24,7 @@ import { commentWhen } from './http-map'
 import type { Subject } from '@/model/comments'
 import {
   ASK_SOMEONE,
+  UPDATE_IT,
   draftsWords,
   namesWords,
   type InboxCard,
@@ -378,7 +379,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
             ? `Last checked by ${by === me ? 'you' : by}, ${dayWords(on)}.`
             : 'Not checked yet.',
         primary: split ? keepLabel(split.metrics.length) : 'Still true',
-        secondary: ['Edit', 'Archive', ASK_SOMEONE],
+        secondary: [UPDATE_IT, 'Archive', ASK_SOMEONE],
         factId: card.itemId,
         ...(card.asked
           ? {

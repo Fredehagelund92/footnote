@@ -118,7 +118,7 @@ test('a card with no answers to compare keeps its point, its folds and its decis
     /^\/context\/[^/]+$/,
   )
   // Secondary decisions are labelled buttons beside the primary, not icons beside the arrows.
-  await expect(p.getByRole('button', { name: 'Edit', exact: true })).toBeVisible()
+  await expect(p.getByRole('button', { name: 'Update it', exact: true })).toBeVisible()
   await expect(p.getByRole('button', { name: 'Archive', exact: true })).toBeVisible()
   await expect(p.getByText('It counts as checked today, by you')).toBeVisible()
   // Deciding: the outcome says so with Undo, and the next card that needs you opens.

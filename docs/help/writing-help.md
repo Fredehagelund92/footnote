@@ -1,9 +1,9 @@
 ---
 title: Write with writing help
-line: Paste a message or a link, and writing help writes your draft beside the editor, for you to check.
+line: Paste a message or a link beside the editor, and writing help writes your draft there, for you to check.
 group: Write and review
 order: 3
-minutes: 3
+minutes: 4
 reviewed: 2026-11-28
 open:
   label: Write context
@@ -14,17 +14,23 @@ Paste a message, a link or a few words, and writing help writes the context item
 
 ## Before you start
 
-Writing help is off until an admin turns it on, in **Settings**, **Advanced**, under Writing help. It needs an AI model, the one set for Ask: with none connected, Write context fills the fields by rule, as **Fill it in** does. It is on a computer or tablet, not on a phone. [Write context](write-context.md) says how a draft is sent or published.
+Writing help is off until an admin turns it on, in **Settings**, **Advanced**, under Writing help. It needs an AI model, the one set for Ask: with none connected, the panel says so in one line, and Draft from text, in the editor's More menu, fills the fields by rule. It is on a computer or tablet, not on a phone. [Write context](write-context.md) says how a draft is sent or published.
 
 > **What it sends.** With writing help on, the words of your own draft, what you write to it and the text of one page you link go to the AI model set for Ask, for that turn. Nothing of the chat is kept: it stays in your browser until you leave the page.
 
 ## Write a draft from a message
 
-Open **Context** and choose **Write context**. Paste the message, the link or your own words into the first box, and choose **Write the draft**.
+Open **Context** and choose **Write context**. The editor opens with writing help beside it and the cursor in its box. Paste the message, the link or your own words there, and press Enter, or Say it, the arrow in the box. Send stays the page's own button, in its header.
 
-The panel opens with your words, and the fields fill in one at a time: the title first, then the kind, where it applies, when, the source and the text. A field still empty shows a bar where its value will land. Stop ends the turn and keeps what it wrote so far.
+The fields fill in one at a time: the title first, then the kind, where it applies, when, the source and the text. A field still empty shows a bar where its value will land. Stop ends the turn and keeps what it wrote so far.
+
+Close the panel, and new items open without it in this browser until you open it again with **Writing help** in the editor's header. On a tablet the panel is a sheet over the draft, so the editor opens on its own, and Writing help opens the sheet.
 
 When it is done, a line above the title says how many fields it filled in, with Undo, and each field it wrote has a small mark. The reply says what it wrote, and at most one question, with answers to tap.
+
+## From Ask and the Inbox
+
+When Ask finds nothing written about a question, Write context under the answer opens the editor with what the question was about filled in, and writing help says so at the top of its panel: From Ask: nothing is published about Orders in Poland yet. Say what happened there. Under an Outdated answer, Update it opens that item's editor, and writing help asks what changed since it was last checked. A Nothing written yet card in the Inbox, and Update it on a Needs a recheck card, open the same way. These open the panel on a tablet too, and also after you closed it.
 
 ## Change the draft
 

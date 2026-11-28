@@ -17,13 +17,11 @@ How to add a context item, what to put in it, and the line that stops an agent f
 
 ## Add a context item
 
-To create one, open **Context** and choose **Write context**. It opens on one box: What happened? Paste a message, a link, or just say what happened, and choose **Fill it in**. The editor opens with the title, the text, the kind, the dates and where it applies filled in by rule from your words, with no AI model, and you check each one.
+To create one, open **Context** and choose **Write context**. The editor opens on an empty item, with writing help beside it on a computer: paste a message or a link, or say what happened, in its box, and an AI model writes the draft beside it while you watch, where an admin has turned it on. See [Write with writing help](writing-help.md). Or write in the fields yourself.
 
-A link is read from its page, which becomes the source.
+Draft from text, in the editor's More menu, fills the fields by rule, with no AI model: paste a message, a link, or just say what happened, and choose Fill it in. The title, the text, the kind, the dates and where it applies fill in from your words, and you check each one. A link is read from its page, which becomes the source.
 
-To start from an empty item, choose **Write it yourself**. Draft from text, in the editor's More menu, goes back to the box. To write it with Claude or another agent of yours instead, see [Write with your agent](write-with-your-agent.md).
-
-Where an admin has turned on writing help, the button is Write the draft, and an AI model writes the draft beside the editor while you watch: see [Write with writing help](writing-help.md).
+To write it with Claude or another agent of yours instead, see [Write with your agent](write-with-your-agent.md).
 
 When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 
