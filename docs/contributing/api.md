@@ -179,7 +179,7 @@ through `ServingReads.definition`, and a page of the titles of the published ite
 Words that name several come back as `need_more_detail` with their keys in `options`, and words
 that name none as `no_match` with the closest.
 
-**`report`** takes what the person says, after they say yes: `kind` is `missing`, `wrong`,
+**`report`** takes what the person says, after they say yes, when they only know an answer is missing, wrong or unclear, or that it helped; an agent that knows the correct wording uses `write_draft` then `send_draft` instead, which proposes the fix: `kind` is `missing`, `wrong`,
 `unclear` or `helped`, with the `reply_id` of a `get_context` reply, a `context_id` when it is about
 one item, and an optional short note checked for sensitive text (FR-611); a note that fails it is
 refused as `invalid_input` with the field, and nothing is sent. It is recorded as anonymous feedback

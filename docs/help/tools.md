@@ -3,7 +3,7 @@ title: Agent tools
 line: The seven tools an agent can call, what each takes and gives back, and how to read a reply.
 group: Reference
 order: 1
-minutes: 15
+minutes: 16
 reviewed: 2026-11-27
 ---
 
@@ -194,7 +194,7 @@ Words that name several definitions come back with their keys to choose from, an
 
 ## Send a report: report
 
-It runs only after the person says yes. `kind` says what the person reports:
+It runs only after the person says yes. Use it when the person only knows an answer is missing, wrong or unclear, or that it helped; when the agent knows the correct wording, `write_draft` then `send_draft` (after the person says yes) proposes the fix and is the better path. `kind` says what the person reports:
 
 - `missing`: the context has nothing on it.
 - `wrong`: what the context says is wrong.
@@ -215,7 +215,7 @@ Add a short note. It is checked for sensitive text, and the report never keeps w
 
 The person and their agent work on one draft: the person in the app, the agent with these tools. Only a person's own agent may call them. An access key or a dev token names no person, so it is refused.
 
-Neither tool sends anything. The person sends the draft for review in the app, or says yes and the agent calls `send_draft`.
+Neither tool sends anything. The person sends the draft for review in the app, or says yes and the agent calls `send_draft`. When the agent knows the correct wording for something missing or wrong, this proposes the fix; when the person only knows an answer is wrong, the agent uses `report`.
 
 `write_draft` takes one of three shapes:
 
