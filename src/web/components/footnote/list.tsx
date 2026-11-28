@@ -472,6 +472,65 @@ export function SortTh<K extends string>({
   )
 }
 
+/** The sort menu's rows: the keys, then the two ways of the chosen key when it has two. */
+export function SortChoices<K extends string>({
+  keys,
+  sorting,
+  onSort,
+  shown,
+}: {
+  keys: Record<K, SortKey>
+  sorting: Sorting<K>
+  onSort: (s: Sorting<K>, press?: Press) => void
+  shown?: K[]
+}) {
+  const key = keys[sorting.key]
+  const other: Dir = key.first === 'asc' ? 'desc' : 'asc'
+  return (
+    <>
+      <DropdownMenuGroup>
+        <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        <DropdownMenuRadioGroup
+          value={sorting.key}
+          onValueChange={(v, d) => onSort(startOf(keys, v as K), d.event)}
+        >
+          {(shown ?? (Object.keys(keys) as K[])).map((k) => (
+            <DropdownMenuRadioItem key={k} value={k}>
+              <span className="flex w-full justify-between gap-3">
+                {keys[k].label}
+                <span className="text-xs text-muted-foreground">
+                  {wayOf(keys, k === sorting.key ? sorting : startOf(keys, k))}
+                </span>
+              </span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuGroup>
+      {flips(key) && (
+        <>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Direction</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={sorting.dir}
+              onValueChange={(v, d) => onSort({ key: sorting.key, dir: v as Dir }, d.event)}
+            >
+              {[key.first, other].map((d) => (
+                <DropdownMenuRadioItem key={d} value={d}>
+                  <span className="flex w-full items-center justify-between gap-3">
+                    {key.ways[d]}
+                    <DirArrow dir={d} className="text-muted-foreground" />
+                  </span>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuGroup>
+        </>
+      )}
+    </>
+  )
+}
+
 /**
  * The bar's Sort menu: the keys, each with its direction in words, then the two ways of the chosen
  * key when it has two. The button names the key and shows the direction as an arrow.
@@ -483,6 +542,7 @@ export function SortMenu<K extends string>({
   shown,
   narrow,
   className,
+  triggerClassName,
 }: {
   keys: Record<K, SortKey>
   sorting: Sorting<K>
@@ -493,12 +553,15 @@ export function SortMenu<K extends string>({
   /** The class that hides the words on a narrow list. */
   narrow?: string
   className?: string
+  /** The class on the button, such as one that hides it on a phone. */
+  triggerClassName?: string
 }) {
   const key = keys[sorting.key]
-  const other: Dir = key.first === 'asc' ? 'desc' : 'asc'
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" className={barButton} />}>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" className={cn(barButton, triggerClassName)} />}
+      >
         <ArrowUpDownIcon />
         <span className={narrow}>Sort</span>
         <span className={cn('text-foreground', narrow)}>{key.label}</span>
@@ -510,45 +573,7 @@ export function SortMenu<K extends string>({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className={className}>
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-          <DropdownMenuRadioGroup
-            value={sorting.key}
-            onValueChange={(v, d) => onSort(startOf(keys, v as K), d.event)}
-          >
-            {(shown ?? (Object.keys(keys) as K[])).map((k) => (
-              <DropdownMenuRadioItem key={k} value={k}>
-                <span className="flex w-full justify-between gap-3">
-                  {keys[k].label}
-                  <span className="text-xs text-muted-foreground">
-                    {wayOf(keys, k === sorting.key ? sorting : startOf(keys, k))}
-                  </span>
-                </span>
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuGroup>
-        {flips(key) && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Direction</DropdownMenuLabel>
-              <DropdownMenuRadioGroup
-                value={sorting.dir}
-                onValueChange={(v, d) => onSort({ key: sorting.key, dir: v as Dir }, d.event)}
-              >
-                {[key.first, other].map((d) => (
-                  <DropdownMenuRadioItem key={d} value={d}>
-                    <span className="flex w-full items-center justify-between gap-3">
-                      {key.ways[d]}
-                      <DirArrow dir={d} className="text-muted-foreground" />
-                    </span>
-                  </DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuGroup>
-          </>
-        )}
+        <SortChoices keys={keys} sorting={sorting} onSort={onSort} shown={shown} />
       </DropdownMenuContent>
     </DropdownMenu>
   )

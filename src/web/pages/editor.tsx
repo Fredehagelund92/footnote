@@ -1377,9 +1377,13 @@ function Editor({
               >
                 {edited ? 'Back to the form' : 'Write it yourself'}
               </Button>
-              {/* The third choice, a way of its own: on a phone it stands under the other two, set off by a line. */}
-              <div className="max-sm:mt-1 max-sm:w-full max-sm:border-t max-sm:pt-3 sm:contents">
-                <WriteWithButton prompt={writePrompt()} variant="ghost" />
+              {/* The third choice, a way of its own: on a phone a link under the two buttons. */}
+              <div className="max-sm:w-full sm:contents">
+                <WriteWithButton
+                  prompt={writePrompt()}
+                  variant="ghost"
+                  className="max-sm:h-auto max-sm:px-0 max-sm:underline max-sm:underline-offset-4 max-sm:hover:bg-transparent"
+                />
               </div>
             </div>
           </section>

@@ -20,8 +20,8 @@ import { expect, go, newContext, signInAs, test } from './go.ts'
 //
 // Wave 4: a bar that runs past the window's right edge keeps its name inside the window, cut with
 // an ellipsis (Q06). A full stop after a chip in the editor stays on the chip's line (Q02). On a
-// phone Context's Sort and Select share the search's row, and the box's third choice stands under
-// the other two on purpose (Q03). The editor's toolbar fades where it goes on, and its footer
+// phone Context's Sort and Select fold into the Filter menu, and the box's third choice is a link
+// under its two buttons on purpose (Q03). The editor's toolbar fades where it goes on, and its footer
 // keeps one line (Q04). Ask's read line never ends a line with a dot (Q05).
 
 /** Where an element is on the screen. */
@@ -841,39 +841,28 @@ test.describe('wave 4, on a phone', () => {
     }
   })
 
-  test('Context keeps Sort and Select on the Filter row, and Show under it (Q03)', async ({
-    page,
-  }) => {
+  test('Context folds Sort and Select into the Filter menu (Q03)', async ({ page }) => {
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
       await go(page, '/context')
-      const search = page.getByRole('textbox', { name: 'Search context' })
-      await expect(search).toBeVisible()
-      const top = async (el: Locator) => {
-        const box = (await el.boundingBox())!
-        return box.y + box.height / 2
-      }
-      const row = await top(page.getByRole('button', { name: /^Filter/ }))
-      // Sort and Select were two icons alone on a row of their own, between Show and the search.
-      expect(Math.abs((await top(page.getByRole('button', { name: /Sort/ }))) - row)).toBeLessThan(
-        4,
-      )
-      expect(
-        Math.abs((await top(page.getByRole('button', { name: 'Select' }))) - row),
-      ).toBeLessThan(4)
-      const show = page.getByRole('radiogroup', { name: 'Show' })
-      expect(await top(show), colorScheme).toBeGreaterThan(row + 20)
-      expect(await top(search), colorScheme).toBeGreaterThan((await top(show)) + 20)
+      await expect(page.getByRole('textbox', { name: 'Search context' })).toBeVisible()
+      // No Sort or Select control of its own, alone on a row under Filter and Group.
+      await expect(page.getByRole('button', { name: /^Sort/ })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: 'Select' })).toHaveCount(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
-      // By time keeps the same place for its own second row, and no mark hangs at the end of the first.
+      await page.getByRole('button', { name: /^Filter/ }).click()
+      await expect(page.getByRole('menuitemradio', { name: /^Title/ })).toBeVisible()
+      await page.getByRole('menuitem', { name: 'Select' }).click()
+      await expect(page.getByRole('checkbox', { name: 'Select all context shown' })).toBeVisible()
+      await page.getByRole('button', { name: /^Filter/ }).click()
+      await expect(page.getByRole('menuitem', { name: 'Done selecting' })).toBeVisible()
+      await page.keyboard.press('Escape')
       await go(page, '/context?view=time')
       await expect(page.getByRole('radiogroup', { name: 'Zoom' })).toBeVisible()
-      const bar = page.locator('[data-slot=sidebar-inset] [aria-hidden].w-px')
-      await expect(bar).toBeHidden()
     }
   })
 
-  test('the "What happened?" box puts its third choice under the other two, set off (Q03)', async ({
+  test('the "What happened?" box puts its third choice as a link under the buttons (Q03)', async ({
     page,
   }) => {
     for (const colorScheme of ['light', 'dark'] as const) {
@@ -888,13 +877,13 @@ test.describe('wave 4, on a phone', () => {
       const first = (await fill.boundingBox())!
       const third = (await agent.boundingBox())!
       expect(third.y, colorScheme).toBeGreaterThan(first.y + first.height)
-      // On a line of its own, said so by a rule above it.
-      const rule = await agent.evaluate((el) => {
-        const holder = el.parentElement!
-        return { top: getComputedStyle(holder).borderTopWidth, width: holder.clientWidth }
+      // A link: underlined, with no button box.
+      const look = await agent.evaluate((el) => {
+        const css = getComputedStyle(el)
+        return { line: css.textDecorationLine, bg: css.backgroundColor, border: css.borderTopWidth }
       })
-      expect(rule.top, colorScheme).toBe('1px')
-      expect(rule.width, colorScheme).toBe(390 - 2 * 16)
+      expect(look.line, colorScheme).toBe('underline')
+      expect(look.border, colorScheme).toBe('0px')
     }
   })
 
