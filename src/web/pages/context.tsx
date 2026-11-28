@@ -113,13 +113,13 @@ import { ContextBulk } from '@/components/footnote/context-bulk'
 // one dot. An item in a conflict carries the Conflict chip after its title (FR-220); Conflicts is a
 // filter of this list, kept in the address (?show=conflicts), not a list of its own.
 
-const STATUSES: Status[] = ['Draft', 'Waiting', 'Live', 'Due for a check', 'Archived']
+const STATUSES: Status[] = ['Draft', 'Waiting', 'Live', 'Needs a recheck', 'Archived']
 /** Each status as the address says it: `status=due,draft`. */
 const STATUS_OF = {
   draft: 'Draft',
   waiting: 'Waiting',
   live: 'Live',
-  due: 'Due for a check',
+  due: 'Needs a recheck',
   archived: 'Archived',
 } as const satisfies Record<string, Status>
 const STATUS_KEYS = Object.keys(STATUS_OF) as (keyof typeof STATUS_OF)[]
@@ -290,7 +290,7 @@ function ContextList() {
   const metricNames = React.useMemo(() => new Set(metrics.map((m) => m.name)), [metrics])
   const dock = useDock()
   // The list's view is in the address (lib/list.ts), so a reload, a link and Back from an item
-  // keep it: a domain page links here filtered to its domain (and to what is due for a check), a
+  // keep it: a domain page links here filtered to its domain (and to what needs a recheck), a
   // records answer in Ask to what is due, the Inbox's drafts card to the person's drafts.
   useListAddress('/context')
   const [text, setText] = useSearchWords()
@@ -900,7 +900,7 @@ function ContextList() {
                     {sortTh(
                       'checked',
                       'w-19 min-w-19 px-1.5 text-center @max-xl/main:hidden',
-                      'Checked: recently, over 30 days ago, or due for a check',
+                      'Checked: recently, over 30 days ago, or needing a recheck',
                     )}
                     <Th className="hidden w-10 @max-xl/main:table-cell @max-xl/main:pr-4">
                       <span className="sr-only">Checked</span>
@@ -1012,8 +1012,8 @@ function ContextList() {
                             apply today
                           </span>
                           <span>
-                            {count(filtered.filter((f) => trustOf(f) === 'due').length)} due for a
-                            check
+                            {count(filtered.filter((f) => trustOf(f) === 'due').length)} needing a
+                            recheck
                           </span>
                         </span>
                       </div>

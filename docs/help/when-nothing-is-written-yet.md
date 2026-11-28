@@ -56,4 +56,4 @@ Only people who can sign in can answer. With company sign-in, an admin can map a
 
 Undo is offered for a few seconds as the card closes. A card you answered is under All, as Done. If a publish that covered a card is undone, the card comes back.
 
-Once an item covers the topic, a question about it is answered from that item. If the item ever needs a look, its card is under Due for a check: [Keep context up to date](keep-context-up-to-date.md).
+Once an item covers the topic, a question about it is answered from that item. If the item ever needs a look, its card is under Needs a recheck: [Keep context up to date](keep-context-up-to-date.md).

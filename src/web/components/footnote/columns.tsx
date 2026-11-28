@@ -27,7 +27,7 @@ import {
 
 // The cells of the list columns' design B, as chosen: icons and short labels.
 // The kind as an icon before the title, the status as a circle icon, the time frame as a glyph
-// and a short date, and freshness as a dot (filled fresh, half ageing, hollow due for a check). The only
+// and a short date, and freshness as a dot (filled fresh, half ageing, hollow needs a recheck). The only
 // words beside the title are dates; the exact value is one hover away.
 
 /**
@@ -81,10 +81,10 @@ export function KindIcon({ kind, className }: { kind: Kind; className?: string }
 
 const statusLook = {
   Live: { icon: CircleCheckIcon, tone: 'text-good', hint: 'Live: agents get it' },
-  'Due for a check': {
+  'Needs a recheck': {
     icon: CircleAlertIcon,
     tone: 'text-caution',
-    hint: 'Due for a check: its check date passed or a definition changed',
+    hint: 'Needs a recheck: its check date passed or a definition changed',
   },
   Draft: {
     icon: CircleDashedIcon,
@@ -148,7 +148,7 @@ export function TimeGlyph({ time, plain }: { time: TimeFrame; plain?: boolean })
 const freshLabel: Record<Trust, string> = {
   fresh: 'Checked recently',
   ageing: 'Checked over 30 days ago',
-  due: 'Due for a check',
+  due: 'Needs a recheck',
   draft: 'Not published yet',
   retired: 'Archived',
 }

@@ -1,7 +1,7 @@
 /*
   The claim check of the review (docs/product.md, section 4): each claim a suggestion makes,
   against the sentence its writer copied from the source. An agent's suggestion and a draft for a
-  Not found card come with that sentence; a person's own edit is the owner's to read.
+  Nothing written yet card come with that sentence; a person's own edit is the owner's to read.
 
   It never says more than it compared. A claim is a date, a number with what it counts, or a
   clause of plain words. A date or a number the sentence holds too reads as the same; one the

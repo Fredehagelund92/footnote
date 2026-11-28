@@ -1077,7 +1077,7 @@ export function DefinitionsPage() {
                   d.family?.meaning?.words ? tidyMeaning(d.family.meaning.words, d.family.by) : null
                 }
                 dueOf={(d) =>
-                  index.contextAbout(d).filter((f) => f.status === 'Due for a check').length
+                  index.contextAbout(d).filter((f) => f.status === 'Needs a recheck').length
                 }
               />
             ) : (

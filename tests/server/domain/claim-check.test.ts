@@ -33,7 +33,7 @@ describe('the claim check against the copied sentence', () => {
     expect(claimsToCheck(rows)).toBe(2)
   })
 
-  it('reads a draft for a Not found card: the dates agree, the rest is to check', () => {
+  it('reads a draft for a Nothing written yet card: the dates agree, the rest is to check', () => {
     const rows = claimCheck(
       'Card payments in Spain failed from 14 to 16 October 2026, so orders there fell.',
       'Card authorisations failed intermittently for Spanish cards between 14 and 16 October 2026.',

@@ -83,20 +83,24 @@ test('a gap counts across a month edge: Overview, Alerts and the Inbox', async (
   await expect(page.getByRole('row').filter({ hasText: 'Could not be read' })).toContainText(
     '9 calls',
   )
-  // The alert it raises, and its Not found card in the Inbox, come with P12b.
-  await inMockUntil('P12b', 'alerts and the Not found card across a month edge', async () => {
-    await go(page, '/observability/alerts')
-    await expect(
-      page.getByText('or more times in 7 days about the same thing, even across two months'),
-    ).toBeVisible()
-    await page
-      .getByRole('link', { name: 'Orders in Germany: not found, 6 times across two months' })
-      .click()
-    await expect(page).toHaveURL(/card=gap-germany/)
-    await expect(
-      page.getByText('3 about 30 October and 3 about 1 November, counted together').first(),
-    ).toBeVisible()
-    await page.getByRole('button', { name: 'Write context' }).click()
-    await expect(page).toHaveURL(/context\/new\?.*metric=Orders.*market=Germany/)
-  })
+  // The alert it raises, and its Nothing written yet card in the Inbox, come with P12b.
+  await inMockUntil(
+    'P12b',
+    'alerts and the Nothing written yet card across a month edge',
+    async () => {
+      await go(page, '/observability/alerts')
+      await expect(
+        page.getByText('or more times in 7 days about the same thing, even across two months'),
+      ).toBeVisible()
+      await page
+        .getByRole('link', { name: 'Orders in Germany: not found, 6 times across two months' })
+        .click()
+      await expect(page).toHaveURL(/card=gap-germany/)
+      await expect(
+        page.getByText('3 about 30 October and 3 about 1 November, counted together').first(),
+      ).toBeVisible()
+      await page.getByRole('button', { name: 'Write context' }).click()
+      await expect(page).toHaveURL(/context\/new\?.*metric=Orders.*market=Germany/)
+    },
+  )
 })

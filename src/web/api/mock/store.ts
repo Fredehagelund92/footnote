@@ -35,7 +35,7 @@ export type State = {
   edits: Record<string, Partial<Fact>>
   added: Fact[]
   about: string
-  /** Context items opened here, in the peek or on their page: only these can be marked checked together. */
+  /** Context items opened here, in the peek or on their page: only these can be confirmed again together. */
   viewed: Record<string, boolean>
   /** Drafts deleted this visit: gone from every list. */
   deleted: Record<string, boolean>

@@ -68,7 +68,7 @@ describe('what a raise says', () => {
     expect(raisedLine('saved', ['Sofia Brandt', 'Jon Abara'])).toBe(
       'A card went to Jon Abara and Sofia Brandt.',
     )
-    expect(raisedLine('gap', ['Jon Abara'])).toBe('A Not found card went to Jon Abara.')
+    expect(raisedLine('gap', ['Jon Abara'])).toBe('A Nothing written yet card went to Jon Abara.')
     expect(raisedLine('due', [])).toBe('A reminder went to the owners.')
     expect(raisedLine('fail', [])).toBe('A card went to the admins.')
     expect(lookTitle(1)).toBe('1 saved question needs a look')

@@ -508,7 +508,7 @@ describe("Ask's loop answer, state by state", () => {
     ])
     expect(rows.map(text)).toEqual([
       expect.stringMatching(/checked \d+ \w+ \d{4}$/),
-      expect.stringContaining('Due for a check'),
+      expect.stringContaining('Needs a recheck'),
       expect.stringContaining(answerLines.stale.long),
       expect.stringMatching(/checked \d+ \w+ \d{4}$/),
       expect.stringContaining('Archived'),
@@ -516,7 +516,7 @@ describe("Ask's loop answer, state by state", () => {
     expect(buttons(sources, /more sources?$/)).toHaveLength(0)
   })
 
-  it('Sources: each pinned item due for a check has its own Mark it still true, naming its title', () => {
+  it('Sources: each pinned item needing a recheck has its own Mark it still true, naming its title', () => {
     const base = usedTurn(4, { look: 2 })
     const turn = {
       ...base,
@@ -526,7 +526,7 @@ describe("Ask's loop answer, state by state", () => {
     }
     const el = render(turn)
     const pinned = [...el.querySelectorAll('[data-sources] li')].filter(
-      (li) => text(li).includes('Due for a check') || text(li).includes(answerLines.stale.long),
+      (li) => text(li).includes('Needs a recheck') || text(li).includes(answerLines.stale.long),
     )
     expect(pinned).toHaveLength(2)
     const marks = pinned.map((li) => buttons(li, /^Mark it still true/))
@@ -1209,7 +1209,7 @@ describe("Ask's loop answer, state by state", () => {
 
   it('An overview of the records: by status, what needs a check first', () => {
     const el = render(example('loop-overview-domain'))
-    expect(el.querySelector('h3')?.textContent).toMatch(/^due for a check/)
+    expect(el.querySelector('h3')?.textContent).toMatch(/^needs a recheck/)
   })
 })
 

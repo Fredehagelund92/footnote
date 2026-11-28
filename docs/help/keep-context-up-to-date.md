@@ -1,31 +1,31 @@
 ---
 title: Keep context up to date
-line: The Inbox cards for a context item that is due for a check or was reported, and the ways to answer each.
+line: The Inbox cards for a context item that needs a recheck or was reported, and the ways to answer each.
 group: Write and review
 order: 5
 minutes: 4
-reviewed: 2026-11-25
+reviewed: 2026-11-28
 open:
   label: Open the Inbox
   href: /inbox
 ---
 
-A published context item has a check date. When the date passes, or a definition it relies on changes, the item is due for a check, and agents are told it may be out of date. Your Inbox brings each one to you, with what someone reported, so the context agents read stays true.
+A published context item has a check date. When the date passes, or a definition it relies on changes, the item needs a recheck, and agents are told it may be out of date. Your Inbox brings each one to you, with what someone reported, so the context agents read stays true.
 
-![A card in the Inbox under Due for a check: Returns changed definition on 28 April 2026, in Sales. It says its check date passed on 2 October and agents are told it may be out of date. The item's text follows, and at the foot are Edit, Archive, Ask someone who knows and Still true.](../images/docs/inbox-due-light.webp)
+![A card in the Inbox under Needs a recheck: Returns changed definition on 28 April 2026, in Sales. It says its check date passed on 2 October and agents are told it may be out of date. The item's text follows, and at the foot are Edit, Archive, Ask someone who knows and Still true.](../images/docs/inbox-due-light.webp)
 
 ## Who gets these cards
 
-The owners of a domain get the cards for the context items in it. Admins get them for every domain. In the Inbox they are under Due for a check and Reported.
+The owners of a domain get the cards for the context items in it. Admins get them for every domain. In the Inbox they are under Needs a recheck and Reported.
 
-## Due for a check
+## Needs a recheck
 
 The card says why the item is due:
 
 - Its check date passed. Every item gets one when it is published: 90 days later, unless your workspace has set another number. An item about something still going on is checked again sooner.
 - A definition changed. A connector read that a metric or dimension the item relies on changed in its tool, after the item was checked. The card names it and the day, and See the definition opens it beside the Inbox when you can read it.
 
-When a definition the item uses is gone from its tool, the item's page says so under Due for a check, and Still true is refused: change the item instead.
+When a definition the item uses is gone from its tool, the item's page says so under Needs a recheck, and Still true is refused: change the item instead.
 
 Answer the card in one of three ways:
 
@@ -41,7 +41,7 @@ Not sure? Press **Ask someone who knows** and paste the link to a colleague. Not
 
 Their answer, their words and a link if they gave one show on the card under their name. Agents never get it, and the check is still yours: [When nothing is written yet](when-nothing-is-written-yet.md#ask-someone-who-knows) says more about the link.
 
-Until someone answers, an answer that uses the item starts with Outdated: see [Answer lines](answer-lines.md). In Ask, an owner sees Mark it still true beside the item, under Used. The item's own page shows Due for a check too, with Still true beside it.
+Until someone answers, an answer that uses the item starts with Outdated: see [Answer lines](answer-lines.md). In Ask, an owner sees Mark it still true beside the item, under Used. The item's own page shows Needs a recheck too, with Still true beside it.
 
 ## Reported
 

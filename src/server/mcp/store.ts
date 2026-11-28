@@ -54,7 +54,7 @@ export function createAnonymousStore(pool: pg.Pool): AnonymousStore {
   }
 }
 
-/** An agent's call that found nothing written: what a Not found card counts (FR-606 case 1). */
+/** An agent's call that found nothing written: what a Nothing written yet card counts (FR-606 case 1). */
 const foundNothing = (delivery: DeliveryRecord) =>
   delivery.caller === 'agent' && delivery.status === 'no_match'
 

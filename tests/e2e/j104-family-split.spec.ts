@@ -85,7 +85,7 @@ for (const { name, width, height } of widths) {
         const splits = page.getByRole('region', { name: 'Kept apart' })
         await expect(splits).toContainText(`${ACCRUED} (EUR) and ${ACCRUED} (USD), split by you on`)
         await expect(splits).toContainText(
-          '1 context item is still about the family, due for a check.',
+          '1 context item is still about the family and needs a recheck.',
         )
         expect(await sideways(page)).toBe(0)
         expect(await axe(page)).toEqual([])
@@ -96,7 +96,7 @@ for (const { name, width, height } of widths) {
           page.getByRole('heading', { level: 2, name: `${ACCRUED} (USD)`, exact: true }),
         ).toBeVisible()
         await expect(page.getByText('Family of metrics')).toHaveCount(0)
-        // The item about the family is about it too, and due for a check.
+        // The item about the family is about it too, and needing a recheck.
         await expect(page.getByText(`${ACCRUED} was restated for October`)).toBeVisible()
 
         // The item about it reads as about both, due, and its owner keeps it for both.
@@ -106,7 +106,7 @@ for (const { name, width, height } of widths) {
         })
         await card.first().click()
         await expect(page.getByText(`Its family ${ACCRUED} was split into`)).toBeVisible()
-        await expect(page.getByText('Due for a check', { exact: true }).first()).toBeVisible()
+        await expect(page.getByText('Needs a recheck', { exact: true }).first()).toBeVisible()
         expect(await axe(page)).toEqual([])
         await page.getByRole('button', { name: 'Keep for both' }).click()
         await expect(toasts(page)).toContainText('Kept for both')

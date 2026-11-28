@@ -423,7 +423,7 @@ function WarningsTab({
     missing: 'Agents asked and nothing applies.',
     partial: `Agents asked without dates, so ${obs.topicName(t)} was read at today.`,
     conflict: 'Two items that apply say different things. Both are given until an owner chooses.',
-    stale: 'An item it uses is due for a check.',
+    stale: 'An item it uses needs a recheck.',
     grounded: '',
   }
   // A hidden count may be one under 5, or one hidden so that none is given away: say neither.

@@ -37,7 +37,7 @@ const questions = [
   'Are there conflicts about returns?',
   'returns in the UK',
   'What about Sweden?',
-  'Which items are due for a check?',
+  'Which items need a recheck?',
   'What did agents ask this week?',
   'orders in Poland',
   'Is gross margin written down anywhere?',

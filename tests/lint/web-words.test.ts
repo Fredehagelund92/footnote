@@ -87,7 +87,9 @@ describe('footnote/plain-words in the web app (glossary v2)', () => {
   })
 
   it('reports Gap and Flag as card names, and nothing that promises anonymity', () => {
-    expect(said(`export const a = { group: 'Gaps' }`)).toEqual([write('Gaps', 'Not found')])
+    expect(said(`export const a = { group: 'Gaps' }`)).toEqual([
+      write('Gaps', 'Nothing written yet'),
+    ])
     expect(said(`export const b = 'Anonymous questions'`)).toEqual([
       write('Anonymous', 'what is kept: scopes and counts'),
     ])

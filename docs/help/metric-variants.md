@@ -4,7 +4,7 @@ line: Why one metric with currency as a dimension works better than a metric for
 group: Set up
 order: 4
 minutes: 7
-reviewed: 2026-11-27
+reviewed: 2026-11-28
 ---
 
 Some models keep a metric for each currency or sales channel, such as Revenue (EUR) web and Revenue (USD) app. Model them as one metric, Revenue, with currency and channel as dimensions. Agents then find what your team wrote about revenue, whatever the currency.
@@ -13,7 +13,7 @@ Some models keep a metric for each currency or sales channel, such as Revenue (E
 
 - Agents read a question by the names in it. "Revenue in EUR" and "Why did revenue drop last week?" both name Revenue. With a metric for each variant, no metric is called Revenue: the question names nothing, and the agent is asked to name one.
 - A context item about revenue applies to one metric, not to hundreds.
-- A change to how revenue is worked out changes one definition. The context about it is due for a check once, not once for each variant.
+- A change to how revenue is worked out changes one definition. The context about it needs a recheck once, not once for each variant.
 - [Definitions](definitions-and-synonyms.md) stays a list people can read.
 
 ## What Test connection says
@@ -52,7 +52,7 @@ A read groups near-identical metrics into a family, such as Revenue, with 250 va
 - Metrics kept separate stay so: the next read suggests no family for them. Definitions lists them under Kept apart, in its Families view. An owner of their domain, or an admin, can choose Make them one family there.
 - [Definitions](definitions-and-synonyms.md#families) lists the family once, marked by a stack of tiles. A search for a variant, such as revenue eur web, finds its family. Only the family's own page lists the variants, says how the family was found, and which variant is converted from which.
 - A context item about the family applies to every variant, and agents get it for a question about revenue.
-- When any variant changes, the item is due for a check once, not once for each variant.
+- When any variant changes, the item needs a recheck once, not once for each variant.
 
 A source that gives only the names of its metrics, not how they are worked out, makes families only from what it declares. The other metrics whose names look alike wait under Look alike.
 
@@ -61,7 +61,7 @@ A source that gives only the names of its metrics, not how they are worked out, 
 A family a read found can be split back into its metrics from the family's own page. An owner of its domain, or an admin, chooses Split into 2 metrics. One dialog says what happens first:
 
 - Each variant becomes a metric in Definitions, under the name it has. The family goes, and its history, meaning and usual variant are kept.
-- No word of a context item about the family changes. Each keeps reaching agents for every former variant, due for a check, and its owner gets a card in the Inbox. Keep for both points it at each of them, and Edit points it at some of them.
+- No word of a context item about the family changes. Each keeps reaching agents for every former variant and needs a recheck, and its owner gets a card in the Inbox. Keep for both points it at each of them, and Edit points it at some of them.
 - A question that names only the family then names no metric, so agents ask which one is meant.
 - The next read keeps them apart. Undo, or Make them one family again under Kept apart in Definitions, joins them again.
 

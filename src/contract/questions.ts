@@ -4,10 +4,10 @@ import { calendarDateSchema } from '../domain/validity.ts'
 
 /**
  * Ask someone who knows (src/domain/questions.ts): an owner copies a link for a Nothing written yet
- * card or a Due for a check card, and anyone signed in who opens it answers one question. The page
+ * card or a Needs a recheck card, and anyone signed in who opens it answers one question. The page
  * reads the topic, never the words of a question; a count under the minimum reads as hidden
  * (FR-614). An answer to a Nothing written yet card is a suggestion under the person's name, which
- * may come without a source; one to a Due for a check card is kept for the owner, who still does
+ * may come without a source; one to a Needs a recheck card is kept for the owner, who still does
  * the check. Nothing either keeps reaches an agent before a publish.
  */
 

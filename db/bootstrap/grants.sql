@@ -182,7 +182,7 @@ grant execute on function serving_terms(), serving_terms_mark() to :api, :serve;
 grant insert, update (token_hash, sent_at, expires_at, invited_by, revoked_at, revoked_by) on invites to :api;
 grant execute on function cl_owns_all(text[]), auth.accept_invite(text, text), invite_standing(invites) to :api;
 -- Question links (Ask someone who knows): an owner makes one for a card and copies it again on a new
--- day; a person answers a Due for a check card's link as themselves and never changes it. Agents
+-- day; a person answers a Needs a recheck card's link as themselves and never changes it. Agents
 -- never read any of it: nothing here is granted to the serving or the analytics role.
 grant insert, update (copied_on) on question_links to :api;
 grant insert on question_answers to :api;

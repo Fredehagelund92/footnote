@@ -39,7 +39,7 @@ describe('the order of the groups', () => {
 })
 
 describe('the groups that start folded', () => {
-  it('folds Due for a check above 10 and no other group', () => {
+  it('folds Needs a recheck above 10 and no other group', () => {
     expect(startsFolded('check', 11)).toBe(true)
     expect(startsFolded('check', 10)).toBe(false)
     expect(startsFolded('suggestion', 200)).toBe(false)

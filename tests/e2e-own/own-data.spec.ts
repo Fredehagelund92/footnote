@@ -453,7 +453,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await shot('15-ask')
 
   // Asked again, setup is at 3 of 4, one step left: the agent. Two more items rely on Net revenue,
-  // and then its calculation changes in dbt: the Inbox shows the three Due for a check above the
+  // and then its calculation changes in dbt: the Inbox shows the three Needs a recheck above the
   // checklist, without waiting for the last step.
   const read = async <T>(path: string) => (await page.request.get(`/api/v1${path}`)).json() as T
   const metric = (await read<{ metrics: { id: string; name: string }[] }>('/vocabulary')).metrics
@@ -495,7 +495,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(async () => {
     await page.reload()
     await expect(page.getByText('3 of 4 done')).toBeVisible({ timeout: 20_000 })
-    await expect(due.getByRole('link', { name: /^Due for a check 3 in all domains/ })).toBeVisible({
+    await expect(due.getByRole('link', { name: /^Needs a recheck 3 in all domains/ })).toBeVisible({
       timeout: 3_000,
     })
   }).toPass({ timeout: 90_000 })
@@ -509,8 +509,8 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await due.getByRole('link').click()
   await expect(page).toHaveURL(/\/context\?status=due$/)
 
-  // Last, an agent asks the same over MCP, as a key that names nobody: it gets the item, due for
-  // a check now that its definition changed, and the agent's step ends the setup.
+  // Last, an agent asks the same over MCP, as a key that names nobody: it gets the item, needing
+  // a recheck now that its definition changed, and the agent's step ends the setup.
   const { key } = await post(page, '/access-keys', { name: 'Own data journey' })
   agentKey = key as string
   const reply = await getContext(page, key as string, { question })

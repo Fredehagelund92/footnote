@@ -139,7 +139,7 @@ export function manyFacts(n = 5000): Fact[] {
           ...(channel ? [{ dimension: 'Channel', name: channel }] : []),
         ],
         valid,
-        status: today - checked > 90 * DAY ? 'Due for a check' : 'Live',
+        status: today - checked > 90 * DAY ? 'Needs a recheck' : 'Live',
         checkedBy: pick(owners),
         checkedOn: dayMonthYear(checked, { utc: true }),
         source: `https://wiki.example/data/many-${i + 1}`,

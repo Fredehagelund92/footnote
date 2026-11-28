@@ -171,7 +171,7 @@ describe('the Ready line', () => {
     }
   })
 
-  it('reads a draft for a Not found card as a draft to check, before anything else', () => {
+  it('reads a draft for a Nothing written yet card as a draft to check, before anything else', () => {
     const drafted = input({
       diff: docDiff(null, side()),
       drafted: true,

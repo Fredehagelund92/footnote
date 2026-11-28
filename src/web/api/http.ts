@@ -857,7 +857,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       itemId: id,
       relation: relation === 'disagree' ? ('disagrees' as const) : relation,
     }))
-    // Written from a Not found card: the publish names its gap, which it then covers.
+    // Written from a Nothing written yet card: the publish names its gap, which it then covers.
     const gap = card ? parseCardKey(card) : null
     // A change starts from the version the editor opened, so the service refuses it once someone
     // has published since. Someone else's returned suggestion was not read from a version: it starts
@@ -943,7 +943,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     return { ...shown, waiting: shown.waiting.filter((w) => !mine.has(w.id)), sent }
   }
 
-  /** A Not found card's draft, by the draft's id, with its card: the app names the card by the draft. */
+  /** A Nothing written yet card's draft, by the draft's id, with its card: the app names the card by the draft. */
   const gaps = new Map<string, { card: string; times: number | null }>()
   const readGaps = (feed: Feed) => {
     for (const c of feed.cards)
@@ -951,7 +951,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
   }
 
   /**
-   * The suggestions the person reviews, open and decided, each under its card's id: a Not found
+   * The suggestions the person reviews, open and decided, each under its card's id: a Nothing written yet
    * card's draft too. Newest sent first, the order the review steps through.
    */
   async function reviews() {
@@ -1000,7 +1000,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
 
   /** A decision on a card, by its outcome in the Inbox's words. */
   const decideCard = async ({ card: id, outcome }: { card: string; outcome: string }) => {
-    // A Not found card with a draft is named by its draft: its decision is the gap card's.
+    // A Nothing written yet card with a draft is named by its draft: its decision is the gap card's.
     const card = gaps.get(id)?.card ?? id
     const action = cardActions[outcome]
     if (!action) throw new ApiError('invalid', `A card can't be decided as “${outcome}”.`)
@@ -1563,7 +1563,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       await write('items.markRead', { id }, (o) => client.items.markRead({ id }, o))
     },
     // The one change made in place is a check that it is still true, by an owner or an admin,
-    // made where the person reads the item: Mark as checked, for that one item.
+    // made where the person reads the item: Confirm again, for that one item.
     editItem: async ({ id, patch }) => {
       if (patch.status !== 'Live' || !patch.checkedBy)
         throw new ApiError(
@@ -1576,7 +1576,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       const left = [...done.failed, ...done.skipped][0]
       if (left) throw new ApiError('conflict', left.message)
     },
-    // A Not found card closes when the context written for it is published, and the setup
+    // A Nothing written yet card closes when the context written for it is published, and the setup
     // checklist reads its first item from what exists: neither needs saying here.
     saveItem: async ({ fact, isNew, relations, gap }) => {
       const done = await publishFromEditor(fact, isNew, relations, gap)
@@ -1941,7 +1941,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     getReviews: reviews,
     markOpened: async ({ ids }) => {
       // A suggestion's card is named by its bare proposal id; the service names it `proposal:<id>`.
-      // A Not found card named by its draft: opening it opens both.
+      // A Nothing written yet card named by its draft: opening it opens both.
       const cards = ids.flatMap((id) =>
         isUuid(id)
           ? [`proposal:${id}`, ...(gaps.has(id) ? [gaps.get(id)!.card] : [])]
@@ -1963,7 +1963,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     getNames: () => read(() => client.inbox.names()),
     decideNames: (input) =>
       write('inbox.decideNames', input, (o) => client.inbox.decideNames(input, o)),
-    // A Not found card's draft also saves its question, unless the person said not to (FR-526);
+    // A Nothing written yet card's draft also saves its question, unless the person said not to (FR-526);
     // Undo takes both back. The publish stands if the question cannot be saved.
     publishReview: async ({ id, relations, saveQuestion }) => {
       const { gap } = await refFor(id)

@@ -231,7 +231,7 @@ function AnswerSide({
 /**
  * What agents answer today and what they will answer after the decision, from the review's Try
  * it: a band with the question, then the two answers side by side from 560 px of pane, one above
- * the other below that. The band says what agents asked about instead, for a Not found card.
+ * the other below that. The band says what agents asked about instead, for a Nothing written yet card.
  */
 export function AgentAnswers({ answers, asked }: { answers: Answers; asked?: React.ReactNode }) {
   return (
@@ -252,7 +252,7 @@ export function AgentAnswers({ answers, asked }: { answers: Answers; asked?: Rea
 }
 
 /**
- * What agents asked about, for a Not found card: the scope and how often, never their words, which
+ * What agents asked about, for a Nothing written yet card: the scope and how often, never their words, which
  * are not kept. No count shows when there is none, and a count under the minimum is a floor.
  */
 export function AskedAbout({ scope, times }: { scope: string[]; times: number | null }) {

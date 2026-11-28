@@ -102,7 +102,7 @@ export const judgeSet: JudgeExample[] = [
     earlier: [],
     evidence: [item('itm_kcy22j54'), SALES_OWNERS],
     reply:
-      'Whether to flag it is not written down. The guide on gross margin in Spain says to look at four weeks or more, never one weekend, because margin there swings with clearance sales [1]. It is due for a check: Cube changed the definition of Gross margin on 7 Oct. What goes to the board is for you and its owners, Jon Abara and Sofia Brandt.',
+      'Whether to flag it is not written down. The guide on gross margin in Spain says to look at four weeks or more, never one weekend, because margin there swings with clearance sales [1]. It needs a recheck: Cube changed the definition of Gross margin on 7 Oct. What goes to the board is for you and its owners, Jon Abara and Sofia Brandt.',
     bad: ok,
   },
   {
@@ -309,11 +309,11 @@ export const judgeSet: JudgeExample[] = [
     said: ['rank the context items by when they were last checked'],
     earlier: [],
     evidence: [
-      'Context items, oldest check first: Payment provider switched in France on 12 May 2026, checked 12 May 2026; Regulator paused price promotions in Italy on 18 April 2026, checked 20 Jun 2026, due for a check; Returns changed definition on 28 April 2026, checked 2 Jul 2026, due for a check.',
-      'Due for a check means its check date passed or its source changed.',
+      'Context items, oldest check first: Payment provider switched in France on 12 May 2026, checked 12 May 2026; Regulator paused price promotions in Italy on 18 April 2026, checked 20 Jun 2026, needs a recheck; Returns changed definition on 28 April 2026, checked 2 Jul 2026, needs a recheck.',
+      'Needs a recheck means its check date passed or its source changed.',
     ],
     reply:
-      "The oldest check is the France switch of 12 May 2026, checked on 12 May 2026. The Italy item, checked on 20 June 2026, and the Returns item, checked on 2 July 2026, are due for a check. The 'due for a check' status is set by the item owners; it does not follow from the check date.",
+      "The oldest check is the France switch of 12 May 2026, checked on 12 May 2026. The Italy item, checked on 20 June 2026, and the Returns item, checked on 2 July 2026, need a recheck. The 'needs a recheck' status is set by the item owners; it does not follow from the check date.",
     bad: bad('unsupported'),
   },
   {
@@ -368,7 +368,7 @@ export const judgeSet: JudgeExample[] = [
     from: 'gate 3 G15',
     said: ['how many items are about norway?'],
     earlier: [],
-    evidence: ['9 context items are about Norway: 7 live, 1 due for a check and 1 archived.'],
+    evidence: ['9 context items are about Norway: 7 live, 1 needing a recheck and 1 archived.'],
     reply: 'Seven items are about Norway, and one of them is archived.',
     bad: bad('unsupported'),
   },
@@ -489,10 +489,10 @@ export const judgeSet: JudgeExample[] = [
   {
     id: 'J42',
     from: 'prototype run 2: a wrong due',
-    said: ['is the norway customs item due for a check?'],
+    said: ['does the norway customs item need a recheck?'],
     earlier: [],
-    evidence: [item('itm_norway_stop'), 'Status: Live. Not due for a check.'],
-    reply: 'Yes, it is due for a check: Jon Abara last checked it on 3 October 2026.',
+    evidence: [item('itm_norway_stop'), 'Status: Live. Does not need a recheck.'],
+    reply: 'Yes, it needs a recheck: Jon Abara last checked it on 3 October 2026.',
     bad: bad('unsupported'),
   },
   {

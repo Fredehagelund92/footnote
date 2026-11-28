@@ -160,7 +160,7 @@ Unused primitives in the mockup (about seven) are not imported.
 | Context list         | `pages/context.tsx`                               | The Context list                                                                  |
 | Selection            | `hooks/use-selection.ts`, `lib/selection.ts`      | One picking model for every list                                                  |
 | Bulk bar             | `components/footnote/bulk-bar.tsx`, `lib/bulk.ts` | The one bar in its own band, with skips and reasons                               |
-| Context actions      | `components/footnote/context-bulk.tsx`            | Publish, Archive, Delete, Change domain, kind, owners, Mark as checked, Export    |
+| Context actions      | `components/footnote/context-bulk.tsx`            | Publish, Archive, Delete, Change domain, kind, owners, Confirm again, Export      |
 | Definition actions   | `components/footnote/definitions-bulk.tsx`        | Terms only; synced items are left alone                                           |
 | Delete dialog        | `components/footnote/delete-dialog.tsx`           | The one confirmation before a delete                                              |
 | Publish dialog       | `components/footnote/publish-dialog.tsx`          | The one question before more than five drafts are published                       |

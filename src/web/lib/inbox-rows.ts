@@ -31,7 +31,7 @@ export const INBOX_GROUPS = [
   { id: 'alert', label: 'Alerts' },
   { id: 'returned', label: 'Returned to you' },
   { id: 'closed', label: 'Closed' },
-  { id: 'check', label: 'Due for a check' },
+  { id: 'check', label: 'Needs a recheck' },
   { id: 'drafts', label: 'Your drafts' },
   { id: 'waiting', label: 'Waiting on others' },
   { id: 'done', label: 'Done' },
@@ -39,7 +39,7 @@ export const INBOX_GROUPS = [
 
 export type InboxGroup = (typeof INBOX_GROUPS)[number]['id']
 
-/** Whose domains the Due for a check count covers: every domain for an admin, the owned ones otherwise. */
+/** Whose domains the Needs a recheck count covers: every domain for an admin, the owned ones otherwise. */
 export const dueScope = (me: { admin: boolean }) =>
   me.admin ? 'in all domains' : 'in your domains'
 

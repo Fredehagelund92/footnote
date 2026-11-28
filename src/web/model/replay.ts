@@ -44,7 +44,7 @@ export type Replay = {
 
 /**
  * What happened after the answer in the range, never who and never a count under 5: whether
- * someone reported an answer about it, and whether what found nothing made a Not found card.
+ * someone reported an answer about it, and whether what found nothing made a Nothing written yet card.
  */
 export function afterAnswer(t: Pick<Topic, 'in' | 'gap'>) {
   const reported = t.in.reported

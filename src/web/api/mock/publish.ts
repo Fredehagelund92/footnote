@@ -18,7 +18,7 @@ export function publishEffects(
   if (s?.factId && r.mode === 'edit')
     dispatch({ type: 'editFact', id: s.factId, patch: { ...s.draft, checkedOn: '23 Oct 2026' } })
   if (r.mode === 'new' && s) dispatch({ type: 'addFact', fact: { ...s.draft, id: `itm_${r.id}` } })
-  // A draft for a Not found card: published, it is checked by whoever published it.
+  // A draft for a Nothing written yet card: published, it is checked by whoever published it.
   if (card?.gap?.draft) dispatch({ type: 'addFact', fact: { ...card.gap.draft, checkedBy: me } })
   const itemId = itemOf(r)
   if (itemId) dispatch({ type: 'published', id: itemId })

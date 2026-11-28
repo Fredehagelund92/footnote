@@ -178,7 +178,7 @@ function Quality({ first }: { first: SavedCheck }) {
           }
           icon={<BookmarkIcon />}
           title="No saved questions yet"
-          sentence="Save a question from an answer in Ask or a Not found card in the Inbox, and every change is checked against it here."
+          sentence="Save a question from an answer in Ask or a Nothing written yet card in the Inbox, and every change is checked against it here."
           next={
             <>
               <a href="/ask" className={cn(buttonVariants())}>

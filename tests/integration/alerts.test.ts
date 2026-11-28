@@ -123,7 +123,7 @@ beforeAll(async () => {
           m::timestamp at time zone 'UTC',
           (m + interval '1 month')::timestamp at time zone 'UTC');
       end $$`)
-    // Agents asked 9 times this week about a topic in finance and found nothing: a Not found card.
+    // Agents asked 9 times this week about a topic in finance and found nothing: a Nothing written yet card.
     const [topic] = (
       await client.query<{ id: string }>(
         `insert into topics (key, area_id, metric_keys, value_keys, month)
@@ -272,7 +272,7 @@ describe('the alert job', () => {
     })
     const all = await raised('admin')
     const of = (rule: string) => all.filter((r) => r.rule === rule)
-    // Owners of the domain get the Not found card; the admins do not.
+    // Owners of the domain get the Nothing written yet card; the admins do not.
     const norway = of('gap').find((r) => 'card' in r.subject && r.subject.card === `gap:${gap}`)!
     expect(norway.title).toMatch(/: not found, 9 times$/)
     expect(await reached(norway.id)).toEqual(['owner'])
@@ -288,7 +288,7 @@ describe('the alert job', () => {
     expect(of('spend')[0]!.title).toBe('Model spend reached 80% of the monthly cap')
     expect(await reached(of('sync')[0]!.id)).toContain('admin')
     expect(of('sync')[0]!.title).toBe('Demo could not be read')
-    // The owner muted A check is due for finance: the reminder reached nobody.
+    // The owner muted A recheck is due for finance: the reminder reached nobody.
     const due = of('due')[0]!
     expect(due.subject).toEqual({ card: `check:${dueItem}` })
     expect(await reached(due.id)).toEqual([])
@@ -496,12 +496,12 @@ describe('the Inbox', () => {
 
   it('keeps a muted rule’s cards from the person who muted it, and an off rule’s from everyone', async () => {
     const checkCard = `check:${dueItem}`
-    // The owner muted A check is due for finance; the admin still gets the card.
+    // The owner muted A recheck is due for finance; the admin still gets the card.
     expect((await feed('owner')).cards.map((c) => c.id)).not.toContain(checkCard)
     expect((await feed('admin')).cards.map((c) => c.id)).toContain(checkCard)
     await mute('owner', 'due', ['finance'], false)
     expect((await feed('owner')).cards.map((c) => c.id)).toContain(checkCard)
-    // Not found off: no Not found card for anyone.
+    // Not found off: no Nothing written yet card for anyone.
     await setRule('admin', 'gap', { enabled: false })
     for (const name of ['owner', 'admin'])
       expect((await feed(name)).cards.some((c) => c.group === 'gap')).toBe(false)

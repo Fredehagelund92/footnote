@@ -4,7 +4,7 @@ import { card, expect, go, onMockOnly, test } from './go.ts'
 // J100, Inbox cards that open what they are about (quick actions S3), as Jon, an owner of Sales.
 // A report from Ask shows the question Maria asked, as she wrote it, and Try this question opens
 // Ask beside the Inbox with it typed in and not sent; the question goes to Ask in memory, so the
-// address never holds it. A card due for a check because Gross margin changed in its tool has See
+// address never holds it. A card needing a recheck because Gross margin changed in its tool has See
 // the definition, which opens Gross margin beside the Inbox; a card due by its date has none. At
 // 1440 and 390, in light and dark. The service's demo week flags Gross margin's item for a check
 // with no definition change behind it, so it names none to open: the service's card carries what

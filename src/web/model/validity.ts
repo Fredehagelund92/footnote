@@ -57,5 +57,5 @@ export function questionDates(v: Validity, today: string): string {
   return `on ${dateLabel((v.from ?? v.until)!)}`
 }
 
-/** Whether a check date has passed: an item past it reads "Due for a check". */
+/** Whether a check date has passed: an item past it reads "Needs a recheck". */
 export const checkDue = (reviewDate: string, today: string) => reviewDate < today

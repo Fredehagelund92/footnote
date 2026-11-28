@@ -400,7 +400,7 @@ describe("a context item's page", () => {
 
   it('names its own owners only when they are not its domain’s, and its trust as its status', () => {
     const own = factOfPage(page({}, { owners: ['per_ines'], trust: 'needs_check' }), names, words)
-    expect(own).toMatchObject({ owners: ['Ines Duarte'], status: 'Due for a check' })
+    expect(own).toMatchObject({ owners: ['Ines Duarte'], status: 'Needs a recheck' })
     const domain = factOfPage(page({}, { owners: ['per_jon', 'per_sofia'] }), names, words)
     expect(domain?.owners).toBeUndefined()
     expect(factOfPage(page({ status: 'retired' }), names, words)?.status).toBe('Archived')

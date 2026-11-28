@@ -8,7 +8,7 @@
  * The groups, in the order of need: the names a read made first, since nothing can be written
  * about a metric until it has one, then what agents couldn't answer, then what people reported,
  * saved questions that answer worse, what an alert rule raised, comments that mention the person,
- * items due for a check, suggestions, and last the person's own drafts that wait for them. Under
+ * items needing a recheck, suggestions, and last the person's own drafts that wait for them. Under
  * All: what the person sent that waits on others, and what is done.
  */
 export const cardGroups = [
@@ -30,7 +30,7 @@ export type CardGroup = (typeof cardGroups)[number]
 export const cardActions = ['not_written', 'not_a_problem', 'still_true', 'archive'] as const
 export type CardAction = (typeof cardActions)[number]
 
-/** Which card each decision belongs to: a Not found, a Reported, or a Due for a check card. */
+/** Which card each decision belongs to: a Nothing written yet, a Reported, or a Needs a recheck card. */
 export const actionGroup: Record<CardAction, 'gap' | 'flag' | 'check'> = {
   not_written: 'gap',
   not_a_problem: 'flag',

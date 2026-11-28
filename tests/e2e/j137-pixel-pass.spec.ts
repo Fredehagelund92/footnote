@@ -144,7 +144,7 @@ test.describe('at 1440 px', () => {
       return pane.scrollWidth - pane.clientWidth
     })
     expect(slides).toBe(0)
-    await expect(table.getByText(/due for a check$/)).toBeVisible()
+    await expect(table.getByText(/needing a recheck$/)).toBeVisible()
   })
 
   test('a wrong address is written whole, never broken at a hyphen (P09)', async ({ page }) => {

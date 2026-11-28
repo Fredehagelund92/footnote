@@ -4,7 +4,7 @@ import type { LoopBlock, LoopItem, LoopTurn } from '@contract/answer'
 // (`?example=loop-used-10`). The service's turns on the demo week cite at most a few, so these are
 // built from the shape of its Orders answer (loop-checked): N live items in Sales, each cited once,
 // one sentence each, as the words of an answer about all of Orders would cite them.
-// With `look`, that many items from the second on need a look, in turn due for a check, may be out
+// With `look`, that many items from the second on need a look, in turn needing a recheck, may be out
 // of date (as the Outdated state reads them) and archived: `loop-used-trust` cites six, of which the
 // second is due and the third may be out of date.
 

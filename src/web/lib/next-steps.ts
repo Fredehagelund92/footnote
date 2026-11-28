@@ -10,21 +10,21 @@ const NEXT_METRICS = 3
 export type NextStep =
   { kind: 'metric'; metric: string; asked: boolean } | { kind: 'people' } | { kind: 'documents' }
 
-/** Whether a Not found card's scope, such as "Churn Rate, October 2026", is about `metric`. */
+/** Whether a Nothing written yet card's scope, such as "Churn Rate, October 2026", is about `metric`. */
 const about = (scope: string, metric: string) =>
   scope === metric || (scope.startsWith(metric) && /^[\s,]/.test(scope.slice(metric.length)))
 
 /**
  * What the Inbox offers once the setup checklist is done, until `NEXT_UNTIL` context items are
  * published: the metrics nothing is written about, those agents asked about first (the scopes of
- * the Not found cards), then, for an admin, a colleague who knows and the documents your team
+ * the Nothing written yet cards), then, for an admin, a colleague who knows and the documents your team
  * writes in. Null once enough is published, or when nothing is left to offer.
  */
 export function nextSteps(input: {
   published: number
   /** The metrics with no context, in Definitions' order. */
   uncovered: readonly string[]
-  /** What the Not found cards are about. */
+  /** What the Nothing written yet cards are about. */
   asked: readonly string[]
   admin: boolean
 }): NextStep[] | null {
@@ -71,7 +71,7 @@ export function nextStepWords(step: NextStep): {
     return {
       title: 'Bring in the person who knows',
       description:
-        "Most of what agents need is in a colleague's head. Invite them, or send them the link on a Not found card.",
+        "Most of what agents need is in a colleague's head. Invite them, or send them the link on a Nothing written yet card.",
       action: 'Invite people',
     }
   return {

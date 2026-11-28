@@ -42,21 +42,21 @@ The address is the one that connected, unless that is a proxy named in `FOOTNOTE
 
 The service runs its own jobs on the same database. A job that came due while the service was stopped runs once when it starts again. `connectors.sync` also runs once at every start, so the server's own model folder is read at once.
 
-| Job                      | When (UTC)       | What it does                                                   |
-| ------------------------ | ---------------- | -------------------------------------------------------------- |
-| `observability.rollup`   | Each night       | Keeps the weekly counts, which are kept without limit          |
-| `partitions.ensure`      | Each night       | Makes the database partitions coming up                        |
-| `observability.snapshot` | Each night       | Keeps the last whole month's counts                            |
-| `retention.run`          | Each night       | Clears what has passed its retention period                    |
-| `outbox.relay`           | Every minute     | Delivers events the relay has not delivered yet                |
-| `saved.check`            | Every minute     | Checks saved questions once what agents get has moved          |
-| `evals.work`             | Every minute     | Works through queued evaluations                               |
-| `evals.retrieval`        | Every minute     | Runs the free retrieval checks                                 |
-| `evals.weekly`           | Mondays          | Runs the weekly evaluation, when test runs are turned on       |
-| `connectors.sync`        | Every 5 minutes  | Reads each source that is due, on its own schedule             |
-| `jobs.watchdog`          | Every 5 minutes  | Raises an alert for a job that is late or a source out of date |
-| `gaps.detect`            | Every 15 minutes | Turns questions that found nothing into Not found cards        |
-| `alerts.raise`           | Every 15 minutes | Runs the alert rules, which raise Inbox cards                  |
+| Job                      | When (UTC)       | What it does                                                      |
+| ------------------------ | ---------------- | ----------------------------------------------------------------- |
+| `observability.rollup`   | Each night       | Keeps the weekly counts, which are kept without limit             |
+| `partitions.ensure`      | Each night       | Makes the database partitions coming up                           |
+| `observability.snapshot` | Each night       | Keeps the last whole month's counts                               |
+| `retention.run`          | Each night       | Clears what has passed its retention period                       |
+| `outbox.relay`           | Every minute     | Delivers events the relay has not delivered yet                   |
+| `saved.check`            | Every minute     | Checks saved questions once what agents get has moved             |
+| `evals.work`             | Every minute     | Works through queued evaluations                                  |
+| `evals.retrieval`        | Every minute     | Runs the free retrieval checks                                    |
+| `evals.weekly`           | Mondays          | Runs the weekly evaluation, when test runs are turned on          |
+| `connectors.sync`        | Every 5 minutes  | Reads each source that is due, on its own schedule                |
+| `jobs.watchdog`          | Every 5 minutes  | Raises an alert for a job that is late or a source out of date    |
+| `gaps.detect`            | Every 15 minutes | Turns questions that found nothing into Nothing written yet cards |
+| `alerts.raise`           | Every 15 minutes | Runs the alert rules, which raise Inbox cards                     |
 
 `GET /api/v1/operations` shows each job's last success and last error, the queue, the sources and model spending, for an admin session. To run a job now:
 

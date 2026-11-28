@@ -1655,7 +1655,7 @@ describe('an overview, whatever the model sends of it', () => {
       },
       {
         group: 'check',
-        name: 'Due for a check',
+        name: 'Needs a recheck',
         count: 2,
         cards: [
           {
@@ -1768,7 +1768,7 @@ describe('an overview, whatever the model sends of it', () => {
   // The words of a real try of "what do i need to handle?" that showed no groups: a lead, then a
   // list of its own with citations, and no overview asked for.
   const handleWords =
-    'Your Inbox holds 20 cards, and the largest group is 11 suggestions. The Inbox is shown below in its own order, with what needs you first.\n\nSeveral cards need attention beyond suggestions: two context items are due for a check, including [itm_germany01] (Returns changed definition, for [@value:market/norway]) and another (a Marketing item on price promotions in [@value:market/italy]). The Orders in Spain question has been asked often and nothing written covers it. Two alerts report syncs that did not complete, and one reported wrong answer is waiting.'
+    'Your Inbox holds 20 cards, and the largest group is 11 suggestions. The Inbox is shown below in its own order, with what needs you first.\n\nSeveral cards need attention beyond suggestions: two context items need a recheck, including [itm_germany01] (Returns changed definition, for [@value:market/norway]) and another (a Marketing item on price promotions in [@value:market/italy]). The Orders in Spain question has been asked often and nothing written covers it. Two alerts report syncs that did not complete, and one reported wrong answer is waiting.'
   const handled = (question: string, read: object = inbox) =>
     turnWith(
       ({ step }) =>

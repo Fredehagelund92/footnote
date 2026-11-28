@@ -40,7 +40,7 @@ describe('the state on the chip', () => {
     expect(pane('flag-germany').state.label).toBe('Reported')
     expect(pane('look-sales').state.label).toBe('Needs a look')
     expect(pane('alert-orders-norway').state.label).toBe('Alert')
-    expect(pane('check-returns').state.label).toBe('Due for a check')
+    expect(pane('check-returns').state.label).toBe('Needs a recheck')
   })
 
   it('is tinted only where something needs care', () => {
@@ -105,7 +105,7 @@ describe('the words beside the button', () => {
 })
 
 describe('what agents answer today and after the decision', () => {
-  it("comes from the review's Try it, for every suggestion and every drafted Not found card", () => {
+  it("comes from the review's Try it, for every suggestion and every drafted Nothing written yet card", () => {
     for (const c of cards.filter((c) => reviewFor(c.id))) {
       const a = answersOf(reviewFor(c.id))!
       expect(a, c.id).toBeDefined()
@@ -126,7 +126,7 @@ describe('what agents answer today and after the decision', () => {
     })
   })
 
-  it("takes a Not found card's after answer from its draft", () => {
+  it("takes a Nothing written yet card's after answer from its draft", () => {
     const a = answersOf(r('gap-spain'))!
     expect(a.today.state).toBe('missing')
     expect(a.after.state).toBe('grounded')

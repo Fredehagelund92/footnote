@@ -1083,7 +1083,7 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
             {waiting > 0 && `, ${count(waiting)} not published yet`}
           </span>
           <span className="max-sm:hidden">{count(applyToday)} apply today</span>
-          <span>{count(due)} due for a check</span>
+          <span>{count(due)} needing a recheck</span>
         </div>
       )}
       {card && <TimeCard {...card} labelOf={labelOf} />}

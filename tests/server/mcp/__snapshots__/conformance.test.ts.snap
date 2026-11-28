@@ -2,7 +2,7 @@
 
 exports[`locks the production prompt, schemas, annotations and digest 1`] = `
 {
-  "digest": "97296832033e903877251018d87692dba892476a253273539058495d624f91ab",
+  "digest": "39fba2d1fb64d2a07975316959efb76d9fc0954ba3f4d5f28e4804405a1ca94b",
   "tools": [
     {
       "_meta": {
@@ -599,7 +599,7 @@ exports[`locks the production prompt, schemas, annotations and digest 1`] = `
                 },
                 "may_be_out_of_date": {
                   "const": true,
-                  "description": "It is due for a check: say so if you use it.",
+                  "description": "It needs a recheck: say so if you use it.",
                   "type": "boolean",
                 },
                 "published_without_review": {

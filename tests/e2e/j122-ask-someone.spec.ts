@@ -1,11 +1,11 @@
 import type { Page } from '@playwright/test'
 import { card, expect, go, moveTo, onMockOnly, signInAs, signOut, test } from './go.ts'
 
-// J122: Ask someone who knows. On a Nothing written yet card and a Due for a check card the owner
+// J122: Ask someone who knows. On a Nothing written yet card and a Needs a recheck card the owner
 // copies a link; Footnote sends nothing, and the card keeps only the day it was copied. The link
 // opens one page with one question, outside the app's shell: a person who is not signed in signs
 // in there, and is told who to ask when they can't. They answer as themselves, and the owner reads
-// it: a suggestion for Nothing written yet, an answer on the card for Due for a check.
+// it: a suggestion for Nothing written yet, an answer on the card for Needs a recheck.
 
 /** Presses Ask someone who knows on the open card, and reads the link it copied. */
 async function copyLink(page: Page) {
@@ -80,7 +80,7 @@ test('a Nothing written yet card passes its question on, and the answer goes to 
   })
 })
 
-test('a Due for a check card gets an answer on the card, and the owner still checks it', async ({
+test('a Needs a recheck card gets an answer on the card, and the owner still checks it', async ({
   page,
 }) => {
   await go(page, `/inbox?card=${card('check-returns')}`)

@@ -1,7 +1,7 @@
 import { withWhen, type Fact } from '@/model/items'
 import { factById } from './world'
 
-/** What a Not found card drafts: an item the owner reviews, edits and publishes like any suggestion. */
+/** What a Nothing written yet card drafts: an item the owner reviews, edits and publishes like any suggestion. */
 export const spainDraft: Fact = withWhen({
   id: 'itm_spain_payments',
   title: 'Card payments in Spain failed from 14 to 16 October 2026',

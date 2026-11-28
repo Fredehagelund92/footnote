@@ -90,7 +90,7 @@ const kindName = (kind: ItemKind) => kinds[kind].label
 
 /**
  * The plan of one change: each row the person may change and the change would change, and each
- * other row with its reason. `opened` holds the items the person opened (Mark as checked);
+ * other row with its reason. `opened` holds the items the person opened (Confirm again);
  * `domainName` names a domain by its id.
  */
 export function planBulk(

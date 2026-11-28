@@ -36,7 +36,7 @@ describe('a follow-up after a publish', () => {
     const valid = { from: '2031-01-01', until: '2031-01-02' }
     const overlaps = items.filter(
       (f) =>
-        (f.status === 'Live' || f.status === 'Due for a check') &&
+        (f.status === 'Live' || f.status === 'Needs a recheck') &&
         item.where.every((w) => f.where.includes(w)),
     )
     await api.saveItem({

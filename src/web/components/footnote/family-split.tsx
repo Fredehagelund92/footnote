@@ -47,7 +47,7 @@ export function useWhoDecides(d: Definition): string | null {
     : `Owners of ${domain.name} decide whether it is one family.`
 }
 
-/** The context items about the family itself, live: those Split leaves due for a check. */
+/** The context items about the family itself, live: those Split leaves needing a recheck. */
 function useItemsAbout(name: string): number {
   const facts = useFacts()
   return facts.filter((f) => servedToAgents(f) && f.where.includes(name)).length

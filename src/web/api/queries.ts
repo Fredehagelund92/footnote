@@ -622,9 +622,9 @@ export const invalidations: {
   markViewed: () => [],
   editItem: () => items,
   restoreAsDraft: () => items,
-  // A published item may answer a Not found card, and be the setup checklist's first item.
+  // A published item may answer a Nothing written yet card, and be the setup checklist's first item.
   saveItem: () => [...live, ...inbox, ...workspace, queryKeys.session, queryKeys.scopeSearches],
-  // A draft saved from a Not found card is that card's draft.
+  // A draft saved from a Nothing written yet card is that card's draft.
   saveDraft: () => [...items, ...inbox],
   startWritingHelp: () => [...items, ...inbox],
   // The editor reads its own draft again as a turn writes it; the lists are read where they show next.
@@ -655,7 +655,7 @@ export const invalidations: {
   // What a family means is what Ask reads for it too.
   setFamilyMeaning: () => definitions,
   setFamilyUsual: () => definitions,
-  // The items about a split family are due for a check, each with a card for its owners.
+  // The items about a split family need a recheck, each with a card for its owners.
   splitFamily: () => [
     ...definitions,
     ...live,

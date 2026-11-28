@@ -315,7 +315,7 @@ describe('Cube change flags, the needs-check flow and stale links', () => {
     expect(await activeFlags()).toEqual([
       { item_id: items.a, flag: 'needs_check', reason: 'Definition changed: cube:sales.count' },
     ])
-    // The owner's Due for a check card names the definition that changed, and the day it did.
+    // The owner's Needs a recheck card names the definition that changed, and the day it did.
     const feed = ok<{ cards: { id: string; group: string; changed?: unknown }[] }>(
       await call('GET', '/inbox/feed?tab=all', 'owner'),
     )
@@ -424,7 +424,7 @@ describe('Cube change flags, the needs-check flow and stale links', () => {
   }, 30_000)
 
   it('clears needs_check when an owner says it is still true, and refreshes mentions', async () => {
-    // The Inbox's Due for a check card, Still true (FR-139).
+    // The Inbox's Needs a recheck card, Still true (FR-139).
     const still = (item: string, reason: string) =>
       call('POST', '/inbox/cards/decide', 'owner', {
         card: `check:${item}`,

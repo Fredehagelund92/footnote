@@ -1037,7 +1037,7 @@ export const contract = {
         method: 'POST',
         path: '/items/{id}/read',
         tags: ['library'],
-        summary: 'The person opened an item: only opened items can be marked as checked together',
+        summary: 'The person opened an item: only opened items can be confirmed again together',
       })
       .errors(notFound)
       .input(itemId)
@@ -1839,7 +1839,7 @@ export const contract = {
         path: '/inbox/feed',
         tags: ['inbox'],
         summary:
-          'The Inbox by need: Not found, Reported, Due for a check and Suggestions for the domains the person owns, with what they sent that waits and what is done under All; counts from agents only, small counts hidden (FR-614)',
+          'The Inbox by need: Nothing written yet, Reported, Needs a recheck and Suggestions for the domains the person owns, with what they sent that waits and what is done under All; counts from agents only, small counts hidden (FR-614)',
       })
       .input(feedInputSchema)
       .output(feedSchema),
@@ -1891,7 +1891,7 @@ export const contract = {
         path: '/questions/links',
         tags: ['inbox'],
         summary:
-          "Ask someone who knows: the link of a Nothing written yet or a Due for a check card, for its domain's owners and the admins to paste where the company talks. Made once and copied again on a new day; it keeps that day, never who opens it, and nothing is sent to anyone",
+          "Ask someone who knows: the link of a Nothing written yet or a Needs a recheck card, for its domain's owners and the admins to paste where the company talks. Made once and copied again on a new day; it keeps that day, never who opens it, and nothing is sent to anyone",
       })
       .input(copyQuestionLinkSchema)
       .output(questionLinkSchema),
@@ -1911,7 +1911,7 @@ export const contract = {
         path: '/questions/answer',
         tags: ['inbox'],
         summary:
-          "An answer to a link's question, as the person: for a Nothing written yet card, a suggestion under their name that may come without a source, which its owner adds or confirms before publishing; for a Due for a check card, still true, it ended on a day, or I don't know, which the owner reads on the card. Agents get nothing of it before a publish",
+          "An answer to a link's question, as the person: for a Nothing written yet card, a suggestion under their name that may come without a source, which its owner adds or confirms before publishing; for a Needs a recheck card, still true, it ended on a day, or I don't know, which the owner reads on the card. Agents get nothing of it before a publish",
       })
       .input(answerQuestionSchema)
       .output(answeredSchema),

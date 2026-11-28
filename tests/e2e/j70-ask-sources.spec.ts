@@ -53,7 +53,7 @@ for (const { name, viewport } of widths)
           await expect(more).toHaveCount(0)
         }
         // Nothing needs a look.
-        await expect(sources).not.toContainText(/Due for a check|May be out of date|Archived/)
+        await expect(sources).not.toContainText(/Needs a recheck|May be out of date|Archived/)
       })
 
     test('pointing at a row lights its marks in the words', async ({ page }) => {
@@ -94,10 +94,10 @@ for (const { name, viewport } of widths)
       )
       expect(numbers).toEqual([...numbers].sort((a, b) => a - b))
       await expect(sources.getByRole('button', { name: 'Show 1 more source' })).toBeVisible()
-      const pinned = rows.filter({ hasText: /Due for a check|May be out of date/ })
+      const pinned = rows.filter({ hasText: /Needs a recheck|May be out of date/ })
       await expect(pinned).toHaveCount(2)
       await expect(pinned.nth(0).getByRole('button', { name: /^Source 2: / })).toBeVisible()
-      await expect(pinned.nth(0)).toContainText('Due for a check')
+      await expect(pinned.nth(0)).toContainText('Needs a recheck')
       await expect(pinned.nth(1).getByRole('button', { name: /^Source 3: / })).toBeVisible()
       await expect(pinned.nth(1)).toContainText('May be out of date')
       // One line at 1440; on a phone why and the action go under the title, which keeps its words.
@@ -151,7 +151,7 @@ for (const { name, viewport } of widths)
           await expect(
             sources
               .getByRole('listitem')
-              .filter({ hasText: /Due for a check|May be out of date|Archived/ }),
+              .filter({ hasText: /Needs a recheck|May be out of date|Archived/ }),
           ).toHaveCount(look)
           const height = (await sources.boundingBox())!.height
           expect(height).toBeLessThanOrEqual(4 * 32 + 3 * 6 + look * (name === '1440' ? 30 : 52))

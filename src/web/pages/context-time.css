@@ -2,7 +2,7 @@
   Context by time (pages/context-time.tsx). Loaded with the view, never on the first load, so the
   app's one stylesheet does not grow. Every colour mixes the theme's tokens, so light and dark
   follow them. A bar's fill says its state, so colour is never the only sign: checked is a quiet
-  grey, due for a check an amber hatch, ended an outline with an end cap, not published yet a
+  grey, needs a recheck an amber hatch, ended an outline with an end cap, not published yet a
   dashed outline. Amber is the one hue, for what to look at.
 */
 

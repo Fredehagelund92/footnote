@@ -185,7 +185,7 @@ export type Review = {
    * sender gave without a sentence from it, in the editor before publishing.
    */
   sourceless?: 'add' | 'confirm'
-  /** Drafted for a Not found card: how many questions it answers, and what it was drafted from. Nobody wrote it. */
+  /** Drafted for a Nothing written yet card: how many questions it answers, and what it was drafted from. Nobody wrote it. */
   drafted?: { questions: number; scope: string; from: string }
   /** A suggestion a sync created from a document: where it came from, and the quote Footnote kept. */
   synced?: {

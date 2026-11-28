@@ -141,11 +141,11 @@ export const concepts = {
   },
   card: {
     name: 'card',
-    definition: 'One row in the Inbox, such as Not found, Reported or a Suggestion.',
+    definition: 'One row in the Inbox, such as Nothing written yet, Reported or a Suggestion.',
     internal: ['inbox item'],
   },
-  notFound: {
-    name: 'Not found',
+  nothingWrittenYet: {
+    name: 'Nothing written yet',
     definition:
       'A question agents asked several times and found nothing written down for. Its card brings a draft.',
     internal: ['gap', 'no_match'],
@@ -155,8 +155,8 @@ export const concepts = {
     definition: 'Someone said a context item is wrong or unclear.',
     internal: ['flag'],
   },
-  dueForACheck: {
-    name: 'Due for a check',
+  needsARecheck: {
+    name: 'Needs a recheck',
     definition: 'A context item whose check date has passed.',
     internal: ['review due'],
   },
@@ -363,8 +363,10 @@ export const bannedWords: readonly BannedWord[] = [
   { word: 'anonymous', write: 'what is kept: scopes and counts', concept: null },
   { word: 'nobody sees who', write: 'what is kept: scopes and counts', concept: null },
   // Card names say what happened.
-  { word: 'Gap', write: 'Not found', concept: 'notFound', matchCase: true },
+  { word: 'Gap', write: 'Nothing written yet', concept: 'nothingWrittenYet', matchCase: true },
   { word: 'Flag', write: 'Reported', concept: 'reported', matchCase: true },
+  { word: 'Due for a check', write: 'Needs a recheck', concept: 'needsARecheck', matchCase: true },
+  { word: 'Mark as checked', write: 'Confirm again', concept: null, matchCase: true },
   // The earlier answer labels stay only as the long form, in `answerLines`. As labels they are
   // capitalised; the same words inside a sentence are plain English.
   ...[

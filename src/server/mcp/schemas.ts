@@ -785,7 +785,7 @@ export const findContextOutput = z
           may_be_out_of_date: z
             .literal(true)
             .optional()
-            .describe('It is due for a check: say so if you use it.'),
+            .describe('It needs a recheck: say so if you use it.'),
         }),
       )
       .optional(),

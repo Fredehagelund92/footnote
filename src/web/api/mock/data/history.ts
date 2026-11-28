@@ -94,7 +94,7 @@ function change(
       return {
         summary: 'Checked against the source: still true.',
         field: 'Checked',
-        before: 'Due for a check',
+        before: 'Needs a recheck',
         after: 'Still true',
       }
     case 'synced':

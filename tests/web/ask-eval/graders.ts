@@ -294,9 +294,9 @@ export function stateProblems(reply: Reply, ctx: Pick<GradeContext, 'readable'>)
     case 'conflict':
       return n >= 2 ? [] : [`conflict with ${n} item${n === 1 ? '' : 's'} cited`]
     case 'stale':
-      return reply.sources.some((id) => ctx.readable.get(id)?.status === 'Due for a check')
+      return reply.sources.some((id) => ctx.readable.get(id)?.status === 'Needs a recheck')
         ? []
-        : ['stale with no cited item due for a check']
+        : ['stale with no cited item needing a recheck']
     case 'missing':
       return n ? [`not found, yet ${n} item${n === 1 ? '' : 's'} cited`] : []
     default:

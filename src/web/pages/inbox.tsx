@@ -636,7 +636,7 @@ function useActions(card: InboxCard) {
               }
             : {
                 message: 'Checked: still true',
-                description: 'It comes back when it is due for a check.',
+                description: 'It comes back when it needs a recheck.',
               }),
           patch: {
             status: 'Live',
@@ -984,7 +984,7 @@ function ReportedWords({ flag, title }: { flag: NonNullable<InboxCard['flag']>; 
 }
 
 /**
- * The way to each definition that changed in its tool, beside a Due for a check card that says it
+ * The way to each definition that changed in its tool, beside a Needs a recheck card that says it
  * changed: opened beside the Inbox. Only the ones the person can read, which are in their
  * Definitions; a single one is "the definition", as the card's line names it.
  */

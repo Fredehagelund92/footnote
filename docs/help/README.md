@@ -62,7 +62,7 @@ The docs draw only what the pages use, and refuse the rest when the app is built
 - A code block that says what it is: ` ```text title="The prompt, exactly as the app shows it" `.
 - Links to another page, as `write-context.md` or `write-context.md#the-four-kinds`; to a screen of the app, as `/settings/agents`; or to a web address, as `https://...`. A link to a page or a heading that does not exist fails the build.
 
-- A picture of a screen or a diagram, alone in its paragraph, named by its light file in `docs/images/docs`, with words that say what it shows: `![The Inbox card for an item due for a check, with Still true at its foot.](../images/docs/inbox-due-light.webp)`. The file beside it with `-dark` in place of `-light` is the same picture in dark, and the Docs area and the docs site each show the one of the reader's theme.
+- A picture of a screen or a diagram, alone in its paragraph, named by its light file in `docs/images/docs`, with words that say what it shows: `![The Inbox card for an item needing a recheck, with Still true at its foot.](../images/docs/inbox-due-light.webp)`. The file beside it with `-dark` in place of `-light` is the same picture in dark, and the Docs area and the docs site each show the one of the reader's theme.
 
 No HTML, other than an include.
 
@@ -136,7 +136,7 @@ Both read these files and their pictures when they are built, never a copy, so n
 Two checks keep them the same, both in the CI job **The site** ([the site](../../site/README.md#the-apps-docs-area)):
 
 - `npm --prefix site run check:app-docs`, after `npm run docs:build` and `npm run site:build`, fails when the two differ in their pages, a page's title, headings, words, pictures or links, when a picture's file is missing from either, or when a link of the app's goes nowhere.
-- `npm run site:build` names each page whose `reviewed` day is more than 90 days old, as a warning, and fails for such a page when it names a setting no code reads or links to a screen the app no longer has ([Due for a check](../../site/README.md#due-for-a-check)).
+- `npm run site:build` names each page whose `reviewed` day is more than 90 days old, as a warning, and fails for such a page when it names a setting no code reads or links to a screen the app no longer has ([the pages to recheck](../../site/README.md#due-for-a-check)).
 
 ## Build and preview the docs site
 

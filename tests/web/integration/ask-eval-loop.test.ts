@@ -62,6 +62,10 @@ import { askEvalSuite } from './ask-eval-suite.ts'
   with the others.
   On 27 November 2026 Write context's help began to tell of its first box, so the step that read
   that page for FP14 no longer matches it: FP14 awaits a re-record with the others.
+  On 28 November 2026 the Inbox's groups and the records' status took the names Nothing written
+  yet and Needs a recheck, so every step was keyed again with no model, by place, as above, and
+  the words of the recorded steps that said the earlier names follow them. They are still the
+  model's steps, and the lists below did not move.
 */
 
 askEvalSuite({

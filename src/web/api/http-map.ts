@@ -32,10 +32,10 @@ export type Names = {
   domainOwners: (areaId: string) => string[]
 }
 
-/** A row's status in the app's words: retired is Archived; accepted is Live, or Due for a check when its trust says so. */
+/** A row's status in the app's words: retired is Archived; accepted is Live, or Needs a recheck when its trust says so. */
 export function statusOf(row: Pick<LibraryItem, 'status' | 'trust'>): Status {
   if (row.status === 'retired') return 'Archived'
-  return row.trust === 'needs_check' ? 'Due for a check' : 'Live'
+  return row.trust === 'needs_check' ? 'Needs a recheck' : 'Live'
 }
 
 /** Why an item is due, in the words its card and peek say: the service's check, and the date it passed. */

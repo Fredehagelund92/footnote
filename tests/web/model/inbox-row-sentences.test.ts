@@ -27,7 +27,7 @@ describe('a suggestion row in sentences', () => {
     expect(askedWords(1)).toBe('Agents asked about this once this week.')
   })
 
-  it('says on a Not found row when someone told the owners from Ask, and what agents found', () => {
+  it('says on a Nothing written yet row when someone told the owners from Ask, and what agents found', () => {
     expect(gapRowWords({ times: 0, told: 0 })).toBe(
       'Agents found nothing, and did not ask this week.',
     )

@@ -238,7 +238,7 @@ async function decide(id: string, outcome: 'accept' | 'request_changes', who: Wh
   })
 }
 /**
- * Mark as checked, as the Context list does it, after opening the item (checking it means reading
+ * Confirm again, as the Context list does it, after opening the item (checking it means reading
  * it): whether it was done, and the live edition's reason.
  */
 async function recheck(item: string, who: Who = 'owner') {

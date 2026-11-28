@@ -8,7 +8,7 @@ const fact = (over: Partial<Fact>) => ({ status: 'Live', checkedOn: '', ...over 
 
 describe('the trust of a context item', () => {
   it('reads an item the service calls due as due, though nobody ever checked it', () => {
-    expect(trustOf(fact({ status: 'Due for a check', checkedOn: '' }))).toBe('due')
+    expect(trustOf(fact({ status: 'Needs a recheck', checkedOn: '' }))).toBe('due')
   })
 
   it('reads an item never checked and not due as a draft', () => {
@@ -19,11 +19,11 @@ describe('the trust of a context item', () => {
     expect(trustOf(fact({ status: 'Archived', checkedOn: '' }))).toBe('retired')
   })
 
-  it('says Due for a check in the dot tooltip, with no second name for it', () => {
+  it('says Needs a recheck in the dot tooltip, with no second name for it', () => {
     const tip = checkedTip(
-      fact({ status: 'Due for a check', checkedOn: '1 Oct 2026', checkedBy: 'Ines Duarte' }),
+      fact({ status: 'Needs a recheck', checkedOn: '1 Oct 2026', checkedBy: 'Ines Duarte' }),
     )
-    expect(tip).toContain('Due for a check')
-    expect(tip).not.toMatch(/overdue|needs checking|outdated|check is due/i)
+    expect(tip).toContain('Needs a recheck')
+    expect(tip).not.toMatch(/overdue|needs checking|outdated|due for a check/i)
   })
 })

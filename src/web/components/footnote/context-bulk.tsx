@@ -66,7 +66,7 @@ import type { LogEntry } from '@/model/items'
 // the editor: at once where they own the domain, else sent to its owners; asked first for more than a
 // handful), Archive (the safe default, with Undo), Delete (drafts only, after a confirmation, with
 // Undo for a short while), and under More:
-// change the domain, the kind or the owners, mark as checked, and export. Each change acts on the
+// change the domain, the kind or the owners, confirm again, and export. Each change acts on the
 // rows it may change and says what it left alone; the rows left alone stay ticked, with the reasons.
 // Every change is written to the items' History, and a deletion to Settings, Advanced.
 
@@ -515,7 +515,7 @@ export function ContextBulk({
                     'checked',
                     'Checked: still true.',
                     (f) => ({
-                      status: f.status === 'Due for a check' ? 'Live' : f.status,
+                      status: f.status === 'Needs a recheck' ? 'Live' : f.status,
                       outOfDate: undefined,
                       checkedBy: me.name,
                       checkedOn: dateLabel(today()),
@@ -526,7 +526,7 @@ export function ContextBulk({
               >
                 <CircleCheckIcon />
                 <span className="flex flex-col">
-                  Mark as checked
+                  Confirm again
                   <span className="text-xs text-muted-foreground">Only the ones you opened</span>
                 </span>
               </DropdownMenuItem>

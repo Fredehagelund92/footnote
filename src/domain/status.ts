@@ -46,7 +46,7 @@ export function itemDisplayStatus(item: StatusInput, today: string): ItemDisplay
  * `needs_check` while a source flag is on or its check date has passed, `ended` once its last day
  * has passed with neither, else `current`. An item whose own dates ended still waits for its check
  * when that date has passed: agents get it for those dates, so it is due like any other, until it
- * is checked or archived. This is the one rule of what is due for a check.
+ * is checked or archived. This is the one rule of what needs a recheck.
  */
 export const itemTrusts = ['current', 'needs_check', 'ended'] as const
 export type ItemTrust = (typeof itemTrusts)[number]
@@ -61,7 +61,7 @@ export function itemTrust(
 }
 
 /**
- * Why an item is due for a check, when `itemTrust` says `needs_check`: the check date passed, a
+ * Why an item needs a recheck, when `itemTrust` says `needs_check`: the check date passed, a
  * definition it refers to changed, or one it refers to is gone. Null when it is not due. A source
  * flag wins over a date that has passed too.
  */

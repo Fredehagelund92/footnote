@@ -129,7 +129,7 @@ const weekly = async (gapId: string) =>
     )
   ).rows
 const detect = () => gapDetectionJob.run({ database } as Parameters<typeof gapDetectionJob.run>[0])
-/** A gap set aside or opened again as a person, as the Inbox's Not found card does. */
+/** A gap set aside or opened again as a person, as the Inbox's Nothing written yet card does. */
 const move = (name: keyof typeof people, id: string, to: 'set_aside' | 'reopen', reason?: string) =>
   database.transaction(people[name], (tx) => createGapsService(tx).move(id, to, reason))
 /** A gap covered as a person, as publishing context written for it does. */

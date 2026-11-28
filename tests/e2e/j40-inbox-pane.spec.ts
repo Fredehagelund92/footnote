@@ -77,7 +77,7 @@ test('a suggestion that clashes says what agents would hear if it went out as it
   await expect(page).toHaveURL(new RegExp(`/inbox/${cardIn('sug-sofia-clash')}/review`))
 })
 
-test('a Not found card shows what agents asked about, and the answer its draft would give', async ({
+test('a Nothing written yet card shows what agents asked about, and the answer its draft would give', async ({
   page,
 }) => {
   await go(page, `/inbox?card=${card('gap-spain')}`)
@@ -106,7 +106,7 @@ test('a card with no answers to compare keeps its point, its folds and its decis
   const p = pane(page)
   const title = 'Returns changed definition on 28 April 2026'
   await expect(p.getByRole('heading', { level: 2, name: title })).toBeVisible()
-  await expect(p.getByText('Due for a check', { exact: true })).toBeVisible()
+  await expect(p.getByText('Needs a recheck', { exact: true })).toBeVisible()
   await expect(answers(page)).toHaveCount(0)
   // The context item is open on a check, so its text is there to judge; its row says what it is.
   const item = p.getByRole('button', { name: `The context item: ${title}`, exact: true })

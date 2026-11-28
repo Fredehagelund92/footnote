@@ -47,7 +47,7 @@ export const libraryItemSchema = z.extend(z.omit(indexedItemSchema, { scope: tru
   lastChecked: z.nullable(z.object({ on: isoDate, personId: z.string() })),
   /** Whether it can be trusted today (`itemTrust`), the rule `library.freshness` counts by. */
   trust: z.enum(itemTrusts),
-  /** Why it is due for a check (`itemCheck`), null while it is not: a passed date, or a definition that changed or is gone. */
+  /** Why it needs a recheck (`itemCheck`), null while it is not: a passed date, or a definition that changed or is gone. */
   check: z.nullable(z.enum(itemChecks)),
   /**
    * Its scope as people read it: the metrics, then the dimensions, then the values, each by key,
@@ -61,7 +61,7 @@ export const libraryItemSchema = z.extend(z.omit(indexedItemSchema, { scope: tru
   values: z.array(z.object({ dimension: z.string(), name: z.string() })),
   /** Its own owners, by id, when not its domain's (item_owners); empty when its domain's owners answer for it. */
   owners: z.array(z.string()),
-  /** Whether the person opened it (item_reads): only opened items can be marked as checked together. */
+  /** Whether the person opened it (item_reads): only opened items can be confirmed again together. */
   opened: z.boolean(),
   /**
    * The live items it is in a conflict with, either way round (FR-220), that the person may read,

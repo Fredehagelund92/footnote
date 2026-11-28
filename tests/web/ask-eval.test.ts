@@ -60,7 +60,7 @@ const ctx: GradeContext = {
       {
         title: 'Returns changed definition on 28 April 2026',
         text: 'Earlier weeks read about 4 percent higher.',
-        status: 'Due for a check',
+        status: 'Needs a recheck',
       },
     ],
   ]),
@@ -231,7 +231,7 @@ describe('the code graders', () => {
       'None of the 1,209 published context items you can see mention it.',
       'Both rules apply to Orders in United Kingdom, from 1 January 2026 on.',
       'One rule says United Kingdom orders count card and cash. The other rule says United Kingdom orders count store credit.',
-      'Orders lag by a day [1]. It is due for a check (its check date passed).',
+      'Orders lag by a day [1]. It needs a recheck (its check date passed).',
       'Net revenue in Spain includes VAT. [1] Net revenue in Spain excludes VAT. [2]',
       'The sources are [1], which says it is included, and [2], which says it is left out.',
       'The three due are [1], [2] and [3].',

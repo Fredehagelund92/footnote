@@ -88,7 +88,7 @@ export function FactPeek({ id }: { id: string }) {
   const { query } = useRoute()
   const comments = useComments(`context:${id}`)
   const flagCard = cards.find((c) => c.id === query.get('flag'))
-  // Opened here counts as read: only items someone opened can be marked checked together.
+  // Opened here counts as read: only items someone opened can be confirmed again together.
   const found = !!fact
   React.useEffect(() => {
     if (found) void write('markViewed', { id })
@@ -104,7 +104,7 @@ export function FactPeek({ id }: { id: string }) {
           (checked
             ? f.id === fact.disagreesWith
             : f.id === fact.disagreesWith || f.disagreesWith === fact.id) &&
-          (f.status === 'Live' || f.status === 'Due for a check'),
+          (f.status === 'Live' || f.status === 'Needs a recheck'),
       )
     : undefined
   // Who may settle it and how often agents got both come with the item's read: no second read.
@@ -130,7 +130,7 @@ export function FactPeek({ id }: { id: string }) {
   const owners = ownersOf(fact, domains)
   const page = `/context/${fact.id}`
   const flag = flagCard?.flag && !done[flagCard.id] ? flagCard : undefined
-  const stale = fact.status === 'Due for a check' || !!fact.outOfDate
+  const stale = fact.status === 'Needs a recheck' || !!fact.outOfDate
   const question = `What should I know about ${fact.where[0] ?? 'this'}${fact.where[1] ? ` in ${fact.where[1]}` : ''}?`
   const nComments = countComments(comments)
 
@@ -207,7 +207,7 @@ export function FactPeek({ id }: { id: string }) {
         )
       }
     >
-      {fact.outOfDate ?? 'It is due for a check.'}
+      {fact.outOfDate ?? 'It needs a recheck.'}
     </PeekAttention>
   ) : null
 
@@ -283,7 +283,7 @@ export function FactPeek({ id }: { id: string }) {
               <PeekFact icon={CircleCheckIcon}>
                 <b>{domains[fact.domain]?.name}</b> - owned by <b>{and(owners)}</b> - checked{' '}
                 {fact.checkedOn}
-                {fact.status === 'Due for a check' && (flag || overlap) && ', due for a check'}
+                {fact.status === 'Needs a recheck' && (flag || overlap) && ', needs a recheck'}
               </PeekFact>
             )}
             {fact.said ? (

@@ -103,7 +103,7 @@ describe('what the rules raised', () => {
     ])
   })
 
-  it('names the reminder, the Not found card and a raise not yet delivered in their own words', () => {
+  it('names the reminder, the Nothing written yet card and a raise not yet delivered in their own words', () => {
     const lines = alertsOf(
       { rules: all },
       page([
@@ -115,7 +115,7 @@ describe('what the rules raised', () => {
     ).raised.raised
     expect(lines.map((r) => r.line)).toEqual([
       'A reminder went to Tomas Eriksen.',
-      'A Not found card went to Ines Duarte, Jon Abara and Sofia Brandt.',
+      'A Nothing written yet card went to Ines Duarte, Jon Abara and Sofia Brandt.',
       'A card went to the admins.',
     ])
     expect(lines[2]!.domain).toBeUndefined()

@@ -132,7 +132,7 @@ const stubOf = (card: Extract<Card, { group: 'suggestion' }>): Fact => ({
 
 /**
  * A card's id in the app. A suggestion is named by its bare proposal id, as its discussion is
- * (`review:<proposal id>`), and so is a Not found card with a draft, which is reviewed like one;
+ * (`review:<proposal id>`), and so is a Nothing written yet card with a draft, which is reviewed like one;
  * the other cards keep the service's name.
  */
 type NeedCard = Exclude<Card, { group: 'mention' }>
@@ -145,7 +145,7 @@ export const idOf = (card: NeedCard) =>
       : card.id
 
 /**
- * A Not found card's line: how often agents found nothing this week, and when someone pressed Tell
+ * A Nothing written yet card's line: how often agents found nothing this week, and when someone pressed Tell
  * the owner in Ask, that too. Agents' count alone when nobody told the owners.
  */
 function gapLine(times: number | null, told: number): string {
@@ -398,7 +398,7 @@ function cardOf(card: NeedCard, me: string, now: Date, person: (id: string) => s
   }
 }
 
-/** Which definitions changed in their tool and when, in the line a Due for a check card opens with. */
+/** Which definitions changed in their tool and when, in the line a Needs a recheck card opens with. */
 function changedLine(changed: Extract<Card, { group: 'check' }>['changed']): string {
   const after = 'after this context item was checked'
   const [one] = changed
@@ -442,7 +442,7 @@ function waitingOf(w: Feed['waiting'][number], me: string, domains: Domains, now
 
 /**
  * The Inbox from the feed's All tab: every card that needs the person, what they decided in the
- * last two weeks, and what they sent that waits. A suggestion drafted for a Not found card is
+ * last two weeks, and what they sent that waits. A suggestion drafted for a Nothing written yet card is
  * reviewed from that card, so it is not a card of its own.
  */
 export function inboxOf(
@@ -486,7 +486,7 @@ export function inboxOf(
   for (const c of cards) {
     const id = idOf(c)
     const draft = c.group === 'gap' && c.draft ? draftCards.get(c.draft) : undefined
-    // A drafted Not found card is decided when its draft is: published, returned or archived.
+    // A drafted Nothing written yet card is decided when its draft is: published, returned or archived.
     const decided = c.done ?? draft?.done
     if (decided) done[id] = { label: decided.outcome, at: whenWords(decided.at, now) }
     if (c.opened || draft?.opened) opened[id] = true
@@ -791,7 +791,7 @@ export type SheetRef = {
   itemVersionId: string | null
   /** The live items it clashes with: Publish answers for each. */
   clashes: string[]
-  /** A Not found card's draft: what agents asked about, in words, and its domain. */
+  /** A Nothing written yet card's draft: what agents asked about, in words, and its domain. */
   gap: { scope: string; areaId: string } | null
 }
 
@@ -855,7 +855,7 @@ export function fieldSideOf(f: ReviewSheet['fields']['before']): FieldSide | nul
 export function reviewOf(
   sheet: ReviewSheet,
   cardId: string,
-  /** For a Not found card's draft: how often agents found nothing this week, under the minimum null. */
+  /** For a Nothing written yet card's draft: how often agents found nothing this week, under the minimum null. */
   gap?: { times: number | null },
   /** The vocabulary and the terms, which a link added or removed is named by. */
   words?: Words,
@@ -865,7 +865,7 @@ export function reviewOf(
     (b): b is Extract<ServerBlock, { kind: 'wording'; runs: unknown }> =>
       b.kind === 'wording' && 'runs' in b && b.rewrite,
   )
-  // Drafted for a Not found card by the drafting helper: nobody wrote it, so it is the queue's own.
+  // Drafted for a Nothing written yet card by the drafting helper: nobody wrote it, so it is the queue's own.
   // One its writer wrote with writing help is theirs.
   const drafted =
     sheet.gapId !== null && sheet.writtenBy !== null && sheet.writtenBy !== 'writing_help'

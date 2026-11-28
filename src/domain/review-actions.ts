@@ -13,7 +13,7 @@
   - Publish waits while a live item it clashes with has no answer (FR-225), or while a suggestion
     sent from a question link has no source; a claim to check or a withdrawn retirement does not
     hold it back;
-  - a draft for a Not found card is published or edited: nobody wrote a note to answer.
+  - a draft for a Nothing written yet card is published or edited: nobody wrote a note to answer.
 
   Pure: no clock, no input or output.
 */
@@ -34,7 +34,7 @@ export type ReviewActionsInput = {
   clashes: number
   /** Claims the copied sentence does not plainly say. */
   claimsToCheck: number
-  /** Drafted for a Not found card: nobody wrote it. */
+  /** Drafted for a Nothing written yet card: nobody wrote it. */
   drafted: boolean
   /** Sent from a question link without a source: its owner adds or confirms one first. */
   sourceless?: boolean

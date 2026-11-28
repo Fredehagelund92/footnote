@@ -583,7 +583,7 @@ const dot: Record<Status, string> = {
   Draft: 'bg-transparent ring-1 ring-inset ring-off',
   Waiting: 'bg-transparent ring-1 ring-inset ring-ring',
   Live: 'bg-good',
-  'Due for a check': 'bg-caution',
+  'Needs a recheck': 'bg-caution',
   Archived: 'bg-off',
 }
 
@@ -591,7 +591,7 @@ const statusHint: Record<Status, string> = {
   Draft: "Draft: only you can see it, agents don't get it",
   Waiting: "Waiting for review: an owner of its domain decides, agents don't get it yet",
   Live: 'Live: agents get it',
-  'Due for a check': 'Due for a check: its check date passed or a definition changed',
+  'Needs a recheck': 'Needs a recheck: its check date passed or a definition changed',
   Archived: 'Archived: agents no longer get it',
 }
 
@@ -614,7 +614,7 @@ export function StatusDot({
       title={statusHint[status]}
       className={cn(
         'inline-flex items-center gap-1.5 whitespace-nowrap',
-        status === 'Due for a check' ? 'text-foreground' : 'text-muted-foreground',
+        status === 'Needs a recheck' ? 'text-foreground' : 'text-muted-foreground',
         className,
       )}
     >
@@ -633,7 +633,7 @@ export function ChangedDot() {
       aria-hidden
       className={cn(
         'inline-block size-1.5 shrink-0 rounded-full align-middle',
-        dot['Due for a check'],
+        dot['Needs a recheck'],
       )}
     />
   )

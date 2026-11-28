@@ -109,7 +109,7 @@ export type CaughtTrigger = (typeof caughtTriggers)[number]
 
 /**
  * The alert rules whose raise asks an owner for a decision Footnote keeps, so that it can be acted on:
- * a Not found card (its gap), a saved question that needs a look, and a check that is due. The
+ * a Nothing written yet card (its gap), a saved question that needs a look, and a check that is due. The
  * other rules raise something no owner decides in Footnote (db/migrations/0001_schema.sql).
  */
 export const decidedRules = ['gap', 'saved', 'due'] as const satisfies readonly AlertRuleId[]

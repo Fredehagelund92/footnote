@@ -40,7 +40,7 @@ describe('what may be done with a suggestion', () => {
       { can: ['publish', 'return', 'close'], primary: 'return', blockedBy: {}, ready: false },
     ],
     [
-      'a draft for a Not found card: published or edited, never returned',
+      'a draft for a Nothing written yet card: published or edited, never returned',
       { mode: 'new', drafted: true },
       { can: ['publish'], primary: 'publish', blockedBy: {}, ready: true },
     ],

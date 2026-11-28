@@ -104,7 +104,7 @@ export function FactPage({ id }: { id: string }) {
     // Once per item opened.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, me.name])
-  // Opened here counts as read: only items someone opened can be marked checked together.
+  // Opened here counts as read: only items someone opened can be confirmed again together.
   const found = !!fact
   React.useEffect(() => {
     if (found) void write('markViewed', { id })
@@ -201,7 +201,7 @@ export function FactPage({ id }: { id: string }) {
     (f) =>
       f.id !== fact.id &&
       (f.id === fact.disagreesWith || f.disagreesWith === fact.id) &&
-      (f.status === 'Live' || f.status === 'Due for a check'),
+      (f.status === 'Live' || f.status === 'Needs a recheck'),
   )
 
   // What needs a decision: in the side when there is room, and in the document itself on a phone,
@@ -209,7 +209,7 @@ export function FactPage({ id }: { id: string }) {
   const attention = (fact.outOfDate || other) && (
     <>
       {fact.outOfDate && (
-        <SideSection title="Due for a check" description={fact.outOfDate}>
+        <SideSection title="Needs a recheck" description={fact.outOfDate}>
           {owner && (
             <Button
               variant="outline"
@@ -265,7 +265,7 @@ export function FactPage({ id }: { id: string }) {
   // A draft's writer edits it, and sends or publishes it from the editor: it has no change to suggest.
   const writesDraft = fact.status === 'Draft' && fact.by === me.name
   const editHref = `/context/${fact.id}${owner ? '/edit' : '/suggest'}`
-  const canCheck = owner && fact.status === 'Due for a check'
+  const canCheck = owner && fact.status === 'Needs a recheck'
   const canEdit = !waiting && !(isMobile && (owner || writesDraft || !pending))
   const canArchive = owner && fact.status !== 'Archived' && fact.status !== 'Draft' && !waiting
   const canDelete = (owner || writesDraft) && fact.status !== 'Archived' && !waiting

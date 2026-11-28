@@ -4,7 +4,7 @@ line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 8
 minutes: 8
-reviewed: 2026-11-27
+reviewed: 2026-11-28
 open:
   label: Open Definitions
   href: /definitions
@@ -42,7 +42,7 @@ A metric's page says what it is built from, as its source's structure says it, u
 - Used by: the metrics built from it.
 - Converted from and Converted to: a metric in another currency, worked out from the other with one more column, such as `exchange_rate_usd`.
 
-These come from the source at each read and are never edited here. They never show the calculation or a figure, never mark context as due for a check, and change nothing an agent is told. An input the source no longer has says so.
+These come from the source at each read and are never edited here. They never show the calculation or a figure, never mark context as needing a recheck, and change nothing an agent is told. An input the source no longer has says so.
 
 In the tree, Up and Down (or J and K) move between lines, Right opens a level and Left folds it, and Enter opens the line's metric. A large tree opens its first level only; a metric in two places shows under each, saying where else it is.
 
@@ -64,7 +64,7 @@ A family is one entry for many near-identical metrics, such as a metric for each
 - Words that still name one variant's value, such as in euros, are never the family's: it reads No meaning yet.
 - An owner of its domain, or an admin, can choose Change: worked out from its variants, or written for the family. Written words can begin from what its variants say, each wording once. History keeps each choice.
 - Variants whose own words say something else than the meaning are named, and agents read their words too. A family with no meaning names none. Nor do words written for the family when its variants share no words: those words speak for every variant.
-- The Families view lists every family with how it was found, its variants and what tells them apart, what it means or No meaning yet, and the context about it that is due for a check. A row opens the family's quick view.
+- The Families view lists every family with how it was found, its variants and what tells them apart, what it means or No meaning yet, and the context about it that needs a recheck. A row opens the family's quick view.
 - Under Kept apart, it lists each family split back into its metrics, with who split it and the context still about it. An owner of its domain, or an admin, can choose Make them one family again. [Split a family](metric-variants.md#split-a-family-into-separate-metrics) says what a split does.
 - Kept apart also lists the metrics an owner kept separate on the Names card, with who did it and when. An owner of their domain, or an admin, can choose Make them one family.
 - Its own page lists the variants, and narrows them by each value, such as Currency: EUR. It says how the family was found, such as declared in dbt, and which variant is converted from which.

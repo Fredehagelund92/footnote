@@ -51,7 +51,7 @@ import { missing } from '../../../contract/refusals.ts'
   until an owner says it is not a problem (decided 26 October 2026), and named reports from Ask,
   with who sent them, until an owner closes one or checks, changes or archives its item (FR-622).
   Mentioned you: threads where a comment mentions the person and they haven't read it,
-  whatever domain it is in. Due for a check: live items whose check date passed or whose
+  whatever domain it is in. Needs a recheck: live items whose check date passed or whose
   definition changed. Suggestions: those waiting for a decision. Under All, the person's own
   suggestions that wait on an owner, those an owner closed (Don't publish) in the last two weeks
   with the reason, and what was decided in the last two weeks. Saved questions:
@@ -69,7 +69,7 @@ import { missing } from '../../../contract/refusals.ts'
   minimum is hidden (FR-614).
 */
 
-/** The most words a Not found card about words Ask could not find names in its title. */
+/** The most words a Nothing written yet card about words Ask could not find names in its title. */
 const WORDS_SHOWN = 3
 
 type Head = { seq: string; label: string; overlay: string }
@@ -925,7 +925,7 @@ export function createInboxFeedService(
         cards.push(...names.filter((card) => card.done))
       }
       const sorted = byNeed(cards)
-      // A Not found card's draft is that card, on the Inbox and in what it counts.
+      // A Nothing written yet card's draft is that card, on the Inbox and in what it counts.
       const drafts = new Set(sorted.flatMap((c) => (c.group === 'gap' && c.draft ? [c.draft] : [])))
       const counted = sorted.filter((c) => !(c.group === 'suggestion' && drafts.has(c.proposalId)))
       return {
@@ -1018,7 +1018,7 @@ export function createInboxFeedService(
           )
           return { edition: live?.label ?? null, undo: await undoOffer(tx, `decision:${pointed}`) }
         }
-        // Footnote v1's check (FR-139): an owner of its domain or an admin, as Mark as checked.
+        // Footnote v1's check (FR-139): an owner of its domain or an admin, as Confirm again.
         const result = await deps.review.recheck(key.id, reason)
         const [decision] = await tx.query<{ id: string }>(
           `select id::text from decisions where proposal_id=$1 and decided_by=cl_person() and outcome='accept'

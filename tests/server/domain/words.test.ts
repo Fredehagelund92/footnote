@@ -66,7 +66,7 @@ describe('the glossary v2', () => {
     expect(plainName('retire')).toBe('archive')
     expect(plainName('area')).toBe('domain')
     expect(plainName('steward')).toBe('owner')
-    expect(plainName('gap')).toBe('Not found')
+    expect(plainName('gap')).toBe('Nothing written yet')
     expect(plainName('flag')).toBe('Reported')
     expect(plainName('users')).toBe('people')
     expect(plainName('caveat')).toBe("Don't conclude")
@@ -209,7 +209,7 @@ describe('wordsToChange', () => {
   })
 
   it('reads Gap and Flag as card names only', () => {
-    expect(found('Gap')).toEqual(['Gap > Not found'])
+    expect(found('Gap')).toEqual(['Gap > Nothing written yet'])
     expect(found('Flags')).toEqual(['Flags > Reported'])
     expect(found('A gap in the data. Flag it for the owner.')).toEqual(['Flag > Reported'])
   })
