@@ -33,7 +33,7 @@ describe('loadConfig', () => {
       auth: 'dev',
       oidc: null,
       sessions: { idleHours: 12, maxDays: 7 },
-      devPeopleFile: 'db/seed/people.local.yml',
+      devPeopleFile: undefined,
       webOrigins: ['http://localhost:5173', 'http://localhost:4173'],
       trustedProxies: [],
       fixedToday: undefined,

@@ -142,8 +142,58 @@ async function setStatus(id: string, status: string) {
   )
 }
 
+/** How many of the workspace's five people have signed in: under five, the first questions show at once. */
+const signedIn = (count: number) =>
+  client.query(
+    'update people set last_signed_in_at = case when id = any($1::uuid[]) then now() end',
+    [Object.values(people).slice(0, count)],
+  )
+/** One call of an agent as the read path writes it, about a metric of its own. */
+async function asked(
+  status: 'no_match' | 'matched',
+  metric = `orders_${randomUUID().slice(0, 8)}`,
+) {
+  const id = randomUUID()
+  const key = `finance|metric:${metric}||${thisMonth().slice(0, 7)}`
+  await store.write([
+    {
+      kind: 'delivery',
+      value: {
+        id,
+        hour: new Date().toISOString().slice(0, 13) + ':00:00.000Z',
+        client: 'claude-code',
+        caller: 'agent',
+        edition,
+        overlay: '0',
+        digest: 'digest',
+        topic: {
+          key,
+          area: 'finance',
+          metrics: [`metric:${metric}`],
+          values: [],
+          dimensions: [],
+          month: thisMonth(),
+        },
+        scope: null,
+        status,
+        state: status === 'matched' ? 'grounded' : 'missing',
+        family: 'claude_code',
+        delivered: status === 'matched' ? [{ id: 'itm_x', v: 1, rank: 0, label: 'x' }] : [],
+        withheld: [],
+        cut: false,
+        bytes: 10,
+        duration: 1,
+      },
+    },
+  ])
+  const topic = await client.query<{ id: string }>('select id from topics where key=$1', [key])
+  return { delivery: id, topic: topic.rows[0]!.id, metric }
+}
+
 beforeAll(async () => {
   await foundation(client)
+  // A workspace past its first days: five people have signed in, so the set number counts.
+  await signedIn(5)
   await transaction(client, async () => {
     edition = (await servingEdition(client)).edition
   })
@@ -402,6 +452,79 @@ describe('gap detection (FR-606, FR-609)', () => {
         id.rows[0]!.id,
       ]),
     ).rejects.toMatchObject({ code: '23514' })
+  })
+})
+
+describe('the first unanswered questions (FR-606, while fewer than five people have signed in)', () => {
+  afterAll(() => signedIn(5))
+
+  it('shows one call that found nothing at once, with no wait for the job', async () => {
+    await signedIn(4)
+    const nothing = await asked('no_match')
+    const found = await asked('matched')
+    const [gap] = await gapsOf(nothing.topic)
+    expect(gap).toMatchObject({ type: 'missing', status: 'open', opened_by_case: 1 })
+    expect(await weekly(gap!.id)).toEqual([{ reports: 0, no_item_calls: 1 }])
+    expect(await gapsOf(found.topic)).toEqual([])
+    // The same question again counts in the one gap.
+    await asked('no_match', nothing.metric)
+    expect(await gapsOf(nothing.topic)).toHaveLength(1)
+    expect(await weekly(gap!.id)).toEqual([{ reports: 0, no_item_calls: 2 }])
+    // Its owner sees it in the Inbox, with the count kept small (FR-614).
+    const inbox = await api('owner', 'GET', '/inbox/feed')
+    expect(inbox.statusCode, inbox.body).toBe(200)
+    expect(
+      inbox
+        .json<{ cards: { gapId?: string; times: number | null }[] }>()
+        .cards.find((card) => card.gapId === gap!.id),
+    ).toMatchObject({ times: null })
+  })
+
+  it("shows an agent's report of a wrong or missing answer at once", async () => {
+    await signedIn(1)
+    const reply = await asked('matched')
+    await store.feedback({ delivery: reply.delivery, verdict: 'helpful', client: 'claude-code' })
+    expect(await gapsOf(reply.topic)).toEqual([])
+    await store.feedback({ delivery: reply.delivery, verdict: 'missing', client: 'claude-code' })
+    expect(await gapsOf(reply.topic)).toMatchObject([
+      { type: 'missing', status: 'open', opened_by_case: 3 },
+    ])
+  })
+
+  it('goes back to the set number from the fifth person on', async () => {
+    await signedIn(5)
+    const nothing = await asked('no_match')
+    expect(await gapsOf(nothing.topic)).toEqual([])
+    await detect()
+    expect(await gapsOf(nothing.topic)).toEqual([])
+    for (let i = 0; i < 4; i++) await asked('no_match', nothing.metric)
+    // Five calls reach the set number, at the job's next turn and not before.
+    expect(await gapsOf(nothing.topic)).toEqual([])
+    await detect()
+    expect(await gapsOf(nothing.topic)).toMatchObject([{ type: 'missing', opened_by_case: 1 }])
+  })
+
+  it("counts the demo's week as any team's, though its invented people never sign in", async () => {
+    await signedIn(0)
+    await client.query(
+      "insert into areas (id, name, is_demo) values ('area_sandbox', 'Sandbox', true)",
+    )
+    try {
+      const nothing = await asked('no_match')
+      await detect()
+      expect(await gapsOf(nothing.topic)).toEqual([])
+    } finally {
+      await client.query("delete from areas where id = 'area_sandbox'")
+    }
+  })
+
+  it('keeps a gap set aside closed, and leaves one covered alone within the hour', async () => {
+    await signedIn(2)
+    const nothing = await asked('no_match')
+    const [gap] = await gapsOf(nothing.topic)
+    await move('owner', gap!.id, 'set_aside')
+    await asked('no_match', nothing.metric)
+    expect(await gapsOf(nothing.topic)).toMatchObject([{ status: 'wont_fix' }])
   })
 })
 

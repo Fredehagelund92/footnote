@@ -333,6 +333,22 @@ describe('publishing in one step (FR-137)', () => {
     expect(await served(r.itemId)).toBeNull()
   })
 
+  it('publishes a source with no link: one line that says who or what says so (FR-116)', async () => {
+    const said = 'Pricing committee, 20 August 2026'
+    const item = await live({ evidence: [{ url: null, quote: said, date: '2026-11-28' }] })
+    expect((await served(item))?.n).toBe(1)
+    const page = await ok<ItemPage>(call('GET', `/items/${item}/page`, 'owner'))
+    expect(page.item.evidence).toEqual([{ url: null, quote: said, date: '2026-11-28' }])
+    // A link is still an http or https address, and the line is never empty.
+    for (const evidence of [
+      [{ url: 'slack://pricing', quote: said, date: '2026-11-28' }],
+      [{ url: null, quote: '', date: '2026-11-28' }],
+    ]) {
+      const refused = await call('POST', '/items/publish', 'owner', { draft: draft({ evidence }) })
+      expect([400, 422], JSON.stringify(evidence)).toContain(refused.statusCode)
+    }
+  })
+
   it("sends anyone else's to the domain's owners, and changes nothing agents get", async () => {
     const r = await ok<PublishItemResult>(
       call('POST', '/items/publish', 'author', { draft: draft() }),

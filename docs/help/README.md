@@ -14,6 +14,7 @@ These Markdown files are the documentation of the web app (`src/web`). The same 
 | [Privacy](privacy.md)                                          | Ask              |
 | [Write context](write-context.md)                              | Write and review |
 | [Write with your agent](write-with-your-agent.md)              | Write and review |
+| [Write with writing help](writing-help.md)                     | Write and review |
 | [Review a suggestion](review-a-suggestion.md)                  | Write and review |
 | [Keep context up to date](keep-context-up-to-date.md)          | Write and review |
 | [When nothing is written yet](when-nothing-is-written-yet.md)  | Write and review |
@@ -120,7 +121,7 @@ The words follow [Copy](../design/copy.md), the same rules as the screens:
 `tests/web/docs.test.ts` runs with the unit tests and fails when:
 
 - a page cannot be read: front matter missing a field or with a value outside the lists above, a `#` heading, no lead, a note without its title, a code block without its title, a picture without its words, its file or its dark file, or HTML
-- a page or What's new is missing, or a page is not one of the twenty the test lists
+- a page or What's new is missing, or a page is not one of the twenty-one the test lists
 - a page has no `open:` and is not one of the pages about no one screen that the test lists, or a `does:` names no `##` heading of its page or no action
 - a link points at a page, a heading or a screen that does not exist
 - an include's Markdown is not the app's list as it is now (`npm run docs:sync` mends it)

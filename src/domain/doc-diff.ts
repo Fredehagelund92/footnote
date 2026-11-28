@@ -56,8 +56,11 @@ export const docFields = [
 ] as const
 export type DocField = (typeof docFields)[number]
 
-/** One source of a context item: its address, and the sentence copied from it. */
-export type DocSource = { url: string; quote: string | null }
+/**
+ * One source of a context item: its address, and the sentence copied from it. With no address
+ * (`url` null) the source has no link, and its `quote` is the line that says who or what says so.
+ */
+export type DocSource = { url: string | null; quote: string | null }
 
 /** One side of the comparison: a version of a context item as the review reads it. */
 export type DocSide = {
@@ -106,7 +109,7 @@ export type ChangeBlock =
   | { kind: 'added' | 'removed'; field: TextField; text: string }
   | { kind: 'added' | 'removed'; field: 'where'; parts: string[] }
   | { kind: 'added'; field: 'when'; from: string; until: string | null }
-  | { kind: 'added' | 'removed'; field: 'sources'; url: string; quote: string | null }
+  | { kind: 'added' | 'removed'; field: 'sources'; url: string | null; quote: string | null }
   | { kind: 'formatting'; field: 'text'; change: FormatChange; runs: Run[] }
   | { kind: 'formatting'; field: 'text'; change: FormatChange & { what: 'list' }; items: string[] }
   | {
@@ -719,7 +722,7 @@ export function docDiff(before: DocSide | null, after: DocSide | null): DocDiff 
         })
     } else if (b.kind === 'link' && b.field === 'sources') {
       values.push({ what: 'source', field: 'sources', before: b.before, after: b.after })
-    } else if (b.kind === 'added' && b.field === 'sources') {
+    } else if (b.kind === 'added' && b.field === 'sources' && b.url !== null) {
       values.push({ what: 'source', field: 'sources', before: null, after: b.url })
     }
   }

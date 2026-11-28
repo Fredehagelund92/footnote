@@ -23,7 +23,8 @@ export type ConflictSide = {
   version: number
   checkedOn: string | null
   checkedBy: string | null
-  source: { url: string; quote: string } | null
+  /** With no link (`url` null), `quote` is the line that says who or what says so. */
+  source: { url: string | null; quote: string } | null
 }
 
 /** What the person may do with the pair, each checked against the item it changes. */

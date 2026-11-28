@@ -38,10 +38,26 @@ export type AgentDraftInput = {
     dimension_filters?: { dimension: string; values: string[] }[]
   }
   window?: { from: string; to?: string }
-  evidence?: { url: string; quote: string }[]
+  /** A link and a sentence copied from it, or, for a source with no link, who or what says so. */
+  evidence?: AgentSource[]
   not_to_conclude?: string
   area?: string
 }
+
+/** One source an agent passes (FR-116). */
+export type AgentSource = { url: string; quote: string } | { said_by: string }
+
+/** A source as a draft keeps it: one with no link is its line, written today. */
+const sourceOf = (entry: AgentSource, today: string) =>
+  'said_by' in entry
+    ? { url: null, quote: asWords(entry.said_by), date: today }
+    : { url: entry.url.trim(), quote: asWords(entry.quote), date: today }
+
+/** Why the draft's source is filled in, as its first source is. */
+const sourceReason = (entries: readonly AgentSource[]) =>
+  entries.every((entry) => 'said_by' in entry)
+    ? 'Who or what says so, as the agent passed it. There is no link to check.'
+    : 'The link and sentence the agent passed. Check that the sentence is there.'
 
 export type DerivationContext = {
   terms: readonly Term[]
@@ -282,16 +298,15 @@ export function deriveAgentDraft(input: AgentDraftInput, context: DerivationCont
 
   // Where it comes from: only links and sentences the agent read or the person gave.
   if (input.evidence?.length) {
-    draft.evidence = input.evidence.map((entry) => ({
-      url: entry.url.trim(),
-      quote: asWords(entry.quote),
-      date: context.today,
-    }))
+    draft.evidence = input.evidence.map((entry) => sourceOf(entry, context.today))
     marks.evidence = 'prefilled'
-    reasons.evidence = 'The link and sentence the agent passed. Check that the sentence is there.'
+    reasons.evidence = sourceReason(input.evidence)
   } else
     questions.push(
-      question('evidence', 'Where does this come from? A link and one sentence from it.'),
+      question(
+        'evidence',
+        'Where does this come from? A link and one sentence from it, or who or what says so.',
+      ),
     )
 
   // What not to conclude: the default unless the agent wrote one.
@@ -438,12 +453,8 @@ export function deriveAgentPatch(input: AgentPatchInput, context: DerivationCont
   if (input.evidence !== undefined)
     set(
       'evidence',
-      input.evidence.map((entry) => ({
-        url: entry.url.trim(),
-        quote: asWords(entry.quote),
-        date: context.today,
-      })),
-      'The link and sentence the agent passed. Check that the sentence is there.',
+      input.evidence.map((entry) => sourceOf(entry, context.today)),
+      sourceReason(input.evidence),
     )
   if (input.not_to_conclude !== undefined)
     set('notToConclude', asWords(input.not_to_conclude), 'Written by the agent.')

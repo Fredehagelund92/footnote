@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { nextStepWords, nextSteps, nextWords, NEXT_UNTIL } from '@/lib/next-steps'
 import { definitionsStep, setupSteps } from '@/lib/setup'
 
 // The checklist's names step (snag 5 of the release judge): an install the server started on its
@@ -60,5 +61,57 @@ describe('the definitions step', () => {
     for (const state of ['reading', 'read', 'failed'] as const)
       for (const waiting of [0, 3])
         expect(definitionsStep(folder(state), waiting).opens).not.toBe('connect')
+  })
+})
+
+// What comes after the checklist (the cold first use test, the owner's call 3): a Next card until
+// five context items are published, the metrics agents asked about first.
+describe('the Next card', () => {
+  const uncovered = ['MRR', 'Churn Rate', 'Signups', 'Trial starts']
+
+  it('names the metrics with nothing written, those agents asked about first, then a colleague and documents', () => {
+    expect(
+      nextSteps({ published: 1, uncovered, asked: ['Churn Rate, October 2026'], admin: true }),
+    ).toEqual([
+      { kind: 'metric', metric: 'Churn Rate', asked: true },
+      { kind: 'metric', metric: 'MRR', asked: false },
+      { kind: 'metric', metric: 'Signups', asked: false },
+      { kind: 'people' },
+      { kind: 'documents' },
+    ])
+  })
+
+  it('matches a whole name only: Churn is not Churn Rate', () => {
+    const steps = nextSteps({
+      published: 0,
+      uncovered: ['Churn', 'Churn Rate'],
+      asked: ['Churn Rate in Norway, May 2026'],
+      admin: false,
+    })
+    expect(steps).toEqual([
+      { kind: 'metric', metric: 'Churn Rate', asked: true },
+      { kind: 'metric', metric: 'Churn', asked: false },
+    ])
+  })
+
+  it('goes by itself once five items are published, and offers a member only what they write', () => {
+    expect(nextSteps({ published: NEXT_UNTIL, uncovered, asked: [], admin: true })).toBeNull()
+    expect(nextSteps({ published: 4, uncovered: [], asked: [], admin: false })).toBeNull()
+    expect(nextSteps({ published: 4, uncovered: [], asked: [], admin: true })).toEqual([
+      { kind: 'people' },
+      { kind: 'documents' },
+    ])
+    expect(nextWords(2).count).toBe('2 of 5 published')
+  })
+
+  it('says why each metric is there', () => {
+    expect(nextStepWords({ kind: 'metric', metric: 'MRR', asked: true })).toEqual({
+      title: 'Write about MRR',
+      description: 'Agents asked about it and found nothing written down.',
+      action: 'Write context',
+    })
+    expect(nextStepWords({ kind: 'metric', metric: 'MRR', asked: false }).description).toBe(
+      'Nothing is written about it yet, so agents who ask get Not found.',
+    )
   })
 })

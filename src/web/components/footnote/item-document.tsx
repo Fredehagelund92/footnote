@@ -7,6 +7,7 @@ import {
   CircleDashedIcon,
   ClockIcon,
   ExternalLinkIcon,
+  UserRoundIcon,
 } from '@/components/icons'
 import { DetailsBody, detailsSummary } from '@/components/footnote/details-body'
 import { PeekFact, PeekFacts } from '@/components/footnote/peek'
@@ -84,6 +85,11 @@ export function ItemDocument({
             <PeekFact icon={CircleCheckIcon}>
               <b>{domains[fact.domain]?.name}</b> - owned by <b>{and(ownersOf(fact, domains))}</b> -{' '}
               {preview ? 'checked when you publish it' : `checked ${fact.checkedOn}`}
+            </PeekFact>
+          )}
+          {fact.said && (
+            <PeekFact icon={UserRoundIcon}>
+              <b>{fact.said}</b> - no link
             </PeekFact>
           )}
           {fact.source && (

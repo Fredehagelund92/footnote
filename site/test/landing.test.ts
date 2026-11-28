@@ -4,8 +4,14 @@ import { describe, expect, it } from 'vitest'
 import { demoDefinitions } from '../../db/seed/fixtures/cube-model.ts'
 import { storyFacts } from '../../db/seed/fixtures/story-facts.ts'
 import { ANSWER_LINES } from '../../src/domain/answer-state.ts'
+import { toolNames } from '../../src/server/mcp/tools.ts'
+import { writeDraftOutput } from '../../src/server/mcp/schemas.ts'
+import { frontDoor } from '../../src/web/model/writing-help.ts'
+import { contextSaid, contextVoice } from '../../src/domain/say.ts'
 import { answers, lines } from '../landing/demo.ts'
 import { metrics } from '../landing/definitions.ts'
+import * as meaning from '../landing/meaning.ts'
+import { agentDoor, caption, checked, draft, firstBox, pasted, thread } from '../landing/said.ts'
 import { repoRoot } from '../lib/pages.ts'
 
 /*
@@ -18,6 +24,9 @@ import { repoRoot } from '../lib/pages.ts'
   Their quote, source, don't-conclude line and wording are not checked here.
   What the page shows was asked of a fresh install of the demo through get_context on 26 Nov 2026
   (landing/demo.ts).
+  The section on a thread that becomes a note (landing/said.ts) is a demonstration with an invented
+  story, so it is held to the app's own words instead: the first box's button and note, the
+  tool names and the write_draft status, and the sentence get_context says.
 */
 
 const read = (path: string) => readFileSync(join(repoRoot, path), 'utf8')
@@ -96,5 +105,92 @@ describe('the definitions window', () => {
   it('names notes the demo holds', () => {
     for (const metric of metrics)
       for (const note of metric.notes) expect(world.includes(note.title), note.title).toBe(true)
+  })
+})
+
+describe('the meaning section', () => {
+  it("names the demo's Norway note, its writer, its owner and its check date", () => {
+    expect(world.includes(meaning.note.title), meaning.note.title).toBe(true)
+    for (const name of [meaning.note.writer, meaning.note.checker])
+      expect(world.includes(name), name).toBe(true)
+    expect(meaning.note.checkedOn).toBe('3 Oct 2026')
+  })
+
+  it('puts the stop in the week that takes in Tuesday 4 August 2026', () => {
+    expect(meaning.weeks[meaning.stop]!.monday).toBe('2026-08-03')
+    expect(meaning.week(meaning.stop).dates).toBe('3 to 9 Aug, takes in 4 Aug')
+    expect(meaning.week(meaning.opening).day).toBe('10 Aug 2026')
+  })
+
+  it('tells the note only for weeks from the stop on', () => {
+    for (let i = 0; i <= meaning.last; i++) {
+      const week = meaning.week(i)
+      expect(week.applies, week.day).toBe(i >= meaning.stop)
+      if (week.applies) expect(week.says, week.day).toContain('stopped on 4 August')
+      else expect(week.says, week.day).toContain('Nothing is written about that week.')
+    }
+  })
+
+  it('shows no figure: each week is said in words, with no number but a date', () => {
+    for (let i = 0; i <= meaning.last; i++) {
+      const week = meaning.week(i)
+      expect(week.move, week.day).not.toMatch(/\d/)
+      expect(week.says.replace('4 August', ''), week.day).not.toMatch(/\d/)
+    }
+  })
+})
+
+describe('the thread that becomes a note', () => {
+  it("shows the first box of a new item in the app's words", () => {
+    const door = frontDoor({ help: false, model: false, admin: false })
+    expect(door.button).toBe(firstBox.button)
+    expect(door.note).toBe(firstBox.note)
+  })
+
+  it('names tools and a status the agent contract has, and the people who own Sales', () => {
+    expect(writeDraftOutput.shape.status.options).toContain(agentDoor.status)
+    for (const tool of [agentDoor.tool, checked.tool]) expect(toolNames, tool).toContain(tool)
+    expect(world).toContain(`${checked.owner.name} (owner of Sales`)
+  })
+
+  it('says what get_context says for one checked item', () => {
+    const said = contextSaid(
+      {
+        terms: [
+          { key: 'orders', name: 'Orders' },
+          { key: 'spain', name: 'Spain' },
+        ],
+      },
+      {
+        status: 'matched',
+        scope: {
+          metrics: ['orders'],
+          filters: { market: ['spain'] },
+          window: { start: '2026-11-14', end: '2026-11-15' },
+        },
+        issues: [],
+        question: checked.question,
+        delivered: 1,
+        partial: 0,
+        cut: 0,
+        withheld: [],
+        assumed: null,
+      },
+      contextVoice,
+    )
+    expect(said.say).toBe(`${checked.line}. ${checked.say}`)
+    expect(ANSWER_LINES.some((line) => line.label === checked.line)).toBe(true)
+  })
+
+  it('says it is a demonstration with invented people, and shows no chat app control', () => {
+    expect(caption).toContain('A demonstration the page plays, not a recording.')
+    expect(caption).toContain('invented')
+    expect(caption).toContain('Footnote has no Slack app: you copy the thread.')
+    // Elena Ruiz and the Spain story are the section's own, not the demo's.
+    expect(world).not.toContain('Elena Ruiz')
+    expect(world).not.toContain(draft.title)
+    const copied = thread.messages.filter((m) => m.copied)
+    expect(copied).toHaveLength(1)
+    expect(copied[0]!.text.startsWith(pasted)).toBe(true)
   })
 })

@@ -1,5 +1,6 @@
 import * as z from 'zod/mini'
 import { areaSchema, personSchema } from '../domain/item.ts'
+import { PERSON_NAME_MAX, WORKSPACE_NAME_MAX } from './limits.ts'
 
 export const globalRoleSchema = z.enum(['administrator'])
 export const areaRoleSchema = z.enum(['owner'])
@@ -84,6 +85,8 @@ export const grantsAppliedSchema = z.object({
   ),
 })
 export type Permissions = z.infer<typeof permissionsSchema>
+/** A session as a sign-in answers with it: who is signed in, and the token their changes carry. */
+export type SignedIn = z.infer<typeof sessionSchema>
 export type Principal = z.infer<typeof meSchema>
 export type SignInPerson = z.infer<typeof signInPersonSchema>
 export type RoleInput = z.infer<typeof roleInputSchema>
@@ -104,5 +107,32 @@ export const signInMethodSchema = z.object({
   start: z.nullable(z.string()),
   demo: z.boolean(),
   profileLabel: z.nullable(z.string()),
+  /**
+   * Whether the picker has nobody to offer yet: a workspace on its own data, before anyone is in
+   * it. The sign-in page then asks the first person who they are (`auth.setUp`). Never on the
+   * demo, with a list of people the host gave, or with a company's provider.
+   */
+  first: z.boolean(),
 })
 export type SignInMethod = z.infer<typeof signInMethodSchema>
+
+const oneLine = (max: number) =>
+  z.string().check(
+    z.minLength(1),
+    z.maxLength(max),
+    z.regex(/^\S(?:.*\S)?$/, 'One line with no space at either end'),
+    // eslint-disable-next-line no-control-regex
+    z.regex(/^[^\u0000-\u001f\u007f]*$/, 'Text only, with no line break'),
+  )
+/**
+ * Who the first person of a workspace is, and what the workspace is called (FR-416): the picker
+ * of an install on its own data asks once, and makes them its admin.
+ */
+export const firstPersonSchema = z.strictObject({
+  name: oneLine(PERSON_NAME_MAX),
+  email: z.email(),
+  workspace: oneLine(WORKSPACE_NAME_MAX),
+})
+export type FirstPersonInput = z.infer<typeof firstPersonSchema>
+/** Why the first screen is refused once somebody is in the workspace. */
+export const alreadySetUp = 'Someone has set this workspace up already. Sign in instead.'

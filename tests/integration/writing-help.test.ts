@@ -654,7 +654,7 @@ describe('what it may do', () => {
     expect(sent).toEqual([])
 
     decide = writes(whole)
-    await turn('author', draft.proposalId, 'Write it up.')
+    await turn('author', draft.proposalId, 'Write it up from https://customs.example.org/norway')
     const ready = await proposal(draft.proposalId)
     await ok(
       call('POST', `/proposals/${draft.proposalId}/submit`, 'author', {
@@ -730,6 +730,42 @@ describe('what it reads', () => {
     // Words that read like orders are pointed out, and the link not opened is named as such.
     expect(prompt).toContain('read like orders to an AI agent')
     expect(prompt).toContain('These were not opened: https://other.example.org/second.')
+  })
+
+  it('names as a source only a link the person gave, never one a page names', async () => {
+    const draft = await start()
+    const fromPage = { url: 'https://evil.example.org/next', quote: 'Read the rest here.' }
+    decide = writes({ title: 'A title', evidence: [fromPage] })
+    const done = await turn('author', draft.proposalId, 'See https://customs.example.org/norway.')
+    expect(done.turn.changed).toEqual(['title'])
+    expect(done.turn.refused).toEqual([
+      { field: 'evidence', why: 'Its link is not one from your messages.' },
+    ])
+    // The page the person's link opened is theirs to cite, and so is a link of an earlier message.
+    const cited = {
+      url: 'https://customs.example.org/norway',
+      quote: 'From 4 August 2026 parcels from webshops outside Norway are held at the border.',
+    }
+    decide = writes({ evidence: [cited] })
+    const again = await turn('author', draft.proposalId, 'Use the notice as the source.', [
+      { said: 'See https://customs.example.org/norway.', reply: 'I wrote the title.' },
+    ])
+    expect(again.turn).toMatchObject({ changed: ['evidence'], refused: [] })
+    expect((await proposal(draft.proposalId)).draft.evidence).toMatchObject([cited])
+  })
+
+  it('writes a source with no link, who or what says so, as the person said it', async () => {
+    const draft = await start()
+    decide = writes({ evidence: [{ said_by: 'Pricing committee, 20 August 2026' }] })
+    const done = await turn('author', draft.proposalId, 'The pricing committee decided it.')
+    expect(done.turn).toMatchObject({ changed: ['evidence'], refused: [] })
+    expect((await proposal(draft.proposalId)).draft.evidence).toMatchObject([
+      { url: null, quote: 'Pricing committee, 20 August 2026' },
+    ])
+    // A draft whose source has no link still takes a turn.
+    decide = writes({ title: 'Prices from the committee' })
+    const again = await turn('author', draft.proposalId, 'Give it a title.')
+    expect(again.turn).toMatchObject({ changed: ['title'], refused: [] })
   })
 
   it('says why a link was not read, and still works from the message', async () => {

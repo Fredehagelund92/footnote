@@ -354,7 +354,9 @@ export function createReviewPath(
   function claimsOf(r: Reading) {
     // A read's suggestion is the document's own words, with its link: no sentence was copied.
     if (!r.after || !writtenBy(r.p) || writtenBy(r.p) === 'source') return null
-    const sentence = r.after.version.evidence[0]?.quote?.trim()
+    // A source with no link says who or what says so: no sentence was copied to check against.
+    const [first] = r.after.version.evidence
+    const sentence = first?.url ? first.quote.trim() : ''
     if (!sentence) return null
     const text = plainText(
       docMarkdown({ summary: r.after.version.summary, body: r.after.version.body ?? null }),

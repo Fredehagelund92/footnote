@@ -16,6 +16,7 @@ export function Panel({
   title,
   quietTitle,
   leading,
+  back,
   actions,
   onClose,
   closeLabel = 'Close the panel',
@@ -31,6 +32,8 @@ export function Panel({
   quietTitle?: boolean
   /** Before the title: a phone's back arrow. */
   leading?: React.ReactNode
+  /** Under the bar, above the body: the way back to the panel this one was reached from. */
+  back?: React.ReactNode
   actions?: React.ReactNode
   onClose?: () => void
   closeLabel?: string
@@ -82,6 +85,7 @@ export function Panel({
           </Tooltip>
         )}
       </div>
+      {back}
       <div
         data-slot="panel-body"
         className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain', bodyClassName)}

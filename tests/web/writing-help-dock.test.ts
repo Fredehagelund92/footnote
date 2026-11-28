@@ -16,7 +16,8 @@ import type { HelpReply } from '@/model/writing-help'
 
 // The dock hands the keyboard to its box when a button of the conversation leaves the page: an
 // answer to tap, Try again and Undo are removed when pressed, and focus must not fall to the body.
-// A field the person was writing in is said as a suggestion, not as changed. A phone has no
+// It takes the keyboard as it opens, but never from a field of the draft the person is in. A
+// field the person was writing in is said as a suggestion, not as changed. A phone has no
 // writing help: a link to it says where it is.
 
 declare global {
@@ -121,6 +122,21 @@ async function press(name: string) {
   expect(document.activeElement).not.toBe(composer())
   await step(() => void button(name)!.dispatchEvent(new MouseEvent('click', { bubbles: true })))
 }
+
+describe('the dock’s box as the dock opens', () => {
+  it('has the focus', async () => {
+    await mount(deskOf('o1', () => Promise.resolve(reply())))
+    expect(document.activeElement).toBe(composer())
+  })
+
+  it('leaves it in a field of the draft the person went to before it opened', async () => {
+    // Write the draft opens the dock a moment later: by then the person may be in the title.
+    const title = document.body.appendChild(document.createElement('input'))
+    title.focus()
+    await mount(deskOf('o2', () => Promise.resolve(reply())))
+    expect(document.activeElement).toBe(title)
+  })
+})
 
 describe('the dock’s box after a button that leaves the page', () => {
   it('has the focus after an answer to tap', async () => {

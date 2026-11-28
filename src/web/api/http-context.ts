@@ -299,6 +299,15 @@ export function dayShiftOf(index: { today: string; loadedAt: string }): number {
 const text = (plain: string | undefined, markup: string | undefined, words: Words) =>
   markup !== undefined ? textFromService(markup, words) : (plain ?? '')
 
+/**
+ * An item's first source as the app reads one: a link and the sentence copied from it, or, with
+ * no link, the line that says who or what says so.
+ */
+const sourceOf = (evidence: { url: string | null; quote: string } | undefined) =>
+  evidence?.url === null
+    ? { source: '', quote: '', said: evidence.quote }
+    : { source: evidence?.url ?? '', quote: evidence?.quote ?? '' }
+
 /** A published item as its page reads it: its text, where it comes from and what not to conclude. */
 export function factOfPage(page: ServiceItemPage, names: Names, words: Words): Fact {
   const item = page.item
@@ -326,8 +335,7 @@ export function factOfPage(page: ServiceItemPage, names: Names, words: Words): F
     ...dueWords({ check: page.check, reviewDate: item.reviewDate }),
     checkedBy: page.lastChecked ? names.person(page.lastChecked.personId) : '',
     checkedOn: page.lastChecked ? dateLabel(page.lastChecked.on) : '',
-    source: evidence?.url ?? '',
-    quote: evidence?.quote ?? '',
+    ...sourceOf(evidence),
     // The writer's own words: the default is what agents are never told.
     dontConclude: ownCaveat(item.notToConclude) ?? '',
     ...(owners ? { owners } : {}),
@@ -366,8 +374,7 @@ export function factOfDraft(
     by: proposal.proposerId === null ? '' : names.person(proposal.proposerId),
     checkedBy: '',
     checkedOn: '',
-    source: evidence?.url ?? '',
-    quote: evidence?.quote ?? '',
+    ...sourceOf(evidence),
     dontConclude: ownCaveat(draft.notToConclude) ?? '',
   }
 }
@@ -603,8 +610,13 @@ export function draftOf(fact: Fact, words: Words, today: string, before?: Fact):
     )
   if (changed('valid'))
     draft.validity = { start: fact.valid.from ?? anyDate.start, end: endOf(fact.valid.until) }
-  if (changed('source') || changed('quote'))
-    draft.evidence = fact.source ? [{ url: fact.source, quote: fact.quote, date: today }] : []
+  // A source with no link is the line that says who or what says so; today is when it was written.
+  if (changed('source') || changed('quote') || changed('said'))
+    draft.evidence = fact.said?.trim()
+      ? [{ url: null, quote: fact.said.trim(), date: today }]
+      : fact.source
+        ? [{ url: fact.source, quote: fact.quote, date: today }]
+        : []
   if (changed('dontConclude')) draft.notToConclude = fact.dontConclude || defaultNotToConclude
   return draft
 }

@@ -18,7 +18,7 @@ import { ShortcutsDialog } from '@/components/shortcuts-dialog'
 import { ReportDialog } from '@/components/report-dialog'
 import { UndoKey } from '@/lib/undo'
 import { ErrorBoundary } from '@/components/error-boundary'
-import { closeDock, DOCK_TITLE, returnFromDock, useDock } from '@/lib/dock'
+import { closeDock, DOCK_TITLE, returnFromDock, useDock, useDockBackKey } from '@/lib/dock'
 import { DockFrame, DockWaiting } from '@/components/dock'
 import { familyParts } from '@/components/footnote/family-parts'
 import { reportParts } from '@/components/footnote/report-parts'
@@ -32,7 +32,7 @@ import { allFloors, floorUnder, useFloorsVersion } from '@/lib/toast-floor'
 import { ShareChatPanel } from '@/components/footnote/share-chat'
 import { WherePanel } from '@/components/footnote/where-panel'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { useIsMobile, useIsNarrow } from '@/hooks/use-mobile'
+import { useDockOverPage, useIsMobile, useIsNarrow } from '@/hooks/use-mobile'
 import { onOpen, open } from '@/lib/events'
 import { foldStep, startFold } from '@/lib/sidebar-fold'
 import { clamp, readWidth, saveWidth } from '@/lib/pane-width'
@@ -250,7 +250,18 @@ export function AppShell() {
 function Shell() {
   const dock = useDock()
   const isMobile = useIsMobile()
+  // Under 1100 px there is no room for the dock beside the page: on a tablet it is a sheet over the
+  // page, which keeps its width and waits behind a scrim; on a phone it fills the screen.
+  const overPage = useDockOverPage()
+  const sheet = !!dock && overPage && !isMobile
+  const sheetNode = React.useRef<HTMLDivElement | null>(null)
+  React.useEffect(() => {
+    // The page behind the sheet is inert, so focus that was on it goes into the sheet.
+    const node = sheetNode.current
+    if (sheet && node && !node.contains(document.activeElement)) node.focus({ preventScroll: true })
+  }, [sheet])
   const { parts } = useRoute()
+  useDockBackKey()
   // Closed, the dock gives focus back to the list row it opened from.
   const dockOpen = !!dock
   React.useEffect(() => {
@@ -281,7 +292,7 @@ function Shell() {
       watch.disconnect()
       node.removeEventListener('scroll', onScroll, true)
     }
-  }, [dockOpen, dock?.width, isMobile])
+  }, [dockOpen, dock?.width, isMobile, overPage])
   React.useLayoutEffect(() => {
     if (dockOpen) {
       setLeavingDock(null)
@@ -293,11 +304,14 @@ function Shell() {
     if (!node || isMobile || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     setLeavingDock(pictureOf(node, dockWidth.current, dockScrolls.current))
   }, [dockOpen, isMobile])
-  // The sidebar folds to its rail while the dock is open or a review is on screen, and in a window
-  // under 1024 px wide, and comes back when they close or the window widens. A page that loads that
-  // way starts folded, so nothing jumps after the first paint.
+  // The sidebar folds to its rail while the dock is open beside the page or a review is on screen,
+  // and in a window under 1024 px wide, and comes back when they close or the window widens. A page
+  // that loads that way starts folded, so nothing jumps after the first paint.
   const narrow = useIsNarrow()
-  const reasons = { dock: !!dock || (parts[0] === 'inbox' && parts[2] === 'review'), narrow }
+  const reasons = {
+    dock: (!!dock && !overPage) || (parts[0] === 'inbox' && parts[2] === 'review'),
+    narrow,
+  }
   const [fold, setFold] = React.useState(() => startFold(reasons))
   // The left navigation's width, dragged on its rail, kept for the session.
   const [sidebarWidth, setSidebarWidth] = React.useState(() =>
@@ -360,13 +374,13 @@ function Shell() {
       <SidebarInset className="min-h-0 min-w-0 overflow-clip">
         {/* One tree at every width: the page keeps its place, so opening a peek keeps its search,
             filters, ticked rows and scroll, and crossing to a phone's width keeps what it holds,
-            such as a connection just tested. On a phone the dock is a screen of its own, below. */}
+            such as a connection just tested. Under 1100 px the dock is over the page, below. */}
         <ResizablePanelGroup orientation="horizontal" id="shell">
-          <ResizablePanel id="page" minSize={isMobile ? undefined : 360}>
+          <ResizablePanel id="page" minSize={overPage ? undefined : 360} inert={sheet || undefined}>
             <SafeScreen />
           </ResizablePanel>
-          {dock && !isMobile && <ResizableHandle withHandle />}
-          {dock && !isMobile && (
+          {dock && !overPage && <ResizableHandle withHandle />}
+          {dock && !overPage && (
             <ResizablePanel
               id={`dock-${dock.width}`}
               key={dock.width}
@@ -388,6 +402,41 @@ function Shell() {
             </ResizablePanel>
           )}
         </ResizablePanelGroup>
+        {sheet && (
+          <>
+            {/* The page waits behind the scrim dialogs and sheets have; a press on it closes the sheet. */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-dock bg-scrim dock-swap supports-backdrop-filter:backdrop-blur-xs"
+              onClick={closeDock}
+            />
+            {/* As wide as beside the page, never wider than it; it arrives as the dock does. */}
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={DOCK_TITLE[dock.kind]}
+              tabIndex={-1}
+              onKeyDown={(e) => {
+                // Any panel in the sheet closes on Escape; a field, menu or dialog in it keeps its own.
+                if (e.key !== 'Escape' || e.defaultPrevented) return
+                const keeps = (e.target as HTMLElement).closest(
+                  'input, textarea, [contenteditable], [role=menu], [role=listbox], [role=dialog]',
+                )
+                if (keeps && keeps !== e.currentTarget) return
+                e.preventDefault()
+                closeDock()
+              }}
+              className="absolute inset-y-0 right-0 z-dock dock-enter border-l bg-background shadow-lift outline-none"
+              style={{ width: `min(${dock.width}px, 100%)` }}
+              ref={(node) => {
+                sheetNode.current = node
+                if (node) dockNode.current = node
+              }}
+            >
+              <SafeDock />
+            </div>
+          </>
+        )}
         {leaving && <DockLeaving picture={leaving} />}
         {isMobile && dock && (
           <div className="fixed inset-0 z-dock dock-enter bg-background">

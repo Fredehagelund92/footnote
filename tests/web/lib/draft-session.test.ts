@@ -26,6 +26,7 @@ const form: SessionForm = {
   from: '',
   until: '',
   source: '',
+  said: '',
   quote: '',
   dontConclude: '',
 }

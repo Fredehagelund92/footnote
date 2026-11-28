@@ -150,11 +150,12 @@ export function setQuery(changes: Record<string, string | undefined>) {
 
 /**
  * The same, settling once the new address is drawn: for a view transition to wait on. With
- * `replace` it takes the place of the address now, so Back skips it.
+ * `replace` it takes the place of the address now, so Back skips it. `state` is kept with the
+ * history entry, so it survives a reload and goes with Back and Forward.
  */
 export function changeQuery(
   changes: Record<string, string | undefined>,
-  opts?: { replace?: boolean },
+  opts?: { replace?: boolean; state?: Record<string, unknown> },
 ) {
   const { path, query } = current()
   const q = new URLSearchParams(query)
@@ -162,8 +163,27 @@ export function changeQuery(
     if (v) q.set(k, v)
     else q.delete(k)
   }
-  return router!.navigate({ href: href(path, Object.fromEntries(q)), replace: opts?.replace })
+  // A change to anything but the panel itself (its tab, its variant) stays the same panel, which
+  // is still where it was reached from.
+  const state = opts?.state ?? ('dock' in changes ? undefined : carried())
+  return router!.navigate({
+    href: href(path, Object.fromEntries(q)),
+    replace: opts?.replace,
+    state: state as never,
+  })
 }
+
+/** The panel's trail on the entry in view (lib/dock.ts), for the next entry to keep. */
+function carried() {
+  const { dockFrom, dockAt } = history!.location.state as unknown as Record<string, unknown>
+  return dockFrom === undefined ? undefined : { dockFrom, dockAt }
+}
+
+/** Where this tab is in its history: the entry's own number, as the router counts them. */
+export const entryIndex = () => history!.location.state.__TSR_index
+
+/** Go back or forward through history by `steps` entries, as the browser's Back button does. */
+export const stepHistory = (steps: number) => history!.go(steps)
 
 /** A plain click on a link (no modifier key) does `then` in its place; any other opens the link. */
 export const plainClick = (then: () => void) => (e: React.MouseEvent) => {

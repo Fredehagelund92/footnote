@@ -5,9 +5,9 @@ import { releaseWords } from '../landing/release.ts'
 
 /*
   The landing page on the built site: the first screen's four questions by mouse, keyboard and
-  typing, what a reader with reduced motion gets, the leaders ending on their marks, the
-  definitions window and the tour, the release switch as it is built, an axe pass at WCAG AA, and
-  screenshot baselines. Fonts render a little differently on each system, so each platform keeps
+  typing, what a reader with reduced motion gets, the leaders ending on their marks, the week
+  picked along the Orders line by keys and by a drag, the definitions window and the tour, the
+  release switch as it is built, an axe pass at WCAG AA, and screenshot baselines. Fonts render a little differently on each system, so each platform keeps
   its own baselines (Playwright's default path ends in the platform's name). Where a platform has
   none yet the check says so and skips; `npm run test:smoke -- e2e/landing.spec.ts
   --update-snapshots` on that platform writes them, for review by eye in a pull request.
@@ -146,6 +146,25 @@ test('with motion, the opening asks Norway and its leader ends on its number', a
   for (const gap of gaps) expect(gap).toBeLessThanOrEqual(3)
 })
 
+test('with motion, the thread plays once into its answer, and a door picked plays its draft again', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  const said = page.locator('#said-demo')
+  await said.locator('.flow').scrollIntoViewIfNeeded()
+  await expect(said.locator('.viaagent')).toHaveClass(/\bon\b/, { timeout: 15_000 })
+  await expect(said.locator('[data-at]:not(.on)')).toHaveCount(0)
+  await said.getByRole('tab', { name: /Hand it to your agent/ }).click()
+  const lead = said.locator('#lead-agent')
+  await expect(lead).toBeVisible()
+  // The draft's pane starts again and finishes; the answer's pane stays as it was.
+  await expect(said.locator('.p-draft [data-at]:not(.on)').first()).toBeAttached()
+  await expect(said.locator('.p-answer [data-at]:not(.on)')).toHaveCount(0)
+  await expect(said.locator('.p-draft .dfoot')).toHaveClass(/\bon\b/, { timeout: 15_000 })
+  await expect(said.locator('[data-at]:not(.on)')).toHaveCount(0)
+})
+
 test.describe('the first screen', () => {
   test.use({ reducedMotion: 'reduce' })
 
@@ -185,8 +204,92 @@ test.describe('the first screen', () => {
   })
 })
 
+const scrubber = (page: Page) => page.locator('#sb')
+const weekPicked = (page: Page) => page.getByRole('slider', { name: 'The week asked about' })
+
+/** The week the meaning section asks about, and what it shows for it. */
+async function expectWeek(page: Page, day: string, line: 'Checked' | 'Not found', says: RegExp) {
+  const sb = scrubber(page)
+  await expect(sb.locator('.sb-q')).toContainText(
+    `What happened to orders in Norway in the week of ${day}?`,
+  )
+  await expect(weekPicked(page)).toHaveAttribute('aria-valuetext', `Week of ${day}`)
+  await expect(sb.locator('.sb-res .badge:visible')).toHaveText(line)
+  await expect(sb.locator('.sb-says')).toHaveText(says)
+}
+
+const afterStop =
+  /^Orders in Norway were almost nothing that week, because online sales there stopped on 4 August under a new customs rule\.1$/
+const beforeStop = /^Orders in Norway were .+\. Nothing is written about that week\.$/
+
+test('with motion, the meaning section walks over the stop once and ends Checked', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  await scrubber(page).scrollIntoViewIfNeeded()
+  await expect(scrubber(page)).toHaveClass(/\bglide\b/)
+  await expect(scrubber(page)).not.toHaveClass(/\bglide\b/, { timeout: 10_000 })
+  await expectWeek(page, '10 Aug 2026', 'Checked', afterStop)
+  await expect(scrubber(page).locator('.sb-hint')).toBeVisible()
+})
+
 test.describe('below the first screen', () => {
   test.use({ reducedMotion: 'reduce' })
+
+  test('the meaning section opens on 10 August, and the keys move it a week across the stop', async ({
+    page,
+  }) => {
+    await open(page)
+    await expectWeek(page, '10 Aug 2026', 'Checked', afterStop)
+    await expect(scrubber(page).locator('.sb-move')).toHaveText('Almost nothing')
+    await expect(page.locator('#sb-live')).toHaveText('')
+    await weekPicked(page).focus()
+    await page.keyboard.press('ArrowLeft')
+    await expectWeek(page, '3 Aug 2026', 'Checked', /^Orders in Norway fell sharply that week/)
+    await expect(scrubber(page).locator('.sb-dtext')).toHaveText('3 to 9 Aug, takes in 4 Aug')
+    await page.keyboard.press('ArrowLeft')
+    await expectWeek(page, '27 Jul 2026', 'Not found', beforeStop)
+    await expect(scrubber(page).locator('.sb-dtext')).toHaveText('27 Jul to 2 Aug, before 4 Aug')
+    await expect(scrubber(page)).toHaveClass(/\bused\b/)
+    await expect(page.locator('#sb-live')).toHaveText(
+      /^Not found\. Your agent says: Orders in Norway/,
+    )
+    await page.keyboard.press('End')
+    await expectWeek(page, '23 Nov 2026', 'Checked', afterStop)
+    await page.keyboard.press('Home')
+    await expectWeek(page, '5 Jan 2026', 'Not found', beforeStop)
+    // The page shows no figure, only the line, and says each week in words.
+    await expect(scrubber(page).locator('.sb-move')).toHaveText('About the same as usual')
+  })
+
+  test('the meaning section follows a drag along the line', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page)
+    const chart = scrubber(page).locator('.sb-chart')
+    await chart.scrollIntoViewIfNeeded()
+    const box = (await chart.boundingBox())!
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, { steps: 8 })
+    await page.mouse.up()
+    await expect(scrubber(page).locator('.sb-res .badge:visible')).toHaveText('Not found')
+    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2, { steps: 8 })
+    await page.mouse.up()
+    await expect(scrubber(page).locator('.sb-res .badge:visible')).toHaveText('Checked')
+    await expect(scrubber(page).locator('.sb-says')).toHaveText(afterStop)
+  })
+
+  for (const theme of themes)
+    test(`the meaning section passes axe at AA before the stop, in ${theme}`, async ({ page }) => {
+      await open(page, theme)
+      await weekPicked(page).focus()
+      await page.keyboard.press('Home')
+      await expect(scrubber(page).locator('.sb-res .badge:visible')).toHaveText('Not found')
+      await expectAxeClean(page)
+    })
 
   test('the definitions window opens the metric pressed', async ({ page }) => {
     await open(page)
@@ -215,6 +318,53 @@ test.describe('below the first screen', () => {
     await expect(shot).toHaveAttribute('src', /observability-dark/)
     await page.keyboard.press('Home')
     await expect(shot).toHaveAttribute('src', /item-dark/)
+  })
+})
+
+test.describe('the thread that becomes a note', () => {
+  test.use({ reducedMotion: 'reduce' })
+
+  test('shows each door, by mouse and with the arrow keys, finished and still', async ({
+    page,
+  }) => {
+    await open(page)
+    const said = page.locator('#said-demo')
+    const paste = said.getByRole('tab', { name: /Paste it into Footnote/ })
+    const agent = said.getByRole('tab', { name: /Hand it to your agent/ })
+    await expect(paste).toHaveAttribute('aria-selected', 'true')
+    await expect(said.getByRole('tabpanel')).toHaveCount(1)
+    await expect(said.getByRole('tabpanel')).toContainText('Filled in by rule, with no AI model.')
+    await expect(said.getByRole('heading', { level: 3 })).toHaveText([
+      '1A thread in your team chat',
+      '2Your draft. Only you see it',
+      '3The owner checks it. Agents answer from it',
+    ])
+    await agent.click()
+    await expect(agent).toHaveAttribute('aria-selected', 'true')
+    await expect(said.getByRole('tabpanel')).toContainText('"status": "draft_saved"')
+    await expect(said.locator('#lead-paste')).toBeHidden()
+    await page.keyboard.press('ArrowLeft')
+    await expect(paste).toBeFocused()
+    await expect(paste).toHaveAttribute('aria-selected', 'true')
+    await expect(said.locator('#lead-agent')).toBeHidden()
+    await page.keyboard.press('End')
+    await expect(agent).toBeFocused()
+    // Finished at once, the guess struck and the checked answer there.
+    await expect(said.locator('.ans')).toBeVisible()
+    await expect(said.getByText('Checked by Jon Abara, owner of Sales, 16 Nov 2026')).toBeVisible()
+    await expectAxeClean(page)
+  })
+
+  test('says it is a demonstration, and names no chat app but to say Footnote has none', async ({
+    page,
+  }) => {
+    await open(page)
+    const said = page.locator('#said')
+    await expect(said.locator('figcaption')).toHaveText(
+      'A demonstration the page plays, not a recording. The thread, the company and the people are invented. Footnote has no Slack app: you copy the thread.',
+    )
+    const words = await said.evaluate((el) => el.textContent ?? '')
+    expect(words.match(/Slack|Teams|Google Chat/g)).toEqual(['Slack'])
   })
 })
 
@@ -261,6 +411,22 @@ const shots = [
     theme: 'light',
     ask: asked[3].q,
   },
+  ...(['1440-dark', '1440-light', '768-dark', '390-dark'] as const).map((size) => {
+    const [width, theme] = size.split('-') as [string, Theme]
+    return {
+      name: `said-${size}`,
+      viewport: { width: Number(width), height: 900 },
+      theme,
+      part: '#said',
+    }
+  }),
+] as const
+
+/** The meaning section alone, as it opens. */
+const meaningShots = [
+  { name: 'meaning-1440-dark', viewport: { width: 1440, height: 900 }, theme: 'dark' },
+  { name: 'meaning-768-light', viewport: { width: 768, height: 1024 }, theme: 'light' },
+  { name: 'meaning-390-dark', viewport: { width: 390, height: 844 }, theme: 'dark' },
 ] as const
 
 test.describe('screenshots', () => {
@@ -281,6 +447,30 @@ test.describe('screenshots', () => {
         await page.mouse.move(0, 0)
         await win(page).scrollIntoViewIfNeeded()
       }
-      await expect(page).toHaveScreenshot(file, { caret: 'hide', maxDiffPixelRatio: 0.01 })
+      if ('part' in shot) {
+        // The header stays at the top and would cover the part's first lines.
+        await page.addStyleTag({ content: 'header.top { visibility: hidden }' })
+        await expect(page.locator(shot.part)).toHaveScreenshot(file, {
+          caret: 'hide',
+          maxDiffPixelRatio: 0.01,
+        })
+      } else await expect(page).toHaveScreenshot(file, { caret: 'hide', maxDiffPixelRatio: 0.01 })
+    })
+  for (const shot of meaningShots)
+    test(shot.name, async ({ page }, info) => {
+      const file = `${shot.name}.png`
+      const update = info.config.updateSnapshots
+      test.skip(
+        !existsSync(info.snapshotPath(file)) && update !== 'all' && update !== 'changed',
+        `No baseline of ${file} for ${process.platform} yet: write one with --update-snapshots`,
+      )
+      await page.setViewportSize(shot.viewport)
+      await open(page, shot.theme)
+      // The header stays at the top of the window, so it would cover the section's heading.
+      await page.addStyleTag({ content: 'header.top { position: static }' })
+      await expect(page.locator('#meaning')).toHaveScreenshot(file, {
+        caret: 'hide',
+        maxDiffPixelRatio: 0.01,
+      })
     })
 })

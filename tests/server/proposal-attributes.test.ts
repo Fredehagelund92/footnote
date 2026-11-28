@@ -104,18 +104,19 @@ describe('the form, the schemas and the tool share one set of limits', () => {
     expect(ok(evidence(over(limits.quote)))).toBe(false)
   })
   it("in the agent tool's input", () => {
+    type Fields = { properties: Record<string, { maxLength?: number }> }
     const schema = z.toJSONSchema(writeDraftInput, { io: 'input' }) as {
-      properties: Record<
-        string,
-        { maxLength?: number; items?: { properties: Record<string, { maxLength?: number }> } }
-      >
+      properties: Record<string, { maxLength?: number; items?: { anyOf: Fields[] } }>
     }
     expect(schema.properties.title?.maxLength).toBe(limits.title)
     expect(schema.properties.summary?.maxLength).toBe(limits.summary)
     expect(schema.properties.not_to_conclude?.maxLength).toBe(limits.notToConclude)
     expect(schema.properties.area?.maxLength).toBe(limits.areaId)
-    expect(schema.properties.evidence?.items?.properties.url?.maxLength).toBe(limits.url)
-    expect(schema.properties.evidence?.items?.properties.quote?.maxLength).toBe(limits.quote)
+    // A link and a sentence from it, or, with no link, the line that says who or what says so.
+    const [link, said] = schema.properties.evidence!.items!.anyOf
+    expect(link?.properties.url?.maxLength).toBe(limits.url)
+    expect(link?.properties.quote?.maxLength).toBe(limits.quote)
+    expect(said?.properties.said_by?.maxLength).toBe(limits.quote)
   })
   it('in the draft a person saves while it is incomplete', () => {
     expect(draftSchema.safeParse({ title: at(limits.title) }).success).toBe(true)

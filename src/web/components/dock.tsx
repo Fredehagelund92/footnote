@@ -3,11 +3,14 @@ import { ArrowLeftIcon, Maximize2Icon } from '@/components/icons'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { closeDock } from '@/lib/dock'
+import { Kbd } from '@/components/ui/kbd'
+import { closeDock, dockBack, DOCK_TITLE, useDockBack, type DockKind } from '@/lib/dock'
+import { useFact } from '@/lib/workspace'
 import { Panel } from '@/components/footnote/panel'
 
 // The dock: Footnote's right panel. A region beside the page, not a dialog. 480 wide for Ask, a context
-// peek, Try it and an agent's view; 720 for a review. On a phone it fills the screen.
+// peek, Try it and an agent's view; 720 for a review. Under 1100 px it is a sheet over the page, and
+// on a phone it fills the screen.
 
 export function DockFrame({
   title,
@@ -30,7 +33,9 @@ export function DockFrame({
   children: ReactNode
 }) {
   const isMobile = useIsMobile()
-  // The shared panel anatomy; on a phone the dock is a screen of its own, so it goes back instead of closing.
+  const back = useDockBack()
+  // The shared panel anatomy; on a phone the dock is a screen of its own, so it leaves instead of
+  // closing. With a step back to take, the arrow says it leaves and the link goes back.
   return (
     <Panel
       title={title}
@@ -38,11 +43,17 @@ export function DockFrame({
       waiting={waiting}
       leading={
         isMobile && (
-          <Button variant="ghost" size="icon" aria-label="Back" onClick={closeDock}>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={back ? 'Close the panel' : 'Back'}
+            onClick={closeDock}
+          >
             <ArrowLeftIcon />
           </Button>
         )
       }
+      back={back && <BackLink from={back.from} steps={back.steps} />}
       actions={actions}
       onClose={isMobile ? undefined : closeDock}
       footer={
@@ -63,6 +74,40 @@ export function DockFrame({
     >
       {children}
     </Panel>
+  )
+}
+
+/** The words for a panel in the Back link: an item's or a definition's own title, else the panel's name. */
+function useTitleOf({ kind, id }: { kind: DockKind; id?: string }) {
+  const fact = useFact(kind === 'context' ? id : undefined)
+  if (kind === 'context') return fact?.title
+  if (kind === 'def') return id
+  return DOCK_TITLE[kind]
+}
+
+/** One step back to the panel this one was reached from; the bar's close always leaves the panel. */
+function BackLink({ from, steps }: { from: { kind: DockKind; id?: string }; steps: number }) {
+  const title = useTitleOf(from)
+  return (
+    <div data-dock-back className="flex h-9 shrink-0 items-center border-b px-2 md:px-4">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="-ml-1.5 max-w-full min-w-0 justify-start gap-1.5 px-1.5 font-normal text-muted-foreground"
+              onClick={() => dockBack(steps)}
+            />
+          }
+        >
+          <ArrowLeftIcon />
+          <span className="truncate">{title ? `Back to ${title}` : 'Back'}</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          Back <Kbd>H</Kbd>
+        </TooltipContent>
+      </Tooltip>
+    </div>
   )
 }
 

@@ -2,7 +2,7 @@
 title: Decide a conflict
 line: 'Two items that say different things: compare them, then keep one, narrow one or keep both.'
 group: Write and review
-order: 6
+order: 7
 minutes: 3
 reviewed: 2026-11-02
 open:

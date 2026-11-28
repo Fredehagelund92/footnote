@@ -37,7 +37,7 @@ import { adoptPublished } from '../modules/saved-questions/index.ts'
 import { productName } from '../brand.ts'
 import type { Principal } from './auth.ts'
 import { readDraftInput, sendDraftInput, writeDraftInput, type WriteDraftInput } from './schemas.ts'
-import { resultFor, type ToolResult } from './service.ts'
+import { resultFor, sourceOutput, type ToolResult } from './service.ts'
 
 /*
   A draft the person writes together with their agent (Route 1, slice R1a). The draft lives in
@@ -211,7 +211,7 @@ export async function draftFieldsOf(tx: Queryable, p: ProposalRecord) {
           ...(draft.validity.end ? { to: shiftDate(draft.validity.end, -1) } : {}),
         }
       : null,
-    evidence: draft.evidence?.map(({ url, quote }) => ({ url, quote })) ?? null,
+    evidence: draft.evidence?.map(sourceOutput) ?? null,
     not_to_conclude: draft.notToConclude ?? null,
   }
   const fields = {} as Record<DraftFieldName, DraftFieldView>

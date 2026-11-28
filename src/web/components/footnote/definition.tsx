@@ -37,6 +37,7 @@ import { PeekBand, PeekFact, PeekFacts, PeekLabel } from '@/components/footnote/
 import { MoreProperties, Property } from '@/components/footnote/doc'
 import { VersionHistory } from '@/components/footnote/version-history'
 import { useQuery } from '@tanstack/react-query'
+import { toApiError, type ApiError } from '@/api/errors'
 import { builtFromQuery, definitionHistoryQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
@@ -202,9 +203,10 @@ type Refused = { word: string; reason: string }
  * The other names for a definition, as tags in one box: type a word and a comma (or Enter, or
  * paste "GMV, turnover, sales value") and each becomes a tag at once, saved as a synonym. Backspace
  * in the empty box selects the last tag, then removes it; x removes one. A word that already means
- * something else stays as a warning tag that says who has it, and is never saved. The source's own
- * names are locked tags. Escape keeps every tag made so far. The same box on the definition's
- * page, in its quick view and in the term editor, so all three write the one list.
+ * something else stays as a warning tag that says who has it, and is never saved. A word the
+ * service turns down for another reason says that reason. The source's own names are locked tags.
+ * Escape keeps every tag made so far. The same box on the definition's page, in its quick view and
+ * in the term editor, so all three write the one list.
  */
 export function SynonymTags({
   d,
@@ -274,18 +276,19 @@ export function SynonymTags({
     inTurn(async () => {
       const added: string[] = []
       const out: Refused[] = []
-      const failed: string[] = []
+      const failed: { word: string; error: ApiError }[] = []
       for (const w of fresh) {
         try {
           const r = await write('addSynonym', { target: point.name, word: w })
           if (r.ok) added.push(w)
           else if (r.why === 'here') setFlash(w)
           else if (r.why !== 'empty') out.push({ word: w, reason: r.reason })
-        } catch {
-          failed.push(w)
+        } catch (e) {
+          failed.push({ word: w, error: toApiError(e) })
         }
       }
-      unsaved.current = [...unsaved.current, ...failed, ...out.map((o) => o.word)]
+      const lost = failed.map((f) => f.word)
+      unsaved.current = [...unsaved.current, ...lost, ...out.map((o) => o.word)]
       setAdding((list) => without(list, fresh))
       setRefused((prev) => [
         ...prev.filter(
@@ -302,10 +305,16 @@ export function SynonymTags({
           .filter(Boolean)
           .join(' '),
       )
+      // A save that got no answer, or that the service failed, may go through when tried again. A
+      // word the service turned down says why, in its words, and trying again changes nothing.
+      const turnedDown = failed.filter((f) => !f.error.retryable && f.error.kind !== 'failed')
+      const again = lost.filter((w) => !turnedDown.some((f) => f.word === w))
       if (failed.length)
-        toast.error(`Couldn't add ${failed.map((w) => `“${w}”`).join(', ')}`, {
-          description: 'Nothing was saved.',
-          action: { label: 'Try again', onClick: () => commit(failed) },
+        toast.error(`Couldn't add ${lost.map((w) => `“${w}”`).join(', ')}`, {
+          description: turnedDown.length
+            ? [...new Set(turnedDown.map((f) => f.error.message))].join(' ')
+            : 'Nothing was saved.',
+          ...(again.length ? { action: { label: 'Try again', onClick: () => commit(again) } } : {}),
         })
     })
   }

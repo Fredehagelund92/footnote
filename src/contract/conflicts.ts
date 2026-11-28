@@ -26,8 +26,11 @@ export const conflictSideSchema = z.object({
   /** The version agents get now: a decision names both, and a change in between holds it. */
   version: z.number(),
   checked: z.nullable(z.object({ on: isoDate, personId: z.nullable(z.string()) })),
-  /** Its first source and the line its owner copied from it. */
-  source: z.nullable(z.object({ url: z.string(), quote: z.string() })),
+  /**
+   * Its first source and the line its owner copied from it. One with no link has a null `url`,
+   * and its line says who or what says so.
+   */
+  source: z.nullable(z.object({ url: z.nullable(z.string()), quote: z.string() })),
   /** When it applies from, as stored; null for always. */
   from: z.nullable(isoDate),
 })

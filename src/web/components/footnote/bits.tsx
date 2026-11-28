@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useDomains } from '@/lib/workspace'
 import { diffWords } from 'diff/lib/diff/word.js'
-import { BotIcon } from '@/components/icons'
+import { BotIcon, UserRoundIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -103,6 +103,20 @@ export function WithAction({ children, action }: { children: ReactNode; action?:
 }
 
 /* ---------- context items ---------- */
+
+/**
+ * A source with no link (FR-116): the line its owner wrote on who or what says so, and that there
+ * is no link to open. Wherever an item's source is shown, this stands where the link would.
+ */
+export function SaidSource({ line, className }: { line: string; className?: string }) {
+  return (
+    <span className={cn('inline-flex min-w-0 flex-wrap items-baseline gap-x-1.5', className)}>
+      <UserRoundIcon aria-hidden className="size-3.5 shrink-0 self-center" />
+      <span className="min-w-0 break-words text-foreground">{line}</span>
+      <span className="text-xs text-muted-foreground">No link</span>
+    </span>
+  )
+}
 
 export function DomainBadge({ id }: { id: DomainId }) {
   const domains = useDomains()

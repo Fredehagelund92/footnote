@@ -72,7 +72,7 @@ export const changeBlockSchema = z.union([
   z.strictObject({
     kind: z.enum(['added', 'removed']),
     field: z.literal('sources'),
-    url: z.string(),
+    url: z.nullable(z.string()),
     quote: z.nullable(z.string()),
   }),
   z.strictObject({
@@ -198,7 +198,8 @@ export const reviewFieldsSchema = z.object({
   scope: z.array(z.string()),
   validity: span,
   reviewDate: z.nullable(z.string()),
-  sources: z.array(z.object({ url: z.string(), quote: z.nullable(z.string()) })),
+  /** Each source: its link, or null for one with no link, whose quote says who or what says so. */
+  sources: z.array(z.object({ url: z.nullable(z.string()), quote: z.nullable(z.string()) })),
   notToConclude: z.string(),
 })
 export type ReviewFields = z.infer<typeof reviewFieldsSchema>

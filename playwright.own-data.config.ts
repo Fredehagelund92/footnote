@@ -56,7 +56,6 @@ export default defineConfig({
           : {}),
         FOOTNOTE_WEB_ORIGINS: `http://localhost:${webPort}`,
         MCP_RESOURCE_URL: `http://localhost:${apiPort}/mcp`,
-        FOOTNOTE_DEV_PEOPLE_FILE: 'db/seed/people.local.yml',
         // Named, as a person who runs this beside the demo would name it.
         FOOTNOTE_PROFILE_LABEL: 'Own data trial',
         FOOTNOTE_SECRETS_DIR: join(mkdtempSync(join(tmpdir(), 'footnote-own-data-')), 'secrets'),

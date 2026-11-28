@@ -26,14 +26,14 @@ import { missing } from '../../../contract/refusals.ts'
 
 /**
  * Terms and synonyms (FR-138): the words people write in Definitions. A term has its own meaning;
- * a synonym is another name for a metric, a dimension or a term. One word has one meaning across
- * the workspace: a word the vocabulary, the definitions source or another term already uses is
- * refused, naming who has it (`wordRefusal`). An owner of the term's domain or an admin writes it;
- * a synonym's domain is what it means. Nothing is ever removed: a deleted term keeps its row, its
- * synonyms go with it, and it can be restored. A change to many terms records one term_changes
- * row, and its Undo takes back exactly what it did, within limits.undo_seconds, by its maker only.
- * Row security and the database's own checks (db/migrations/0001_schema.sql) keep the same rules
- * on every path. Agents read the live terms through `serving_terms()` (src/domain/served-terms.ts).
+ * a synonym is another name for a metric or a family of them (FR-142), a dimension or a term. One
+ * word has one meaning across the workspace: a word the vocabulary, the definitions source or
+ * another term already uses is refused, naming who has it (`wordRefusal`). An owner of the term's
+ * domain or an admin writes it; a synonym's domain is what it means. Nothing is ever removed: a
+ * deleted term keeps its row, its synonyms go with it, and it can be restored. A change to many
+ * terms records one term_changes row, and its Undo takes back exactly what it did, within
+ * limits.undo_seconds, by its maker only. Row security and the database's own checks
+ * (db/migrations/0001_schema.sql) keep the same rules on every path. Agents read the live terms through `serving_terms()` (src/domain/served-terms.ts).
  */
 export type TermsService = ReturnType<typeof createTermsService>
 
@@ -59,7 +59,7 @@ type Row = {
   canChange: boolean
 }
 
-/** What a synonym would mean: a metric, a dimension or a term with its own meaning. */
+/** What a synonym would mean: a metric or a family of them, a dimension, or a term of its own. */
 type Point = {
   ref: string
   name: string
@@ -72,7 +72,7 @@ type Point = {
 const iso = (column: string) =>
   `to_char(${column} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`
 
-/** The live vocabulary's metrics and dimensions, by key. */
+/** The live vocabulary's metrics, families of metrics and dimensions, by key. */
 const liveVocabulary = `
   select s.term_key as key, v.name, t.kind::text as kind,
          coalesce(v.area_id, d.area_id) as area_id
@@ -80,7 +80,7 @@ const liveVocabulary = `
     join vocab_term_versions v on v.id = s.version_id
     join vocab_terms t on t.key = s.term_key
     left join source_domain_service d on d.term_key = s.term_key and d.editions @> (select seq from live_edition)
-   where s.editions @> (select seq from live_edition) and t.kind in ('metric', 'dimension')`
+   where s.editions @> (select seq from live_edition) and t.kind in ('metric', 'metric_group', 'dimension')`
 
 /** Every term the person may read, with what a synonym means. */
 const termRows = `
@@ -91,7 +91,7 @@ const termRows = `
                   (select v.name from vocab_term_versions v where v.term_key = t.same_as_key
                     order by v.version_no desc limit 1)) as "targetName",
          case when t.same_as_term is not null then 'term'
-              when t.same_as_key like 'metric:%' then 'metric'
+              when t.same_as_key like 'metric:%' or t.same_as_key like 'group:%' then 'metric'
               when t.same_as_key is not null then 'dimension' end as "targetType",
          (t.same_as_key is null or l.key is not null) as "targetLive",
          t.area_id as "areaId", t.created_by::text as "createdBy", ${iso('t.created_at')} as "createdAt",
@@ -221,7 +221,8 @@ export function createTermsService(tx: Queryable) {
       return {
         ref: row.key,
         name: row.name,
-        type: row.kind === 'metric' ? 'metric' : 'dimension',
+        // A family is one metric in Definitions, as the catalogue lists it.
+        type: row.kind === 'dimension' ? 'dimension' : 'metric',
         key: row.key,
         term: null,
         areaId: row.area_id,
@@ -230,7 +231,7 @@ export function createTermsService(tx: Queryable) {
     const target = await rowOf(parsed.term!)
     if (!target || target.deletedAt)
       throw new ORPCError('NOT_FOUND', {
-        message: "What it is another name for isn't in Definitions any more.",
+        message: `${target ? `“${target.name}”` : 'What it is another name for'} isn't in Definitions any more.`,
       })
     // A synonym of a synonym means what that one means.
     if (target.sameAsKey) return pointOf(target.sameAsKey)

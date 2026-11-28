@@ -382,14 +382,22 @@ export type BulkChange = {
  * (FOOTNOTE_PROFILE_LABEL), null when none is set.
  */
 export type SignInMethod = { demo: boolean; profileLabel: string | null } & (
-  { kind: 'picker' } | { kind: 'oidc'; name: string; start: string }
+  | {
+      kind: 'picker'
+      /**
+       * Nobody is in the workspace yet: an install on its own data, before its first visit. The
+       * page then asks the first person who they are, and they become its admin.
+       */
+      first: boolean
+    }
+  | { kind: 'oidc'; name: string; start: string }
 )
 
-/**
- * Someone the picker offers: whether they are an admin, and whether they are a sample person, at an
- * address in the reserved .test domain no real person has (db/seed/people.local.yml).
- */
-export type SignInChoice = { name: string; admin: boolean; sample: boolean }
+/** Someone the picker offers, and whether they are an admin. */
+export type SignInChoice = { name: string; admin: boolean }
+
+/** Who the first person of a workspace says they are, and what the workspace is called. */
+export type FirstPerson = { name: string; email: string; workspace: string }
 
 /** What an open invite's link says on the sign-in screen: the domains by name, read signed out. */
 export type InviteNote = { email: string; admin: boolean; domains: string[] }
@@ -414,6 +422,11 @@ export interface FootnoteApi {
   listSignInPeople: () => Promise<SignInChoice[]>
   /** Signs in as one of them. */
   signIn: (input: { name: string }) => Promise<Session>
+  /**
+   * The first person of a workspace with nobody in it says who they are and names it: they are
+   * its admin and signed in. Refused once someone is there.
+   */
+  setUpWorkspace: (input: FirstPerson) => Promise<Session>
   signOut: () => Promise<void>
   getWorkspace: () => Promise<Workspace>
   getVocabulary: () => Promise<Vocabulary>
@@ -1029,6 +1042,7 @@ export const footnoteApiMethods = [
   'readInvite',
   'listSignInPeople',
   'signIn',
+  'setUpWorkspace',
   'signOut',
   'getWorkspace',
   'getVocabulary',

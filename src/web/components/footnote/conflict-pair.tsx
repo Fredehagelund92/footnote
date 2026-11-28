@@ -75,7 +75,11 @@ export function ConflictPairCompact({
       <p className="text-xs text-muted-foreground">
         {s.domainName}
         {s.checkedOn && `, checked ${s.checkedOn}`}
-        {s.source && <span className="break-all">, {sourceShort(s.source.url)}</span>}
+        {s.source && (
+          <span className="break-all">
+            , {s.source.url === null ? `${s.source.quote} (no link)` : sourceShort(s.source.url)}
+          </span>
+        )}
       </p>
     </div>
   )

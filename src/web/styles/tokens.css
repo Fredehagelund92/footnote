@@ -588,7 +588,7 @@
   z-index: 30;
 }
 
-/* The dock when it fills a phone's screen. */
+/* The dock over the page: a tablet's sheet, or a phone's whole screen. */
 @utility z-dock {
   z-index: 40;
 }

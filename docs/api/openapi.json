@@ -134,8 +134,15 @@
                           "type": "object",
                           "properties": {
                             "url": {
-                              "type": "string",
-                              "maxLength": 2000
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             },
                             "quote": {
                               "type": "string",
@@ -603,8 +610,15 @@
                             "type": "object",
                             "properties": {
                               "url": {
-                                "type": "string",
-                                "maxLength": 2000
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "quote": {
                                 "type": "string",
@@ -1522,8 +1536,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -2459,8 +2480,15 @@
                                   "type": "object",
                                   "properties": {
                                     "url": {
-                                      "type": "string",
-                                      "maxLength": 2000
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "maxLength": 2000
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
                                     },
                                     "quote": {
                                       "type": "string",
@@ -3402,8 +3430,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -4277,8 +4312,15 @@
                             "type": "object",
                             "properties": {
                               "url": {
-                                "type": "string",
-                                "maxLength": 2000
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "quote": {
                                 "type": "string",
@@ -5196,8 +5238,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -6092,8 +6141,15 @@
                             "type": "object",
                             "properties": {
                               "url": {
-                                "type": "string",
-                                "maxLength": 2000
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "quote": {
                                 "type": "string",
@@ -7011,8 +7067,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -7913,8 +7976,15 @@
                             "type": "object",
                             "properties": {
                               "url": {
-                                "type": "string",
-                                "maxLength": 2000
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "quote": {
                                 "type": "string",
@@ -8832,8 +8902,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -10071,7 +10148,14 @@
                                     "const": "sources"
                                   },
                                   "url": {
-                                    "type": "string"
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
                                   },
                                   "quote": {
                                     "anyOf": [
@@ -10925,7 +11009,14 @@
                                     "type": "object",
                                     "properties": {
                                       "url": {
-                                        "type": "string"
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
                                       },
                                       "quote": {
                                         "anyOf": [
@@ -11077,7 +11168,14 @@
                                     "type": "object",
                                     "properties": {
                                       "url": {
-                                        "type": "string"
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
                                       },
                                       "quote": {
                                         "anyOf": [
@@ -13302,7 +13400,14 @@
                                           "const": "sources"
                                         },
                                         "url": {
-                                          "type": "string"
+                                          "anyOf": [
+                                            {
+                                              "type": "string"
+                                            },
+                                            {
+                                              "type": "null"
+                                            }
+                                          ]
                                         },
                                         "quote": {
                                           "anyOf": [
@@ -14094,7 +14199,14 @@
                                           "type": "object",
                                           "properties": {
                                             "url": {
-                                              "type": "string"
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
                                             },
                                             "quote": {
                                               "anyOf": [
@@ -14246,7 +14358,14 @@
                                           "type": "object",
                                           "properties": {
                                             "url": {
-                                              "type": "string"
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                }
+                                              ]
                                             },
                                             "quote": {
                                               "anyOf": [
@@ -22604,9 +22723,16 @@
                               "type": "object",
                               "properties": {
                                 "url": {
-                                  "type": "string",
-                                  "maxLength": 2000,
-                                  "pattern": "^https?:\\/\\/"
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 2000,
+                                      "pattern": "^https?:\\/\\/"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "quote": {
                                   "type": "string"
@@ -26365,6 +26491,9 @@
                           "type": "null"
                         }
                       ]
+                    },
+                    "first": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
@@ -26372,7 +26501,8 @@
                     "name",
                     "start",
                     "demo",
-                    "profileLabel"
+                    "profileLabel",
+                    "first"
                   ]
                 }
               }
@@ -26979,6 +27109,394 @@
                 "required": [
                   "email"
                 ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "person": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "initials": {
+                          "type": "string"
+                        },
+                        "permissions": {
+                          "type": "object",
+                          "properties": {
+                            "roles": {
+                              "type": "array",
+                              "items": {
+                                "enum": [
+                                  "administrator"
+                                ],
+                                "type": "string"
+                              }
+                            },
+                            "assignments": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "areaId": {
+                                    "type": "string"
+                                  },
+                                  "role": {
+                                    "enum": [
+                                      "owner"
+                                    ],
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "areaId",
+                                  "role"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "roles",
+                            "assignments"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "initials",
+                        "permissions"
+                      ]
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    },
+                    "profileLabel": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "modelConnected": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "person",
+                    "csrfToken",
+                    "profileLabel",
+                    "modelConnected"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "UNAUTHORIZED"
+                        },
+                        "status": {
+                          "const": 401
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You're signed out. Sign in, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "FORBIDDEN"
+                        },
+                        "status": {
+                          "const": 403
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "You can't do this. Ask the owner of the domain or an admin."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "NOT_FOUND"
+                        },
+                        "status": {
+                          "const": 404
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "We couldn't find it. It may have been deleted, or you may not have access."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": true
+                        },
+                        "code": {
+                          "const": "CONFLICT"
+                        },
+                        "status": {
+                          "const": 409
+                        },
+                        "message": {
+                          "type": "string",
+                          "default": "Someone changed this after you opened it. Look at the latest version, then try again."
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "defined": {
+                          "const": false
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "number"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "data": {}
+                      },
+                      "required": [
+                        "defined",
+                        "code",
+                        "status",
+                        "message"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/first-person": {
+      "post": {
+        "operationId": "auth.setUp",
+        "summary": "The first person of a workspace on its own data says who they are and names the workspace: they become its admin and are signed in. Only on the picker, off the demo, while nobody is in the workspace (FR-416)",
+        "tags": [
+          "session"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120,
+                    "pattern": "^\\S(?:.*\\S)?$",
+                    "allOf": [
+                      {
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      }
+                    ]
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "workspace": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^\\S(?:.*\\S)?$",
+                    "allOf": [
+                      {
+                        "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "workspace"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -35594,7 +36112,14 @@
                               "type": "object",
                               "properties": {
                                 "url": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "quote": {
                                   "type": "string"
@@ -35747,7 +36272,14 @@
                               "type": "object",
                               "properties": {
                                 "url": {
-                                  "type": "string"
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 },
                                 "quote": {
                                   "type": "string"
@@ -37519,7 +38051,14 @@
                             "type": "object",
                             "properties": {
                               "url": {
-                                "type": "string"
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "quote": {
                                 "type": "string"
@@ -38908,7 +39447,14 @@
                                 "type": "object",
                                 "properties": {
                                   "url": {
-                                    "type": "string"
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
                                   },
                                   "quote": {
                                     "anyOf": [
@@ -39053,7 +39599,14 @@
                                 "type": "object",
                                 "properties": {
                                   "url": {
-                                    "type": "string"
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
                                   },
                                   "quote": {
                                     "anyOf": [
@@ -39924,8 +40477,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -40601,8 +41161,15 @@
                           "type": "object",
                           "properties": {
                             "url": {
-                              "type": "string",
-                              "maxLength": 2000
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             },
                             "quote": {
                               "type": "string",
@@ -43454,8 +44021,15 @@
                             "type": "object",
                             "properties": {
                               "url": {
-                                "type": "string",
-                                "maxLength": 2000
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "maxLength": 2000
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               },
                               "quote": {
                                 "type": "string",
@@ -44072,8 +44646,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -44749,8 +45330,15 @@
                           "type": "object",
                           "properties": {
                             "url": {
-                              "type": "string",
-                              "maxLength": 2000
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             },
                             "quote": {
                               "type": "string",
@@ -45433,8 +46021,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -49123,7 +49718,7 @@
                   },
                   "sameAs": {
                     "type": "string",
-                    "pattern": "^(?:metric:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    "pattern": "^(?:metric:[a-z0-9_]+|group:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
                   },
                   "areaId": {
                     "anyOf": [
@@ -49620,7 +50215,7 @@
                   },
                   "sameAs": {
                     "type": "string",
-                    "pattern": "^(?:metric:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+                    "pattern": "^(?:metric:[a-z0-9_]+|group:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
                   },
                   "areaId": {
                     "anyOf": [
@@ -70972,8 +71567,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -78218,8 +78820,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -90564,8 +91173,15 @@
                           "type": "object",
                           "properties": {
                             "url": {
-                              "type": "string",
-                              "maxLength": 2000
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "maxLength": 2000
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
                             },
                             "quote": {
                               "type": "string",
@@ -91239,8 +91855,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -92781,8 +93404,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",
@@ -99423,8 +100053,15 @@
                                         "type": "object",
                                         "properties": {
                                           "url": {
-                                            "type": "string",
-                                            "maxLength": 2000
+                                            "anyOf": [
+                                              {
+                                                "type": "string",
+                                                "maxLength": 2000
+                                              },
+                                              {
+                                                "type": "null"
+                                              }
+                                            ]
                                           },
                                           "quote": {
                                             "type": "string",

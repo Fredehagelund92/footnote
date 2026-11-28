@@ -1,7 +1,8 @@
-// The sidebar folds to its icon rail by itself for two reasons: a dock or a review is on screen, or
-// the window is under 1024 px wide, where the open sidebar leaves a page too little room. Each
-// reason remembers what the sidebar was before it, so it comes back as the person left it once the
-// reason is gone. The person's own fold (Command B, the header's toggle) still works all the while.
+// The sidebar folds to its icon rail by itself for two reasons: a dock beside the page or a review
+// is on screen, or the window is under 1024 px wide, where the open sidebar leaves a page too little
+// room. Each reason remembers what the sidebar was before it, so it comes back as the person left it
+// once the reason is gone. The person's own fold (Command B, the header's toggle) still works all
+// the while.
 
 /** What folds the sidebar by itself, at one moment. */
 export type FoldReasons = { dock: boolean; narrow: boolean }

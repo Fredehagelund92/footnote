@@ -303,6 +303,7 @@ describe('the API over HTTP', () => {
       '/audit',
       '/audit/export',
       '/audit/verify',
+      '/auth/first-person',
       '/auth/methods',
       '/auth/people',
       '/auth/session',

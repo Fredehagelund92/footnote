@@ -29,6 +29,7 @@ const form: SessionForm = {
   until: '',
   source: '',
   quote: '',
+  said: '',
   dontConclude: '',
 }
 const reply = (extra: Partial<HelpReply> = {}): HelpReply => ({

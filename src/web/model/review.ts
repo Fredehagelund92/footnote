@@ -157,7 +157,8 @@ export type FieldSide = {
   scope: string[]
   validity: Validity
   reviewDate?: string
-  sources: { url: string; quote?: string }[]
+  /** A source with no link has a null `url`, and its quote is the line that says who or what says so. */
+  sources: { url: string | null; quote?: string }[]
   dontConclude: string
 }
 

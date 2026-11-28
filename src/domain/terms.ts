@@ -29,11 +29,12 @@ export const termName = (name: string) => name.trim().replace(/\s+/g, ' ')
 export const termNamePattern = /^[^,\r\n\t]+$/
 
 /**
- * What a synonym means, as the API names it: a metric or a dimension of the vocabulary by its key
- * (`metric:gross_sales`, `dim:market`), or a term by its id (`term:<uuid>`).
+ * What a synonym means, as the API names it: a metric, a family of metrics or a dimension of the
+ * vocabulary by its key (`metric:gross_sales`, `group:revenue`, `dim:market`), or a term by its id
+ * (`term:<uuid>`).
  */
 export const termRefPattern =
-  /^(?:metric:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/
+  /^(?:metric:[a-z0-9_]+|group:[a-z0-9_]+|dim:[a-z0-9_]+|term:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/
 
 export type TermRef = { key: string; term?: never } | { term: string; key?: never }
 

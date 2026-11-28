@@ -272,6 +272,18 @@
         }
       }
     },
+    "setUp": {
+      "~orpc": {
+        "errorMap": {},
+        "meta": {
+          "scope": "public"
+        },
+        "route": {
+          "method": "POST",
+          "path": "/auth/first-person"
+        }
+      }
+    },
     "signOut": {
       "~orpc": {
         "errorMap": {},

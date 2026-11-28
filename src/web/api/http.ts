@@ -25,6 +25,7 @@ import { createORPCClient } from '@orpc/client'
 import type { AnyContractRouter, ContractRouterClient } from '@orpc/contract'
 import { OpenAPILink } from '@orpc/openapi-client/fetch'
 import type { Asked, ChosenPeriodInput, LookupEvent } from '@contract/answer'
+import type { SignedIn } from '@contract/auth'
 import type { Contract } from '@contract/index'
 import type { Feed } from '@contract/inbox'
 import type { ProposalRecord } from '@contract/proposals'
@@ -144,6 +145,7 @@ export const wiredMethods = [
   'readInvite',
   'listSignInPeople',
   'signIn',
+  'setUpWorkspace',
   'signOut',
   'getWorkspace',
   'getVocabulary',
@@ -624,6 +626,20 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     profileLabel,
     answeredBy: modelConnected ? 'model' : 'reader',
   })
+
+  /** A sign-in's answer taken in: the session's token and who is signed in from now on. */
+  const signedInAs = (signed: SignedIn): Session => {
+    csrfToken = signed.csrfToken
+    shownFor = signed.person.id
+    movingTo = undefined
+    me = {
+      id: signed.person.id,
+      name: signed.person.name,
+      admin: signed.person.permissions.roles.includes('administrator'),
+    }
+    forgetPerson()
+    return asSession(signed.person.name, signed.profileLabel, signed.modelConnected)
+  }
 
   /** Everyone the comments may name, both ways: by id, and by name for a mention. */
   async function readPeople(): Promise<People> {
@@ -1307,11 +1323,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     },
     listSignInPeople: async () => {
       offered = await read(() => client.auth.people())
-      return offered.map((p) => ({
-        name: p.name,
-        admin: p.roles.includes('administrator'),
-        sample: p.email.endsWith('.test'),
-      }))
+      return offered.map((p) => ({ name: p.name, admin: p.roles.includes('administrator') }))
     },
     // The local sign-in carries its own fixed header instead of a session's token, which it does
     // not have yet; the answer is the new session and its token.
@@ -1319,23 +1331,22 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       if (!offered.length) offered = await read(() => client.auth.people())
       const email = offered.find((p) => p.name === name)?.email
       if (!email) throw new ApiError('not-found', `${name} can't sign in here.`)
-      const signed = await read(() =>
-        client.auth.signIn(
-          { email },
-          { context: { headers: { 'x-footnote-csrf': 'dev-sign-in' } } },
+      return signedInAs(
+        await read(() =>
+          client.auth.signIn(
+            { email },
+            { context: { headers: { 'x-footnote-csrf': 'dev-sign-in' } } },
+          ),
         ),
       )
-      csrfToken = signed.csrfToken
-      shownFor = signed.person.id
-      movingTo = undefined
-      me = {
-        id: signed.person.id,
-        name: signed.person.name,
-        admin: signed.person.permissions.roles.includes('administrator'),
-      }
-      forgetPerson()
-      return asSession(signed.person.name, signed.profileLabel, signed.modelConnected)
     },
+    // The first person, as a sign-in: the same fixed header, and the session is the answer.
+    setUpWorkspace: async (input) =>
+      signedInAs(
+        await read(() =>
+          client.auth.setUp(input, { context: { headers: { 'x-footnote-csrf': 'dev-sign-in' } } }),
+        ),
+      ),
     getSignInMethod: async () => {
       const method = await read(() => client.auth.methods())
       const install = { demo: method.demo, profileLabel: method.profileLabel }
@@ -1346,7 +1357,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
             start: method.start,
             ...install,
           }
-        : { kind: 'picker' as const, ...install }
+        : { kind: 'picker' as const, first: method.first, ...install }
     },
     readInvite: async ({ token }) => {
       try {
