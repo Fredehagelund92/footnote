@@ -4,7 +4,7 @@
   It is a demonstration the page plays, and its caption says so. The thread, the Spain story and
   Elena Ruiz are invented for it and are not in the demo; Alex Moreau and Jon Abara are the demo's
   people. The words of the app it shows are the app's own, and test/landing.test.ts holds them to
-  it: the first box of a new item, the draft's fields and its button, the tools and the answer line.
+  it: the first box's button and note, the tool names and status, and the answer line.
   It shows no chat app's own control: Footnote has none, so the person copies the thread.
 */
 
@@ -14,7 +14,7 @@ export type Message = {
   name: string
   time: string
   text: string
-  /** One of the replies the person copied. */
+  /** The reply the person copied. */
   copied?: boolean
 }
 
@@ -43,10 +43,9 @@ export const thread = {
       name: 'Alex Moreau',
       time: '09:24',
       text: "So it isn't demand. Can someone write it down so the agents stop calling it a campaign?",
-      copied: true,
     },
   ] satisfies Message[],
-  copied: 'Copied: the two replies',
+  copied: 'Copied: the reply',
 }
 
 /** The words the person copied, as they land in the first box or in the agent's chat. */

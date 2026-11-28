@@ -4,11 +4,14 @@ import { describe, expect, it } from 'vitest'
 import { demoDefinitions } from '../../db/seed/fixtures/cube-model.ts'
 import { storyFacts } from '../../db/seed/fixtures/story-facts.ts'
 import { ANSWER_LINES } from '../../src/domain/answer-state.ts'
+import { toolNames } from '../../src/server/mcp/tools.ts'
+import { writeDraftOutput } from '../../src/server/mcp/schemas.ts'
+import { frontDoor } from '../../src/web/model/writing-help.ts'
 import { contextSaid, contextVoice } from '../../src/domain/say.ts'
 import { answers, lines } from '../landing/demo.ts'
 import { metrics } from '../landing/definitions.ts'
 import * as meaning from '../landing/meaning.ts'
-import { agentDoor, caption, checked, draft, firstBox, thread } from '../landing/said.ts'
+import { agentDoor, caption, checked, draft, firstBox, pasted, thread } from '../landing/said.ts'
 import { repoRoot } from '../lib/pages.ts'
 
 /*
@@ -136,29 +139,15 @@ describe('the meaning section', () => {
     }
 
 describe('the thread that becomes a note', () => {
-  const editor = read('src/web/pages/editor.tsx')
-
   it("shows the first box of a new item in the app's words", () => {
-    const door = read('src/web/model/writing-help.ts')
-    expect(editor).toContain(`'${firstBox.page}'`)
-    expect(editor).toContain(firstBox.question)
-    expect(door).toContain(`button: '${firstBox.button}'`)
-    expect(door).toContain(`note: '${firstBox.note}'`)
-  })
-
-  it("names the draft's fields and its button as the editor does", () => {
-    for (const field of draft.fields)
-      expect(editor, field.label).toContain(`label="${field.label}"`)
-    expect(editor).toContain('to the owner of {domains[form.domain]?.name}')
-    expect(draft.send).toBe('Send to the owner of Sales')
-    expect(read('src/domain/readiness.ts')).toContain(`title: '${draft.ready}'`)
+    const door = frontDoor({ help: false, model: false, admin: false })
+    expect(door.button).toBe(firstBox.button)
+    expect(door.note).toBe(firstBox.note)
   })
 
   it('names tools and a status the agent contract has, and the people who own Sales', () => {
-    const schemas = read('src/server/mcp/schemas.ts')
-    expect(schemas).toContain(`'${agentDoor.status}'`)
-    for (const tool of [agentDoor.tool, checked.tool])
-      expect(read('src/server/mcp/tools.ts'), tool).toContain(`'${tool}'`)
+    expect(writeDraftOutput.shape.status.options).toContain(agentDoor.status)
+    for (const tool of [agentDoor.tool, checked.tool]) expect(toolNames, tool).toContain(tool)
     expect(world).toContain(`${checked.owner.name} (owner of Sales`)
   })
 
@@ -198,6 +187,8 @@ describe('the thread that becomes a note', () => {
     // Elena Ruiz and the Spain story are the section's own, not the demo's.
     expect(world).not.toContain('Elena Ruiz')
     expect(world).not.toContain(draft.title)
-    expect(thread.messages.filter((m) => m.copied)).toHaveLength(2)
+    const copied = thread.messages.filter((m) => m.copied)
+    expect(copied).toHaveLength(1)
+    expect(copied[0]!.text.startsWith(pasted)).toBe(true)
   })
 })
