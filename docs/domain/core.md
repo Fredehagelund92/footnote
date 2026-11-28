@@ -51,11 +51,15 @@ project: `npx vitest run --project server tests/server/domain`.
   without "the" ("orders from jordan", "orders in the Nordics"), right before a metric when it
   starts what is asked ("jordan orders", "the jordan orders", never "who owns orders") or right
   before a dimension's name ("the jordan market", which then says the dimension). It is one word,
-  or a run of Title-case words ("New York"), and never an everyday word ("in total", "in gbp",
+  or a run of Title-case words ("New York"), and never an everyday word ("in total",
   "at the moment", "pending orders"), a lowercase word ending in -ed right before a metric ("cancelled orders"), a verb
   after "to" that follows an everyday word ("going to recover"), a number, a word in capitals
   ("YTD"), a plural right after the place word ("in stores"), another form of a known name, a word
-  before a day's name ("black friday week") nor a tool's or the product's name; a question that
+  before a day's name ("black friday week") nor a tool's or the product's name. A word of a kind of
+  value, a currency's or a language's ("gbp", "german"; `valueKinds` in `everyday-words.ts`), is
+  neither: where a dimension has values of its kind it is a value Footnote does not have ("orders in
+  gbp" where the currencies are EUR and USD), and where none has it says how and is no value
+  ("revenue in gbp"); a question that
   names nothing to look up leaves its words to the word search. The issue names the dimensions it
   could be a value of and, for a typo or a lowercase short code, the value it is close to. Agents
   read such a word as before (dropped); the narrowing and everyday words read alike for every
