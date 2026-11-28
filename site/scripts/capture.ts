@@ -122,11 +122,12 @@ const docsShots: Shot[] = [
   {
     name: 'editor',
     path: '/context/new',
-    // Write context opens on one box: Write it yourself opens the empty form.
-    ready: (p) => p.getByRole('button', { name: 'Write it yourself' }).waitFor(),
+    // Write context opens on the empty form with writing help beside it: the picture is the form.
+    ready: (p) => p.locator('[aria-label="Properties"]').waitFor(),
     prepare: async (p) => {
-      await p.getByRole('button', { name: 'Write it yourself' }).click()
-      await p.locator('[aria-label="Properties"]').waitFor()
+      const dock = p.getByRole('region', { name: 'Writing help' })
+      await dock.getByRole('button', { name: 'Close the panel' }).click()
+      await dock.waitFor({ state: 'detached' })
     },
     clip: underHeader,
   },

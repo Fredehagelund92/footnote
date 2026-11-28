@@ -52,7 +52,9 @@ export function DefinitionPage({ name }: { name: string }) {
     <Button
       nativeButton={false}
       aria-label="Write context"
-      render={<a href={href('/context/new', { metric: d.name, domain: d.domain })} />}
+      render={
+        <a href={href('/context/new', { metric: d.name, domain: d.domain, from: 'definition' })} />
+      }
     >
       <NotebookPenIcon data-icon="inline-start" />
       <span className="max-sm:sr-only">Write context</span>

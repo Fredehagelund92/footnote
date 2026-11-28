@@ -6,10 +6,10 @@ import {
   editorFields,
   failedLine,
   failedTurn,
-  frontDoor,
   heardTurn,
   keptLine,
   landedFields,
+  openingLine,
   progressLine,
   readLine,
   refusedLine,
@@ -18,6 +18,7 @@ import {
   stoppedTurn,
   suggestedLine,
   suggestedTurn,
+  unavailableLine,
   workingLine,
   type HelpReply,
 } from '@/model/writing-help'
@@ -99,49 +100,64 @@ describe('a turn', () => {
   })
 })
 
-describe('the first box of Write context', () => {
-  it('hands the words to writing help where it is there to ask, and says where they go', () => {
-    for (const admin of [true, false])
-      expect(frontDoor({ help: true, model: true, admin })).toEqual({
-        by: 'help',
-        how: 'Paste a message, a link, or just say what happened. Writing help writes the draft, and you check each field.',
-        button: 'Write the draft',
-        note: 'What you write here goes to the AI model set for Ask. Only you see the draft until you send or publish it.',
-        more: [],
-      })
+describe('the opening line of a chat reached from a card', () => {
+  it('says what Ask or the Inbox knew of a new item, then asks for what happened', () => {
+    expect(openingLine({ from: 'ask', about: 'Orders in Poland', update: false })).toEqual({
+      known: 'From Ask: nothing is published about Orders in Poland yet.',
+      ask: 'Say what happened there.',
+    })
+    expect(openingLine({ from: 'inbox', about: 'Orders', update: false })).toEqual({
+      known: 'From the Inbox: nothing is published about Orders yet.',
+      ask: 'Say what happened.',
+    })
   })
 
-  const askAnAdmin = {
-    text: 'Ask an admin to turn on writing help in Settings, and you can talk the draft through.',
-  }
-  const turnOn = {
-    text: 'With writing help on, people can talk a draft through.',
-    link: { to: 'switch', label: 'Turn it on in Settings' },
-  }
-  const connect = {
-    text: 'Writing help needs an AI model, and none is connected to this workspace.',
-    link: { to: 'model-guide', label: 'How to connect a model' },
-  }
-
-  it('fills the fields by rule with writing help off, and says who can turn it on', () => {
-    expect(frontDoor({ help: false, model: true, admin: false })).toMatchObject({
-      by: 'rule',
-      how: 'Paste a message, a link, or just say what happened. The fields fill in from it, and you check each one.',
-      button: 'Fill it in',
-      note: 'Filled in by rule, with no AI model.',
-      more: [askAnAdmin],
+  it('names the definition it was written from, without saying nothing is published', () => {
+    expect(openingLine({ from: 'definition', about: 'Orders', update: false })).toEqual({
+      known: 'From Definitions: Orders.',
+      ask: 'Say what agents should know about it.',
     })
-    expect(frontDoor({ help: false, model: true, admin: true }).more).toEqual([turnOn])
   })
 
-  it('with no model, tells a member who can turn it on, and gives an admin both ways forward', () => {
-    expect(frontDoor({ help: false, model: false, admin: false })).toMatchObject({
-      by: 'rule',
-      button: 'Fill it in',
-      note: 'Filled in by rule, with no AI model.',
-      more: [askAnAdmin],
+  it('asks what changed in an item that needs a recheck, since the day it was checked', () => {
+    expect(
+      openingLine({ from: 'ask', about: 'Orders in Norway', update: true, checked: '20 Jun 2026' }),
+    ).toEqual({
+      known: 'From Ask: this item was last checked on 20 Jun 2026.',
+      ask: 'What changed since then?',
     })
-    expect(frontDoor({ help: false, model: false, admin: true }).more).toEqual([connect, turnOn])
+    expect(openingLine({ from: 'inbox', about: '', update: true })).toEqual({
+      known: 'From the Inbox: this item needs a recheck.',
+      ask: 'What changed?',
+    })
+  })
+
+  it('has nothing to say about a new item that applies to nothing yet', () => {
+    expect(openingLine({ from: 'ask', about: '', update: false })).toBeNull()
+  })
+})
+
+describe('the dock where writing help is not there to ask', () => {
+  const noModel = 'Writing help needs an AI model, and none is connected to this workspace.'
+
+  it('with no model, leads an admin to the guide and tells anyone else who can connect one', () => {
+    expect(unavailableLine({ model: false, admin: true })).toEqual({
+      text: noModel,
+      link: { to: 'model-guide', label: 'How to connect a model' },
+    })
+    expect(unavailableLine({ model: false, admin: false })).toEqual({
+      text: `${noModel} An admin can connect one in Settings.`,
+    })
+  })
+
+  it('with a model and the switch off, leads an admin to it and tells anyone else who can', () => {
+    expect(unavailableLine({ model: true, admin: true })).toEqual({
+      text: 'Writing help is off for this workspace.',
+      link: { to: 'switch', label: 'Turn it on in Settings' },
+    })
+    expect(unavailableLine({ model: true, admin: false })).toEqual({
+      text: 'Writing help is off for this workspace. An admin can turn it on in Settings.',
+    })
   })
 })
 

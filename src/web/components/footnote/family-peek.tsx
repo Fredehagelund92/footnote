@@ -662,7 +662,15 @@ function FamilyQuickView({ d, family }: { d: Definition; family: Family }) {
       footer={
         <P.Button
           nativeButton={false}
-          render={<a href={P.href('/context/new', { metric: d.name, domain: d.domain })} />}
+          render={
+            <a
+              href={P.href('/context/new', {
+                metric: d.name,
+                domain: d.domain,
+                from: 'definition',
+              })}
+            />
+          }
         >
           <P.PlusIcon data-icon="inline-start" />
           Write context

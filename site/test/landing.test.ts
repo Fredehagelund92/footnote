@@ -6,12 +6,11 @@ import { storyFacts } from '../../db/seed/fixtures/story-facts.ts'
 import { ANSWER_LINES } from '../../src/domain/answer-state.ts'
 import { toolNames } from '../../src/server/mcp/tools.ts'
 import { writeDraftOutput } from '../../src/server/mcp/schemas.ts'
-import { frontDoor } from '../../src/web/model/writing-help.ts'
 import { contextSaid, contextVoice } from '../../src/domain/say.ts'
 import { answers, lines } from '../landing/demo.ts'
 import { metrics } from '../landing/definitions.ts'
 import * as meaning from '../landing/meaning.ts'
-import { agentDoor, caption, checked, draft, firstBox, pasted, thread } from '../landing/said.ts'
+import { agentDoor, caption, checked, draft, pasted, thread } from '../landing/said.ts'
 import { repoRoot } from '../lib/pages.ts'
 
 /*
@@ -25,8 +24,7 @@ import { repoRoot } from '../lib/pages.ts'
   What the page shows was asked of a fresh install of the demo through get_context on 26 Nov 2026
   (landing/demo.ts).
   The section on a thread that becomes a note (landing/said.ts) is a demonstration with an invented
-  story, so it is held to the app's own words instead: the first box's button and note, the
-  tool names and the write_draft status, and the sentence get_context says.
+  story, so it is held to the app's own words instead: the tool names and the write_draft status, and the sentence get_context says.
 */
 
 const read = (path: string) => readFileSync(join(repoRoot, path), 'utf8')
@@ -141,12 +139,6 @@ describe('the meaning section', () => {
 })
 
 describe('the thread that becomes a note', () => {
-  it("shows the first box of a new item in the app's words", () => {
-    const door = frontDoor({ help: false, model: false, admin: false })
-    expect(door.button).toBe(firstBox.button)
-    expect(door.note).toBe(firstBox.note)
-  })
-
   it('names tools and a status the agent contract has, and the people who own Sales', () => {
     expect(writeDraftOutput.shape.status.options).toContain(agentDoor.status)
     for (const tool of [agentDoor.tool, checked.tool]) expect(toolNames, tool).toContain(tool)

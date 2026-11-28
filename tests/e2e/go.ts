@@ -212,10 +212,20 @@ export async function go(page: Page, route: string) {
   await to.after?.()
 }
 
-/** Write context's form with nothing in it: its first box, passed over with Write it yourself. */
+/**
+ * Write context's form with nothing in it, as a person who writes it themselves has it: writing
+ * help, which opens beside a new item from 1100 px, closed.
+ */
 export async function newContext(page: Page) {
   await go(page, '/context/new')
-  await page.getByRole('button', { name: 'Write it yourself' }).click()
+  await expect(page.getByRole('textbox', { name: 'Title' })).toBeVisible()
+  if ((page.viewportSize()?.width ?? 0) >= 1100) {
+    await page
+      .getByRole('region', { name: 'Writing help' })
+      .getByRole('button', { name: 'Close the panel' })
+      .click()
+    await expect(page).not.toHaveURL(/[?&]dock=write/)
+  }
 }
 
 /** Move to another address inside the app, as a link on the page does, without loading it again. */

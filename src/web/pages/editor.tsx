@@ -46,9 +46,10 @@ import {
   sessionFieldLabel,
   type SessionField,
 } from '@/model/draft-session'
-import { frontDoor, workingLine } from '@/model/writing-help'
+import { openingLine, workingLine, type HelpFrom } from '@/model/writing-help'
 import {
-  askHelp,
+  helpKeptClosed,
+  keepHelpClosed,
   moveHelpChat,
   noteHelpChange,
   noteHelpSuggestion,
@@ -96,7 +97,6 @@ import {
   type Option,
 } from '@/components/footnote/field-controls'
 import { NoDomainYet } from '@/components/footnote/no-domain-yet'
-import { PublicGuideLink } from '@/components/footnote/guide-link'
 import { DomainDot, TagChip } from '@/components/footnote/tag-chip'
 import { ScopeField } from '@/components/footnote/scope-field'
 import { termsOfNames } from '@/lib/scope'
@@ -133,7 +133,7 @@ import { missingSource, planFacts, publishParts } from '@/lib/bulk'
 import { useUndo } from '@/lib/undo'
 import { today } from '@/lib/today'
 import { dateLabel, type Validity } from '@/model/validity'
-import { closeDock, dockOpened, openDock, useDock } from '@/lib/dock'
+import { closeDock, openDock, useDock } from '@/lib/dock'
 import { useReadAhead } from '@/lib/read-ahead'
 import { HeaderMore, SaveStatus } from '@/components/footnote/editor-header'
 import { Panel, PanelGroup } from '@/components/footnote/panel'
@@ -160,7 +160,6 @@ import {
   draftNowQuery,
   itemPageQuery,
   useInbox,
-  useSession,
   useVocabulary,
   useWorkspace,
   useWrite,
@@ -170,9 +169,9 @@ import { useDomainList, useDomains, useFact, useFacts, useMe, usePeople } from '
 import { useWide } from '@/hooks/use-wide'
 import { Kbd } from '@/components/ui/kbd'
 import { usePrimaryKey } from '@/hooks/use-primary-key'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useDockOverPage, useIsMobile } from '@/hooks/use-mobile'
 import { DocumentEditorShell } from '@/components/footnote/document-shell'
-import { WriteWithButton, WriteWithMenuItem } from '@/components/footnote/write-with-agent'
+import { WriteWithMenuItem } from '@/components/footnote/write-with-agent'
 import { finishPrompt, writePrompt } from '@/lib/agents'
 
 // Writing help's dock opens only beside this page, so it comes with this page's code (App.tsx).
@@ -599,27 +598,13 @@ function Editor({
   usePrimaryKey()
   const titleRef = React.useRef<HTMLTextAreaElement>(null)
   const [overlap, setOverlap] = React.useState<Record<string, Relation>>({})
+  // Draft from text, in More: what the person has, pasted or said, fills the fields by rule, and
+  // the fields are then what they check. Its words stay for the next time it opens.
+  const [fromTextOpen, setFromTextOpen] = React.useState(false)
   const [pasted, setPasted] = React.useState('')
-  // A new item with nothing to start from opens on one box: what the person has, pasted or said,
-  // fills the fields by rule (Draft from text), and the fields are then what they check. Written
-  // about a question, a definition or a Nothing written yet card, it opens on the form that already says so.
-  const [starting, setStarting] = React.useState(
-    () =>
-      mode === 'new' &&
-      !fromText &&
-      !query.get('gap') &&
-      !['metric', 'about'].some((k) => query.has(k)),
-  )
+  const pasteRef = React.useRef<HTMLTextAreaElement>(null)
   // A touch screen gets no automatic focus: the keyboard would cover the page before anyone asked for it.
   const [touch] = React.useState(() => window.matchMedia('(pointer: coarse)').matches)
-  // Write it yourself puts the cursor in the title, once the form is there.
-  const byHand = React.useRef(false)
-  const startRef = React.useRef<HTMLTextAreaElement>(null)
-  React.useEffect(() => {
-    if (starting || !byHand.current) return
-    byHand.current = false
-    titleRef.current?.focus()
-  }, [starting])
   // Why the pasted text filled nothing in, such as a page Footnote can't open; the text stays, so
   // pasting the page's own words is the next step.
   const [fillProblem, setFillProblem] = React.useState('')
@@ -804,7 +789,7 @@ function Editor({
   const fill = async () => {
     if (!pasted.trim()) {
       setFillProblem('Write or paste something first.')
-      startRef.current?.focus()
+      pasteRef.current?.focus()
       return
     }
     setFillProblem('')
@@ -823,7 +808,7 @@ function Editor({
     // Dates read from the words are an answer to When; the field shows them rather than asking.
     if (filled.when !== 'always') setWhenChosen(true)
     editor?.commands.setContent(filled.body, { contentType: 'markdown' })
-    setStarting(false)
+    setFromTextOpen(false)
     toast('Filled from your text', { description: 'Check each part before you publish.' })
   }
 
@@ -838,13 +823,7 @@ function Editor({
   // draft, is kept only by its Save.
   const hasWords = !!(form.title.trim() || form.body.trim())
   const keepsItself =
-    !session.on &&
-    !beside &&
-    !starting &&
-    mode === 'new' &&
-    !savedId &&
-    !!domains[form.domain] &&
-    hasWords
+    !session.on && !beside && mode === 'new' && !savedId && !!domains[form.domain] && hasWords
   const gapId = query.get('gap') ?? undefined
   // The page's one draft is made once: the autosave and writing help's first turn share the
   // creation in flight, so a message sent while the page keeps itself finds one draft, not two.
@@ -895,14 +874,13 @@ function Editor({
             : online
               ? 'dirty'
               : 'offline'
-  // Words in the first box are the person's too, until they are filled in. A draft that saves
-  // itself holds back only what it could not save: the rest is sent on the way out.
+  // A draft that saves itself holds back only what it could not save: the rest is sent on the way out.
   const guard = useLeaveGuard(
     session.on
       ? session.status === 'failed' || session.status === 'offline'
       : keepsItself || savedId
         ? !['saved', 'clean'].includes(autosave.status)
-        : edited || (starting && !!pasted.trim()),
+        : edited,
   )
   // The first paragraph is the summary agents read first; the service keeps it to SUMMARY_LIMIT characters.
   const summaryLength = plainText(form.body.split('\n\n')[0] ?? '').length
@@ -1163,37 +1141,54 @@ function Editor({
   }
   const mobile = useIsMobile()
 
-  // Writing help, in the dock beside the draft (Route 3): there when an admin turned it on, for
-  // the person's own draft, and for words that can be kept as one, a new item or a change to a
-  // published one, which the first thing they say to it does. A phone has no dock beside a page.
-  const helping = useDock()?.kind === 'write'
+  // Writing help, in the dock beside the draft (Route 3): for the person's own draft, and for words
+  // that can be kept as one, a new item or a change to a published one, which the first thing they
+  // say to it does. It is there to ask when an admin turned it on and a model is connected; where
+  // it is not, its dock says why. A phone has no dock beside a page.
+  const dockKind = useDock()?.kind
+  const helping = dockKind === 'write'
   const workspace = useWorkspace()
-  const helpThere = workspace.writingHelp && !mobile && (session.on || savesDraft)
+  const helpable = !mobile && (session.on || savesDraft)
+  const helpThere = workspace.writingHelp && helpable
   const help = useHelp()
-  // The first box, by who fills the draft in: writing help where it is there, the rule anywhere else.
-  const { answeredBy } = useSession()
-  const door = frontDoor({ help: helpThere, model: answeredBy !== 'reader', admin: me.admin })
-  // What the first box holds goes to writing help as the first thing said, once its dock is open:
-  // the dock is in the address by then, and stays there when the first turn's draft joins it.
-  const writeDraft = () => {
-    const said = pasted
-    if (!said.trim()) {
-      setFillProblem('Write or paste something first.')
-      startRef.current?.focus()
-      return
-    }
-    // One turn at a time: the words stay in the box while another is still writing.
-    if (help.busy) {
-      setFillProblem(`${HELP_NAME} is still writing. Wait until it is done, or stop it first.`)
-      return
-    }
-    setFillProblem('')
-    // The words are in the chat from here on, and the fields are what the person watches fill in.
-    setPasted('')
-    setStarting(false)
-    if (helping) void askHelp(said)
-    else void dockOpened('write').then(() => askHelp(said))
-  }
+  const overPage = useDockOverPage()
+  // A card that asks the person to write (Ask's, the Inbox's, a definition's) says where they came
+  // from, and the chat opens with what it knew.
+  const from = query.get('from')
+  const handedOver = from === 'ask' || from === 'inbox'
+  const [opening] = React.useState(() =>
+    from === 'ask' || from === 'inbox' || from === 'definition'
+      ? openingLine({
+          from: from satisfies HelpFrom,
+          about: scopeWords(initial.where),
+          update: mode !== 'new',
+          checked: original?.checkedOn || undefined,
+        })
+      : null,
+  )
+  // A new item opens with writing help beside it and the cursor in its box, until the person
+  // closes it: then it stays closed for them in this browser. Under 1100 px it would be a sheet over
+  // the draft, so the page opens on its own there, unless a card of Ask or the Inbox asked them to
+  // say what happened: then they asked for it, wherever they closed it before. A link to what Draft
+  // from text filled in (?draft=) opens on that, with its overlaps in view.
+  const [arrives] = React.useState(
+    () =>
+      helpable &&
+      !query.get('dock') &&
+      (handedOver || (mode === 'new' && !fromText && !overPage && !helpKeptClosed(me.name))),
+  )
+  React.useEffect(() => {
+    if (arrives) openDock('write', undefined, undefined, { replace: true })
+    else if (mode === 'new' && !touch && !query.get('dock')) titleRef.current?.focus()
+    // Once, as the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  // Closing it is what the next new item remembers; opening it again forgets that.
+  const dockWas = React.useRef(dockKind)
+  React.useEffect(() => {
+    if (dockWas.current === 'write' && !dockKind) keepHelpClosed(me.name, true)
+    dockWas.current = dockKind
+  }, [dockKind, me.name])
   const helpChange = help.latest
   const [helpChangeHidden, setHelpChangeHidden] = React.useState<string | null>(null)
   // A first fill: a turn that starts on a draft with no text yet writes every field it can, so
@@ -1211,7 +1206,6 @@ function Editor({
     desk.current = {
       ready: async () => {
         if (session.on) {
-          setStarting(false)
           await session.flush()
           return own!.id
         }
@@ -1237,7 +1231,6 @@ function Editor({
         // started now for a page with no words yet. The page goes on as that draft, where it is.
         if (keepsItself || savedRef.current) await autosave.flush()
         const id = await draftMade(() => start(true))
-        setStarting(false)
         const stored = await queryClient.fetchQuery({ ...draftNowQuery(id), staleTime: 0 })
         if (!stored?.session) throw new ApiError('not-found', 'This draft was sent or deleted.')
         moveHelpChat(id)
@@ -1260,9 +1253,10 @@ function Editor({
       ask: (input, live) => desk.current!.ask(input, live),
       refresh: () => desk.current!.refresh(),
       revert: (change) => desk.current!.revert(change),
+      opening,
     })
     return () => setHelpDesk(null)
-  }, [helpThere, helpDraft, helpPage])
+  }, [helpThere, helpDraft, helpPage, opening])
 
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')
@@ -1285,6 +1279,62 @@ function Editor({
           <Button ref={keepRef} onClick={guard.stay}>
             Keep editing
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+
+  // Draft from text: one box, and Fill it in reads its words by rule, with no AI model. The fields
+  // it fills are then what the person checks.
+  const fromTextDialog = (
+    <Dialog open={fromTextOpen} onOpenChange={(open) => !filling && setFromTextOpen(open)}>
+      <DialogContent className="sm:max-w-lg" initialFocus={pasteRef}>
+        <DialogHeader>
+          <DialogTitle id={`${ids}-from-text`}>Draft from text</DialogTitle>
+          <DialogDescription id={`${ids}-from-text-how`}>
+            Paste a message or a link, or say what happened. The fields fill in from it, with no AI
+            model, and you check each one.
+          </DialogDescription>
+        </DialogHeader>
+        <Field>
+          <Textarea
+            ref={pasteRef}
+            value={pasted}
+            onChange={(e) => {
+              setPasted(e.target.value)
+              setFillProblem('')
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault()
+                void fill()
+              }
+            }}
+            aria-labelledby={`${ids}-from-text`}
+            aria-describedby={`${ids}-from-text-how${fillProblem ? ` ${ids}-from-text-problem` : ''}`}
+            aria-invalid={fillProblem ? true : undefined}
+            className="min-h-36 md:text-base"
+            placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
+          />
+          <FieldError id={`${ids}-from-text-problem`}>{fillProblem}</FieldError>
+        </Field>
+        <DialogFooter>
+          <Button variant="ghost" disabled={filling} onClick={() => setFromTextOpen(false)}>
+            Cancel
+          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button loading={filling} loadingLabel="Reading…" onClick={() => void fill()} />
+              }
+            >
+              Fill it in
+            </TooltipTrigger>
+            <TooltipContent>
+              Fill it in <Kbd className="ml-1">⌘</Kbd>
+              <Kbd>Enter</Kbd>
+            </TooltipContent>
+          </Tooltip>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1446,115 +1496,6 @@ function Editor({
     ? { href: href(`/context/${original.id}`), label: 'Back to the context item' }
     : { href: href('/context'), label: 'Back to Context' }
 
-  // The first box: one question and one place to answer it. Where writing help is there, Write the
-  // draft hands the words to it, and the form fills in beside its chat. Anywhere else Fill it in
-  // reads the words by rule, and the form opens filled. Write it yourself opens it as it is.
-  if (starting)
-    return (
-      <DocumentEditorShell
-        editor={editor}
-        toolbar={false}
-        header={
-          <>
-            <SiteHeader title={heading} icon={<FilePenLineIcon />} back={back} bare />
-            {leaveDialog}
-          </>
-        }
-        footer={null}
-      >
-        <Paper>
-          <section aria-labelledby={`${ids}-start`} className="flex max-w-reading flex-col">
-            <h2
-              id={`${ids}-start`}
-              className="text-2xl leading-tight font-bold tracking-tight sm:text-3xl"
-            >
-              What happened?
-            </h2>
-            <p id={`${ids}-start-how`} className="mt-2 mb-5 text-sm text-muted-foreground">
-              {door.how}
-            </p>
-            <Field>
-              <Textarea
-                ref={startRef}
-                value={pasted}
-                onChange={(e) => {
-                  setPasted(e.target.value)
-                  setFillProblem('')
-                }}
-                autoFocus={!touch}
-                aria-labelledby={`${ids}-start`}
-                aria-describedby={`${ids}-start-how${fillProblem ? ` ${ids}-start-problem` : ''}`}
-                aria-invalid={fillProblem ? true : undefined}
-                className="min-h-36 md:text-base"
-                placeholder="From 1 March 2026, returns are counted on the day of the refund, not of the order. https://wiki.example/returns-change"
-              />
-              <FieldError id={`${ids}-start-problem`}>{fillProblem}</FieldError>
-            </Field>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      data-primary
-                      loading={filling}
-                      loadingLabel="Reading…"
-                      onClick={() => (door.by === 'help' ? writeDraft() : void fill())}
-                    />
-                  }
-                >
-                  {door.by === 'help' && <SparklesIcon data-icon="inline-start" />}
-                  {door.button}
-                </TooltipTrigger>
-                <TooltipContent>
-                  {door.button} <Kbd className="ml-1">⌘</Kbd>
-                  <Kbd>Enter</Kbd>
-                </TooltipContent>
-              </Tooltip>
-              <Button
-                variant="ghost"
-                disabled={filling}
-                onClick={() => {
-                  byHand.current = true
-                  setStarting(false)
-                }}
-              >
-                {edited ? 'Back to the form' : 'Write it yourself'}
-              </Button>
-              {/* The third choice, a way of its own: on a phone a link under the two buttons. */}
-              <div className="max-sm:w-full sm:contents">
-                <WriteWithButton
-                  prompt={writePrompt()}
-                  variant="ghost"
-                  className="max-sm:h-auto max-sm:px-0 max-sm:underline max-sm:underline-offset-4 max-sm:hover:bg-transparent"
-                />
-              </div>
-            </div>
-            {/* What the button does with the words, and, with no writing help, how it would get
-                here: not on a phone, where it is not there either way. */}
-            <p className="mt-4 text-sm text-muted-foreground">{door.note}</p>
-            {!workspace.writingHelp &&
-              !mobile &&
-              door.more.map((line) => (
-                <p key={line.text} className="mt-1 text-sm text-muted-foreground">
-                  {line.text}{' '}
-                  {line.link?.to === 'switch' && (
-                    <a
-                      href={href('/settings/advanced/writing-help')}
-                      className="text-primary underline underline-offset-4"
-                    >
-                      {line.link.label}
-                    </a>
-                  )}
-                  {line.link?.to === 'model-guide' && (
-                    <PublicGuideLink slug="model-providers">{line.link.label}</PublicGuideLink>
-                  )}
-                </p>
-              ))}
-          </section>
-        </Paper>
-      </DocumentEditorShell>
-    )
-
   return (
     <DocumentEditorShell
       editor={editor}
@@ -1575,10 +1516,14 @@ function Editor({
               )
             )}
             {/* Writing help and Try it swap in the one dock: write it, then see what agents would say. */}
-            {helpThere && (
+            {helpable && (
               <ViewToggle
                 pressed={helping}
-                onPressedChange={(p) => (p ? openDock('write') : closeDock())}
+                onPressedChange={(p) => {
+                  if (!p) return closeDock()
+                  keepHelpClosed(me.name, false)
+                  openDock('write')
+                }}
                 icon={<SparklesIcon />}
                 on="Writing help"
                 off="Close writing help"
@@ -1655,7 +1600,7 @@ function Editor({
                 </DropdownMenuItem>
               )}
               {mode === 'new' && (
-                <DropdownMenuItem onClick={() => setStarting(true)}>
+                <DropdownMenuItem onClick={() => setFromTextOpen(true)}>
                   <SparklesIcon />
                   Draft from text
                 </DropdownMenuItem>
@@ -1675,6 +1620,7 @@ function Editor({
             </HeaderMore>
           </SiteHeader>
           {leaveDialog}
+          {fromTextDialog}
         </>
       }
       aside={

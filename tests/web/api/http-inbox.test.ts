@@ -466,7 +466,7 @@ describe('the Inbox', () => {
       line: 'Its check date passed on 2 Oct 2026. Agents are told it may be out of date.',
       detail: 'Last checked by you, 2 Jul 2026.',
       primary: 'Still true',
-      secondary: ['Edit', 'Archive', 'Ask someone who knows'],
+      secondary: ['Update it', 'Archive', 'Ask someone who knows'],
       factId: 'itm_a',
     })
     expect(due?.changed).toEqual([])
@@ -510,7 +510,7 @@ describe('the Inbox', () => {
       splitInto: ['Accrued share (EUR)', 'Accrued share (USD)'],
       line: 'Its family Accrued share was split into Accrued share (EUR) and Accrued share (USD). No word of it changed: it reaches agents for both until you say which it is about.',
       primary: 'Keep for both',
-      secondary: ['Edit', 'Archive', 'Ask someone who knows'],
+      secondary: ['Update it', 'Archive', 'Ask someone who knows'],
     })
   })
 

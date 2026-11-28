@@ -1,5 +1,5 @@
 import { kindLabel } from '@/model/items'
-import { ASK_SOMEONE, type InboxCard, type Waiting } from '@/model/inbox'
+import { ASK_SOMEONE, UPDATE_IT, type InboxCard, type Waiting } from '@/model/inbox'
 import { factById, facts } from './world'
 import { spainDraft } from './drafts'
 import { reviews } from './review'
@@ -228,7 +228,7 @@ export const cards: InboxCard[] = [
     line: 'Its check date passed on 2 Oct. Agents are told it may be out of date.',
     detail: 'Last checked by you, 2 Jul 2026.',
     primary: 'Still true',
-    secondary: ['Edit', 'Archive', ASK_SOMEONE],
+    secondary: [UPDATE_IT, 'Archive', ASK_SOMEONE],
     factId: 'itm_ra39ow6c',
   },
   {
@@ -243,7 +243,7 @@ export const cards: InboxCard[] = [
     line: `${demoTool(DEMO_DEFINITIONS)} changed the definition of Gross margin on 7 Oct, after this context item was checked.`,
     detail: 'Last checked by Sofia Brandt, 30 Sep 2026.',
     primary: 'Still true',
-    secondary: ['Edit', 'Archive', ASK_SOMEONE],
+    secondary: [UPDATE_IT, 'Archive', ASK_SOMEONE],
     factId: 'itm_kcy22j54',
   },
   {
@@ -296,7 +296,7 @@ export const cards: InboxCard[] = [
     line: 'Its check date passed on 18 Sep. Agents are told it may be out of date.',
     detail: 'Last checked by you, 20 Jun 2026.',
     primary: 'Still true',
-    secondary: ['Edit', 'Archive', ASK_SOMEONE],
+    secondary: [UPDATE_IT, 'Archive', ASK_SOMEONE],
     factId: 'itm_pfet8zj3',
   },
 ]

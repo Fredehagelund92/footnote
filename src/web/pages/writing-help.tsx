@@ -9,16 +9,20 @@ import {
   SquareIcon,
   Undo2Icon,
 } from '@/components/icons'
+import { useSession, useWorkspace } from '@/api/queries'
 import { DockFrame } from '@/components/dock'
+import { PublicGuideLink } from '@/components/footnote/guide-link'
 import { TagChip } from '@/components/footnote/tag-chip'
 import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { isTyping } from '@/lib/keys'
+import { href } from '@/lib/router'
 import { inputSurface } from '@/lib/surfaces'
 import { cn } from '@/lib/utils'
-import { askHelp, stopHelp, undoHelp, useHelp } from '@/lib/writing-help'
+import { askHelp, stopHelp, undoHelp, useHelp, type HelpOpening } from '@/lib/writing-help'
+import { useMe } from '@/lib/workspace'
 import { sessionFieldLabel } from '@/model/draft-session'
 import {
   failedLine,
@@ -31,13 +35,15 @@ import {
   stoppedByPersonLine,
   stoppedLine,
   suggestedLine,
+  unavailableLine,
   type HelpTurn,
 } from '@/model/writing-help'
 
 // Writing help's dock beside the editor (Route 3, design B): the person says what happened or what
 // to change, and sees the draft change beside it. The chat is what was said, what writing help
 // replied, and under each reply the fields it changed, with Undo. It writes one draft: it has no
-// Send, since sending is the page's own button, and nothing here rates or cites, as Ask does.
+// Send, since sending is the page's own button, and its arrow is Say it. Nothing here rates or
+// cites, as Ask does. A new item opens with it beside the editor, its box ready for the first words.
 
 /**
  * What the person said: clamped at three lines when it is a long paste, with a way to see all of
@@ -240,7 +246,64 @@ function Turn({
   )
 }
 
-/** The box at the foot: Enter sends, Shift and Enter makes a new line, and Send becomes Stop. */
+/**
+ * What the card the person came from knew, then what it asks of them: a quiet line and a plain
+ * one, at the top of the chat. It is no reply and cost no turn.
+ */
+function Opening({ opening }: { opening: HelpOpening }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="text-sm text-muted-foreground">{opening.known}</p>
+      <p className="text-base leading-chat wrap-anywhere">{opening.ask}</p>
+    </div>
+  )
+}
+
+/** The dashed line at the top of the dock: what it says, in the one box Try it has too. */
+function Notice({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 rounded-surface border border-dashed border-input px-3 py-2 text-sm">
+      <SparklesIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="min-w-0">{children}</span>
+    </div>
+  )
+}
+
+/**
+ * Where writing help is not there to ask, the dock says why in one line, with the guide or the
+ * switch for an admin, and has no box.
+ */
+function Unavailable() {
+  const { answeredBy } = useSession()
+  const me = useMe()
+  const line = unavailableLine({ model: answeredBy !== 'reader', admin: me.admin })
+  return (
+    <div className="px-4 pt-6 pb-6">
+      <Notice>
+        {line.text}
+        {line.link?.to === 'model-guide' && (
+          <>
+            {' '}
+            <PublicGuideLink slug="model-providers">{line.link.label}</PublicGuideLink>
+          </>
+        )}
+        {line.link?.to === 'switch' && (
+          <>
+            {' '}
+            <a
+              href={href('/settings/advanced/writing-help')}
+              className="text-primary underline underline-offset-4"
+            >
+              {line.link.label}
+            </a>
+          </>
+        )}
+      </Notice>
+    </div>
+  )
+}
+
+/** The box at the foot: Enter says it, Shift and Enter makes a new line, and Say it becomes Stop. */
 function Composer({
   busy,
   first,
@@ -294,7 +357,8 @@ function Composer({
         className="field-sizing-content max-h-48 min-h-10 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-base leading-6 outline-none placeholder:text-muted-foreground"
       />
       <div className="flex h-11 items-center justify-end px-2">
-        {/* Send and Stop share one slot, so Stop is where Send was while a turn runs. */}
+        {/* Say it and Stop share one slot, so Stop is where Say it was while a turn runs. Send is
+            the page's own word, in its header. */}
         <Tooltip>
           {busy ? (
             <TooltipTrigger
@@ -317,7 +381,7 @@ function Composer({
                 <Button
                   type="submit"
                   size="icon"
-                  aria-label="Send"
+                  aria-label="Say it"
                   disabled={!text.trim()}
                   className="rounded-md"
                 />
@@ -333,7 +397,7 @@ function Composer({
               </>
             ) : (
               <>
-                Send <Kbd>Enter</Kbd> - new line <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd>
+                Say it <Kbd>Enter</Kbd> - new line <Kbd>Shift</Kbd>+<Kbd>Enter</Kbd>
               </>
             )}
           </TooltipContent>
@@ -347,6 +411,7 @@ function Composer({
 export function WritingHelpDock() {
   const help = useHelp()
   const mobile = useIsMobile()
+  const workspace = useWorkspace()
   const end = React.useRef<HTMLDivElement>(null)
   const box = React.useRef<HTMLTextAreaElement>(null)
   const focusBox = () => box.current?.focus()
@@ -364,6 +429,13 @@ export function WritingHelpDock() {
           ? 'Stopped.'
           : ''
   // A phone has no dock beside a page, so no writing help: a link to it opened there says so.
+  // Where an admin has not turned it on, or no model is connected, the dock says that instead.
+  if (!mobile && !workspace.writingHelp)
+    return (
+      <DockFrame title={HELP_NAME}>
+        <Unavailable />
+      </DockFrame>
+    )
   if (mobile || !help.there)
     return (
       <DockFrame title={HELP_NAME}>
@@ -384,19 +456,21 @@ export function WritingHelpDock() {
       }
     >
       <div data-touch-targets className="flex min-h-full flex-col gap-6 px-4 pt-6 pb-6">
-        <div className="flex items-center gap-2 rounded-surface border border-dashed border-input px-3 py-2 text-sm">
-          <SparklesIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          Works on your draft only. Agents don't get it yet.
-        </div>
-        {help.turns.length === 0 ? (
-          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-            <p>
-              Paste a message or a link, or say what happened. {HELP_NAME} writes it into the draft,
-              and you check each field.
-            </p>
-            <p>Your draft and what you write here go to the AI model set for Ask.</p>
-          </div>
+        <Notice>
+          Your draft and what you write here go to the AI model set for Ask. Agents don't get it
+          yet.
+        </Notice>
+        {help.opening ? (
+          <Opening opening={help.opening} />
         ) : (
+          help.turns.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {HELP_NAME} fills in the draft. You check each field, then send or publish it
+              yourself.
+            </p>
+          )
+        )}
+        {help.turns.length > 0 && (
           // A log, so a screen reader hears each reply arrive.
           <div role="log" aria-label={HELP_NAME} className="flex flex-col gap-8">
             {help.turns.map((turn, i) => (

@@ -773,6 +773,10 @@ function PinnedRow({ item, owns }: { item: LoopItem; owns: boolean }) {
               ·
             </span>
             <MarkStillTrue inline item={item} onDone={() => setChecked(true)} />
+            <span aria-hidden className="text-xs text-muted-foreground">
+              ·
+            </span>
+            <UpdateIt item={item} />
           </>
         ) : null
       }
@@ -837,13 +841,30 @@ function MarkStillTrue({
       </P.Button>
     )
   return (
-    <button
-      type="button"
-      {...press}
-      className="relative -mx-1 inline-flex h-6 shrink-0 items-center rounded-sm px-1 text-xs font-medium text-foreground underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:text-muted-foreground"
-    >
+    <button type="button" {...press} className={inlineAction}>
       Mark it still true
     </button>
+  )
+}
+
+/** An action in a source row: words of the row's own size, with a finger's room around them. */
+const inlineAction =
+  'relative -mx-1 inline-flex h-6 shrink-0 items-center rounded-sm px-1 text-xs font-medium text-foreground underline-offset-4 outline-none after:absolute after:-inset-x-1 after:-inset-y-2 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 disabled:text-muted-foreground'
+
+/**
+ * Opens an item that may be old in its editor, with writing help asking what changed since it was
+ * checked: in a source row, beside Mark it still true.
+ */
+function UpdateIt({ item }: { item: LoopItem }) {
+  const P = useParts()
+  return (
+    <a
+      href={P.href(`/context/${item.id}/edit`, { from: 'ask' })}
+      aria-label={`Update it: ${item.title}`}
+      className={inlineAction}
+    >
+      Update it
+    </a>
   )
 }
 
@@ -1477,11 +1498,13 @@ function DraftRowLine({ row, nouns }: { row: DraftRow; nouns: Nouns }) {
 /**
  * What Write context opens the editor on: the names the question was about, the kind it makes
  * likely, the days it was read on when the words gave some (not today assumed, nor any date), and
- * the question itself, which the published item's page asks again.
+ * the question itself, which the published item's page asks again. It says it came from Ask, so
+ * writing help opens beside the editor with what Ask found.
  */
 const writeSearch = (loop: LoopTurn, about: readonly string[], nouns: Nouns, question: string) => {
   const dated = !!loop.subject && !loop.subject.assumedToday && loop.subject.period !== 'any date'
   return {
+    from: 'ask',
     about: about.map((id) => nouns.get(id)!.name).join('|'),
     kind: !loop.subject || loop.subject.period === 'any date' ? 'note' : 'event',
     ...(dated ? { period: loop.subject!.period } : {}),
@@ -1517,7 +1540,8 @@ const subjectWords = (ids: readonly string[], nouns: Nouns) => {
 /**
  * What to do next that fits the state, beside the gap card (`GapCard`), which offers what is not
  * written: under Partial with sources, its owner writes the part no item covers; under Outdated,
- * they check what may be old, when no row of Sources already offers it.
+ * they check what may be old, when no row of Sources already offers it: still true as it is, or
+ * Update it, which opens the item's editor with writing help asking what changed.
  */
 function Next({
   loop,
@@ -1564,9 +1588,10 @@ function Next({
       <P.Button
         variant="ghost"
         nativeButton={false}
-        render={<a href={P.href(`/context/${f.id}/edit`)} />}
+        aria-label={`Update it: ${f.title}`}
+        render={<a href={P.href(`/context/${f.id}/edit`, { from: 'ask' })} />}
       >
-        Edit
+        Update it
       </P.Button>
     </div>
   )
@@ -1804,7 +1829,9 @@ function DefinitionCardOf({
               variant="outline"
               nativeButton={false}
               aria-label={`Write context about ${card.name}`}
-              render={<a href={P.href('/context/new', { metric: card.name, domain })} />}
+              render={
+                <a href={P.href('/context/new', { metric: card.name, domain, from: 'ask' })} />
+              }
             >
               <P.PencilIcon data-icon="inline-start" />
               Write context

@@ -77,7 +77,7 @@ for (const { name, viewport } of [
       const write = card.getByRole('button', { name: 'Write context about Churn rate' })
       await expect(write).toHaveAttribute(
         'href',
-        '/context/new?metric=Churn+rate&domain=customer_value',
+        '/context/new?metric=Churn+rate&domain=customer_value&from=ask',
       )
       await expect(write).toHaveAttribute('data-variant', 'outline')
       await fitsThePage(page, card)
@@ -117,7 +117,10 @@ for (const { name, viewport } of [
       const write = log
         .locator('[data-actions]')
         .getByRole('button', { name: 'Write context', exact: true })
-      await expect(write).toHaveAttribute('href', '/context/new?about=Churn+rate&kind=note')
+      await expect(write).toHaveAttribute(
+        'href',
+        '/context/new?from=ask&about=Churn+rate&kind=note',
+      )
       await fitsThePage(page, write)
       await write.click()
       await expect(page.getByRole('heading', { name: 'New context', level: 1 })).toBeVisible()
@@ -132,7 +135,7 @@ for (const { name, viewport } of [
       // were today assumed, so none go with it.
       await expect(fill).toHaveAttribute(
         'href',
-        '/context/new?about=Orders%7CPoland&kind=event&q=Give+me+all+about+orders+in+poland',
+        '/context/new?from=ask&about=Orders%7CPoland&kind=event&q=Give+me+all+about+orders+in+poland',
       )
       await fill.click()
       await expect(page.getByRole('button', { name: 'Domain Sales' })).toBeVisible()

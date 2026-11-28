@@ -18,7 +18,8 @@ import type { HelpReply } from '@/model/writing-help'
 // answer to tap, Try again and Undo are removed when pressed, and focus must not fall to the body.
 // It takes the keyboard as it opens, but never from a field of the draft the person is in. A
 // field the person was writing in is said as a suggestion, not as changed. A phone has no
-// writing help: a link to it says where it is.
+// writing help: a link to it says where it is. Reached from a card, the chat opens with what the
+// card knew; with writing help off or no model, the dock says why in one line and has no box.
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean
@@ -39,6 +40,18 @@ vi.mock('@/components/ui/tooltip', () => ({
     render: React.ReactElement
     children: React.ReactNode
   }) => React.cloneElement(render, undefined, children),
+}))
+
+/** The workspace as the dock reads it: writing help on, a model connected, the person an admin. */
+const world = vi.hoisted(() => ({ help: true, model: true, admin: true }))
+vi.mock('@/api/queries', () => ({
+  useWorkspace: () => ({ writingHelp: world.help }),
+  useSession: () => ({ answeredBy: world.model ? 'model' : 'reader' }),
+}))
+vi.mock('@/lib/workspace', () => ({ useMe: () => ({ admin: world.admin }) }))
+vi.mock('@/components/footnote/guide-link', () => ({
+  PublicGuideLink: ({ children }: { children: React.ReactNode }) =>
+    React.createElement('a', { href: '/docs/model-providers' }, children),
 }))
 
 const { WritingHelpDock } = await import('@/pages/writing-help')
@@ -68,6 +81,7 @@ afterEach(() => {
   act(() => root?.unmount())
   document.body.innerHTML = ''
   phone = false
+  Object.assign(world, { help: true, model: true, admin: true })
 })
 
 const reply = (extra: Partial<HelpReply> = {}): HelpReply => ({
@@ -82,10 +96,15 @@ const reply = (extra: Partial<HelpReply> = {}): HelpReply => ({
   ...extra,
 })
 
-function deskOf(draftId: string, ask: HelpDesk['ask']): HelpDesk {
+function deskOf(
+  draftId: string | null,
+  ask: HelpDesk['ask'],
+  opening?: HelpDesk['opening'],
+): HelpDesk {
   return {
     page: 'new',
     draftId,
+    opening,
     ready: () => Promise.resolve(draftId),
     ask,
     refresh: () => Promise.resolve(),
@@ -130,7 +149,7 @@ describe('the dock’s box as the dock opens', () => {
   })
 
   it('leaves it in a field of the draft the person went to before it opened', async () => {
-    // Write the draft opens the dock a moment later: by then the person may be in the title.
+    // The dock opens a moment after the page: by then the person may be in the title.
     const title = document.body.appendChild(document.createElement('input'))
     title.focus()
     await mount(deskOf('o2', () => Promise.resolve(reply())))
@@ -209,6 +228,54 @@ describe('the dock on a phone', () => {
     phone = true
     await mount(deskOf('p1', () => Promise.resolve(reply())))
     expect(document.body.textContent).toContain('Writing help is on a computer or tablet.')
+    expect(composer()).toBeNull()
+  })
+})
+
+describe('the dock as a new item opens', () => {
+  it('says where the words go and what it does, and its arrow is Say it, not Send', async () => {
+    await mount(deskOf('a1', () => Promise.resolve(reply())))
+    expect(document.body.textContent).toContain(
+      "Your draft and what you write here go to the AI model set for Ask. Agents don't get it yet.",
+    )
+    expect(document.body.textContent).toContain(
+      'Writing help fills in the draft. You check each field, then send or publish it yourself.',
+    )
+    expect(composer().placeholder).toBe('Paste a message or a link, or say what happened')
+    expect(document.querySelector('button[aria-label="Say it"]')).not.toBeNull()
+    expect(document.querySelector('button[aria-label="Send"]')).toBeNull()
+  })
+
+  it('opens with what the card knew, which stays at the top once the first turn is there', async () => {
+    const opening = {
+      known: 'From Ask: nothing is published about Orders in Poland yet.',
+      ask: 'Say what happened there.',
+    }
+    await mount(deskOf(null, () => Promise.resolve(reply()), opening))
+    expect(document.body.textContent).toContain(opening.known)
+    expect(document.body.textContent).toContain(opening.ask)
+    expect(document.body.textContent).not.toContain('Writing help fills in the draft.')
+  })
+})
+
+describe('the dock where writing help is not there to ask', () => {
+  it('with no model, says so in one line with the guide for an admin, and has no box', async () => {
+    world.model = false
+    world.help = false
+    await mount(deskOf('n1', () => Promise.resolve(reply())))
+    expect(document.body.textContent).toBe(
+      'Writing help needs an AI model, and none is connected to this workspace. How to connect a model',
+    )
+    expect(composer()).toBeNull()
+  })
+
+  it('with the switch off, tells a member who can turn it on', async () => {
+    world.help = false
+    world.admin = false
+    await mount(deskOf('n2', () => Promise.resolve(reply())))
+    expect(document.body.textContent).toBe(
+      'Writing help is off for this workspace. An admin can turn it on in Settings.',
+    )
     expect(composer()).toBeNull()
   })
 })

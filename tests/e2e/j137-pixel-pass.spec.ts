@@ -862,32 +862,6 @@ test.describe('wave 4, on a phone', () => {
     }
   })
 
-  test('the "What happened?" box puts its third choice as a link under the buttons (Q03)', async ({
-    page,
-  }) => {
-    for (const colorScheme of ['light', 'dark'] as const) {
-      await page.emulateMedia({ colorScheme })
-      await go(page, '/context/new')
-      const fill = page.getByRole('button', { name: 'Fill it in' })
-      const agent = page
-        .getByRole('button', { name: /^Write with your agent|^Copy the prompt/ })
-        .or(page.getByRole('link', { name: /Write with your agent/ }))
-        .first()
-      await expect(fill).toBeVisible()
-      const first = (await fill.boundingBox())!
-      const third = (await agent.boundingBox())!
-      expect(third.y, colorScheme).toBeGreaterThan(first.y + first.height)
-      // A link: underlined, with no button box drawn (a transparent border keeps the size only).
-      const look = await agent.evaluate((el) => {
-        const css = getComputedStyle(el)
-        return { line: css.textDecorationLine, bg: css.backgroundColor, edge: css.borderTopColor }
-      })
-      expect(look.line, colorScheme).toBe('underline')
-      expect(look.bg, colorScheme).toBe('rgba(0, 0, 0, 0)')
-      expect(look.edge, colorScheme).toBe('rgba(0, 0, 0, 0)')
-    }
-  })
-
   test("Ask's read line never ends a line with a dot (Q05)", async ({ page }) => {
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })

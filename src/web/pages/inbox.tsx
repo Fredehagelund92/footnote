@@ -96,7 +96,13 @@ import { useAdminsSaid, useDomains, useFacts, useMe } from '@/lib/workspace'
 import type { Subject } from '@/model/comments'
 import { pairOfKey } from '@/model/conflicts'
 import type { Outcome } from '@/model/inbox'
-import { ASK_SOMEONE, askSomeoneCopied, type InboxCard, type Waiting } from '@/model/inbox'
+import {
+  ASK_SOMEONE,
+  askSomeoneCopied,
+  UPDATE_IT,
+  type InboxCard,
+  type Waiting,
+} from '@/model/inbox'
 import { follows, paneState, primaryLabel } from '@/model/inbox-pane'
 import { integrationHref, lookOf } from '@/model/integrations'
 import type { DomainId, Fact } from '@/model/items'
@@ -610,13 +616,15 @@ function useActions(card: InboxCard) {
         return openFromList(`/inbox/${card.id}/review`)
       case 'gap':
         // A draft waits: the same review as any suggestion. With none yet, the editor opens on the
-        // scope, for this card: publishing what is written there closes it.
+        // scope, for this card, with writing help asking what happened: publishing what is
+        // written there closes it.
         return card.gap?.draft
           ? openFromList(`/inbox/${card.id}/review`)
           : navigate('/context/new', {
               gap: card.id,
               metric: card.gap?.scope[0],
               about: card.gap?.scope[1],
+              from: 'inbox',
             })
       case 'flag':
         // A report that names no context item has one thing to decide.
@@ -662,7 +670,8 @@ function useActions(card: InboxCard) {
         description: 'Agents keep saying honestly that nothing is written down.',
       }),
     'Not a problem': notAProblem,
-    Edit: () => navigate(`/context/${card.factId}/edit`),
+    // The item's editor, with writing help asking what changed since it was checked.
+    [UPDATE_IT]: () => navigate(`/context/${card.factId}/edit`, { from: 'inbox' }),
     Archive: () =>
       run({
         outcome: 'Archived',
@@ -770,7 +779,7 @@ function CardDetail({
   const changed = s?.changes.filter((c) => c.before !== c.after) ?? []
   // A suggestion's pane is the quick view: what changes, and the decision that opens the full screen.
   const review = reviews.find((r) => r.id === card.id)
-  const offline = !online && (writes || card.secondary.some((l) => l !== 'Edit'))
+  const offline = !online && (writes || card.secondary.some((l) => l !== UPDATE_IT))
 
   const foot = done ? (
     <div className="flex h-bar items-center gap-3 px-4 @md:pl-7">
@@ -794,7 +803,7 @@ function CardDetail({
           key={label}
           variant="outline"
           size="lg"
-          disabled={label !== 'Edit' && waits}
+          disabled={label !== UPDATE_IT && waits}
           onClick={secondary[label]}
         >
           {label}

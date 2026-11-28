@@ -4,6 +4,14 @@ line: Changes people notice, newest first.
 reviewed: 2026-11-28
 ---
 
+## Writing help opens beside a new item
+
+2026-11-28
+
+Write context now opens the editor at once, with writing help beside it and the cursor in its box: paste a message or a link, or say what happened, and the draft fills in beside you. The page that asked What happened? first is gone. Close the panel, and new items open without it in your browser until you open it again.
+
+Write context under a Not found answer in Ask, and a Nothing written yet card in the Inbox, open writing help with what they found. Under an Outdated answer, and on a Needs a recheck card, Update it opens the item's editor with writing help asking what changed. The arrow in writing help's box is called Say it, so Send is only the page's own button. Draft from text, in the editor's More menu, still fills the fields by rule, with no AI model.
+
 ## Plainer names for three things
 
 2026-11-28

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { toApiError } from '@/api/errors'
+import { storageKey } from '@/lib/brand'
 import { joinChanges, type AgentChange, type SessionField } from '@/model/draft-session'
 import {
   askedTurn,
@@ -42,7 +43,12 @@ export type HelpDesk = {
   refresh: () => Promise<void>
   /** Takes a change back in the form: each field as it was, unless the person changed it since. */
   revert: (change: AgentChange) => void
+  /** What the page knew when the person came from a card, said at the top of the chat. */
+  opening?: HelpOpening | null
 }
+
+/** A chat's opening line: what the card the person came from knew, and what it asks of them. */
+export type HelpOpening = { known: string; ask: string }
 
 /** What one turn changed in the draft, as one change: `turn` is empty for one made elsewhere. */
 type TurnChange = { turn: string; change: AgentChange }
@@ -60,9 +66,17 @@ type State = {
   changes: ReadonlyMap<string, readonly TurnChange[]>
   /** The turn that waits for its draft's page to be there, by the draft's id. */
   waiting: { draft: string; turn: string } | null
+  /** Each chat's opening line, by the chat: it moves with the chat to its draft. */
+  openings: ReadonlyMap<string, HelpOpening>
 }
 
-let state: State = { desk: null, chats: new Map(), changes: new Map(), waiting: null }
+let state: State = {
+  desk: null,
+  chats: new Map(),
+  changes: new Map(),
+  waiting: null,
+  openings: new Map(),
+}
 const listeners = new Set<() => void>()
 /** The turn running on each draft, to gather its changes and to stop it. */
 const running = new Map<string, { turn: string; controller: AbortController }>()
@@ -208,9 +222,14 @@ export function moveHelpChat(draft: string) {
   const chats = new Map(state.chats)
   chats.delete(from)
   chats.set(draft, turns)
+  const openings = new Map(state.openings)
+  const opening = openings.get(from)
+  openings.delete(from)
+  if (opening) openings.set(draft, opening)
   const stopped = last?.state === 'asking' && !!starting?.signal.aborted
   set({
     chats,
+    openings,
     waiting: last?.state === 'asking' && !stopped ? { draft, turn: last.id } : null,
   })
   if (stopped) update(draft, last.id, stoppedTurn)
@@ -283,7 +302,17 @@ export function undoHelp() {
  * nobody is there to see what it writes.
  */
 export function setHelpDesk(desk: HelpDesk | null) {
-  set({ desk })
+  // A page with no draft yet opens with the line of how it was reached, or with none. A draft's
+  // chat keeps the line it started with, as the page it moved to was reached from no card.
+  let openings = state.openings
+  if (desk && !desk.draftId) {
+    const page = new Map(openings)
+    if (desk.opening) page.set(pageChat(desk), desk.opening)
+    else page.delete(pageChat(desk))
+    openings = page
+  } else if (desk?.draftId && desk.opening && !openings.has(desk.draftId))
+    openings = new Map(openings).set(desk.draftId, desk.opening)
+  set({ desk, openings })
   // A page that holds another draft is not the one the turn waits for.
   if (desk?.draftId && state.waiting && state.waiting.draft !== desk.draftId) failWaiting()
   startWaiting()
@@ -312,6 +341,7 @@ function viewOf(now: State) {
   return {
     /** Whether a page is there to write in: the dock says so when it is not. */
     there: !!now.desk,
+    opening: now.openings.get(draft) ?? null,
     turns,
     /** A turn is running, or waits for its draft's page. */
     busy,
@@ -326,3 +356,28 @@ export const helpNow = () => viewOf(state)
 
 /** Writing help as the dock and the editor's strip read it, for the draft on the page. */
 export const useHelp = () => viewOf(React.useSyncExternalStore(subscribe, () => state))
+
+/*
+  The dock opens beside every new item until the person closes it; then it stays closed for them
+  in this browser, until they open it again.
+*/
+const closedKey = (person: string) => storageKey(`writing-help-closed:${person}`)
+
+/** Whether the person closed writing help last, so a new item opens without it. */
+export function helpKeptClosed(person: string) {
+  try {
+    return localStorage.getItem(closedKey(person)) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** Keeps that the person closed writing help, or opened it again. */
+export function keepHelpClosed(person: string, closed: boolean) {
+  try {
+    if (closed) localStorage.setItem(closedKey(person), '1')
+    else localStorage.removeItem(closedKey(person))
+  } catch {
+    // Storage can be blocked; the dock still opens and closes for this page.
+  }
+}
