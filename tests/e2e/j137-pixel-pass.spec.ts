@@ -960,8 +960,10 @@ test.describe('wave 4, beside a panel', () => {
       const bar = page.locator('.rte-toolbar-scroll')
       await expect(bar).toBeVisible()
       // Cut after Insert in the old layout, with nothing to say there was more.
-      expect(await bar.evaluate((el) => el.scrollWidth > el.clientWidth), colorScheme).toBe(true)
       await expect(bar).toHaveAttribute('data-more', 'end')
+      await expect
+        .poll(() => bar.evaluate((el) => el.scrollWidth > el.clientWidth), { message: colorScheme })
+        .toBe(true)
     }
   })
 })
