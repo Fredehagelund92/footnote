@@ -106,12 +106,20 @@ export type Workspace = {
   }
 }
 
-/** The vocabulary the definitions source names: its metrics, dimensions and the markets agents ask about. */
+/**
+ * The vocabulary the definitions source names: its metrics and its dimensions, each with its id
+ * (`channel`, as its keys name it: `dim:channel`) and its values, listed and in words.
+ */
 export type Vocabulary = {
   metrics: Metric[]
-  dimensions: { name: string; values: string; definition: string }[]
-  /** The values of the Market dimension, each a real country. */
-  markets: string[]
+  dimensions: {
+    id: string
+    name: string
+    /** Its values' names in a line: "Email, Web shop". */
+    values: string
+    valueNames: string[]
+    definition: string
+  }[]
 }
 
 /** What the "Applies to" picker asks: words, and inside one dimension a page of its values. */
@@ -730,8 +738,11 @@ export interface FootnoteApi {
   returnReview: (input: { id: string; note: JSONContent }) => Promise<Undoable>
 
   // Ask
-  /** What a question is read as, the way get_context reads it, with no model: a metric and markets. */
-  readQuestion: (input: { question: string }) => Promise<{ metric: string; markets: string[] }>
+  /**
+   * What a question is read as, the way get_context reads it, with no model: a metric, and the
+   * values it names of any dimension.
+   */
+  readQuestion: (input: { question: string }) => Promise<{ metric: string; values: string[] }>
   /**
    * The answer Ask gives: from checked context, the way an agent gets it, with its state. Given
    * `live`, the look-up's events as it runs (what it found, the engine's answer, each sentence of

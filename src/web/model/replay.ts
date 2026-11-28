@@ -15,7 +15,7 @@ export type ReplayStep = {
   ms?: number
   text: string
   /** The scope's parts, as chips. */
-  scope?: { label: string; kind: 'metric' | 'market' | 'dates' }[]
+  scope?: { label: string; kind: 'metric' | 'value' | 'dates' }[]
   /** Context items the step is about, with why when they were left out. */
   items?: { id: string; title: string; why?: string }[]
 }

@@ -166,7 +166,7 @@ describe("the person's chats in the browser", () => {
       id: 'a',
       question,
       metric: '',
-      markets: [],
+      values: [],
       state: null,
       text: 'Said.',
       sources: [],
@@ -189,6 +189,20 @@ describe("the person's chats in the browser", () => {
     expect(kept.at(-1)).toMatchObject({ id: 'c1' })
     expect(kept.at(-1)?.answers).toBeUndefined()
     expect(kept.filter((t) => t.answers?.length)).toHaveLength(KEPT_ANSWERS)
+  })
+
+  it('reads an answer a browser kept before its values were named so, by its markets', () => {
+    const shelf = memory()
+    const kept = { id: 'a', question: 'Orders in Norway?', metric: 'Orders', markets: ['Norway'] }
+    shelf.set(
+      'footnote.ask.chats.per_jon',
+      JSON.stringify([
+        { id: 'c1', title: 'Q', question: 'Q', at: 0, preview: '', answers: [kept] },
+      ]),
+    )
+    const [answer] = createChatShelf(shelf).list('per_jon')[0]!.answers!
+    expect(answer).toMatchObject({ metric: 'Orders', values: ['Norway'] })
+    expect(answer).not.toHaveProperty('markets')
   })
 
   it("forgets one person's chats at sign-out, so a deleted one cannot come back either", () => {
@@ -275,7 +289,7 @@ describe("the subject of a loop turn's answer", () => {
       names,
     )
     expect(a.metric).toBe('Tickets closed')
-    expect(a.markets).toEqual(['Billing'])
+    expect(a.values).toEqual(['Billing'])
     expect(a.dates).toBe('1 to 31 Aug 2026')
     // The page draws the turn itself.
     expect(a.loop?.nouns).toEqual(nouns)
@@ -297,7 +311,7 @@ describe("the subject of a loop turn's answer", () => {
     expect(today.dates).toBeUndefined()
     const none = loopAnswerOf(turn(null), 'Hi', names)
     expect(none.metric).toBe('')
-    expect(none.markets).toEqual([])
+    expect(none.values).toEqual([])
   })
 })
 

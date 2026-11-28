@@ -43,8 +43,8 @@ export const DRAFT_LABEL = 'Based on this draft'
 export const NAMES_NOTHING = "The question doesn't name a metric or a market."
 
 /** What a question was read as, in words: "Orders in Norway, 1 to 31 Aug 2026". Empty when nothing matched. */
-export function scopeText(a: Pick<Answer, 'metric' | 'markets' | 'dates'>) {
-  const what = [a.metric, a.markets.join(' and ')].filter(Boolean).join(' in ')
+export function scopeText(a: Pick<Answer, 'metric' | 'values' | 'dates'>) {
+  const what = [a.metric, a.values.join(' and ')].filter(Boolean).join(' in ')
   return `${what}${what && a.dates ? `, ${a.dates}` : ''}`
 }
 
@@ -53,10 +53,10 @@ export function scopeText(a: Pick<Answer, 'metric' | 'markets' | 'dates'>) {
  * miss today (`questionDates`): "What should I know about Orders in Norway on 4 Aug 2026?".
  */
 export function questionAbout(
-  read: { metric?: string | null; markets: readonly string[] } | null | undefined,
+  read: { metric?: string | null; values: readonly string[] } | null | undefined,
   dates: string,
 ) {
-  const scope = read && scopeText({ metric: read.metric ?? '', markets: [...read.markets] })
+  const scope = read && scopeText({ metric: read.metric ?? '', values: [...read.values] })
   return scope
     ? `What should I know about ${scope}${dates ? ` ${dates}` : ''}?`
     : 'What should I know about our numbers?'
@@ -71,7 +71,8 @@ export type Answer = {
    */
   loop?: LoopTurn
   metric: string
-  markets: string[]
+  /** The values it narrowed to, of any dimension: Norway, Email, Tents. */
+  values: string[]
   dates?: string
   /**
    * How sure the context is, or null when nothing was looked up: the question named nothing the
@@ -127,11 +128,11 @@ export type Answer = {
 export const askedOf = (a: Pick<Answer, 'question' | 'again'>) => a.again?.question ?? a.question
 
 /**
- * The words to search for a turn: what Ask read the question as, its metric and markets, since a
+ * The words to search for a turn: what Ask read the question as, its metric and values, since a
  * search needs every word; empty when it read neither, and there is nothing to search for.
  */
-export const searchWordsOf = (a: Pick<Answer, 'metric' | 'markets'>) =>
-  [a.metric, ...a.markets].filter(Boolean).join(' ')
+export const searchWordsOf = (a: Pick<Answer, 'metric' | 'values'>) =>
+  [a.metric, ...a.values].filter(Boolean).join(' ')
 
 const clipped = (line: string) =>
   line.length > CHAT_LINE ? `${line.slice(0, CHAT_LINE - 1).trimEnd()}…` : line

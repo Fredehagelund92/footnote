@@ -59,7 +59,7 @@ export function replay(t: Topic, when: When = 'now', pool: Fact[] = allFacts) {
       text: 'The dates were read from the question, and kept as a scope. The words are not kept.',
       scope: [
         { label: t.metric, kind: 'metric' },
-        { label: t.where, kind: 'market' },
+        { label: t.where, kind: 'value' },
         { label: monthDays(t.month), kind: 'dates' },
       ],
     },

@@ -94,7 +94,7 @@ const answer = {
   question: 'How many test accounts does units sold leave out in Norway?',
   sources: [fact.id],
   metric: 'metric:units_sold',
-  markets: ['Norway'],
+  values: ['Norway'],
   state: 'grounded',
   text: '',
 } as unknown as Answer

@@ -16,8 +16,9 @@ import type { Undoable } from './client'
 export type ReadScope = Asked['rows'][number]['scope']
 
 /**
- * The names of the vocabulary's keys: `metric:orders` is Orders, `val:market/norway` is Norway;
- * and the metrics and markets as terms, for the names closest to a question's words.
+ * The names of the vocabulary's keys: `metric:orders` is Orders, `val:channel/email` is Email;
+ * and the metrics and the values of every dimension as terms, for the names closest to a
+ * question's words.
  */
 export type Names = {
   metric: (key: string) => string
@@ -28,8 +29,6 @@ export type Names = {
 export function namesOf(vocabulary: Vocabulary): Names & {
   /** A metric's key by its name, any case. */
   metricKey: (name: string) => string | undefined
-  /** A market's key by its name, any case. */
-  marketKey: (name: string) => string | undefined
 } {
   const metrics = new Map([
     ...vocabulary.families.map((f) => [f.key, f.name] as const),
@@ -38,7 +37,6 @@ export function namesOf(vocabulary: Vocabulary): Names & {
   const values = new Map(
     vocabulary.dimensions.flatMap((d) => d.values.map((v) => [`val:${d.id}/${v.id}`, v.name])),
   )
-  const market = vocabulary.dimensions.find((d) => d.id === 'market')
   const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
   const term = (key: string, kind: Term['kind'], name: string, aliases: string[] = []): Term => ({
     key,
@@ -53,8 +51,8 @@ export function namesOf(vocabulary: Vocabulary): Names & {
     terms: [
       ...vocabulary.families.map((f) => term(f.key, 'metric', f.name)),
       ...vocabulary.metrics.map((m) => term(`metric:${m.id}`, 'metric', m.name)),
-      ...(market?.values ?? []).map((v) =>
-        term(`val:${market!.id}/${v.id}`, 'dimension_value', v.name, v.aliases),
+      ...vocabulary.dimensions.flatMap((d) =>
+        d.values.map((v) => term(`val:${d.id}/${v.id}`, 'dimension_value', v.name, v.aliases)),
       ),
     ],
     metric: (key) => metrics.get(key) ?? key.replace(/^[a-z]+:/, ''),
@@ -64,10 +62,6 @@ export function namesOf(vocabulary: Vocabulary): Names & {
       if (f) return f.key
       const m = vocabulary.metrics.find((x) => same(x.name, name))
       return m && `metric:${m.id}`
-    },
-    marketKey: (name) => {
-      const v = market?.values.find((x) => same(x.name, name))
-      return v && market && `val:${market.id}/${v.id}`
     },
   }
 }
@@ -80,7 +74,7 @@ export const failedAnswer = (question: string): Answer => ({
   id: 'custom',
   question,
   metric: '',
-  markets: [],
+  values: [],
   state: 'failed',
   note: lookupFailedNote,
   text: '',
@@ -110,7 +104,7 @@ export const loopAnswerOf = (
     loop: turn,
     // What the question was read as: its metric, and the values it narrowed, of any dimension.
     metric: named('metric')[0] ?? '',
-    markets: named('value'),
+    values: named('value'),
     ...(dates ? { dates } : {}),
     state: turn.state,
     text: turn.text,
@@ -134,7 +128,7 @@ export const nothingLiveAnswer = (question: string): Answer => ({
   id: 'custom',
   question,
   metric: '',
-  markets: [],
+  values: [],
   state: 'missing',
   text: 'Nothing is written down yet, so nothing applies. Once an owner publishes the first context item, Ask answers from it.',
   sources: [],
@@ -148,13 +142,16 @@ export const questionAbout = (title: string) => `What should I know about ${titl
 export function askedWeekOf(asked: Asked | null, names: Names): AskedWeek {
   if (!asked) return { rows: [], hidden: 0, asked: 0 }
   const rows = asked.rows.map((r): AskedRow => {
-    const markets = r.scope.filters['dim:market'] ?? []
+    // Every dimension's values, by the dimension's key, so a row reads the same each week.
+    const values = Object.keys(r.scope.filters)
+      .sort()
+      .flatMap((dimension) => r.scope.filters[dimension] ?? [])
     const month = r.months[0] ?? r.scope.window.start
     return {
       topic: {
         id: `${r.title}|${month}`,
         metric: r.scope.metrics[0] ? names.metric(r.scope.metrics[0]) : '',
-        where: markets.length ? markets.map(names.value).join(' and ') : ALL_VALUES,
+        where: values.length ? values.map(names.value).join(' and ') : ALL_VALUES,
         ...(r.area ? { domain: r.area } : {}),
         month: month.slice(0, 7),
       },
@@ -213,11 +210,20 @@ type StoredChat = {
   at: number
   preview: string
   /** Its finished answers, for the newest chats only (`KEPT_ANSWERS`). */
-  answers?: Answer[]
+  answers?: KeptAnswer[]
 }
 
 /** The most chats that keep their answers in the browser; an older one asks again when opened. */
 export const KEPT_ANSWERS = 20
+
+/** An answer as a browser kept it: one kept before its values were named so has them as markets. */
+type KeptAnswer = Answer | (Omit<Answer, 'values'> & { markets?: string[] })
+
+const keptAnswer = (a: KeptAnswer): Answer => {
+  if ('values' in a) return a
+  const { markets = [], ...answer } = a
+  return { ...answer, values: markets }
+}
 
 const SHORT_MONTHS = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ')
 const startOfDay = (t: number) => new Date(t).setHours(0, 0, 0, 0)
@@ -304,7 +310,7 @@ export function createChatShelf(shelf: Shelf, now: () => number = Date.now) {
           title: c.title,
           question: c.question,
           preview: c.preview,
-          ...(c.answers?.length ? { answers: c.answers } : {}),
+          ...(c.answers?.length ? { answers: c.answers.map(keptAnswer) } : {}),
           ...dayOf(c.at, now()),
         })),
     /** A chat the person just started, at the top of Today, with what its first answer said. */

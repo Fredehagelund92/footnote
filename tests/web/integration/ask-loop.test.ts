@@ -68,7 +68,7 @@ describe("Ask's loop", () => {
     const a = await api.ask({ question: 'Give me all about orders in poland' })
     expect(a.state).toBe('missing')
     expect(a.metric).toBe('Orders')
-    expect(a.markets).toEqual(['Poland'])
+    expect(a.values).toEqual(['Poland'])
     expect(a.sources).toEqual([])
     expect(a.related?.length).toBeGreaterThan(0)
     expect(a.text).toContain('Nothing written covers Orders and Poland.')

@@ -1629,8 +1629,8 @@ export function TryIt({ cardId, embedded }: { cardId?: string; embedded?: boolea
         id: 'try',
         question,
         metric: draft.where[0] ?? '',
-        // Only the market the draft names: never one of the demo's in its place.
-        markets: draft.where.slice(1, 2),
+        // Only the value the draft names: never one of the demo's in its place.
+        values: draft.where.slice(1, 2),
         state: 'grounded' as const,
         text: `${draft.summary
           .split(/(?<=\.)\s/)

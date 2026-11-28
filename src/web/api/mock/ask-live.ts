@@ -31,7 +31,6 @@ const sameNames = {
   metric: (k: string) => k,
   value: (k: string) => k,
   metricKey: () => undefined,
-  marketKey: () => undefined,
 }
 
 /** A question's words as the recorded turns are found by: any case, spacing or final mark. */

@@ -102,6 +102,11 @@ export type Topic = {
   dimensions: { dimension: string; name: string }[]
   /** The values asked about, of any dimension (a market, a product, an event); ALL_VALUES when none was. */
   where: string
+  /**
+   * The topic as people read it, as the service names it whatever its dimensions: "Orders in
+   * Norway", "Orders by channel"; with no metric, "Norway, no metric named".
+   */
+  name: string
   /** The domain of its metrics. A topic with no metric named has none. */
   domain?: DomainId
   /** The calendar month the question's dates start in, as stored in the key: "2026-10". */
@@ -227,8 +232,6 @@ export type ObsData = {
   notFound: { subjects: Subject[]; topics: Topic[] }
   /** Calls that could not be read: no topic, so in no domain. */
   couldNotRead: Count
-  /** The values of the Market dimension: a topic's place is a market or something else. */
-  markets: string[]
   publishes: Publish[]
   /** The kinds of agent that asked, for admins. */
   agents: { name: string; count: Count }[]
@@ -335,16 +338,8 @@ export function askedChange(now: number, before: number): Change & { percent: nu
 
 /** Observability's reading of a page's data: names, roll-ups and the numbers Overview leads with. */
 export function observability(data: ObsData) {
-  const { markets } = data
-
-  const topicName = (t: Pick<Topic, 'metric' | 'where'> & Partial<Pick<Topic, 'named'>>) =>
-    t.named === 'none' || !t.metric
-      ? `${t.where}, no metric named`
-      : markets.includes(t.where)
-        ? `${t.metric} in ${t.where}`
-        : t.where === ALL_VALUES
-          ? t.metric
-          : `${t.metric}, ${t.where}`
+  /** A topic as people read it: "Orders in Norway". */
+  const topicName = (t: Pick<Topic, 'name'>) => t.name
 
   /** The exact scope, as a person reads it: "Orders in Norway, October 2026". */
   const topicTitle = (t: Topic) => `${topicName(t)}, ${monthName(t.month)}`

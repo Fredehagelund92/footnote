@@ -50,10 +50,10 @@ describe('the days of a question, as the editor’s When', () => {
 
 describe('the question asked again about an item', () => {
   it('names what it applies to, on its dates when they miss today', () => {
-    expect(questionAbout({ metric: 'New MRR', markets: [] }, 'from 1 to 30 Sep 2026')).toBe(
+    expect(questionAbout({ metric: 'New MRR', values: [] }, 'from 1 to 30 Sep 2026')).toBe(
       'What should I know about New MRR from 1 to 30 Sep 2026?',
     )
-    expect(questionAbout({ metric: 'Orders', markets: ['Norway'] }, '')).toBe(
+    expect(questionAbout({ metric: 'Orders', values: ['Norway'] }, '')).toBe(
       'What should I know about Orders in Norway?',
     )
     expect(questionAbout(null, '')).toBe('What should I know about our numbers?')

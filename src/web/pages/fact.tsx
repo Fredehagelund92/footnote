@@ -192,7 +192,7 @@ export function FactPage({ id }: { id: string }) {
     query.get('q') ??
     (fact.where.length
       ? questionAbout(
-          { metric: fact.where[0], markets: fact.where.slice(1) },
+          { metric: fact.where[0], values: fact.where.slice(1) },
           questionDates(fact.valid, today()),
         )
       : null)

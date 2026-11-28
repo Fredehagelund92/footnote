@@ -65,17 +65,17 @@ export function toggleTerm(
 
 /**
  * Terms known only by their names, as older text and a few links give them ("Orders", "Norway"):
- * a metric, a dimension or a market by its name; any other word as a value of no known dimension.
- * The binding finds each by name when it saves.
+ * a metric, a dimension or a value of one by its name; any other word as a value of no known
+ * dimension. The binding finds each by name when it saves.
  */
 export function termsOfNames(names: readonly string[], vocabulary: Vocabulary): ScopeTerm[] {
-  return names.map((name) =>
-    vocabulary.metrics.some((m) => m.name === name)
-      ? { key: '', kind: 'metric', name }
-      : vocabulary.dimensions.some((d) => d.name === name)
-        ? { key: '', kind: 'dimension', name }
-        : vocabulary.markets.includes(name)
-          ? { key: '', kind: 'value', name, dimension: 'Market' }
-          : { key: '', kind: 'value', name },
-  )
+  return names.map((name) => {
+    if (vocabulary.metrics.some((m) => m.name === name)) return { key: '', kind: 'metric', name }
+    if (vocabulary.dimensions.some((d) => d.name === name))
+      return { key: '', kind: 'dimension', name }
+    const of = vocabulary.dimensions.find((d) => d.valueNames.includes(name))
+    return of
+      ? { key: '', kind: 'value', name, dimension: of.name }
+      : { key: '', kind: 'value', name }
+  })
 }

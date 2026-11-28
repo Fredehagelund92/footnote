@@ -20,7 +20,7 @@ Ask knows the names of the metrics, dimensions and domains you can see in Defini
 
 1. Open **Ask**.
 2. Type your question in the box, the way you would ask a colleague: "Why did orders in Norway drop in August?". Enter sends it, and Shift and Enter start a new line.
-3. To point the question at something, type @ and pick a domain, a definition, a context item or a market.
+3. To point the question at something, type @ and pick a domain, a definition, a value or a context item.
 
 Before your first question, the page can show what agents asked about this week, as counts only, never the words, with the answer each would get now.
 

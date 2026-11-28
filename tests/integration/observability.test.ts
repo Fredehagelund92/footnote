@@ -312,6 +312,7 @@ describe('Overview and Questions (obs.agents)', () => {
       metric: 'Orders',
       values: [{ dimension: 'dim:market', value: 'val:market/norway', name: 'Norway' }],
       dimensions: [],
+      name: 'Orders in Norway',
       named: 'metric',
       month: '2026-10',
       total: 24,

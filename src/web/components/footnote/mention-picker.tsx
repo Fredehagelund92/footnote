@@ -15,7 +15,7 @@ import {
 import { EMOJI, rememberEmoji, searchEmoji, type Emoji } from '@/lib/emoji'
 
 // The '@' picker and the ':' picker, both the one list in components/footnote/suggest-list.tsx. '@'
-// lists Domains, Definitions, Values, Context items, Markets and People with their type icons,
+// lists Domains, Definitions, Values, Context items and People with their type icons,
 // recent first; each place picks which kinds it offers (lib/mention-extension.ts). A dimension
 // can hold thousands of values, so the values come from a search on the server as you type. ':' lists emoji, what
 // was used lately and the five reactions first (alone, only those and a few more), and inserts the

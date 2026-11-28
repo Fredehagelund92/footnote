@@ -99,13 +99,22 @@ describe('"Applies to" terms', () => {
   it('reads names as terms, by what the vocabulary holds', () => {
     const vocabulary: Vocabulary = {
       metrics: [{ name: 'Orders', group: 'Sales', facts: 0, definition: '' }],
-      dimensions: [{ name: 'Market', values: '12 markets', definition: '' }],
-      markets: ['Norway'],
+      dimensions: [
+        {
+          id: 'market',
+          name: 'Market',
+          values: '12 markets',
+          valueNames: ['Norway'],
+          definition: '',
+        },
+        { id: 'channel', name: 'Channel', values: 'Email', valueNames: ['Email'], definition: '' },
+      ],
     }
-    expect(termsOfNames(['Orders', 'Market', 'Norway', 'Sales'], vocabulary)).toEqual([
+    expect(termsOfNames(['Orders', 'Market', 'Norway', 'Email', 'Sales'], vocabulary)).toEqual([
       { key: '', kind: 'metric', name: 'Orders' },
       { key: '', kind: 'dimension', name: 'Market' },
       { key: '', kind: 'value', name: 'Norway', dimension: 'Market' },
+      { key: '', kind: 'value', name: 'Email', dimension: 'Channel' },
       { key: '', kind: 'value', name: 'Sales' },
     ])
     // A term known by name is the same term as one with its name and kind.

@@ -115,6 +115,11 @@ export const obsTopicSchema = z.object({
   values: z.array(z.object({ dimension: z.string(), value: z.string(), name: z.string() })),
   /** The dimensions named with no value, as the definitions name them: "Orders by channel". */
   dimensions: z.array(z.object({ dimension: z.string(), name: z.string() })),
+  /**
+   * The topic as people read it, whatever its dimensions: "Orders in Norway", "Orders by
+   * channel", "Units sold"; with no metric, "Norway, no metric named".
+   */
+  name: z.string(),
   /** The calendar month the question's dates start in: `2026-10`. */
   month: z.string(),
   total: shown,

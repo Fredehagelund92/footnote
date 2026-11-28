@@ -705,6 +705,7 @@ export function createObservabilityService(tx: Queryable, clock: Clock) {
           name: nameOf(v),
         })),
         dimensions: t.dimensions.map((d) => ({ dimension: d, name: nameOf(d) })),
+        name: topicName(t, r.names),
         month: t.month,
         total: shown.total,
         atLeast: shown.atLeast,

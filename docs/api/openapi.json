@@ -110562,6 +110562,9 @@
                               ]
                             }
                           },
+                          "name": {
+                            "type": "string"
+                          },
                           "month": {
                             "type": "string"
                           },
@@ -110717,6 +110720,7 @@
                           "named",
                           "values",
                           "dimensions",
+                          "name",
                           "month",
                           "total",
                           "atLeast",
@@ -111228,6 +111232,9 @@
                               ]
                             }
                           },
+                          "name": {
+                            "type": "string"
+                          },
                           "month": {
                             "type": "string"
                           },
@@ -111383,6 +111390,7 @@
                           "named",
                           "values",
                           "dimensions",
+                          "name",
                           "month",
                           "total",
                           "atLeast",

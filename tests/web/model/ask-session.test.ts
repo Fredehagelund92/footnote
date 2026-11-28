@@ -22,7 +22,7 @@ const answer = (id: string, question: string, loop = false): Answer => ({
   id,
   question,
   metric: 'Orders',
-  markets: [],
+  values: [],
   state: 'grounded',
   text: 'Fine [1].',
   sources: ['fct-1'],

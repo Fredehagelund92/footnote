@@ -58,7 +58,7 @@ export const askedTurn = (
     id,
     question,
     metric: '',
-    markets: [],
+    values: [],
     state: null,
     text: '',
     sources: [],

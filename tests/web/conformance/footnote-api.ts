@@ -1714,12 +1714,14 @@ export function describeFootnoteApi(
     )
 
     it.skipIf(lacks('signIn', 'getVocabulary'))(
-      'lists the metrics, the dimensions and the markets questions name',
+      'lists the metrics, and the dimensions with the values questions name',
       async () => {
         const vocabulary = await (await signedIn()).getVocabulary()
         expect(vocabulary.metrics.map((m) => m.name)).toContain('Orders')
-        expect(vocabulary.markets).toContain('Norway')
-        expect(new Set(vocabulary.markets).size).toBe(vocabulary.markets.length)
+        const values = vocabulary.dimensions.flatMap((d) => d.valueNames)
+        expect(values).toContain('Norway')
+        for (const d of vocabulary.dimensions)
+          expect(new Set(d.valueNames).size).toBe(d.valueNames.length)
       },
     )
 
@@ -2354,13 +2356,13 @@ export function describeFootnoteApi(
     const states = ['grounded', 'partial', 'missing', 'conflict', 'stale', 'failed']
 
     it.skipIf(lacks('signIn', 'readQuestion'))(
-      'reads a question as a metric and its markets, with no model',
+      'reads a question as a metric and its values, with no model',
       async () => {
         const read = await (
           await signedIn()
         ).readQuestion({ question: 'How did orders in Norway and Spain do in September?' })
         expect(read.metric).toBe('Orders')
-        expect(read.markets).toEqual(expect.arrayContaining(['Norway', 'Spain']))
+        expect(read.values).toEqual(expect.arrayContaining(['Norway', 'Spain']))
       },
     )
 
@@ -2371,7 +2373,7 @@ export function describeFootnoteApi(
         const answer = await a.ask({ question: 'Why did orders in Norway drop in August?' })
         const library = new Set((await a.getLibrary()).items.map((f) => f.id))
         expect(states).toContain(answer.state)
-        expect(answer).toMatchObject({ metric: 'Orders', markets: ['Norway'] })
+        expect(answer).toMatchObject({ metric: 'Orders', values: ['Norway'] })
         expect(answer.sources.length).toBeGreaterThan(0)
         for (const id of answer.sources) expect(library.has(id), id).toBe(true)
         // Every [n] in the words points at a source.

@@ -149,7 +149,7 @@ export function AskComposer({
       }),
       mentionExtension({
         kinds: SCOPE_KINDS,
-        empty: 'Mention a domain, a definition, a context item or a market.',
+        empty: 'Mention a domain, a definition, a value or a context item.',
         // Ask reads a family as one metric.
         families: true,
       }),
@@ -251,7 +251,7 @@ export function AskComposer({
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Mention a domain, a definition, a context item or a market"
+                aria-label="Mention a domain, a definition, a value or a context item"
                 className="text-muted-foreground"
                 onClick={() =>
                   editor
