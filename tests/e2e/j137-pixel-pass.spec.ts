@@ -952,10 +952,10 @@ test.describe('wave 4, on the narrowest phone', () => {
 })
 
 test.describe('wave 4, beside a panel', () => {
-  test('the editor toolbar beside a panel at 1024 fades where it is cut (Q04)', async ({
+  test('the editor toolbar beside a panel at 820 fades where it is cut (Q04)', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 1024, height: 800 })
+    await page.setViewportSize({ width: 820, height: 800 })
     for (const colorScheme of ['light', 'dark'] as const) {
       await page.emulateMedia({ colorScheme })
       await go(page, '/context/itm_norway_stop/edit?dock=context.itm_kh4llvi9')
