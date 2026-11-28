@@ -25,8 +25,8 @@ import { repoRoot } from '../lib/pages.ts'
   What the page shows was asked of a fresh install of the demo through get_context on 26 Nov 2026
   (landing/demo.ts).
   The section on a thread that becomes a note (landing/said.ts) is a demonstration with an invented
-  story, so it is held to the app's own words instead: the first box, the draft's fields and its
-  button, the tools, and the sentence get_context says.
+  story, so it is held to the app's own words instead: the first box's button and note, the
+  tool names and the write_draft status, and the sentence get_context says.
 */
 
 const read = (path: string) => readFileSync(join(repoRoot, path), 'utf8')
