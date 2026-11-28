@@ -45,7 +45,7 @@ const rules: readonly [AppFamily, RegExp][] = [
   // The eval runner, footnote-eval-runner.
   ['footnote', /^footnote[-_ ]/],
   ['claude_code', /^claude[-_ ]?code\b/],
-  ['claude_ai', /^(anthropic\/)?claude([-_ .]?(ai|desktop|app))?$/],
+  ['claude_ai', /^(anthropic\/)?claude([-_ .]?(ai|desktop))?$/],
   ['chatgpt', /^(openai-mcp|chatgpt)\b/],
   ['codex', /^codex\b/],
   ['cursor', /^cursor\b/],

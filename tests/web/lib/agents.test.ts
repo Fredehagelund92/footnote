@@ -10,7 +10,6 @@ import {
   finishPrompt,
   GUIDES,
   liveCopy,
-  logoFor,
   PROMPT,
   PROMPT_PARTS,
   vscodeLink,
@@ -137,9 +136,13 @@ describe('an agent in words people know', () => {
     expect(agentInSentence({ kind: 'app', agent: 'Perplexity' })).toBe('Perplexity')
   })
 
-  it('keeps the name an admin gave an access key', () => {
-    expect(agentInSentence({ kind: 'key', agent: 'nightly-sync' })).toBe('nightly-sync')
-    expect(agentName({ kind: 'key', agent: 'nightly-sync' })).toBe('nightly-sync')
+  it('never replaces the name an admin gave an access key', () => {
+    for (const agent of ['nightly-sync', 'mcp-cli-proxy', 'sync_bot']) {
+      expect(agentInSentence({ kind: 'key', agent })).toBe(agent)
+      expect(agentName({ kind: 'key', agent })).toBe(agent)
+      expect(agentInSentence({ kind: 'app', agent })).toBe('your agent')
+      expect(agentName({ kind: 'app', agent })).toBe('Your agent')
+    }
   })
 
   it('says the live line the same way', () => {
@@ -149,11 +152,5 @@ describe('an agent in words people know', () => {
     expect(liveCopy('connected', 'prompt', 'Cursor', 'Maya Okafor').title).toBe(
       'Connected: Cursor, Maya Okafor',
     )
-  })
-
-  it('finds the logo of a known app by the family of its name', () => {
-    expect(logoFor('VS Code (Copilot)')).toBe(logoFor('VS Code'))
-    expect(logoFor('claude-code')).toBe(logoFor('Claude'))
-    expect(logoFor('mcp-cli-proxy')).toBe(logoFor('ChatGPT'))
   })
 })

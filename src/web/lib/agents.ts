@@ -4,7 +4,7 @@ import openai from '@/assets/logos/openai.svg'
 import vscode from '@/assets/logos/vscode.svg'
 import { MCP_URL, SLUG } from '@/lib/brand'
 import type { LivePhase } from '@/lib/connect'
-import { friendlyAgentName, appFamilyOf } from '@domain/app-family'
+import { friendlyAgentName } from '@domain/app-family'
 import { AGENT_TOOLS, askFirstLine, finishDraftPrompt, writeContextPrompt } from '@domain/mcp-text'
 
 // How an agent connects. One prompt first: the agent adds the server, writes the Ask-first line into
@@ -203,17 +203,10 @@ export const guide = (id: AgentId) => GUIDES.find((g) => g.id === id)!
 
 /** A connected agent's logo, by the name it reported when it signed in. */
 export function logoFor(agent: string) {
-  switch (appFamilyOf(agent)) {
-    case 'claude_code':
-    case 'claude_ai':
-      return claude
-    case 'cursor':
-      return cursor
-    case 'vscode_copilot':
-      return vscode
-    default:
-      return /^Claude/.test(agent) ? claude : openai
-  }
+  if (/^Claude/.test(agent)) return claude
+  if (agent === 'Cursor') return cursor
+  if (agent === 'VS Code') return vscode
+  return openai
 }
 
 /**
