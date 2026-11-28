@@ -4,7 +4,8 @@ import { expect, go, mode, test } from './go.ts'
 // J20, synonyms as tags: a comma or Enter makes a tag at once, a word that means something else
 // says who has it and is never saved, Backspace selects then removes, Escape keeps what was made.
 // The list folds synonyms into their definition's row; a term's editor has one optional
-// Another name for, and clearing it brings the meaning back.
+// Other name for, and clearing it brings the meaning back. A word that was not added stays,
+// marked, with one plain line that says why, and Try again when the save did not go through.
 
 test('the term editor stops a taken word with who has it, and only warns of a look-alike', async ({
   page,
@@ -72,13 +73,11 @@ test('a word taken after the page opened shows the refusal, and offers no Retry'
 
 test('typing words and commas makes tags; a taken word says who has it', async ({ page }) => {
   await go(page, '/definitions/Gross%20sales')
-  const box = page.getByRole('textbox', { name: 'Add another name for Gross sales' })
+  const box = page.getByRole('textbox', { name: 'Add a name for Gross sales' })
   await box.fill('Sales Value,')
   const tags = page
-    .getByRole('region', { name: 'Another name' })
-    .or(
-      page.locator('section').filter({ has: page.getByRole('heading', { name: 'Another name' }) }),
-    )
+    .getByRole('region', { name: 'Also called' })
+    .or(page.locator('section').filter({ has: page.getByRole('heading', { name: 'Also called' }) }))
   await expect(tags.getByText('Sales Value', { exact: true })).toBeVisible()
   await expect(
     page.getByRole('status').filter({ hasText: 'Added synonym Sales Value.' }),
@@ -87,7 +86,8 @@ test('typing words and commas makes tags; a taken word says who has it', async (
   await expect(tags.getByText('Gross takings', { exact: true })).toBeVisible()
   await expect(
     page.getByRole('listitem').filter({
-      hasText: '“turnover” is already another name for Net revenue, added by Sofia Brandt.',
+      hasText:
+        '“turnover” was not added. It is already another name for Net revenue, added by Sofia Brandt.',
     }),
   ).toBeVisible()
   // Backspace in the empty box selects the last tag, then removes it.
@@ -131,7 +131,7 @@ async function nextFrame(page: Page, event: 'keydown' | 'click', act: () => Prom
       event,
       () =>
         requestAnimationFrame(() => {
-          const box = document.querySelector<HTMLInputElement>('input[aria-label^="Add another"]')!
+          const box = document.querySelector<HTMLInputElement>('input[aria-label^="Add a name"]')!
           const section = box.closest('section')!
           seen.frame = {
             text: box.value,
@@ -160,7 +160,7 @@ test('a tag shows the moment its comma is typed, and goes the moment it is remov
 }) => {
   const release = await holdSaves(page)
   await go(page, '/definitions/Gross%20sales?slow=1')
-  const box = page.getByRole('textbox', { name: 'Add another name for Gross sales' })
+  const box = page.getByRole('textbox', { name: 'Add a name for Gross sales' })
   await box.pressSequentially('Sales Value')
   const typed = await nextFrame(page, 'keydown', () => box.press(','))
   expect(typed).toMatchObject({ text: '', focused: true, said: '' })
@@ -182,22 +182,30 @@ test('a tag shows the moment its comma is typed, and goes the moment it is remov
   await expect(page.getByText('Sales Value', { exact: true })).toHaveCount(0)
 })
 
-test('a save that fails takes its tag back and says so; Try again saves it', async ({ page }) => {
+test('a save that fails keeps the word, marked, and says so in place; Try again saves it', async ({
+  page,
+}) => {
   await go(page, '/definitions/Gross%20sales?state=failed')
   // The mock fails the page's own first load too.
   if (mode === 'mock') await page.getByRole('button', { name: 'Retry' }).click()
-  const box = page.getByRole('textbox', { name: 'Add another name for Gross sales' })
+  const box = page.getByRole('textbox', { name: 'Add a name for Gross sales' })
   const tag = page.getByRole('button', { name: 'Remove the other name Sales Value' })
   await box.pressSequentially('Sales Value')
   expect((await nextFrame(page, 'keydown', () => box.press(','))).tags).toContain('Sales Value')
-  const toast = page
-    .locator('[data-sonner-toast]')
-    .filter({ hasText: "Couldn't add “Sales Value”" })
-  await expect(toast).toContainText('Nothing was saved.')
+  const line = page.getByRole('listitem').filter({
+    hasText: '“Sales Value” was not added. The save did not go through, so nothing changed.',
+  })
+  await expect(line).toBeVisible()
+  // The word stays in the box, marked, and no toast says it again.
+  await expect(page.getByRole('button', { name: 'Dismiss Sales Value' })).toBeVisible()
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Sales Value' })).toHaveCount(
+    0,
+  )
   await expect(tag).toHaveCount(0)
   await expect(box).toBeFocused()
-  await toast.getByRole('button', { name: 'Try again' }).click()
+  await line.getByRole('button', { name: 'Try again to add Sales Value' }).click()
   await expect(tag).toBeVisible()
+  await expect(line).toHaveCount(0)
   await expect(
     page.getByRole('status').filter({ hasText: 'Added synonym Sales Value.' }),
   ).toBeAttached()
@@ -215,7 +223,7 @@ test('a save that fails takes its tag back and says so; Try again saves it', asy
 test('a word the service turns down says why, and offers no Try again', async ({ page }) => {
   test.skip(mode === 'mock', 'The reason is the service answering a write it will not make.')
   await go(page, '/definitions/Season')
-  const box = page.getByRole('textbox', { name: 'Add another name for Season' })
+  const box = page.getByRole('textbox', { name: 'Add a name for Season' })
   await expect(box).toBeVisible()
   // Someone else deletes Season while this page is open.
   await page.evaluate(async () => {
@@ -235,17 +243,18 @@ test('a word the service turns down says why, and offers no Try again', async ({
     if (!deleted.ok) throw new Error(`Season was not deleted: ${deleted.status}`)
   })
   await box.fill('test,')
-  const toast = page.locator('[data-sonner-toast]').filter({ hasText: "Couldn't add “test”" })
-  await expect(toast).toContainText("“Season” isn't in Definitions any more.")
-  await expect(toast).not.toContainText('Nothing was saved.')
-  await expect(toast.getByRole('button', { name: 'Try again' })).toHaveCount(0)
+  const line = page.getByRole('listitem').filter({ hasText: '“test” was not added.' })
+  await expect(line).toContainText("“Season” isn't in Definitions any more.")
+  await expect(line).not.toContainText('The save did not go through')
+  await expect(line.getByRole('button', { name: /^Try again/ })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Dismiss test' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Remove the other name test' })).toHaveCount(0)
 })
 
 test('the list folds synonyms into their row; Terms counts only real terms', async ({ page }) => {
   await go(page, '/definitions')
   const gross = page.locator('tr').filter({ hasText: /^Gross sales/ })
-  await expect(gross).toContainText('Another name')
+  await expect(gross).toContainText('Also called')
   await expect(gross).toContainText('GMV')
   await expect(page.locator('tr').filter({ hasText: /^GMV/ })).toHaveCount(0)
   await expect(page.getByRole('radio', { name: /Terms/ })).toContainText('8')
@@ -262,19 +271,19 @@ test('the list folds synonyms into their row; Terms counts only real terms', asy
   await expect(page.locator('tr').filter({ hasText: /^GMV/ })).toHaveCount(1)
 })
 
-test("a term's editor: Another name for folds the meaning; clearing it brings it back, with Undo", async ({
+test("a term's editor: Other name for folds the meaning; clearing it brings it back, with Undo", async ({
   page,
 }) => {
   await go(page, '/definitions/Webshop/edit')
   await expect(page.getByRole('textbox', { name: 'What it means' })).toContainText(
     'Orders placed on larchwood.example',
   )
-  await page.getByRole('button', { name: /^Another name for/ }).click()
+  await page.getByRole('button', { name: /^Other name for/ }).click()
   await page.getByRole('option', { name: 'Gross sales' }).click()
   await expect(page.getByText('Uses the meaning of')).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'What it means' })).toHaveCount(0)
-  await page.getByRole('button', { name: /^Another name for/ }).click()
-  await page.getByRole('option', { name: 'Not another name: give it its own meaning' }).click()
+  await page.getByRole('button', { name: /^Other name for/ }).click()
+  await page.getByRole('option', { name: 'Give it its own meaning instead' }).click()
   await expect(page.getByRole('textbox', { name: 'What it means' })).toContainText(
     'Orders placed on larchwood.example',
   )

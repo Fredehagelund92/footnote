@@ -74,14 +74,14 @@ A family is one entry for many near-identical metrics, such as a metric for each
 
 <!-- include word: Synonym -->
 
-Another name for a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.
+A word that means the same as a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.
 
 <!-- /include -->
 
 - A term is a word with its own meaning, such as Peak season. An owner of its domain, or an admin, adds one with **New term** in Definitions.
-- On a definition, type other names into Another name: a comma or Enter makes each one a tag. A family takes other names as a metric does, and agents read the family by them.
-- A word that can't be added says why, such as when the definition was removed meanwhile.
-- In a term's editor, Another name for points the word at a metric or a dimension.
+- On a definition, its other names are under **Also called**. Type a name into the box, Add a name: a comma or Enter makes each one a tag, and agents read each of them as that definition. A family takes other names as a metric does, and agents read the family by them.
+- A name that was not added stays in the box, marked, with one line under it that says why, such as when the definition was removed meanwhile. When the save did not go through, nothing changed, and Try again sends it again.
+- In a term's editor, **Other name for** points the word at a metric or a dimension. A synonym's own page says Other name for and the definition it means.
 - A word that already means something else says who has it, and is never saved twice. Case, spaces and accents don't make it another word: Salés is Sales.
 - A word that looks like one in use, such as Sale beside Sales, only warns. Agents read them as two words, so you can still publish it.
 - If a definitions tool later gives a word a second meaning, the word shows a conflict. Agents ask which one until it's settled.

@@ -61,7 +61,7 @@ import { DocumentEditorShell } from '@/components/footnote/document-shell'
 import { Panel } from '@/components/footnote/panel'
 
 // A term as a document, like any context item: the word as the heading, a few properties, and the
-// meaning as the text. No mode to pick. One optional property, Another name for, turns the word
+// meaning as the text. No mode to pick. One optional property, Other name for, turns the word
 // into a synonym of a metric or a dimension: the meaning folds away and the word uses that
 // definition's meaning, showing as a tag under it. Clearing it makes the word a term again, with
 // the meaning that was written before. A saved term's own other names are the same tag box as on
@@ -164,7 +164,7 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
   // What a word can be another name for: a metric or a dimension.
   const targets = all.filter((d) => d.synced && !d.sameAs)
   const canEdit = me.admin || (!!draft.domain && me.owns.includes(draft.domain))
-  // Clearing Another name for brings back the meaning written before, with a way back.
+  // Clearing Other name for brings back the meaning written before, with a way back.
   const clearTarget = () => {
     const was = target
     setTarget(undefined)
@@ -391,7 +391,7 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
           <span className="whitespace-nowrap">
             {words.toLocaleString('en-GB')} {words === 1 ? 'word' : 'words'}
           </span>
-          <span className="hidden sm:inline">{synonym ? 'Another name' : 'Markdown'}</span>
+          <span className="hidden sm:inline">{synonym ? 'Other name' : 'Markdown'}</span>
         </DocFooter>
       }
     >
@@ -429,17 +429,17 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
         )}
         <PropertyList label="Properties">
           <PropertyGroup>
-            <PropertyRow id={fieldId('same')} label="Another name for" icon={<EqualIcon />}>
+            <PropertyRow id={fieldId('same')} label="Other name for" icon={<EqualIcon />}>
               <SearchSelectField
                 labelId={fieldId('same')}
-                label="Another name for"
+                label="Other name for"
                 value={target}
                 onChange={(next) => {
                   setTarget(next)
                   resetSend()
                 }}
                 onClear={clearTarget}
-                clearLabel="Not another name: give it its own meaning"
+                clearLabel="Give it its own meaning instead"
                 placeholder="Add a definition"
                 searchPlaceholder="Search metrics and dimensions"
                 groups={(['metric', 'dimension'] as DefinitionType[]).map((t) => ({
@@ -506,7 +506,7 @@ function TermEditor({ name, original }: { name?: string; original?: Definition }
           </div>
         )}
         {synonym ? (
-          // Another name: the meaning editor folds away; the word uses the meaning of what it names.
+          // Other name for: the meaning editor folds away; the word uses the meaning of what it names.
           <div className="flex flex-col items-start gap-2">
             <p className="text-sm text-muted-foreground">
               Uses the meaning of{' '}

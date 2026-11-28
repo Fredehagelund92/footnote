@@ -69,8 +69,15 @@ export const concepts = {
   synonym: {
     name: 'synonym',
     definition:
-      'Another name for a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.',
+      'A word that means the same as a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.',
     internal: ['alias'],
+    // A definition lists its synonyms under Also called; a synonym's own page names what it means.
+    phrases: [
+      'Also called',
+      'Add a name',
+      'Other name for Net revenue',
+      'Agents read each of these as Gross sales.',
+    ],
   },
   domain: {
     name: 'domain',
@@ -444,6 +451,13 @@ export const bannedWords: readonly BannedWord[] = [
     { word: 'what the model costs', write: 'the AI cost', concept: null },
   ].map((banned): BannedWord => ({ ...banned, onlyOn: ['the web app'] })),
   { word: 'Try a question', write: 'Try it', concept: 'tryIt' },
+  // A definition's other names, as a label. "another name for" in a sentence is plain English.
+  {
+    word: 'Another name',
+    write: "Also called (Add a name; Other name for X on a synonym's page)",
+    concept: 'synonym',
+    matchCase: true,
+  },
   { word: 'proposal', write: 'suggestion', concept: 'suggestion' },
   { word: 'accept', write: 'publish', concept: 'publish' },
   { word: 'retire', write: 'archive', concept: 'archive' },

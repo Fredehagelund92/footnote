@@ -16,7 +16,7 @@ The glossary: the ten words the screens and these pages use, each in one sentenc
 - Owner: The person who publishes and checks a domain's context. Agents read only what an owner has published.
 - Suggestion: A change someone else sends to an owner, from the editor or through their agent. It waits for review until the owner publishes it, sends it back or closes it.
 - Definition: A metric is a number you track, such as Orders. A dimension is a way to split a number, such as by market. A term is a word your company uses, such as Peak season.
-- Synonym: Another name for a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.
+- Synonym: A word that means the same as a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.
 - Not found: A question agents asked several times and found nothing written down for. Its card brings a draft.
 - Reported: Someone said a context item is wrong or unclear. The owner sees it in the Inbox.
 - Due for a check: A context item whose check date has passed, or whose definition changed at its source. The owner confirms it is still true, or edits it.

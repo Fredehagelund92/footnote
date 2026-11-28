@@ -11,7 +11,7 @@ import { servedToAgents, type DomainId, type Fact } from '@/model/items'
 // Two plain concepts are written here. A term is a word with its own meaning ("Peak season"). A
 // synonym is another name for an existing definition ("GMV" for Gross sales): stored as a term
 // that points at it, so adding one from the definition's tag box or from the term editor's
-// "Another name for" writes the same entry, once. The definitions come from the app's API; the
+// "Other name for" writes the same entry, once. The definitions come from the app's API; the
 // rules here read the list they are given.
 
 export type DefinitionType = 'metric' | 'dimension' | 'term'

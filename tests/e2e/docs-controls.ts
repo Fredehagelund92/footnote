@@ -347,6 +347,18 @@ export const docControls: DocControl[] = [
   { phrase: 'Definitions', page: 'definitions-and-synonyms', at: '/inbox', drawn: 'link' },
   { phrase: 'New term', page: 'definitions-and-synonyms', at: '/definitions', drawn: 'button' },
   {
+    phrase: 'Also called',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Gross%20sales',
+    drawn: 'text',
+  },
+  {
+    phrase: 'Other name for',
+    page: 'definitions-and-synonyms',
+    at: '/definitions/Webshop/edit',
+    drawn: 'text',
+  },
+  {
     phrase: 'Add a value',
     page: 'definitions-and-synonyms',
     at: '/definitions/Market',

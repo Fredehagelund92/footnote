@@ -191,6 +191,12 @@ The answers in a suggestion's quick view (the Inbox pane and the dock) carry one
 
 **Same**, **Changed**, **Needs a look**. "Couldn't check" is a failure of the run, not a result. Action: **Save question**. Line in a review: "N of N still answer the same".
 
+### Other names
+
+A definition's synonyms are listed under **Also called**: the tool's own names as locked tags, and the names people add. The action is **Add a name**, and one line says what they do: "Agents read each of these as Gross sales." With none: "No other names yet. Agents find it only as “Peak season”." A synonym's own page says **Other name for Net revenue**, and so does a term's editor (**Other name for**). Never "Another name" as a label, which reads as a rename.
+
+A name that was not added stays in the box, marked, and one plain line under it says so, never a toast: "**“GMV” was not added.** It is already another name for Gross sales, added by Sofia Brandt." A save that did not go through says what is safe and offers **Try again**: "**“test” was not added.** The save did not go through, so nothing changed."
+
 ### Roles and people
 
 **Admin** and **Member**. A page is **People**, never Users. Owning is shown as domain chips, not as a role. Actions: Invite people, Make a new link, Cancel the invite, Remove from the workspace.
@@ -235,6 +241,7 @@ Checked by the copy test and by lint (`footnote/plain-words`, the glossary in `w
 | administrator, auditor, approver, steward | Admin, Member, owner |
 | AI app, client | agent |
 | Try a question | Try it |
+| Another name, as a label | Also called, Add a name, Other name for |
 | proposal, accept, retire | suggestion, publish, archive |
 | Back to <workspace name> | Back to app |
 | "gap" for a person, "agent" for a person | the support team, someone on our team |

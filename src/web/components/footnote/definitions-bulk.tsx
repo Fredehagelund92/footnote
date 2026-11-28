@@ -233,7 +233,7 @@ function defsMarkdown(defs: Definition[], domains: Domains) {
     defs
       .map(
         (d) =>
-          `## ${d.name}\n\n${d.definition || `Another name for ${d.sameAs}.`}\n\n- Type: ${kindName(d)}\n` +
+          `## ${d.name}\n\n${d.definition || `Other name for ${d.sameAs}.`}\n\n- Type: ${kindName(d)}\n` +
           (d.domain ? `- Domain: ${domains[d.domain]?.name}\n` : ''),
       )
       .join('\n')
@@ -248,7 +248,7 @@ function defsCsv(defs: Definition[], domains: Domains) {
       d.name,
       kindName(d),
       d.domain ? (domains[d.domain]?.name ?? '') : '',
-      d.definition || `Another name for ${d.sameAs}`,
+      d.definition || `Other name for ${d.sameAs}`,
     ]),
   ]
   return rows.map((r) => r.map(cell).join(',')).join('\n') + '\n'

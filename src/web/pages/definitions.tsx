@@ -19,7 +19,7 @@ import { ToolLogo } from '@/components/footnote/tool-logo'
 import { connectorByTool, connectorById, definitionsConnectHref } from '@/model/catalogue'
 import { integrationHref } from '@/model/integrations'
 import { PersonAvatar, WithAction } from '@/components/footnote/bits'
-import { AnotherNameFor, TypeTile } from '@/components/footnote/definition'
+import { OtherNameFor, TypeTile } from '@/components/footnote/definition'
 import {
   Tooltip,
   TooltipContent,
@@ -561,7 +561,7 @@ export function DefinitionsPage() {
       : foldedConflict(d)
         ? {
             icon: TriangleAlertIcon,
-            tip: `Another name for it has a conflict: ${index.conflictOf(foldedConflict(d)!)!.message}`,
+            tip: `One of its other names has a conflict: ${index.conflictOf(foldedConflict(d)!)!.message}`,
           }
         : d.changed
           ? {
@@ -661,7 +661,7 @@ export function DefinitionsPage() {
             )}
           />
         </td>
-        {/* The name with its type tile, its other names as tags (or, in the audit view, a synonym's Another name for); the rest are short facts. */}
+        {/* The name with its type tile, its other names as tags (or, in the audit view, a synonym's Other name for); the rest are short facts. */}
         <td className="max-w-0 pr-2 pl-4 align-middle md:pl-6 @max-xl/main:py-2 @xl/main:pl-1.5">
           <span className="flex min-w-0 items-center gap-2.5">
             {tip ? (
@@ -679,7 +679,7 @@ export function DefinitionsPage() {
             )}
             <span className="flex min-w-0 flex-col @xl/main:flex-row @xl/main:items-center @xl/main:gap-2">
               {name}
-              {target && <AnotherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />}
+              {target && <OtherNameFor target={target} className="min-w-0 @max-xl/main:hidden" />}
               <AlsoCalledChips
                 names={otherNames(d)}
                 conflicts={
@@ -911,7 +911,7 @@ export function DefinitionsPage() {
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel>Another name</DropdownMenuLabel>
+                    <DropdownMenuLabel>Also called</DropdownMenuLabel>
                     <DropdownMenuCheckboxItem
                       checked={synonymRows}
                       onCheckedChange={(on, e) => move(e.event, () => setSynonymRows(on))}
@@ -1008,7 +1008,7 @@ export function DefinitionsPage() {
               )}
               {synonymRows && (
                 <FilterChip
-                  field="Another name"
+                  field="Also called"
                   values={['shown as rows']}
                   onRemove={() => void setSynonymRows(false)}
                 />
@@ -1286,7 +1286,7 @@ function AlsoCalledChips({
     </TagChip>
   )
   // The name keeps its room: what does not fit beside it wraps onto a line that is cut off, the
-  // label with its first chip, so a row never shows "Another name" alone.
+  // label with its first chip, so a row never shows "Also called" alone.
   return (
     <span className="flex h-6 min-w-0 flex-wrap items-center gap-x-1 overflow-hidden @max-xl/main:hidden">
       {matched && (
@@ -1294,7 +1294,7 @@ function AlsoCalledChips({
       )}
       {first.length > 0 && (
         <span className="flex shrink-0 items-center gap-1">
-          <span className="text-xs text-muted-foreground">Another name</span>
+          <span className="text-xs text-muted-foreground">Also called</span>
           {chip(first[0]!)}
         </span>
       )}
