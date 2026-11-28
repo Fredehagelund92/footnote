@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
 import { ToolLogo } from '@/components/footnote/tool-logo'
 import { FrameSection } from '@/components/footnote/frame'
+import { PublicGuideLink } from '@/components/footnote/guide-link'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
 import { FoldTrigger } from '@/components/footnote/fold'
@@ -53,6 +54,7 @@ import { api } from '@/api'
 import {
   agentConnectionsQuery,
   connectReviewQuery,
+  signInMethodQuery,
   useAgentConnections,
   useSettings,
 } from '@/api/queries'
@@ -502,17 +504,46 @@ function ByHand({
 
 /* ---------- The whole body ---------- */
 
+/**
+ * Why a workspace has no address for agents, and what to do. The service serves none where it runs
+ * without its MCP server: the hosted demo (docs/vercel.md), which no setting changes, so a visitor
+ * is sent to run the app on their own computer. Anywhere else, an admin sets the address.
+ */
+function NoAddress({ inDialog }: { inDialog?: boolean }) {
+  const demo = useQuery(signInMethodQuery()).data?.demo
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-start gap-1 text-sm text-muted-foreground',
+        inDialog ? 'p-4' : 'px-4 pb-5 md:px-5',
+      )}
+    >
+      {demo ? (
+        <>
+          <p className="text-pretty">
+            This online trial does not run the agent connection, so agents can&apos;t connect to it.
+            To connect your agent, run it on your own computer.
+          </p>
+          <PublicGuideLink slug="try-the-demo">How to run it on your computer</PublicGuideLink>
+        </>
+      ) : (
+        <>
+          <p className="text-pretty">
+            Agents can&apos;t connect here yet: this workspace has no address for them. An admin
+            sets it, as MCP_RESOURCE_URL, where the service runs.
+          </p>
+          <PublicGuideLink slug="run-in-production">How to set the address</PublicGuideLink>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** The connect body, edge to edge: inside a Settings frame, or inside the dialog (`inDialog`, the dialog's own gutter). */
 export function ConnectAgent({ inDialog }: { inDialog?: boolean }) {
   const address = useSettings().mcpAddress
   // A workspace that serves no agents has nothing to connect to: say so, and nothing to copy.
-  if (!address)
-    return (
-      <p className={cn('text-sm text-muted-foreground', inDialog ? 'p-4' : 'px-4 pb-5 md:px-5')}>
-        Agents can&apos;t connect here yet: this workspace has no address for them. The person who
-        hosts this app sets one.
-      </p>
-    )
+  if (!address) return <NoAddress inDialog={inDialog} />
   return (
     <Address value={address}>
       <ConnectBody inDialog={inDialog} />
