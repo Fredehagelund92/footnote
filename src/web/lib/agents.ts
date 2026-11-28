@@ -4,6 +4,7 @@ import openai from '@/assets/logos/openai.svg'
 import vscode from '@/assets/logos/vscode.svg'
 import { MCP_URL, SLUG } from '@/lib/brand'
 import type { LivePhase } from '@/lib/connect'
+import { friendlyAgentName } from '@domain/app-family'
 import { AGENT_TOOLS, askFirstLine, finishDraftPrompt, writeContextPrompt } from '@domain/mcp-text'
 
 // How an agent connects. One prompt first: the agent adds the server, writes the Ask-first line into
@@ -208,6 +209,20 @@ export function logoFor(agent: string) {
   return openai
 }
 
+/**
+ * An agent as a person says it, mid-sentence: an app by the name people know it by, and "your
+ * agent" for a program that reported only a technical name, such as a proxy. An access key keeps
+ * the name an admin gave it.
+ */
+export const agentInSentence = (a: { kind?: 'app' | 'key'; agent: string }) =>
+  a.kind === 'key' ? a.agent : (friendlyAgentName(a.agent) ?? 'your agent')
+
+/** The same at the start of a sentence, or alone as a name: "Your agent". */
+export const agentName = (a: { kind?: 'app' | 'key'; agent: string }) => {
+  const named = agentInSentence(a)
+  return named === 'your agent' ? 'Your agent' : named
+}
+
 /** The tools an agent can call, with what each does in plain words: Settings and the docs list the same. */
 export { AGENT_TOOLS }
 
@@ -271,7 +286,7 @@ export function liveCopy(
         body: 'It keeps waiting for a few more minutes. What usually helps:',
       }
     case 'connected':
-      return { title: `Connected: ${agent}, ${me}` }
+      return { title: `Connected: ${friendlyAgentName(agent) ?? 'your agent'}, ${me}` }
     case 'timeout':
       return {
         title: 'Stopped waiting after 10 minutes. Nothing has signed in.',

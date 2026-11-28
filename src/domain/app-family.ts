@@ -65,3 +65,27 @@ export function appFamilyOf(name: unknown): AppFamily {
   if (!normal) return 'unknown'
   return rules.find(([, pattern]) => pattern.test(normal))?.[0] ?? 'other'
 }
+
+/** A name a program gave itself, not one a person would say: one word with a separator, or lower case. */
+const looksTechnical = (name: string) =>
+  !/\s/.test(name) && (/[-_/.:@]/.test(name) || name === name.toLowerCase())
+
+/** Words that name how a program connects, never what it is: a proxy, a bridge, a command line. */
+const plumbing = /\b(mcp|proxy|bridge|cli|remote|client|gateway|sdk|inspector)\b/i
+
+/**
+ * The name people know an agent by, from the name its program reported when it connected: a known
+ * app by its own name, such as Cursor for `cursor-vscode`, and a name that is already plain as it
+ * is. `null` when it is a technical identifier, such as `mcp-cli-proxy`: the screen then says
+ * "your agent", never the identifier. It gives the same answer for its own answer, so a name
+ * that went through it once can go through it again.
+ */
+export function friendlyAgentName(name: unknown): string | null {
+  if (typeof name !== 'string') return null
+  const trimmed = name.trim().slice(0, 100)
+  if (!trimmed) return null
+  const family = appFamilyOf(trimmed)
+  if (family !== 'other' && family !== 'unknown')
+    return looksTechnical(trimmed) ? appFamilyNames[family] : trimmed
+  return looksTechnical(trimmed) || plumbing.test(trimmed) ? null : trimmed
+}

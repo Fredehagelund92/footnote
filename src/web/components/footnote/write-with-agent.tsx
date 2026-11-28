@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import claude from '@/assets/logos/claude.svg'
 import { useAgentConnections } from '@/api/queries'
-import { claudeAppLink } from '@/lib/agents'
+import { agentInSentence, claudeAppLink } from '@/lib/agents'
 import { toolsOn } from '@/lib/connect'
 import { open } from '@/lib/events'
 import { toast } from '@/lib/toast'
@@ -33,7 +33,11 @@ export function useWriteWith(prompt: string): WriteWith {
   const app = mine.find((r) => appFamilyOf(r.agent) === 'claude_ai')
   if (app) return { via: 'claude', label: 'Write with Claude', href: claudeAppLink(prompt) }
   const other = mine[0]
-  if (other) return { via: 'copy', label: `Write with ${other.agent}`, agent: other.agent, prompt }
+  if (other) {
+    // The name people know it by, never the one a program reported: "your agent" for a proxy.
+    const agent = agentInSentence(other)
+    return { via: 'copy', label: `Write with ${agent}`, agent, prompt }
+  }
   return { via: 'connect', label: 'Write with your agent' }
 }
 
