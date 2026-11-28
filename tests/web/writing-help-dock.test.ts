@@ -4,12 +4,20 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/errors'
-import { askHelp, noteHelpChange, setHelpDesk, type HelpDesk } from '@/lib/writing-help'
+import {
+  askHelp,
+  noteHelpChange,
+  noteHelpSuggestion,
+  setHelpDesk,
+  type HelpDesk,
+} from '@/lib/writing-help'
 import type { AgentChange } from '@/model/draft-session'
 import type { HelpReply } from '@/model/writing-help'
 
 // The dock hands the keyboard to its box when a button of the conversation leaves the page: an
 // answer to tap, Try again and Undo are removed when pressed, and focus must not fall to the body.
+// A field the person was writing in is said as a suggestion, not as changed. A phone has no
+// writing help: a link to it says where it is.
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean
@@ -34,15 +42,23 @@ vi.mock('@/components/ui/tooltip', () => ({
 
 const { WritingHelpDock } = await import('@/pages/writing-help')
 
+/** Whether the window is a phone's. */
+let phone = false
+
 beforeAll(() => {
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
   window.matchMedia = ((query: string) => ({
-    matches: false,
+    matches: phone && query.includes('max-width'),
     media: query,
     addEventListener() {},
     removeEventListener() {},
   })) as unknown as typeof window.matchMedia
   Element.prototype.scrollIntoView = () => {}
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
 })
 
 let root: Root | undefined
@@ -50,6 +66,7 @@ afterEach(() => {
   act(() => setHelpDesk(null))
   act(() => root?.unmount())
   document.body.innerHTML = ''
+  phone = false
 })
 
 const reply = (extra: Partial<HelpReply> = {}): HelpReply => ({
@@ -141,5 +158,41 @@ describe('the dock’s box after a button that leaves the page', () => {
     await step(() => askHelp('Ops told us.'))
     await press('Undo')
     expect(document.activeElement).toBe(composer())
+  })
+})
+
+describe('a field the person was writing in', () => {
+  it('is said as a suggestion under the reply, and is not one of the fields changed', async () => {
+    await mount(
+      deskOf('s1', () => {
+        // The page kept the person's title and took the text, as its merge notes them.
+        noteHelpSuggestion('s1', ['title'])
+        noteHelpChange('s1', {
+          agent: 'Writing help',
+          fields: ['text'],
+          at: '2026-11-27T10:00:00.000Z',
+          before: {},
+          after: {},
+        } as unknown as AgentChange)
+        return Promise.resolve(reply({ reply: 'I wrote a title.', changed: ['title', 'text'] }))
+      }),
+    )
+    await step(() => askHelp('Make the title say webshop.'))
+    expect(document.body.textContent).toContain(
+      'You were typing in Title, so I left your words and put mine under it. Use it, or keep yours.',
+    )
+    const chips = [...document.querySelectorAll('ul[aria-label="Fields it changed"] li')].map(
+      (li) => li.textContent,
+    )
+    expect(chips).toEqual(['Text'])
+  })
+})
+
+describe('the dock on a phone', () => {
+  it('says writing help is on a computer or tablet, and has no box to write in', async () => {
+    phone = true
+    await mount(deskOf('p1', () => Promise.resolve(reply())))
+    expect(document.body.textContent).toContain('Writing help is on a computer or tablet.')
+    expect(composer()).toBeNull()
   })
 })

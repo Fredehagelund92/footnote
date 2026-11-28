@@ -49,8 +49,11 @@ export function useDock(): DockState | null {
   }
 }
 
-/** Opens a panel; with `replace`, as a cursor moving through a list does, in the place of the address now. */
-export function openDock(
+/**
+ * Opens a panel, settling once it is in the address: for what must start with the panel open, as
+ * the first thing said to writing help from the editor's first box does.
+ */
+export function dockOpened(
   kind: DockKind,
   id?: string,
   extra?: Record<string, string | undefined>,
@@ -60,7 +63,7 @@ export function openDock(
   fromRow = undefined
   fromButton = null
   fromButtonId = undefined
-  void changeQuery(
+  return changeQuery(
     {
       dock: id ? `${kind}.${id}` : kind,
       tab: undefined,
@@ -73,6 +76,16 @@ export function openDock(
     },
     opts,
   )
+}
+
+/** Opens a panel; with `replace`, as a cursor moving through a list does, in the place of the address now. */
+export function openDock(
+  kind: DockKind,
+  id?: string,
+  extra?: Record<string, string | undefined>,
+  opts?: { replace?: boolean },
+) {
+  void dockOpened(kind, id, extra, opts)
 }
 
 export function closeDock() {

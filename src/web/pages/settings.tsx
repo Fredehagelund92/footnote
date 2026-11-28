@@ -63,6 +63,7 @@ import { SLUG } from '@/lib/brand'
 import { People } from '@/pages/people'
 import { Agents } from '@/pages/settings-agents'
 import { landingOf, mayOpenSettings } from '@/lib/settings-access'
+import { useRoute } from '@/lib/router'
 
 // Settings: six sections under the settings navigation (General, Domains and owners, People,
 // Agents and access, Integrations, Advanced). Someone who isn't an admin has their agents, and an owner
@@ -758,11 +759,19 @@ function ChatSharing({ sharing }: { sharing: NonNullable<AdvancedPage['sharing']
 
 /**
  * Writing help, the editor's dock: off as installed, since turning it on sends the words of a
- * draft to the AI model set for Ask. The row says what is sent before an admin turns it on.
+ * draft to the AI model set for Ask. The row says what is sent before an admin turns it on. It has
+ * an address of its own (/settings/advanced/writing-help), where the editor's first box leads an
+ * admin: there it is open, with the keyboard on its switch.
  */
 function WritingHelp({ help }: { help: NonNullable<AdvancedPage['writingHelp']> }) {
   const write = useWrite()
   const { answeredBy } = useSession()
+  const asked = useRoute().parts[2] === 'writing-help'
+  // The switch itself: its id is on the hidden checkbox behind it, which takes no focus.
+  const toggle = React.useRef<HTMLElement>(null)
+  React.useEffect(() => {
+    if (asked) toggle.current?.focus()
+  }, [asked])
   const setOn = (on: boolean) =>
     void write('setWritingHelp', { on, version: help.version }).then(
       () => toast(on ? 'Writing help is on' : 'Writing help is off'),
@@ -781,7 +790,7 @@ function WritingHelp({ help }: { help: NonNullable<AdvancedPage['writingHelp']> 
           : 'Off. Nothing of a draft leaves this workspace.'
       }
       collapsible
-      defaultOpen={false}
+      defaultOpen={asked}
     >
       <FrameRows
         rows={[
@@ -790,9 +799,11 @@ function WritingHelp({ help }: { help: NonNullable<AdvancedPage['writingHelp']> 
             label: <label htmlFor="writing-help">Let people write with writing help</label>,
             hint:
               answeredBy === 'reader'
-                ? 'On, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. No AI model is connected now, so writing help stays away until one is.'
-                : 'On, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. Writing help changes only that person’s own draft, and never sends it.',
-            value: <Switch id="writing-help" checked={help.on} onCheckedChange={setOn} />,
+                ? 'On a computer or tablet. When it is on, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. No AI model is connected now, so writing help stays away until one is.'
+                : 'On a computer or tablet. When it is on, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. Writing help changes only that person’s own draft, and never sends it.',
+            value: (
+              <Switch ref={toggle} id="writing-help" checked={help.on} onCheckedChange={setOn} />
+            ),
           },
         ]}
       />
