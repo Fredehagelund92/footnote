@@ -975,6 +975,7 @@ function Editor({
         result.skipped?.length ? 'invalid' : 'failed',
         result.skipped?.[0]?.reason ?? "It couldn't be published. Try again.",
       )
+    session.end()
     guard.release()
     const sent = parts.suggest.length > 0
     undo.offer(sent ? `Sent to the owners of ${parts.to}` : 'Published', result.undo, {
@@ -1009,6 +1010,7 @@ function Editor({
           at: 'just now',
         },
       })
+      session.end()
       guard.release()
       toast(`Sent to ${ownerName}, owner of ${domains[form.domain]?.name}`, {
         description: 'Agents get it once the owner publishes it.',
@@ -1033,6 +1035,9 @@ function Editor({
       },
       gap: query.get('gap') ?? undefined,
     })
+    // What was published is the draft itself: a change made as Publish was pressed is not saved
+    // to it afterwards, as a draft that is gone.
+    session.end()
     guard.release()
     if (query.get('setup')) {
       toast('Published', {
