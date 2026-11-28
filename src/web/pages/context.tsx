@@ -786,7 +786,7 @@ function ContextList() {
               </DropdownMenu>
               <span
                 aria-hidden
-                className="mx-1 h-4 w-px bg-border @max-xl/main:-mb-1 @max-xl/main:mx-0 @max-xl/main:h-0 @max-xl/main:w-full"
+                className="mx-1 h-4 w-px bg-border @max-xl/main:mx-0 @max-xl/main:h-0 @max-xl/main:w-full"
               />
               <TextSwitch
                 label="Show"
