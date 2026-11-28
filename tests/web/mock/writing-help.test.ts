@@ -59,8 +59,7 @@ describe('writing help on the mock', () => {
       }),
     )
     expect(reply).toMatchObject({
-      reply:
-        'I wrote a draft from your message and the notice. Check each field, then send it to the owner of Sales.',
+      reply: 'I wrote a draft from your message and the notice. Check each field, then publish it.',
       // The kind was an Event already: a field that says the same is not written again.
       changed: ['title', 'where', 'when', 'source', 'text'],
       links: { read: 1, problem: null },
@@ -80,6 +79,8 @@ describe('writing help on the mock', () => {
   it('writes around a title the person wrote, in a draft that kept itself', async () => {
     const { api } = createMockApi()
     await on(api)
+    // Someone who owns no domain sends the draft to its owner, where Jon publishes his own.
+    await api.signIn({ name: 'Ines Duarte' })
     // The page kept its words as a draft before the person asked: it holds their title only.
     const { id } = await api.saveDraft({ fact: { ...blank, title: 'Norway' }, isNew: true })
     const reply = await played(
