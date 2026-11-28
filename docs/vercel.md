@@ -24,7 +24,7 @@ The web app and the function share one address, so the session cookie works as i
 ## What the function leaves out
 
 - **Scheduled jobs.** An instance is frozen between requests, so jobs never run. A demo reset from its snapshot does not need them.
-- **The MCP server and the login server for agents.** Only `/api/v1` and `/health` reach the function. Connect an agent says so, and sends a visitor to [Try the demo](try-the-demo.md) to run Footnote on their own computer.
+- **The MCP server and the login server for agents.** Only `/api/v1` and `/health` reach the function. Connect an agent says so, and links to [Try the demo](try-the-demo.md) to run Footnote on your own computer and [Run in production](run-in-production.md) to set the address.
 - **The Cube compiler.** Integrations cannot read or check a Cube model. With `CUBE_MODEL_DIR` unset, it serves the demo's definitions.
 
 Inbox items still arrive with the change that makes them.
