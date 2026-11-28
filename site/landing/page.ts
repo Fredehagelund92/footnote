@@ -127,8 +127,12 @@ function scrub(moving: boolean) {
     root.classList.add('used')
     show(Number(range.value), true)
   })
-  range.addEventListener('pointerdown', end)
-  range.addEventListener('keydown', end)
+  const touched = () => {
+    used = true
+    end()
+  }
+  range.addEventListener('pointerdown', touched)
+  range.addEventListener('keydown', touched)
   root.classList.toggle('in-note', meaning.week(shown).applies)
   if (!moving) return
 
