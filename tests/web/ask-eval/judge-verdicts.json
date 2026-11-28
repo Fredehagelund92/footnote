@@ -1,5 +1,5 @@
 {
-  "digest": "61112f2125b140cd",
+  "digest": "bb37d0f952c51fdf",
   "model": "anthropic/claude-haiku-5.5",
   "verdicts": {
     "J01": {
@@ -17,7 +17,9 @@
         "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
       ],
       "verdict": [],
-      "unsupported": []
+      "unsupported": [
+        "Check with the metric owners, Jon Abara and Sofia Brandt, before comparing Spain's turnover or takings with other markets."
+      ]
     },
     "J04": {
       "advice": [],
@@ -37,9 +39,7 @@
     "J07": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "It is due for a check: Cube changed the definition of Gross margin on 7 Oct."
-      ]
+      "unsupported": []
     },
     "J08": {
       "advice": [],
@@ -62,17 +62,14 @@
       "unsupported": []
     },
     "J12": {
-      "advice": ["Open your Inbox to see them."],
+      "advice": [],
       "verdict": [],
       "unsupported": []
     },
     "J13": {
       "advice": ["That figure should be checked in your reporting tool."],
       "verdict": [],
-      "unsupported": [
-        "That figure should be checked in your reporting tool.",
-        "The reply assumes the business has a reporting tool, which nothing in the fixed facts or evidence states."
-      ]
+      "unsupported": []
     },
     "J14": {
       "advice": [],
@@ -92,7 +89,7 @@
       "unsupported": []
     },
     "J17": {
-      "advice": ["No. The regulator's pause on price promotions in Norway is still in place [1]."],
+      "advice": ["No."],
       "verdict": [],
       "unsupported": []
     },
@@ -125,8 +122,8 @@
     },
     "J23": {
       "advice": [],
-      "verdict": ["Sales will probably come back once the rule is lifted."],
-      "unsupported": []
+      "verdict": [],
+      "unsupported": ["Sales will probably come back once the rule is lifted."]
     },
     "J24": {
       "advice": [],
@@ -151,14 +148,14 @@
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "The 'due for a check' status is set by the item owners; it does not follow from the check date."
+        "The 'needs a recheck' status is set by the item owners; it does not follow from the check date."
       ]
     },
     "J28": {
       "advice": [],
       "verdict": [],
       "unsupported": [
-        "Another note counts only card and cash payments [2], but the owners have not marked them as conflicting."
+        "Sentence 2: \"but the owners have not marked them as conflicting.\" The evidence says the items are \"Marked by their owners as disagreeing, and not settled,\" so this claim about the owners contradicts the evidence."
       ]
     },
     "J29": {
@@ -211,9 +208,7 @@
     "J38": {
       "advice": [],
       "verdict": [],
-      "unsupported": [
-        "Footnote has nothing about the Italian regulator in the last quarter (July to September 2026)."
-      ]
+      "unsupported": []
     },
     "J39": {
       "advice": [],
@@ -232,8 +227,8 @@
     },
     "J42": {
       "advice": [],
-      "verdict": [],
-      "unsupported": ["Yes, it is due for a check: Jon Abara last checked it on 3 October 2026."]
+      "verdict": ["Yes, it needs a recheck: Jon Abara last checked it on 3 October 2026."],
+      "unsupported": []
     },
     "J43": {
       "advice": [],
@@ -250,7 +245,7 @@
     "J46": {
       "advice": ["Do not report it weekly [1]."],
       "verdict": [],
-      "unsupported": ["Do not report it weekly [1]."]
+      "unsupported": []
     },
     "J44": {
       "advice": [],
