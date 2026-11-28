@@ -27,7 +27,7 @@ export type ReleaseWords = {
   startCommands: readonly string[]
   /** The note on what the version is for. */
   versionNote: string
-  /** The close's first line, over "Runs on your computer today". */
+  /** The close's first line, over "Try the demo on your computer". */
   closeTitle: string
 }
 

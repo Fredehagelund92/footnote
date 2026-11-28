@@ -100,6 +100,12 @@ code {
   display: flex;
   gap: 8px;
 }
+.hero .need {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fg-3);
+}
 .status {
   display: inline-flex;
   align-items: center;
