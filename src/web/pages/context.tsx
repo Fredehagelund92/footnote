@@ -30,6 +30,7 @@ import {
   ListBar,
   RowMenu,
   SearchField,
+  SortChoices,
   SortMenu,
   SortTh,
   StatusDot,
@@ -44,6 +45,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -259,6 +261,19 @@ function ContextByTime() {
   )
 }
 
+/** Whether the page is as narrow as a phone's, where the bar's Sort and Select fold into Filter. */
+function usePhoneBar(button: HTMLElement | null) {
+  const [phone, setPhone] = React.useState(false)
+  React.useEffect(() => {
+    const main = button?.closest('.\\@container\\/main')
+    if (!main) return
+    const watch = new ResizeObserver(() => setPhone(main.clientWidth < 576))
+    watch.observe(main)
+    return () => watch.disconnect()
+  }, [button])
+  return phone
+}
+
 function ContextList() {
   // The shell's shared read holds these rows, so a visit draws them at once; the page's read is that
   // same library, read again only once it is stale (api/queries.ts).
@@ -365,6 +380,8 @@ function ContextList() {
   usePublishOrder('context', order)
   const table = React.useRef<HTMLTableElement>(null)
   const sel = useSelection(order, { scope: table })
+  const [filterButton, setFilterButton] = React.useState<HTMLElement | null>(null)
+  const phone = usePhoneBar(filterButton)
   const ahead = useReadAhead()
   // On a phone the checkboxes come with Select, or once a row is ticked.
   const boxes = sel.picking || sel.count > 0
@@ -628,6 +645,7 @@ function ContextList() {
                 <DropdownMenuTrigger
                   render={
                     <Button
+                      ref={setFilterButton}
                       variant="ghost"
                       className={cn(barButton, filters > 0 && 'bg-muted text-foreground')}
                     />
@@ -710,6 +728,28 @@ function ContextList() {
                       </FilterValue>
                     </DropdownMenuCheckboxItem>
                   </DropdownMenuGroup>
+                  {phone && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <SortChoices
+                        keys={SORTS}
+                        sorting={sorting}
+                        onSort={(next, press) => move(press, () => setSort(next))}
+                        shown={(Object.keys(SORTS) as Sort[]).filter(
+                          (k) => k !== 'best' || text.trim(),
+                        )}
+                      />
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem
+                          onClick={() => (boxes ? sel.clear() : sel.setPicking(true))}
+                        >
+                          <ListChecksIcon />
+                          {boxes ? 'Done selecting' : 'Select'}
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
@@ -744,7 +784,10 @@ function ContextList() {
                   </DropdownMenuGroup>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <span aria-hidden className="mx-1 h-4 w-px bg-border" />
+              <span
+                aria-hidden
+                className="mx-1 h-4 w-px bg-border @max-xl/main:mx-0 @max-xl/main:h-0 @max-xl/main:w-full"
+              />
               <TextSwitch
                 label="Show"
                 value={onlyConflicts ? 'conflicts' : 'all'}
@@ -765,6 +808,7 @@ function ContextList() {
                 shown={(Object.keys(SORTS) as Sort[]).filter((k) => k !== 'best' || text.trim())}
                 narrow="@max-3xl/main:sr-only"
                 className="w-60"
+                triggerClassName="@max-xl/main:hidden"
               />
               <BarSpacer>
                 {archived > 0 && !status.includes('Archived') && (
@@ -784,15 +828,6 @@ function ContextList() {
                 )}
                 <SearchField value={text} onChange={setText} placeholder="Search context" />
               </BarSpacer>
-              {/* On a phone, where there is no hover or Shift, Select starts picking rows. */}
-              <Button
-                variant="ghost"
-                className={cn(barButton, '@xl/main:hidden', boxes && 'bg-muted text-foreground')}
-                onClick={() => (boxes ? sel.clear() : sel.setPicking(true))}
-              >
-                <ListChecksIcon />
-                <span className={cn(!boxes && 'sr-only')}>{boxes ? 'Done' : 'Select'}</span>
-              </Button>
               <Count>
                 {!ready ? (
                   phase === 'skeleton' && (

@@ -318,7 +318,8 @@ test('Definitions change terms only: a synced metric is skipped, and a term take
 test('On a phone, Select starts picking and the bar runs along the bottom', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await go(page, '/context')
-  await page.getByRole('button', { name: 'Select', exact: true }).click()
+  await page.getByRole('button', { name: /^Filter/ }).click()
+  await page.getByRole('menuitem', { name: 'Select', exact: true }).click()
   await page.locator('tbody tr').nth(1).click()
   await page.locator('tbody tr').nth(2).click()
   await expect(page).not.toHaveURL(/dock=/)
@@ -340,9 +341,10 @@ test('On a phone, a scroll from code cannot leave the bar short of the bottom', 
   await page.setViewportSize({ width: 390, height: 844 })
   await go(page, '/context')
   // What a browser does to reach an element that is in view: the shell itself must not move.
-  const select = page.getByRole('button', { name: 'Select', exact: true })
-  await select.evaluate((el) => el.scrollIntoView({ block: 'start' }))
-  await select.click()
+  const filter = page.getByRole('button', { name: /^Filter/ })
+  await filter.evaluate((el) => el.scrollIntoView({ block: 'start' }))
+  await filter.click()
+  await page.getByRole('menuitem', { name: 'Select', exact: true }).click()
   await page.locator('tbody tr').nth(1).click()
   const region = bar(page)
   await expect(region).toContainText('1 selected')

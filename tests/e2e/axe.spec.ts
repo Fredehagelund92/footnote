@@ -379,7 +379,9 @@ for (const { name, width, height } of widths) {
 
       test('the Sort menu, open, sorted the other way', async ({ page }) => {
         await page.goto(withTheme('/context', theme))
-        await page.getByRole('button', { name: /^Sort/ }).click()
+        // On a phone Sort is a part of the Filter menu.
+        const sort = page.getByRole('button', { name: /^Sort/ })
+        await (width < 576 ? page.getByRole('button', { name: /^Filter/ }) : sort).click()
         await page.getByRole('menuitemradio', { name: 'Oldest first' }).click()
         await expect(page.getByRole('menu')).toBeVisible()
         expect(await violations(page)).toEqual([])

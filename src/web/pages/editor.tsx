@@ -1521,7 +1521,14 @@ function Editor({
               >
                 {edited ? 'Back to the form' : 'Write it yourself'}
               </Button>
-              <WriteWithButton prompt={writePrompt()} variant="ghost" />
+              {/* The third choice, a way of its own: on a phone a link under the two buttons. */}
+              <div className="max-sm:w-full sm:contents">
+                <WriteWithButton
+                  prompt={writePrompt()}
+                  variant="ghost"
+                  className="max-sm:h-auto max-sm:px-0 max-sm:underline max-sm:underline-offset-4 max-sm:hover:bg-transparent"
+                />
+              </div>
             </div>
             {/* What the button does with the words, and, with no writing help, how it would get
                 here: not on a phone, where it is not there either way. */}
@@ -1753,7 +1760,7 @@ function Editor({
           >
             Summary {summaryLength} of {SUMMARY_LIMIT}
           </span>
-          <span className="whitespace-nowrap">
+          <span className="whitespace-nowrap max-[23rem]:hidden">
             {words.toLocaleString('en-GB')} {words === 1 ? 'word' : 'words'}
           </span>
           <span className="whitespace-nowrap max-sm:hidden">

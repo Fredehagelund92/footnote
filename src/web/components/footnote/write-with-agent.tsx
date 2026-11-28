@@ -68,14 +68,17 @@ const Mark = ({ w }: { w: WriteWith }) =>
 export function WriteWithButton({
   prompt,
   variant = 'outline',
+  className,
 }: {
   prompt: string
   variant?: 'outline' | 'ghost'
+  className?: string
 }) {
   const w = useWriteWith(prompt)
   return w.via === 'claude' ? (
     <Button
       variant={variant}
+      className={className}
       nativeButton={false}
       render={<a href={w.href} onClick={() => press(w)} />}
     >
@@ -83,7 +86,7 @@ export function WriteWithButton({
       {w.label}
     </Button>
   ) : (
-    <Button variant={variant} onClick={() => press(w)}>
+    <Button variant={variant} className={className} onClick={() => press(w)}>
       <Mark w={w} />
       {w.label}
     </Button>

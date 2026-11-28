@@ -73,6 +73,9 @@
   overflow: auto;
   overscroll-behavior-x: contain;
   outline: none;
+
+  /* A name reads the window's width (cqw) to stop short of its right edge. */
+  container-type: inline-size;
 }
 
 .time-axis {
@@ -325,8 +328,9 @@
 }
 
 /* A name sticks to the left edge while its box, the bar or the box beside it, is on screen, and
-   gives up from its end what of the box has gone past that edge (--time-x is where the box starts),
-   so it is cut with an ellipsis, never by the edge. */
+   gives up from its end what of the box has gone past either edge, so it is cut with an ellipsis,
+   never by the edge. --time-x is where the box starts, 100cqw the window's width; the right edge
+   keeps a small gap, as a bar's border may add a pixel. */
 .time-name {
   position: sticky;
   left: var(--time-name-left);
@@ -334,8 +338,11 @@
   align-items: center;
   gap: var(--time-pad);
   min-width: 0;
-  max-width: calc(
-    100% - clamp(0px, var(--time-sl) + var(--time-name-left) - var(--time-x, 0px), 100%)
+  max-width: min(
+    calc(100% - clamp(0px, var(--time-sl) + var(--time-name-left) - var(--time-x, 0px), 100%)),
+    calc(
+      100cqw - max(var(--time-x, 0px) - var(--time-sl), var(--time-name-left)) - var(--time-inset)
+    )
   );
   padding-inline: var(--time-pad);
   white-space: nowrap;
