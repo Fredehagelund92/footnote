@@ -158,6 +158,7 @@ export const SHORTCUTS: { group: string; rows: Keys[] }[] = [
       { keys: ['⌘', 'Z'], label: 'Undo the last decision, while it can be undone' },
       { keys: ['?'], label: 'Show these shortcuts' },
       { keys: ['Esc'], label: 'Close, or go back; in a review, close the note, keeping it' },
+      { keys: ['H'], label: 'Go back one step in the side panel, when it has a step to go back' },
     ],
   },
   {

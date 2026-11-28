@@ -69,6 +69,9 @@ export default defineConfig({
     // J128 draws the mock's demo metrics' tree, which the demo source on the service has none of;
     // the service's read is in tests/integration/definition-relations.test.ts.
     /\/j128-built-from-tree\.spec\.ts$/,
+    // J153 opens the mock's item that names the Webshop in its words, by its id; the service's demo
+    // week keeps its items under ids of its own.
+    /\/j153-panel-way-back\.spec\.ts$/,
     // J88 asks the mock for a dbt folder in the demo's Cube model's place (?demo=dbt); the service
     // reads one and gives its refs in tests/integration/server-folder-catalogue.test.ts.
     /\/j88-dbt-definitions\.spec\.ts$/,
