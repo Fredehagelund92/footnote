@@ -545,7 +545,7 @@ test('from an own semantic manifest to a Checked answer', async ({ page }) => {
   await expect(page.getByText('Agents asked nothing this week.')).toHaveCount(0)
   await shot('16-first-question')
   await next.getByRole('button', { name: 'Write context' }).first().click()
-  await expect(page).toHaveURL(/\/context\/new\?metric=Orders$/)
+  await expect(page).toHaveURL(/\/context\/new\?metric=Orders&dock=write$/)
   await moveTo(page, '/inbox')
 
   // Nobody has signed an agent in: the access key is no sign-in, so the line still says so.

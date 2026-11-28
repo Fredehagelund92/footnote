@@ -59,19 +59,27 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
 })
 
-test('Writing help is off as installed: the dock says so, and the fields fill in by rule', async ({
+test('Writing help is off as installed: the dock says what is missing, and the fields fill in by rule', async ({
   page,
 }) => {
   await go(page, '/context/new')
-  // The dock opens beside the new item, says it is off in one line, and has no box.
+  // The dock opens beside the new item, says in one line what is missing, and has no box. The
+  // service has no model, which comes first; the mock has one, so it is the switch that is off.
   await expect(page).toHaveURL(/[?&]dock=write/)
-  await expect(dock(page)).toContainText('Writing help is off for this workspace.')
-  await expect(box(page)).toHaveCount(0)
-  // An admin is led to the switch.
-  await expect(dock(page).getByRole('link', { name: 'Turn it on in Settings' })).toHaveAttribute(
-    'href',
-    '/settings/advanced/writing-help',
+  await expect(dock(page)).toContainText(
+    mode === 'http'
+      ? 'Writing help needs an AI model, and none is connected to this workspace.'
+      : 'Writing help is off for this workspace.',
   )
+  await expect(box(page)).toHaveCount(0)
+  // An admin is led to the guide for a model, or to the switch.
+  if (mode === 'http')
+    await expect(dock(page).getByRole('link', { name: 'How to connect a model' })).toBeVisible()
+  else
+    await expect(dock(page).getByRole('link', { name: 'Turn it on in Settings' })).toHaveAttribute(
+      'href',
+      '/settings/advanced/writing-help',
+    )
   await expect(page.getByText('Filled in by rule, with no AI model.')).toHaveCount(0)
   // Draft from text, in More, fills the fields by rule.
   await page.getByRole('button', { name: 'More' }).click()
@@ -87,7 +95,9 @@ test('Someone who is not an admin is told who can turn writing help on', async (
   await signInAs(page, 'Ines Duarte')
   await go(page, '/context/new')
   await expect(dock(page)).toContainText(
-    'Writing help is off for this workspace. An admin can turn it on in Settings.',
+    mode === 'http'
+      ? 'Writing help needs an AI model, and none is connected to this workspace. An admin can connect one in Settings.'
+      : 'Writing help is off for this workspace. An admin can turn it on in Settings.',
   )
   await expect(page.getByRole('link', { name: 'Turn it on in Settings' })).toHaveCount(0)
   await expect(box(page)).toHaveCount(0)

@@ -62,7 +62,7 @@ for (const { name, viewport } of [
         await expect(log.locator('[data-answer-words]')).not.toContainText('do:')
         await fitsThePage(page, row)
         await write.click()
-        await expect(page).toHaveURL(/\/context\/new$/)
+        await expect(page).toHaveURL(/\/context\/new\?dock=write$/)
         await expect(page.getByRole('heading', { name: 'New context', level: 1 })).toBeVisible()
       }
     })

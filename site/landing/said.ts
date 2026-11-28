@@ -4,7 +4,7 @@
   It is a demonstration the page plays, and its caption says so. The thread, the Spain story and
   Elena Ruiz are invented for it and are not in the demo; Alex Moreau and Jon Abara are the demo's
   people. The words of the app it shows are the app's own, and test/landing.test.ts holds them to
-  it: the first box's button and note, the tool names and status, and the answer line.
+  it: Draft from text's button and note, the tool names and status, and the answer line.
   It shows no chat app's own control: Footnote has none, so the person copies the thread.
 */
 
@@ -48,22 +48,22 @@ export const thread = {
   copied: 'Copied: the reply',
 }
 
-/** The words the person copied, as they land in the first box or in the agent's chat. */
+/** The words the person copied, as they land in Draft from text or in the agent's chat. */
 export const pasted =
   'No, a price error. Every tent showed 50% off in the Spanish webshop from 08:00 to 14:00 on 14 Nov. We kept the orders.'
 
 /** The two ways in that exist today. */
 export const doors = [
-  { key: 'paste', name: 'Paste it into Footnote', how: 'New context starts with What happened?' },
+  { key: 'paste', name: 'Paste it into Footnote', how: 'Draft from text, in New context, fills it in' },
   { key: 'agent', name: 'Hand it to your agent', how: 'It saves your draft with write_draft' },
 ] as const
 
-/** The first box of a new item, with no writing help: the app's words (src/web/pages/editor.tsx). */
+/** Draft from text, in the editor's More menu: the app's words (src/web/pages/editor.tsx). */
 export const firstBox = {
   page: 'New context',
-  question: 'What happened?',
+  question: 'Draft from text',
   button: 'Fill it in',
-  note: 'Filled in by rule, with no AI model.',
+  note: 'The fields fill in from it, with no AI model.',
 }
 
 /** The agent's door: what the person asks, the tool it calls and what it then says. */
