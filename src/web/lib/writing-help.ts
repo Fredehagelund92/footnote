@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { toApiError } from '@/api/errors'
-import { joinChanges, type AgentChange } from '@/model/draft-session'
+import { joinChanges, type AgentChange, type SessionField } from '@/model/draft-session'
 import {
   askedTurn,
   doneTurn,
@@ -8,6 +8,7 @@ import {
   failedTurn,
   heardTurn,
   stoppedTurn,
+  suggestedTurn,
   type HelpLive,
   type HelpReply,
   type HelpTurn,
@@ -233,6 +234,15 @@ export function noteHelpChange(draft: string, change: AgentChange) {
       : [...kept, { turn, change }],
   )
   set({ changes })
+}
+
+/**
+ * Writing help wrote fields the person was writing in: the page kept their words, and its own wait
+ * under each field to be used or dismissed. Kept with the turn that wrote them, so its reply says so.
+ */
+export function noteHelpSuggestion(draft: string, fields: readonly SessionField[]) {
+  const turn = running.get(draft)?.turn ?? settling.get(draft)
+  if (turn && fields.length) update(draft, turn, (t) => suggestedTurn(t, fields))
 }
 
 /**

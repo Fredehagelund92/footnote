@@ -255,7 +255,7 @@ Avatars are a soft tint picked from the person's name, one of ten hues every 36 
 
 ### 3.2 The dock
 
-One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `family`, `ask`, `try`, `write`, `topic`, `share`, `report`, `where`, `conflict`. Writing help (`write`) and Try it swap in the editor's one dock: write the draft, then see what agents would say.
+One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `family`, `ask`, `try`, `write`, `topic`, `share`, `report`, `where`, `conflict`. Writing help (`write`) and Try it swap in the editor's one dock: write the draft, then see what agents would say. Writing help is on a computer or tablet only: on a phone, where the dock is a screen of its own, the editor has no Writing help.
 
 | Dock                                                                       | Width |
 | -------------------------------------------------------------------------- | ----- |
@@ -366,7 +366,7 @@ One document editor (Tiptap) for long text. Markdown goes in and out. Under the 
 2. When and where: Applies to (tag chips with + Add), When (one date-phrase chip).
 3. Where it comes from: Source (a link chip), Don't conclude (edited in place), Checked.
 
-An empty value is a muted Add placeholder; a needed one has a quiet dot. The list is for editing: a published item reads its properties as Details (5.5), not as this list. One popover each (a bottom sheet on a phone). Up and Down move between properties, Enter opens, Esc closes, typing filters, Backspace removes the last tag. The editor header keeps to the way back, the title, Saved, one Write / Try it toggle and the one primary action. Draft from text, What agents get, search on a phone and the theme sit in one More menu. The side panel (What agents get, Overlaps) appears only when the item overlaps another. Owners publish their own item in one step; otherwise "Send to the owner of X".
+An empty value is a muted Add placeholder; a needed one has a quiet dot. While Writing help fills a new draft in, a field still empty shows a bar where its value will land, and the field stays under it to click or tab into. Its words for a field the person is writing in wait under the field as one line, "Writing help suggests: ...", with Use it and Dismiss. The list is for editing: a published item reads its properties as Details (5.5), not as this list. One popover each (a bottom sheet on a phone). Up and Down move between properties, Enter opens, Esc closes, typing filters, Backspace removes the last tag. The editor header keeps to the way back, the title, Saved, one Write / Try it toggle and the one primary action. Draft from text, What agents get, search on a phone and the theme sit in one More menu. The side panel (What agents get, Overlaps) appears only when the item overlaps another. Owners publish their own item in one step; otherwise "Send to the owner of X".
 
 ### 5.5 Peeks
 

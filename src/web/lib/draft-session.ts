@@ -49,6 +49,8 @@ type Options<F extends SessionForm> = {
   onError: (error: unknown) => void
   /** Writing help changed fields the person was not writing in: what came into the form. */
   onHelped?: (change: AgentChange) => void
+  /** Writing help wrote fields the person was writing in: its words wait under each, as a suggestion. */
+  onSuggested?: (fields: SessionField[]) => void
 }
 
 export function useDraftSession<F extends SessionForm>(options: Options<F>) {
@@ -121,6 +123,8 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     // Writing help's change is its turn's to gather: the editor's dock keeps them (lib/writing-help).
     if (merged.helped) latest.current.onHelped?.(merged.helped)
     const agentOf = (f: SessionField) => writerName(fact.session?.fields[f] ?? { by: 'agent' })
+    const suggested = merged.waiting.filter((f) => fact.session?.fields[f]?.by === 'writing_help')
+    if (suggested.length) latest.current.onSuggested?.(suggested)
     const { settled } = merged
     if (settled.length || merged.waiting.length)
       setWaiting((w) => {
@@ -235,6 +239,15 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     return refreshing.current
   }
 
+  /**
+   * A writer's words for a field the person is writing in, until they take them or keep their
+   * own; none once the field says the same.
+   */
+  const waitingIn = (field: SessionField) => {
+    const theirs = waiting[field]
+    return theirs && !sameField(form, theirs.form, field) ? theirs : undefined
+  }
+
   return {
     on,
     status: autosave.status,
@@ -257,14 +270,7 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
      * since. Writing help's Undo, which the editor's dock keeps a turn at a time.
      */
     revert: (change: AgentChange) => put(undoChange(formRef.current, change), change.fields),
-    /**
-     * The agent's words for a field the person is writing in, until they take them or keep their
-     * own; none once the field says the same.
-     */
-    waitingIn: (field: SessionField) => {
-      const theirs = waiting[field]
-      return theirs && !sameField(form, theirs.form, field) ? theirs : undefined
-    },
+    waitingIn,
     take: (field: SessionField) => {
       const theirs = waiting[field]
       if (!theirs) return
@@ -280,12 +286,14 @@ export function useDraftSession<F extends SessionForm>(options: Options<F>) {
     },
     /**
      * Who wrote a field the person has not changed since: their agent, by its name, or writing
-     * help, when it was the last to change it and nobody has confirmed it.
+     * help, when it was the last to change it and nobody has confirmed it. Not a field whose
+     * words still wait beside the person's own: what the field holds is theirs.
      */
     agentIn: (field: SessionField) => {
       const stamp = stamps[field]
       if (!stamp || stamp.by === 'person' || stamp.mark === 'confirmed' || unsaved.includes(field))
         return
+      if (waitingIn(field)) return
       return writerName(stamp)
     },
   }

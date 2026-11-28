@@ -4,6 +4,7 @@ import {
   helpNow,
   moveHelpChat,
   noteHelpChange,
+  noteHelpSuggestion,
   setHelpDesk,
   stopHelp,
   undoHelp,
@@ -197,6 +198,38 @@ describe('a turn of writing help', () => {
     await askHelp('Unsaved.')
     expect(helpNow().turns[3]).toMatchObject({ state: 'failed', problem: 'It was sent already.' })
     expect(page.calls).toEqual([])
+  })
+})
+
+describe('a field the person is writing in while a turn writes it', () => {
+  it('is kept with the turn that wrote it, also when the page reads it after the turn ended', async () => {
+    let live: HelpLive | undefined
+    let answer!: (r: HelpReply) => void
+    let read!: () => void
+    const page = desk('s1', (_input, l) => {
+      live = l
+      return new Promise<HelpReply>((resolve) => (answer = resolve))
+    })
+    setHelpDesk(page.desk)
+    const asking = askHelp('Make the title say webshop.')
+    await settled()
+    live!.onEvent!({ type: 'written', changed: ['title'] })
+    // The page kept the person's title: writing help's waits under it.
+    noteHelpSuggestion('s1', ['title'])
+    expect(helpNow().turns[0]).toMatchObject({ state: 'asking', suggested: ['title'] })
+    // The last read of the draft hangs: what it brings in still belongs to the turn.
+    page.desk.refresh = () => new Promise<void>((resolve) => (read = resolve))
+    answer(reply({ changed: ['title', 'text'] }))
+    await settled()
+    noteHelpSuggestion('s1', ['text'])
+    read()
+    await asking
+    expect(helpNow().turns[0]).toMatchObject({ state: 'done', suggested: ['title', 'text'] })
+    // Nothing came into the form, so there is no change to take back.
+    expect(helpNow().latest).toBeNull()
+    // With no turn on the draft, as a change made in another window, nothing is noted.
+    noteHelpSuggestion('s1', ['when'])
+    expect(helpNow().turns[0]!.suggested).toEqual(['title', 'text'])
   })
 })
 
