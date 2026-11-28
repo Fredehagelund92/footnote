@@ -7,8 +7,8 @@ import { Toolbar } from '@/components/footnote/doc-toolbar'
 
 // The one document editor: the page header, then the formatting toolbar as a fixed 40px row (outside
 // the scroller), the tinted canvas with the document sheet (the only scroller), an optional side
-// panel, and one footer bar, with a bar of the page's own above it where it has one. The context
-// and term editors, About our business and a domain all use it, so they read as one product.
+// panel, and one footer bar. The context and term editors, About our business and a domain all use
+// it, so they read as one product.
 
 export function DocumentEditorShell({
   header,
@@ -16,7 +16,6 @@ export function DocumentEditorShell({
   toolbar = true,
   paneRef,
   aside,
-  bar,
   footer,
   children,
 }: {
@@ -28,8 +27,6 @@ export function DocumentEditorShell({
   paneRef?: (el: HTMLDivElement | null) => void
   /** The docked side panel, when it is open and fits. */
   aside?: ReactNode
-  /** A bar above the footer that stays in reach, such as writing help's door on a phone. */
-  bar?: ReactNode
   footer: ReactNode
   children: ReactNode
 }) {
@@ -47,7 +44,6 @@ export function DocumentEditorShell({
           {aside}
         </div>
       </RichTextEditor>
-      {bar}
       {footer}
     </div>
   )

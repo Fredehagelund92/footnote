@@ -9,7 +9,6 @@ import {
   noteHelpChange,
   noteHelpSuggestion,
   setHelpDesk,
-  setHelpReady,
   type HelpDesk,
 } from '@/lib/writing-help'
 import type { AgentChange } from '@/model/draft-session'
@@ -17,8 +16,8 @@ import type { HelpReply } from '@/model/writing-help'
 
 // The dock hands the keyboard to its box when a button of the conversation leaves the page: an
 // answer to tap, Try again and Undo are removed when pressed, and focus must not fall to the body.
-// On a phone it is a screen of its own, and leads back to the draft; a field the person was
-// writing in is said as a suggestion, not as changed.
+// A field the person was writing in is said as a suggestion, not as changed. A phone has no
+// writing help: a link to it says where it is.
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean
@@ -41,16 +40,9 @@ vi.mock('@/components/ui/tooltip', () => ({
   }) => React.cloneElement(render, undefined, children),
 }))
 
-const closeDock = vi.fn<() => void>()
-vi.mock('@/lib/dock', () => ({
-  closeDock: () => {
-    closeDock()
-  },
-}))
-
 const { WritingHelpDock } = await import('@/pages/writing-help')
 
-/** Whether the window is a phone's: the dock is then a screen of its own. */
+/** Whether the window is a phone's. */
 let phone = false
 
 beforeAll(() => {
@@ -72,11 +64,9 @@ beforeAll(() => {
 let root: Root | undefined
 afterEach(() => {
   act(() => setHelpDesk(null))
-  act(() => setHelpReady(false))
   act(() => root?.unmount())
   document.body.innerHTML = ''
   phone = false
-  closeDock.mockClear()
 })
 
 const reply = (extra: Partial<HelpReply> = {}): HelpReply => ({
@@ -198,34 +188,11 @@ describe('a field the person was writing in', () => {
   })
 })
 
-describe('the dock on a phone, a screen of its own over the draft', () => {
-  const draftRow = () => button('Open the draft')?.parentElement
-
-  it('says after a turn whether the page finds the draft ready, and leads back to it', async () => {
+describe('the dock on a phone', () => {
+  it('says writing help is on a computer or tablet, and has no box to write in', async () => {
     phone = true
-    await mount(deskOf('p1', () => Promise.resolve(reply({ changed: ['title'] }))))
-    // Before anything is said there is no draft to open yet.
-    expect(button('Open the draft')).toBeUndefined()
-    await step(() => askHelp('Ops told us.'))
-    expect(draftRow()?.textContent).toContain('Not ready yet')
-    await step(() => setHelpReady(true))
-    expect(draftRow()?.textContent).toContain('Draft is ready')
-    // Sending is the draft's own button: the row has one way on, back to the draft.
-    expect(draftRow()?.querySelectorAll('button')).toHaveLength(1)
-    await step(() => void button('Open the draft')!.click())
-    expect(closeDock).toHaveBeenCalledTimes(1)
-  })
-
-  it('leaves the row out while a turn runs', async () => {
-    phone = true
-    await mount(deskOf('p2', () => new Promise<HelpReply>(() => undefined)))
-    await step(() => void askHelp('Ops told us.'))
-    expect(button('Open the draft')).toBeUndefined()
-  })
-
-  it('has no such row beside the draft on a wider screen', async () => {
-    await mount(deskOf('p3', () => Promise.resolve(reply({ changed: ['title'] }))))
-    await step(() => askHelp('Ops told us.'))
-    expect(button('Open the draft')).toBeUndefined()
+    await mount(deskOf('p1', () => Promise.resolve(reply())))
+    expect(document.body.textContent).toContain('Writing help is on a computer or tablet.')
+    expect(composer()).toBeNull()
   })
 })

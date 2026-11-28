@@ -3,10 +3,10 @@ import * as React from 'react'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { HelpBar, HelpSuggestion, HelpWorkingStrip } from '@/components/footnote/agent-change'
+import { HelpSuggestion, HelpWorkingStrip } from '@/components/footnote/agent-change'
 
 // Writing help in the draft itself (Route 3): its words for a field the person is writing in, as
-// one line under the field to use or dismiss; the strip while a turn runs; its door on a phone.
+// one line under the field to use or dismiss; the strip while a turn runs.
 
 declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean
@@ -86,30 +86,5 @@ describe('the strip while a turn runs', () => {
     expect(strip.textContent).toContain('Writing help is reading your message and 1 link.')
     act(() => button('Stop').click())
     expect(onStop).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('writing help’s door on a phone', () => {
-  it('is one button above the draft’s foot that opens the chat', () => {
-    const onOpen = vi.fn()
-    render(React.createElement(HelpBar, { open: false, onOpen }))
-    act(() => button('Ask writing help for a change').click())
-    expect(onOpen).toHaveBeenCalledTimes(1)
-  })
-
-  it('takes the keyboard back when the chat closes with the focus nowhere', () => {
-    render(React.createElement(HelpBar, { open: true, onOpen: () => undefined }))
-    const door = button('Ask writing help for a change')
-    ;(document.activeElement as HTMLElement | null)?.blur()
-    act(() => root!.render(React.createElement(HelpBar, { open: false, onOpen: () => undefined })))
-    expect(document.activeElement).toBe(door)
-  })
-
-  it('leaves the keyboard where the person put it', () => {
-    const elsewhere = document.body.appendChild(document.createElement('input'))
-    render(React.createElement(HelpBar, { open: true, onOpen: () => undefined }))
-    elsewhere.focus()
-    act(() => root!.render(React.createElement(HelpBar, { open: false, onOpen: () => undefined })))
-    expect(document.activeElement).toBe(elsewhere)
   })
 })

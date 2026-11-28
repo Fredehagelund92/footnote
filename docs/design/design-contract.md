@@ -255,7 +255,7 @@ Avatars are a soft tint picked from the person's name, one of ten hues every 36 
 
 ### 3.2 The dock
 
-One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `family`, `ask`, `try`, `write`, `topic`, `share`, `report`, `where`, `conflict`. Writing help (`write`) and Try it swap in the editor's one dock: write the draft, then see what agents would say. On a phone, where the dock is a screen of its own, the editor's door to Writing help is a bar above the draft's foot, and that screen leads back with Open the draft; Send stays on the draft.
+One right panel. It takes the detail pane's place, so there are never two right panels. It is a region beside the page, not a dialog. Its content lives in the address (`?dock=kind.id`), so Back closes it and every state has a link. Kinds: `review`, `context`, `def`, `family`, `ask`, `try`, `write`, `topic`, `share`, `report`, `where`, `conflict`. Writing help (`write`) and Try it swap in the editor's one dock: write the draft, then see what agents would say. Writing help is on a computer or tablet only: on a phone, where the dock is a screen of its own, the editor has no Writing help.
 
 | Dock                                                                       | Width |
 | -------------------------------------------------------------------------- | ----- |

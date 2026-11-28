@@ -36,7 +36,6 @@ import {
   agentMark,
   AgentVersion,
   AgentWroteLine,
-  HelpBar,
   HelpSuggestion,
   HelpWorkingStrip,
 } from '@/components/footnote/agent-change'
@@ -53,7 +52,6 @@ import {
   noteHelpChange,
   noteHelpSuggestion,
   setHelpDesk,
-  setHelpReady,
   stopHelp,
   undoHelp,
   useHelp,
@@ -1131,11 +1129,10 @@ function Editor({
 
   // Writing help, in the dock beside the draft (Route 3): there when an admin turned it on, for
   // the person's own draft, and for words that can be kept as one, a new item or a change to a
-  // published one, which the first thing they say to it does. On a phone the dock is a screen of
-  // its own, opened from a bar above the draft's foot.
+  // published one, which the first thing they say to it does. A phone has no dock beside a page.
   const helping = useDock()?.kind === 'write'
   const workspace = useWorkspace()
-  const helpThere = workspace.writingHelp && (session.on || savesDraft)
+  const helpThere = workspace.writingHelp && !mobile && (session.on || savesDraft)
   const help = useHelp()
   // The first box, by who fills the draft in: writing help where it is there, the rule anywhere else.
   const { answeredBy } = useSession()
@@ -1230,9 +1227,6 @@ function Editor({
     })
     return () => setHelpDesk(null)
   }, [helpThere, helpDraft, helpPage])
-  // On a phone the dock covers the draft, and says in its place whether it can be sent.
-  const sendable = readiness.state === 'ready'
-  React.useEffect(() => setHelpReady(sendable), [sendable])
 
   const heading =
     form.title || (mode === 'new' ? 'New context' : mode === 'edit' ? 'Edit' : 'Suggest a change')
@@ -1490,9 +1484,10 @@ function Editor({
               </Button>
               <WriteWithButton prompt={writePrompt()} variant="ghost" />
             </div>
-            {/* What the button does with the words, and, with no writing help, how it would get here. */}
+            {/* What the button does with the words, and, with no writing help, how it would get
+                here: not on a phone, where it is not there either way. */}
             <p className="mt-4 text-sm text-muted-foreground">{door.note}</p>
-            {!workspace.writingHelp && door.more && (
+            {!workspace.writingHelp && !mobile && door.more && (
               <p className="mt-1 text-sm text-muted-foreground">
                 {door.more.text}{' '}
                 {door.more.link?.to === 'switch' && (
@@ -1532,9 +1527,8 @@ function Editor({
                 />
               )
             )}
-            {/* Writing help and Try it swap in the one dock: write it, then see what agents would
-                say. On a phone its door is the bar above the foot, and the header keeps its room. */}
-            {helpThere && !mobile && (
+            {/* Writing help and Try it swap in the one dock: write it, then see what agents would say. */}
+            {helpThere && (
               <ViewToggle
                 pressed={helping}
                 onPressedChange={(p) => (p ? openDock('write') : closeDock())}
@@ -1660,7 +1654,6 @@ function Editor({
           )}
         </>
       }
-      bar={helpThere && mobile && <HelpBar open={helping} onOpen={() => openDock('write')} />}
       footer={
         <DocFooter
           status={

@@ -799,8 +799,8 @@ function WritingHelp({ help }: { help: NonNullable<AdvancedPage['writingHelp']> 
             label: <label htmlFor="writing-help">Let people write with writing help</label>,
             hint:
               answeredBy === 'reader'
-                ? 'On, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. No AI model is connected now, so writing help stays away until one is.'
-                : 'On, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. Writing help changes only that person’s own draft, and never sends it.',
+                ? 'On a computer or tablet. When it is on, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. No AI model is connected now, so writing help stays away until one is.'
+                : 'On a computer or tablet. When it is on, a draft’s words, and what its writer pastes or links, go to the AI model set for Ask. Writing help changes only that person’s own draft, and never sends it.',
             value: (
               <Switch ref={toggle} id="writing-help" checked={help.on} onCheckedChange={setOn} />
             ),

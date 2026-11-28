@@ -56,7 +56,7 @@ A person can share an Ask chat as a link: a copy of each turn's question, what A
 
 ## Writing help
 
-Writing help is a panel beside the editor: a person says what happened or what to change, and an AI model changes the fields of their own draft, which they check. It writes one draft and nothing else. It cannot send or publish, it never sets the domain, the owner, who may read an item or its risk, and every field it writes passes the checks an agent's `write_draft` passes.
+Writing help is a panel beside the editor, on a computer or tablet: a person says what happened or what to change, and an AI model changes the fields of their own draft, which they check. It cannot send or publish, it never sets the domain, the owner, who may read an item or its risk, and every field it writes passes the checks an agent's `write_draft` passes.
 
 | Setting               | What it does                                                                       |
 | --------------------- | ---------------------------------------------------------------------------------- |

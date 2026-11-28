@@ -146,35 +146,6 @@ export function HelpSuggestion({
 }
 
 /**
- * Writing help's door on a phone, a bar above the draft's foot: there the dock is a screen of its
- * own, so the draft keeps its header and its Send, and this opens the chat about it. Back from the
- * chat (`open` goes false), the keyboard comes to this door, unless it is somewhere already.
- */
-export function HelpBar({ open, onOpen }: { open: boolean; onOpen: () => void }) {
-  const door = React.useRef<HTMLButtonElement>(null)
-  const wasOpen = React.useRef(open)
-  React.useEffect(() => {
-    const lost = !document.activeElement || document.activeElement === document.body
-    if (wasOpen.current && !open && lost) door.current?.focus({ preventScroll: true })
-    wasOpen.current = open
-  }, [open])
-  return (
-    <div className="shrink-0 border-t bg-background px-4 py-2">
-      <Button
-        ref={door}
-        variant="outline"
-        size="lg"
-        className="w-full justify-start text-muted-foreground pointer-coarse:h-11"
-        onClick={onOpen}
-      >
-        <SparklesIcon data-icon="inline-start" />
-        Ask writing help for a change
-      </Button>
-    </div>
-  )
-}
-
-/**
  * The agent's words for a field the person is writing in: they never replace what is typed, and
  * wait here until the person takes them or keeps their own.
  */

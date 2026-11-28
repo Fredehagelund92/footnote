@@ -60,17 +60,9 @@ type State = {
   changes: ReadonlyMap<string, readonly TurnChange[]>
   /** The turn that waits for its draft's page to be there, by the draft's id. */
   waiting: { draft: string; turn: string } | null
-  /** Whether the page says its draft can be sent or published as it is: the page's word, never a model's. */
-  ready: boolean
 }
 
-let state: State = {
-  desk: null,
-  chats: new Map(),
-  changes: new Map(),
-  waiting: null,
-  ready: false,
-}
+let state: State = { desk: null, chats: new Map(), changes: new Map(), waiting: null }
 const listeners = new Set<() => void>()
 /** The turn running on each draft, to gather its changes and to stop it. */
 const running = new Map<string, { turn: string; controller: AbortController }>()
@@ -303,14 +295,6 @@ export function setHelpDesk(desk: HelpDesk | null) {
   }, 0)
 }
 
-/**
- * The editor says whether its draft can be sent as it is, by its own readiness line: on a phone the
- * dock covers the page, and says so in its place.
- */
-export function setHelpReady(ready: boolean) {
-  if (state.ready !== ready) set({ ready })
-}
-
 const subscribe = (listener: () => void) => {
   listeners.add(listener)
   return () => void listeners.delete(listener)
@@ -331,8 +315,6 @@ function viewOf(now: State) {
     turns,
     /** A turn is running, or waits for its draft's page. */
     busy,
-    /** Whether the page says the draft can be sent as it is. */
-    ready: now.ready,
     /** What the latest turn changed, for the strip and its Undo; none while one runs. */
     latest:
       last && !busy ? { ...last, change: { ...last.change, ...(kept ? { kept } : {}) } } : null,

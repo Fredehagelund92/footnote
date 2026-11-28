@@ -6,7 +6,6 @@ import {
   noteHelpChange,
   noteHelpSuggestion,
   setHelpDesk,
-  setHelpReady,
   stopHelp,
   undoHelp,
   type HelpDesk,
@@ -231,17 +230,6 @@ describe('a field the person is writing in while a turn writes it', () => {
     // With no turn on the draft, as a change made in another window, nothing is noted.
     noteHelpSuggestion('s1', ['when'])
     expect(helpNow().turns[0]!.suggested).toEqual(['title', 'text'])
-  })
-})
-
-describe('whether the page finds the draft ready to send', () => {
-  it('is the page’s word, read by the dock where it covers the page', () => {
-    setHelpDesk(desk('r1').desk)
-    expect(helpNow().ready).toBe(false)
-    setHelpReady(true)
-    expect(helpNow().ready).toBe(true)
-    setHelpReady(false)
-    expect(helpNow().ready).toBe(false)
   })
 })
 

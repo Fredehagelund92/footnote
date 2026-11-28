@@ -2,8 +2,6 @@ import * as React from 'react'
 import {
   ArrowUpIcon,
   CircleAlertIcon,
-  CircleCheckIcon,
-  CircleDashedIcon,
   LinkIcon,
   Loader2Icon,
   RefreshCwIcon,
@@ -17,7 +15,6 @@ import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { closeDock } from '@/lib/dock'
 import { inputSurface } from '@/lib/surfaces'
 import { cn } from '@/lib/utils'
 import { askHelp, stopHelp, undoHelp, useHelp } from '@/lib/writing-help'
@@ -341,25 +338,6 @@ function Composer({
   )
 }
 
-/**
- * On a phone the dock is a screen of its own, over the draft: once a turn has ended, a row above
- * the box says whether the page finds the draft ready to send, and leads back to it. Sending is
- * the draft's own button, so it is not repeated here.
- */
-function DraftRow({ ready }: { ready: boolean }) {
-  return (
-    <div data-touch-targets className="flex items-center gap-3 pb-3">
-      <p className="flex min-w-0 flex-1 items-center gap-2 text-sm text-muted-foreground [&>svg]:size-3.5 [&>svg]:shrink-0">
-        {ready ? <CircleCheckIcon aria-hidden /> : <CircleDashedIcon aria-hidden />}
-        {ready ? 'Draft is ready' : 'Not ready yet'}
-      </p>
-      <Button variant="outline" onClick={closeDock}>
-        Open the draft
-      </Button>
-    </div>
-  )
-}
-
 /** Writing help, in the dock beside the draft it works on. */
 export function WritingHelpDock() {
   const help = useHelp()
@@ -380,11 +358,14 @@ export function WritingHelpDock() {
         : last?.state === 'stopped'
           ? 'Stopped.'
           : ''
-  if (!help.there)
+  // A phone has no dock beside a page, so no writing help: a link to it opened there says so.
+  if (mobile || !help.there)
     return (
       <DockFrame title={HELP_NAME}>
         <p className="p-4 text-sm text-muted-foreground md:p-5">
-          {HELP_NAME} works on a draft that is open. Open a draft, or start one from Write context.
+          {mobile
+            ? `${HELP_NAME} is on a computer or tablet.`
+            : `${HELP_NAME} works on a draft that is open. Open a draft, or start one from Write context.`}
         </p>
       </DockFrame>
     )
@@ -393,7 +374,6 @@ export function WritingHelpDock() {
       title={HELP_NAME}
       foot={
         <div className="px-4 pt-3 pb-4">
-          {mobile && help.turns.length > 0 && !help.busy && <DraftRow ready={help.ready} />}
           <Composer busy={help.busy} first={help.turns.length === 0} box={box} />
         </div>
       }
