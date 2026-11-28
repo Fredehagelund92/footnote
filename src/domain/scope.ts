@@ -30,7 +30,7 @@ import {
   type LooseName,
   type UnreadWord,
 } from './names-read.ts'
-import { everydayWords, isEverydayWord, saysHow } from './everyday-words.ts'
+import { everydayWords, isEverydayWord, saysHow, valueKinds } from './everyday-words.ts'
 
 /**
  * `filters` maps each dimension the question names to the values it chose. An empty list names
@@ -188,14 +188,16 @@ type UnknownValue = DateSpan & {
  * nordics"); right before a metric ("jordan orders"); or right before a dimension's name ("the
  * jordan market"), which then says which dimension. Each is a value Footnote does not have, said and
  * never dropped: one word, or a run of words in Title case ("New York"). None is an everyday word
- * ("orders in total", "revenue in gbp"), a number, a word in capitals ("GBP", "YTD"), a plural
+ * ("orders in total"), a number, a word in capitals ("YTD"), a plural
  * right after the place word ("orders in stores"), another form of a name Footnote knows ("markets"),
  * nor the name of the product or of a tool a definition comes from ("cube"). A short code written
  * in lowercase ("orders in uk") is said with the value it would be. Before a metric, only a word
  * that starts what is asked counts ("jordan orders", not "who owns orders"); after "to" that
  * follows an everyday word, a lowercase word is a verb ("going to recover"); and right before a
  * metric, a lowercase word ending in -ed is a participle ("cancelled orders"). Places in the
- * normalised text.
+ * normalised text. A word of a kind of value, a currency's or a language's ("gbp", "german"),
+ * is one only where a dimension has values of its kind, and then of that dimension, in capitals
+ * too ("GBP"); where none has, it says how ("revenue in gbp"): the workspace's dimensions decide.
  *
  * These rules by place are kept deliberately small: this is their fourth narrowing, and each one
  * trades a missed unknown word for fewer false alarms. The principled fix is value linking V2:
@@ -230,6 +232,15 @@ function unknownValuesByPlace(
     ...terms.flatMap((t) => t.definitionRefs.map((ref) => normalizeName(ref.split(':')[0]!))),
   ])
   const nameAt = (i: number) => named.find((n) => n.start === words[i]?.start)
+  // For each kind of value, the dimensions with values of it: a currency's, a language's.
+  const holders = valueKinds.map((ofKind) => [
+    ...new Set(values.filter((v) => namesOf(v).some(ofKind)).map((v) => v.parentKey!)),
+  ])
+  // The dimensions that have values of a word's kind; null for a word of no kind.
+  const heldBy = (word: string) => {
+    const kind = isEverydayWord(word) ? -1 : valueKinds.findIndex((ofKind) => ofKind(word))
+    return kind < 0 ? null : holders[kind]!
+  }
   const unknown: UnknownValue[] = []
   for (let i = 0; i < words.length; i++) {
     if (!words[i]!.free) continue
@@ -246,11 +257,15 @@ function unknownValuesByPlace(
     const run = words.slice(i, j + 1)
     const code = codes.find((c) => c.start === words[i]!.start && c.end === words[j]!.end)
     const word = run.map((w) => w.word).join(' ')
+    const held = run.length === 1 ? heldBy(word) : null
     const value =
-      run.every((w) => /^\p{L}[\p{L}'-]*$/u.test(w.word) && !/^\p{Lu}{2,}$/u.test(w.as)) &&
+      run.every(
+        (w) => /^\p{L}[\p{L}'-]*$/u.test(w.word) && (!!held?.length || !/^\p{Lu}{2,}$/u.test(w.as)),
+      ) &&
       (code
         ? !everydayWords.has(word)
         : run.some((w) => !isEverydayWord(w.word)) &&
+          (held === null || held.length > 0) &&
           (run.length > 1 || word.length >= 3) &&
           !tools.has(word) &&
           !known.has(word.replace(/'s$/, '')) &&
@@ -285,7 +300,11 @@ function unknownValuesByPlace(
       !participle &&
       !!next?.keys.some((k) => k.startsWith('metric:') || k.startsWith('group:'))
     const dimension =
-      next?.keys.length === 1 && next.keys[0]!.startsWith('dim:') ? next.keys[0]! : null
+      next?.keys.length === 1 && next.keys[0]!.startsWith('dim:')
+        ? next.keys[0]!
+        : held?.length === 1
+          ? held[0]!
+          : null
     // A word before a day's name is part of that day's name: "black friday week", "boxing day".
     if (/^(?:mon|tues|wednes|thurs|fri|satur|sun)?day$/.test(words[j + 1]?.word ?? '')) {
       i = j

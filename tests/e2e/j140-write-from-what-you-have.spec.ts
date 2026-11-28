@@ -76,7 +76,19 @@ test('Write it yourself opens the empty form, and words left in the box ask befo
 })
 
 test('Context written about a question opens on its form', async ({ page }) => {
+  await go(page, '/context/new?metric=Orders&about=Norway')
+  await expect(page.getByRole('button', { name: 'Remove Orders', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Remove Market: Norway', exact: true }),
+  ).toBeVisible()
+  await expect(box(page)).toHaveCount(0)
+})
+
+test('A link from before about= still opens on what it named', async ({ page }) => {
   await go(page, '/context/new?metric=Orders&market=Norway')
   await expect(page.getByRole('button', { name: 'Remove Orders', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Remove Market: Norway', exact: true }),
+  ).toBeVisible()
   await expect(box(page)).toHaveCount(0)
 })

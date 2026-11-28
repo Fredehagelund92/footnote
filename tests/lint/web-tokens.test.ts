@@ -461,7 +461,7 @@ describe('contrast pairs meet their minimum in both themes', () => {
         contrast(paint('--chip-foreground', mode, h), paint('--chip', mode, h)),
       ).filter((ratio) => ratio < 4.5)
       expect(low).toEqual([])
-      for (const name of ['metric', 'dimension', 'market', 'term', 'warn'])
+      for (const name of ['metric', 'dimension', 'term', 'warn'])
         expect(Number(light[`--chip-h-${name}`]), name).toBeLessThan(360)
     },
   )

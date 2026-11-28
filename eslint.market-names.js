@@ -54,19 +54,8 @@ export const stillNamesMarket = [
   'src/web/lib/mentions.ts',
   // Reads the answers a browser kept before their values were named values, as markets.
   'src/web/api/http-ask.ts',
-  // One look for every value: the Market-only icon and hue.
-  'src/web/components/footnote/scope-chips.tsx',
-  'src/web/components/footnote/mention-chip.tsx',
-  'src/web/components/footnote/tag-chip.tsx',
-  'src/web/lib/tones.ts',
-  'src/web/pages/context-time.tsx',
-  // A link's ?market= (about= takes values of any dimension); old links keep reading it.
-  'src/web/pages/editor.tsx',
+  // Reads a link's ?market= from before about= took values of any dimension, as about=.
   'src/web/lib/search.ts',
-  'src/web/lib/editor-start.ts',
-  'src/web/pages/inbox.tsx',
-  'src/web/components/footnote/answer.tsx',
-  'src/web/components/obs/answer-panel.tsx',
 ]
 
 export default { rules: { 'market-names': marketNames } }

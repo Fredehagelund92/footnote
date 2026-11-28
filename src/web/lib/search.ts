@@ -114,13 +114,11 @@ export const contextSearch = lenient(
   }),
 )
 
-/** A new context item starts from a draft, a gap or a metric and market; setup leads back to the Inbox. */
-export const contextEditorSearch = lenient(
+const editorSearch = lenient(
   z.object({
     draft: text,
     gap: text,
     metric: text,
-    market: text,
     // What it applies to, by the names of its metrics and values, of any dimension: A|B.
     about: text,
     dates: text,
@@ -131,6 +129,18 @@ export const contextEditorSearch = lenient(
     saved: text,
   }),
 )
+
+/**
+ * A new context item starts from a draft, a gap or what it is about; setup leads back to the
+ * Inbox. A link from before `about` took a value of any dimension named one as `?market=`: it
+ * reads as the first name it is about.
+ */
+export function contextEditorSearch(raw: Record<string, unknown>) {
+  const search = editorSearch(raw)
+  const { market: old } = raw
+  if (typeof old !== 'string' || !old) return search
+  return { ...search, about: [old, search.about].filter(Boolean).join('|'), market: undefined }
+}
 
 /** The Definitions list as it is shown: its view (?show=families, where a split lands), filters, search words, sort and group. */
 export const definitionsSearch = lenient(
@@ -163,7 +173,6 @@ export const observabilitySearch = lenient(
     answer: text,
     gap: text,
     month: text,
-    market: text,
     metric: text,
     reported: text,
     q: text,

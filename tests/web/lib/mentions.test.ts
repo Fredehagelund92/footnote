@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Definition } from '@/lib/definitions'
 import { PLAIN_ROLE, type Domain, type Person } from '@/model/people'
-import {
-  SCOPE_KINDS,
-  mentionablesOf,
-  parseMentionId,
-  searchMentions,
-  valueDimension,
-} from '@/lib/mentions'
+import { SCOPE_KINDS, mentionablesOf, parseMentionId, searchMentions } from '@/lib/mentions'
 
 // Ask's '@' list over a Cube view whose top metric is a family of two currencies (FR-142): typed
 // in full, the family's name finds it first, ahead of the metrics that only end in its words, and
@@ -80,7 +74,6 @@ describe("Ask's '@' list and families", () => {
 describe('a mention saved before Ask offered every value', () => {
   it("reads Ask's old market:Norway as that dimension's value, by its word", () => {
     expect(parseMentionId('market:Norway')).toEqual({ kind: 'value', key: 'market/Norway' })
-    expect(valueDimension('market:Norway')).toBe('market')
     expect(parseMentionId('value:channel/email')).toEqual({ kind: 'value', key: 'channel/email' })
   })
 })

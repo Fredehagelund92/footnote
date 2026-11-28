@@ -100,7 +100,7 @@ test('a gap counts across a month edge: Overview, Alerts and the Inbox', async (
         page.getByText('3 about 30 October and 3 about 1 November, counted together').first(),
       ).toBeVisible()
       await page.getByRole('button', { name: 'Write context' }).click()
-      await expect(page).toHaveURL(/context\/new\?.*metric=Orders.*market=Germany/)
+      await expect(page).toHaveURL(/context\/new\?.*metric=Orders.*about=Germany/)
     },
   )
 })

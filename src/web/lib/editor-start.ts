@@ -1,3 +1,3 @@
-/** The editor starts from its address: the same path with another draft, gap or metric is a new start. */
+/** The editor starts from its address: the same path with another draft, gap, metric or about is a new start. */
 export const editorStart = (search: Record<string, string | undefined>) =>
-  ['draft', 'gap', 'metric', 'market', 'setup'].map((k) => search[k] ?? '').join('|')
+  ['draft', 'gap', 'metric', 'about', 'setup'].map((k) => search[k] ?? '').join('|')

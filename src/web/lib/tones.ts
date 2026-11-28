@@ -7,12 +7,11 @@ import type { Domains } from '@/model/people'
 // place it appears (the editor, Details, the list, a mention, a filter). Colour is never the only
 // cue: every chip also has its type's icon and its words.
 
-export type Tone = 'neutral' | 'metric' | 'dimension' | 'market' | 'term' | 'domain' | 'warn'
+export type Tone = 'neutral' | 'metric' | 'dimension' | 'term' | 'domain' | 'warn'
 
 export const toneHue: Record<Exclude<Tone, 'neutral' | 'domain'>, number> = {
   metric: 110,
   dimension: 210,
-  market: 165,
   term: 300,
   warn: 70,
 }
@@ -45,16 +44,18 @@ export function domainHue(id: DomainId): number | null {
   return (accentHue + accentClear + h) % 360
 }
 
-/** What a plain "applies to" word is: a metric, a market, a domain, or a word of the author's own. */
+/**
+ * What a plain "applies to" word is: a metric, a dimension, a value of any dimension, a domain, or
+ * a word of the author's own.
+ */
 export function kindOfWhere(
   w: string,
   vocabulary: Vocabulary,
   domains: Domains,
-): 'metric' | 'dimension' | 'market' | 'domain' | 'term' {
+): 'metric' | 'dimension' | 'value' | 'domain' | 'term' {
   if (vocabulary.metrics.some((m) => m.name === w)) return 'metric'
-  if (vocabulary.dimensions.some((d) => d.id === 'market' && d.valueNames.includes(w)))
-    return 'market'
   if (vocabulary.dimensions.some((d) => d.name === w)) return 'dimension'
+  if (vocabulary.dimensions.some((d) => d.valueNames.includes(w))) return 'value'
   if (Object.values(domains).some((d) => d.name === w)) return 'domain'
   return 'term'
 }
