@@ -44,17 +44,17 @@ export type FrontDoor = {
   /** What the button does with the words, said under it: where they go, or that no model reads them. */
   note: string
   /**
-   * With no writing help: how it would get here, for someone who can do something about it. An
-   * admin is led to its switch in Settings, or to how a model is connected.
+   * With no writing help: how it would get here, a line each. A member is told who can turn it on;
+   * an admin is led to its switch in Settings, and, with no model, first to how one is connected.
    */
-  more: { text: string; link?: { to: 'switch' | 'model-guide'; label: string } } | null
+  more: { text: string; link?: { to: 'switch' | 'model-guide'; label: string } }[]
 }
 
 /**
  * The first box as it stands for this person. Writing help writes the draft where it is there to
  * ask (`help`: an admin turned it on and a model is connected). Anywhere else the fields fill in by
- * rule, which no install is without, and a line says what is missing: its switch (`model`: a model
- * is connected), which an admin turns on, or a model, which only an admin can do something about.
+ * rule, which no install is without, and lines say what is missing: its switch, which an admin turns on, and
+ * with no model (`model`), a model, which only an admin can do something about.
  */
 export function frontDoor({
   help,
@@ -71,28 +71,33 @@ export function frontDoor({
       how: `Paste a message, a link, or just say what happened. ${HELP_NAME} writes the draft, and you check each field.`,
       button: 'Write the draft',
       note: 'What you write here goes to the AI model set for Ask. Only you see the draft until you send or publish it.',
-      more: null,
+      more: [],
     }
   return {
     by: 'rule',
     how: 'Paste a message, a link, or just say what happened. The fields fill in from it, and you check each one.',
     button: 'Fill it in',
     note: 'Filled in by rule, with no AI model.',
-    more: !model
-      ? admin
-        ? {
-            text: writingHelpNoModel,
-            link: { to: 'model-guide', label: 'How to connect a model' },
-          }
-        : null
-      : admin
-        ? {
+    more: admin
+      ? [
+          ...(model
+            ? []
+            : [
+                {
+                  text: writingHelpNoModel,
+                  link: { to: 'model-guide' as const, label: 'How to connect a model' },
+                },
+              ]),
+          {
             text: 'With writing help on, people can talk a draft through.',
-            link: { to: 'switch', label: 'Turn it on in Settings' },
-          }
-        : {
+            link: { to: 'switch' as const, label: 'Turn it on in Settings' },
+          },
+        ]
+      : [
+          {
             text: 'Ask an admin to turn on writing help in Settings, and you can talk the draft through.',
           },
+        ],
   }
 }
 

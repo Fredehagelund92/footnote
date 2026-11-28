@@ -107,40 +107,41 @@ describe('the first box of Write context', () => {
         how: 'Paste a message, a link, or just say what happened. Writing help writes the draft, and you check each field.',
         button: 'Write the draft',
         note: 'What you write here goes to the AI model set for Ask. Only you see the draft until you send or publish it.',
-        more: null,
+        more: [],
       })
   })
 
+  const askAnAdmin = {
+    text: 'Ask an admin to turn on writing help in Settings, and you can talk the draft through.',
+  }
+  const turnOn = {
+    text: 'With writing help on, people can talk a draft through.',
+    link: { to: 'switch', label: 'Turn it on in Settings' },
+  }
+  const connect = {
+    text: 'Writing help needs an AI model, and none is connected to this workspace.',
+    link: { to: 'model-guide', label: 'How to connect a model' },
+  }
+
   it('fills the fields by rule with writing help off, and says who can turn it on', () => {
-    const member = frontDoor({ help: false, model: true, admin: false })
-    expect(member).toMatchObject({
+    expect(frontDoor({ help: false, model: true, admin: false })).toMatchObject({
       by: 'rule',
       how: 'Paste a message, a link, or just say what happened. The fields fill in from it, and you check each one.',
       button: 'Fill it in',
       note: 'Filled in by rule, with no AI model.',
-      more: {
-        text: 'Ask an admin to turn on writing help in Settings, and you can talk the draft through.',
-      },
+      more: [askAnAdmin],
     })
-    // A member has no way into Settings, so no link.
-    expect(member.more?.link).toBeUndefined()
-    expect(frontDoor({ help: false, model: true, admin: true }).more).toEqual({
-      text: 'With writing help on, people can talk a draft through.',
-      link: { to: 'switch', label: 'Turn it on in Settings' },
-    })
+    expect(frontDoor({ help: false, model: true, admin: true }).more).toEqual([turnOn])
   })
 
-  it('says a model is missing only to an admin, who can do something about it', () => {
+  it('with no model, tells a member who can turn it on, and gives an admin both ways forward', () => {
     expect(frontDoor({ help: false, model: false, admin: false })).toMatchObject({
       by: 'rule',
       button: 'Fill it in',
       note: 'Filled in by rule, with no AI model.',
-      more: null,
+      more: [askAnAdmin],
     })
-    expect(frontDoor({ help: false, model: false, admin: true }).more).toEqual({
-      text: 'Writing help needs an AI model, and none is connected to this workspace.',
-      link: { to: 'model-guide', label: 'How to connect a model' },
-    })
+    expect(frontDoor({ help: false, model: false, admin: true }).more).toEqual([connect, turnOn])
   })
 })
 

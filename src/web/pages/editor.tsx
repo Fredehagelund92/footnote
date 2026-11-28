@@ -1487,22 +1487,24 @@ function Editor({
             {/* What the button does with the words, and, with no writing help, how it would get
                 here: not on a phone, where it is not there either way. */}
             <p className="mt-4 text-sm text-muted-foreground">{door.note}</p>
-            {!workspace.writingHelp && !mobile && door.more && (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {door.more.text}{' '}
-                {door.more.link?.to === 'switch' && (
-                  <a
-                    href={href('/settings/advanced/writing-help')}
-                    className="text-primary underline underline-offset-4"
-                  >
-                    {door.more.link.label}
-                  </a>
-                )}
-                {door.more.link?.to === 'model-guide' && (
-                  <PublicGuideLink slug="model-providers">{door.more.link.label}</PublicGuideLink>
-                )}
-              </p>
-            )}
+            {!workspace.writingHelp &&
+              !mobile &&
+              door.more.map((line) => (
+                <p key={line.text} className="mt-1 text-sm text-muted-foreground">
+                  {line.text}{' '}
+                  {line.link?.to === 'switch' && (
+                    <a
+                      href={href('/settings/advanced/writing-help')}
+                      className="text-primary underline underline-offset-4"
+                    >
+                      {line.link.label}
+                    </a>
+                  )}
+                  {line.link?.to === 'model-guide' && (
+                    <PublicGuideLink slug="model-providers">{line.link.label}</PublicGuideLink>
+                  )}
+                </p>
+              ))}
           </section>
         </Paper>
       </DocumentEditorShell>
