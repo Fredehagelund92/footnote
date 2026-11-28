@@ -342,7 +342,6 @@ function initialForm(
       until: '2026-10-16',
     }
   const metric = query.get('metric')
-  const market = query.get('market')
   const about = query.get('about')?.split('|') ?? []
   // Written from a definition or about a question, it starts in the domain of what it is about
   // when the writer publishes there, or owns no domain of their own to start in; else in the first
@@ -363,14 +362,14 @@ function initialForm(
   const kind = query.get('kind')
   const period = query.get('period')
   const dates = period ? whenOfPeriod(period) : null
-  if (metric || market || about.length)
+  if (metric || about.length)
     return {
       ...blank,
       ...start,
       ...(kind && Object.hasOwn(kindLabel, kind) ? { kind: kind as Kind } : {}),
       ...(dates ? { when: dates.mode, from: dates.from, until: dates.until } : {}),
       where: termsOfNames(
-        [metric, market, ...about].filter((w): w is string => !!w),
+        [metric, ...about].filter((w): w is string => !!w),
         vocabulary,
       ),
     }
@@ -609,7 +608,7 @@ function Editor({
       mode === 'new' &&
       !fromText &&
       !query.get('gap') &&
-      !['metric', 'market', 'about'].some((k) => query.has(k)),
+      !['metric', 'about'].some((k) => query.has(k)),
   )
   // A touch screen gets no automatic focus: the keyboard would cover the page before anyone asked for it.
   const [touch] = React.useState(() => window.matchMedia('(pointer: coarse)').matches)

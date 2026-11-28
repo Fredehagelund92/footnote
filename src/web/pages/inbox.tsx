@@ -616,7 +616,7 @@ function useActions(card: InboxCard) {
           : navigate('/context/new', {
               gap: card.id,
               metric: card.gap?.scope[0],
-              market: card.gap?.scope[1],
+              about: card.gap?.scope[1],
             })
       case 'flag':
         // A report that names no context item has one thing to decide.

@@ -762,3 +762,86 @@ describe('a name as written, inside a longer question', () => {
     expect(read.loose ?? []).toEqual([])
   })
 })
+
+describe('a currency or a language where a value goes (orders in gbp): the dimensions decide', () => {
+  const term = (key: string, kind: Term['kind'], name: string): Term => ({
+    key,
+    kind,
+    name,
+    aliases: [],
+    parentKey: kind === 'dimension_value' ? `dim:${key.slice(4).split('/')[0]}` : null,
+    areaId: null,
+    definitionRefs: [],
+  })
+  const orders = term('metric:orders', 'metric', 'Orders')
+  const country = [
+    term('dim:country', 'dimension', 'Country'),
+    term('val:country/norway', 'dimension_value', 'Norway'),
+    term('val:country/spain', 'dimension_value', 'Spain'),
+  ]
+  const currency = [
+    term('dim:currency', 'dimension', 'Currency'),
+    term('val:currency/eur', 'dimension_value', 'EUR'),
+    term('val:currency/usd', 'dimension_value', 'USD'),
+  ]
+  const language = [
+    term('dim:language', 'dimension', 'Language'),
+    term('val:language/english', 'dimension_value', 'English'),
+    term('val:language/spanish', 'dimension_value', 'Spanish'),
+  ]
+  const today = '2026-10-23'
+  const read = (question: string, vocabulary: Term[]) =>
+    extractScope(question, [orders, ...vocabulary], today, { loose: true })
+
+  it('says one a dimension of its kind does not have, as a value of that dimension', () => {
+    for (const question of ['Orders in gbp August 2026', 'Orders in GBP August 2026'])
+      expect(read(question, [...country, ...currency]), question).toEqual({
+        status: 'need_more_detail',
+        issues: [
+          {
+            field: 'dim:currency',
+            input: question.split(' ')[2],
+            options: ['val:currency/eur', 'val:currency/usd'],
+            message: `There is no value of Currency named '${question.split(' ')[2]}'.`,
+          },
+        ],
+      })
+    expect(read('Orders in german August 2026', [...country, ...language])).toMatchObject({
+      status: 'need_more_detail',
+      issues: [{ field: 'dim:language', message: "There is no value of Language named 'german'." }],
+    })
+    // An agent's question reads every value, and the reply says the word it did not read.
+    expect(extractScope('Orders in gbp August 2026', [orders, ...currency], today)).toMatchObject({
+      status: 'resolved',
+      scope: { filters: {} },
+      values: [{ word: 'gbp', dimensions: ['dim:currency'] }],
+    })
+  })
+
+  it('reads one the dimension has, as before', () => {
+    expect(read('Orders in EUR August 2026', currency)).toMatchObject({
+      status: 'resolved',
+      scope: { filters: { 'dim:currency': ['val:currency/eur'] } },
+    })
+    expect(read('Orders in English August 2026', language)).toMatchObject({
+      status: 'resolved',
+      scope: { filters: { 'dim:language': ['val:language/english'] } },
+    })
+  })
+
+  it('stays quiet where no dimension has values of its kind: the word says how', () => {
+    for (const question of [
+      'Orders in gbp August 2026',
+      'Orders in GBP August 2026',
+      'Orders in euros August 2026',
+      'Orders in german August 2026',
+    ]) {
+      const scope = read(question, country)
+      expect(scope, question).toMatchObject({ status: 'resolved', scope: { filters: {} } })
+      expect(scope, question).not.toHaveProperty('values')
+    }
+    // A language word is no currency, and a currency word no language.
+    expect(read('Orders in german August 2026', currency).status).toBe('resolved')
+    expect(read('Orders in gbp August 2026', language).status).toBe('resolved')
+  })
+})

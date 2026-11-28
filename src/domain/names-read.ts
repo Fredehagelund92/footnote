@@ -1,4 +1,4 @@
-import { businessNouns, isEverydayWord } from './everyday-words.ts'
+import { businessNouns, isEverydayWord, isOfAValueKind } from './everyday-words.ts'
 import { initialsOf, normalizeName, type Term } from './vocabulary.ts'
 
 /*
@@ -138,10 +138,10 @@ const isPlain = (word: string) =>
 /**
  * A word that may stand for a name it is part of: no everyday word, unless it is a noun of a
  * business ("margin", "shipping"), so "new" is never New customers nor "average" Average order
- * value.
+ * value; and no word of a kind of value, so "eur" is never Revenue EUR.
  */
 const namesAlone = (word: string) =>
-  !isPlain(word) && (!isEverydayWord(word) || businessNouns.has(word))
+  !isPlain(word) && !isOfAValueKind(word) && (!isEverydayWord(word) || businessNouns.has(word))
 
 /** The free words of a normalised text, and whether words side by side are one run. */
 function freeOf(text: string, occupied: ReadonlySet<number>) {

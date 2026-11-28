@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { href } from '@/lib/router'
-import { contextSearch, inboxSearch, rootSearch, settingsSearch, shellSearch } from '@/lib/search'
+import {
+  contextEditorSearch,
+  contextSearch,
+  inboxSearch,
+  rootSearch,
+  settingsSearch,
+  shellSearch,
+} from '@/lib/search'
 
 describe('addresses the app writes', () => {
   it('keep only the values that were given, as plain text', () => {
@@ -43,6 +50,19 @@ describe('search params', () => {
   it('know Context by time, and drop a view it does not have', () => {
     expect(contextSearch({ view: 'time' })).toEqual({ view: 'time' })
     expect(contextSearch({ view: 'board' })).toEqual({ view: undefined })
+  })
+
+  it("read a new context item's values from about, and an old link's market as about", () => {
+    expect(contextEditorSearch({ metric: 'Orders', about: 'Email' })).toEqual({
+      metric: 'Orders',
+      about: 'Email',
+    })
+    expect(contextEditorSearch({ metric: 'Orders', market: 'Norway' })).toEqual({
+      metric: 'Orders',
+      about: 'Norway',
+      market: undefined,
+    })
+    expect(contextEditorSearch({ market: 'Norway', about: 'Tents' }).about).toBe('Norway|Tents')
   })
 
   it("never touch another place's params", () => {

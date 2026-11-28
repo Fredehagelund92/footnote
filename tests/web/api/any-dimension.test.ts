@@ -8,6 +8,7 @@ import { askedWeekOf, loopAnswerOf, namesOf } from '@/api/http-ask'
 import { obsAgentsOf, topicOf } from '@/api/http-obs'
 import { lookOf } from '@/components/footnote/scope-chips'
 import { mentionablesOf, SCOPE_KINDS, searchMentions, valueMentionsOf } from '@/lib/mentions'
+import { kindOfWhere } from '@/lib/tones'
 import { observability } from '@/model/observability'
 
 // Market is a dimension like any other: the web reads a workspace whose dimension is Channel as
@@ -244,13 +245,19 @@ describe('the web with a dimension that is not market', () => {
     expect(market).toEqual({ name: 'Orders in Norway', title: 'Orders in Norway, October 2026' })
   })
 
-  // One look for every value is its own change: until it lands, a value of Market has the globe
-  // and a hue of its own. This turns green with it, and then loses its `fails`.
-  it.fails('gives the value chip one look', async () => {
-    const { market, channel } = await both((d) =>
-      lookOf({ key: `val:${d.id}/norway`, kind: 'value', name: 'Norway', dimension: d.name }),
-    )
+  it('gives every value chip one look, by key, by name and as a plain word', async () => {
+    const { market, channel } = await both(async (d) => ({
+      byKey: lookOf({
+        key: `val:${d.id}/norway`,
+        kind: 'value',
+        name: 'Norway',
+        dimension: d.name,
+      }),
+      byName: lookOf({ key: '', kind: 'value', name: 'Norway', dimension: d.name }),
+      word: kindOfWhere('Norway', await apiOf(d).getVocabulary(), {}),
+    }))
     expect(channel).toEqual(market)
+    expect(market).toMatchObject({ byKey: { tone: 'dimension' }, word: 'value' })
   })
 })
 

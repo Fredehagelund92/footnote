@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { EqualIcon, FolderIcon, GlobeIcon, SigmaIcon, SplitIcon, XIcon } from '@/components/icons'
+import { EqualIcon, FolderIcon, SigmaIcon, SplitIcon, TagIcon, XIcon } from '@/components/icons'
 import { cn } from '@/lib/utils'
 import { useVocabulary } from '@/api/queries'
 import { chipTone, domainHue, domainIdByName, kindOfWhere, type Tone } from '@/lib/tones'
@@ -8,7 +8,7 @@ import type { DomainId } from '@/model/items'
 
 // The one chip: 24px, a 6px radius, tinted by what it names, with its type's icon. Tags in the
 // editor, Details, the list's Scope column and filters all use it. A metric's name is the one that
-// gives way when a row is tight; a market, a domain or a dimension keeps its words (WhereChip).
+// gives way when a row is tight; a value, a domain or a dimension keeps its words (WhereChip).
 
 export function TagChip({
   tone = 'neutral',
@@ -61,12 +61,12 @@ export function TagChip({
 const whereIcon = {
   metric: SigmaIcon,
   dimension: SplitIcon,
-  market: GlobeIcon,
+  value: TagIcon,
   domain: FolderIcon,
   term: EqualIcon,
 }
 
-/** A plain "applies to" word as its chip: a metric, a market, a domain or the author's own word. */
+/** A plain "applies to" word as its chip: a metric, a dimension or its value, a domain or the author's own word. */
 export function WhereChip({
   w,
   label,
@@ -84,7 +84,7 @@ export function WhereChip({
   const hue = domain ? domainHue(domain) : undefined
   return (
     <TagChip
-      tone={kind}
+      tone={kind === 'value' ? 'dimension' : kind}
       hue={hue}
       icon={<Icon aria-hidden />}
       onRemove={onRemove}

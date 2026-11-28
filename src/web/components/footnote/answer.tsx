@@ -840,7 +840,7 @@ export function NextStep({ answer, facts }: { answer: Answer; facts: Fact[] }) {
               <a
                 href={href('/context/new', {
                   metric: answer.metric,
-                  market: answer.values.at(-1),
+                  about: answer.values.at(-1),
                   dates: answer.dates,
                 })}
               />

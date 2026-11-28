@@ -8,7 +8,6 @@ import {
   CircleDashedIcon,
   CircleMinusIcon,
   ClockIcon,
-  GlobeIcon,
   LayersIcon,
   ListFilterIcon,
   ListTreeIcon,
@@ -643,10 +642,8 @@ export function ContextTime({ facts, ready }: { facts: readonly Fact[]; ready: b
       <UserIcon aria-hidden className="size-3.5 text-muted-foreground" />
     ) : groupBy === 'none' ? (
       <LayersIcon aria-hidden className="size-3.5 text-muted-foreground" />
-    ) : g.key === NONE || groupBy !== dimKey('Market') ? (
-      <SplitIcon aria-hidden className="size-3.5 text-muted-foreground" />
     ) : (
-      <GlobeIcon aria-hidden className="size-3.5 text-muted-foreground" />
+      <SplitIcon aria-hidden className="size-3.5 text-muted-foreground" />
     )
 
   const drawBar = (g: TimeGroup, packed: Bar) => {
@@ -1192,13 +1189,7 @@ function FilterFields({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuLabel>Dimensions from your definitions</DropdownMenuLabel>
-            {dims.map((d) =>
-              field(
-                dimKey(d),
-                d,
-                d === 'Market' ? <GlobeIcon {...icon} /> : <SplitIcon {...icon} />,
-              ),
-            )}
+            {dims.map((d) => field(dimKey(d), d, <SplitIcon {...icon} />))}
           </DropdownMenuGroup>
         </>
       )}

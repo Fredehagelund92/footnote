@@ -148,9 +148,6 @@ export function useMentionables(): Mentionable[] {
   )
 }
 
-/** A value mention's dimension, by its key's id: `value:channel/email` is `channel`. */
-export const valueDimension = (id: string) => parseMentionId(id).key.split('/')[0] ?? ''
-
 /**
  * The current target of a mention, or undefined when it was deleted, archived or renamed away. A
  * dimension can hold thousands of values, so the app never loads them all to check one: a value

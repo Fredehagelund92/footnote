@@ -28,14 +28,7 @@ import { ReadingCard } from '@/components/footnote/reading'
 import { DockStepper } from '@/components/footnote/list'
 import { BarRows } from '@/components/obs/charts'
 import { SaveQuestion } from '@/components/obs/save-question'
-import {
-  ALL_VALUES,
-  shownCount,
-  type Counts,
-  type Shown,
-  type Topic,
-  monthName,
-} from '@/model/observability'
+import { shownCount, type Counts, type Shown, type Topic, monthName } from '@/model/observability'
 import { openDock } from '@/lib/dock'
 import { useObsView } from '@/lib/obs'
 import { afterAnswer, type ReplayStep, type When } from '@/model/replay'
@@ -92,7 +85,7 @@ export function AnswerPanel({ id }: { id: string }) {
       ? t.gap.href
       : href('/context/new', {
           metric: t.metric,
-          market: t.where === ALL_VALUES ? undefined : t.where,
+          about: t.values.map((v) => v.name).join('|'),
         })
 
   return (

@@ -1,10 +1,12 @@
+import { isCurrencyCode } from './currencies.ts'
+
 /*
   Everyday words: words a question uses for how, when, how much or what kind, never as the name of
   a value. A word in no list that sits where a value goes ("orders from jordan") is a value Footnote
-  does not have, unless it is one of these ("orders from yesterday", "revenue in gbp", "how is the
-  mobile team doing"). Lowercase, as normalizeName gives them. A value that has one of these as its
-  name is still read by that name: names are read first, and this list only keeps a word from
-  being taken for a value Footnote does not have.
+  does not have, unless it is one of these ("orders from yesterday", "how is the mobile team
+  doing"). Lowercase, as normalizeName gives them. A value that has one of these as its name is
+  still read by that name: names are read first, and this list only keeps a word from being taken
+  for a value Footnote does not have.
 */
 
 /**
@@ -102,13 +104,36 @@ zero one two three four five six seven eight nine ten eleven twelve twenty thirt
 hundred hundreds thousand thousands million millions billion billions dozen half quarter percent
 cent per-cent pct
 
-euro euros eur usd dollar dollars gbp pound pounds sterling chf franc francs nok sek dkk krone
-kroner krona kronor jpy yen cny yuan cad aud pln zloty inr rupee rupees currency currencies
+currency currencies
 ytd mtd qtd yoy mom wow ttm
 
-english norwegian swedish danish finnish german french spanish italian dutch polish portuguese
 language languages translation
 `
+
+/*
+  Words of a kind of value: a currency ("gbp", "euros") or a language ("german"). Neither everyday
+  words nor values by themselves: the workspace's own dimensions decide (scope.ts). Where a
+  dimension has values of the kind, a word of it that names none of them is a value Footnote does
+  not have ("orders in gbp" where the values are EUR and USD); where none has, it says how
+  ("revenue in gbp") and is no value.
+*/
+const currencyNames = /* @__PURE__ */ new Set(
+  `euro euros dollar dollars pound pounds sterling franc francs krone kroner krona kronor yen yuan
+  zloty rupee rupees`.split(/\s+/),
+)
+const languageNames = /* @__PURE__ */ new Set(
+  `english norwegian swedish danish finnish german french spanish italian dutch polish
+  portuguese`.split(/\s+/),
+)
+
+/** The kinds of value, each by whether a word, lowercase as normalizeName gives it, is of it. */
+export const valueKinds: readonly ((word: string) => boolean)[] = [
+  (word) => isCurrencyCode(word) || currencyNames.has(word),
+  (word) => languageNames.has(word),
+]
+
+/** Whether a word, lowercase, is of a kind of value: a currency's or a language's. */
+export const isOfAValueKind = (word: string) => valueKinds.some((ofKind) => ofKind(word))
 
 /** Everyday words, lowercase. */
 export const everydayWords: ReadonlySet<string> = /* @__PURE__ */ (() =>
