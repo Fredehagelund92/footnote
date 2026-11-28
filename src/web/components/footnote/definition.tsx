@@ -37,7 +37,8 @@ import { PeekBand, PeekFact, PeekFacts, PeekLabel } from '@/components/footnote/
 import { MoreProperties, Property } from '@/components/footnote/doc'
 import { VersionHistory } from '@/components/footnote/version-history'
 import { useQuery } from '@tanstack/react-query'
-import { toApiError, type ApiError } from '@/api/errors'
+import { toApiError } from '@/api/errors'
+import { Button } from '@/components/ui/button'
 import { builtFromQuery, definitionHistoryQuery, useWrite } from '@/api/queries'
 import { useUndo } from '@/lib/undo'
 import { useShowMore } from '@/hooks/use-show-more'
@@ -91,7 +92,6 @@ export function TypeTile({
   )
 }
 
-/** A synonym's quiet link to the definition whose meaning it uses: "Another name for Σ Gross sales". */
 /**
  * What a definition with no words of its own says: one read from a tool is described there, so
  * the line says where, by the member's name in it; one people keep here has nothing written yet.
@@ -110,7 +110,8 @@ export function NoMeaning({ d }: { d: Definition }) {
   )
 }
 
-export function AnotherNameFor({ target, className }: { target: Definition; className?: string }) {
+/** A synonym's quiet link to the definition whose meaning it uses: "Other name for Σ Gross sales". */
+export function OtherNameFor({ target, className }: { target: Definition; className?: string }) {
   return (
     <button
       type="button"
@@ -123,7 +124,7 @@ export function AnotherNameFor({ target, className }: { target: Definition; clas
         className,
       )}
     >
-      Another name for
+      Other name for
       <TypeGlyph d={target} className="text-foreground" />
       <span className="truncate font-medium text-foreground">{target.name}</span>
     </button>
@@ -197,20 +198,29 @@ export function WordNote({
   )
 }
 
-type Refused = { word: string; reason: string }
+/**
+ * A word that was not added: why, in the service's words, and whether trying again can help (a
+ * save that got no answer or failed may go through; a word refused stays refused).
+ */
+type NotAdded = { word: string; reason: string; retry: boolean }
+
+/** What a save that did not go through says, beside Try again. */
+const notSaved = 'The save did not go through, so nothing changed.'
 
 /**
- * The other names for a definition, as tags in one box: type a word and a comma (or Enter, or
- * paste "GMV, turnover, sales value") and each becomes a tag at once, saved as a synonym. Backspace
- * in the empty box selects the last tag, then removes it; x removes one. A word that already means
- * something else stays as a warning tag that says who has it, and is never saved. A word the
- * service turns down for another reason says that reason. The source's own names are locked tags.
- * Escape keeps every tag made so far. The same box on the definition's page, in its quick view and
- * in the term editor, so all three write the one list.
+ * A definition's other names, under Also called, as tags in one box: type a word and a comma (or
+ * Enter, or paste "GMV, turnover, sales value") and each becomes a tag at once, saved as a synonym.
+ * Backspace in the empty box selects the last tag, then removes it; x removes one. A word that was
+ * not added stays, marked, with one plain line under the box that says why: it already means
+ * something else (who has it), the service turned it down (its reason), or the save did not go
+ * through (with Try again). Never a toast: the line stays beside the word until it is dismissed or
+ * tried again. The source's own names are locked tags. Escape keeps every tag made so far. The
+ * same box on the definition's page, in its quick view and in the term editor, so all three write
+ * the one list.
  */
 export function SynonymTags({
   d,
-  label = 'Another name',
+  label = 'Also called',
   canEdit,
   level = 3,
 }: {
@@ -226,7 +236,7 @@ export function SynonymTags({
   const point = d.sameAs ? glossary.meaningOf(d) : d
   const synonyms = glossary.synonymsOf(point.name)
   const [text, setText] = React.useState('')
-  const [refused, setRefused] = React.useState<Refused[]>([])
+  const [notAdded, setNotAdded] = React.useState<NotAdded[]>([])
   const [selected, setSelected] = React.useState<string | null>(null)
   const [said, setSaid] = React.useState('')
   const [flash, setFlash] = React.useState<string | null>(null)
@@ -234,6 +244,11 @@ export function SynonymTags({
   const id = React.useId()
   const me = useMe()
   const same = (a: string, b: string) => termWord(a) === termWord(b)
+  // The line already names the word, so a reason that starts with it says "It" instead.
+  const itFor = (word: string, reason: string) => {
+    const lead = /^“([^”]+)” (.+)$/su.exec(reason)
+    return lead && same(lead[1]!, word) ? `It ${lead[2]}` : reason
+  }
   const without = (list: string[], words: string[]) =>
     list.filter((n) => !words.some((w) => same(n, w)))
 
@@ -272,25 +287,29 @@ export function SynonymTags({
     unsaved.current = without(unsaved.current, fresh)
     setAdding((list) => [...list, ...fresh])
     setRemoving((list) => without(list, fresh))
-    setRefused((prev) => prev.filter((p) => !fresh.some((w) => same(w, p.word))))
+    setNotAdded((prev) => prev.filter((p) => !fresh.some((w) => same(w, p.word))))
     inTurn(async () => {
       const added: string[] = []
-      const out: Refused[] = []
-      const failed: { word: string; error: ApiError }[] = []
+      const out: NotAdded[] = []
       for (const w of fresh) {
         try {
           const r = await write('addSynonym', { target: point.name, word: w })
           if (r.ok) added.push(w)
           else if (r.why === 'here') setFlash(w)
-          else if (r.why !== 'empty') out.push({ word: w, reason: r.reason })
+          else if (r.why !== 'empty')
+            out.push({ word: w, reason: itFor(w, r.reason), retry: false })
         } catch (e) {
-          failed.push({ word: w, error: toApiError(e) })
+          // A save that got no answer, or that the service failed, may go through when tried
+          // again. A word the service turned down says why, in its words, and trying again
+          // changes nothing.
+          const error = toApiError(e)
+          const retry = error.retryable || error.kind === 'failed'
+          out.push({ word: w, reason: retry ? notSaved : itFor(w, error.message), retry })
         }
       }
-      const lost = failed.map((f) => f.word)
-      unsaved.current = [...unsaved.current, ...lost, ...out.map((o) => o.word)]
+      unsaved.current = [...unsaved.current, ...out.map((o) => o.word)]
       setAdding((list) => without(list, fresh))
-      setRefused((prev) => [
+      setNotAdded((prev) => [
         ...prev.filter(
           (p) => !out.some((o) => same(o.word, p.word)) && !added.some((a) => same(a, p.word)),
         ),
@@ -299,23 +318,12 @@ export function SynonymTags({
       setSaid(
         [
           added.length && `Added synonym ${added.join(', ')}.`,
-          out.map((o) => o.reason).join(' '),
-          !added.length && !out.length && !failed.length && 'Already there.',
+          ...out.map((o) => `“${o.word}” was not added. ${o.reason}`),
+          !added.length && !out.length && 'Already there.',
         ]
           .filter(Boolean)
           .join(' '),
       )
-      // A save that got no answer, or that the service failed, may go through when tried again. A
-      // word the service turned down says why, in its words, and trying again changes nothing.
-      const turnedDown = failed.filter((f) => !f.error.retryable && f.error.kind !== 'failed')
-      const again = lost.filter((w) => !turnedDown.some((f) => f.word === w))
-      if (failed.length)
-        toast.error(`Couldn't add ${lost.map((w) => `“${w}”`).join(', ')}`, {
-          description: turnedDown.length
-            ? [...new Set(turnedDown.map((f) => f.error.message))].join(' ')
-            : 'Nothing was saved.',
-          ...(again.length ? { action: { label: 'Try again', onClick: () => commit(again) } } : {}),
-        })
     })
   }
   const remove = (name: string) => {
@@ -400,17 +408,25 @@ export function SynonymTags({
           {conflict && <span className="sr-only"> (conflict: {conflict.short})</span>}
         </TagChip>
       ))}
-      {refused.map((r) => (
+      {/* A word that was not added stays, marked: struck through when it was refused, dashed in
+          red when its save did not go through. */}
+      {notAdded.map((r) => (
         <TagChip
           key={r.word}
-          tone="warn"
+          tone={r.retry ? 'neutral' : 'warn'}
           icon={<TriangleAlertIcon aria-hidden />}
-          title={r.reason}
-          onRemove={() => setRefused((x) => x.filter((y) => y !== r))}
+          title={`Not added. ${r.reason}`}
+          onRemove={() => setNotAdded((x) => x.filter((y) => y !== r))}
           removeLabel={`Dismiss ${r.word}`}
-          className="max-w-48 line-through decoration-1"
+          className={cn(
+            'max-w-48',
+            r.retry
+              ? 'border border-dashed border-destructive bg-transparent text-destructive'
+              : 'line-through decoration-1',
+          )}
         >
           {r.word}
+          <span className="sr-only"> (not added)</span>
         </TagChip>
       ))}
     </>
@@ -435,11 +451,9 @@ export function SynonymTags({
             ref={input}
             id={`${id}-input`}
             value={text}
-            aria-label={`Add another name for ${point.name}`}
+            aria-label={`Add a name for ${point.name}`}
             aria-describedby={`${id}-help`}
-            placeholder={
-              tags.length || point.sourceNames.length ? 'Add a word' : 'Type a word, then a comma'
-            }
+            placeholder="Add a name"
             onChange={(e) => {
               const v = e.target.value
               // A comma typed or pasted mid-word: every finished word becomes a tag, the rest stays.
@@ -463,19 +477,41 @@ export function SynonymTags({
       ) : tags.length || point.sourceNames.length ? (
         <div className="flex flex-wrap items-center gap-1.5">{chips}</div>
       ) : (
-        <p className="text-sm text-muted-foreground">No other names yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No other names yet. Agents find it only as “{point.name}”.
+        </p>
       )}
-      {refused.length > 0 && (
-        <ul className="flex flex-col gap-0.5 text-xs text-caution">
-          {refused.map((r) => (
-            <li key={r.word}>{r.reason}</li>
+      {notAdded.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {notAdded.map((r) => (
+            <li key={r.word} className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm">
+              <TriangleAlertIcon
+                aria-hidden
+                className={cn(
+                  'mt-0.5 size-4 shrink-0',
+                  r.retry ? 'text-destructive' : 'text-caution',
+                )}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="font-medium">“{r.word}” was not added.</span> {r.reason}
+              </span>
+              {r.retry && (
+                <Button
+                  variant="outline"
+                  onClick={() => commit([r.word])}
+                  aria-label={`Try again to add ${r.word}`}
+                >
+                  Try again
+                </Button>
+              )}
+            </li>
           ))}
         </ul>
       )}
       {canEdit && (
         <p id={`${id}-help`} className="text-xs text-muted-foreground">
-          A comma or Enter adds a word; each one means {point.name} to agents.
-          {point.sourceNames.length ? ` Locked words come from ${point.tool ?? 'its tool'}.` : ''}
+          A comma or Enter adds a name. Agents read each of these as {point.name}.
+          {point.sourceNames.length ? ` Locked names come from ${point.tool ?? 'its tool'}.` : ''}
         </p>
       )}
       <p role="status" aria-live="polite" className="sr-only">
@@ -577,7 +613,7 @@ export function DefinitionDetails({
         </div>
       ) : target ? (
         <div className="flex flex-col items-start gap-2">
-          <AnotherNameFor target={target} />
+          <OtherNameFor target={target} />
           {subject.synced ? (
             <SourcePassages
               text={subject.definition}

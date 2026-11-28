@@ -60,7 +60,9 @@ test('the Help page searches its own words, and sends the rest to the documentat
   await go(page, '/help')
   await expect(page.getByRole('table', { name: 'Answer lines' })).toContainText('Checked')
   await page.getByRole('searchbox', { name: 'Search help' }).fill('synonym')
-  await expect(page.getByText('Another name for a metric or a dimension')).toBeVisible()
+  await expect(
+    page.getByText('A word that means the same as a metric or a dimension'),
+  ).toBeVisible()
   await page.getByRole('searchbox', { name: 'Search help' }).fill('refund')
   await expect(page.getByText('Nothing in Help matches “refund”')).toBeVisible()
   await expect(

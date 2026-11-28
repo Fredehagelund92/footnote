@@ -297,7 +297,7 @@ export function CommandPalette() {
                   </span>
                   <CommandShortcut className="tracking-normal max-sm:hidden">
                     {d.sameAs
-                      ? `Another name for ${d.sameAs}`
+                      ? `Other name for ${d.sameAs}`
                       : d.variants
                         ? `Family · ${d.variants.count.toLocaleString('en-GB')} ${d.variants.count === 1 ? 'variant' : 'variants'}`
                         : kindName(d)}

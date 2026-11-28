@@ -529,7 +529,7 @@ export function termHistoryOf(
   return sorted.map((version, index) => {
     const before = sorted[index + 1]
     const words = (v: TermVersion | undefined) =>
-      v ? (v.sameAs ? `Another name for ${v.sameAs}` : (v.meaning ?? '')) : ''
+      v ? (v.sameAs ? `Other name for ${v.sameAs}` : (v.meaning ?? '')) : ''
     const kind: VersionKind =
       version.change === 'created' || version.change === 'restored'
         ? 'published'

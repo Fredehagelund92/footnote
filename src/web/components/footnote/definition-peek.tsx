@@ -9,7 +9,7 @@ import {
 import { cn } from '@/lib/utils'
 import { DockFrame, DockMissing, DockWaiting, PeekBar } from '@/components/dock'
 import {
-  AnotherNameFor,
+  OtherNameFor,
   builtFromParts,
   NoMeaning,
   SynonymTags,
@@ -124,7 +124,7 @@ export function DefinitionPeek({ name }: { name: string }) {
         <PeekBand first>
           <PeekTitle lead={<TypeTile d={d} size="lg" />}>{d.name}</PeekTitle>
           <PeekMeaning>
-            {target && <AnotherNameFor target={target} className="mb-2" />}
+            {target && <OtherNameFor target={target} className="mb-2" />}
             {subject.definition && subject.synced ? (
               <SourcePassages text={subject.definition} />
             ) : (
@@ -182,7 +182,7 @@ export function DefinitionPeek({ name }: { name: string }) {
           </PeekFacts>
         </PeekBand>
         {!d.sameAs && (
-          <PeekBand label="Another name">
+          <PeekBand label="Also called">
             <SynonymTags d={d} canEdit={canEdit} />
           </PeekBand>
         )}

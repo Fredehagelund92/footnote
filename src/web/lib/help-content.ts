@@ -97,7 +97,7 @@ export const WORDS: [string, string][] = [
   ],
   [
     'Synonym',
-    'Another name for a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.',
+    'A word that means the same as a metric or a dimension, such as GMV for Gross sales. Agents read it as that definition.',
   ],
   [
     'Not found',

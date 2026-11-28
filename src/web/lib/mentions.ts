@@ -106,7 +106,7 @@ export function mentionablesOf({
       kind: d.type,
       label: d.name,
       hint: d.sameAs
-        ? `Another name for ${d.sameAs}`
+        ? `Other name for ${d.sameAs}`
         : d.domain
           ? domains[d.domain]?.name
           : undefined,

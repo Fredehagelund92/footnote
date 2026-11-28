@@ -69,7 +69,7 @@ test('an owner scopes an item to one campaign, searched on the server', async ({
   await expect(chip('Market: Norway')).toHaveCount(0)
   await expect(chip('Market: any value')).toBeVisible()
   await search.fill('norge')
-  // Another name finds the value and says so.
+  // Another of its names finds the value and says so.
   await list.getByRole('option', { name: 'Norway also Norge' }).click()
   await expect(
     page.getByRole('status').filter({ hasText: 'It replaces Market: any value.' }),

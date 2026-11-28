@@ -531,7 +531,7 @@ describe("a term's history", () => {
       names.person,
       0,
     )
-    expect(synonym?.after).toBe('Another name for Gross sales')
+    expect(synonym?.after).toBe('Other name for Gross sales')
   })
 })
 

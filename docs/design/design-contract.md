@@ -400,7 +400,7 @@ One shared component per job (`components/footnote/switches.tsx`):
 | `ViewToggle`  | Another view of the same thing, usually an advanced one: a quiet icon button (the review's Preview).                                                        |
 | `TextSwitch`  | A list filter or a two-way option: words with counts and a sliding 2 px underline (Needs me / All, Definitions views, Overview's views, Draft / Published). |
 | `ChoiceMenu`  | A decision at the end of a row, usually left as it is: the answer as a quiet button, and a menu that says what each answer does (how an overlap relates).   |
-| Property menu | A property of a document (a term's Another name for).                                                                                                       |
+| Property menu | A property of a document (a term's Other name for).                                                                                                         |
 
 No pill tabs, no segmented tracks, no line tabs. Each section of a settings area has its own address and a breadcrumb.
 
