@@ -15,7 +15,12 @@ const boxOf = (page: Page, selector: string) =>
     .first()
     .evaluate((el) => {
       const r = el.getBoundingClientRect()
-      const [left, right, top, bottom] = [r.left, r.right, r.top, r.bottom].map(Math.round)
+      const [left, right, top, bottom] = [
+        Math.round(r.left),
+        Math.round(r.right),
+        Math.round(r.top),
+        Math.round(r.bottom),
+      ]
       return { left, right, top, bottom, width: right - left }
     })
 
