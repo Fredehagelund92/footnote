@@ -1,8 +1,14 @@
 ---
 title: What's new
 line: Changes people notice, newest first.
-reviewed: 2026-11-27
+reviewed: 2026-11-28
 ---
+
+## The first questions agents could not answer
+
+2026-11-28
+
+While fewer than five people have signed in, each question an agent finds nothing for shows in the owner's Inbox at once, as a Nothing written yet card. Later the usual count applies: 5 in 7 days.
 
 ## An agent writes many drafts, and sends none
 

@@ -4,7 +4,7 @@ line: Observability for owners and admins - what agents asked and got, saved que
 group: Set up
 order: 3
 minutes: 4
-reviewed: 2026-11-21
+reviewed: 2026-11-28
 open:
   label: Open Observability
   href: /observability
@@ -47,7 +47,7 @@ What people and agents said about the answers: good answers, answers with someth
 
 An alert is a card in the Inbox of the people it is for, never an email. The rules say when one comes, such as:
 
-- Not found: a topic found nothing 5 or more times in 7 days. Its card is the one in [When nothing is written yet](when-nothing-is-written-yet.md).
+- Not found: a topic found nothing 5 or more times in 7 days. While fewer than five people have signed in, each question that found nothing comes at once. Its card is the one in [When nothing is written yet](when-nothing-is-written-yet.md).
 - A saved question needs a look.
 - Conflict: two items that apply say different things, asked 3 or more times.
 - A check is due: a reminder to the owner at 07:00.

@@ -124,7 +124,7 @@ const GROUPS: { group: string; settings: Entry[] }[] = [
       },
       {
         key: 'gaps.no_item_threshold',
-        what: 'Questions with nothing written down before a Not found card',
+        what: 'Questions with nothing written down before a Not found card; one while fewer than five people have signed in',
         value: (v) => `${n(field(v, 'calls'))} in ${days(field(v, 'days'))}`,
       },
       {
