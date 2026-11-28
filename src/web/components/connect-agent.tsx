@@ -57,6 +57,7 @@ import {
   useSettings,
 } from '@/api/queries'
 import { useMe } from '@/lib/workspace'
+import { friendlyAgentName } from '@domain/app-family'
 
 // Connect an agent: one prompt first, shown in full and copied exactly as shown, with a live line
 // that watches for the sign-in; then one cell per agent for a quick start, with the one-click links
@@ -231,7 +232,7 @@ function LiveLine({
               ))}
               .
             </p>
-            <AgentPreviewLink agent={live.agent ?? 'Your agent'} />
+            <AgentPreviewLink agent={friendlyAgentName(live.agent) ?? 'Your agent'} />
           </>
         )}
         {(phase === 'hint' || phase === 'timeout') && (

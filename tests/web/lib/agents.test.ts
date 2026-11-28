@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   ADDRESS,
+  agentInSentence,
+  agentName,
   ASK_FIRST_LINE,
   CLAUDE_CODE_COMMAND,
   claudeAppLink,
@@ -8,6 +10,7 @@ import {
   finishPrompt,
   GUIDES,
   liveCopy,
+  logoFor,
   PROMPT,
   PROMPT_PARTS,
   vscodeLink,
@@ -117,5 +120,40 @@ describe('Write with Claude (W3)', () => {
   it("tells Claude's app to keep the Ask-first line in a Project, which has no instructions file", () => {
     const steps = GUIDES.find((g) => g.id === 'claude-app')!.steps
     expect(steps.find((s) => s.what.includes("Project's instructions"))?.copy).toBe(ASK_FIRST_LINE)
+  })
+})
+
+describe('an agent in words people know', () => {
+  it('says "your agent" for a program that reported a technical name, such as a proxy', () => {
+    const proxy = { kind: 'app', agent: 'mcp-cli-proxy' } as const
+    expect(agentInSentence(proxy)).toBe('your agent')
+    expect(agentName(proxy)).toBe('Your agent')
+    expect(`Write with ${agentInSentence(proxy)}`).toBe('Write with your agent')
+  })
+
+  it('names a known app, and keeps a plain name as it is', () => {
+    expect(agentInSentence({ kind: 'app', agent: 'cursor-vscode' })).toBe('Cursor')
+    expect(agentInSentence({ kind: 'app', agent: 'claude-code' })).toBe('Claude Code')
+    expect(agentInSentence({ kind: 'app', agent: 'Perplexity' })).toBe('Perplexity')
+  })
+
+  it('keeps the name an admin gave an access key', () => {
+    expect(agentInSentence({ kind: 'key', agent: 'nightly-sync' })).toBe('nightly-sync')
+    expect(agentName({ kind: 'key', agent: 'nightly-sync' })).toBe('nightly-sync')
+  })
+
+  it('says the live line the same way', () => {
+    expect(liveCopy('connected', 'prompt', 'mcp-cli-proxy', 'Maya Okafor').title).toBe(
+      'Connected: your agent, Maya Okafor',
+    )
+    expect(liveCopy('connected', 'prompt', 'Cursor', 'Maya Okafor').title).toBe(
+      'Connected: Cursor, Maya Okafor',
+    )
+  })
+
+  it('finds the logo of a known app by the family of its name', () => {
+    expect(logoFor('VS Code (Copilot)')).toBe(logoFor('VS Code'))
+    expect(logoFor('claude-code')).toBe(logoFor('Claude'))
+    expect(logoFor('mcp-cli-proxy')).toBe(logoFor('ChatGPT'))
   })
 })

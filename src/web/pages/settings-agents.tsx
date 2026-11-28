@@ -33,7 +33,7 @@ import { useQuery } from '@tanstack/react-query'
 import { toApiError } from '@/api/errors'
 import { autoPublishQuery, useAgentConnections, useSettings, useWrite } from '@/api/queries'
 import { PolicyCard } from '@/pages/agent-policies'
-import { AGENT_TOOLS, logoFor } from '@/lib/agents'
+import { AGENT_TOOLS, agentInSentence, agentName, logoFor } from '@/lib/agents'
 import {
   connectedLine,
   keysHint,
@@ -93,7 +93,7 @@ function RevokeDialog({
           </DialogHeader>
         ) : own ? (
           <DialogHeader>
-            <DialogTitle>Disconnect {row?.agent}?</DialogTitle>
+            <DialogTitle>Disconnect {row && agentInSentence(row)}?</DialogTitle>
             <DialogDescription>
               It signs out at once and stops reading context as you. You can connect it again.
             </DialogDescription>
@@ -101,7 +101,7 @@ function RevokeDialog({
         ) : (
           <DialogHeader>
             <DialogTitle>
-              Disconnect {row?.agent} for {row?.who}?
+              Disconnect {row && agentInSentence(row)} for {row?.who}?
             </DialogTitle>
             <DialogDescription>
               It signs out at once and stops reading context. {row?.who.split(' ')[0]} can connect
@@ -300,7 +300,7 @@ function AgentDetails({
           <h4 className="text-xs font-medium text-muted-foreground">Publishes without review</h4>
           <ul
             className="flex flex-col gap-2"
-            aria-label={`Where ${r.agent} publishes without review`}
+            aria-label={`Where ${agentInSentence(r)} publishes without review`}
           >
             {r.policies.map((p) => (
               <PolicyCard key={p.id} policy={p} title={`In ${p.domainName}`} from="agents" />
@@ -320,7 +320,7 @@ function AgentDetails({
       >
         <div className="flex flex-col gap-2">
           <h4 className="text-xs font-medium text-muted-foreground">Tools it may call</h4>
-          <ul className="flex flex-col gap-2" aria-label={`Tools ${r.agent} may call`}>
+          <ul className="flex flex-col gap-2" aria-label={`Tools ${agentInSentence(r)} may call`}>
             {r.tools.map(({ tool, on, allowed }) => {
               const id = `agent-${r.id}-${tool}`
               const hint = !allowed
@@ -532,7 +532,7 @@ function AgentRow({
           )}
           <div className="min-w-0">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
-              <span className="min-w-0 truncate">{r.agent}</span>
+              <span className="min-w-0 truncate">{agentName(r)}</span>
 
               {r.fresh && <span className="text-xs font-normal text-primary">New</span>}
               <Badge variant={off ? 'destructive' : 'outline'} className="font-normal">
@@ -559,7 +559,9 @@ function AgentRow({
               variant="inline"
               label="Details"
               aria-label={
-                r.kind === 'key' ? `Details of ${r.agent}` : `Details of ${r.agent} for ${r.who}`
+                r.kind === 'key'
+                  ? `Details of ${agentInSentence(r)}`
+                  : `Details of ${agentInSentence(r)} for ${r.who}`
               }
               className="h-7 rounded-md px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50"
             />
@@ -616,9 +618,9 @@ export function Agents() {
       : write('createAccessKey', { name }).then(({ key }) => key)
   const setAgentTool = (r: Connected, tool: AgentToolName, on: boolean) =>
     void write('setAgentTool', { id: r.id, tool, on })
-      .then(() => toast(`${tool} ${on ? 'on' : 'off'} for ${r.agent}`))
+      .then(() => toast(`${tool} ${on ? 'on' : 'off'} for ${agentInSentence(r)}`))
       .catch((e: unknown) =>
-        toast(`Couldn't switch ${tool} ${on ? 'on' : 'off'} for ${r.agent}`, {
+        toast(`Couldn't switch ${tool} ${on ? 'on' : 'off'} for ${agentInSentence(r)}`, {
           description: toApiError(e).message,
         }),
       )
@@ -667,7 +669,8 @@ export function Agents() {
         onClose={() => setRevoking(undefined)}
         onRevoke={() => {
           if (!revoking) return
-          const { id, agent, who, kind } = revoking
+          const { id, who, kind } = revoking
+          const agent = agentInSentence(revoking)
           // The row goes first, then the access is ended.
           void leaveThen(id, () =>
             write('revokeAgent', { id })

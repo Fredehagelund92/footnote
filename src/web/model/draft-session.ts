@@ -1,3 +1,4 @@
+import { friendlyAgentName } from '@domain/app-family'
 import type { DraftWriter } from '@domain/draft-stamps'
 import type { FieldMark } from '@domain/provenance'
 import type { ScopeTerm } from './items'
@@ -108,7 +109,7 @@ export const unsavedFields = (form: SessionForm, saved: SessionForm) =>
 
 /** The writer of a stamp by name: the agent's as the person named it, or writing help's. */
 export const writerName = (stamp: Pick<FieldBy, 'by' | 'agent'>) =>
-  stamp.by === 'writing_help' ? HELP_NAME : (stamp.agent ?? 'Your agent')
+  stamp.by === 'writing_help' ? HELP_NAME : (friendlyAgentName(stamp.agent) ?? 'Your agent')
 
 /** A writer's name inside a sentence: an agent's is a name, writing help's a plain noun. */
 export const inSentence = (writer: string) => (writer === HELP_NAME ? 'writing help' : writer)
@@ -189,7 +190,7 @@ export function mergeDraft<F extends SessionForm>(
     const writer = changed[stamp.by]
     writer.fields.push(field)
     if (stamp.at > writer.at) writer.at = stamp.at
-    writer.name ||= stamp.agent ?? ''
+    writer.name ||= friendlyAgentName(stamp.agent) ?? ''
   }
   const changeBy = (writer: DraftWriter): AgentChange | null =>
     changed[writer].fields.length

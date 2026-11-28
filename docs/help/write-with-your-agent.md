@@ -21,7 +21,7 @@ Connect your agent once, as [Connect an agent](connect-an-agent.md) says. It wri
 Open **Context** and choose **Write context**. Beside Fill it in and Write it yourself, a third button names your agent:
 
 - Write with Claude opens Claude's app on a new chat, with the prompt in the box. Read it, and send it.
-- Write with Cursor, or the name of another agent you connected, copies the prompt for you to paste into it.
+- Write with Cursor, or the name of another agent you connected, copies the prompt for you to paste into it. An agent that reports only a technical name, such as a proxy, shows as Write with your agent.
 - Write with your agent, when none of yours may write a draft yet, opens Connect an agent.
 
 <!-- include write-prompt -->
