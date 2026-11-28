@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseDock, trailTo } from '@/lib/dock'
 import { SHORTCUTS } from '@/lib/help-content'
 import { GO_TO } from '@/lib/keys'
@@ -49,5 +49,51 @@ describe('the key for going back in the panel', () => {
     const single = rows.filter((r) => r.keys.length === 1 && !r.then)
     const claims = single.filter((r) => r.keys[0] === 'H' || r.or?.[0] === 'H')
     expect(claims).toHaveLength(1)
+  })
+})
+
+describe('opening a panel, against the router', () => {
+  const calls: { href: string; state?: unknown }[] = []
+
+  async function load() {
+    vi.resetModules()
+    calls.length = 0
+    vi.doMock('@/lib/router', () => ({
+      changeQuery: (changes: Record<string, string | undefined>, opts?: { state?: unknown }) => {
+        calls.push({ href: String(changes.dock), state: opts?.state })
+        return Promise.resolve()
+      },
+      entryIndex: () => 3,
+      setQuery: () => {},
+      stepHistory: () => {},
+      useLocationNow: () => ({ state: {} }),
+      useRoute: () => ({ query: new URLSearchParams() }),
+    }))
+    vi.stubGlobal('window', { location: { search: '?dock=context.itm_a' } })
+    vi.stubGlobal('document', { activeElement: null })
+    return import('@/lib/dock')
+  }
+
+  afterEach(() => {
+    vi.doUnmock('@/lib/router')
+    vi.unstubAllGlobals()
+  })
+
+  it('gives a panel opened from another panel a trail', async () => {
+    const dock = await load()
+    dock.openDock('def', 'Webshop')
+    expect(calls[0]!.state).toEqual({ dockFrom: 'context.itm_a', dockAt: 3 })
+  })
+
+  it('gives a panel opened by a page button no trail, though a panel is open', async () => {
+    const dock = await load()
+    dock.openFromButton('share', 'chat_1', null)
+    expect(calls[0]).toEqual({ href: 'share.chat_1', state: undefined })
+  })
+
+  it('gives Ask opened from a page no trail, though a panel is open', async () => {
+    const dock = await load()
+    dock.askInDock('What is this?')
+    expect(calls[0]).toEqual({ href: 'ask', state: undefined })
   })
 })

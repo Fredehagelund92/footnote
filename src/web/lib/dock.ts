@@ -207,7 +207,7 @@ export function useDockBackKey() {
  * then (a reported answer hides its More), focus goes to the answer's report line instead.
  */
 export function openFromButton(kind: DockKind, id: string, from: HTMLElement | null) {
-  openDock(kind, id)
+  openDock(kind, id, undefined, { trail: false })
   fromButton = from
   fromButtonId = id
 }
@@ -260,7 +260,7 @@ function setTyped(next: Typed | null) {
 
 /** Opens Ask beside the page with the question typed in. */
 export function askInDock(question: string) {
-  openDock('ask', undefined, { q: undefined })
+  openDock('ask', undefined, { q: undefined }, { trail: false })
   setTyped({ question, n: ++typedCount })
 }
 
