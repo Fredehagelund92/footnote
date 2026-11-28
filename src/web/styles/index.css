@@ -631,6 +631,9 @@
     translate: var(--dist-3) 0;
   }
 }
+
+/* A new peek in an open dock, and the scrim behind a tablet's sheet of the dock, only fade in, in
+   90ms. */
 @utility dock-swap {
   transition-property: opacity;
   transition-duration: var(--dur-1);
