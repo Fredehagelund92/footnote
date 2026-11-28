@@ -3,8 +3,8 @@ title: Write context
 line: How to add a context item, what it is, what to put in it, its source and its check date.
 group: Write and review
 order: 1
-minutes: 9
-reviewed: 2026-11-27
+minutes: 10
+reviewed: 2026-11-28
 open:
   label: Write context
   href: /context/new
@@ -22,6 +22,8 @@ To create one, open **Context** and choose **Write context**. It opens on one bo
 A link is read from its page, which becomes the source.
 
 To start from an empty item, choose **Write it yourself**. Draft from text, in the editor's More menu, goes back to the box. To write it with Claude or another agent of yours instead, see [Write with your agent](write-with-your-agent.md).
+
+Where an admin has turned on writing help, the button is Write the draft, and an AI model writes the draft beside the editor while you watch: see [Write with writing help](writing-help.md).
 
 When Ask finds nothing written about a question, an owner of its domain, or an admin, can choose Write context under the answer. The same editor opens, with what the question was about filled in.
 

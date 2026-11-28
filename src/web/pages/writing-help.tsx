@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { isTyping } from '@/lib/keys'
 import { inputSurface } from '@/lib/surfaces'
 import { cn } from '@/lib/utils'
 import { askHelp, stopHelp, undoHelp, useHelp } from '@/lib/writing-help'
@@ -252,6 +253,11 @@ function Composer({
   const [text, setText] = React.useState('')
   // A touch screen gets no automatic focus: the keyboard would cover the draft before anyone asked.
   const [touch] = React.useState(() => window.matchMedia('(pointer: coarse)').matches)
+  // Nor does it take the keyboard from a field of the draft: the dock opens a moment after Write
+  // the draft, and by then the person may be writing in the title.
+  React.useEffect(() => {
+    if (!touch && !isTyping(document.activeElement)) box.current?.focus()
+  }, [touch, box])
   const send = () => {
     if (busy || !text.trim()) return
     void askHelp(text)
@@ -279,7 +285,6 @@ function Composer({
             stopHelp()
           }
         }}
-        autoFocus={!touch}
         rows={1}
         aria-label="Say something to writing help"
         aria-keyshortcuts="Enter"

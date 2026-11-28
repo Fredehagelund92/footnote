@@ -1106,8 +1106,10 @@ export function createMockApi() {
         progress: { doing: 'reading', links: linked && links.on ? 1 : 0 },
       })
       await pause(MOCK_READ_MS)
-      const owner = ownerRole(workspace.domainMap()[mine.domain]?.name ?? mine.domain)
-      const turn = mockTurn(mine, message, owner)
+      const next = obsReader().owns.includes(mine.domain)
+        ? 'publish it'
+        : `send it to ${ownerRole(workspace.domainMap()[mine.domain]?.name ?? mine.domain)}`
+      const turn = mockTurn(mine, message, next)
       const changed: SessionField[] = []
       for (const write of turn.writes) {
         // A field that already says the same is not written again, as on the service.

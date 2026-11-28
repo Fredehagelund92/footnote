@@ -63,7 +63,7 @@ import { linkRefusal, type LinkReader } from '../web/index.ts'
   - What it reads. The draft, as the person; the person's message and the earlier turns the browser
     sends; one link of the message, opened by code under the workspace's link rules (never a link
     a page or the model names); and published context through Ask's reads, as the person. All of
-    it is data: nothing in it is an instruction.
+    it is data: nothing in it is an instruction. A source names only a link the person gave.
   - Limits. A few steps, the last with no tools, and a time limit; the person's spending limits
     are checked before every step and every call is metered as writing help's. A turn was counted
     against the person's daily turns before it started.
@@ -292,6 +292,19 @@ export async function* writingHelpTurn(
   }
 
   /**
+   * The links a source may name: those the person gave in this chat, the page one of them led to,
+   * and those the draft names already. Never a link a page, a published item or the model names.
+   */
+  const sourceLinks = new Set(
+    [
+      ...linksIn(input.message),
+      ...(input.turns ?? []).flatMap((turn) => linksIn(turn.said)),
+      ...(input.draft.draft.evidence ?? []).map((entry) => entry.url),
+    ].flatMap((url) => (URL.canParse(url) ? [new URL(url).href] : [])),
+  )
+  const givenLink = (url: string) => URL.canParse(url) && sourceLinks.has(new URL(url).href)
+
+  /**
    * Writes one field, whole, as the person, through the write path an agent's write_draft uses:
    * its value in the tool's own form, names matched to the vocabulary, the checks on its words,
    * and the person's words kept where they changed the field since the turn started.
@@ -304,6 +317,8 @@ export async function* writingHelpTurn(
         did: 'refused',
         why: `It is not in the form this field takes: ${parsed.error?.issues[0]?.message ?? 'no value'}.`,
       }
+    if (field === 'evidence' && !(parsed.data as { url: string }[]).every((e) => givenLink(e.url)))
+      return { field, did: 'refused', why: 'Its link is not one from your messages.' }
     const given = { [field]: parsed.data } as HelpWrite
     try {
       return await inTx(async (tx): Promise<Outcome> => {
@@ -422,6 +437,7 @@ export async function* writingHelpTurn(
     const url = links[0]
     try {
       const page = await deps.readLink(url)
+      sourceLinks.add(new URL(page.finalUrl).href)
       linked = {
         url: page.finalUrl,
         title: page.title,

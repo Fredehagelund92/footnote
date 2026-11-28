@@ -39,6 +39,7 @@ export const publishedPages = [
   'help/privacy',
   'help/write-context',
   'help/write-with-your-agent',
+  'help/writing-help',
   'help/review-a-suggestion',
   'help/keep-context-up-to-date',
   'help/when-nothing-is-written-yet',

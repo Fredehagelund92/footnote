@@ -2,7 +2,12 @@ import { afterAll, beforeAll } from 'vitest'
 import { createHttpApi } from '@/api/http'
 import type { FootnoteApi } from '@/api/client'
 import type { AskTools, AskTrace, TurnReads } from '../../../src/server/modules/answer/index.ts'
-import type { ModelChecks, ModelPort } from '../../../src/server/modules/models/index.ts'
+import type {
+  ModelChecks,
+  ModelChoice,
+  ModelPort,
+} from '../../../src/server/modules/models/index.ts'
+import type { PageReader } from '../../../src/server/modules/web/index.ts'
 import { buildApp } from '../../../src/server/app.ts'
 import { systemClock } from '../../../src/server/clock.ts'
 import { createLogger } from '../../../src/server/observability/logger.ts'
@@ -16,7 +21,9 @@ import { devPeople, seedDemoWeek, TODAY } from '../http/demo-week.ts'
   a test asks as. `models` is the mock's scripted models unless a run passes real ones, and
   `askTrace` hears or replaces what Ask's loop asks and reads. `withTools` runs Ask's tools as a
   person, in a transaction of their own with the services a request of theirs has. `modelChecks`
-  is the model check the service keeps with real models.
+  is the model check the service keeps with real models. `writingHelpModel` is the model writing
+  help writes with where no real one is (the drafting evaluation's scripted writer), and `readPage`
+  opens the links people paste.
 */
 
 export function askWorld(
@@ -28,6 +35,8 @@ export function askWorld(
     modelChecks?: ModelChecks
     /** Every pair the mock marks as disagreeing, not only Norway's (seedDemoWeek). */
     allConflicts?: boolean
+    writingHelpModel?: ModelChoice
+    readPage?: PageReader
   } = {},
 ) {
   const { client, url } = testDatabase()
@@ -42,6 +51,8 @@ export function askWorld(
     ...(options.models ? { models: options.models } : {}),
     ...(options.askTrace ? { askTrace: options.askTrace } : {}),
     ...(options.modelChecks ? { modelChecks: options.modelChecks } : {}),
+    ...(options.writingHelpModel ? { writingHelpModel: options.writingHelpModel } : {}),
+    ...(options.readPage ? { readPage: options.readPage } : {}),
   })
   let address = ''
   const sessions = new Map<string, Promise<FootnoteApi>>()

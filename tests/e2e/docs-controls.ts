@@ -18,6 +18,8 @@ export type DocControl = {
   drawn: Drawn
   /** A button to press first, by its name, when the control is in what it opens. */
   open?: string
+  /** Drawn only once an admin has turned writing help on, which the check does first. */
+  writingHelp?: boolean
 }
 
 export const docControls: DocControl[] = [
@@ -197,6 +199,33 @@ export const docControls: DocControl[] = [
     open: 'Write it yourself',
   },
   { phrase: 'Advanced', page: 'write-context', at: '/settings/agents', drawn: 'link' },
+  { phrase: 'Settings', page: 'writing-help', at: '/inbox', drawn: 'link' },
+  { phrase: 'Advanced', page: 'writing-help', at: '/settings/agents', drawn: 'link' },
+  { phrase: 'Fill it in', page: 'writing-help', at: '/context/new', drawn: 'button' },
+  { phrase: 'Context', page: 'writing-help', at: '/inbox', drawn: 'link' },
+  { phrase: 'Write context', page: 'writing-help', at: '/context', drawn: 'button' },
+  {
+    phrase: 'Write the draft',
+    page: 'writing-help',
+    at: '/context/new',
+    drawn: 'button',
+    writingHelp: true,
+  },
+  {
+    phrase: 'Writing help',
+    page: 'writing-help',
+    at: '/context/new',
+    drawn: 'button',
+    open: 'Write it yourself',
+    writingHelp: true,
+  },
+  {
+    phrase: 'Try it',
+    page: 'writing-help',
+    at: '/context/new',
+    drawn: 'button',
+    open: 'Write it yourself',
+  },
   {
     phrase: 'Event',
     page: 'write-context',

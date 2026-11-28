@@ -149,6 +149,7 @@
     "eval": "node --env-file-if-exists=.env.local src/server/run-evals.ts",
     "eval:ask-harness": "node --env-file-if-exists=.env.local scripts/ask-eval.ts",
     "eval:drafts": "node scripts/draft-eval.ts",
+    "eval:writing-help": "node --env-file-if-exists=.env.local scripts/writing-help-eval.ts",
     "models:check": "node --env-file-if-exists=.env.local src/server/run-models-check.ts",
     "held-out": "node scripts/held-out.ts",
     "footnote": "node --env-file-if-exists=.env.local src/cli/main.ts",

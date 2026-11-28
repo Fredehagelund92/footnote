@@ -30,8 +30,11 @@ const noText = (draft: Fact) => !draft.summary.trim() && !draft.body?.trim()
 /** Whether the person gave it a title of their own, which stays theirs. */
 const titled = (draft: Fact) => !!draft.title && !/^Untitled/.test(draft.title)
 
-/** What the mock does with a message, by rule: the fields it writes and what it says. */
-export function mockTurn(draft: Fact, message: string, owner: string): MockTurn {
+/**
+ * What the mock does with a message, by rule: the fields it writes and what it says. `next` is what
+ * the person does with the draft then: publish it, for its domain's owner, or send it to the owner.
+ */
+export function mockTurn(draft: Fact, message: string, next: string): MockTurn {
   const said = message.trim().toLowerCase()
   if (noText(draft)) {
     const from = norwayDraft
@@ -46,7 +49,7 @@ export function mockTurn(draft: Fact, message: string, owner: string): MockTurn 
         { field: 'source', patch: { source: from.source, quote: from.quote } },
         { field: 'text', patch: { summary: from.summary, body: from.body } },
       ],
-      reply: `I wrote a draft from ${read}${kept ? ', and kept your title' : ''}. Check each field, then send it to ${owner}.`,
+      reply: `I wrote a draft from ${read}${kept ? ', and kept your title' : ''}. Check each field, then ${next}.`,
       question: {
         text: `Don't conclude is empty. Should it say: “${NORWAY_CAVEAT}”?`,
         answers: ['Yes, add it', 'No, leave it empty'],

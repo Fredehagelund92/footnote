@@ -2,7 +2,7 @@
 title: When nothing is written yet
 line: The Inbox card a question with no answer raises, and how to write the context, check a draft or close it.
 group: Write and review
-order: 5
+order: 6
 minutes: 4
 reviewed: 2026-11-25
 open:
