@@ -99,7 +99,6 @@ const names = {
   metric: (k: string) => k,
   value: (k: string) => k,
   metricKey: () => undefined,
-  marketKey: () => undefined,
 }
 function render(turn: LoopTurn, question = 'A question?') {
   host = document.createElement('div')

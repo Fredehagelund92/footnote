@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { scopeSearchQuery, useVocabulary, useWorkspace } from '@/api/queries'
+import type { ScopeSearch } from '@/api/client'
+import { scopeSearchQuery, useWorkspace } from '@/api/queries'
 import { servedToAgents, type Fact, type Kind } from '@/model/items'
 import { PLAIN_ROLE, type Domain, type Person } from '@/model/people'
 import { useDefinitions, type Definition } from '@/lib/definitions'
@@ -12,11 +13,10 @@ import { storageKey } from '@/lib/brand'
 // ("context:itm_norway_stop", "Online sales to Norway stopped..."). In markdown it is the editor's
 // own token, [@ id="..." label="..."]. A mention is navigation only: agents read the label as
 // plain words and never follow it, and it never changes who can see what. A dimension's value is
-// named by its vocabulary key ("value:market/norway"), so values of two dimensions never mix; a
-// market can also be named by its word ("market:Norway"), as the @ picker's Markets do.
+// named by its vocabulary key ("value:channel/email"), so values of two dimensions never mix.
 
 export type MentionKind =
-  'domain' | 'metric' | 'dimension' | 'value' | 'term' | 'context' | 'market' | 'person'
+  'domain' | 'metric' | 'dimension' | 'value' | 'term' | 'context' | 'person'
 
 export type Mentionable = {
   /** `kind:key`, as stored. */
@@ -44,7 +44,6 @@ export const GROUPS: { label: string; kinds: MentionKind[] }[] = [
   { label: 'Definitions', kinds: ['metric', 'dimension', 'term'] },
   { label: 'Values', kinds: ['value'] },
   { label: 'Context items', kinds: ['context'] },
-  { label: 'Markets', kinds: ['market'] },
   { label: 'People', kinds: ['person'] },
 ]
 
@@ -53,9 +52,9 @@ export const SCOPE_KINDS: MentionKind[] = [
   'domain',
   'metric',
   'dimension',
+  'value',
   'term',
   'context',
-  'market',
 ]
 export const LINK_KINDS: MentionKind[] = [
   'domain',
@@ -70,7 +69,12 @@ export const PEOPLE_KINDS: MentionKind[] = ['person']
 export const mentionId = (kind: MentionKind, key: string) => `${kind}:${key}`
 export function parseMentionId(id: string): { kind: MentionKind; key: string } {
   const i = id.indexOf(':')
-  return { kind: id.slice(0, i) as MentionKind, key: id.slice(i + 1) }
+  const kind = id.slice(0, i)
+  const key = id.slice(i + 1)
+  // Ask's '@' once offered the values of one dimension only, its id market, each by its word
+  // ("market:Norway"); saved chats still hold them. Each is that dimension's value, by its word.
+  if (kind === 'market') return { kind: 'value', key: `market/${key}` }
+  return { kind: kind as MentionKind, key }
 }
 
 /* ---------- what there is to mention ---------- */
@@ -80,16 +84,17 @@ type World = {
   definitions: Definition[]
   domains: Domain[]
   people: Person[]
-  markets: string[]
 }
 
-/** What there is to mention in a world: one entry per id. */
+/**
+ * What there is to mention in a world: one entry per id. A dimension can hold thousands of
+ * values, so they are not here: the server finds them as the words are typed (`useValueMentions`).
+ */
 export function mentionablesOf({
   facts,
   definitions,
   domains: list,
   people,
-  markets,
 }: World): Mentionable[] {
   const domains = Object.fromEntries(list.map((d) => [d.id, d]))
   const all: Mentionable[] = [
@@ -120,12 +125,6 @@ export function mentionablesOf({
       hint: domains[f.domain]?.name,
       contextKind: f.kind,
     })),
-    ...markets.map((m) => ({
-      id: mentionId('market', m),
-      kind: 'market' as const,
-      label: m,
-      hint: 'Market',
-    })),
     ...people.map((p) => ({
       id: mentionId('person', p.name),
       kind: 'person' as const,
@@ -143,14 +142,13 @@ export function useMentionables(): Mentionable[] {
   const facts = useFacts()
   const definitions = useDefinitions()
   const { domains, people } = useWorkspace()
-  const { markets } = useVocabulary()
   return React.useMemo(
-    () => mentionablesOf({ facts, definitions, domains, people, markets }),
-    [facts, definitions, domains, people, markets],
+    () => mentionablesOf({ facts, definitions, domains, people }),
+    [facts, definitions, domains, people],
   )
 }
 
-/** A value mention's dimension, by its key's id: `value:market/norway` is `market`. */
+/** A value mention's dimension, by its key's id: `value:channel/email` is `channel`. */
 export const valueDimension = (id: string) => parseMentionId(id).key.split('/')[0] ?? ''
 
 /**
@@ -177,6 +175,19 @@ export function useDebounced<T>(value: T, delay = SEARCH_DELAY_MS): T {
   return debounced
 }
 
+/** The values a search found for the words, as mentions, each named with its dimension. */
+export const valueMentionsOf = (found: ScopeSearch | undefined, q: string): Mentionable[] =>
+  q
+    ? (found?.groups ?? []).flatMap((g) =>
+        g.values.map((v) => ({
+          id: mentionId('value', v.key.slice(4)),
+          kind: 'value' as const,
+          label: v.name,
+          hint: v.alias ? `${g.dimension.name}, also ${v.alias}` : g.dimension.name,
+        })),
+      )
+    : []
+
 /**
  * The values of every dimension that the words find, searched on the server as "Applies to"
  * searches them (FR-129, FR-107): a few per dimension, each named with its dimension. Nothing until
@@ -190,20 +201,7 @@ export function useValueMentions(query: string): { values: Mentionable[]; search
     placeholderData: keepPreviousData,
   })
   const found = search.data
-  const values = React.useMemo(
-    () =>
-      q
-        ? (found?.groups ?? []).flatMap((g) =>
-            g.values.map((v) => ({
-              id: mentionId('value', v.key.slice(4)),
-              kind: 'value' as const,
-              label: v.name,
-              hint: v.alias ? `${g.dimension.name}, also ${v.alias}` : g.dimension.name,
-            })),
-          )
-        : [],
-    [found, q],
-  )
+  const values = React.useMemo(() => valueMentionsOf(found, q), [found, q])
   // Until the words rest and the search answers, what they find is not known yet.
   return { values, searching: q !== query.trim() || search.isFetching }
 }

@@ -207,7 +207,7 @@ export const SHORTCUTS: { group: string; rows: Keys[] }[] = [
     group: 'Ask',
     rows: [
       { keys: ['/'], label: 'Start typing a question' },
-      { keys: ['@'], label: 'Mention a domain, a definition, an item or a market' },
+      { keys: ['@'], label: 'Mention a domain, a definition, a value or an item' },
       { keys: ['Esc'], label: 'Stop the answer being written' },
       { keys: ['⌥', 'H'], label: 'Show or hide history' },
     ],

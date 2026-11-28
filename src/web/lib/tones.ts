@@ -52,7 +52,8 @@ export function kindOfWhere(
   domains: Domains,
 ): 'metric' | 'dimension' | 'market' | 'domain' | 'term' {
   if (vocabulary.metrics.some((m) => m.name === w)) return 'metric'
-  if (vocabulary.markets.includes(w)) return 'market'
+  if (vocabulary.dimensions.some((d) => d.id === 'market' && d.valueNames.includes(w)))
+    return 'market'
   if (vocabulary.dimensions.some((d) => d.name === w)) return 'dimension'
   if (Object.values(domains).some((d) => d.name === w)) return 'domain'
   return 'term'

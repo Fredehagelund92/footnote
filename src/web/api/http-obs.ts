@@ -37,7 +37,6 @@ export const emptyObs = (range: Range, state: ObsData['state'] = 'normal'): ObsD
   domains: [],
   notFound: { subjects: [], topics: [] },
   couldNotRead: null,
-  markets: [],
   publishes: [],
   agents: [],
   feedback: null,
@@ -71,6 +70,7 @@ export function topicOf(t: ObsTopic): Topic {
     values: t.values,
     dimensions: t.dimensions,
     where: t.values.length ? t.values.map((v) => v.name).join(', ') : ALL_VALUES,
+    name: t.name,
     ...(t.areaId ? { domain: t.areaId } : {}),
     month: t.month,
     subject: t.subject,
@@ -106,13 +106,6 @@ export function obsViewInput({ range, domain, agent, filters }: ObsFilterView) {
 /** Overview's and Questions' page from the service's read. */
 export function obsAgentsOf(view: ObsAgents, range: Range): ObsData {
   const base = emptyObs(range, view.state)
-  const markets = [
-    ...new Set(
-      [...view.topics, ...view.notFoundTopics].flatMap((t) =>
-        t.values.filter((v) => v.dimension === 'dim:market').map((v) => v.name),
-      ),
-    ),
-  ]
   return {
     ...base,
     last: atOf(view.last),
@@ -134,7 +127,6 @@ export function obsAgentsOf(view: ObsAgents, range: Range): ObsData {
       topics: view.notFoundTopics.map(topicOf),
     },
     couldNotRead: view.couldNotRead,
-    markets,
     publishes: view.publishes.map((p) => ({
       at: Date.parse(p.at),
       title: p.title,
@@ -291,7 +283,7 @@ const why: Record<string, string> = {
 }
 
 /** A topic as the answer panel names it, from the page that listed it. */
-export type ReplayTopic = Pick<Topic, 'metric' | 'where' | 'month'> & { name: string }
+export type ReplayTopic = Pick<Topic, 'metric' | 'where' | 'month' | 'name' | 'values'>
 
 /** A month as the dates read from a question: "1 to 30 Sep 2026". */
 function monthDays(m: string) {
@@ -323,7 +315,7 @@ export function replayOf(
         text: 'The dates were read from the question, and kept as a scope. The words are not kept.',
         scope: [
           ...(topic.metric ? [{ label: topic.metric, kind: 'metric' as const }] : []),
-          { label: topic.where, kind: 'market' as const },
+          { label: topic.where, kind: 'value' as const },
           { label: monthDays(topic.month), kind: 'dates' as const },
         ],
       },
@@ -363,7 +355,7 @@ export function replayOf(
     id: `replay:${run.when}`,
     question: `What should I know about ${topic.name} in ${month}?`,
     metric: topic.metric,
-    markets: topic.where === ALL_VALUES ? [] : [topic.where],
+    values: topic.values.map((v) => v.name),
     state: a.state,
     text: a.say,
     sources: a.items.map((i) => i.id),

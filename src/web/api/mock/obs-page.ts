@@ -84,7 +84,6 @@ function empty(state: ObsState, range: Range, last: number): ObsData {
     domains: [],
     notFound: { subjects: [], topics: [] },
     couldNotRead: null,
-    markets: [],
     publishes: [],
     agents: [],
     feedback: null,
@@ -207,6 +206,7 @@ export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
       metric: t.metric,
       ...keysOf(t, fixture.markets),
       where: t.where,
+      name: engine.topicName(t),
       domain: t.domain,
       month: t.month,
       subject: subjectOf(t),
@@ -281,7 +281,6 @@ export function obsPage(fixture: Fixture, view: View, reader: Reader): ObsData {
       reader.admin && !domain
         ? visibleCount(engine.couldNotRead({ range, agent, scale }), min)
         : null,
-    markets: fixture.markets,
     publishes: engine.publishesIn({ range, domain }),
     agents: reader.admin
       ? agentCounts.map((a, i) => ({ name: a.name, count: agentShown[i] ?? null }))

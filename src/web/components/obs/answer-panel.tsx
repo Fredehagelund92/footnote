@@ -356,7 +356,7 @@ function StepsTab({ t, when }: { t: Topic; when: When }) {
                   <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     {s.scope.map((c) => (
                       <span key={c.kind} className="inline-flex items-center gap-1">
-                        {c.kind === 'metric' ? 'Metric' : c.kind === 'market' ? 'Value' : 'Dates'}
+                        {c.kind === 'metric' ? 'Metric' : c.kind === 'value' ? 'Value' : 'Dates'}
                         <span className="rounded-md border px-1.5 py-0.5 text-foreground">
                           {c.label}
                         </span>

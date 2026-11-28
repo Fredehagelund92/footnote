@@ -24,7 +24,7 @@ const engine: Answer = {
   id: 'custom',
   question: 'Why did orders in Norway drop in August?',
   metric: 'Orders',
-  markets: ['Norway'],
+  values: ['Norway'],
   state: 'grounded',
   text: 'Online sales to Norway stopped on 4 August [1]. Store credit counts [2].',
   sources: ['fct-1', 'fct-2'],

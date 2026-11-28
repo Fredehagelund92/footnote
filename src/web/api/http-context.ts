@@ -133,23 +133,27 @@ export function textFromService(markup: string, words: Words): string {
 
 /**
  * A mention as the service can keep it, or null: a person, or a word no longer there, is kept as
- * its words. A value is kept by its key; a market named by its word is found among the markets
- * only.
+ * its words. A value is kept by its key; one named by its word (an older mention) is found among
+ * its own dimension's values only.
  */
 function targetOf(id: string, words: Words): string | null {
   const { kind, key } = parseMentionId(id)
   if (kind === 'context') return /^itm_[a-z0-9]{8,16}$/.test(key) ? `item:${key}` : null
   if (kind === 'domain') return `area:${key}`
-  if (kind === 'value') return /^[a-z0-9_]+\/[a-z0-9_]+$/.test(key) ? `val:${key}` : null
+  if (kind === 'value') {
+    if (/^[a-z0-9_]+\/[a-z0-9_]+$/.test(key)) return `val:${key}`
+    const dimension = key.slice(0, key.indexOf('/'))
+    const found = words.keyOf(key.slice(key.indexOf('/') + 1))
+    return found?.key.startsWith(`val:${dimension}/`) ? found.key : null
+  }
   if (kind === 'term') {
     const id = words.termId(key)
     return id ? `term:${id}` : null
   }
-  if (kind === 'metric' || kind === 'dimension' || kind === 'market') {
+  if (kind === 'metric' || kind === 'dimension') {
     const found = words.keyOf(key)
     if (!found) return null
     if (kind === 'metric' && found.kind !== 'metric') return null
-    if (kind === 'market' && !found.key.startsWith('val:market/')) return null
     return found.key
   }
   return null

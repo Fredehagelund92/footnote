@@ -47,7 +47,6 @@ import { setToday } from '@/lib/today'
 import type { Definition } from '@/lib/definitions'
 import type { Version } from '@/model/history'
 import type { Fact, Sent } from '@/model/items'
-import { ALL_VALUES } from '@/model/observability'
 import { excerptOf, type Domains } from '@/model/people'
 import { dateLabel } from '@/model/validity'
 import routes from './contract.json' with { type: 'json' }
@@ -361,19 +360,6 @@ const randomKey = () => globalThis.crypto.randomUUID()
 /** Today on this browser's calendar, as the days an answer names run to. */
 const localDay = (at: Date) =>
   `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(at.getDate()).padStart(2, '0')}`
-
-/** A topic as the pages name it: "Orders in Norway"; with no metric, "Norway, no metric named". */
-const topicNameOf = (
-  t: { metric: string; where: string; named?: string },
-  markets: readonly string[],
-) =>
-  t.named === 'none' || !t.metric
-    ? `${t.where}, no metric named`
-    : markets.includes(t.where)
-      ? `${t.metric} in ${t.where}`
-      : t.where === ALL_VALUES
-        ? t.metric
-        : `${t.metric}, ${t.where}`
 
 /** Two names for the same word: case, spaces and accents aside, as the service compares them. */
 const same = (a: string, b: string) => termWord(a) === termWord(b)
@@ -1422,7 +1408,6 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
     completeSetupStep: () => Promise.resolve(),
     getVocabulary: async () => {
       const vocabulary = await read(() => client.vocabulary.get())
-      const markets = vocabulary.dimensions.find((d) => d.id === 'market')?.values ?? []
       return {
         // A family is one metric to write about: an item about it applies to every variant (FR-142).
         metrics: [
@@ -1440,11 +1425,12 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
           })),
         ],
         dimensions: vocabulary.dimensions.map((d) => ({
+          id: d.id,
           name: d.name,
           values: d.values.map((v) => v.name).join(', '),
+          valueNames: d.values.map((v) => v.name),
           definition: '',
         })),
-        markets: markets.map((v) => v.name),
       }
     },
     // What the person opened and the History log are the service's; what this visit published,
@@ -2480,9 +2466,7 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
       return {
         metric:
           reading.about.find((t) => t.kind === 'metric' || t.kind === 'metric_group')?.name ?? '',
-        markets: reading.about
-          .filter((t) => t.kind === 'dimension_value' && t.dimension === 'Market')
-          .map((t) => t.name),
+        values: reading.about.filter((t) => t.kind === 'dimension_value').map((t) => t.name),
       }
     },
     ask,
@@ -2582,8 +2566,8 @@ export function createHttpApi({ baseUrl, fetch, shelf }: HttpApiOptions): Footno
         )
         const page = obsAgentsOf(view, range)
         for (const t of [...page.topics, ...page.notFound.topics]) {
-          const named = { metric: t.metric, where: t.where, month: t.month }
-          listedTopics.set(t.id, { ...named, name: topicNameOf(t, page.markets) })
+          const { metric, where, month, name, values } = t
+          listedTopics.set(t.id, { metric, where, month, name, values })
         }
         return page
       }

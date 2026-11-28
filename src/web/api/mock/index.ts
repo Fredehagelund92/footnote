@@ -34,14 +34,7 @@ import type { Question } from '@contract/questions'
 import { titleOfWords } from '@domain/questions'
 import type { Relation, Review } from '@/model/review'
 import { plainOf } from '@/components/templates/comment-box/utils'
-import {
-  dimensions,
-  facts as seedFacts,
-  markets,
-  metrics,
-  signInPeople,
-  WORKSPACE_NAME,
-} from './data/world'
+import { dimensions, facts as seedFacts, metrics, signInPeople, WORKSPACE_NAME } from './data/world'
 import { examples, readDefinitionsFrom, readQuestion } from './data/ask'
 import {
   advancedOf,
@@ -99,6 +92,7 @@ import { createScenario, type Address } from './scenario'
 import { searchWorld } from './search'
 import {
   createScopeSearch,
+  dimensionOf,
   dimensionTermOf,
   heldValuesOf,
   publishValues,
@@ -740,8 +734,7 @@ export function createMockApi() {
             .map((d) => ({ name: d.name, group: '', facts: 0, definition: '' })),
           ...metrics,
         ],
-        dimensions,
-        markets,
+        dimensions: dimensions.map((d) => ({ ...d, ...dimensionOf(d.name) })),
       })),
     getActivity: ({ name }) => now(() => workspace.activityOf(name, seedFacts)),
     setAbout: ({ text }) => now(() => dispatch({ type: 'about', text })),
@@ -1760,7 +1753,7 @@ export function createMockApi() {
     readQuestion: ({ question }) =>
       now(() => {
         const read = readQuestion(question)
-        return { metric: read.metric, markets: read.markets }
+        return { metric: read.metric, values: read.markets }
       }),
     ask: (input, live) => {
       // A typed question is asked of the service, so offline nothing comes back; an example is kept here.

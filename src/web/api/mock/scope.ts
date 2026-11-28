@@ -87,6 +87,11 @@ const spelled = new Map<string, string[]>()
 let published = 0
 export const valuesPublished = () => published
 
+/** A dimension of the demo by its name: its id, as its keys name it, and its values' names. */
+export function dimensionOf(name: string) {
+  return { id: idOf(name), valueNames: dimensions.find((d) => d.name === name)?.values ?? [] }
+}
+
 /** A dimension of the demo by its name, as its term. */
 export const dimensionTermOf = (name: string) =>
   terms.find((t) => t.kind === 'dimension' && t.name.toLowerCase() === name.toLowerCase())

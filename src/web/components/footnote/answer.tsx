@@ -213,7 +213,7 @@ function ScopeLine({ answer }: { answer: Answer }) {
   const kinds = scope.map((m) => parseMentionId(m.id).kind)
   const fromWords = [
     !kinds.some((k) => k === 'metric' || k === 'term' || k === 'context') && answer.metric,
-    !kinds.some((k) => k === 'market' || k === 'context') && answer.markets.join(' and '),
+    !kinds.some((k) => k === 'value' || k === 'context') && answer.values.join(' and '),
   ].filter(Boolean)
   return (
     <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-6 text-muted-foreground">
@@ -827,7 +827,7 @@ export function NextStep({ answer, facts }: { answer: Answer; facts: Fact[] }) {
   const me = useMe()
   const write = useWrite()
   const owns = me.owns.includes('sales') || me.admin
-  const scope = scopeText({ metric: answer.metric, markets: answer.markets.slice(-1) })
+  const scope = scopeText({ metric: answer.metric, values: answer.values.slice(-1) })
   if (answer.state === 'missing' || answer.state === 'partial') {
     if (!owns) return null
     return (
@@ -840,7 +840,7 @@ export function NextStep({ answer, facts }: { answer: Answer; facts: Fact[] }) {
               <a
                 href={href('/context/new', {
                   metric: answer.metric,
-                  market: answer.markets.at(-1),
+                  market: answer.values.at(-1),
                   dates: answer.dates,
                 })}
               />
@@ -1174,7 +1174,7 @@ function ContextAnswerBody({
   const lead =
     !draft &&
     !!answer.definitions?.some((d) => d.words) &&
-    asksWhatItIs(askedOf(answer), { values: answer.markets.length > 0, dates: !!answer.dates })
+    asksWhatItIs(askedOf(answer), { values: answer.values.length > 0, dates: !!answer.dates })
       ? answer.definitions
       : null
   const definitionOnly = !!lead && answer.state === 'missing'

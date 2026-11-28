@@ -99,7 +99,7 @@ describe('the related items an answer names', () => {
 })
 
 describe('the next step under an Outdated answer', () => {
-  const stale = { state: 'stale', metric: '', markets: [] } as unknown as Answer
+  const stale = { state: 'stale', metric: '', values: [] } as unknown as Answer
 
   it('shows nothing, and does not throw, when the answer has no item to check', () => {
     world.me = { name: 'Mia', owns: ['sales'], admin: false }

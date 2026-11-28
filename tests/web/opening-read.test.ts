@@ -47,7 +47,7 @@ const answer = (question: string): Answer => ({
   id: 't0',
   question,
   metric: 'Orders',
-  markets: [],
+  values: [],
   state: 'grounded',
   text: 'Orders fell. [1]',
   sources: ['itm_a'],

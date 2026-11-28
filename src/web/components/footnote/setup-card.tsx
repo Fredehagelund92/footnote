@@ -122,7 +122,7 @@ export function Setup({ due }: { due: number }) {
     enabled: !!item && !item.where.length,
   }).data
   const read =
-    item && (item.where.length ? { metric: item.where[0], markets: item.where.slice(1) } : words)
+    item && (item.where.length ? { metric: item.where[0], values: item.where.slice(1) } : words)
   const firstQuestion = questionAbout(read, item ? questionDates(item.valid, today()) : '')
   const doneCount = setupSteps.filter((s) => setupDone[s.id]).length
   const admins = useAdminsSaid()

@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import betterTailwind from 'eslint-plugin-better-tailwindcss'
 import { boundaryConfigs, serverOnlyImports } from './eslint.boundaries.js'
 import { webClassRules, webClassRulesExcept } from './eslint.class-rules.js'
+import marketNames, { marketDemoWorld, stillNamesMarket } from './eslint.market-names.js'
 import motion from './eslint.motion.js'
 import { plainWordsConfigs } from './eslint.plain-words.js'
 import productName from './eslint.product-name.js'
@@ -187,6 +188,13 @@ export default tseslint.config(
     ignores: writesStillToReport,
     plugins: { writes: reportedWrites },
     rules: { 'writes/reported': 'error' },
+  },
+  {
+    // Market is a dimension like any other: no code names it (eslint.market-names.js).
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: [...marketDemoWorld, ...stillNamesMarket],
+    plugins: { dimensions: marketNames },
+    rules: { 'dimensions/market-names': 'error' },
   },
   {
     // The api folder binds the mock binding behind FootnoteApi, so it may import it.

@@ -51,8 +51,6 @@ export function MentionIcon({
       const Icon = kindIcons[m.contextKind ?? 'note']
       return <Icon aria-hidden className={cls} />
     }
-    case 'market':
-      return <GlobeIcon aria-hidden className={cls} />
     // A market is a country; any other dimension's value is a tag of it.
     case 'value':
       return m.id && valueDimension(m.id) === 'market' ? (
@@ -77,8 +75,7 @@ const chip =
 
 /** A mention's tint: the same as its tag chip (metrics, markets, terms and domains tinted; the rest neutral). */
 function mentionTone(kind: string, key: string) {
-  if (kind === 'metric' || kind === 'dimension' || kind === 'term' || kind === 'market')
-    return chipTone(kind)
+  if (kind === 'metric' || kind === 'dimension' || kind === 'term') return chipTone(kind)
   if (kind === 'value') return chipTone(key.startsWith('market/') ? 'market' : 'dimension')
   if (kind === 'domain') return chipTone('domain', domainHue(key))
   return chipTone('neutral')
@@ -180,7 +177,7 @@ export function MentionChip({
   const { kind, key } = parseMentionId(target.id)
   const tone = mentionTone(kind, key)
   // A value has no page of its own: it reads as a chip.
-  if (!interactive || kind === 'market' || kind === 'value')
+  if (!interactive || kind === 'value')
     return (
       <span title={label} style={tone.style} className={cn(chip, tone.className, className)}>
         {body}

@@ -268,8 +268,8 @@ function answerCore(
   })
   const all = found.filter((f) => !offTopic.includes(f))
   const related = offTopic.length ? offTopic.map((f) => f.id) : undefined
-  const scope = scopeText({ metric, markets: ms, dates }) || 'this question'
-  const base = { id: 'custom', question, metric, markets: ms, dates, related }
+  const scope = scopeText({ metric, values: ms, dates }) || 'this question'
+  const base = { id: 'custom', question, metric, values: ms, dates, related }
 
   // Nothing was looked up: no answer state. Agents get the engine's own sentence about why; the
   // person what Ask can answer, with the names closest to their words.
