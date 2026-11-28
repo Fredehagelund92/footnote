@@ -104,7 +104,7 @@
       "read-only": 1
     },
     "src/web/components/footnote/definition.tsx": {
-      "read-only": 3
+      "read-only": 2
     },
     "src/web/components/footnote/load-state.tsx": {
       "retry": 1

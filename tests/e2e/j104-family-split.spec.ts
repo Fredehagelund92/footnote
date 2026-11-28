@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
-import { expect, go, moveTo, signInAs, test } from './go.ts'
+import { expect, go, moveTo, openRow, signInAs, test } from './go.ts'
 
 // J104, an owner splits a family back into its metrics (FR-142, D2-D4): on the mock's
 // ?demo=families, Sofia Brandt, an owner of Sales, finds Split into 2 metrics beside how the rate
@@ -58,6 +58,7 @@ for (const { name, width, height } of widths) {
       }) => {
         await asOwner(page)
         await moveTo(page, `/definitions/${encodeURIComponent(ACCRUED)}`)
+        await openRow(page, 'How it is built')
         const built = page.getByRole('region', { name: 'How it is built' })
         await expect(built).toContainText('Found from a rate in dbt.')
         const split = built.getByRole('button', { name: 'Split into 2 metrics' })
@@ -131,6 +132,7 @@ for (const { name, width, height } of widths) {
         await context.grantPermissions(['clipboard-read', 'clipboard-write'])
         await asOwner(page)
         await moveTo(page, `/definitions/${encodeURIComponent('Active buyers')}`)
+        await openRow(page, 'How it is built')
         await expect(page.getByRole('region', { name: 'How it is built' })).toContainText(
           'Declared as one family in dbt.',
         )

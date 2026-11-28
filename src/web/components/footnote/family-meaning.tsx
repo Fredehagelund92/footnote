@@ -3,8 +3,6 @@ import { toast } from '@/lib/toast'
 import { FAMILY_WORDS_MAX } from '@domain/family-meaning-line'
 import { inlineSegments } from '@domain/markdown-blocks'
 import { useWrite } from '@/api/queries'
-import { TriangleAlertIcon } from '@/components/icons'
-import { PeekAttention } from '@/components/footnote/peek'
 import { Marks, SourceText, codeLook, type CodeLook } from '@/components/footnote/source-text'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,15 +16,14 @@ import {
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
-import type { Definition, Family, FamilyMeaning } from '@/lib/definitions'
+import type { Family, FamilyMeaning } from '@/lib/definitions'
 import { useReported } from '@/lib/reported'
 import { cn } from '@/lib/utils'
-import { useMe } from '@/lib/workspace'
 
 // What a family of metrics means (FR-142, M1), in its quick view and on its page: the meaning, with
-// each value it varies by as a small chip ("in Currency via Channel"), one quiet line on where the
-// words come from with Change for an owner, and one attention line when variants say something
-// else. The owner's choice opens in a dialog loaded on first use: most definitions are no family.
+// each value it varies by as a small chip ("in Currency via Channel"), or on its page as the values
+// it holds ("in EUR or USD"), one quiet line on where the words come from with Change for an owner,
+// and one attention line when variants say something else. The owner's choice opens in a dialog loaded on first use: most definitions are no family.
 // It is handed what it uses of the app (`meaningParts`): were it to import these itself, the
 // bundler would split the code the first load shares with it into more chunks the first load
 // then fetches too.
@@ -38,16 +35,20 @@ const n = (x: number) => x.toLocaleString('en-GB')
 /**
  * The meaning's words, each value it varies by as the axis it stands for, in a chip, and the
  * Markdown its tool wrote drawn as the rest of a definition's words are (source-text.tsx). `code`
- * is how its code is drawn.
+ * is how its code is drawn. Given `values`, a slot reads as the values it stands for instead, as
+ * a sentence says them ("in EUR or USD"), dotted under; past three, as the axis.
  */
 export function MeaningWords({
   meaning,
   by,
   code = 'text-xs',
+  values,
 }: {
   meaning: FamilyMeaning
   by: string[]
   code?: CodeLook
+  /** The values each axis holds, for the slots to read as them. */
+  values?: (axis: string) => string[]
 }) {
   if (!meaning.words)
     return (
@@ -60,19 +61,46 @@ export function MeaningWords({
     <Marks key={i} marks={segment.marks} code={codeLook(code)}>
       {segment.text.split(/(\{[^{}]+\})/).map((part, j) => {
         const axis = part.slice(1, -1)
-        return part.startsWith('{') && by.includes(axis) ? (
+        if (!part.startsWith('{') || !by.includes(axis))
+          return <React.Fragment key={j}>{part}</React.Fragment>
+        if (values) {
+          const held = values(axis)
+          return (
+            <span
+              key={j}
+              title={`One metric for each ${axis}: ${listed(held)}`}
+              className="cursor-help underline decoration-muted-foreground/50 decoration-dotted underline-offset-4"
+            >
+              {held.length && held.length <= 3 ? either(held) : axis}
+            </span>
+          )
+        }
+        return (
           <span
             key={j}
             className="mx-0.5 inline-flex h-5.5 items-center rounded-sm border bg-muted px-1.5 text-sm font-medium text-muted-foreground"
           >
             {axis}
           </span>
-        ) : (
-          <React.Fragment key={j}>{part}</React.Fragment>
         )
       })}
     </Marks>
   ))
+}
+
+/** "EUR or USD", "EUR, USD or GBP": the values a slot may be. */
+const either = (held: string[]) =>
+  held.length < 2 ? (held[0] ?? '') : `${held.slice(0, -1).join(', ')} or ${held.at(-1)}`
+
+/** "EUR, USD and GBP", or the first six and how many more. */
+const listed = (held: string[]) => {
+  const shown = held.slice(0, 6)
+  const more = held.length - shown.length
+  return more > 0
+    ? `${shown.join(', ')} and ${n(more)} more`
+    : shown.length < 2
+      ? (shown[0] ?? '')
+      : `${shown.slice(0, -1).join(', ')} and ${shown.at(-1)}`
 }
 
 /** The most variants whose own words a family with no meaning shows. */
@@ -167,72 +195,4 @@ export function differingLine(meaning: FamilyMeaning): string | null {
   if (differing.length <= 3)
     return `${differing.slice(0, -1).join(', ')} and ${differing.at(-1)} say something else.`
   return `${n(differing.length)} variants say something else.`
-}
-
-/**
- * A family's meaning: its words, where they come from (and Change, for an owner of its domain or
- * an admin), and the variants that say something else.
- */
-export function FamilyMeaningBlock({
-  d,
-  family,
-  className,
-}: {
-  d: Pick<Definition, 'name' | 'domain' | 'tool'>
-  family: Family
-  className?: string
-}) {
-  const me = useMe()
-  const [changing, setChanging] = React.useState(false)
-  const meaning = family.meaning
-  if (!meaning) return null
-  // Words the tool writes for the family are changed there.
-  const canChange =
-    meaning.source !== 'declared' && (me.admin || (!!d.domain && me.owns.includes(d.domain)))
-  // A variant converted from another says how, which the page shows: it says nothing else.
-  const converted = new Set((family.conversions ?? []).map((c) => c.to))
-  const differing = differingLine({
-    ...meaning,
-    differing: meaning.differing.filter((name) => !converted.has(name)),
-  })
-  const source = meaningSource(family, meaning, d.tool ?? 'its tool')
-  return (
-    <div className={className}>
-      {meaning.words ? (
-        <p>
-          <MeaningWords meaning={meaning} by={family.by} />
-        </p>
-      ) : (
-        <VariantsOwnWords family={family} />
-      )}
-      {(source || canChange) && (
-        <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-          {source}
-          {canChange && (
-            <span className="whitespace-nowrap">
-              {source && ' - '}
-              <Button
-                variant="link"
-                className="h-auto p-0 text-xs"
-                onClick={() => setChanging(true)}
-              >
-                Change
-              </Button>
-            </span>
-          )}
-        </p>
-      )}
-      {differing && <PeekAttention icon={TriangleAlertIcon}>{differing}</PeekAttention>}
-      {changing && (
-        <React.Suspense fallback={null}>
-          <MeaningDialog
-            name={d.name}
-            family={family}
-            parts={meaningParts}
-            onClose={() => setChanging(false)}
-          />
-        </React.Suspense>
-      )}
-    </div>
-  )
 }

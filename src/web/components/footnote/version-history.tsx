@@ -115,6 +115,10 @@ function Row({ version, onOpen }: { version: Version; onOpen: () => void }) {
   )
 }
 
+/** Who changed it last and when: "last edited by Jon Abara, 3 Oct". */
+const lastLine = (latest: Version) =>
+  `last ${latest.kind === 'checked' ? 'checked' : 'edited'} by ${latest.who}, ${relativeDate(latest.on)}`
+
 /** The comparison of two versions, loaded once a version is opened. */
 const HistoryComparison = React.lazy(() => import('@/components/footnote/history-comparison'))
 
@@ -129,6 +133,7 @@ export function VersionHistory({
   canRestore,
   onRestore,
   onUndo,
+  label,
 }: {
   versions: Version[]
   itemId?: string
@@ -136,6 +141,11 @@ export function VersionHistory({
   onRestore?: (version: Version) => Promise<unknown>
   /** Takes back a publish made under an owner's policy, by its token (FR-421, FR-227). */
   onUndo?: (token: string) => Promise<unknown>
+  /**
+   * A row of its own, as on a definition's page: the label, and the line in its place as the
+   * summary while it is closed.
+   */
+  label?: string
 }) {
   const [open, setOpen] = React.useState(false)
   const [viewing, setViewing] = React.useState<Version | null>(null)
@@ -155,21 +165,25 @@ export function VersionHistory({
   return (
     <Collapsible open={open} onOpenChange={setOpen} render={<div className="flex flex-col" />}>
       {/* The line says who changed it last and when, so it wraps rather than cut the date. */}
-      <FoldTrigger
-        label={
-          <>
-            <span className="tabular-nums">
-              {versions.length} {versions.length === 1 ? 'change' : 'changes'}
-            </span>
-            <span className="font-normal text-muted-foreground">
-              {' '}
-              - last {latest.kind === 'checked' ? 'checked' : 'edited'} by {latest.who},{' '}
-              {relativeDate(latest.on)}
-            </span>
-          </>
-        }
-        className="-mx-2 w-auto rounded-md px-2"
-      />
+      {label ? (
+        <FoldTrigger
+          label={label}
+          summary={`${versions.length} ${versions.length === 1 ? 'change' : 'changes'} - ${lastLine(latest)}`}
+          className="-mx-2 w-auto rounded-md px-2"
+        />
+      ) : (
+        <FoldTrigger
+          label={
+            <>
+              <span className="tabular-nums">
+                {versions.length} {versions.length === 1 ? 'change' : 'changes'}
+              </span>
+              <span className="font-normal text-muted-foreground"> - {lastLine(latest)}</span>
+            </>
+          }
+          className="-mx-2 w-auto rounded-md px-2"
+        />
+      )}
       <CollapsibleContent>
         <div className="mt-1 flex flex-col">
           {months.map((m) => (

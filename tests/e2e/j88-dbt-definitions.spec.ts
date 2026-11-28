@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { expect, go, signInAs, test } from './go.ts'
+import { expect, go, openRow, signInAs, test } from './go.ts'
 
 // J88, a dbt project in a folder on the server, the one definitions tool on in the demo's Cube's
 // place (the mock's ?demo=dbt), as a local install met it (N1-N3, N5, N6). A dbt definition's page names its real
@@ -23,9 +23,11 @@ test('a dbt definition names its dbt ref and links to no file', async ({ page })
   await dbtList(page)
   await go(page, definition(SPEND))
   const main = page.getByRole('main')
-  await expect(main.getByText('Marketing', { exact: true }).first()).toBeVisible()
-  await expect(main).toContainText('read-only, read from dbt')
-  await main.getByRole('button', { name: /^Details/ }).click()
+  await expect(main).toContainText('Read from dbt. Change it there.')
+  await expect(
+    main.getByRole('button', { name: 'Where it comes from', exact: true }),
+  ).toHaveAccessibleDescription('Marketing, read from dbt')
+  await openRow(page, 'Where it comes from')
   await expect(main.getByRole('definition').filter({ hasText: /^dbt:/ })).toHaveText(
     'dbt:campaign_spend.campaign_spend_local',
   )
@@ -36,6 +38,7 @@ test('a dbt definition names its dbt ref and links to no file', async ({ page })
 
 test('a Cube definition links to its view’s model file', async ({ page }) => {
   await go(page, definition('Average order value'))
+  await openRow(page, 'Where it comes from')
   await expect(page.getByRole('main')).toContainText('cube:basket.average_order_value')
   await expect(page.getByRole('link', { name: 'Open in source' }).first()).toHaveAttribute(
     'href',

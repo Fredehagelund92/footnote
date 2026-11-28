@@ -5,7 +5,8 @@ import { expect, go, mode, test } from './go.ts'
 // says who has it and is never saved, Backspace selects then removes, Escape keeps what was made.
 // The list folds synonyms into their definition's row; a term's editor has one optional
 // Other name for, and clearing it brings the meaning back. A word that was not added stays,
-// marked, with one plain line that says why, and Try again when the save did not go through.
+// marked, with one plain line that says why, and Try again when the save did not go through. On a
+// definition's page the names are one line, and Add a name opens the field in place.
 
 test('the term editor stops a taken word with who has it, and only warns of a look-alike', async ({
   page,
@@ -71,9 +72,22 @@ test('a word taken after the page opened shows the refusal, and offers no Retry'
   await expect(page.getByText('Ready', { exact: true })).toHaveCount(0)
 })
 
+/** A definition page's Add a name, opened into its field, which has the focus. */
+async function nameField(page: Page, name: string) {
+  await page.getByRole('main').getByRole('button', { name: 'Add a name', exact: true }).click()
+  const box = page.getByRole('textbox', { name: `Add a name for ${name}` })
+  await expect(box).toBeFocused()
+  return box
+}
+
 test('typing words and commas makes tags; a taken word says who has it', async ({ page }) => {
   await go(page, '/definitions/Gross%20sales')
-  const box = page.getByRole('textbox', { name: 'Add a name for Gross sales' })
+  // One line under the meaning: the names, Add a name, and what they do.
+  const names = page.getByRole('region', { name: 'Also called' })
+  await expect(names).toContainText('Agents read each of these as Gross sales.')
+  await expect(names.getByRole('textbox')).toHaveCount(0)
+  const box = await nameField(page, 'Gross sales')
+  await expect(names).toContainText('A comma or Enter adds a name.')
   await box.fill('Sales Value,')
   const tags = page
     .getByRole('region', { name: 'Also called' })
@@ -97,11 +111,14 @@ test('typing words and commas makes tags; a taken word says who has it', async (
   ).toBeAttached()
   await box.press('Backspace')
   await expect(tags.getByText('Gross takings', { exact: true })).toHaveCount(0)
-  // Escape lets go of what is half typed; the tags stay.
+  // Escape lets go of what is half typed; the tags stay. Again, it closes the field.
   await box.fill('half')
   await box.press('Escape')
   await expect(box).toHaveValue('')
   await expect(tags.getByText('Sales Value', { exact: true })).toBeVisible()
+  await box.press('Escape')
+  await expect(box).toHaveCount(0)
+  await expect(names.getByRole('button', { name: 'Add a name', exact: true })).toBeFocused()
 })
 
 /**
@@ -160,7 +177,7 @@ test('a tag shows the moment its comma is typed, and goes the moment it is remov
 }) => {
   const release = await holdSaves(page)
   await go(page, '/definitions/Gross%20sales?slow=1')
-  const box = page.getByRole('textbox', { name: 'Add a name for Gross sales' })
+  const box = await nameField(page, 'Gross sales')
   await box.pressSequentially('Sales Value')
   const typed = await nextFrame(page, 'keydown', () => box.press(','))
   expect(typed).toMatchObject({ text: '', focused: true, said: '' })
@@ -188,7 +205,7 @@ test('a save that fails keeps the word, marked, and says so in place; Try again 
   await go(page, '/definitions/Gross%20sales?state=failed')
   // The mock fails the page's own first load too.
   if (mode === 'mock') await page.getByRole('button', { name: 'Retry' }).click()
-  const box = page.getByRole('textbox', { name: 'Add a name for Gross sales' })
+  const box = await nameField(page, 'Gross sales')
   const tag = page.getByRole('button', { name: 'Remove the other name Sales Value' })
   await box.pressSequentially('Sales Value')
   expect((await nextFrame(page, 'keydown', () => box.press(','))).tags).toContain('Sales Value')
@@ -223,8 +240,7 @@ test('a save that fails keeps the word, marked, and says so in place; Try again 
 test('a word the service turns down says why, and offers no Try again', async ({ page }) => {
   test.skip(mode === 'mock', 'The reason is the service answering a write it will not make.')
   await go(page, '/definitions/Season')
-  const box = page.getByRole('textbox', { name: 'Add a name for Season' })
-  await expect(box).toBeVisible()
+  const box = await nameField(page, 'Season')
   // Someone else deletes Season while this page is open.
   await page.evaluate(async () => {
     const session = (await (await fetch('/api/v1/auth/session')).json()) as { csrfToken: string }

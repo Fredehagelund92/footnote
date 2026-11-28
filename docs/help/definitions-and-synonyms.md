@@ -3,7 +3,7 @@ title: Definitions and synonyms
 line: Metrics and terms, other names for them, and why some are read-only.
 group: Write and review
 order: 8
-minutes: 8
+minutes: 9
 reviewed: 2026-11-28
 open:
   label: Open Definitions
@@ -24,6 +24,17 @@ They come from where your metrics are defined, and are read-only here: their mea
 A line under the toolbar says which tool they come from and links to it in Integrations. One definitions tool is on at a time, so they all come from one. See [Integrations](integrations.md#one-definitions-tool-at-a-time).
 
 A read makes a name for each new one, and it reaches Definitions once its owner publishes it on the Names card in the Inbox. An admin publishes a name that belongs to no domain. See [Set up your workspace](set-up-your-workspace.md#publish-the-names).
+
+## A definition's page
+
+A definition's page leads with what it means, in large words. One line under them says where the words come from and how to change them: Read from dbt, change it there; for a term, who wrote it and when, with **Edit**; for a family, **Change the words**.
+
+Under that, **Also called** lists its other names in one line, then a metric's Built from tree and what uses it, then the context about it. The rest waits in closed rows, each with a few words on what it holds:
+
+- **Variants**, for a family: up to ten, one a line, each with how it is converted from another and its own words. Past ten, a table.
+- **How it is built**, for a family: how it was found, and Split.
+- **Where it comes from**: its domain and tool, with Open in source, and the source's name for it.
+- **History**: every change, with Restore for a term.
 
 ## Values of a dimension
 
@@ -62,12 +73,12 @@ A family is one entry for many near-identical metrics, such as a metric for each
 - A variant converted from another, or whose words say it is worked out from one at a rate, has no say. In a family by Currency, nor has the one variant of those that still have a say whose words say it is converted and name its own currency, such as converted to USD at each month's rate; a bare rate or conversion rate does not count.
 - When only the variant the others are converted from is left, its words are the meaning.
 - Words that still name one variant's value, such as in euros, are never the family's: it reads No meaning yet.
-- An owner of its domain, or an admin, can choose Change: worked out from its variants, or written for the family. Written words can begin from what its variants say, each wording once. History keeps each choice.
+- An owner of its domain, or an admin, can choose Change (Change the words on its page): worked out from its variants, or written for the family. Written words can begin from what its variants say, each wording once. History keeps each choice.
 - Variants whose own words say something else than the meaning are named, and agents read their words too. A family with no meaning names none. Nor do words written for the family when its variants share no words: those words speak for every variant.
 - The Families view lists every family with how it was found, its variants and what tells them apart, what it means or No meaning yet, and the context about it that needs a recheck. A row opens the family's quick view.
 - Under Kept apart, it lists each family split back into its metrics, with who split it and the context still about it. An owner of its domain, or an admin, can choose Make them one family again. [Split a family](metric-variants.md#split-a-family-into-separate-metrics) says what a split does.
 - Kept apart also lists the metrics an owner kept separate on the Names card, with who did it and when. An owner of their domain, or an admin, can choose Make them one family.
-- Its own page lists the variants, and narrows them by each value, such as Currency: EUR. It says how the family was found, such as declared in dbt, and which variant is converted from which.
+- Its own page reads each value as the values it holds, such as in EUR or USD; past three, as what it stands for, such as Currency. Under Variants it lists them, one a line up to ten; past ten, a table narrows them by each value, such as Currency: EUR. How it is built says how the family was found, such as declared in dbt, and which variant is converted from which.
 - Context about the family applies to every variant. See [Variants: a dimension, not a metric each](metric-variants.md).
 
 ## Terms and synonyms
@@ -79,8 +90,9 @@ A word that means the same as a metric or a dimension, such as GMV for Gross sal
 <!-- /include -->
 
 - A term is a word with its own meaning, such as Peak season. An owner of its domain, or an admin, adds one with **New term** in Definitions.
-- On a definition, its other names are under **Also called**. Type a name into the box, Add a name: a comma or Enter makes each one a tag, and agents read each of them as that definition. A family takes other names as a metric does, and agents read the family by them.
-- A name that was not added stays in the box, marked, with one line under it that says why, such as when the definition was removed meanwhile. When the save did not go through, nothing changed, and Try again sends it again.
+- On a definition, its other names are under **Also called**. Choose **Add a name** and type: a comma or Enter makes each one a tag, and agents read each of them as that definition. Escape closes the field. A family takes other names as a metric does, and agents read the family by them.
+- A name that was not added stays, marked, with one line under it that says why, such as when the definition was removed meanwhile. When the save did not go through, nothing changed, and Try again sends it again.
+- A name that also means something else says so in a line of its own, under the names.
 - In a term's editor, **Other name for** points the word at a metric or a dimension. A synonym's own page says Other name for and the definition it means.
 - A word that already means something else says who has it, and is never saved twice. Case, spaces and accents don't make it another word: Salés is Sales.
 - A word that looks like one in use, such as Sale beside Sales, only warns. Agents read them as two words, so you can still publish it.

@@ -171,4 +171,28 @@ describe('a family’s meaning', () => {
     expect(el.querySelector('strong')?.textContent).toBe('in Currency')
     expect(el.querySelector('strong span')?.textContent).toBe('Currency')
   })
+
+  it('on the page, reads a value as the few it holds, and as its axis past three', () => {
+    const held = (values: string[]) =>
+      render(
+        React.createElement(MeaningWords, {
+          meaning,
+          by: ['Currency'],
+          values: () => values,
+        }),
+      )
+    const two = held(['EUR', 'USD'])
+    expect(seen(two)).toBe(
+      'Fees partners report in EUR or USD. Not our revenue: see commission_eur.',
+    )
+    expect(two.querySelector('[title]')?.getAttribute('title')).toBe(
+      'One metric for each Currency: EUR and USD',
+    )
+    expect(seen(held(['EUR', 'GBP', 'USD']))).toContain('in EUR, GBP or USD.')
+    const many = held(['EUR', 'GBP', 'NOK', 'SEK', 'USD', 'DKK', 'CHF', 'PLN'])
+    expect(seen(many)).toContain('report in Currency.')
+    expect(many.querySelector('[title]')?.getAttribute('title')).toBe(
+      'One metric for each Currency: EUR, GBP, NOK, SEK, USD, DKK and 2 more',
+    )
+  })
 })

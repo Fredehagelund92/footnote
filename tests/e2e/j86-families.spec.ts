@@ -1,4 +1,4 @@
-import { expect, go, test } from './go.ts'
+import { expect, go, openRow, test } from './go.ts'
 
 // J86, families of metrics (FR-142): a dbt model with a metric per currency and channel, which a
 // read found as twenty families (the mock's ?demo=families), dbt the one definitions tool on. Definitions lists one entry per family and
@@ -116,12 +116,17 @@ for (const { name, width, height } of widths) {
       const main = page.getByRole('main')
       await expect(main.getByRole('heading', { name: 'Revenue', level: 2 })).toBeVisible()
       await expect(main.getByText('Family of metrics')).toBeVisible()
-      const variants = main.getByRole('region', { name: /^Variants/ })
-      await expect(variants).toContainText('250')
+      // A closed row says how many, and what tells them apart; past ten, opened, a table.
+      await expect(
+        main.getByRole('button', { name: 'Variants', exact: true }),
+      ).toHaveAccessibleDescription('250 - by Currency and Channel')
+      await openRow(page, 'Variants')
+      await expect(main).toContainText('Its 250 variants differ only by Currency and Channel.')
+      const variants = main.getByRole('region', { name: 'Variants' })
       await expect(variants.locator('tbody tr').first()).toContainText('Revenue (EUR) web')
       await variants.getByRole('button', { name: 'Currency: any' }).click()
       await page.getByRole('menuitemradio', { name: 'EUR' }).click()
-      await expect(variants.getByRole('heading')).toContainText('5 of 250')
+      await expect(variants).toContainText('5 of 250')
       await variants.getByRole('button', { name: 'Channel: any' }).click()
       await page.getByRole('menuitemradio', { name: 'web' }).click()
       await expect(variants.locator('tbody tr')).toHaveCount(1)
@@ -151,10 +156,17 @@ test('groups a metric in EUR with one in USD worked out from it, and says how', 
     'Family of 2 metrics, by CurrencyUSD is converted from EUR',
   )
   await expect(main.locator('tbody')).not.toContainText('(USD)')
+  // Its page reads the currency as the values it holds, and lists the two, each saying how.
   await go(page, '/definitions/Accrued%20share%20front%20loaded?demo=families')
-  await expect(page.getByRole('main')).toContainText(
-    "Accrued share front loaded (USD): The EUR amount multiplied by the row's exchange rate.",
+  const own = page.getByRole('main')
+  await expect(own).toContainText(
+    "The share of a contract's value booked in its first three months, in EUR or USD.",
   )
+  await openRow(page, 'Variants')
+  await expect(own.getByRole('list', { name: 'Variants' }).getByRole('listitem')).toHaveText([
+    "EURThe share of a contract's value booked in its first three months, in euros.",
+    "USDConverted from EUR by the column exchange_rate_usd.The EUR amount multiplied by the row's exchange rate.",
+  ])
 })
 
 test('the Names card offers a family as one name, and one press publishes it', async ({ page }) => {

@@ -31,7 +31,6 @@ export function DefinitionRelations({ d }: { d: Definition }) {
             tool={tool}
             parts={builtFromParts}
             label={<h3 className="text-muted-foreground">Built from</h3>}
-            className="mb-3"
           />
         )
       }
@@ -56,31 +55,34 @@ export function RelationList({
   const inputs = !!tree && relations.some((r) => r.kind === 'built_from' && !r.column)
   const usedBy = of('used_by')
   if (!relations.length) return null
+  const rows = convertedFrom.length + convertedTo.length + builtFrom.length + usedBy.length > 0
   return (
-    <section aria-label="How it is built" className="flex max-w-reading flex-col gap-1 text-sm">
+    <section aria-label="How it is built" className="flex max-w-reading flex-col gap-4 text-sm">
       {inputs && tree}
-      <dl className="flex flex-col">
-        {convertedFrom.length > 0 && (
-          <Row label="Converted from">
-            <Conversions relations={convertedFrom} tool={tool} />
-          </Row>
-        )}
-        {convertedTo.length > 0 && (
-          <Row label="Converted to">
-            <Conversions relations={convertedTo} tool={tool} />
-          </Row>
-        )}
-        {builtFrom.length > 0 && (
-          <Row label={inputs ? 'Columns' : 'Built from'}>
-            <Names relations={builtFrom} tool={tool} />
-          </Row>
-        )}
-        {usedBy.length > 0 && (
-          <Row label="Used by">
-            <Names relations={usedBy} tool={tool} />
-          </Row>
-        )}
-      </dl>
+      {rows && (
+        <dl className="flex flex-col">
+          {convertedFrom.length > 0 && (
+            <Row label="Converted from">
+              <Conversions relations={convertedFrom} tool={tool} />
+            </Row>
+          )}
+          {convertedTo.length > 0 && (
+            <Row label="Converted to">
+              <Conversions relations={convertedTo} tool={tool} />
+            </Row>
+          )}
+          {builtFrom.length > 0 && (
+            <Row label={inputs ? 'Columns' : 'Built from'}>
+              <Names relations={builtFrom} tool={tool} />
+            </Row>
+          )}
+          {usedBy.length > 0 && (
+            <Row label="Used by">
+              <Names relations={usedBy} tool={tool} />
+            </Row>
+          )}
+        </dl>
+      )}
     </section>
   )
 }
